@@ -701,7 +701,7 @@
 </head>
 <body>
 <div id="splash">
-  <img id="splashLogo" src="icon-96.png" alt="">
+  <img id="splashLogo" src="icon-512.png" alt="">
   <div class="splash-word">Savora</div>
 </div>
 <div id="app"></div>
@@ -1257,7 +1257,7 @@ function detailView() {
       <button class="icon-btn" data-action="export-pdf" data-id="${r.id}">${ICONS.pdf}</button>
       <button class="icon-btn" data-action="confirm-delete" data-id="${r.id}">${ICONS.trash}</button>
     ` })}
-    <main>
+    <main class="has-tabbar">
       <div class="detail-hero">
         ${img}
         <div class="detail-hero-overlay">
@@ -1303,6 +1303,7 @@ function detailView() {
         </div>
       </div>
     </main>
+    ${bottomNav()}
     ${state.modal && state.modal.type === 'delete' ? deleteModal(r) : ''}
   `;
 }
@@ -1648,13 +1649,14 @@ function unitConverterView() {
   if (state.ucUnit === undefined) state.ucUnit = 'g';
   return `
     ${topbar('Masseinheiten-Rechner', { back: true })}
-    <main>
+    <main class="has-tabbar">
       <div class="uc-input-row">
         <input type="text" inputmode="decimal" id="ucAmount" value="${escapeHtml(state.ucAmount)}">
         <select id="ucUnit">${unitConverterUnitOptions(state.ucUnit)}</select>
       </div>
       <div id="ucResults">${unitConverterResultsHtml()}</div>
     </main>
+    ${bottomNav()}
   `;
 }
 

@@ -1,4 +1,4 @@
-const CACHE_NAME = 'savora-v3';
+const CACHE_NAME = 'savora-v4';
 const ASSETS = [
   './',
   './index.html',
