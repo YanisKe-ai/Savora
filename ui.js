@@ -137,9 +137,6 @@ function bindEvents() {
       searchDebounceTimer = setTimeout(() => renderKeepFocus('searchInput'), 120);
     });
   }
-  const importUrl = document.getElementById('importUrl');
-  if (importUrl) importUrl.addEventListener('keydown', (e) => { if (e.key === 'Enter') importFromUrl(importUrl.value.trim()); });
-
   const restoreInput = document.getElementById('restoreFileInput');
   if (restoreInput) {
     restoreInput.addEventListener('change', (e) => {
@@ -575,16 +572,6 @@ async function onAction(e) {
         state.editingRecipe.ingredients[idx] = converted;
       }
       render();
-      break;
-    }
-    case 'do-import': {
-      const url = document.getElementById('importUrl').value.trim();
-      if (url) importFromUrl(url);
-      break;
-    }
-    case 'focus-paste-import': {
-      const ta = document.getElementById('pasteText');
-      if (ta) { ta.focus(); ta.scrollIntoView({ behavior: prefersReducedMotion() ? 'auto' : 'smooth', block: 'center' }); }
       break;
     }
     case 'do-paste-import': {

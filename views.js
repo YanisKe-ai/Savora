@@ -578,7 +578,7 @@ function settingsView() {
     </div>`;
 
   const unitsBody = `
-    <p class="settings-hint">Beim Importieren von Rezepten (Web oder Text) werden Mengen automatisch in dein bevorzugtes System umgerechnet. Du kannst jede Menge danach trotzdem frei anpassen.</p>
+    <p class="settings-hint">Beim Importieren von Rezepten aus Text werden Mengen automatisch in dein bevorzugtes System umgerechnet. Du kannst jede Menge danach trotzdem frei anpassen.</p>
     <div class="theme-switch" style="margin-bottom:12px;">
       <button class="theme-opt ${state.unitSystem === 'metric' ? 'active' : ''}" data-action="set-unit-system" data-system="metric">Metrisch (g, ml)</button>
       <button class="theme-opt ${state.unitSystem === 'imperial' ? 'active' : ''}" data-action="set-unit-system" data-system="imperial">Imperial (oz, cup)</button>
@@ -586,16 +586,9 @@ function settingsView() {
     <button class="ghost-btn" data-action="open-unitconverter">${ICONS.ruler} Masseinheiten-Rechner öffnen</button>`;
 
   const importBody = `
-    <p class="settings-hint">Rezept-Blog-Link einfügen — funktioniert bei den meisten Seiten (nutzt deren strukturierte Rezeptdaten).</p>
+    <p class="settings-hint">Bildunterschrift eines Instagram-/TikTok-Posts, eine WhatsApp-Nachricht, kopierter Rezepttext einer Webseite oder eine eigene Notiz einfügen. Savora erkennt Titel, Zutaten und Schritte automatisch — du prüfst den Entwurf danach kurz, bevor du speicherst.</p>
     <div class="field" style="margin-bottom:10px;">
-      <input type="text" id="importUrl" placeholder="https://beispiel.de/rezept/…">
-    </div>
-    <button class="primary-btn" data-action="do-import">${ICONS.link} Importieren</button>
-    <div id="importStatus"></div>
-    <div class="settings-divider"></div>
-    <p class="settings-hint">Oder: Bildunterschrift eines Instagram-/TikTok-Posts (oder anderen Rezepttext) einfügen. Savora erkennt Titel, Zutaten und Schritte automatisch — du prüfst den Entwurf danach kurz, bevor du speicherst. Ein vollautomatischer Import direkt aus der App würde ein bezahltes Server-Backend brauchen; das ist (noch) nicht eingebaut.</p>
-    <div class="field" style="margin-bottom:10px;">
-      <textarea id="pasteText" placeholder="Bildunterschrift hier einfügen …" style="min-height:110px;"></textarea>
+      <textarea id="pasteText" placeholder="Rezepttext hier einfügen …" style="min-height:110px;"></textarea>
     </div>
     <button class="primary-btn" data-action="do-paste-import">${ICONS.sparkle} Rezept-Entwurf erstellen</button>`;
 
@@ -633,7 +626,7 @@ function settingsView() {
       ${settingsSection('display', ICONS.moon, 'Darstellung', displayBody, { badge: `<span class="settings-section-badge">${themeLabel}</span>` })}
       ${settingsSection('units', ICONS.ruler, 'Masseinheiten', unitsBody, { badge: `<span class="settings-section-badge">${unitLabel}</span>` })}
       ${settingsSection('profile', ICONS.sparkle, 'Kochbuch & Name', profileBody)}
-      ${settingsSection('import', ICONS.link, 'Rezepte importieren', importBody)}
+      ${settingsSection('import', ICONS.sparkle, 'Rezept aus Text importieren', importBody)}
       ${settingsSection('data', ICONS.download, 'Exportieren & sichern', dataBody)}
       ${settingsSection('about', ICONS.book, 'Über Savora', aboutBody)}
     </main>
