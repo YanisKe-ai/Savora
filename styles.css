@@ -217,10 +217,12 @@
     font-size: 18px;
     font-weight: 600;
     color: var(--cream-100);
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
     min-width: 0;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    line-height: 1.25;
   }
   .topbar-actions { display: flex; gap: 8px; align-items: center; flex-shrink: 0; }
 
@@ -307,8 +309,11 @@
     background: rgba(255,255,255,0.9);
     border: none;
     display: flex; align-items: center; justify-content: center;
+    transition: background-color 0.15s ease, transform 0.15s ease;
   }
   .fav-btn svg { width: 16px; height: 16px; color: var(--ember-600); }
+  .fav-btn--active { background: var(--ember-500); }
+  .fav-btn--active svg { color: #fff; }
 
   .empty-state {
     text-align: center;

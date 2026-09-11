@@ -110,7 +110,7 @@ function recipeCard(r, opts = {}) {
       : `<div class="recipe-card-img placeholder">${ICONS.chef}</div>`;
   return `<div class="recipe-card ${featured ? 'recipe-card--featured' : ''}" data-action="open-recipe" data-id="${r.id}" role="button" tabindex="0">
     ${img}
-    <button class="fav-btn" data-action="toggle-fav" data-id="${r.id}" aria-label="${r.favorite ? 'Aus Favoriten entfernen' : 'Zu Favoriten hinzufügen'}" aria-pressed="${r.favorite ? 'true' : 'false'}">${r.favorite ? ICONS.heart : ICONS.heartOutline}</button>
+    <button class="fav-btn${r.favorite ? ' fav-btn--active' : ''}" data-action="toggle-fav" data-id="${r.id}" aria-label="${r.favorite ? 'Aus Favoriten entfernen' : 'Zu Favoriten hinzufügen'}" aria-pressed="${r.favorite ? 'true' : 'false'}">${r.favorite ? ICONS.heart : ICONS.heartOutline}</button>
     <div class="recipe-card-body">
       ${featured ? `<div class="recipe-card-eyebrow">Zuletzt bearbeitet</div>` : ''}
       <div class="recipe-card-title">${escapeHtml(r.title || 'Ohne Titel')}</div>
