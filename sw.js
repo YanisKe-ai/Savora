@@ -5,7 +5,7 @@
    - Kontrollierter Update-Flow: kein automatisches skipWaiting. Ein neuer Worker wartet, bis
      die Seite per postMessage({type:'SKIP_WAITING'}) explizit zustimmt.
 */
-const SW_VERSION = 'v2-flat';
+const SW_VERSION = 'v3-pdf';
 const CACHE_SHELL = 'savora-shell-' + SW_VERSION;
 const CACHE_RUNTIME = 'savora-runtime-' + SW_VERSION;
 const SHELL_ASSETS = [
@@ -27,6 +27,8 @@ const SHELL_ASSETS = [
   './parsers.js',
   './views.js',
   './cookmode.js',
+  './jspdf.umd.min.js',
+  './html2canvas.min.js',
   './pdf.js',
   './backup.js',
   './import.js',

@@ -676,82 +676,60 @@
   .toast-undo-btn { background: none; border: none; color: var(--ember-400); font-weight: 700; font-size: 13.5px; padding: 8px 10px; min-height: 36px; }
   .toast-error { background: var(--danger); }
 
-  /* ---------- Print / PDF cookbook layout ---------- */
-  #printRoot { display: none; }
-  @media print {
-    #app, #splash, .toast { display: none !important; }
-    #printRoot { display: block; width: 100%; }
-    @page { size: A4; margin: 0; }
-    html, body {
-      margin: 0; padding: 0;
-      background: #faf7ee; /* hell statt dunkel — sonst schimmert bei jedem kleinen Seitenueberlauf
-                               (z.B. durch ein Rezeptfoto) ploetzlich Waldgruen auf der Restseite durch */
-      -webkit-print-color-adjust: exact; print-color-adjust: exact;
-    }
-
-    /* Jede "Seite" nimmt die volle A4-Flaeche ein und traegt ihre eigene Hintergrundfarbe
-       bis an den Rand — sonst bleibt (v.a. in Safari, das eigene @page-Raender erzwingt und
-       Autoren-Margins ignoriert) eine schwebende Box mit ungleichem Weissraum drumherum stehen. */
-    .print-cover, .print-toc, .print-recipe-page {
-      width: 210mm; min-height: 297mm; margin: 0 auto; box-sizing: border-box;
-      -webkit-print-color-adjust: exact; print-color-adjust: exact;
-    }
-
-    .print-recipe-page {
-      break-after: page; page-break-after: always;
-      break-inside: avoid; page-break-inside: avoid;
-      font-family: var(--font-sans); color: #1b2118;
-      background: #faf7ee; padding: 22mm 18mm;
-    }
-    .print-recipe-page:last-child { break-after: auto; page-break-after: auto; }
-
-    .print-cover {
-      break-after: page; page-break-after: always;
-      background: #faf7ee; color: #16261c;
-      display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center;
-      padding: 28mm 24mm;
-    }
-    .print-cover-badge {
-      width: 30mm; height: 30mm; border-radius: 8mm; background: #0f1a13; margin-bottom: 14mm;
-      display: flex; align-items: center; justify-content: center;
-    }
-    .print-cover-badge svg { width: 15mm; height: 15mm; color: #f5efdf; }
-    .print-cover h1 { font-family: var(--font-display); font-size: 40pt; font-weight: 700; margin: 0; color: #16261c; letter-spacing: -0.01em; }
-    .print-cover-rule { width: 26mm; height: 2.5pt; background: #c9832f; margin: 7mm 0; border: none; }
-    .print-cover p { font-family: var(--font-sans); font-size: 9.5pt; letter-spacing: 0.16em; text-transform: uppercase; color: #7a8a7c; margin: 0; }
-
-    .print-toc {
-      break-after: page; page-break-after: always;
-      background: #faf7ee; padding: 26mm 20mm;
-    }
-    .print-toc h2 { font-family: var(--font-display); font-size: 24pt; font-weight: 700; color: #16261c; border-bottom: 2px solid #16261c; padding-bottom: 10px; margin: 0 0 18px; }
-    .print-toc-category { font-family: var(--font-display); font-size: 10pt; font-weight: 700; text-transform: uppercase; letter-spacing: 0.12em; color: #a8681f; margin: 20px 0 4px; }
-    .print-toc-row { display: flex; justify-content: space-between; font-family: var(--font-sans); font-size: 10.5pt; padding: 7px 0; border-bottom: 1px dotted #ccc; }
-
-    .print-header { font-family: var(--font-display); font-size: 9pt; font-weight: 700; text-transform: uppercase; letter-spacing: 0.16em; color: #a8681f; margin-bottom: 8px; }
-    .print-title { font-family: var(--font-display); font-size: 26pt; font-weight: 700; color: #16261c; margin: 0 0 10px; line-height: 1.12; }
-    .print-meta { font-family: var(--font-sans); font-size: 9.5pt; color: #4a5a4c; display: flex; gap: 16px; margin-bottom: 8px; }
-    .print-source { font-family: var(--font-sans); font-size: 8.5pt; color: #9aa79b; margin-bottom: 12px; font-style: italic; }
-    .print-image { width: 100%; max-height: 52mm; object-fit: cover; border-radius: 6px; margin-bottom: 12px; }
-    .print-divider { border: none; border-top: 1px solid #ddd6c3; margin: 6px 0 18px; }
-
-    /* Asymmetrisches Raster statt gleich breiter Spalten: Zutaten schmal, Zubereitung breit —
-       das ist der in modernen Kochbuechern uebliche Rhythmus statt einer starren 50/50-Teilung. */
-    .print-cols { display: grid; grid-template-columns: 1fr 1.8fr; gap: 10mm; align-items: start; }
-    .print-ing-block, .print-steps-block { break-inside: avoid; page-break-inside: avoid; }
-    .print-ing-title, .print-steps-title { font-family: var(--font-display); font-size: 9pt; font-weight: 700; text-transform: uppercase; letter-spacing: 0.14em; color: #a8681f; margin: 0 0 10px; padding-bottom: 6px; border-bottom: 1.5pt solid #c9832f; }
-    .print-ing-list { list-style: none; padding: 0; margin: 0 0 14px; font-family: 'Georgia', 'Iowan Old Style', ui-serif, serif; font-size: 10.5pt; }
-    .print-ing-list li { padding: 5px 0; border-bottom: 1px solid #eee; break-inside: avoid; page-break-inside: avoid; }
-    .print-step-list { list-style: none; padding: 0; margin: 0; counter-reset: pstep; }
-    .print-step-list li {
-      font-family: 'Georgia', 'Iowan Old Style', ui-serif, serif; font-size: 11pt; line-height: 1.58; margin-bottom: 13px;
-      padding-left: 26px; position: relative; break-inside: avoid; page-break-inside: avoid;
-    }
-    .print-step-list li::before {
-      counter-increment: pstep; content: counter(pstep);
-      position: absolute; left: 0; top: 1px; width: 18px; height: 18px;
-      background: #16261c; color: #f5efdf; border-radius: 50%; font-family: var(--font-display); font-size: 8.5pt; font-weight: 600;
-      display: flex; align-items: center; justify-content: center;
-    }
-    .print-footer { font-family: var(--font-sans); font-size: 8pt; color: #aaa; text-align: center; margin-top: 18px; }
+  /* ---------- PDF-Kochbuch-Layout ---------- */
+  /* Wird nicht mehr ueber window.print() ausgegeben (Safari erzwingt dabei einen eigenen,
+     nicht entfernbaren Rand), sondern per html2canvas+jsPDF direkt als Bild-PDF zusammengebaut —
+     dafuer muss dieses Layout ausserhalb von @media print, aber ausserhalb des sichtbaren
+     Bereichs liegen, damit html2canvas es trotzdem rendern kann. */
+  #printRoot { position: fixed; left: -9999px; top: 0; width: 210mm; }
+  .pdf-page-cover, .pdf-page-toc, .pdf-page-recipe {
+    width: 210mm; min-height: 297mm; box-sizing: border-box;
   }
+  .pdf-page-recipe {
+    font-family: var(--font-sans); color: #1b2118;
+    background: #faf7ee; padding: 18mm 16mm;
+  }
+  .pdf-page-cover {
+    background: #faf7ee; color: #16261c;
+    display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center;
+    padding: 28mm 24mm;
+  }
+  .pdf-cover-badge {
+    width: 30mm; height: 30mm; border-radius: 8mm; background: #0f1a13; margin-bottom: 14mm;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .pdf-cover-badge svg { width: 15mm; height: 15mm; color: #f5efdf; }
+  .pdf-page-cover h1 { font-family: var(--font-display); font-size: 40pt; font-weight: 700; margin: 0; color: #16261c; letter-spacing: -0.01em; }
+  .pdf-cover-rule { width: 26mm; height: 2.5pt; background: #c9832f; margin: 7mm 0; border: none; }
+  .pdf-page-cover p { font-family: var(--font-sans); font-size: 9.5pt; letter-spacing: 0.16em; text-transform: uppercase; color: #7a8a7c; margin: 0; }
+
+  .pdf-page-toc { background: #faf7ee; padding: 26mm 20mm; }
+  .pdf-page-toc h2 { font-family: var(--font-display); font-size: 24pt; font-weight: 700; color: #16261c; border-bottom: 2px solid #16261c; padding-bottom: 10px; margin: 0 0 18px; }
+  .print-toc-category { font-family: var(--font-display); font-size: 10pt; font-weight: 700; text-transform: uppercase; letter-spacing: 0.12em; color: #a8681f; margin: 20px 0 4px; }
+  .print-toc-row { display: flex; justify-content: space-between; font-family: var(--font-sans); font-size: 10.5pt; padding: 7px 0; border-bottom: 1px dotted #ccc; }
+
+  .print-header { font-family: var(--font-display); font-size: 9pt; font-weight: 700; text-transform: uppercase; letter-spacing: 0.16em; color: #a8681f; margin-bottom: 8px; }
+  .print-title { font-family: var(--font-display); font-size: 26pt; font-weight: 700; color: #16261c; margin: 0 0 10px; line-height: 1.12; }
+  .print-meta { font-family: var(--font-sans); font-size: 9.5pt; color: #4a5a4c; display: flex; gap: 16px; margin-bottom: 8px; }
+  .print-source { font-family: var(--font-sans); font-size: 8.5pt; color: #9aa79b; margin-bottom: 12px; font-style: italic; }
+  .print-image { width: 100%; max-height: 44mm; object-fit: cover; border-radius: 6px; margin-bottom: 10px; }
+  .print-divider { border: none; border-top: 1px solid #ddd6c3; margin: 6px 0 18px; }
+
+  /* Asymmetrisches Raster statt gleich breiter Spalten: Zutaten schmal, Zubereitung breit —
+     das ist der in modernen Kochbuechern uebliche Rhythmus statt einer starren 50/50-Teilung. */
+  .print-cols { display: grid; grid-template-columns: 1fr 1.8fr; gap: 10mm; align-items: start; }
+  .print-ing-title, .print-steps-title { font-family: var(--font-display); font-size: 9pt; font-weight: 700; text-transform: uppercase; letter-spacing: 0.14em; color: #a8681f; margin: 0 0 10px; padding-bottom: 6px; border-bottom: 1.5pt solid #c9832f; }
+  .print-ing-list { list-style: none; padding: 0; margin: 0 0 14px; font-family: 'Georgia', 'Iowan Old Style', ui-serif, serif; font-size: 10.5pt; }
+  .print-ing-list li { padding: 5px 0; border-bottom: 1px solid #eee; }
+  .print-step-list { list-style: none; padding: 0; margin: 0; counter-reset: pstep; }
+  .print-step-list li {
+    font-family: 'Georgia', 'Iowan Old Style', ui-serif, serif; font-size: 10.5pt; line-height: 1.5; margin-bottom: 10px;
+    padding-left: 26px; position: relative;
+  }
+  .print-step-list li::before {
+    counter-increment: pstep; content: counter(pstep);
+    position: absolute; left: 0; top: 1px; width: 18px; height: 18px;
+    background: #16261c; color: #f5efdf; border-radius: 50%; font-family: var(--font-display); font-size: 8.5pt; font-weight: 600;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .print-footer { font-family: var(--font-sans); font-size: 8pt; color: #aaa; text-align: center; margin-top: 18px; }
