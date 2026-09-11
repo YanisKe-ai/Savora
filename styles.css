@@ -741,10 +741,15 @@
   .pdf-cover-rule { width: 26mm; height: 2.5pt; background: #c9832f; margin: 7mm 0; border: none; }
   .pdf-page-cover p { font-family: var(--font-sans); font-size: 9.5pt; letter-spacing: 0.16em; text-transform: uppercase; color: #7a8a7c; margin: 0; }
 
-  .pdf-page-toc { background: #faf7ee; padding: 26mm 20mm; }
+  .pdf-page-toc { background: #faf7ee; padding: 26mm 20mm; color: #16261c; }
   .pdf-page-toc h2 { font-family: var(--font-display); font-size: 24pt; font-weight: 700; color: #16261c; border-bottom: 2px solid #16261c; padding-bottom: 10px; margin: 0 0 18px; }
   .print-toc-category { font-family: var(--font-display); font-size: 10pt; font-weight: 700; text-transform: uppercase; letter-spacing: 0.12em; color: #a8681f; margin: 20px 0 4px; }
-  .print-toc-row { display: flex; justify-content: space-between; font-family: var(--font-sans); font-size: 10.5pt; padding: 7px 0; border-bottom: 1px dotted #ccc; }
+  /* Punkt 29/63-65: kraeftigerer Titel-Kontrast, echte Seitenzahl statt Ratewert, Punktlinie
+     dazwischen statt eines schwachen Trennstrichs unter der ganzen Zeile. */
+  .print-toc-row { display: flex; align-items: baseline; gap: 8px; font-family: var(--font-sans); font-size: 10.5pt; padding: 7px 0; }
+  .print-toc-row .toc-title { color: #16261c; font-weight: 600; flex-shrink: 0; max-width: 70%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .print-toc-row .toc-leader { flex: 1; border-bottom: 1px dotted #b8ac8c; height: 1px; margin-bottom: 4px; min-width: 8mm; }
+  .print-toc-row .toc-page { flex-shrink: 0; font-variant-numeric: tabular-nums; font-weight: 700; color: #a8681f; }
 
   .print-header { font-family: var(--font-display); font-size: 9pt; font-weight: 700; text-transform: uppercase; letter-spacing: 0.16em; color: #a8681f; margin-bottom: 8px; }
   .print-title { font-family: var(--font-display); font-size: 26pt; font-weight: 700; color: #16261c; margin: 0 0 10px; line-height: 1.12; }
@@ -901,6 +906,14 @@
   .pdf-layout-typography { padding: 22mm 18mm; }
   .pdf-layout-typography .pdf-title-typography { font-size: 32pt; }
   .pdf-layout-typography .pdf-typo-rule { width: 26mm; height: 2.5pt; background: #c9832f; margin: 10px 0 20px; }
+
+  /* Layout F — Long Recipe + Fortsetzung (Teil F): einspaltig, damit sich eine zu lange Seite an
+     jeder Blockgrenze sauber umbrechen laesst, ohne zwei ungleich lange Spalten zu erzeugen
+     (siehe pdf-layout.js candidateFitsOnePage / pdf.js buildLongRecipePages). */
+  .pdf-layout-long { display: flex; flex-direction: column; }
+  .pdf-long-photo { width: calc(100% + 32mm); margin: -18mm -16mm 14px; height: 85mm; overflow: hidden; }
+  .pdf-layout-continuation { padding-top: 22mm; }
+  .pdf-continuation-tag { font-family: var(--font-display); font-size: 9pt; font-weight: 700; text-transform: uppercase; letter-spacing: 0.14em; color: #a8681f; margin-bottom: 16px; padding-bottom: 8px; border-bottom: 1px solid #e3d9c4; }
 
   /* Fortsetzungs-Kennzeichnung auf Folgeseiten eines zu langen Rezepts (Punkt 61) —
      wird per Canvas-2D-Text nach dem Rendern eingezeichnet, siehe renderSectionsToPdf. */

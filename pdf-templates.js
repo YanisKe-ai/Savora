@@ -150,6 +150,72 @@ function pdfLayoutTypography(recipe, result, factor, nutritionDetail) {
   </section>`;
 }
 
+/* ---------- Layout F/G: Long Recipe + echte Fortsetzungsseiten (Reparatur-Auftrag Teil F) ----------
+   Wird nur verwendet, wenn eine echte DOM-Messung (pdf-layout.js) zeigt, dass ein Rezept nicht
+   auf eine A4-Seite passt. Bewusst EINSPALTIG statt pdf-cols: eine zweispaltige Seite laesst sich
+   nicht sauber an einer beliebigen Stelle umbrechen, ohne dass eine Spalte staerker gefuellt ist
+   als die andere — Punkt 76 sieht dieses Layout ausdruecklich als eigenstaendig vor, nicht als
+   Fehlerfall. Die Fortsetzungs-Kennzeichnung ist hier echter HTML-Text im neuen Seiten-Template,
+   nie nachtraeglich auf ein fertiges Canvas gemalt (Punkt 34/58) — kann sich deshalb strukturell
+   nicht mit Inhalt ueberlagern. */
+function pdfIngredientItemsHtml(recipe, factor) {
+  return (recipe.ingredients || []).filter((i) => i.name && i.name.trim()).map((i) => {
+    const pa = parseAmount(i.amount);
+    const amount = pa !== null ? `<strong>${fmtAmount(pa * factor)}${i.unit ? ' ' + escapeHtml(i.unit) : ''}</strong> ` : '';
+    return `<li>${amount}${escapeHtml(i.name)}</li>`;
+  });
+}
+
+function pdfStepItemsHtml(recipe) {
+  return (recipe.steps || []).filter((s) => s.text && s.text.trim()).map((s) => `<li>${escapeHtml(s.text)}</li>`);
+}
+
+/* Baut EINE Long-Recipe-Seite aus einer bereits vorbereiteten Liste von Bloecken (siehe
+   buildLongRecipePages in pdf.js). `imgUrl` nur auf Seite 1 gesetzt (Punkt 45: Hero-Foto gehoert
+   zu Seite 1, wird bei Fortsetzung nicht wiederholt/fortgesetzt — Punkt 53). */
+function pdfLongRecipeSection(recipe, imgUrl, bodyHtml, isContinuation) {
+  const header = isContinuation
+    ? `<div class="pdf-continuation-tag">${escapeHtml(recipe.title)} · Fortsetzung</div>`
+    : `<div class="pdf-header">${pdfHeaderTag(recipe)}</div><h1 class="pdf-title">${escapeHtml(recipe.title)}</h1>${pdfMetaLine(recipe)}`;
+  const photo = (!isContinuation && imgUrl) ? `<div class="pdf-long-photo"><img src="${imgUrl}" class="pdf-img-cover"></div>` : '';
+  return `<section class="pdf-page-recipe pdf-layout-long ${isContinuation ? 'pdf-layout-continuation' : ''}">
+    ${photo}
+    <div class="pdf-long-body">
+      ${header}
+      ${bodyHtml}
+    </div>
+    <div class="pdf-footer">Savora · Dein Kochbuch</div>
+  </section>`;
+}
+
+/* Gruppiert aufeinanderfolgende Bloecke gleichen Typs unter einer gemeinsamen Ueberschrift, auch
+   wenn die Gruppe ueber mehrere Seiten laeuft (Punkt 55: Zutatenblock zusammenhalten, wo moeglich,
+   bei Fortsetzung klare eigene Ueberschrift). Zubereitungsschritte behalten ihre echte Nummer
+   ueber die gesamte Fortsetzung hinweg (Punkt 54) — via CSS counter-reset, da die Nummern-Kreise
+   per ::before/counter gerendert werden, nicht ueber das HTML-Attribut ol-start. */
+function pdfRenderBlockGroups(sliceBlocks, allBlocks, sliceStartIdx) {
+  let html = '';
+  let i = 0;
+  while (i < sliceBlocks.length) {
+    const type = sliceBlocks[i].type;
+    let j = i;
+    while (j < sliceBlocks.length && sliceBlocks[j].type === type) j++;
+    const group = sliceBlocks.slice(i, j);
+    const globalStart = sliceStartIdx + i;
+    const isContinuationOfType = allBlocks.slice(0, globalStart).some((b) => b.type === type);
+    if (type === 'ing') {
+      html += `<div class="pdf-ing-title">Zutaten${isContinuationOfType ? ' · Fortsetzung' : ''}</div><ul class="pdf-ing-list">${group.map((b) => b.html).join('')}</ul>`;
+    } else if (type === 'step') {
+      const stepsBefore = allBlocks.slice(0, globalStart).filter((b) => b.type === 'step').length;
+      html += `<div class="pdf-steps-title">Zubereitung${isContinuationOfType ? ' · Fortsetzung' : ''}</div><ol class="pdf-step-list" style="counter-reset: pstep ${stepsBefore};">${group.map((b) => b.html).join('')}</ol>`;
+    } else {
+      html += group.map((b) => b.html).join('');
+    }
+    i = j;
+  }
+  return html;
+}
+
 /* Haupteinstieg: waehlt Layout deterministisch und baut das passende HTML. `imgDims` ist
    {width,height} des Originalbilds oder null (kein Foto -> Layout G, Punkt 49). */
 function buildRecipePdfSection(recipe, imgUrl, imgDims, result, previousLayout, nutritionDetail) {

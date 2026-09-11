@@ -101,6 +101,48 @@ function candidateLayoutsForAspect(aspect, density, resolutionOk) {
   return ['hero'];
 }
 
+/* ---------- Reparatur-Auftrag Teil C/D: echte Hoehenmessung statt Annahme ----------
+   1mm entspricht bei CSS-mm-Einheiten immer 96/25.4 Referenzpixeln (Browser-Standard,
+   unabhaengig von Geraet/Zoom) — deshalb ist eine DOM-Messung in Pixeln zuverlaessig in
+   mm umrechenbar, ohne echtes Rendering/Druckvorschau zu brauchen (Punkt 39). */
+const MM_PX = 96 / 25.4;
+const PAGE_HEIGHT_MM = 297;
+const PAGE_FIT_TOLERANCE_MM = 2; // Rundungstoleranz, keine Ausrede fuer Ueberlauf
+
+let _pdfProbeEl = null;
+function pdfMeasureProbe() {
+  if (!_pdfProbeEl || !document.body.contains(_pdfProbeEl)) {
+    _pdfProbeEl = document.createElement('div');
+    _pdfProbeEl.id = 'pdfMeasureProbe';
+    // Punkt 39: unsichtbar rendern (ausserhalb des Sichtbereichs, nicht display:none — sonst
+    // liefert der Browser 0 als Hoehe), tatsaechliche Hoehe messen, danach wieder leeren.
+    _pdfProbeEl.style.cssText = 'position:fixed;left:-9999px;top:0;width:210mm;';
+    document.body.appendChild(_pdfProbeEl);
+  }
+  return _pdfProbeEl;
+}
+
+/* Muss erst NACH document.fonts.ready aufgerufen werden (Punkt 124-125) — sonst misst man mit
+   dem Fallback-Font, waehlt anhand dessen ein Layout, und der Text verschiebt sich, sobald Baloo 2
+   nachlaedt ("verbotener Ablauf", Punkt 125). Die Aufrufer in pdf.js stellen das sicher. */
+function measureSectionHeightMm(html) {
+  const probe = pdfMeasureProbe();
+  probe.innerHTML = html;
+  const el = probe.firstElementChild;
+  const heightMm = el ? el.scrollHeight / MM_PX : 0;
+  probe.innerHTML = '';
+  return heightMm;
+}
+
+function cleanupPdfMeasureProbe() {
+  if (_pdfProbeEl && _pdfProbeEl.parentNode) _pdfProbeEl.parentNode.removeChild(_pdfProbeEl);
+  _pdfProbeEl = null;
+}
+
+function candidateFitsOnePage(html) {
+  return measureSectionHeightMm(html) <= PAGE_HEIGHT_MM + PAGE_FIT_TOLERANCE_MM;
+}
+
 /* Haupteinstiegspunkt. `previousLayout` (optional) ist das zuletzt vergebene Layout beim
    Kochbuch-Export (Punkt 52) — bei mehreren moeglichen Kandidaten wird eine Wiederholung
    vermieden, damit aufeinanderfolgende Seiten nicht identisch wirken. */
