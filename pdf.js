@@ -1,42 +1,9 @@
-/* ---------- PDF-Export ----------
-   Wird NICHT mehr ueber window.print() erzeugt: Safari erzwingt dabei einen eigenen,
-   nicht per CSS entfernbaren Seitenrand (@page-Margins werden von WebKit ignoriert).
-   Stattdessen wird jede "Seite" mit html2canvas als Bild gerendert und per jsPDF direkt
-   zu einer PDF-Datei zusammengebaut — damit bestimmt Savora selbst die Seitenmasse,
-   randlos bis zur letzten Pixelreihe, unabhaengig vom Drucksystem des Geraets.
-*/
-function printRecipeHtml(r, resolvedImg) {
-  const img = resolvedImg ? `<img class="print-image" src="${resolvedImg}">` : '';
-  return `<section class="pdf-page-recipe">
-    <div class="print-header">${(r.tags || [])[0] || 'Savora'}</div>
-    <h1 class="print-title">${escapeHtml(r.title)}</h1>
-    <div class="print-meta">
-      ${r.timeMinutes ? `<span>${r.timeMinutes} Min.</span>` : ''}
-      <span>${r.servings || 1} Portionen</span>
-      ${r.difficulty ? `<span>${escapeHtml(r.difficulty)}</span>` : ''}
-    </div>
-    ${r.source ? `<div class="print-source">Importiert von ${escapeHtml(domainFromUrl(r.source))}</div>` : ''}
-    ${(r.diet || []).length ? `<div class="print-meta">${r.diet.map(dk => { const d = DIET_OPTIONS.find(o => o.key === dk); return d ? escapeHtml(d.label) : ''; }).filter(Boolean).join(' · ')}</div>` : ''}
-    ${img}
-    <hr class="print-divider">
-    <div class="print-cols">
-      <div class="print-ing-block">
-        <div class="print-ing-title">Zutaten</div>
-        <ul class="print-ing-list">
-          ${(r.ingredients || []).map(i => `<li><strong>${(() => { const pa = parseAmount(i.amount); return pa !== null ? fmtAmount(pa) + (i.unit ? ' ' + escapeHtml(i.unit) : '') : ''; })()}</strong> ${escapeHtml(i.name)}</li>`).join('')}
-        </ul>
-      </div>
-      <div class="print-steps-block">
-        <div class="print-steps-title">Zubereitung</div>
-        <ol class="print-step-list">
-          ${(r.steps || []).map(s => `<li>${escapeHtml(s.text)}</li>`).join('')}
-        </ol>
-        ${r.notes ? `<div class="print-steps-title" style="margin-top:14px;">Notizen</div><p style="font-family:var(--font-sans);font-size:9.5pt;color:#555;">${escapeHtml(r.notes)}</p>` : ''}
-      </div>
-    </div>
-    <div class="print-footer">Savora · Dein Kochbuch</div>
-  </section>`;
-}
+/* ---------- PDF-Export (Editorial Engine, Punkt 33-69) ----------
+   Rendert weiterhin NICHT ueber window.print() (Safari-Randproblem, siehe Historie), sondern
+   per html2canvas + jsPDF. Neu in dieser Version: das Layout jeder Rezeptseite wird anhand des
+   tatsaechlichen Bild-Seitenverhaeltnisses und der Textmenge gewaehlt (pdf-layout.js/
+   pdf-templates.js), Nutrition wird eingebettet, und Seitenumbrueche versuchen, sichere Stellen
+   zu treffen statt mitten in eine Zutat/einen Schritt zu schneiden. */
 
 async function resolveRecipeImageDataUrl(r) {
   if (r.image) return r.image;
@@ -49,9 +16,34 @@ async function resolveRecipeImageDataUrl(r) {
   return null;
 }
 
-/* Rendert jedes direkte Kind von #printRoot als eigene(s) PDF-Seite(n) — randlos, echtes A4.
-   Ist der Inhalt eines Abschnitts hoeher als eine A4-Seite (z.B. ein langes Rezept mit Foto),
-   wird die Bildschnappschuss-Leinwand in mehrere volle Seiten zerschnitten statt abgeschnitten. */
+/* Echte Pixelmasse eines Bildes ermitteln (Grundlage der Layoutwahl, Punkt 35) — bewusst ueber
+   ein Image-Element statt Annahmen zu treffen, da Data-URLs/Blobs ihre Ausgangsaufloesung nicht
+   im String tragen. */
+function getImageDimensions(dataUrl) {
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.onload = () => resolve({ width: img.naturalWidth, height: img.naturalHeight });
+    img.onerror = () => resolve(null);
+    img.src = dataUrl;
+  });
+}
+
+/* Zeichnet dezent "Fortsetzung · <Titel>" oben auf eine Folgeseite (Punkt 61) — direkt auf die
+   bereits gerenderte Canvas-Slice, da zu diesem Zeitpunkt kein DOM-Rendering mehr stattfindet.
+   pxPerMm ist bereits die volle Canvas-Pixel-pro-mm-Skala (inkl. html2canvas-scale:2). */
+function drawContinuationLabel(sliceCanvas, title, pxPerMm) {
+  const ctx = sliceCanvas.getContext('2d');
+  const padX = 16 * pxPerMm, padY = 8 * pxPerMm;
+  const fontSizePx = 9 * 0.352778 * pxPerMm; // 9pt -> mm -> Canvas-Pixel
+  ctx.font = `italic ${fontSizePx}px Georgia, 'Iowan Old Style', serif`;
+  ctx.fillStyle = 'rgba(122,138,124,0.95)';
+  ctx.textBaseline = 'top';
+  ctx.fillText(`Fortsetzung · ${title}`, padX, padY);
+}
+
+/* Rendert jedes direkte Kind von #printRoot als eigene PDF-Seite(n) — randlos, echtes A4.
+   Ist ein Abschnitt hoeher als eine Seite, wird er an einem sicheren Umbruchpunkt geteilt
+   (Punkt 62), statt starr nach exakt einer Seitenhoehe zu schneiden. */
 async function renderSectionsToPdf(filename) {
   const container = document.getElementById('printRoot');
   const sections = Array.from(container.children);
@@ -64,26 +56,60 @@ async function renderSectionsToPdf(filename) {
   let firstPage = true;
 
   for (const section of sections) {
+    const domWidth = section.offsetWidth || 1;
+    const sectionTop = section.getBoundingClientRect().top;
+    const breakEls = Array.from(section.querySelectorAll('.pdf-safe-break'));
+    // Ein Umbruchpunkt ist nur dann wirklich sicher, wenn er NICHT innerhalb der Hoehe
+    // irgendeines markierten Elements liegt — bei zwei nebeneinanderliegenden Spalten
+    // unterschiedlicher Laenge (kurze Zutatenliste neben langer Zubereitung) reicht es NICHT,
+    // nur die eigene Spalte zu pruefen: der Kandidat aus der kurzen Spalte kann trotzdem mitten
+    // in einem Element der langen Spalte liegen. Deshalb werden alle Intervalle (Top/Bottom)
+    // gesammelt und ein Kandidat verworfen, sobald er in irgendeinem Intervall liegt.
+    const intervals = breakEls.map((el) => {
+      const r = el.getBoundingClientRect();
+      return { top: r.top - sectionTop, bottom: r.bottom - sectionTop };
+    });
+    const domBreakTops = intervals
+      .map((iv) => iv.top)
+      .filter((y) => !intervals.some((iv) => y > iv.top + 0.5 && y < iv.bottom - 0.5));
+    const title = section.dataset.pdfTitle || '';
+
     const canvas = await html2canvas(section, { scale: 2, backgroundColor: null, useCORS: true });
+    const scale = canvas.width / domWidth;
     const pxPerMm = canvas.width / pageWidthMm;
     const pageHeightPx = pageHeightMm * pxPerMm;
-    let totalSlices = Math.max(1, Math.ceil(canvas.height / pageHeightPx));
-    // Wenn die rechnerisch letzte "Seite" nur ein paar Rausch-Pixel enthaelt (Rundungsfehler
-    // beim Rendern), diese komplett leere Extra-Seite weglassen statt sie mit auszugeben.
-    const lastSliceHeightPx = canvas.height - (totalSlices - 1) * pageHeightPx;
-    if (totalSlices > 1 && lastSliceHeightPx < 15) totalSlices -= 1;
-    for (let i = 0; i < totalSlices; i++) {
+    const breakPointsPx = domBreakTops.map((t) => t * scale).sort((a, b) => a - b);
+    const minSlicePx = 10 * pxPerMm;
+
+    let cursor = 0;
+    let sliceIndex = 0;
+    while (cursor < canvas.height - 1) {
+      const naiveEnd = Math.min(canvas.height, cursor + pageHeightPx);
+      let sliceEnd = naiveEnd;
+      if (naiveEnd < canvas.height - 1) {
+        // Bewusst OHNE Toleranz-Obergrenze: ein Schnitt mitten in einer Zutat/einem Schritt
+        // (z.B. weil zwei nebeneinanderliegende Spalten unterschiedlich hoch sind) ist ein
+        // sichtbarer Fehler — zusaetzlicher Weissraum am Seitenende ist das laut Punkt 53
+        // ausdruecklich gewuenschte, kleinere Uebel ("keine Angst vor freien Flaechen").
+        const candidate = breakPointsPx.filter((p) => p > cursor + minSlicePx && p <= naiveEnd).pop();
+        if (candidate !== undefined) sliceEnd = candidate;
+      }
+      // Rest-Slice zu winzig (Rundungsrauschen) -> mit der vorherigen Seite zusammenlegen statt
+      // eine fast leere Extra-Seite auszugeben.
+      if (canvas.height - sliceEnd < 15 * pxPerMm) sliceEnd = canvas.height;
+
       if (!firstPage) pdf.addPage();
       firstPage = false;
-      const sliceHeightPx = Math.min(pageHeightPx, canvas.height - i * pageHeightPx);
+      const sliceHeightPx = sliceEnd - cursor;
       const sliceCanvas = document.createElement('canvas');
       sliceCanvas.width = canvas.width;
       sliceCanvas.height = sliceHeightPx;
-      sliceCanvas.getContext('2d').drawImage(
-        canvas, 0, i * pageHeightPx, canvas.width, sliceHeightPx, 0, 0, canvas.width, sliceHeightPx
-      );
+      sliceCanvas.getContext('2d').drawImage(canvas, 0, cursor, canvas.width, sliceHeightPx, 0, 0, canvas.width, sliceHeightPx);
+      if (sliceIndex > 0 && title) drawContinuationLabel(sliceCanvas, title, pxPerMm);
       const imgData = sliceCanvas.toDataURL('image/jpeg', 0.92);
       pdf.addImage(imgData, 'JPEG', 0, 0, pageWidthMm, sliceHeightPx / pxPerMm);
+      cursor = sliceEnd;
+      sliceIndex++;
     }
   }
 
@@ -96,12 +122,26 @@ async function renderSectionsToPdf(filename) {
   setTimeout(() => URL.revokeObjectURL(url), 3000);
 }
 
+/* Baut eine einzelne Rezeptseite komplett auf: Bildmasse ermitteln, Layout waehlen, Nutrition
+   laden, HTML erzeugen. Gibt zusaetzlich das gewaehlte Layout zurueck (fuer die Rhythmus-Regel
+   im Kochbuch-Export, Punkt 52). */
+async function buildRecipePdfPage(r, previousLayout) {
+  const imgUrl = await resolveRecipeImageDataUrl(r);
+  const imgDims = imgUrl ? await getImageDimensions(imgUrl) : null;
+  let result = null;
+  try { result = await getFreshNutritionResult(r); } catch (e) { /* Nutrition optional — PDF funktioniert auch ohne */ }
+  const { html, layout } = buildRecipePdfSection(r, imgUrl, imgDims, result, previousLayout);
+  // data-pdf-title fuer die Fortsetzungs-Kennzeichnung (Punkt 61) auf dem <section>-Root einfuegen.
+  const withTitle = html.replace('<section class="pdf-page-recipe', `<section data-pdf-title="${escapeHtml(r.title || '')}" class="pdf-page-recipe`);
+  return { html: withTitle, layout };
+}
+
 async function exportSinglePdf(id) {
   const r = state.recipes.find(x => x.id === id);
   if (!r) return;
   showToast('PDF wird erstellt …', 'info');
-  const imgUrl = await resolveRecipeImageDataUrl(r);
-  document.getElementById('printRoot').innerHTML = printRecipeHtml(r, imgUrl);
+  const { html } = await buildRecipePdfPage(r, null);
+  document.getElementById('printRoot').innerHTML = html;
   try {
     await renderSectionsToPdf(`savora-${slugifyTitle(r.title)}.pdf`);
   } catch (e) {
@@ -126,8 +166,18 @@ async function exportCookbookPdf() {
     <p>${escapeHtml(state.cookbookTitle || 'Mein persönliches Kochbuch')}</p>
   </section>`;
   const tocPage = `<section class="pdf-page-toc"><h2>Inhalt</h2>${toc}</section>`;
-  const pages = (await Promise.all(recipes.map(async (r) => printRecipeHtml(r, await resolveRecipeImageDataUrl(r))))).join('');
-  document.getElementById('printRoot').innerHTML = cover + tocPage + pages;
+
+  // Layouts nacheinander aufbauen (nicht parallel), damit die Rhythmus-Regel (Punkt 52:
+  // aufeinanderfolgende Seiten sollen nicht identisch wirken) das jeweils vorherige Layout kennt.
+  let previousLayout = null;
+  const pages = [];
+  for (const r of recipes) {
+    const { html, layout } = await buildRecipePdfPage(r, previousLayout);
+    pages.push(html);
+    previousLayout = layout;
+  }
+
+  document.getElementById('printRoot').innerHTML = cover + tocPage + pages.join('');
   const stamp = new Date().toISOString().slice(0, 10);
   try {
     await renderSectionsToPdf(`savora-kochbuch-${stamp}.pdf`);

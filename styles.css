@@ -812,3 +812,72 @@
   .nutrition-camera-wrap video { width: 100%; height: 100%; object-fit: cover; display: block; }
   .nutrition-prep-hint { font-size: 10.5px; color: var(--accent); display: flex; align-items: center; gap: 3px; margin-top: 2px; }
   .nutrition-prep-hint svg { width: 10px; height: 10px; }
+
+  /* ---------- PDF Editorial Engine: Layout-Varianten (Punkt 43-49) ---------- */
+  .pdf-img-cover { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .pdf-header { font-family: var(--font-display); font-size: 9pt; font-weight: 700; text-transform: uppercase; letter-spacing: 0.16em; color: #a8681f; margin-bottom: 8px; }
+  .pdf-title { font-family: var(--font-display); font-size: 26pt; font-weight: 700; color: #16261c; margin: 0 0 10px; line-height: 1.12; }
+  .pdf-meta { font-family: var(--font-sans); font-size: 9.5pt; color: #4a5a4c; margin-bottom: 8px; }
+  .pdf-cols { display: grid; grid-template-columns: 1fr 1.8fr; gap: 10mm; align-items: start; }
+  .pdf-ing-title, .pdf-steps-title { font-family: var(--font-display); font-size: 9pt; font-weight: 700; text-transform: uppercase; letter-spacing: 0.14em; color: #a8681f; margin: 0 0 10px; padding-bottom: 6px; border-bottom: 1.5pt solid #c9832f; }
+  .pdf-ing-list { list-style: none; padding: 0; margin: 0 0 14px; font-family: 'Georgia', 'Iowan Old Style', ui-serif, serif; font-size: 10.5pt; }
+  .pdf-ing-list li { padding: 5px 0; border-bottom: 1px solid #eee; }
+  .pdf-step-list { list-style: none; padding: 0; margin: 0; counter-reset: pstep; }
+  .pdf-step-list li {
+    font-family: 'Georgia', 'Iowan Old Style', ui-serif, serif; font-size: 10.5pt; line-height: 1.5; margin-bottom: 10px;
+    padding-left: 26px; position: relative;
+  }
+  .pdf-step-list li::before {
+    counter-increment: pstep; content: counter(pstep);
+    position: absolute; left: 0; top: 1px; width: 18px; height: 18px;
+    background: #16261c; color: #f5efdf; border-radius: 50%; font-family: var(--font-display); font-size: 8.5pt; font-weight: 600;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .pdf-notes { margin-top: 14px; }
+  .pdf-notes p { font-family: var(--font-sans); font-size: 9.5pt; color: #555; line-height: 1.5; margin: 0; }
+  .pdf-footer { font-family: var(--font-sans); font-size: 8pt; color: #aaa; text-align: center; margin-top: 18px; }
+
+  /* Nutrition-Box: ruhig, wie Teil eines Kochbuchs (Punkt 58) */
+  .pdf-nutrition-box { margin-top: 16px; padding: 10px 14px; background: #f2ece0; border-radius: 6px; border: 1px solid #e3d9c4; }
+  .pdf-nutrition-title { font-family: var(--font-display); font-size: 8pt; font-weight: 700; text-transform: uppercase; letter-spacing: 0.12em; color: #a8681f; margin-bottom: 6px; }
+  .pdf-nutrition-row { display: flex; flex-wrap: wrap; gap: 14px; font-family: var(--font-sans); font-size: 9pt; color: #3a453c; }
+  .pdf-nutrition-row strong { color: #16261c; font-weight: 700; }
+  .pdf-nutrition-source { font-family: var(--font-sans); font-size: 7pt; color: #9aa79b; margin-top: 6px; font-style: italic; }
+
+  /* Layout A — Cinematic Hero: Foto 40% der Seite, randlos */
+  .pdf-layout-hero { padding: 0; display: flex; flex-direction: column; }
+  .pdf-layout-hero .pdf-hero-photo { width: 210mm; height: 115mm; overflow: hidden; flex-shrink: 0; }
+  .pdf-layout-hero .pdf-hero-body { padding: 14mm 16mm 18mm; flex: 1; }
+
+  /* Layout B/C — Editorial Split: Foto randlos ueber volle Hoehe, Text mit Rand */
+  .pdf-layout-split { padding: 0; display: flex; min-height: 297mm; }
+  .pdf-layout-split .pdf-split-photo { width: 88mm; flex-shrink: 0; overflow: hidden; }
+  .pdf-layout-split .pdf-split-body { flex: 1; padding: 18mm 16mm; min-width: 0; }
+  .pdf-layout-split .pdf-title-split { font-size: 21pt; }
+  .pdf-footer-split { position: absolute; bottom: 8mm; left: 16mm; right: 16mm; }
+  .pdf-layout-split { position: relative; }
+
+  /* Layout D — Floating Photo: Foto quadratisch neben den Zutaten */
+  .pdf-layout-floating .pdf-floating-wrap { display: flex; gap: 8mm; align-items: flex-start; margin-bottom: 14px; }
+  .pdf-layout-floating .pdf-floating-photo { width: 62mm; height: 62mm; flex-shrink: 0; overflow: hidden; border-radius: 6px; }
+  .pdf-layout-floating .pdf-floating-ing { flex: 1; min-width: 0; }
+  .pdf-layout-floating .pdf-floating-ing .pdf-ing-list { margin-bottom: 0; }
+
+  /* Layout E — Full Photo Statement: grosses Foto mit Textüberlagerung, kurzer Textkoerper */
+  .pdf-layout-full-statement { padding: 0; }
+  .pdf-layout-full-statement .pdf-statement-photo { position: relative; width: 210mm; height: 150mm; overflow: hidden; }
+  .pdf-layout-full-statement .pdf-statement-overlay {
+    position: absolute; left: 0; right: 0; bottom: 0; padding: 14mm 16mm 10mm;
+    background: linear-gradient(to top, rgba(15,26,19,0.88), rgba(15,26,19,0));
+  }
+  .pdf-layout-full-statement .pdf-title-statement { color: #faf7ee; font-size: 28pt; margin-bottom: 6px; }
+  .pdf-layout-full-statement .pdf-statement-overlay .pdf-meta { color: #e7e2d2; }
+  .pdf-layout-full-statement .pdf-statement-body { padding: 14mm 16mm 18mm; }
+
+  /* Layout G — Typography: kein Foto, eigenstaendige Textseite statt Platzhalter (Punkt 49) */
+  .pdf-layout-typography { padding: 22mm 18mm; }
+  .pdf-layout-typography .pdf-title-typography { font-size: 32pt; }
+  .pdf-layout-typography .pdf-typo-rule { width: 26mm; height: 2.5pt; background: #c9832f; margin: 10px 0 20px; }
+
+  /* Fortsetzungs-Kennzeichnung auf Folgeseiten eines zu langen Rezepts (Punkt 61) —
+     wird per Canvas-2D-Text nach dem Rendern eingezeichnet, siehe renderSectionsToPdf. */
