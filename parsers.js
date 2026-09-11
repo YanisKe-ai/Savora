@@ -133,13 +133,17 @@ function looksLikeIngredient(line) {
 
 // A) Eigenstaendige Ueberschriftszeile (Punkt 50) — die ganze Zeile besteht nur aus dem
 // Ueberschriftswort (+ optionalem Doppelpunkt), der eigentliche Inhalt folgt in Zeilen danach.
-const NOTE_HEADER_RE = /^(tipps?|hinweise?|gut zu wissen|notizen?|anmerkungen?|serviertipps?|servieren|zum servieren|dazu passt|dazu passen|varianten?|alternativen?|vorbereiten|vorbereitung|lässt sich( gut)? vorbereiten|haltbarkeit|aufbewahrung|lagerung|resteverwertung)\s*:?\s*$/i;
+const NOTE_HEADER_RE = /^(tipps?|hinweise?|gut zu wissen|notiz(en)?|anmerkungen?|serviertipps?|servieren|zum servieren|dazu passt|dazu passen|varianten?|alternativen?|vorbereiten|vorbereitung|lässt sich( gut)? vorbereiten|haltbarkeit|aufbewahrung|lagerung|resteverwertung)\s*:?\s*$/i;
 
 // B) Satzstarter (Punkt 51) — Ueberschrift UND Inhalt in derselben Zeile, durch Doppelpunkt
 // getrennt. Bewusst nur die im Auftrag explizit gelisteten Formulierungen, damit z.B. "Mit
 // Petersilie servieren." (ein ganz normaler Zubereitungsschritt, Punkt 52) NICHT anschlaegt —
 // das erfordert weder einen Doppelpunkt noch steht "servieren" hier am Zeilenanfang.
-const NOTE_STARTER_RE = /^(tipp|dazu passt|dazu passen|schneller gehts|schneller geht's|lässt sich( gut)? vorbereiten|haltbarkeit|aufbewahrung|variante|alternativ|wer mag|nach belieben|zum servieren|zum anrichten)\s*:\s*\S/i;
+// "notiz(en)" ergaenzt (Bugfix): war zuvor nur in der Header-Variante gelistet und dort zudem
+// nur als "notizen?" (verlangte faelschlich ein "e" vor dem optionalen "n" und traf damit nie
+// auf das singulare "Notiz"), obwohl "Notiz: ..." als Ein-Zeilen-Form vermutlich die haeufigste
+// Schreibweise ueberhaupt ist.
+const NOTE_STARTER_RE = /^(tipp|notiz(en)?|dazu passt|dazu passen|schneller gehts|schneller geht's|lässt sich( gut)? vorbereiten|haltbarkeit|aufbewahrung|variante|alternativ|wer mag|nach belieben|zum servieren|zum anrichten)\s*:\s*\S/i;
 
 function isNoteSectionStart(line) {
   return NOTE_HEADER_RE.test(line) || NOTE_STARTER_RE.test(line);
