@@ -23,6 +23,13 @@ const state = {
   mealplan: {}, // dateKey -> [recipeId, ...]
   weekStart: getMonday(new Date()),
   settingsOpen: new Set(),
+  // Nutrition C (siehe nutrition-*.js): Zwischenzustand fuer den Matching-Screen,
+  // bewusst ausserhalb von state.recipes, da rein UI-transient.
+  nutritionMatchItems: [],
+  nutritionSelectTarget: null,
+  nutritionSearchQuery: '',
+  nutritionSearchResults: [],
+  nutritionDetailMode: 'portion', // 'portion' | '100g' | 'total'
 };
 
 const systemDarkQuery = window.matchMedia ? matchMedia('(prefers-color-scheme: dark)') : null;

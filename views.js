@@ -200,9 +200,12 @@ function detailView() {
           ${r.notes ? `<h2 class="section-heading" style="margin-top:24px;">Notizen</h2><div class="notes-box">${escapeHtml(r.notes)}</div>` : ''}
         </div>
       </div>
+      ${nutritionCardSection(r.id)}
     </main>
     ${bottomNav()}
     ${state.modal && state.modal.type === 'delete' ? deleteModal(r) : ''}
+    ${nutritionModal(r)}
+    ${nutritionDetailModal(r, state._nutritionDetailResult)}
   `;
 }
 

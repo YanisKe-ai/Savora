@@ -42,6 +42,8 @@ const ICONS = {
   volumeOff: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 9v6h4l5 4V5l-5 4H5Z"/><path d="M2 2l20 20"/></svg>`,
   ruler: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m3 17 6.5-6.5"/><rect x="2.5" y="12.5" width="19" height="9" rx="1.5" transform="rotate(-45 12 17)"/><path d="M8 15l1.5 1.5M11 12l1.5 1.5M14 9l1.5 1.5"/></svg>`,
   swap: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M7 3v14M7 17 3 13M7 17l4-4"/><path d="M17 21V7M17 7l4 4M17 7l-4 4"/></svg>`,
+  apple: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 8c-3 0-5.5 2.5-5.5 6.5S8.5 21 11 21c1 0 1.3-.5 2-.5s1 .5 2 .5c2.2 0 4.5-2.8 4.5-6.5 0-3-1.8-5.2-4-5.5.3-1.3 1.3-2.3 2.5-2.5"/><path d="M12 8c0-2 1-3.5 2.5-4"/></svg>`,
+  scale: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v18M7 7h10M4 7l3-4 3 4-3 4Z"/><path d="M14 7l3-4 3 4-3 4Z"/><path d="M4 7c0 2 1.3 3.5 3 3.5S10 9 10 7"/><path d="M14 7c0 2 1.3 3.5 3 3.5S20 9 20 7"/><path d="M8 21h8"/></svg>`,
 };
 
 const DIET_OPTIONS = [

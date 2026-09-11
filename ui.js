@@ -115,6 +115,8 @@ function bindEvents() {
   });
   if (state.view === 'cookmode') bindCookSwipe();
   hydrateLazyImages();
+  hydrateNutritionCards();
+  bindNutritionSearchInput();
 
   const modalSheet = document.querySelector('.modal-sheet');
   if (modalSheet) {
@@ -590,6 +592,104 @@ async function onAction(e) {
       state.view = 'form';
       render();
       showToast('Entwurf erstellt — bitte prüfen');
+      break;
+    }
+
+    /* ---------- Nutrition (Punkt 70-75) ---------- */
+    case 'nutrition-open-match': {
+      const r = state.recipes.find(x => x.id === id);
+      if (!r) break;
+      const relevant = (r.ingredients || []).filter(i => i.name && i.name.trim() && !isQualitativeIngredient(i));
+      state.nutritionMatchItems = await matchIngredients(relevant);
+      openModal({ type: 'nutrition', recipeId: id, stage: 'match' }, `[data-action="nutrition-open-match"][data-id="${id}"]`);
+      break;
+    }
+    case 'nutrition-select-ingredient': {
+      const name = el.dataset.name;
+      state.nutritionSelectTarget = name;
+      state.nutritionSearchQuery = '';
+      const existing = state.nutritionMatchItems.find(it => it.ingredient.name === name);
+      state.nutritionSearchResults = (existing && existing.candidates) || [];
+      state.modal.stage = 'select';
+      render();
+      break;
+    }
+    case 'nutrition-back-to-match':
+      state.modal.stage = 'match';
+      render();
+      break;
+    case 'nutrition-confirm-match': {
+      const name = el.dataset.name, foodId = el.dataset.foodId;
+      await confirmIngredientMatch(name, foodId);
+      const idx = state.nutritionMatchItems.findIndex(it => it.ingredient.name === name);
+      if (idx > -1) state.nutritionMatchItems[idx] = { ingredient: state.nutritionMatchItems[idx].ingredient, ...(await matchIngredient(name)) };
+      state.modal.stage = 'match';
+      render();
+      showToast('Zuordnung gespeichert');
+      break;
+    }
+    case 'nutrition-reset-match': {
+      const name = el.dataset.name;
+      await resetIngredientMatch(name);
+      const idx = state.nutritionMatchItems.findIndex(it => it.ingredient.name === name);
+      if (idx > -1) state.nutritionMatchItems[idx] = { ingredient: state.nutritionMatchItems[idx].ingredient, ...(await matchIngredient(name)) };
+      render();
+      break;
+    }
+    case 'nutrition-open-custom':
+      state.nutritionSelectTarget = el.dataset.name;
+      state.modal.stage = 'custom';
+      render();
+      break;
+    case 'nutrition-save-custom': {
+      const name = state.nutritionSelectTarget;
+      const val = (fid) => { const node = document.getElementById(fid); return node ? node.value : ''; };
+      const num = (fid) => { const n = parseFloat(val(fid).replace(',', '.')); return isNaN(n) ? null : n; };
+      const food = await saveCustomFood({
+        name: val('cf-name').trim() || name,
+        nutrientsPer100g: {
+          energyKcal: num('cf-kcal'), protein: num('cf-protein'), carbohydrates: num('cf-carbs'),
+          sugars: num('cf-sugars'), fat: num('cf-fat'), saturatedFat: num('cf-satfat'),
+          fiber: num('cf-fiber'), salt: num('cf-salt'),
+        },
+      });
+      await confirmIngredientMatch(name, food.id);
+      const idx = state.nutritionMatchItems.findIndex(it => it.ingredient.name === name);
+      if (idx > -1) state.nutritionMatchItems[idx] = { ingredient: state.nutritionMatchItems[idx].ingredient, ...(await matchIngredient(name)) };
+      state.modal.stage = 'match';
+      render();
+      showToast('Eigenes Lebensmittel gespeichert');
+      break;
+    }
+    case 'nutrition-apply': {
+      const r = state.recipes.find(x => x.id === (state.modal && state.modal.recipeId));
+      if (!r) break;
+      await recalculateAndStoreNutrition(r);
+      closeModal();
+      showToast('Nährwerte berechnet');
+      break;
+    }
+    case 'nutrition-open-detail': {
+      const r = state.recipes.find(x => x.id === id);
+      if (!r) break;
+      state._nutritionDetailResult = await dbGetNutritionResult(r.id);
+      openModal({ type: 'nutrition-detail', recipeId: id }, `[data-action="nutrition-open-detail"][data-id="${id}"]`);
+      break;
+    }
+    case 'nutrition-set-mode':
+      state.nutritionDetailMode = el.dataset.mode;
+      render();
+      break;
+    case 'nutrition-save-finished-weight': {
+      const r = state.recipes.find(x => x.id === id);
+      if (!r) break;
+      const raw = document.getElementById('nutritionFinishedWeight').value;
+      const num = parseFloat((raw || '').replace(',', '.'));
+      r.nutritionFinishedWeight = (!isNaN(num) && num > 0) ? num : null;
+      await dbPut(r);
+      state._nutritionDetailResult = await recalculateAndStoreNutrition(r);
+      render();
+      showToast('Fertiggewicht gespeichert');
       break;
     }
   }
