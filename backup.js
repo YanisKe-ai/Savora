@@ -48,45 +48,45 @@ function slugifyTitle(title) {
     .replace(/^-+|-+$/g, '')
     .slice(0, 40) || 'rezept';
 }
+/* ---------- Einzelnes Rezept teilen — als PDF, nicht als JSON (Master-Prompt Teil E) ----------
+   JSON ist ein technisches Datenformat und bleibt ausschliesslich fuer Backup/Restore reserviert
+   (Punkt 59, 66-67). Beim normalen "Teilen" bekommt die andere Person eine fertig gestaltete
+   PDF-Datei — dieselbe Editorial-PDF-Engine wie beim regulaeren Export (Punkt 69), inklusive
+   korrektem Bildseitenverhaeltnis, Nutrition, Notizen nur wenn vorhanden. */
 async function shareRecipe(id) {
   const r = state.recipes.find(x => x.id === id);
   if (!r) return;
-  const clone = { ...r };
-  if (!clone.image && clone.imageId) {
-    clone.image = await resolveRecipeImageDataUrl(r);
+  showToast('PDF wird erstellt …', 'info');
+
+  let result;
+  try {
+    result = await buildSinglePdf(id, await defaultPdfNutritionDetail('single', id));
+  } catch (e) {
+    showToast('PDF konnte nicht erstellt werden', 'error');
+    return;
   }
-  delete clone.imageId;
-  delete clone.favorite;
-  const payload = {
-    app: 'savora', type: 'recipe-share', version: 1,
-    sharedBy: state.senderName || null,
-    sharedAt: new Date().toISOString(),
-    recipe: clone,
-  };
-  const json = JSON.stringify(payload, null, 2);
-  const fileName = `savora-rezept-${slugifyTitle(r.title)}.json`;
+  if (!result) {
+    showToast('PDF konnte nicht erstellt werden', 'error');
+    return;
+  }
+  const { blob, filename } = result;
 
   if (navigator.share) {
     try {
-      const file = new File([json], fileName, { type: 'application/json' });
+      const file = new File([blob], filename, { type: 'application/pdf' });
       if (navigator.canShare && navigator.canShare({ files: [file] })) {
-        await navigator.share({ files: [file], title: r.title, text: `Rezept „${r.title}" aus Savora` });
+        await navigator.share({ files: [file], title: r.title, text: `Rezept „${r.title}“ aus Savora` });
         return;
       }
     } catch (e) {
-      if (e && e.name === 'AbortError') return; // Nutzer hat den Teilen-Dialog abgebrochen
-      // sonst: unten auf Datei-Download ausweichen
+      if (e && e.name === 'AbortError') return; // Nutzer hat das Teilen-Sheet selbst abgebrochen — kein Fehler
+      // sonst: unten auf Datei-Download ausweichen (Punkt 65 Fallback)
     }
   }
-  // Fallback ohne Web-Share/Datei-Teilen (z.B. Desktop-Browser): Datei herunterladen,
-  // der Nutzer verschickt sie dann selbst per Mail/AirDrop/Messenger.
-  const blob = new Blob([json], { type: 'application/json' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url; a.download = fileName;
-  document.body.appendChild(a); a.click(); a.remove();
-  setTimeout(() => URL.revokeObjectURL(url), 2000);
-  showToast('Rezept-Datei heruntergeladen — jetzt selbst verschicken');
+  // Fallback ohne Web-Share/Datei-Teilen (z.B. Desktop-Browser ohne Share-API): PDF direkt
+  // herunterladen, der Nutzer verschickt sie dann selbst per Mail/AirDrop/Messenger.
+  triggerPdfDownload(blob, filename);
+  showToast('PDF heruntergeladen — jetzt selbst verschicken');
 }
 
 async function restoreBackupFromFile(file) {

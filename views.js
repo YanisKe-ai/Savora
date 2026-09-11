@@ -603,7 +603,7 @@ function settingsView() {
       <button class="ghost-btn" data-action="trigger-restore">${ICONS.upload} Datei einspielen</button>
       <input type="file" id="restoreFileInput" accept="application/json" style="display:none;">
     </div>
-    <p class="settings-hint" style="margin-top:8px;">„Datei einspielen" versteht sowohl eigene Sicherungen als auch einzelne Rezepte, die dir jemand über „Teilen" in der Rezept-Detailansicht geschickt hat.</p>
+    <p class="settings-hint" style="margin-top:8px;">„Datei einspielen" ist für deine eigenen Sicherungen gedacht. Ein von dir geteiltes Rezept kommt bei anderen als fertige PDF-Datei an — die lässt sich ansehen, ausdrucken oder weiterschicken, aber nicht zurück in Savora einspielen.</p>
     <div id="backupStatus"></div>`;
 
   const aboutBody = `<p class="settings-hint" style="margin:0;">Savora speichert dein Kochbuch lokal auf diesem Gerät. Deine Rezepte verlassen dein Gerät nicht, ausser du exportierst sie selbst.</p>`;
