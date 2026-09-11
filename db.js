@@ -1,7 +1,7 @@
 /* ---------- IndexedDB layer ---------- */
 const DB_NAME = 'savora-db';
 
-const DB_VERSION = 4;
+const DB_VERSION = 5;
 
 let dbPromise = null;
 
@@ -28,6 +28,36 @@ function openDB() {
         // NICHT zwangsmigriert (kein Risiko fuer vorhandene Fotos), sondern weiterhin direkt
         // angezeigt; nur neu hochgeladene Fotos nutzen ab sofort diesen Store.
         db.createObjectStore('images', { keyPath: 'id' });
+      }
+      /* ---------- Nutrition-Stores (Savora Nutrition C, ab DB_VERSION 5) ----------
+         Rein additiv — bestehende Stores/Daten bleiben unberuehrt, alte Backups
+         bleiben importierbar (siehe backup.js). */
+      if (!db.objectStoreNames.contains('nutritionFoods')) {
+        // Gecachte Lebensmittel aus allen Quellen (Schweizer DB, spaeter Open Food
+        // Facts/USDA). id ist praefixiert pro Quelle (z.B. "swiss-10533"), daher
+        // global eindeutig.
+        const foods = db.createObjectStore('nutritionFoods', { keyPath: 'id' });
+        foods.createIndex('source', 'source');
+      }
+      if (!db.objectStoreNames.contains('nutritionMatches')) {
+        // Gelernte Zuordnungen: normalisierte Zutatenbezeichnung -> bestaetigtes
+        // Lebensmittel. keyPath = normalizedIngredient, dadurch pro Text eindeutig.
+        db.createObjectStore('nutritionMatches', { keyPath: 'normalizedIngredient' });
+      }
+      if (!db.objectStoreNames.contains('nutritionResults')) {
+        // Berechnete Naehrwerte pro Rezept (versioniert, siehe Punkt 23). Ein Eintrag
+        // pro Rezept, keyPath = recipeId.
+        db.createObjectStore('nutritionResults', { keyPath: 'recipeId' });
+      }
+      if (!db.objectStoreNames.contains('customFoods')) {
+        // Vom Nutzer selbst angelegte Lebensmittel (Punkt 9), gleiches normalisiertes
+        // Format wie nutritionFoods, source: "custom".
+        db.createObjectStore('customFoods', { keyPath: 'id' });
+      }
+      if (!db.objectStoreNames.contains('nutritionMeta')) {
+        // Kleine Metadaten-Ablage, z.B. ob/welche Version der Schweizer Datenbank
+        // bereits in nutritionFoods eingespielt wurde. keyPath = key.
+        db.createObjectStore('nutritionMeta', { keyPath: 'key' });
       }
     };
     req.onsuccess = () => {
@@ -153,6 +183,180 @@ async function dbDelete(id) {
     const tx = db.transaction('recipes', 'readwrite');
     tx.objectStore('recipes').delete(id);
     tx.oncomplete = () => resolve();
+    tx.onerror = () => reject(tx.error);
+  });
+}
+
+/* ---------- Nutrition-Stores: nutritionFoods ---------- */
+async function dbGetAllNutritionFoods() {
+  const db = await openDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction('nutritionFoods', 'readonly');
+    const req = tx.objectStore('nutritionFoods').getAll();
+    req.onsuccess = () => resolve(req.result || []);
+    req.onerror = () => reject(req.error);
+  });
+}
+
+async function dbCountNutritionFoods() {
+  const db = await openDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction('nutritionFoods', 'readonly');
+    const req = tx.objectStore('nutritionFoods').count();
+    req.onsuccess = () => resolve(req.result || 0);
+    req.onerror = () => reject(req.error);
+  });
+}
+
+async function dbGetNutritionFood(id) {
+  const db = await openDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction('nutritionFoods', 'readonly');
+    const req = tx.objectStore('nutritionFoods').get(id);
+    req.onsuccess = () => resolve(req.result || null);
+    req.onerror = () => reject(req.error);
+  });
+}
+
+// Bulk-Insert in einer Transaktion (z.B. 1216 Eintraege beim ersten Seeding der
+// Schweizer Datenbank) — deutlich schneller als 1216 Einzel-Transaktionen.
+async function dbPutNutritionFoodsBulk(foods) {
+  const db = await openDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction('nutritionFoods', 'readwrite');
+    const store = tx.objectStore('nutritionFoods');
+    for (const food of foods) store.put(food);
+    tx.oncomplete = () => resolve(foods.length);
+    tx.onerror = () => reject(tx.error);
+  });
+}
+
+async function dbDeleteNutritionFoodsBySource(source) {
+  const db = await openDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction('nutritionFoods', 'readwrite');
+    const store = tx.objectStore('nutritionFoods');
+    const idx = store.index('source');
+    const req = idx.openCursor(IDBKeyRange.only(source));
+    req.onsuccess = (e) => {
+      const cursor = e.target.result;
+      if (cursor) { cursor.delete(); cursor.continue(); }
+    };
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => reject(tx.error);
+  });
+}
+
+/* ---------- Nutrition-Stores: nutritionMatches (gelernte Zuordnungen) ---------- */
+async function dbGetNutritionMatch(normalizedIngredient) {
+  const db = await openDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction('nutritionMatches', 'readonly');
+    const req = tx.objectStore('nutritionMatches').get(normalizedIngredient);
+    req.onsuccess = () => resolve(req.result || null);
+    req.onerror = () => reject(req.error);
+  });
+}
+
+async function dbPutNutritionMatch(match) {
+  const db = await openDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction('nutritionMatches', 'readwrite');
+    tx.objectStore('nutritionMatches').put(match);
+    tx.oncomplete = () => resolve(match);
+    tx.onerror = () => reject(tx.error);
+  });
+}
+
+async function dbDeleteNutritionMatch(normalizedIngredient) {
+  const db = await openDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction('nutritionMatches', 'readwrite');
+    tx.objectStore('nutritionMatches').delete(normalizedIngredient);
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => reject(tx.error);
+  });
+}
+
+/* ---------- Nutrition-Stores: nutritionResults (Rezept-Naehrwerte) ---------- */
+async function dbGetNutritionResult(recipeId) {
+  const db = await openDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction('nutritionResults', 'readonly');
+    const req = tx.objectStore('nutritionResults').get(recipeId);
+    req.onsuccess = () => resolve(req.result || null);
+    req.onerror = () => reject(req.error);
+  });
+}
+
+async function dbPutNutritionResult(result) {
+  const db = await openDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction('nutritionResults', 'readwrite');
+    tx.objectStore('nutritionResults').put(result);
+    tx.oncomplete = () => resolve(result);
+    tx.onerror = () => reject(tx.error);
+  });
+}
+
+async function dbDeleteNutritionResult(recipeId) {
+  const db = await openDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction('nutritionResults', 'readwrite');
+    tx.objectStore('nutritionResults').delete(recipeId);
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => reject(tx.error);
+  });
+}
+
+/* ---------- Nutrition-Stores: customFoods (eigene Lebensmittel) ---------- */
+async function dbGetAllCustomFoods() {
+  const db = await openDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction('customFoods', 'readonly');
+    const req = tx.objectStore('customFoods').getAll();
+    req.onsuccess = () => resolve(req.result || []);
+    req.onerror = () => reject(req.error);
+  });
+}
+
+async function dbPutCustomFood(food) {
+  const db = await openDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction('customFoods', 'readwrite');
+    tx.objectStore('customFoods').put(food);
+    tx.oncomplete = () => resolve(food);
+    tx.onerror = () => reject(tx.error);
+  });
+}
+
+async function dbDeleteCustomFood(id) {
+  const db = await openDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction('customFoods', 'readwrite');
+    tx.objectStore('customFoods').delete(id);
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => reject(tx.error);
+  });
+}
+
+/* ---------- Nutrition-Stores: nutritionMeta (kleine Metadaten-Ablage) ---------- */
+async function dbGetNutritionMeta(key) {
+  const db = await openDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction('nutritionMeta', 'readonly');
+    const req = tx.objectStore('nutritionMeta').get(key);
+    req.onsuccess = () => resolve(req.result ? req.result.value : null);
+    req.onerror = () => reject(req.error);
+  });
+}
+
+async function dbPutNutritionMeta(key, value) {
+  const db = await openDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction('nutritionMeta', 'readwrite');
+    tx.objectStore('nutritionMeta').put({ key, value });
+    tx.oncomplete = () => resolve(value);
     tx.onerror = () => reject(tx.error);
   });
 }

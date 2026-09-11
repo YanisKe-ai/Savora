@@ -5,9 +5,16 @@
    - Kontrollierter Update-Flow: kein automatisches skipWaiting. Ein neuer Worker wartet, bis
      die Seite per postMessage({type:'SKIP_WAITING'}) explizit zustimmt.
 */
-const SW_VERSION = 'v7-logo-fill';
+const SW_VERSION = 'v8-nutrition-p1';
 const CACHE_SHELL = 'savora-shell-' + SW_VERSION;
 const CACHE_RUNTIME = 'savora-runtime-' + SW_VERSION;
+// Statische Referenzdaten (z.B. Schweizer Naehrwertdatenbank): aendert sich nur bei
+// einem neuen SW_VERSION, nicht bei jedem App-Start — cache-first statt network-first,
+// damit nicht bei jedem Online-Start erneut ~1 MB geladen werden.
+const CACHE_DATA = 'savora-data-' + SW_VERSION;
+const STATIC_DATA_ASSETS = [
+  './swiss-fcd-data.json',
+];
 const SHELL_ASSETS = [
   './',
   './index.html',
@@ -20,6 +27,8 @@ const SHELL_ASSETS = [
   './styles.css',
   './icons.js',
   './db.js',
+  './nutrition-model.js',
+  './nutrition-swiss.js',
   './images.js',
   './utils.js',
   './units.js',
@@ -39,14 +48,17 @@ const SHELL_ASSETS = [
 const RUNTIME_MAX_ENTRIES = 60;
 
 self.addEventListener('install', (event) => {
-  event.waitUntil(caches.open(CACHE_SHELL).then((cache) => cache.addAll(SHELL_ASSETS)));
+  event.waitUntil(Promise.all([
+    caches.open(CACHE_SHELL).then((cache) => cache.addAll(SHELL_ASSETS)),
+    caches.open(CACHE_DATA).then((cache) => cache.addAll(STATIC_DATA_ASSETS)),
+  ]));
 });
 
 self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches.keys()
       .then((keys) => Promise.all(
-        keys.filter((k) => k !== CACHE_SHELL && k !== CACHE_RUNTIME).map((k) => caches.delete(k))
+        keys.filter((k) => k !== CACHE_SHELL && k !== CACHE_RUNTIME && k !== CACHE_DATA).map((k) => caches.delete(k))
       ))
       .then(() => self.clients.claim())
   );
@@ -71,9 +83,27 @@ function isShellRequest(url) {
   });
 }
 
+function isStaticDataRequest(url) {
+  if (url.origin !== self.location.origin) return false;
+  return STATIC_DATA_ASSETS.some((a) => url.pathname.endsWith(a.replace('./', '')));
+}
+
 self.addEventListener('fetch', (event) => {
   if (event.request.method !== 'GET') return;
   const url = new URL(event.request.url);
+
+  if (isStaticDataRequest(url)) {
+    event.respondWith(
+      caches.open(CACHE_DATA).then(async (cache) => {
+        const cached = await cache.match(event.request);
+        if (cached) return cached;
+        const res = await fetch(event.request);
+        cache.put(event.request, res.clone());
+        return res;
+      })
+    );
+    return;
+  }
 
   if (event.request.mode === 'navigate' || isShellRequest(url)) {
     event.respondWith(

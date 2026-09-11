@@ -79,6 +79,11 @@ function runSplashSequence() {
       registerServiceWorkerWithUpdatePrompt();
     }
     runSplashSequence();
+    // Schweizer Naehrwertdatenbank im Hintergrund einspielen (einmalig, danach nur
+    // noch aus IndexedDB) — blockiert bewusst nicht den ersten Render.
+    ensureSwissDataSeeded().catch((err) => {
+      console.warn('Nutrition: Schweizer Datenbank konnte nicht geladen werden.', err);
+    });
   } catch (err) {
     console.error('Savora Initialisierungsfehler:', err);
     renderStorageError(err);
