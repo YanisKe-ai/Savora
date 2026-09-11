@@ -297,7 +297,7 @@
   .recipe-card--featured .recipe-card-body { justify-content: center; }
   .recipe-card--featured .recipe-card-title { font-size: 1.4rem; }
   .recipe-card-eyebrow { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--accent); }
-  .recipe-card-img { width: 100%; aspect-ratio: 4/3; object-fit: cover; background: var(--cream-200); }
+  .recipe-card-img { width: 100%; aspect-ratio: 4/3; object-fit: cover; background: var(--bg-elevated); }
   .recipe-card-img.placeholder { display: flex; align-items: center; justify-content: center; color: var(--text-muted); }
   .recipe-card-img.placeholder svg { width: 34px; height: 34px; }
   .recipe-card-body { padding: 12px 14px 14px; display: flex; flex-direction: column; gap: 4px; flex: 1; }
@@ -306,7 +306,8 @@
   .fav-btn {
     position: absolute; top: 4px; right: 4px;
     width: var(--tap-min); height: var(--tap-min); border-radius: 50%;
-    background: rgba(255,255,255,0.9);
+    background: var(--card-bg);
+    box-shadow: 0 1px 4px rgba(0,0,0,0.25);
     border: none;
     display: flex; align-items: center; justify-content: center;
     transition: background-color 0.15s ease, transform 0.15s ease;

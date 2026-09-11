@@ -570,6 +570,11 @@ async function onAction(e) {
       if (url) importFromUrl(url);
       break;
     }
+    case 'focus-paste-import': {
+      const ta = document.getElementById('pasteText');
+      if (ta) { ta.focus(); ta.scrollIntoView({ behavior: prefersReducedMotion() ? 'auto' : 'smooth', block: 'center' }); }
+      break;
+    }
     case 'do-paste-import': {
       const text = document.getElementById('pasteText').value.trim();
       if (!text) { showToast('Bitte zuerst Text einfügen'); break; }
