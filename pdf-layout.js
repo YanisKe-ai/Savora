@@ -143,6 +143,29 @@ function candidateFitsOnePage(html) {
   return measureSectionHeightMm(html) <= PAGE_HEIGHT_MM + PAGE_FIT_TOLERANCE_MM;
 }
 
+/* ---------- 49: Crop-Limit ----------
+   fitImageToFrame() lieferte den Crop-Anteil bisher nur zur Dokumentation, ohne dass er irgendwo
+   die Layoutwahl beeinflusste (toter Wert). Wird jetzt als Sicherheitsnetz genutzt: nur wenn ein
+   Cover-Crop wirklich extrem waere (z.B. eine sehr schmale Bildaufloesung mit einem stark
+   abweichenden Seitenverhaeltnis, das durch classifyAspectRatio grob in einen Eimer faellt, der
+   fuer dieses konkrete Bild trotzdem schlecht passt), wird der Kandidat verworfen — bewusst ein
+   hoher Schwellenwert, damit normale Portrait-/Quadrat-Fotos in Split/Floating (deren Rahmen
+   inhaerent schmal bzw. quadratisch sind) NICHT faelschlich abgelehnt werden. */
+const PDF_LAYOUT_FRAME_MM = {
+  hero: { w: 210, h: 115 },
+  'split-left': { w: 88, h: 297 },
+  'split-right': { w: 88, h: 297 },
+  floating: { w: 62, h: 62 },
+  'full-statement': { w: 210, h: 150 },
+};
+const MAX_ACCEPTABLE_CROP = 0.75;
+
+function cropFractionForLayout(layoutName, sourceWidth, sourceHeight) {
+  const frame = PDF_LAYOUT_FRAME_MM[layoutName];
+  if (!frame || !sourceWidth || !sourceHeight) return 0;
+  return fitImageToFrame(sourceWidth, sourceHeight, frame.w, frame.h, 'cover').crop;
+}
+
 /* Haupteinstiegspunkt. `previousLayout` (optional) ist das zuletzt vergebene Layout beim
    Kochbuch-Export (Punkt 52) — bei mehreren moeglichen Kandidaten wird eine Wiederholung
    vermieden, damit aufeinanderfolgende Seiten nicht identisch wirken. */
@@ -155,6 +178,12 @@ function selectPdfLayout(recipe, imageDims, previousLayout) {
   const resolutionOk = imageResolutionSufficientForFrame(imageDims.width, 210);
   let candidates = candidateLayoutsForAspect(aspect, density, resolutionOk);
   if (!candidates.length) candidates = ['hero'];
+
+  // Punkt 49: extremen Crop verwerfen, aber nie auf null Kandidaten enden — im Zweifel den mit
+  // dem geringsten Crop-Anteil behalten, statt gar kein Foto-Layout mehr anzubieten.
+  const withCrop = candidates.map((c) => ({ name: c, crop: cropFractionForLayout(c, imageDims.width, imageDims.height) }));
+  const acceptable = withCrop.filter((c) => c.crop <= MAX_ACCEPTABLE_CROP).map((c) => c.name);
+  candidates = acceptable.length ? acceptable : [withCrop.slice().sort((a, b) => a.crop - b.crop)[0].name];
 
   const hash = pdfLayoutHash((recipe.id || '') + '|' + Math.round(density));
   let choice = candidates[hash % candidates.length];

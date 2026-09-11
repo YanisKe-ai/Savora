@@ -61,10 +61,20 @@ function pdfHeaderTag(recipe) {
   return escapeHtml((recipe.tags || [])[0] || 'Savora');
 }
 
+/* Punkt 50: nutzt recipe.focalPoint, falls vorhanden (Datenmodell-Vorbereitung, siehe
+   emptyRecipe() in state.js) — ohne gesetzten Fokuspunkt entspricht das exakt dem bisherigen
+   mittigen Crop, aendert also nichts am Aussehen bestehender Rezepte. */
+function pdfImgTag(imgUrl, recipe) {
+  const fp = recipe && recipe.focalPoint;
+  const x = fp && typeof fp.x === 'number' ? Math.round(fp.x * 100) : 50;
+  const y = fp && typeof fp.y === 'number' ? Math.round(fp.y * 100) : 50;
+  return `<img src="${imgUrl}" class="pdf-img-cover" style="object-position:${x}% ${y}%;">`;
+}
+
 /* ---------- Layout A: Cinematic Hero — Foto oben (35-45% der Seite), Inhalt darunter ---------- */
 function pdfLayoutHero(recipe, imgUrl, result, factor, nutritionDetail) {
   return `<section class="pdf-page-recipe pdf-layout-hero">
-    <div class="pdf-hero-photo"><img src="${imgUrl}" class="pdf-img-cover"></div>
+    <div class="pdf-hero-photo">${pdfImgTag(imgUrl, recipe)}</div>
     <div class="pdf-hero-body">
       <div class="pdf-header">${pdfHeaderTag(recipe)}</div>
       <h1 class="pdf-title">${escapeHtml(recipe.title)}</h1>
@@ -81,7 +91,7 @@ function pdfLayoutHero(recipe, imgUrl, result, factor, nutritionDetail) {
 
 /* ---------- Layout B/C: Editorial Split (Foto links oder rechts, Punkt 44-45) ---------- */
 function pdfLayoutSplit(recipe, imgUrl, result, factor, side, nutritionDetail) {
-  const photo = `<div class="pdf-split-photo"><img src="${imgUrl}" class="pdf-img-cover"></div>`;
+  const photo = `<div class="pdf-split-photo">${pdfImgTag(imgUrl, recipe)}</div>`;
   const body = `<div class="pdf-split-body">
       <div class="pdf-header">${pdfHeaderTag(recipe)}</div>
       <h1 class="pdf-title pdf-title-split">${escapeHtml(recipe.title)}</h1>
@@ -104,7 +114,7 @@ function pdfLayoutFloating(recipe, imgUrl, result, factor, nutritionDetail) {
     <h1 class="pdf-title">${escapeHtml(recipe.title)}</h1>
     ${pdfMetaLine(recipe)}
     <div class="pdf-floating-wrap">
-      <div class="pdf-floating-photo"><img src="${imgUrl}" class="pdf-img-cover"></div>
+      <div class="pdf-floating-photo">${pdfImgTag(imgUrl, recipe)}</div>
       <div class="pdf-floating-ing">${pdfIngredientsList(recipe, factor)}</div>
     </div>
     ${pdfStepsList(recipe)}
@@ -117,7 +127,7 @@ function pdfLayoutFloating(recipe, imgUrl, result, factor, nutritionDetail) {
 /* ---------- Layout E: Full Photo Statement — grossflaechiges Foto, kurzer Text darunter ---------- */
 function pdfLayoutFullStatement(recipe, imgUrl, result, factor, nutritionDetail) {
   return `<section class="pdf-page-recipe pdf-layout-full-statement">
-    <div class="pdf-statement-photo"><img src="${imgUrl}" class="pdf-img-cover">
+    <div class="pdf-statement-photo">${pdfImgTag(imgUrl, recipe)}
       <div class="pdf-statement-overlay">
         <h1 class="pdf-title pdf-title-statement">${escapeHtml(recipe.title)}</h1>
         ${pdfMetaLine(recipe)}
@@ -177,7 +187,7 @@ function pdfLongRecipeSection(recipe, imgUrl, bodyHtml, isContinuation) {
   const header = isContinuation
     ? `<div class="pdf-continuation-tag">${escapeHtml(recipe.title)} · Fortsetzung</div>`
     : `<div class="pdf-header">${pdfHeaderTag(recipe)}</div><h1 class="pdf-title">${escapeHtml(recipe.title)}</h1>${pdfMetaLine(recipe)}`;
-  const photo = (!isContinuation && imgUrl) ? `<div class="pdf-long-photo"><img src="${imgUrl}" class="pdf-img-cover"></div>` : '';
+  const photo = (!isContinuation && imgUrl) ? `<div class="pdf-long-photo">${pdfImgTag(imgUrl, recipe)}</div>` : '';
   return `<section class="pdf-page-recipe pdf-layout-long ${isContinuation ? 'pdf-layout-continuation' : ''}">
     ${photo}
     <div class="pdf-long-body">
