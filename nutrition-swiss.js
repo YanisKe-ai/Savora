@@ -93,7 +93,12 @@ function scoreNameMatch(query, candidateName) {
 
 /* Sucht ueber Name (DE), Synonyme (DE) und englischen Namen als Fallback — der beste der drei
    Scores pro Lebensmittel zaehlt. */
-async function searchSwissFoods(query, limit = 20) {
+/* Wie searchSwissFoods(), gibt aber zusaetzlich den tatsaechlich ermittelten Score pro Treffer
+   zurueck (inkl. Synonym-/EN-Bonus) — wichtig fuer Aufrufer wie matchIngredient(), die sonst den
+   Score anhand von food.name allein neu berechnen wuerden und dabei einen Synonym-Treffer
+   verlieren wuerden (Bug: "Butter" fand ueber das offizielle BLV-Synonym "Vorzugsbutter" mit
+   Score 100, wurde aber bei der Neuberechnung ueber den Eigennamen als "unsicher" eingestuft). */
+async function searchSwissFoodsWithScores(query, limit = 20) {
   const q = normalizeIngredientText(query);
   if (!q) return [];
   const foods = await getSwissFoodsCached();
@@ -105,7 +110,12 @@ async function searchSwissFoods(query, limit = 20) {
     if (best >= NUTRITION_MATCH_SCORE_MIN_DEFAULT) scored.push({ food: f, score: best });
   }
   scored.sort((a, b) => b.score - a.score || a.food.name.length - b.food.name.length);
-  return scored.slice(0, limit).map((s) => s.food);
+  return scored.slice(0, limit);
+}
+
+async function searchSwissFoods(query, limit = 20) {
+  const scored = await searchSwissFoodsWithScores(query, limit);
+  return scored.map((s) => s.food);
 }
 
 const NUTRITION_MATCH_SCORE_MIN_DEFAULT = 15;

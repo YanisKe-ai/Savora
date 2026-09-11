@@ -65,51 +65,71 @@ async function searchAllFoods(query, limit = 20) {
   return [...custom, ...swiss].slice(0, limit);
 }
 
-/* Kernfunktion: ordnet einen einzelnen Zutatennamen einem Lebensmittel zu. `steps` (optional)
-   sind die Zubereitungsschritte des Rezepts — wird eine Zubereitungsart erkannt (Punkt 21),
-   fliesst sie als zusaetzliches Suchwort ein (praeziserer Treffer, siehe nutrition-preparation.js). */
+/* Kernfunktion: ordnet einen einzelnen Zutatennamen einem Lebensmittel zu. Nutzt zuerst den
+   Ingredient-Intelligence-Normalizer (ingredient-normalizer.js, Master-Prompt Teil B/C), um
+   z.B. "100 g weiche Butter" auf den Kern "Butter" + Deskriptor "weich" zu reduzieren, bevor
+   ueberhaupt gesucht wird. `steps` (optional) sind die Zubereitungsschritte des Rezepts — wird
+   daraus eine Zubereitungsart erkannt (Punkt 21), fliesst sie NUR ein, wenn die Zutatenzeile
+   selbst noch keinen expliziten ernaehrungsrelevanten Zustand nennt (die explizite Angabe in
+   der Zutat selbst hat Vorrang vor der aus dem Fliesstext erratenen). */
 async function matchIngredient(rawName, steps) {
   const normalized = normalizeIngredientText(rawName);
   if (!normalized) {
-    return { normalized, status: 'unmatched', food: null, candidates: [], confirmed: false, preparation: null };
+    return { normalized, status: 'unmatched', food: null, candidates: [], confirmed: false, preparation: null, ingredientInfo: null };
   }
-  const preparation = steps ? detectIngredientPreparation(rawName, steps) : null;
+  const ingredientInfo = normalizeIngredientPhrase(rawName);
+  const preparation = (!ingredientInfo.nutritionRelevantStates.length && steps)
+    ? detectIngredientPreparation(rawName, steps)
+    : null;
 
-  // 1) Bestaetigte Zuordnung hat Vorrang vor jeder automatischen Suche.
+  // 1) Bestaetigte Zuordnung hat Vorrang vor jeder automatischen Suche. Bewusst weiterhin ueber
+  //    den vollen Originaltext normalisiert (nicht den bereinigten Kern) — eine einmal vom
+  //    Nutzer bestaetigte Zeile soll exakt wiedererkannt werden (Punkt 89).
   const confirmed = await dbGetNutritionMatch(normalized);
   if (confirmed && confirmed.foodId) {
     const food = await findFoodById(confirmed.foodId);
-    if (food) return { normalized, status: 'matched', food, candidates: [food], confirmed: true, preparation };
+    if (food) return { normalized, status: 'matched', food, candidates: [food], confirmed: true, preparation, ingredientInfo };
   }
 
   // 2) Eigene Lebensmittel vor der generischen Datenbank.
   const customHits = await searchCustomFoods(rawName, 5);
   if (customHits.length) {
     const exact = customHits.find((f) => normalizeIngredientText(f.name) === normalized);
-    if (exact) return { normalized, status: 'matched', food: exact, candidates: customHits, confirmed: false, preparation };
+    if (exact) return { normalized, status: 'matched', food: exact, candidates: customHits, confirmed: false, preparation, ingredientInfo };
   }
 
-  // 3) Schweizer Naehrwertdatenbank — bei bekannten Alltagsbegriffen (Punkt 77) zusaetzlich
-  //    mit der erweiterten Anfrage suchen, da die BLV-Nomenklatur oft anders lautet
-  //    (z.B. "Poulet, Brust, ..." statt "Pouletbrust", "Hühnerei" statt "Ei").
-  const aliasExpansion = expandIngredientQuery(rawName);
-  const baseQuery = aliasExpansion || rawName;
-  // Erkannte Zubereitung als Zusatzwort anhaengen (Punkt 15/21) — nutzt dieselbe Wortstamm-
-  // Suche wie z.B. "Reis trocken" vs. "Reis gekocht" (siehe nutrition-swiss.js), macht das
-  // Matching praeziser statt es zu ersetzen: ohne Treffer greift die normale Suche weiter unten.
+  // 3) Schweizer Naehrwertdatenbank — Suchbegriff ist der vom Normalizer bereinigte Kern
+  //    (+ erhaltene ernaehrungsrelevante Zustaende, Punkt 78), nicht der rohe Zutatentext.
+  //    Bekannte Alltagsbegriffe (Punkt 77) werden zusaetzlich auf den KERN angewendet — das
+  //    behebt nebenbei einen Fall, den die reine Rohtext-Version nicht abdeckte: "Eier,
+  //    verquirlt" hat als Rohtext keinen exakten Alias-Treffer, der bereinigte Kern "eier" schon.
+  const canonicalBase = ingredientInfo.searchQuery || normalized;
+  const aliasExpansion = expandIngredientQuery(ingredientInfo.canonicalIngredient || rawName) || expandIngredientQuery(rawName);
+  const baseQuery = aliasExpansion || canonicalBase;
+  // Erkannte Zubereitung aus den Schritten als Zusatzwort anhaengen (Punkt 15/21) — nur wenn
+  // oben kein expliziter Zustand aus der Zutatenzeile selbst vorlag.
   const searchQuery = preparation ? baseQuery + ' ' + preparation.method : baseQuery;
-  let swissHits = await searchSwissFoods(searchQuery, 8);
-  if (preparation && !swissHits.length) swissHits = await searchSwissFoods(baseQuery, 8); // Zubereitung fand nichts -> normale Suche als Fallback
+  let scoredHits = await searchSwissFoodsWithScores(searchQuery, 8);
+  if (searchQuery !== baseQuery && !scoredHits.length) scoredHits = await searchSwissFoodsWithScores(baseQuery, 8);
+  // Letzter Fallback: falls die Normalisierung fuer einen (noch) unbekannten Begriff zu
+  // aggressiv war, zur Sicherheit auch den unveraenderten Rohtext probieren.
+  if (!scoredHits.length && normalizeIngredientText(searchQuery) !== normalized) {
+    scoredHits = await searchSwissFoodsWithScores(rawName, 8);
+  }
+  const swissHits = scoredHits.map((s) => s.food);
   const candidates = [...customHits, ...swissHits];
   if (!candidates.length) {
-    return { normalized, status: 'unmatched', food: null, candidates: [], confirmed: false, preparation };
+    return { normalized, status: 'unmatched', food: null, candidates: [], confirmed: false, preparation, ingredientInfo };
   }
   const top = swissHits[0];
-  const topScore = top ? scoreNameMatch(searchQuery, top.name) : -1;
+  // Der tatsaechlich ermittelte Score (inkl. Synonym-/EN-Bonus) wird wiederverwendet statt ihn
+  // ueber food.name allein neu zu berechnen — sonst ginge ein Treffer ueber ein offizielles
+  // BLV-Synonym (z.B. "Butter" -> "Vorzugsbutter") als "unsicher" statt "sicher" durch.
+  const topScore = scoredHits.length ? scoredHits[0].score : -1;
   if (topScore >= NUTRITION_MATCH_SCORE_CONFIDENT) {
-    return { normalized, status: 'matched', food: top, candidates, confirmed: false, preparation };
+    return { normalized, status: 'matched', food: top, candidates, confirmed: false, preparation, ingredientInfo };
   }
-  return { normalized, status: 'uncertain', food: candidates[0], candidates, confirmed: false, preparation };
+  return { normalized, status: 'uncertain', food: candidates[0], candidates, confirmed: false, preparation, ingredientInfo };
 }
 
 /* Ordnet mehrere Zutaten in einem Rutsch zu (fuer den Matching-Screen, Punkt 71). */

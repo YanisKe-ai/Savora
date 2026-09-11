@@ -60,6 +60,12 @@ async function calculateRecipeNutrition(recipe) {
   for (const ing of ingredients) {
     if (!ing || !ing.name || !ing.name.trim()) continue;
     if (isQualitativeIngredient(ing)) continue; // bewusst ausgeschlossen, kein Fehler
+
+    const ingredientInfo = normalizeIngredientPhrase(ing.name);
+    // Punkt 42: optionale Zutaten ("nach Belieben", "wer mag", ...) NICHT automatisch in die
+    // Naehrwerte einrechnen, solange unklar ist, ob sie tatsaechlich verwendet wurden — genauso
+    // bewusst ausgeschlossen wie eine vage Mengenangabe, kein Fehler/Confidence-Abzug.
+    if (ingredientInfo.optional) continue;
     relevantCount++;
 
     const match = await matchIngredient(ing.name, recipe.steps);
