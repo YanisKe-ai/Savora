@@ -199,16 +199,15 @@
     top: 0;
     z-index: 20;
   }
-  .brand { display: flex; align-items: center; gap: 10px; }
-  .brand-text { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
-  .brand-subtitle { font-family: var(--font-sans); font-size: 11px; font-weight: 500; color: var(--sage-300); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 46vw; }
-  .brand-logo { width: 48px; height: 48px; flex-shrink: 0; object-fit: contain; display: block; }
+  .brand { display: flex; align-items: center; gap: 12px; }
+  .brand-logo { width: 64px; height: 64px; flex-shrink: 0; object-fit: contain; display: block; }
   .brand-name {
     font-family: var(--font-display);
     font-optical-sizing: auto;
     font-size: var(--fs-brand);
-    font-weight: 600;
-    letter-spacing: 0.01em;
+    font-weight: 700;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
   }
   .topbar-left { display: flex; align-items: center; gap: 10px; min-width: 0; flex: 1; overflow: hidden; }
   .topbar-title {
