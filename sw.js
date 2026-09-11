@@ -5,7 +5,7 @@
    - Kontrollierter Update-Flow: kein automatisches skipWaiting. Ein neuer Worker wartet, bis
      die Seite per postMessage({type:'SKIP_WAITING'}) explizit zustimmt.
 */
-const SW_VERSION = 'v4-logo';
+const SW_VERSION = 'v5-header-logo';
 const CACHE_SHELL = 'savora-shell-' + SW_VERSION;
 const CACHE_RUNTIME = 'savora-runtime-' + SW_VERSION;
 const SHELL_ASSETS = [

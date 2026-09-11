@@ -3,7 +3,7 @@ function renderStorageError(err) {
   const splash = document.getElementById('splash');
   if (splash) splash.remove();
   App.innerHTML = `
-    <div class="topbar"><div class="topbar-left"><div class="brand"><img src="icon-96.png" alt="Savora" class="brand-logo"><span class="brand-name">Savora</span></div></div></div>
+    <div class="topbar"><div class="topbar-left"><div class="brand"><img src="logo-mark.png" alt="Savora" class="brand-logo"><span class="brand-name">Savora</span></div></div></div>
     <main style="display:flex;align-items:center;justify-content:center;min-height:70vh;">
       <div class="empty-state" style="max-width:340px;">
         ${ICONS.trash}

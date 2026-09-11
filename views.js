@@ -32,7 +32,7 @@ function bottomNav() {
 function topbar(title, opts = {}) {
   const showSubtitle = !opts.back && title === 'Savora' && state.cookbookTitle;
   const backBtn = opts.back ? `<button class="icon-btn" data-action="back" aria-label="Zurück">${ICONS.back}</button>` : `<div class="brand">
-      <img src="icon-96.png" alt="Savora" class="brand-logo">
+      <img src="logo-mark.png" alt="Savora" class="brand-logo">
       <div class="brand-text">
         <span class="brand-name">${escapeHtml(title || 'Savora')}</span>
         ${showSubtitle ? `<span class="brand-subtitle">${escapeHtml(state.cookbookTitle)}</span>` : ''}
