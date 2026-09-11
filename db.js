@@ -248,6 +248,16 @@ async function dbDeleteNutritionFoodsBySource(source) {
 }
 
 /* ---------- Nutrition-Stores: nutritionMatches (gelernte Zuordnungen) ---------- */
+async function dbGetAllNutritionMatches() {
+  const db = await openDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction('nutritionMatches', 'readonly');
+    const req = tx.objectStore('nutritionMatches').getAll();
+    req.onsuccess = () => resolve(req.result || []);
+    req.onerror = () => reject(req.error);
+  });
+}
+
 async function dbGetNutritionMatch(normalizedIngredient) {
   const db = await openDB();
   return new Promise((resolve, reject) => {
@@ -279,6 +289,16 @@ async function dbDeleteNutritionMatch(normalizedIngredient) {
 }
 
 /* ---------- Nutrition-Stores: nutritionResults (Rezept-Naehrwerte) ---------- */
+async function dbGetAllNutritionResults() {
+  const db = await openDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction('nutritionResults', 'readonly');
+    const req = tx.objectStore('nutritionResults').getAll();
+    req.onsuccess = () => resolve(req.result || []);
+    req.onerror = () => reject(req.error);
+  });
+}
+
 async function dbGetNutritionResult(recipeId) {
   const db = await openDB();
   return new Promise((resolve, reject) => {

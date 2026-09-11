@@ -102,17 +102,20 @@ function nutritionMatchRow(item) {
         <span class="nutrition-match-food">${foodName}</span>
         ${prepHint}
       </div>
-      <button class="nutrition-match-change" data-action="nutrition-select-ingredient" data-name="${name}">Ändern</button>
+      <button type="button" class="nutrition-match-change" data-action="nutrition-select-ingredient" data-name="${name}" aria-label="Zuordnung für ${name} ändern">Ändern</button>
     </li>`;
   }
-  return `<li class="nutrition-match-item nutrition-match-item-action" data-action="nutrition-select-ingredient" data-name="${name}">
-    ${nutritionStatusIcon(item.status)}
-    <div class="nutrition-match-text">
-      <span class="nutrition-match-ingredient">${name}</span>
-      <span class="nutrition-match-food">${item.status === 'uncertain' ? (foodName ? 'Vielleicht: ' + foodName : 'Unsicher') : 'Nicht erkannt'}</span>
-      ${prepHint}
-    </div>
-    ${ICONS.chevronRight}
+  const statusText = item.status === 'uncertain' ? (foodName ? 'Vielleicht: ' + foodName : 'Unsicher') : 'Nicht erkannt';
+  return `<li>
+    <button type="button" class="nutrition-match-item nutrition-match-item-action" data-action="nutrition-select-ingredient" data-name="${name}" aria-label="${name}, ${statusText} — antippen um Lebensmittel zuzuordnen">
+      ${nutritionStatusIcon(item.status)}
+      <div class="nutrition-match-text">
+        <span class="nutrition-match-ingredient">${name}</span>
+        <span class="nutrition-match-food">${statusText}</span>
+        ${prepHint}
+      </div>
+      ${ICONS.chevronRight}
+    </button>
   </li>`;
 }
 
@@ -138,9 +141,11 @@ function nutritionMatchStage(recipe) {
 
 /* ---------- Manuelle Auswahl (Punkt 72) ---------- */
 function nutritionFoodCandidateRow(food, targetName) {
-  return `<li class="nutrition-candidate-item" data-action="nutrition-confirm-match" data-name="${escapeHtml(targetName)}" data-food-id="${escapeHtml(food.id)}">
-    <span class="nutrition-candidate-name">${escapeHtml(food.name)}</span>
-    <span class="nutrition-candidate-source">${food.source === 'custom' ? 'Eigenes Lebensmittel' : 'CH-Nährwertdatenbank'}</span>
+  return `<li>
+    <button type="button" class="nutrition-candidate-item" data-action="nutrition-confirm-match" data-name="${escapeHtml(targetName)}" data-food-id="${escapeHtml(food.id)}" aria-label="${escapeHtml(food.name)} für ${escapeHtml(targetName)} übernehmen">
+      <span class="nutrition-candidate-name">${escapeHtml(food.name)}</span>
+      <span class="nutrition-candidate-source">${food.source === 'custom' ? 'Eigenes Lebensmittel' : 'CH-Nährwertdatenbank'}</span>
+    </button>
   </li>`;
 }
 
