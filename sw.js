@@ -17,6 +17,7 @@ const SHELL_ASSETS = [
   './icon-96.png',
   './icon-192.png',
   './icon-512.png',
+  './fonts/baloo2.woff2',
 ];
 const RUNTIME_MAX_ENTRIES = 60;
 

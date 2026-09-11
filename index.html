@@ -9,9 +9,18 @@
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="icon-180.png">
 <link rel="icon" href="icon-32.png">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  /* Baloo 2 selbst gehostet (Variable Font, deckt Weight 400-800 ab) — funktioniert
+     dadurch auch offline beim allerersten Laden, sobald die Datei einmal im
+     Service-Worker-Cache liegt. */
+  @font-face {
+    font-family: 'Baloo 2';
+    src: url('./fonts/baloo2.woff2') format('woff2-variations'), url('./fonts/baloo2.woff2') format('woff2');
+    font-weight: 400 800;
+    font-style: normal;
+    font-display: swap;
+  }
+</style>
 <style>
   :root {
     /* ============ FARB-TOKENS (Rohwerte) ============ */
