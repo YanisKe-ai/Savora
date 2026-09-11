@@ -1,29 +1,75 @@
 /* ---------- Timer parsing for cook mode ---------- */
-/* ---------- Zentraler Dauer-Parser (Zeitspannen, Sekunden, Dezimalstunden) ---------- */
+/* ---------- Zentraler Dauer-Parser (Zeitspannen, Sekunden, Dezimalstunden, Zahlwoerter) ---------- */
 function durationUnitSeconds(unit) {
   if (/^(Stunden?|Std\.?|h)$/i.test(unit)) return 3600;
   if (/^(Sekunden?|Sek\.?|s)$/i.test(unit)) return 1;
   return 60; // Minuten
 }
 
+// Kleine Normalisierungsschicht fuer Zahlwoerter statt einer langen Liste unwartbarer
+// Sonderfaelle: jedes Wort wird auf seinen Zahlenwert abgebildet, "eineinhalb"/"anderthalb"
+// separat als 1.5. Nach Wortlaenge absteigend sortiert, damit z.B. "fuenfundvierzig" nicht
+// schon bei "fuenf" abgeschnitten wird.
+const GERMAN_TIME_NUMBER_WORDS = {
+  'eineinhalb': 1.5, 'anderthalb': 1.5,
+  'fünfundvierzig': 45, 'zwanzig': 20, 'dreissig': 30, 'dreißig': 30, 'vierzig': 40,
+  'sechzig': 60, 'fünfzehn': 15, 'zwölf': 12, 'zehn': 10,
+  'eins': 1, 'eine': 1, 'ein': 1, 'zwei': 2, 'drei': 3, 'vier': 4, 'fünf': 5,
+  'sechs': 6, 'sieben': 7, 'acht': 8, 'neun': 9, 'elf': 11,
+};
+const TIME_NUMBER_WORD_PATTERN = Object.keys(GERMAN_TIME_NUMBER_WORDS).sort((a, b) => b.length - a.length).join('|');
+
+function parseTimeNumberToken(tok) {
+  if (tok == null) return null;
+  const t = tok.trim();
+  if (/^½$/.test(t)) return 0.5;
+  const halfMatch = /^(\d+)\s*½$/.exec(t);
+  if (halfMatch) return parseInt(halfMatch[1], 10) + 0.5;
+  const wordMatch = new RegExp(`^(${TIME_NUMBER_WORD_PATTERN})$`, 'i').exec(t);
+  if (wordMatch) return GERMAN_TIME_NUMBER_WORDS[wordMatch[1].toLowerCase()];
+  const f = parseFloat(t.replace(',', '.'));
+  return isNaN(f) ? null : f;
+}
+
 function parseDurations(text) {
-  const re = /(\d+(?:[.,]\d+)?)\s*(?:(?:bis|-|–|—)\s*(\d+(?:[.,]\d+)?)\s*)?(Stunden?|Std\.?|Minuten?|Min\.?|Sekunden?|Sek\.?|h)\b/gi;
   const results = [];
+
+  // 1) Uhrzeit-artige Stundenangabe (1:30 Stunden / 1:30 h) — eigenes Muster, da das
+  //    Ergebnis direkt in Minuten umgerechnet wird statt mit der allgemeinen Einheit.
+  const hmRe = /\b(\d{1,2}):(\d{2})\s*(Stunden?|Std\.?|h)\b/gi;
+  let hm;
+  while ((hm = hmRe.exec(text)) !== null) {
+    const totalSeconds = (parseInt(hm[1], 10) * 60 + parseInt(hm[2], 10)) * 60;
+    results.push({
+      raw: hm[0], index: hm.index, length: hm[0].length,
+      seconds: totalSeconds, minSeconds: totalSeconds, maxSeconds: totalSeconds, confidence: 'exact',
+    });
+  }
+
+  // 2) Allgemeines Muster: Ziffer, Dezimalzahl, Zahlwort, ½ oder "1½" [bis/– weitere Zahl] Einheit.
+  //    Die Einheit muss unmittelbar folgen — nur so werden "180 Grad", "2 Portionen" oder
+  //    "5 Eier" zuverlaessig NICHT als Zeitangabe erkannt (kein False Positive).
+  const numTok = `(?:\\d+(?:[.,]\\d+)?\\s*½?|½|${TIME_NUMBER_WORD_PATTERN})`;
+  const re = new RegExp(`(${numTok})\\s*(?:(?:bis|-|–|—)\\s*(${numTok})\\s*)?(Stunden?|Std\\.?|Minuten?|Min\\.?|Sekunden?|Sek\\.?|h)\\b`, 'gi');
   let m;
   while ((m = re.exec(text)) !== null) {
+    // Ueberlappung mit bereits erkannten h:mm-Treffern vermeiden (kein Doppel-Treffer).
+    if (results.some(r => m.index < r.index + r.length && m.index + m[0].length > r.index)) continue;
     const mult = durationUnitSeconds(m[3]);
-    const n1 = parseFloat(m[1].replace(',', '.'));
-    const n2 = m[2] ? parseFloat(m[2].replace(',', '.')) : null;
-    if (isNaN(n1)) continue;
+    const n1 = parseTimeNumberToken(m[1]);
+    const n2 = m[2] ? parseTimeNumberToken(m[2]) : null;
+    if (n1 == null) continue;
     const minSeconds = Math.round(n1 * mult);
-    const maxSeconds = n2 !== null && !isNaN(n2) ? Math.round(n2 * mult) : minSeconds;
+    const maxSeconds = n2 != null ? Math.round(n2 * mult) : minSeconds;
     results.push({
       raw: m[0], index: m.index, length: m[0].length,
       seconds: maxSeconds, // bei Zeitspannen wird der obere Wert vorgeschlagen
       minSeconds, maxSeconds,
-      confidence: n2 !== null ? 'range' : 'exact',
+      confidence: n2 != null ? 'range' : 'exact',
     });
   }
+
+  results.sort((a, b) => a.index - b.index);
   return results;
 }
 

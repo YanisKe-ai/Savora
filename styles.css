@@ -412,7 +412,8 @@
   .detail-tags .tag-chip { cursor: default; min-height: 30px; }
 
   /* ---------- Diet / allergen badges ---------- */
-  .diet-badge-row { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 14px; }
+  .diet-badge-row { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 14px; align-items: center; }
+  .diet-badge-divider { width: 1px; align-self: stretch; background: var(--border); margin: 2px 2px; }
   .diet-badge {
     display: inline-flex; align-items: center; gap: 5px;
     padding: 5px 11px; border-radius: 999px; font-size: 12px; font-weight: 600;

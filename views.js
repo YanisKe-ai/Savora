@@ -163,7 +163,16 @@ function detailView() {
         <button class="detail-icon-action" data-action="share-recipe" data-id="${r.id}" aria-label="Rezept teilen" title="Rezept teilen">${ICONS.share}</button>
       </div>
       ${r.sharedBy ? `<div class="source-line">${ICONS.sparkle} Geteilt von ${escapeHtml(r.sharedBy)}</div>` : r.source ? `<div class="source-line">${ICONS.link} Importiert von <a href="${escapeHtml(r.source)}" target="_blank" rel="noopener">${escapeHtml(domainFromUrl(r.source))}</a></div>` : `<div class="source-line">${ICONS.book} Aus deinem eigenen Kochbuch</div>`}
-      ${(r.diet || []).length ? `<div class="diet-badge-row">${r.diet.map(dk => { const d = DIET_OPTIONS.find(o => o.key === dk); return d ? `<span class="diet-badge tone-${d.tone}">${ICONS[d.icon]}${d.label}</span>` : ''; }).join('')}</div>` : ''}
+      ${(r.diet || []).length ? (() => {
+        const badge = (dk) => { const d = DIET_OPTIONS.find(o => o.key === dk); return d ? `<span class="diet-badge tone-${d.tone}">${ICONS[d.icon]}${d.label}</span>` : ''; };
+        const dietBadges = r.diet.filter(dk => DIET_OPTIONS.find(o => o.key === dk)?.tone === 'diet');
+        const freeBadges = r.diet.filter(dk => DIET_OPTIONS.find(o => o.key === dk)?.tone === 'free');
+        return `<div class="diet-badge-row">
+          ${dietBadges.map(badge).join('')}
+          ${dietBadges.length && freeBadges.length ? '<span class="diet-badge-divider" aria-hidden="true"></span>' : ''}
+          ${freeBadges.map(badge).join('')}
+        </div>`;
+      })() : ''}
       ${(r.tags || []).length ? `<div class="detail-tags">${r.tags.map(t => `<span class="tag-chip">${escapeHtml(t)}</span>`).join('')}</div>` : ''}
       <div class="detail-columns">
         <div>
@@ -257,9 +266,16 @@ function formView() {
           </div>
         </div>
         <div class="field">
-          <label id="diet-group-label">Ernährungsform / Allergene</label>
+          <label id="diet-group-label">Ernährungsform</label>
           <div class="diet-select-row" role="group" aria-labelledby="diet-group-label">
-            ${DIET_OPTIONS.map(d => `<button type="button" class="diet-select-chip ${((r.diet)||[]).includes(d.key) ? 'active' : ''}" data-action="toggle-diet" data-diet="${d.key}" aria-pressed="${((r.diet)||[]).includes(d.key) ? 'true' : 'false'}">${ICONS[d.icon]}${d.label}</button>`).join('')}
+            ${DIET_OPTIONS.filter(d => d.tone === 'diet').map(d => `<button type="button" class="diet-select-chip ${((r.diet)||[]).includes(d.key) ? 'active' : ''}" data-action="toggle-diet" data-diet="${d.key}" aria-pressed="${((r.diet)||[]).includes(d.key) ? 'true' : 'false'}">${ICONS[d.icon]}${d.label}</button>`).join('')}
+          </div>
+        </div>
+        <div class="field">
+          <label id="free-group-label">Hinweise / Frei von</label>
+          <p class="settings-hint" style="margin:2px 0 8px;">Automatisch erkannte Angaben bitte immer selbst prüfen — keine medizinische Zusicherung.</p>
+          <div class="diet-select-row" role="group" aria-labelledby="free-group-label">
+            ${DIET_OPTIONS.filter(d => d.tone === 'free').map(d => `<button type="button" class="diet-select-chip ${((r.diet)||[]).includes(d.key) ? 'active' : ''}" data-action="toggle-diet" data-diet="${d.key}" aria-pressed="${((r.diet)||[]).includes(d.key) ? 'true' : 'false'}">${ICONS[d.icon]}${d.label}</button>`).join('')}
           </div>
         </div>
         <div class="field">
