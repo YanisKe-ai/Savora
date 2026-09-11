@@ -6,6 +6,16 @@ function viewFor(view) {
     case 'form': return formView();
     case 'cookmode': return cookModeView();
     case 'settings': return settingsView();
+    case 'settings-display': return settingsDisplayView();
+    case 'settings-units': return settingsUnitsView();
+    case 'settings-profile': return settingsProfileView();
+    case 'settings-backup': return settingsBackupView();
+    case 'settings-help': return settingsHelpView();
+    case 'settings-privacy': return settingsPrivacyView();
+    case 'settings-terms': return settingsTermsView();
+    case 'settings-sources': return settingsSourcesView();
+    case 'settings-about': return settingsAboutView();
+    case 'paste-import': return pasteImportView();
     case 'shopping': return shoppingView();
     case 'mealplan': return mealplanView();
     case 'unitconverter': return unitConverterView();
@@ -15,6 +25,12 @@ function viewFor(view) {
 
 const TAB_VIEWS = ['home', 'mealplan', 'shopping', 'settings'];
 
+// "Mehr" bleibt in der Tab-Leiste aktiv markiert, solange man sich in einer Settings-Detailseite
+// oder im davon erreichten Masseinheiten-Rechner befindet (Settings/Mehr-Redesign, Teil A).
+function isMoreSectionView(view) {
+  return view === 'settings' || view.indexOf('settings-') === 0 || view === 'unitconverter';
+}
+
 function bottomNav() {
   const tabs = [
     { view: 'home', icon: ICONS.book, label: 'Rezepte' },
@@ -23,7 +39,7 @@ function bottomNav() {
     { view: 'settings', icon: ICONS.settings, label: 'Mehr' },
   ];
   return `<nav class="bottom-nav" aria-label="Hauptnavigation">
-    ${tabs.map(t => { const active = state.view === t.view; return `<button data-action="nav-tab" data-view="${t.view}" class="${active ? 'active' : ''}" ${active ? 'aria-current="page"' : ''}>
+    ${tabs.map(t => { const active = t.view === 'settings' ? isMoreSectionView(state.view) : state.view === t.view; return `<button data-action="nav-tab" data-view="${t.view}" class="${active ? 'active' : ''}" ${active ? 'aria-current="page"' : ''}>
       <span aria-hidden="true">${t.icon}</span><span>${t.label}</span>
     </button>`; }).join('')}
   </nav>`;
@@ -121,10 +137,38 @@ function homeView() {
       </div>` : ''}
       ${grid}
     </main>
-    <button class="fab" data-action="new-recipe" aria-label="Neues Rezept">${ICONS.plus}</button>
+    <button class="fab" data-action="open-add-menu" aria-label="Rezept hinzufügen">${ICONS.plus}</button>
     ${bottomNav()}
     ${filterSheetModal()}
+    ${addMenuModal()}
   `;
+}
+
+// Punkt 12/13: Textimport ist keine Einstellung, sondern gehoert in den Erstellungs-Fluss.
+// Die FAB oeffnet deshalb dieses kleine Auswahlmenu statt direkt ein leeres Rezept zu erstellen.
+function addMenuModal() {
+  if (!state.modal || state.modal.type !== 'add-menu') return '';
+  return `<div class="modal-backdrop" data-action="close-modal">
+    <div class="modal-sheet add-menu-sheet" role="dialog" aria-modal="true" aria-labelledby="add-menu-title" tabindex="-1" onclick="event.stopPropagation()">
+      <h3 class="modal-title" id="add-menu-title">Rezept hinzufügen</h3>
+      <div class="add-menu-options">
+        <button type="button" class="add-menu-option" data-action="new-recipe">
+          <span class="add-menu-option-icon">${ICONS.edit}</span>
+          <span class="add-menu-option-text">
+            <strong>Rezept erstellen</strong>
+            <span>Leeres Rezept von Hand eintragen</span>
+          </span>
+        </button>
+        <button type="button" class="add-menu-option" data-action="open-paste-import">
+          <span class="add-menu-option-icon">${ICONS.sparkle}</span>
+          <span class="add-menu-option-text">
+            <strong>Aus Text importieren</strong>
+            <span>Bildunterschrift, Nachricht oder kopierter Text</span>
+          </span>
+        </button>
+      </div>
+    </div>
+  </div>`;
 }
 
 function emptyFilterState() {
@@ -669,87 +713,198 @@ function unitConverterView() {
   `;
 }
 
-function settingsSection(key, icon, title, bodyHtml, opts = {}) {
-  const isOpen = state.settingsOpen.has(key);
-  return `<div class="settings-section">
-    <button type="button" class="settings-section-header ${isOpen ? 'open' : ''}" data-action="toggle-settings-section" data-key="${key}" aria-expanded="${isOpen ? 'true' : 'false'}" aria-controls="sec-${key}">
-      <span class="icon-inline settings-section-icon" aria-hidden="true">${icon}</span>
-      <span class="settings-section-title">${title}</span>
-      ${opts.badge || ''}
-      <span class="icon-inline settings-chevron" aria-hidden="true">${ICONS.chevronRight}</span>
-    </button>
-    <div class="settings-section-body ${isOpen ? 'open' : ''}" id="sec-${key}" ${isOpen ? '' : 'hidden'}>${bodyHtml}</div>
+/* ---------- "Mehr" (frueher "Einstellungen") — Redesign, Teil A ----------
+   Ersetzt die Accordion-Wand durch klar gruppierte Zeilen (Settings Rows). Einstellungen,
+   Aktionen und Informationen stehen in eigenen Gruppen, nicht mehr gleichrangig nebeneinander.
+   Komplexere Bereiche oeffnen eine eigene Detailseite (eigener state.view-Eintrag) statt eines
+   aufklappbaren Bereichs — Zurueck-Navigation siehe onAction 'back' in ui.js. */
+function settingsRow(opts) {
+  const { icon, title, summary, view, action, danger } = opts;
+  const attr = view ? `data-action="goto-view" data-view="${view}"` : `data-action="${action}"`;
+  return `<button type="button" class="settings-row ${danger ? 'settings-row-danger' : ''}" ${attr}>
+    <span class="settings-row-icon" aria-hidden="true">${icon}</span>
+    <span class="settings-row-title">${title}</span>
+    ${summary ? `<span class="settings-row-summary">${escapeHtml(summary)}</span>` : ''}
+    <span class="settings-row-chevron" aria-hidden="true">${ICONS.chevronRight}</span>
+  </button>`;
+}
+
+function settingsGroup(label, rowsHtml) {
+  return `<div class="settings-group">
+    <div class="settings-group-title">${label}</div>
+    <div class="settings-group-card">${rowsHtml}</div>
   </div>`;
+}
+
+function settingsDetailShell(title, bodyHtml) {
+  return `
+    ${topbar(title, { back: true })}
+    <main class="has-tabbar settings-page">${bodyHtml}</main>
+    ${bottomNav()}
+  `;
 }
 
 function settingsView() {
   const t = state.theme;
   const themeLabel = t === 'light' ? 'Hell' : t === 'dark' ? 'Dunkel' : t === 'amoled' ? 'Schwarz' : 'System';
   const unitLabel = state.unitSystem === 'metric' ? 'Metrisch' : 'Imperial';
-
-  const displayBody = `
-    <p class="settings-hint">Dunkel eignet sich besonders gut zum Kochen am Abend. Schwarz spart zusätzlich Akku auf OLED-Bildschirmen.</p>
-    <div class="theme-switch theme-switch--grid">
-      <button class="theme-opt ${t === 'light' ? 'active' : ''}" data-action="set-theme" data-theme="light">${ICONS.sun} Hell</button>
-      <button class="theme-opt ${t === 'dark' ? 'active' : ''}" data-action="set-theme" data-theme="dark">${ICONS.moon} Dunkel</button>
-      <button class="theme-opt ${t === 'amoled' ? 'active' : ''}" data-action="set-theme" data-theme="amoled">${ICONS.moon} Schwarz</button>
-      <button class="theme-opt ${t === 'auto' ? 'active' : ''}" data-action="set-theme" data-theme="auto">${ICONS.auto} System</button>
-    </div>`;
-
-  const unitsBody = `
-    <p class="settings-hint">Beim Importieren von Rezepten aus Text werden Mengen automatisch in dein bevorzugtes System umgerechnet. Du kannst jede Menge danach trotzdem frei anpassen.</p>
-    <div class="theme-switch" style="margin-bottom:12px;">
-      <button class="theme-opt ${state.unitSystem === 'metric' ? 'active' : ''}" data-action="set-unit-system" data-system="metric">Metrisch (g, ml)</button>
-      <button class="theme-opt ${state.unitSystem === 'imperial' ? 'active' : ''}" data-action="set-unit-system" data-system="imperial">Imperial (oz, cup)</button>
-    </div>
-    <button class="ghost-btn" data-action="open-unitconverter">${ICONS.ruler} Masseinheiten-Rechner öffnen</button>`;
-
-  const importBody = `
-    <p class="settings-hint">Bildunterschrift eines Instagram-/TikTok-Posts, eine WhatsApp-Nachricht, kopierter Rezepttext einer Webseite oder eine eigene Notiz einfügen. Savora erkennt Titel, Zutaten und Schritte automatisch — du prüfst den Entwurf danach kurz, bevor du speicherst.</p>
-    <div class="field" style="margin-bottom:10px;">
-      <textarea id="pasteText" placeholder="Rezepttext hier einfügen …" style="min-height:110px;"></textarea>
-    </div>
-    <button class="primary-btn" data-action="do-paste-import">${ICONS.sparkle} Rezept-Entwurf erstellen</button>`;
-
-  const dataBody = `
-    <p class="settings-hint">Alle Rezepte als PDF im Kochbuch-Layout, ein Rezept pro Seite, mit Titelseite und Inhaltsverzeichnis.</p>
-    <button class="ghost-btn" data-action="export-cookbook">${ICONS.pdf} Als PDF exportieren</button>
-    <div class="settings-divider"></div>
-    <p class="settings-hint">Savora speichert alles nur auf diesem Gerät. Lade regelmässig eine Sicherung herunter, damit bei einem Gerätewechsel oder gelöschten Browserdaten nichts verloren geht.</p>
-    <div style="display:flex;gap:8px;flex-wrap:wrap;">
-      <button class="primary-btn" data-action="export-backup">${ICONS.download} Sicherung herunterladen</button>
-      <button class="ghost-btn" data-action="trigger-restore">${ICONS.upload} Datei einspielen</button>
-      <input type="file" id="restoreFileInput" accept="application/json" style="display:none;">
-    </div>
-    <p class="settings-hint" style="margin-top:8px;">„Datei einspielen" ist für deine eigenen Sicherungen gedacht. Ein von dir geteiltes Rezept kommt bei anderen als fertige PDF-Datei an — die lässt sich ansehen, ausdrucken oder weiterschicken, aber nicht zurück in Savora einspielen.</p>
-    <div id="backupStatus"></div>`;
-
-  const aboutBody = `<p class="settings-hint" style="margin:0;">Savora speichert dein Kochbuch lokal auf diesem Gerät. Deine Rezepte verlassen dein Gerät nicht, ausser du exportierst sie selbst.</p>`;
-
-  const profileBody = `
-    <p class="settings-hint">Der Kochbuch-Titel erscheint unter dem Logo auf der Startseite und auf dem Deckblatt beim PDF-Export.</p>
-    <div class="field" style="margin-bottom:14px;">
-      <label for="f-cookbook-title">Kochbuch-Titel</label>
-      <input type="text" id="f-cookbook-title" placeholder="z.B. Yanis' Küche" value="${escapeHtml(state.cookbookTitle)}">
-    </div>
-    <p class="settings-hint">Dein Name wird angehängt, wenn du ein Rezept mit jemandem teilst, damit der Empfänger sieht, von wem es kommt.</p>
-    <div class="field" style="margin-bottom:10px;">
-      <label for="f-sender-name">Dein Name</label>
-      <input type="text" id="f-sender-name" placeholder="z.B. Yanis" value="${escapeHtml(state.senderName)}">
-    </div>
-    <button class="ghost-btn" data-action="save-profile-fields">${ICONS.check} Speichern</button>`;
+  const cookbookSummary = state.cookbookTitle || 'Nicht festgelegt';
 
   return `
-    ${topbar('Einstellungen')}
-    <main class="has-tabbar">
-      ${settingsSection('display', ICONS.moon, 'Darstellung', displayBody, { badge: `<span class="settings-section-badge">${themeLabel}</span>` })}
-      ${settingsSection('units', ICONS.ruler, 'Masseinheiten', unitsBody, { badge: `<span class="settings-section-badge">${unitLabel}</span>` })}
-      ${settingsSection('profile', ICONS.sparkle, 'Kochbuch & Name', profileBody)}
-      ${settingsSection('import', ICONS.sparkle, 'Rezept aus Text importieren', importBody)}
-      ${settingsSection('data', ICONS.download, 'Exportieren & sichern', dataBody)}
-      ${settingsSection('about', ICONS.book, 'Über Savora', aboutBody)}
+    ${topbar('Mehr')}
+    <main class="has-tabbar settings-page">
+      ${settingsGroup('Mein Kochbuch', settingsRow({ icon: ICONS.book, title: 'Kochbuch & Profil', summary: cookbookSummary, view: 'settings-profile' }))}
+      ${settingsGroup('App', [
+        settingsRow({ icon: ICONS.moon, title: 'Darstellung', summary: themeLabel, view: 'settings-display' }),
+        settingsRow({ icon: ICONS.ruler, title: 'Masseinheiten', summary: unitLabel, view: 'settings-units' }),
+      ].join(''))}
+      ${settingsGroup('Daten &amp; Export', [
+        settingsRow({ icon: ICONS.download, title: 'Backup &amp; Wiederherstellung', view: 'settings-backup' }),
+        settingsRow({ icon: ICONS.pdf, title: 'Kochbuch als PDF', action: 'export-cookbook' }),
+      ].join(''))}
+      ${settingsGroup('Werkzeuge', settingsRow({ icon: ICONS.scale, title: 'Masseinheiten-Rechner', action: 'open-unitconverter' }))}
+      ${settingsGroup('Hilfe &amp; Informationen', [
+        settingsRow({ icon: ICONS.lifeBuoy, title: 'Hilfe &amp; Feedback', view: 'settings-help' }),
+        settingsRow({ icon: ICONS.shield, title: 'Datenschutz', view: 'settings-privacy' }),
+        settingsRow({ icon: ICONS.fileText, title: 'Nutzungsbedingungen', view: 'settings-terms' }),
+        settingsRow({ icon: ICONS.database, title: 'Datenquellen', view: 'settings-sources' }),
+        settingsRow({ icon: ICONS.info, title: 'Über Savora', view: 'settings-about' }),
+      ].join(''))}
     </main>
     ${bottomNav()}
     ${pdfExportModal()}
+  `;
+}
+
+function settingsDisplayView() {
+  const t = state.theme;
+  const body = `
+    <div class="settings-group">
+      <div class="settings-group-card settings-group-card--padded">
+        <p class="settings-hint">Dunkel eignet sich besonders gut zum Kochen am Abend.</p>
+        <div class="theme-switch theme-switch--grid">
+          <button class="theme-opt ${t === 'light' ? 'active' : ''}" data-action="set-theme" data-theme="light">${ICONS.sun} Hell</button>
+          <button class="theme-opt ${t === 'dark' ? 'active' : ''}" data-action="set-theme" data-theme="dark">${ICONS.moon} Dunkel</button>
+          <button class="theme-opt ${t === 'amoled' ? 'active' : ''}" data-action="set-theme" data-theme="amoled">${ICONS.moon} Schwarz</button>
+          <button class="theme-opt ${t === 'auto' ? 'active' : ''}" data-action="set-theme" data-theme="auto">${ICONS.auto} System</button>
+        </div>
+        <p class="settings-hint" style="margin:12px 0 0;">Schwarz: vollständig schwarzer Hintergrund für OLED-Displays.</p>
+      </div>
+    </div>`;
+  return settingsDetailShell('Darstellung', body);
+}
+
+function settingsUnitsView() {
+  const body = `
+    <div class="settings-group">
+      <div class="settings-group-card settings-group-card--padded">
+        <p class="settings-hint">Beim Importieren von Rezepten aus Text werden Mengen automatisch in dein bevorzugtes System umgerechnet. Du kannst jede Menge danach trotzdem frei anpassen.</p>
+        <div class="theme-switch">
+          <button class="theme-opt ${state.unitSystem === 'metric' ? 'active' : ''}" data-action="set-unit-system" data-system="metric">Metrisch (g, ml)</button>
+          <button class="theme-opt ${state.unitSystem === 'imperial' ? 'active' : ''}" data-action="set-unit-system" data-system="imperial">Imperial (oz, cup)</button>
+        </div>
+      </div>
+    </div>`;
+  return settingsDetailShell('Masseinheiten', body);
+}
+
+function settingsProfileView() {
+  const body = `
+    <div class="settings-group">
+      <div class="settings-group-card settings-group-card--padded">
+        <p class="settings-hint">Der Kochbuch-Titel erscheint unter dem Logo auf der Startseite und auf dem Deckblatt beim PDF-Export.</p>
+        <div class="field" style="margin-bottom:14px;">
+          <label for="f-cookbook-title">Kochbuch-Titel</label>
+          <input type="text" id="f-cookbook-title" placeholder="z.B. Yanis' Küche" value="${escapeHtml(state.cookbookTitle)}">
+        </div>
+        <p class="settings-hint">Dein Name wird angehängt, wenn du ein Rezept mit jemandem teilst, damit der Empfänger sieht, von wem es kommt.</p>
+        <div class="field" style="margin-bottom:14px;">
+          <label for="f-sender-name">Dein Name</label>
+          <input type="text" id="f-sender-name" placeholder="z.B. Yanis" value="${escapeHtml(state.senderName)}">
+        </div>
+        <button class="primary-btn" data-action="save-profile-fields">${ICONS.check} Speichern</button>
+      </div>
+    </div>`;
+  return settingsDetailShell('Kochbuch & Profil', body);
+}
+
+function settingsBackupView() {
+  const lastBackupLabel = state.lastBackupAt
+    ? new Date(state.lastBackupAt).toLocaleDateString('de-CH', { day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' })
+    : 'Noch keine Sicherung erstellt';
+  const body = `
+    <div class="settings-group">
+      <div class="settings-group-title">Backup</div>
+      <div class="settings-group-card settings-group-card--padded">
+        <p class="settings-hint">Savora speichert alles nur auf diesem Gerät. Erstelle regelmässig eine Sicherung, damit bei einem Gerätewechsel oder gelöschten Browserdaten nichts verloren geht.</p>
+        <button class="primary-btn" data-action="export-backup">${ICONS.download} Backup erstellen</button>
+        <p class="settings-hint" style="margin:10px 0 0;">Letztes Backup: ${escapeHtml(lastBackupLabel)}</p>
+      </div>
+    </div>
+    <div class="settings-group">
+      <div class="settings-group-title">Wiederherstellen</div>
+      <div class="settings-group-card settings-group-card--padded">
+        <button class="ghost-btn" data-action="trigger-restore">${ICONS.upload} Backup importieren</button>
+        <input type="file" id="restoreFileInput" accept="application/json" style="display:none;">
+        <p class="settings-hint" style="margin:10px 0 0;">„Backup importieren" ist für deine eigenen Sicherungen gedacht. Ein von dir geteiltes Rezept kommt bei anderen als fertige PDF-Datei an — die lässt sich ansehen, ausdrucken oder weiterschicken, aber nicht zurück in Savora einspielen.</p>
+        <div id="backupStatus"></div>
+      </div>
+    </div>`;
+  return settingsDetailShell('Backup & Wiederherstellung', body);
+}
+
+function settingsHelpView() {
+  const body = `<div class="settings-group"><div class="settings-group-card settings-group-card--padded">
+    <p class="settings-hint" style="margin:0;">Fragen oder Feedback zu Savora kannst du direkt an die Person richten, von der du die App erhalten hast.</p>
+  </div></div>`;
+  return settingsDetailShell('Hilfe & Feedback', body);
+}
+
+function settingsPrivacyView() {
+  const body = `<div class="settings-group"><div class="settings-group-card settings-group-card--padded">
+    <p class="settings-hint" style="margin:0;">Savora speichert dein Kochbuch ausschliesslich lokal auf diesem Gerät (IndexedDB). Es findet keine Übertragung an einen Server statt, ausser du exportierst oder teilst ein Rezept selbst aktiv. Diese Seite wird für die Beta-Version noch ausführlicher vorbereitet.</p>
+  </div></div>`;
+  return settingsDetailShell('Datenschutz', body);
+}
+
+function settingsTermsView() {
+  const body = `<div class="settings-group"><div class="settings-group-card settings-group-card--padded">
+    <p class="settings-hint" style="margin:0;">Diese Seite wird für die Beta-Version vorbereitet.</p>
+  </div></div>`;
+  return settingsDetailShell('Nutzungsbedingungen', body);
+}
+
+function settingsSourcesView() {
+  const body = `<div class="settings-group"><div class="settings-group-card settings-group-card--padded">
+    <p class="settings-hint" style="margin:0;">Nährwerte basieren auf der Schweizer Nährwertdatenbank (BLV) sowie, wo per Barcode nachgeschlagen, auf Open Food Facts. Werte sind Schätzwerte ohne medizinische Zusicherung.</p>
+  </div></div>`;
+  return settingsDetailShell('Datenquellen', body);
+}
+
+function settingsAboutView() {
+  const body = `<div class="settings-group"><div class="settings-group-card settings-group-card--padded" style="text-align:center;">
+    <img src="logo-mark.png" alt="" style="width:56px;height:56px;margin:4px auto 12px;">
+    <h2 style="font-family:var(--font-display);margin:0 0 4px;">Savora</h2>
+    <p class="settings-hint" style="margin:0;">Dein persönliches digitales Kochbuch.</p>
+  </div></div>`;
+  return settingsDetailShell('Über Savora', body);
+}
+
+/* Punkt 12/13: eigener, dedizierter Screen statt Accordion-Textarea in den Settings. Wird ueber
+   die FAB (addMenuModal) erreicht, nicht ueber "Mehr". */
+function pasteImportView() {
+  const body = `
+    <div class="settings-group">
+      <div class="settings-group-card settings-group-card--padded">
+        <p class="settings-hint">Bildunterschrift eines Instagram-/TikTok-Posts, eine WhatsApp-Nachricht, kopierter Rezepttext einer Webseite oder eine eigene Notiz einfügen. Savora erkennt Titel, Zutaten und Schritte automatisch — du prüfst den Entwurf danach kurz, bevor du speicherst.</p>
+        <div class="field" style="margin-bottom:14px;">
+          <textarea id="pasteText" placeholder="Rezepttext hier einfügen …" style="min-height:160px;"></textarea>
+        </div>
+        <button class="primary-btn" data-action="do-paste-import">${ICONS.sparkle} Rezept-Entwurf erstellen</button>
+      </div>
+    </div>`;
+  return `
+    ${topbar('Aus Text importieren', { back: true })}
+    <main class="has-tabbar settings-page">${body}</main>
   `;
 }

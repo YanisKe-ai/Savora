@@ -213,8 +213,17 @@ async function onAction(e) {
 
   switch (action) {
     case 'new-recipe':
+      state.modal = null;
       state.editingRecipe = emptyRecipe();
       state.view = 'form';
+      render();
+      break;
+    case 'open-add-menu':
+      openModal({ type: 'add-menu' }, '.fab');
+      break;
+    case 'open-paste-import':
+      state.modal = null;
+      state.view = 'paste-import';
       render();
       break;
     case 'edit-recipe':
@@ -246,13 +255,17 @@ async function onAction(e) {
       render();
       break;
     }
-    case 'back':
+    case 'back': {
       state.modal = null;
-      state.view = (state.view === 'form' && state.activeRecipeId) ? 'detail'
-        : state.view === 'unitconverter' ? 'settings'
-        : 'home';
+      const v = state.view;
+      if (v === 'form' && state.activeRecipeId) state.view = 'detail';
+      else if (v === 'unitconverter') state.view = 'settings';
+      else if (v.indexOf('settings-') === 0) state.view = 'settings';
+      else if (v === 'paste-import') state.view = 'home';
+      else state.view = 'home';
       render();
       break;
+    }
     case 'toggle-fav': {
       e.stopPropagation();
       const r = state.recipes.find(x => x.id === id);
@@ -462,16 +475,11 @@ async function onAction(e) {
       state.view = el.dataset.view;
       render();
       break;
-    case 'toggle-settings-section': {
-      const key = el.dataset.key;
-      const nowOpen = !state.settingsOpen.has(key);
-      if (nowOpen) state.settingsOpen.add(key); else state.settingsOpen.delete(key);
-      const body = document.getElementById('sec-' + key);
-      if (body) { body.classList.toggle('open', nowOpen); body.toggleAttribute('hidden', !nowOpen); }
-      el.classList.toggle('open', nowOpen);
-      el.setAttribute('aria-expanded', nowOpen ? 'true' : 'false');
-      return; // kein Re-Render — bewahrt unbestätigte Eingaben in anderen Feldern
-    }
+    case 'goto-view':
+      state.modal = null;
+      state.view = el.dataset.view;
+      render();
+      break;
     case 'open-shopping':
       state.view = 'shopping';
       render();

@@ -17,12 +17,12 @@ const state = {
   unitSystem: localStorage.getItem(UNIT_KEY) || 'metric',
   cookbookTitle: localStorage.getItem(COOKBOOK_TITLE_KEY) || '',
   senderName: localStorage.getItem(SENDER_NAME_KEY) || '',
+  lastBackupAt: localStorage.getItem(LAST_BACKUP_KEY) || null,
   timers: {}, // id -> { remaining, total, running, done, intervalId }
   voiceEnabled: false,
   shopping: [],
   mealplan: {}, // dateKey -> [recipeId, ...]
   weekStart: getMonday(new Date()),
-  settingsOpen: new Set(),
   // Nutrition C (siehe nutrition-*.js): Zwischenzustand fuer den Matching-Screen,
   // bewusst ausserhalb von state.recipes, da rein UI-transient.
   nutritionMatchItems: [],

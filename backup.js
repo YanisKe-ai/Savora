@@ -36,6 +36,8 @@ async function downloadBackup() {
   a.click();
   a.remove();
   setTimeout(() => URL.revokeObjectURL(url), 2000);
+  state.lastBackupAt = payload.exportedAt;
+  localStorage.setItem(LAST_BACKUP_KEY, payload.exportedAt);
   showToast('Sicherung wird heruntergeladen');
 }
 

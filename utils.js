@@ -99,3 +99,4 @@ const UNIT_KEY = 'savora-unit-system'; // 'metric' | 'imperial'
 
 const COOKBOOK_TITLE_KEY = 'savora-cookbook-title'; // frei waehlbarer Titel unter dem Logo / auf dem PDF-Deckblatt
 const SENDER_NAME_KEY = 'savora-sender-name'; // eigener Name, wird beim Teilen eines Rezepts angehaengt
+const LAST_BACKUP_KEY = 'savora-last-backup-at'; // ISO-Zeitstempel der letzten erfolgreichen Sicherung, fuer "Mehr > Backup"
