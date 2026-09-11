@@ -173,7 +173,7 @@
   }
   #splash.hide { opacity: 0; pointer-events: none; }
   #splashLogo {
-    width: 128px; height: 128px;
+    width: 148px; height: 148px;
     object-fit: contain; display: block;
     transition: transform 1.1s cubic-bezier(.4,0,.2,1), opacity 1.1s cubic-bezier(.4,0,.2,1);
   }
@@ -200,7 +200,7 @@
     z-index: 20;
   }
   .brand { display: flex; align-items: center; gap: 12px; }
-  .brand-logo { width: 64px; height: 64px; flex-shrink: 0; object-fit: contain; display: block; }
+  .brand-logo { width: 72px; height: 72px; flex-shrink: 0; object-fit: contain; display: block; }
   .brand-name {
     font-family: var(--font-display);
     font-optical-sizing: auto;
