@@ -209,6 +209,7 @@
     letter-spacing: 0.03em;
     text-transform: uppercase;
   }
+  .brand-name--plain { font-size: 22px; font-weight: 600; letter-spacing: 0.01em; text-transform: none; }
   .topbar-left { display: flex; align-items: center; gap: 10px; min-width: 0; flex: 1; overflow: hidden; }
   .topbar-title {
     font-family: var(--font-display);
@@ -696,10 +697,10 @@
     padding: 28mm 24mm;
   }
   .pdf-cover-badge {
-    width: 30mm; height: 30mm; border-radius: 8mm; background: #0f1a13; margin-bottom: 14mm;
+    width: 34mm; height: 34mm; border-radius: 8mm; background: #0f1a13; margin-bottom: 14mm;
     display: flex; align-items: center; justify-content: center;
   }
-  .pdf-cover-badge svg { width: 15mm; height: 15mm; color: #f5efdf; }
+  .pdf-cover-badge img { width: 20mm; height: 20mm; object-fit: contain; display: block; }
   .pdf-page-cover h1 { font-family: var(--font-display); font-size: 40pt; font-weight: 700; margin: 0; color: #16261c; letter-spacing: -0.01em; }
   .pdf-cover-rule { width: 26mm; height: 2.5pt; background: #c9832f; margin: 7mm 0; border: none; }
   .pdf-page-cover p { font-family: var(--font-sans); font-size: 9.5pt; letter-spacing: 0.16em; text-transform: uppercase; color: #7a8a7c; margin: 0; }

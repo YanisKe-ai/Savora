@@ -30,9 +30,11 @@ function bottomNav() {
 }
 
 function topbar(title, opts = {}) {
+  const isBrand = !opts.back && (title === 'Savora' || !title);
+  const nameClass = isBrand ? 'brand-name' : 'brand-name brand-name--plain';
   const backBtn = opts.back ? `<button class="icon-btn" data-action="back" aria-label="Zurück">${ICONS.back}</button>` : `<div class="brand">
       <img src="logo-mark.png" alt="Savora" class="brand-logo">
-      <span class="brand-name">${escapeHtml(title || 'Savora')}</span>
+      <span class="${nameClass}">${escapeHtml(title || 'Savora')}</span>
     </div>`;
   return `<div class="topbar">
     <div class="topbar-left">${backBtn}${opts.back ? `<span class="topbar-title">${escapeHtml(title)}</span>` : ''}</div>
