@@ -5,7 +5,7 @@
    - Kontrollierter Update-Flow: kein automatisches skipWaiting. Ein neuer Worker wartet, bis
      die Seite per postMessage({type:'SKIP_WAITING'}) explizit zustimmt.
 */
-const SW_VERSION = 'v8-nutrition-p1';
+const SW_VERSION = 'v9-nutrition-p2';
 const CACHE_SHELL = 'savora-shell-' + SW_VERSION;
 const CACHE_RUNTIME = 'savora-runtime-' + SW_VERSION;
 // Statische Referenzdaten (z.B. Schweizer Naehrwertdatenbank): aendert sich nur bei
@@ -28,7 +28,10 @@ const SHELL_ASSETS = [
   './icons.js',
   './db.js',
   './nutrition-model.js',
+  './nutrition-units.js',
   './nutrition-swiss.js',
+  './nutrition-matcher.js',
+  './nutrition-calculator.js',
   './images.js',
   './utils.js',
   './units.js',

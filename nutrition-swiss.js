@@ -67,32 +67,48 @@ async function getSwissFoodsCached() {
   return swissFoodsCache;
 }
 
-/* Einfache, robuste Substring-Suche ueber Name/Synonyme (DE) + englischen Namen als
-   Fallback. Kein Fuzzy-Matching hier — das gehoert in nutrition-matcher.js (Phase 2),
-   diese Funktion ist bewusst simpel und dient v.a. dem manuellen Auswahldialog
-   (Punkt 72) und dem Testen von Phase 1. */
+/* Wort-/Stamm-basierte Relevanzbewertung (statt reinem Substring) — behandelt Plural/Deklination
+   (z.B. "Tomaten" vs. "Tomate, roh") und mehrere Suchwoerter unabhaengig von ihrer Reihenfolge
+   ("Reis trocken" soll "Reis poliert, trocken" finden). Gibt -1 zurueck, wenn kein Wortstamm
+   uebereinstimmt (kein Zufallstreffer ueber gemeinsame Buchstaben). */
+function scoreNameMatch(query, candidateName) {
+  const qNorm = normalizeIngredientText(query);
+  const cNorm = normalizeIngredientText(candidateName);
+  if (!qNorm || !cNorm) return -1;
+  if (qNorm === cNorm) return 100;
+  const qTokens = tokenizeText(qNorm);
+  const cTokens = tokenizeText(cNorm);
+  if (!qTokens.length || !cTokens.length) return -1;
+  const qStems = qTokens.map(stemDe);
+  const cStems = cTokens.map(stemDe);
+  const matched = qStems.filter((qs) => cStems.includes(qs)).length;
+  const coverage = matched / qStems.length;
+  if (coverage === 0) return -1;
+  const headMatch = qStems[0] === cStems[0];
+  let score = coverage * 55;
+  if (headMatch) score += 35;
+  score -= Math.min(cTokens.length, 10) * 0.3; // knappere/generischere Namen leicht bevorzugen
+  return score;
+}
+
+/* Sucht ueber Name (DE), Synonyme (DE) und englischen Namen als Fallback — der beste der drei
+   Scores pro Lebensmittel zaehlt. */
 async function searchSwissFoods(query, limit = 20) {
   const q = normalizeIngredientText(query);
   if (!q) return [];
   const foods = await getSwissFoodsCached();
   const scored = [];
   for (const f of foods) {
-    const name = normalizeIngredientText(f.name);
-    const nameEn = normalizeIngredientText(f.nameEn || '');
-    const synonyms = (f.synonyms || []).map(normalizeIngredientText);
-    let score = -1;
-    if (name === q) score = 100;
-    else if (name.startsWith(q)) score = 80;
-    else if (name.includes(q)) score = 60;
-    else if (synonyms.some((s) => s === q)) score = 70;
-    else if (synonyms.some((s) => s.includes(q))) score = 50;
-    else if (nameEn.startsWith(q)) score = 40;
-    else if (nameEn.includes(q)) score = 20;
-    if (score >= 0) scored.push({ food: f, score });
+    let best = scoreNameMatch(q, f.name);
+    for (const syn of f.synonyms || []) best = Math.max(best, scoreNameMatch(q, syn));
+    if (f.nameEn) best = Math.max(best, scoreNameMatch(q, f.nameEn) - 15); // EN nur als schwaecherer Fallback
+    if (best >= NUTRITION_MATCH_SCORE_MIN_DEFAULT) scored.push({ food: f, score: best });
   }
   scored.sort((a, b) => b.score - a.score || a.food.name.length - b.food.name.length);
   return scored.slice(0, limit).map((s) => s.food);
 }
+
+const NUTRITION_MATCH_SCORE_MIN_DEFAULT = 15;
 
 async function getSwissFoodById(id) {
   const foods = await getSwissFoodsCached();

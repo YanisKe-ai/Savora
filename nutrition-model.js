@@ -82,3 +82,24 @@ function roundNutrientForDisplay(value) {
   if (value >= 10) return Math.round(value * 10) / 10;
   return Math.round(value * 100) / 100;
 }
+
+/* Zerlegt einen normalisierten Text in Wort-Tokens (fuer das Matching, Punkt 8/14). */
+function tokenizeText(normalized) {
+  return (normalized || '').split(' ').filter(Boolean);
+}
+
+/* Sehr einfache Suffix-Reduktion fuer deutsche Substantive (Plural/Deklination), NUR fuer
+   Matching-Zwecke (nicht fuer Anzeige!). Bewusst grob: Ziel ist, dass z.B. "Tomate" und
+   "Tomaten" oder "Reis"+"trocken" und "trockener Reis" denselben Stamm ergeben — keine
+   linguistisch korrekte Grundform. Kurze Woerter (<=5 Zeichen) bleiben unangetastet, um sie
+   nicht kaputtzukuerzen (z.B. "Reis", "Milch" bleiben "Reis"/"Milch"). */
+const GERMAN_NOUN_SUFFIXES = ['nen', 'en', 'er', 'es', 'em', 'e', 'n', 's'];
+function stemDe(word) {
+  if (!word || word.length <= 5) return word;
+  for (const suf of GERMAN_NOUN_SUFFIXES) {
+    if (word.endsWith(suf) && word.length - suf.length >= 3) {
+      return word.slice(0, word.length - suf.length);
+    }
+  }
+  return word;
+}
