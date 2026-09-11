@@ -40,6 +40,9 @@ async function findFoodById(id) {
     const all = await dbGetAllCustomFoods();
     return all.find((f) => f.id === id) || null;
   }
+  if (id.startsWith('off-')) {
+    return dbGetNutritionFood(id); // Open-Food-Facts-Treffer liegen direkt in IndexedDB (kein In-Memory-Cache noetig, selten mehrfach abgefragt)
+  }
   return getSwissFoodById(id);
 }
 

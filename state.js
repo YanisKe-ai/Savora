@@ -30,6 +30,9 @@ const state = {
   nutritionSearchQuery: '',
   nutritionSearchResults: [],
   nutritionDetailMode: 'portion', // 'portion' | '100g' | 'total'
+  nutritionBarcodeStatus: 'idle', // 'idle' | 'looking-up' | 'found' | 'not-found' | 'offline' | 'error' | 'invalid'
+  nutritionBarcodeProduct: null,
+  nutritionBarcodeInput: '',
 };
 
 const systemDarkQuery = window.matchMedia ? matchMedia('(prefers-color-scheme: dark)') : null;

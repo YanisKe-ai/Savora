@@ -807,3 +807,6 @@
   .nutrition-source-line { font-size: 11.5px; color: var(--text-muted); display: flex; align-items: center; gap: 6px; margin-top: 18px; }
   .nutrition-source-line svg { width: 13px; height: 13px; flex-shrink: 0; }
   .nutrition-disclaimer { font-size: 11px; color: var(--text-muted); line-height: 1.4; margin-top: 8px; }
+  .nutrition-select-actions { display: flex; flex-direction: column; gap: 8px; margin: 4px 0 14px; }
+  .nutrition-camera-wrap { background: #000; border-radius: var(--radius-m); overflow: hidden; aspect-ratio: 4/3; margin-bottom: 10px; }
+  .nutrition-camera-wrap video { width: 100%; height: 100%; object-fit: cover; display: block; }

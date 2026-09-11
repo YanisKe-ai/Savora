@@ -78,6 +78,7 @@ function openModal(modal, triggerSelector) {
   render();
 }
 function closeModal() {
+  stopNutritionBarcodeCamera(); // Kamera darf nie weiterlaufen, wenn das Modal verlassen wird
   state.modal = null;
   render();
   const trigger = modalTriggerSelector && document.querySelector(modalTriggerSelector);
@@ -692,5 +693,30 @@ async function onAction(e) {
       showToast('Fertiggewicht gespeichert');
       break;
     }
+
+    /* ---------- Nutrition: Open Food Facts Barcode (Punkt 27-29) ---------- */
+    case 'nutrition-open-barcode':
+      state.nutritionSelectTarget = el.dataset.name || state.nutritionSelectTarget;
+      state.nutritionBarcodeStatus = 'idle';
+      state.nutritionBarcodeProduct = null;
+      state.nutritionBarcodeInput = '';
+      state.modal.stage = 'barcode';
+      render();
+      break;
+    case 'nutrition-start-camera':
+      await startNutritionBarcodeCamera();
+      break;
+    case 'nutrition-barcode-lookup': {
+      const code = (document.getElementById('nutritionBarcodeManual').value || '').trim();
+      stopNutritionBarcodeCamera();
+      state.nutritionBarcodeInput = code;
+      await lookupBarcodeAndRender(code);
+      break;
+    }
+    case 'nutrition-close-barcode':
+      stopNutritionBarcodeCamera();
+      state.modal.stage = 'select';
+      render();
+      break;
   }
 }
