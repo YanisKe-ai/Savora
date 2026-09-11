@@ -150,6 +150,15 @@ function bindEvents() {
       }
     });
   }
+  const shoppingAddInput = document.getElementById('shoppingAddInput');
+  if (shoppingAddInput) {
+    shoppingAddInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' && shoppingAddInput.value.trim()) {
+        e.preventDefault();
+        onAction({ currentTarget: document.querySelector('[data-action="add-shopping-item-manual"]') });
+      }
+    });
+  }
   const imgInput = document.getElementById('f-image');
   if (imgInput) {
     imgInput.addEventListener('change', async (e) => {
@@ -475,6 +484,20 @@ async function onAction(e) {
       item.checked = !item.checked;
       await dbPutShopping(item);
       render();
+      break;
+    }
+    case 'add-shopping-item-manual': {
+      const input = document.getElementById('shoppingAddInput');
+      const name = input ? input.value.trim() : '';
+      if (!name) break;
+      const item = { id: uid(), name, amount: '', unit: '', checked: false, recipeId: null, createdAt: Date.now() };
+      await dbPutShopping(item);
+      state.shopping.push(item);
+      render();
+      // Fokus nach dem Re-Render zurueck ins Eingabefeld, damit man mehrere Artikel
+      // hintereinander eintippen kann ohne jedes Mal neu hinzutippen zu muessen.
+      const freshInput = document.getElementById('shoppingAddInput');
+      if (freshInput) freshInput.focus();
       break;
     }
     case 'delete-shopping-item':

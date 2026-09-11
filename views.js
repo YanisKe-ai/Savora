@@ -392,7 +392,12 @@ function shoppingView() {
   return `
     ${topbar('Einkaufsliste', { actions: items.length ? `<button class="icon-btn" data-action="clear-all-shopping" aria-label="Ganze Einkaufsliste leeren">${ICONS.trash}</button>` : '' })}
     <main class="has-tabbar">
-      ${!items.length ? `<div class="empty-state">${ICONS.cart}<h2>Deine Einkaufsliste ist leer</h2><p>Öffne ein Rezept und tippe auf „Zur Einkaufsliste", um Zutaten hinzuzufügen.</p></div>` : `
+      <div class="shopping-add-row">
+        <label for="shoppingAddInput" class="sr-only">Artikel zur Einkaufsliste hinzufügen</label>
+        <input type="text" id="shoppingAddInput" placeholder="Artikel hinzufügen, z.B. Küchenrolle…">
+        <button class="icon-btn" data-action="add-shopping-item-manual" aria-label="Hinzufügen">${ICONS.plus}</button>
+      </div>
+      ${!items.length ? `<div class="empty-state">${ICONS.cart}<h2>Deine Einkaufsliste ist leer</h2><p>Tippe oben einen Artikel ein oder öffne ein Rezept und tippe auf „Zur Einkaufsliste".</p></div>` : `
         ${open.length ? openHtml : `<p style="text-align:center;color:var(--text-muted);font-size:14px;padding:20px 0;display:flex;align-items:center;justify-content:center;gap:6px;"><span class="icon-inline" style="width:16px;height:16px;">${ICONS.sparkle}</span>Alles abgehakt</p>`}
         ${checked.length ? `<div class="shopping-group-title">Erledigt</div><div>${checked.map(row).join('')}</div>
           <button class="ghost-btn" style="margin-top:16px;width:100%;justify-content:center;" data-action="clear-checked-shopping">Abgehakte entfernen</button>` : ''}
