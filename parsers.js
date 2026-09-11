@@ -61,7 +61,9 @@ function parseIngredientLine(line) {
 
 /* ---------- Freitext-Import (z.B. Instagram-Bildunterschrift) ---------- */
 function stripBullet(line) {
-  return line.replace(/^[\s]*[-*•‣▪◦·]+\s*/, '').replace(/^[\p{Emoji_Presentation}\p{Extended_Pictographic}]\s*/u, '').trim();
+  // Deckt per Unicode-Kategorie (Symbol/Interpunktion) praktisch jedes gaengige Bullet-Zeichen ab
+  // (-, *, •, ‣, ▪, ◦, ·, ∙, ●, ➤, ✦ ...), nicht nur eine feste Liste.
+  return line.replace(/^[\s]*[\p{P}\p{S}]+\s*/u, '').replace(/^[\p{Emoji_Presentation}\p{Extended_Pictographic}]\s*/u, '').trim();
 }
 
 function stripStepNumber(line) {
@@ -74,7 +76,7 @@ function looksLikeIngredient(line) {
   if (STEP_NUM_RE.test(line)) return false;
   const s = stripBullet(line);
   if (!s) return false;
-  return /^[\d½¼¾⅓⅔]/.test(s) || /^[-*•‣▪◦·]/.test(line) || /^[\p{Emoji_Presentation}\p{Extended_Pictographic}]/u.test(line);
+  return /^[\d½¼¾⅓⅔]/.test(s) || /^\s*[\p{P}\p{S}]/u.test(line) || /^[\p{Emoji_Presentation}\p{Extended_Pictographic}]/u.test(line);
 }
 
 function parseFreeTextRecipe(raw) {
@@ -103,6 +105,18 @@ function parseFreeTextRecipe(raw) {
     const m = STEP_NUM_RE.exec(l);
     if (m) numberedSteps.push({ idx, num: parseInt(m[1]), text: m[2].trim() });
   });
+  // Beschreibungszeilen OHNE eigene Nummerierung, die direkt nach einer Schritt-Überschrift
+  // folgen (typisch bei aus Notizen kopierten Rezepten: "1. Kurztitel" + Detailabsatz darunter),
+  // gehören inhaltlich zu diesem Schritt und werden angehängt statt verworfen.
+  if (numberedSteps.length) {
+    const byPosition = [...numberedSteps].sort((a, b) => a.idx - b.idx);
+    byPosition.forEach((step, i) => {
+      const nextIdx = i + 1 < byPosition.length ? byPosition[i + 1].idx : lines.length;
+      const continuation = lines.slice(step.idx + 1, nextIdx)
+        .filter(l => !ingHeaderRe.test(l) && !stepHeaderRe.test(l) && !metaLineRe.test(l) && !isHashtagOnly(l));
+      if (continuation.length) step.text = (step.text + ' ' + continuation.join(' ')).replace(/\s+/g, ' ').trim();
+    });
+  }
 
   const titleLine = lines.find(l =>
     !isHashtagOnly(l) && !ingHeaderRe.test(l) && !stepHeaderRe.test(l) &&
