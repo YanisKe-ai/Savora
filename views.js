@@ -206,6 +206,7 @@ function detailView() {
     ${state.modal && state.modal.type === 'delete' ? deleteModal(r) : ''}
     ${nutritionModal(r)}
     ${nutritionDetailModal(r, state._nutritionDetailResult)}
+    ${pdfExportModal()}
   `;
 }
 
@@ -637,5 +638,6 @@ function settingsView() {
       ${settingsSection('about', ICONS.book, 'Über Savora', aboutBody)}
     </main>
     ${bottomNav()}
+    ${pdfExportModal()}
   `;
 }

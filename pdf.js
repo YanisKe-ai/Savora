@@ -43,11 +43,14 @@ function drawContinuationLabel(sliceCanvas, title, pxPerMm) {
 
 /* Rendert jedes direkte Kind von #printRoot als eigene PDF-Seite(n) — randlos, echtes A4.
    Ist ein Abschnitt hoeher als eine Seite, wird er an einem sicheren Umbruchpunkt geteilt
-   (Punkt 62), statt starr nach exakt einer Seitenhoehe zu schneiden. */
-async function renderSectionsToPdf(filename) {
+   (Punkt 62), statt starr nach exakt einer Seitenhoehe zu schneiden. Loest NICHT mehr selbst
+   den Download aus (Punkt 65: PDF erstellen -> Vorschau -> Download) — gibt stattdessen den
+   fertigen Blob zurueck, den der Aufrufer entweder direkt speichert oder erst in einer Vorschau
+   zeigt (siehe pdf-ui.js). */
+async function renderSectionsToPdf() {
   const container = document.getElementById('printRoot');
   const sections = Array.from(container.children);
-  if (!sections.length) return;
+  if (!sections.length) return null;
   if (document.fonts && document.fonts.ready) await document.fonts.ready;
 
   const { jsPDF } = window.jspdf;
@@ -114,7 +117,12 @@ async function renderSectionsToPdf(filename) {
   }
 
   container.innerHTML = '';
-  const blob = pdf.output('blob');
+  return pdf.output('blob');
+}
+
+/* Startet den eigentlichen Dateidownload — getrennt von renderSectionsToPdf(), damit dazwischen
+   erst eine Vorschau gezeigt werden kann (Punkt 65). */
+function triggerPdfDownload(blob, filename) {
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url; a.download = filename;
@@ -124,35 +132,38 @@ async function renderSectionsToPdf(filename) {
 
 /* Baut eine einzelne Rezeptseite komplett auf: Bildmasse ermitteln, Layout waehlen, Nutrition
    laden, HTML erzeugen. Gibt zusaetzlich das gewaehlte Layout zurueck (fuer die Rhythmus-Regel
-   im Kochbuch-Export, Punkt 52). */
-async function buildRecipePdfPage(r, previousLayout) {
+   im Kochbuch-Export, Punkt 52). `nutritionDetail`: 'off' | 'compact' | 'full' (Punkt 59) —
+   bei 'off' wird das Nutrition-Ergebnis gar nicht erst geladen (schneller, keine unnoetige
+   DB-Abfrage). */
+async function buildRecipePdfPage(r, previousLayout, nutritionDetail) {
   const imgUrl = await resolveRecipeImageDataUrl(r);
   const imgDims = imgUrl ? await getImageDimensions(imgUrl) : null;
   let result = null;
-  try { result = await getFreshNutritionResult(r); } catch (e) { /* Nutrition optional — PDF funktioniert auch ohne */ }
-  const { html, layout } = buildRecipePdfSection(r, imgUrl, imgDims, result, previousLayout);
+  if (nutritionDetail !== 'off') {
+    try { result = await getFreshNutritionResult(r); } catch (e) { /* Nutrition optional — PDF funktioniert auch ohne */ }
+  }
+  const { html, layout } = buildRecipePdfSection(r, imgUrl, imgDims, result, previousLayout, nutritionDetail || 'compact');
   // data-pdf-title fuer die Fortsetzungs-Kennzeichnung (Punkt 61) auf dem <section>-Root einfuegen.
   const withTitle = html.replace('<section class="pdf-page-recipe', `<section data-pdf-title="${escapeHtml(r.title || '')}" class="pdf-page-recipe`);
   return { html: withTitle, layout };
 }
 
-async function exportSinglePdf(id) {
+/* Baut das PDF fuer ein einzelnes Rezept und gibt {blob, filename} zurueck (kein Auto-Download —
+   siehe pdf-ui.js fuer Vorschau/Download-Flow, Punkt 65). null bei Fehler. */
+async function buildSinglePdf(id, nutritionDetail) {
   const r = state.recipes.find(x => x.id === id);
-  if (!r) return;
-  showToast('PDF wird erstellt …', 'info');
-  const { html } = await buildRecipePdfPage(r, null);
+  if (!r) return null;
+  const { html } = await buildRecipePdfPage(r, null, nutritionDetail);
   document.getElementById('printRoot').innerHTML = html;
-  try {
-    await renderSectionsToPdf(`savora-${slugifyTitle(r.title)}.pdf`);
-  } catch (e) {
-    showToast('PDF konnte nicht erstellt werden', 'error');
-  }
+  const blob = await renderSectionsToPdf();
+  if (!blob) return null;
+  return { blob, filename: `savora-${slugifyTitle(r.title)}.pdf` };
 }
 
-async function exportCookbookPdf() {
+/* Baut das PDF fuer das komplette Kochbuch und gibt {blob, filename} zurueck. */
+async function buildCookbookPdf(nutritionDetail) {
   const recipes = state.recipes;
-  if (!recipes.length) { showToast('Noch keine Rezepte zum Exportieren.'); return; }
-  showToast('PDF wird erstellt …', 'info');
+  if (!recipes.length) return null;
   const byCat = {};
   recipes.forEach(r => { const cat = (r.tags && r.tags[0]) || 'Weitere Rezepte'; (byCat[cat] = byCat[cat] || []).push(r); });
   const toc = Object.entries(byCat).map(([cat, list]) =>
@@ -167,21 +178,17 @@ async function exportCookbookPdf() {
   </section>`;
   const tocPage = `<section class="pdf-page-toc"><h2>Inhalt</h2>${toc}</section>`;
 
-  // Layouts nacheinander aufbauen (nicht parallel), damit die Rhythmus-Regel (Punkt 52:
-  // aufeinanderfolgende Seiten sollen nicht identisch wirken) das jeweils vorherige Layout kennt.
   let previousLayout = null;
   const pages = [];
   for (const r of recipes) {
-    const { html, layout } = await buildRecipePdfPage(r, previousLayout);
+    const { html, layout } = await buildRecipePdfPage(r, previousLayout, nutritionDetail);
     pages.push(html);
     previousLayout = layout;
   }
 
   document.getElementById('printRoot').innerHTML = cover + tocPage + pages.join('');
   const stamp = new Date().toISOString().slice(0, 10);
-  try {
-    await renderSectionsToPdf(`savora-kochbuch-${stamp}.pdf`);
-  } catch (e) {
-    showToast('PDF konnte nicht erstellt werden', 'error');
-  }
+  const blob = await renderSectionsToPdf();
+  if (!blob) return null;
+  return { blob, filename: `savora-kochbuch-${stamp}.pdf` };
 }

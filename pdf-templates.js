@@ -27,8 +27,9 @@ function pdfStepsList(recipe) {
 
 /* Kompakte Nutrition-Box (Punkt 58-60) — bewusst zurueckhaltend, keine Fitness-App-Kacheln.
    `result` kommt bereits berechnet aus nutrition-calculator.js; fehlende Werte werden als "–"
-   dargestellt statt als 0 (dieselbe Regel wie in der App-UI). */
-function pdfNutritionBox(result) {
+   dargestellt statt als 0 (dieselbe Regel wie in der App-UI). `detailLevel`: 'compact' (5
+   Kernwerte) oder 'full' (zusaetzlich Zucker, gesaettigte Fettsaeuren, Salz — Punkt 59). */
+function pdfNutritionBox(result, detailLevel) {
   if (!result) return '';
   const per = result.nutrientsPerPortion;
   const row = (key, label) => {
@@ -38,11 +39,15 @@ function pdfNutritionBox(result) {
   };
   const sourceLabel = result.sourceDataVersions && result.sourceDataVersions['swiss-fcd']
     ? 'Schweizer Nährwertdatenbank V' + result.sourceDataVersions['swiss-fcd'] : 'Berechnete Durchschnittswerte';
+  const extraRow = detailLevel === 'full'
+    ? `<div class="pdf-nutrition-row pdf-nutrition-row-extra">${row('sugars', 'Zucker')}${row('saturatedFat', 'ges. Fett')}${row('salt')}</div>`
+    : '';
   return `<div class="pdf-nutrition-box pdf-safe-break">
     <div class="pdf-nutrition-title">Nährwerte · pro Portion</div>
     <div class="pdf-nutrition-row">
       ${row('energyKcal')}${row('protein')}${row('carbohydrates', 'Kohlenh.')}${row('fat')}${row('fiber', 'Ballaststoffe')}
     </div>
+    ${extraRow}
     <div class="pdf-nutrition-source">${escapeHtml(sourceLabel)} — Schätzwerte, keine medizinische Aussage.</div>
   </div>`;
 }
@@ -57,7 +62,7 @@ function pdfHeaderTag(recipe) {
 }
 
 /* ---------- Layout A: Cinematic Hero — Foto oben (35-45% der Seite), Inhalt darunter ---------- */
-function pdfLayoutHero(recipe, imgUrl, result, factor) {
+function pdfLayoutHero(recipe, imgUrl, result, factor, nutritionDetail) {
   return `<section class="pdf-page-recipe pdf-layout-hero">
     <div class="pdf-hero-photo"><img src="${imgUrl}" class="pdf-img-cover"></div>
     <div class="pdf-hero-body">
@@ -68,14 +73,14 @@ function pdfLayoutHero(recipe, imgUrl, result, factor) {
         <div>${pdfIngredientsList(recipe, factor)}</div>
         <div>${pdfStepsList(recipe)}${pdfNotesBlock(recipe)}</div>
       </div>
-      ${pdfNutritionBox(result)}
+      ${pdfNutritionBox(result, nutritionDetail)}
     </div>
     <div class="pdf-footer">Savora · Dein Kochbuch</div>
   </section>`;
 }
 
 /* ---------- Layout B/C: Editorial Split (Foto links oder rechts, Punkt 44-45) ---------- */
-function pdfLayoutSplit(recipe, imgUrl, result, factor, side) {
+function pdfLayoutSplit(recipe, imgUrl, result, factor, side, nutritionDetail) {
   const photo = `<div class="pdf-split-photo"><img src="${imgUrl}" class="pdf-img-cover"></div>`;
   const body = `<div class="pdf-split-body">
       <div class="pdf-header">${pdfHeaderTag(recipe)}</div>
@@ -84,7 +89,7 @@ function pdfLayoutSplit(recipe, imgUrl, result, factor, side) {
       ${pdfIngredientsList(recipe, factor)}
       ${pdfStepsList(recipe)}
       ${pdfNotesBlock(recipe)}
-      ${pdfNutritionBox(result)}
+      ${pdfNutritionBox(result, nutritionDetail)}
     </div>`;
   return `<section class="pdf-page-recipe pdf-layout-split pdf-layout-split-${side}">
     ${side === 'left' ? photo + body : body + photo}
@@ -93,7 +98,7 @@ function pdfLayoutSplit(recipe, imgUrl, result, factor, side) {
 }
 
 /* ---------- Layout D: Floating Photo — Foto neben Zutaten, gut fuer quadratische/kleine Bilder ---------- */
-function pdfLayoutFloating(recipe, imgUrl, result, factor) {
+function pdfLayoutFloating(recipe, imgUrl, result, factor, nutritionDetail) {
   return `<section class="pdf-page-recipe pdf-layout-floating">
     <div class="pdf-header">${pdfHeaderTag(recipe)}</div>
     <h1 class="pdf-title">${escapeHtml(recipe.title)}</h1>
@@ -104,13 +109,13 @@ function pdfLayoutFloating(recipe, imgUrl, result, factor) {
     </div>
     ${pdfStepsList(recipe)}
     ${pdfNotesBlock(recipe)}
-    ${pdfNutritionBox(result)}
+    ${pdfNutritionBox(result, nutritionDetail)}
     <div class="pdf-footer">Savora · Dein Kochbuch</div>
   </section>`;
 }
 
 /* ---------- Layout E: Full Photo Statement — grossflaechiges Foto, kurzer Text darunter ---------- */
-function pdfLayoutFullStatement(recipe, imgUrl, result, factor) {
+function pdfLayoutFullStatement(recipe, imgUrl, result, factor, nutritionDetail) {
   return `<section class="pdf-page-recipe pdf-layout-full-statement">
     <div class="pdf-statement-photo"><img src="${imgUrl}" class="pdf-img-cover">
       <div class="pdf-statement-overlay">
@@ -123,14 +128,14 @@ function pdfLayoutFullStatement(recipe, imgUrl, result, factor) {
         <div>${pdfIngredientsList(recipe, factor)}</div>
         <div>${pdfStepsList(recipe)}${pdfNotesBlock(recipe)}</div>
       </div>
-      ${pdfNutritionBox(result)}
+      ${pdfNutritionBox(result, nutritionDetail)}
     </div>
     <div class="pdf-footer">Savora · Dein Kochbuch</div>
   </section>`;
 }
 
 /* ---------- Layout G: Typography — kein Foto, eigenstaendige Textseite statt Platzhalter (Punkt 49) ---------- */
-function pdfLayoutTypography(recipe, result, factor) {
+function pdfLayoutTypography(recipe, result, factor, nutritionDetail) {
   return `<section class="pdf-page-recipe pdf-layout-typography">
     <div class="pdf-header">${pdfHeaderTag(recipe)}</div>
     <h1 class="pdf-title pdf-title-typography">${escapeHtml(recipe.title)}</h1>
@@ -140,23 +145,23 @@ function pdfLayoutTypography(recipe, result, factor) {
       <div>${pdfIngredientsList(recipe, factor)}</div>
       <div>${pdfStepsList(recipe)}${pdfNotesBlock(recipe)}</div>
     </div>
-    ${pdfNutritionBox(result)}
+    ${pdfNutritionBox(result, nutritionDetail)}
     <div class="pdf-footer">Savora · Dein Kochbuch</div>
   </section>`;
 }
 
 /* Haupteinstieg: waehlt Layout deterministisch und baut das passende HTML. `imgDims` ist
    {width,height} des Originalbilds oder null (kein Foto -> Layout G, Punkt 49). */
-function buildRecipePdfSection(recipe, imgUrl, imgDims, result, previousLayout) {
+function buildRecipePdfSection(recipe, imgUrl, imgDims, result, previousLayout, nutritionDetail) {
   const factor = 1; // PDF-Export nutzt immer die Basisportionen des Rezepts, keine Live-Skalierung
-  if (!imgUrl || !imgDims) return { html: pdfLayoutTypography(recipe, result, factor), layout: 'typography' };
+  if (!imgUrl || !imgDims) return { html: pdfLayoutTypography(recipe, result, factor, nutritionDetail), layout: 'typography' };
   const layout = selectPdfLayout(recipe, imgDims, previousLayout);
   const builders = {
-    hero: () => pdfLayoutHero(recipe, imgUrl, result, factor),
-    'split-left': () => pdfLayoutSplit(recipe, imgUrl, result, factor, 'left'),
-    'split-right': () => pdfLayoutSplit(recipe, imgUrl, result, factor, 'right'),
-    floating: () => pdfLayoutFloating(recipe, imgUrl, result, factor),
-    'full-statement': () => pdfLayoutFullStatement(recipe, imgUrl, result, factor),
+    hero: () => pdfLayoutHero(recipe, imgUrl, result, factor, nutritionDetail),
+    'split-left': () => pdfLayoutSplit(recipe, imgUrl, result, factor, 'left', nutritionDetail),
+    'split-right': () => pdfLayoutSplit(recipe, imgUrl, result, factor, 'right', nutritionDetail),
+    floating: () => pdfLayoutFloating(recipe, imgUrl, result, factor, nutritionDetail),
+    'full-statement': () => pdfLayoutFullStatement(recipe, imgUrl, result, factor, nutritionDetail),
   };
   const build = builders[layout] || builders.hero;
   return { html: build(), layout };

@@ -79,6 +79,7 @@ function openModal(modal, triggerSelector) {
 }
 function closeModal() {
   stopNutritionBarcodeCamera(); // Kamera darf nie weiterlaufen, wenn das Modal verlassen wird
+  revokePdfPreviewUrl(); // Blob-URL der PDF-Vorschau freigeben, sonst haengt der Blob im Speicher
   state.modal = null;
   render();
   const trigger = modalTriggerSelector && document.querySelector(modalTriggerSelector);
@@ -383,10 +384,10 @@ async function onAction(e) {
       break;
     }
     case 'export-pdf':
-      exportSinglePdf(id);
+      openModal({ type: 'pdf-export', target: 'single', recipeId: id, stage: 'options', nutritionDetail: await defaultPdfNutritionDetail('single', id) }, `[data-action="export-pdf"][data-id="${id}"]`);
       break;
     case 'export-cookbook':
-      exportCookbookPdf();
+      openModal({ type: 'pdf-export', target: 'cookbook', stage: 'options', nutritionDetail: await defaultPdfNutritionDetail('cookbook') }, `[data-action="export-cookbook"]`);
       break;
     case 'export-backup':
       downloadBackup();
@@ -720,6 +721,46 @@ async function onAction(e) {
       stopNutritionBarcodeCamera();
       state.modal.stage = 'select';
       render();
+      break;
+
+    /* ---------- PDF-Export-Vorschau (Punkt 59, 65) ---------- */
+    case 'noop':
+      break;
+    case 'pdf-export-set-detail':
+      state.modal.nutritionDetail = el.dataset.level;
+      render();
+      break;
+    case 'pdf-export-build': {
+      state.modal.stage = 'building';
+      render();
+      const m = state.modal;
+      const result = m.target === 'cookbook'
+        ? await buildCookbookPdf(m.nutritionDetail)
+        : await buildSinglePdf(m.recipeId, m.nutritionDetail);
+      if (!result) {
+        showToast('PDF konnte nicht erstellt werden', 'error');
+        state.modal.stage = 'options';
+        render();
+        break;
+      }
+      state.modal.previewBlob = result.blob;
+      state.modal.filename = result.filename;
+      state.modal.previewUrl = URL.createObjectURL(result.blob);
+      state.modal.stage = 'preview';
+      render();
+      break;
+    }
+    case 'pdf-export-back':
+      revokePdfPreviewUrl();
+      state.modal.previewUrl = null;
+      state.modal.previewBlob = null;
+      state.modal.stage = 'options';
+      render();
+      break;
+    case 'pdf-export-download':
+      triggerPdfDownload(state.modal.previewBlob, state.modal.filename);
+      closeModal();
+      showToast('PDF heruntergeladen');
       break;
   }
 }
