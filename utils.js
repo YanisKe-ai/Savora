@@ -96,3 +96,6 @@ const ALL_TAGS_SEED = ['Frühstück', 'Hauptgang', 'Dessert', 'Vegetarisch', 'Ve
 const THEME_KEY = 'savora-theme'; // 'light' | 'dark' | 'auto'
 
 const UNIT_KEY = 'savora-unit-system'; // 'metric' | 'imperial'
+
+const COOKBOOK_TITLE_KEY = 'savora-cookbook-title'; // frei waehlbarer Titel unter dem Logo / auf dem PDF-Deckblatt
+const SENDER_NAME_KEY = 'savora-sender-name'; // eigener Name, wird beim Teilen eines Rezepts angehaengt

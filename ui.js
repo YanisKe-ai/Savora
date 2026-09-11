@@ -373,6 +373,19 @@ async function onAction(e) {
     case 'trigger-restore':
       document.getElementById('restoreFileInput').click();
       break;
+    case 'share-recipe':
+      shareRecipe(id);
+      break;
+    case 'save-profile-fields': {
+      const titleInput = document.getElementById('f-cookbook-title');
+      const nameInput = document.getElementById('f-sender-name');
+      state.cookbookTitle = titleInput ? titleInput.value.trim() : state.cookbookTitle;
+      state.senderName = nameInput ? nameInput.value.trim() : state.senderName;
+      localStorage.setItem(COOKBOOK_TITLE_KEY, state.cookbookTitle);
+      localStorage.setItem(SENDER_NAME_KEY, state.senderName);
+      showToast('Gespeichert');
+      break;
+    }
     case 'open-settings':
       state.view = 'settings';
       render();

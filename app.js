@@ -57,30 +57,16 @@ function registerServiceWorkerWithUpdatePrompt() {
   });
 }
 
-/* ---------- Splash-Übergang: Logo morpht in den Header ---------- */
+/* ---------- Splash-Übergang: Logo löst sich langsam auf ---------- */
 function runSplashSequence() {
   const splash = document.getElementById('splash');
-  const splashLogo = document.getElementById('splashLogo');
   const wordEl = document.querySelector('.splash-word');
-  if (!splash || !splashLogo) return;
-
+  if (!splash) return;
   requestAnimationFrame(() => { if (wordEl) wordEl.classList.add('show'); });
-
-  function morphIntoHeader() {
-    const target = document.querySelector('.brand-logo');
-    if (!target) { setTimeout(morphIntoHeader, 50); return; }
-    const t = target.getBoundingClientRect();
-    const s = splashLogo.getBoundingClientRect();
-    if (!t.width || !s.width) { setTimeout(morphIntoHeader, 50); return; }
-    const scale = t.width / s.width;
-    const dx = (t.left + t.width / 2) - (s.left + s.width / 2);
-    const dy = (t.top + t.height / 2) - (s.top + s.height / 2);
-    splashLogo.style.transform = `translate(${dx}px, ${dy}px) scale(${scale})`;
-    splashLogo.style.borderRadius = getComputedStyle(target).borderRadius;
+  setTimeout(() => {
     splash.classList.add('hide');
-    setTimeout(() => splash.remove(), 720);
-  }
-  setTimeout(morphIntoHeader, 850);
+    setTimeout(() => splash.remove(), 1150);
+  }, 900);
 }
 
 (async function init() {

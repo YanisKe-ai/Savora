@@ -62,7 +62,7 @@ async function exportCookbookPdf() {
   ).join('');
   const cover = `<section class="print-cover">
     <h1>Savora</h1>
-    <p>Mein persönliches Kochbuch</p>
+    <p>${escapeHtml(state.cookbookTitle || 'Mein persönliches Kochbuch')}</p>
   </section>`;
   const tocPage = `<section class="print-toc"><h2>Inhalt</h2>${toc}</section>`;
   const pages = (await Promise.all(recipes.map(async (r) => printRecipeHtml(r, await resolveRecipeImageDataUrl(r))))).join('');

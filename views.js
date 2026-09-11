@@ -30,9 +30,13 @@ function bottomNav() {
 }
 
 function topbar(title, opts = {}) {
+  const showSubtitle = !opts.back && title === 'Savora' && state.cookbookTitle;
   const backBtn = opts.back ? `<button class="icon-btn" data-action="back" aria-label="Zurück">${ICONS.back}</button>` : `<div class="brand">
       <img src="icon-96.png" alt="Savora" class="brand-logo">
-      <span class="brand-name">${escapeHtml(title || 'Savora')}</span>
+      <div class="brand-text">
+        <span class="brand-name">${escapeHtml(title || 'Savora')}</span>
+        ${showSubtitle ? `<span class="brand-subtitle">${escapeHtml(state.cookbookTitle)}</span>` : ''}
+      </div>
     </div>`;
   return `<div class="topbar">
     <div class="topbar-left">${backBtn}${opts.back ? `<span class="topbar-title">${escapeHtml(title)}</span>` : ''}</div>
@@ -152,8 +156,9 @@ function detailView() {
       <div class="detail-actions">
         <button class="primary-btn" data-action="start-cook" data-id="${r.id}" style="flex:1;">${ICONS.play} Kochmodus starten</button>
         <button class="detail-icon-action" data-action="add-to-shopping" data-id="${r.id}" aria-label="Zur Einkaufsliste" title="Zur Einkaufsliste">${ICONS.cart}</button>
+        <button class="detail-icon-action" data-action="share-recipe" data-id="${r.id}" aria-label="Rezept teilen" title="Rezept teilen">${ICONS.share}</button>
       </div>
-      ${r.source ? `<div class="source-line">${ICONS.link} Importiert von <a href="${escapeHtml(r.source)}" target="_blank" rel="noopener">${escapeHtml(domainFromUrl(r.source))}</a></div>` : `<div class="source-line">${ICONS.book} Aus deinem eigenen Kochbuch</div>`}
+      ${r.sharedBy ? `<div class="source-line">${ICONS.sparkle} Geteilt von ${escapeHtml(r.sharedBy)}</div>` : r.source ? `<div class="source-line">${ICONS.link} Importiert von <a href="${escapeHtml(r.source)}" target="_blank" rel="noopener">${escapeHtml(domainFromUrl(r.source))}</a></div>` : `<div class="source-line">${ICONS.book} Aus deinem eigenen Kochbuch</div>`}
       ${(r.diet || []).length ? `<div class="diet-badge-row">${r.diet.map(dk => { const d = DIET_OPTIONS.find(o => o.key === dk); return d ? `<span class="diet-badge tone-${d.tone}">${ICONS[d.icon]}${d.label}</span>` : ''; }).join('')}</div>` : ''}
       ${(r.tags || []).length ? `<div class="detail-tags">${r.tags.map(t => `<span class="tag-chip">${escapeHtml(t)}</span>`).join('')}</div>` : ''}
       <div class="detail-columns">
@@ -568,18 +573,33 @@ function settingsView() {
     <p class="settings-hint">Savora speichert alles nur auf diesem Gerät. Lade regelmässig eine Sicherung herunter, damit bei einem Gerätewechsel oder gelöschten Browserdaten nichts verloren geht.</p>
     <div style="display:flex;gap:8px;flex-wrap:wrap;">
       <button class="primary-btn" data-action="export-backup">${ICONS.download} Sicherung herunterladen</button>
-      <button class="ghost-btn" data-action="trigger-restore">${ICONS.upload} Sicherung einspielen</button>
+      <button class="ghost-btn" data-action="trigger-restore">${ICONS.upload} Datei einspielen</button>
       <input type="file" id="restoreFileInput" accept="application/json" style="display:none;">
     </div>
+    <p class="settings-hint" style="margin-top:8px;">„Datei einspielen" versteht sowohl eigene Sicherungen als auch einzelne Rezepte, die dir jemand über „Teilen" in der Rezept-Detailansicht geschickt hat.</p>
     <div id="backupStatus"></div>`;
 
   const aboutBody = `<p class="settings-hint" style="margin:0;">Savora speichert dein Kochbuch lokal auf diesem Gerät. Deine Rezepte verlassen dein Gerät nicht, ausser du exportierst sie selbst.</p>`;
+
+  const profileBody = `
+    <p class="settings-hint">Der Kochbuch-Titel erscheint unter dem Logo auf der Startseite und auf dem Deckblatt beim PDF-Export.</p>
+    <div class="field" style="margin-bottom:14px;">
+      <label for="f-cookbook-title">Kochbuch-Titel</label>
+      <input type="text" id="f-cookbook-title" placeholder="z.B. Yanis' Küche" value="${escapeHtml(state.cookbookTitle)}">
+    </div>
+    <p class="settings-hint">Dein Name wird angehängt, wenn du ein Rezept mit jemandem teilst, damit der Empfänger sieht, von wem es kommt.</p>
+    <div class="field" style="margin-bottom:10px;">
+      <label for="f-sender-name">Dein Name</label>
+      <input type="text" id="f-sender-name" placeholder="z.B. Yanis" value="${escapeHtml(state.senderName)}">
+    </div>
+    <button class="ghost-btn" data-action="save-profile-fields">${ICONS.check} Speichern</button>`;
 
   return `
     ${topbar('Einstellungen')}
     <main class="has-tabbar">
       ${settingsSection('display', ICONS.moon, 'Darstellung', displayBody, { badge: `<span class="settings-section-badge">${themeLabel}</span>` })}
       ${settingsSection('units', ICONS.ruler, 'Masseinheiten', unitsBody, { badge: `<span class="settings-section-badge">${unitLabel}</span>` })}
+      ${settingsSection('profile', ICONS.sparkle, 'Kochbuch & Name', profileBody)}
       ${settingsSection('import', ICONS.link, 'Rezepte importieren', importBody)}
       ${settingsSection('data', ICONS.download, 'Exportieren & sichern', dataBody)}
       ${settingsSection('about', ICONS.book, 'Über Savora', aboutBody)}
