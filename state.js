@@ -33,6 +33,10 @@ const state = {
   nutritionBarcodeStatus: 'idle', // 'idle' | 'looking-up' | 'found' | 'not-found' | 'offline' | 'error' | 'invalid'
   nutritionBarcodeProduct: null,
   nutritionBarcodeInput: '',
+  // Filter-/Kategoriensystem (Master-Prompt Teil I): mehrere Dimensionen, innerhalb einer
+  // Dimension ODER, zwischen Dimensionen UND (Punkt 107). Als Sets, damit Mehrfachauswahl
+  // pro Dimension moeglich ist.
+  activeFilters: { dietary: new Set(), category: new Set(), time: new Set() },
 };
 
 const systemDarkQuery = window.matchMedia ? matchMedia('(prefers-color-scheme: dark)') : null;
@@ -94,7 +98,7 @@ async function loadMealplan() {
 function emptyRecipe() {
   return {
     id: uid(), title: '', image: null, servings: 4, timeMinutes: 30, difficulty: 'Mittel',
-    tags: [], diet: [], ingredients: [{ amount: '', unit: '', name: '' }], steps: [{ text: '' }],
+    tags: [], diet: [], categoryTags: [], suppressedTags: [], ingredients: [{ amount: '', unit: '', name: '' }], steps: [{ text: '' }],
     notes: '', favorite: false, source: null, createdAt: Date.now(), updatedAt: Date.now(),
   };
 }

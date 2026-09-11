@@ -44,12 +44,53 @@ const ICONS = {
   swap: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M7 3v14M7 17 3 13M7 17l4-4"/><path d="M17 21V7M17 7l4 4M17 7l-4 4"/></svg>`,
   apple: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 8c-3 0-5.5 2.5-5.5 6.5S8.5 21 11 21c1 0 1.3-.5 2-.5s1 .5 2 .5c2.2 0 4.5-2.8 4.5-6.5 0-3-1.8-5.2-4-5.5.3-1.3 1.3-2.3 2.5-2.5"/><path d="M12 8c0-2 1-3.5 2.5-4"/></svg>`,
   scale: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v18M7 7h10M4 7l3-4 3 4-3 4Z"/><path d="M14 7l3-4 3 4-3 4Z"/><path d="M4 7c0 2 1.3 3.5 3 3.5S10 9 10 7"/><path d="M14 7c0 2 1.3 3.5 3 3.5S20 9 20 7"/><path d="M8 21h8"/></svg>`,
+  fish: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12c3-4 8-6 13-6 3 0 5 2.5 5 6s-2 6-5 6c-5 0-10-2-13-6Z"/><path d="M21 8l2 4-2 4"/><circle cx="8" cy="11" r="0.8" fill="currentColor" stroke="none"/></svg>`,
+  filter: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5h16M7 12h10M10 19h4"/></svg>`,
 };
 
 const DIET_OPTIONS = [
   { key: 'vegan', label: 'Vegan', icon: 'leaf', tone: 'diet' },
   { key: 'vegetarisch', label: 'Vegetarisch', icon: 'leaf', tone: 'diet' },
+  { key: 'fleisch', label: 'Fleisch', icon: 'chef', tone: 'protein' },
+  { key: 'fisch', label: 'Fisch & Meeresfrüchte', icon: 'fish', tone: 'protein' },
   { key: 'glutenfrei', label: 'Glutenfrei', icon: 'wheatOff', tone: 'free' },
   { key: 'laktosefrei', label: 'Laktosefrei', icon: 'milkOff', tone: 'free' },
   { key: 'nussfrei', label: 'Nussfrei', icon: 'nutOff', tone: 'free' },
+];
+
+/* ---------- Mahlzeit- & Gerichtstyp-Kategorien (Master-Prompt Teil I, Punkt 94, 117) ----------
+   Stabile interne IDs (englisch, unabhaengig von der sichtbaren deutschen Beschriftung —
+   Punkt 117), beide Dimensionen liegen technisch in einem gemeinsamen Feld (recipe.categoryTags),
+   werden aber ueber diese getrennten Listen gruppiert angezeigt. */
+const MEAL_TYPE_OPTIONS = [
+  { id: 'breakfast', label: 'Frühstück' },
+  { id: 'brunch', label: 'Brunch' },
+  { id: 'lunch', label: 'Mittagessen' },
+  { id: 'dinner', label: 'Abendessen' },
+  { id: 'snack', label: 'Snack' },
+  { id: 'dessert', label: 'Dessert' },
+];
+const DISH_TYPE_OPTIONS = [
+  { id: 'pasta', label: 'Pasta' },
+  { id: 'rice-dish', label: 'Reisgericht' },
+  { id: 'soup', label: 'Suppe' },
+  { id: 'salad', label: 'Salat' },
+  { id: 'sandwich', label: 'Sandwich / Wrap' },
+  { id: 'pizza', label: 'Pizza / Flammkuchen' },
+  { id: 'gratin', label: 'Auflauf / Gratin' },
+  { id: 'stew', label: 'Eintopf' },
+  { id: 'curry', label: 'Curry' },
+  { id: 'bowl', label: 'Bowl' },
+  { id: 'burger', label: 'Burger' },
+  { id: 'baking', label: 'Backen' },
+  { id: 'bread', label: 'Brot / Gebäck' },
+  { id: 'cake', label: 'Kuchen / Torte' },
+  { id: 'sauce', label: 'Sauce / Dip' },
+  { id: 'side', label: 'Beilage' },
+  { id: 'drink', label: 'Getränk' },
+];
+const TIME_BUCKET_OPTIONS = [
+  { id: 'under-15', label: '< 15 Min.', max: 15 },
+  { id: 'under-30', label: '< 30 Min.', max: 30 },
+  { id: 'under-60', label: '< 60 Min.', max: 60 },
 ];

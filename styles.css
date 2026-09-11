@@ -888,3 +888,18 @@
   .pdf-export-sheet { max-width: 560px; }
   .pdf-preview-frame-wrap { background: #666; border-radius: var(--radius-s); overflow: hidden; margin-bottom: 14px; }
   .pdf-preview-frame { width: 100%; height: 60vh; border: none; display: block; }
+
+  /* ---------- Filter- und Kategoriensystem (Master-Prompt Teil I) ---------- */
+  .diet-badge.tone-protein { background: rgba(162,67,47,0.12); color: var(--danger); }
+  .filter-count-badge { position: absolute; top: -4px; right: -4px; background: var(--accent-solid); color: var(--on-accent); font-size: 10px; font-weight: 700; border-radius: 999px; min-width: 16px; height: 16px; display: flex; align-items: center; justify-content: center; padding: 0 3px; }
+  .active-filter-row .tag-chip.active { display: inline-flex; align-items: center; gap: 5px; }
+  .active-filter-row .tag-chip.active svg { width: 11px; height: 11px; }
+  .filter-sheet { max-width: 480px; }
+  .filter-group { margin-bottom: 18px; }
+  .filter-group-title { font-family: var(--font-display); font-optical-sizing: auto; font-size: 14.5px; color: var(--text); margin: 0 0 10px; }
+  .filter-checkbox-row { display: flex; flex-wrap: wrap; gap: 8px; }
+  .filter-checkbox { display: flex; align-items: center; gap: 7px; padding: 8px 12px; border-radius: var(--radius-s); border: 1px solid var(--border); background: var(--bg-elevated); color: var(--text); font-size: 13px; min-height: var(--tap-min); }
+  .filter-checkbox.active { border-color: var(--accent-solid); background: rgba(201,131,47,0.12); color: var(--accent); font-weight: 600; }
+  .filter-checkbox-box { width: 16px; height: 16px; border-radius: 4px; border: 1.5px solid var(--border); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  .filter-checkbox-box svg { width: 11px; height: 11px; }
+  .filter-checkbox.active .filter-checkbox-box { border-color: var(--accent-solid); background: var(--accent-solid); color: var(--on-accent); }

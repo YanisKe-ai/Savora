@@ -274,6 +274,15 @@ function parseFreeTextRecipe(raw) {
     if (anyPositive) detectedDiet.push(val);
   }
   r.diet = Array.from(new Set(detectedDiet));
+
+  // Zusaetzlich zur reinen Text-/Hashtag-Erkennung oben: zutatenbasierte Klassifikation
+  // (Master-Prompt Teil I) — zuverlaessiger als blosse Schluesselwoerter im Fliesstext, siehe
+  // classification.js. Ergaenzt r.diet nur additiv (nimmt nichts weg) und setzt zusaetzlich
+  // recipe.categoryTags (Mahlzeit/Gerichtstyp). Niedrige Sicherheit wird bewusst NICHT
+  // automatisch gesetzt (Punkt 101), sondern nur im Importhinweis vorgeschlagen (Punkt 114).
+  const autoClassification = classifyRecipe(r);
+  applyClassification(r, autoClassification, { minConfidence: 'medium' });
+  const lowConfidenceHints = lowConfidenceSuggestions(autoClassification);
   r.tags = Array.from(new Set(tagWords.filter(t => !dietMap[t.toLowerCase()]))).slice(0, 6);
   r.notes = detectedNotes || '';
   r._importSummary = {
@@ -284,6 +293,8 @@ function parseFreeTextRecipe(raw) {
     timeFound: !!timeMatch,
     dietFound: r.diet.length > 0,
     notesFound: !!detectedNotes,
+    categoryFound: r.categoryTags.length > 0,
+    lowConfidenceHints,
   };
   return r;
 }

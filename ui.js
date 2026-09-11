@@ -269,6 +269,29 @@ async function onAction(e) {
       state.favOnly = !state.favOnly;
       render();
       break;
+    case 'open-filter-sheet':
+      openModal({ type: 'filter-sheet' }, `[data-action="open-filter-sheet"]`);
+      break;
+    case 'toggle-filter': {
+      const dim = el.dataset.dim, fid = el.dataset.id;
+      const set = state.activeFilters[dim];
+      if (set.has(fid)) set.delete(fid); else set.add(fid);
+      render();
+      break;
+    }
+    case 'remove-active-filter': {
+      const dim = el.dataset.dim, fid = el.dataset.id;
+      state.activeFilters[dim].delete(fid);
+      render();
+      break;
+    }
+    case 'clear-all-filters':
+      state.activeFilters.dietary.clear();
+      state.activeFilters.category.clear();
+      state.activeFilters.time.clear();
+      closeModal();
+      render();
+      break;
     case 'confirm-delete':
       openModal({ type: 'delete', recipeId: id }, `[data-action="confirm-delete"][data-id="${id}"]`);
       break;
@@ -320,12 +343,38 @@ async function onAction(e) {
       state.editingRecipe = collectFormData();
       const dk = el.dataset.diet;
       state.editingRecipe.diet = state.editingRecipe.diet || [];
+      state.editingRecipe.suppressedTags = state.editingRecipe.suppressedTags || [];
       if (state.editingRecipe.diet.includes(dk)) {
         state.editingRecipe.diet = state.editingRecipe.diet.filter(x => x !== dk);
+        if (!state.editingRecipe.suppressedTags.includes(dk)) state.editingRecipe.suppressedTags.push(dk);
       } else {
         state.editingRecipe.diet.push(dk);
+        state.editingRecipe.suppressedTags = state.editingRecipe.suppressedTags.filter(x => x !== dk);
       }
       render();
+      break;
+    }
+    case 'toggle-category': {
+      state.editingRecipe = collectFormData();
+      const ck = el.dataset.category;
+      state.editingRecipe.categoryTags = state.editingRecipe.categoryTags || [];
+      state.editingRecipe.suppressedTags = state.editingRecipe.suppressedTags || [];
+      if (state.editingRecipe.categoryTags.includes(ck)) {
+        state.editingRecipe.categoryTags = state.editingRecipe.categoryTags.filter(x => x !== ck);
+        if (!state.editingRecipe.suppressedTags.includes(ck)) state.editingRecipe.suppressedTags.push(ck);
+      } else {
+        state.editingRecipe.categoryTags.push(ck);
+        state.editingRecipe.suppressedTags = state.editingRecipe.suppressedTags.filter(x => x !== ck);
+      }
+      render();
+      break;
+    }
+    case 'reanalyze-categories': {
+      state.editingRecipe = collectFormData();
+      const classification = classifyRecipe(state.editingRecipe);
+      applyClassification(state.editingRecipe, classification, { minConfidence: 'medium' });
+      render();
+      showToast('Kategorien-Vorschläge aktualisiert');
       break;
     }
     case 'serv-inc': case 'serv-dec': {

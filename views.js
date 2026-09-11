@@ -42,11 +42,16 @@ function topbar(title, opts = {}) {
   </div>`;
 }
 
-function homeView() {
-  const tags = Array.from(new Set(state.recipes.flatMap(r => r.tags || []).concat(state.recipes.length ? [] : [])));
-  const shownTags = tags.length ? tags : [];
-  let list = state.recipes;
-  const isFiltered = !!(state.query.trim() || state.activeTag || state.favOnly);
+/* Zentrale Filterlogik (Punkt 107-109): Suchtext/Favoriten/freier Tag wie bisher, zusaetzlich
+   die drei neuen Dimensionen — innerhalb einer Dimension ODER, zwischen Dimensionen UND. Arbeitet
+   ausschliesslich auf bereits geladenen state.recipes, keine Zusatzabfragen (Punkt 119). */
+function timeBucketsFor(minutes) {
+  if (!minutes || minutes <= 0) return [];
+  return TIME_BUCKET_OPTIONS.filter((b) => minutes <= b.max).map((b) => b.id);
+}
+
+function applyAllFilters(recipes) {
+  let list = recipes;
   if (state.query.trim()) {
     const q = state.query.trim().toLowerCase();
     list = list.filter(r =>
@@ -57,9 +62,29 @@ function homeView() {
   }
   if (state.activeTag) list = list.filter(r => (r.tags || []).includes(state.activeTag));
   if (state.favOnly) list = list.filter(r => r.favorite);
+  const { dietary, category, time } = state.activeFilters;
+  if (dietary.size) list = list.filter(r => (r.diet || []).some(d => dietary.has(d)));
+  if (category.size) list = list.filter(r => (r.categoryTags || []).some(c => category.has(c)));
+  if (time.size) list = list.filter(r => timeBucketsFor(r.timeMinutes).some(b => time.has(b)));
+  return list;
+}
+
+function activeStructuredFilterCount() {
+  const { dietary, category, time } = state.activeFilters;
+  return dietary.size + category.size + time.size;
+}
+
+function homeView() {
+  const tags = Array.from(new Set(state.recipes.flatMap(r => r.tags || []).concat(state.recipes.length ? [] : [])));
+  const shownTags = tags.length ? tags : [];
+  const list = applyAllFilters(state.recipes);
+  const filterCount = activeStructuredFilterCount();
+  const isFiltered = !!(state.query.trim() || state.activeTag || state.favOnly || filterCount);
 
   let grid;
-  if (!list.length) {
+  if (!list.length && state.recipes.length && (isFiltered)) {
+    grid = emptyFilterState();
+  } else if (!list.length) {
     grid = emptyState();
   } else if (!isFiltered && list.length > 1) {
     const [featured, ...rest] = list;
@@ -67,6 +92,11 @@ function homeView() {
   } else {
     grid = `<div class="recipe-grid">${list.map(r => recipeCard(r)).join('')}</div>`;
   }
+
+  const activeFilterChips = [];
+  state.activeFilters.dietary.forEach(id => activeFilterChips.push({ dim: 'dietary', id, label: categoryLabelFor(id) }));
+  state.activeFilters.category.forEach(id => activeFilterChips.push({ dim: 'category', id, label: categoryLabelFor(id) }));
+  state.activeFilters.time.forEach(id => activeFilterChips.push({ dim: 'time', id, label: TIME_BUCKET_OPTIONS.find(t => t.id === id)?.label || id }));
 
   return `
     ${topbar('Savora')}
@@ -77,9 +107,14 @@ function homeView() {
           <label for="searchInput" class="sr-only">Rezepte durchsuchen</label>
           <input class="search-input" id="searchInput" type="text" placeholder="Rezepte, Zutaten, Tags durchsuchen…" value="${escapeHtml(state.query)}" aria-label="Rezepte, Zutaten, Tags durchsuchen">
         </div>
+        <button class="icon-btn" style="background:var(--card-bg);color:${filterCount ? 'var(--accent)' : 'var(--text-muted)'};border:1px solid var(--border);position:relative;" data-action="open-filter-sheet" aria-label="Filter${filterCount ? ' (' + filterCount + ' aktiv)' : ''}">${ICONS.filter}${filterCount ? `<span class="filter-count-badge">${filterCount}</span>` : ''}</button>
         <button class="icon-btn" style="background:var(--card-bg);color:${state.favOnly ? 'var(--accent)' : 'var(--text-muted)'};border:1px solid var(--border);" data-action="toggle-fav-filter" aria-label="Nur Favoriten">${state.favOnly ? ICONS.heart : ICONS.heartOutline}</button>
       </div>
       ${state.favOnly ? `<p style="font-size:12.5px;color:var(--text-muted);margin:-8px 0 14px;">Nur Favoriten werden angezeigt.</p>` : ''}
+      ${activeFilterChips.length ? `<div class="tag-row active-filter-row">
+        ${activeFilterChips.map(c => `<button class="tag-chip active" data-action="remove-active-filter" data-dim="${c.dim}" data-id="${escapeHtml(c.id)}">${escapeHtml(c.label)} ${ICONS.x}</button>`).join('')}
+        <button class="tag-chip" data-action="clear-all-filters">Alle löschen</button>
+      </div>` : ''}
       ${shownTags.length ? `<div class="tag-row">
         <button class="tag-chip ${!state.activeTag ? 'active' : ''}" data-action="filter-tag" data-tag="">Alle</button>
         ${shownTags.map(t => `<button class="tag-chip ${state.activeTag === t ? 'active' : ''}" data-action="filter-tag" data-tag="${escapeHtml(t)}">${escapeHtml(t)}</button>`).join('')}
@@ -88,7 +123,56 @@ function homeView() {
     </main>
     <button class="fab" data-action="new-recipe" aria-label="Neues Rezept">${ICONS.plus}</button>
     ${bottomNav()}
+    ${filterSheetModal()}
   `;
+}
+
+function emptyFilterState() {
+  return `<div class="empty-state">
+    ${ICONS.filter}
+    <h2>Keine Rezepte passen zu diesen Filtern</h2>
+    <p>Versuch es mit weniger Filtern oder einer anderen Kombination.</p>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:center;">
+      <button class="ghost-btn" data-action="open-filter-sheet">${ICONS.filter} Filter ändern</button>
+      <button class="primary-btn" data-action="clear-all-filters">Alle Filter löschen</button>
+    </div>
+  </div>`;
+}
+
+/* ---------- Filter-Sheet (Punkt 104-107, 118) ---------- */
+function filterCheckboxGroup(title, groupId, options, activeSet, getId, getLabel) {
+  return `<div class="filter-group">
+    <h3 class="filter-group-title" id="filter-group-${groupId}">${title}</h3>
+    <div class="filter-checkbox-row" role="group" aria-labelledby="filter-group-${groupId}">
+      ${options.map(o => {
+        const id = getId(o), label = getLabel(o);
+        const active = activeSet.has(id);
+        return `<button type="button" class="filter-checkbox ${active ? 'active' : ''}" data-action="toggle-filter" data-dim="${groupId}" data-id="${escapeHtml(id)}" aria-pressed="${active}">
+          <span class="filter-checkbox-box" aria-hidden="true">${active ? ICONS.check : ''}</span>${escapeHtml(label)}
+        </button>`;
+      }).join('')}
+    </div>
+  </div>`;
+}
+
+function filterSheetModal() {
+  if (!state.modal || state.modal.type !== 'filter-sheet') return '';
+  const { dietary, category, time } = state.activeFilters;
+  const resultCount = applyAllFilters(state.recipes).length;
+  const dietaryOptions = DIET_OPTIONS.filter(d => d.tone === 'diet' || d.tone === 'protein').map(d => ({ id: d.key, label: d.label }));
+  return `<div class="modal-backdrop" data-action="close-modal">
+    <div class="modal-sheet filter-sheet" role="dialog" aria-modal="true" aria-labelledby="filter-sheet-title" tabindex="-1" onclick="event.stopPropagation()">
+      <h3 class="modal-title" id="filter-sheet-title">Filter</h3>
+      ${filterCheckboxGroup('Ernährung', 'dietary', dietaryOptions, dietary, o => o.id, o => o.label)}
+      ${filterCheckboxGroup('Mahlzeit', 'category', MEAL_TYPE_OPTIONS, category, o => o.id, o => o.label)}
+      ${filterCheckboxGroup('Gericht', 'category', DISH_TYPE_OPTIONS, category, o => o.id, o => o.label)}
+      ${filterCheckboxGroup('Zeit', 'time', TIME_BUCKET_OPTIONS, time, o => o.id, o => o.label)}
+      <div class="form-actions">
+        <button class="ghost-btn" data-action="clear-all-filters" style="flex:1;">Zurücksetzen</button>
+        <button class="primary-btn" data-action="close-modal" style="flex:1;justify-content:center;">${resultCount} Rezept${resultCount === 1 ? '' : 'e'} anzeigen</button>
+      </div>
+    </div>
+  </div>`;
 }
 
 function emptyState() {
@@ -165,11 +249,12 @@ function detailView() {
       ${r.sharedBy ? `<div class="source-line">${ICONS.sparkle} Geteilt von ${escapeHtml(r.sharedBy)}</div>` : r.source ? `<div class="source-line">${ICONS.link} Importiert von <a href="${escapeHtml(r.source)}" target="_blank" rel="noopener">${escapeHtml(domainFromUrl(r.source))}</a></div>` : `<div class="source-line">${ICONS.book} Aus deinem eigenen Kochbuch</div>`}
       ${(r.diet || []).length ? (() => {
         const badge = (dk) => { const d = DIET_OPTIONS.find(o => o.key === dk); return d ? `<span class="diet-badge tone-${d.tone}">${ICONS[d.icon]}${d.label}</span>` : ''; };
-        const dietBadges = r.diet.filter(dk => DIET_OPTIONS.find(o => o.key === dk)?.tone === 'diet');
+        const dietBadges = r.diet.filter(dk => DIET_OPTIONS.find(o => o.key === dk)?.tone === 'diet' && !(dk === 'vegetarisch' && r.diet.includes('vegan')));
+        const proteinBadges = r.diet.filter(dk => DIET_OPTIONS.find(o => o.key === dk)?.tone === 'protein');
         const freeBadges = r.diet.filter(dk => DIET_OPTIONS.find(o => o.key === dk)?.tone === 'free');
         return `<div class="diet-badge-row">
-          ${dietBadges.map(badge).join('')}
-          ${dietBadges.length && freeBadges.length ? '<span class="diet-badge-divider" aria-hidden="true"></span>' : ''}
+          ${dietBadges.map(badge).join('')}${proteinBadges.map(badge).join('')}
+          ${(dietBadges.length || proteinBadges.length) && freeBadges.length ? '<span class="diet-badge-divider" aria-hidden="true"></span>' : ''}
           ${freeBadges.map(badge).join('')}
         </div>`;
       })() : ''}
@@ -235,7 +320,21 @@ function importSummaryBanner(s) {
     ${row(s.timeFound, s.timeFound ? 'Zeit erkannt' : 'Zeit nicht erkannt — Standardwert eingetragen')}
     ${s.dietFound ? row(true, 'Ernährungsform automatisch erkannt — bitte gegenprüfen') : ''}
     ${s.notesFound ? row(true, 'Notizen/Tipps automatisch erkannt und abgetrennt') : ''}
+    ${s.categoryFound ? row(true, 'Mahlzeit/Gerichtstyp automatisch erkannt — bitte gegenprüfen') : ''}
+    ${(s.lowConfidenceHints || []).length ? `<div class="import-summary-row warn">${ICONS.x}<span>Unsicher: ${s.lowConfidenceHints.map(h => categoryLabelFor(h.id)).join(', ')} — bitte manuell prüfen</span></div>` : ''}
   </div>`;
+}
+
+/* Findet die deutsche Beschriftung zu einer Kategorie-ID ueber alle Options-Listen hinweg
+   (Diet/Meal/Dish) — fuer Anzeigezwecke in der Import-Vorschau und im Filter-System. */
+function categoryLabelFor(id) {
+  const diet = DIET_OPTIONS.find((o) => o.key === id);
+  if (diet) return diet.label;
+  const meal = MEAL_TYPE_OPTIONS.find((o) => o.id === id);
+  if (meal) return meal.label;
+  const dish = DISH_TYPE_OPTIONS.find((o) => o.id === id);
+  if (dish) return dish.label;
+  return id;
 }
 
 function formView() {
@@ -277,11 +376,30 @@ function formView() {
           </div>
         </div>
         <div class="field">
+          <label id="protein-group-label">Fleisch / Fisch</label>
+          <div class="diet-select-row" role="group" aria-labelledby="protein-group-label">
+            ${DIET_OPTIONS.filter(d => d.tone === 'protein').map(d => `<button type="button" class="diet-select-chip ${((r.diet)||[]).includes(d.key) ? 'active' : ''}" data-action="toggle-diet" data-diet="${d.key}" aria-pressed="${((r.diet)||[]).includes(d.key) ? 'true' : 'false'}">${((r.diet)||[]).includes(d.key) ? ICONS.check : ICONS[d.icon]}${d.label}</button>`).join('')}
+          </div>
+        </div>
+        <div class="field">
           <label id="free-group-label">Hinweise / Frei von</label>
           <p class="settings-hint" style="margin:2px 0 8px;">Automatisch erkannte Angaben bitte immer selbst prüfen — keine medizinische Zusicherung.</p>
           <div class="diet-select-row" role="group" aria-labelledby="free-group-label">
             ${DIET_OPTIONS.filter(d => d.tone === 'free').map(d => `<button type="button" class="diet-select-chip ${((r.diet)||[]).includes(d.key) ? 'active' : ''}" data-action="toggle-diet" data-diet="${d.key}" aria-pressed="${((r.diet)||[]).includes(d.key) ? 'true' : 'false'}">${((r.diet)||[]).includes(d.key) ? ICONS.check : ICONS[d.icon]}${d.label}</button>`).join('')}
           </div>
+        </div>
+        <div class="field">
+          <label id="meal-group-label">Mahlzeit</label>
+          <div class="diet-select-row" role="group" aria-labelledby="meal-group-label">
+            ${MEAL_TYPE_OPTIONS.map(m => `<button type="button" class="diet-select-chip ${((r.categoryTags)||[]).includes(m.id) ? 'active' : ''}" data-action="toggle-category" data-category="${m.id}" aria-pressed="${((r.categoryTags)||[]).includes(m.id) ? 'true' : 'false'}">${((r.categoryTags)||[]).includes(m.id) ? ICONS.check : ''}${m.label}</button>`).join('')}
+          </div>
+        </div>
+        <div class="field">
+          <label id="dish-group-label">Gericht</label>
+          <div class="diet-select-row" role="group" aria-labelledby="dish-group-label">
+            ${DISH_TYPE_OPTIONS.map(d => `<button type="button" class="diet-select-chip ${((r.categoryTags)||[]).includes(d.id) ? 'active' : ''}" data-action="toggle-category" data-category="${d.id}" aria-pressed="${((r.categoryTags)||[]).includes(d.id) ? 'true' : 'false'}">${((r.categoryTags)||[]).includes(d.id) ? ICONS.check : ''}${d.label}</button>`).join('')}
+          </div>
+          <button type="button" class="ghost-btn" data-action="reanalyze-categories" style="margin-top:10px;">${ICONS.sparkle} Kategorien automatisch vorschlagen</button>
         </div>
         <div class="field">
           <label for="f-tag-new">Tags</label>
