@@ -678,31 +678,46 @@
   /* ---------- Print / PDF cookbook layout ---------- */
   #printRoot { display: none; }
   @media print {
-    body * { visibility: hidden; }
-    #printRoot, #printRoot * { visibility: visible; }
-    #printRoot { display: block; position: absolute; left: 0; top: 0; width: 100%; }
-    @page { size: A4; margin: 20mm; }
-    .print-recipe-page { break-after: page; break-inside: avoid; font-family: var(--font-sans); color: #1b2118; padding: 0; }
-    .print-recipe-page:last-child { break-after: auto; }
-    .print-cover { break-after: page; height: 240mm; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; }
-    .print-cover h1 { font-family: var(--font-display); font-size: 32pt; margin: 0; color: #16261c; }
-    .print-cover p { font-family: var(--font-sans); font-size: 9pt; letter-spacing: 0.1em; text-transform: uppercase; color: #6b7d6e; margin-top: 10px; }
-    .print-toc { break-after: page; }
-    .print-toc h2 { font-family: var(--font-display); font-size: 22pt; color: #16261c; border-bottom: 2px solid #16261c; padding-bottom: 8px; }
-    .print-toc-row { display: flex; justify-content: space-between; font-family: var(--font-sans); font-size: 10pt; padding: 7px 0; border-bottom: 1px dotted #ccc; }
-    .print-header { font-size: 9pt; text-transform: uppercase; letter-spacing: 0.12em; color: #8fa88c; margin-bottom: 6px; }
-    .print-title { font-family: var(--font-display); font-size: 20pt; font-weight: 600; color: #16261c; margin: 0 0 8px; }
-    .print-meta { font-family: var(--font-sans); font-size: 9.5pt; color: #4a5a4c; display: flex; gap: 16px; margin-bottom: 6px; }
+    #app, #splash, .toast { display: none !important; }
+    #printRoot { display: block; width: 100%; }
+    @page { size: A4; margin: 18mm 16mm; }
+    .print-recipe-page {
+      break-after: page; page-break-after: always;
+      break-inside: avoid; page-break-inside: avoid;
+      font-family: var(--font-sans); color: #1b2118; padding: 0;
+    }
+    .print-recipe-page:last-child { break-after: auto; page-break-after: auto; }
+    .print-cover {
+      break-after: page; page-break-after: always;
+      height: 240mm; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center;
+    }
+    .print-cover h1 { font-family: var(--font-display); font-size: 34pt; font-weight: 700; margin: 0; color: #16261c; }
+    .print-cover p { font-family: var(--font-sans); font-size: 9pt; letter-spacing: 0.14em; text-transform: uppercase; color: #6b7d6e; margin-top: 12px; }
+    .print-toc { break-after: page; page-break-after: always; min-height: 200mm; }
+    .print-toc h2 { font-family: var(--font-display); font-size: 22pt; font-weight: 700; color: #16261c; border-bottom: 2px solid #16261c; padding-bottom: 8px; margin-bottom: 16px; }
+    .print-toc-category { font-family: var(--font-sans); font-size: 9pt; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; color: #a8681f; margin: 18px 0 4px; }
+    .print-toc-row { display: flex; justify-content: space-between; font-family: var(--font-sans); font-size: 10.5pt; padding: 7px 0; border-bottom: 1px dotted #ccc; }
+    .print-header { font-size: 9pt; font-weight: 600; text-transform: uppercase; letter-spacing: 0.14em; color: #a8681f; margin-bottom: 8px; }
+    .print-title { font-family: var(--font-display); font-size: 22pt; font-weight: 700; color: #16261c; margin: 0 0 10px; line-height: 1.15; }
+    .print-meta { font-family: var(--font-sans); font-size: 9.5pt; color: #4a5a4c; display: flex; gap: 16px; margin-bottom: 8px; }
     .print-source { font-family: var(--font-sans); font-size: 8.5pt; color: #9aa79b; margin-bottom: 12px; font-style: italic; }
-    .print-image { width: 100%; max-height: 68mm; object-fit: cover; border-radius: 4px; margin-bottom: 12px; }
-    .print-cols { column-count: 2; column-gap: 8mm; }
-    .print-ing-block, .print-steps-block { break-inside: avoid; }
-    .print-ing-title, .print-steps-title { font-family: var(--font-sans); font-size: 8.5pt; text-transform: uppercase; letter-spacing: 0.1em; color: #8fa88c; margin: 0 0 8px; }
+    .print-image { width: 100%; max-height: 65mm; object-fit: cover; border-radius: 6px; margin-bottom: 14px; }
+    .print-divider { border: none; border-top: 1px solid #e0dccf; margin: 4px 0 16px; }
+    .print-cols { column-count: 2; column-gap: 10mm; }
+    .print-ing-block, .print-steps-block { break-inside: avoid; page-break-inside: avoid; }
+    .print-ing-title, .print-steps-title { font-family: var(--font-sans); font-size: 8.5pt; font-weight: 700; text-transform: uppercase; letter-spacing: 0.12em; color: #a8681f; margin: 0 0 10px; }
     .print-ing-list { list-style: none; padding: 0; margin: 0 0 14px; font-family: var(--font-sans); font-size: 10pt; }
-    .print-ing-list li { padding: 4px 0; border-bottom: 1px solid #eee; break-inside: avoid; }
+    .print-ing-list li { padding: 5px 0; border-bottom: 1px solid #eee; break-inside: avoid; page-break-inside: avoid; }
     .print-step-list { list-style: none; padding: 0; margin: 0; counter-reset: pstep; }
-    .print-step-list li { font-family: var(--font-sans); font-size: 11pt; line-height: 1.4; margin-bottom: 9px; padding-left: 22px; position: relative; break-inside: avoid; }
-    .print-step-list li::before { counter-increment: pstep; content: counter(pstep); position: absolute; left: 0; top: 0; width: 16px; height: 16px; background: #16261c; color: #f5efdf; border-radius: 50%; font-size: 8.5pt; display: flex; align-items: center; justify-content: center; }
-    .print-step-list li:first-child::first-letter { font-family: var(--font-display); font-size: 2.1em; float: left; line-height: 0.7; padding: 0.02em 0.06em 0 0; color: #a8681f; }
-    .print-footer { font-family: var(--font-sans); font-size: 8pt; color: #aaa; text-align: center; margin-top: 14px; }
+    .print-step-list li {
+      font-family: var(--font-sans); font-size: 10.5pt; line-height: 1.5; margin-bottom: 12px;
+      padding-left: 24px; position: relative; break-inside: avoid; page-break-inside: avoid;
+    }
+    .print-step-list li::before {
+      counter-increment: pstep; content: counter(pstep);
+      position: absolute; left: 0; top: 1px; width: 17px; height: 17px;
+      background: #16261c; color: #f5efdf; border-radius: 50%; font-size: 8.5pt; font-weight: 600;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .print-footer { font-family: var(--font-sans); font-size: 8pt; color: #aaa; text-align: center; margin-top: 16px; }
   }

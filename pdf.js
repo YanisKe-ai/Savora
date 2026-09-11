@@ -12,6 +12,7 @@ function printRecipeHtml(r, resolvedImg) {
     ${r.source ? `<div class="print-source">Importiert von ${escapeHtml(domainFromUrl(r.source))}</div>` : ''}
     ${(r.diet || []).length ? `<div class="print-meta">${r.diet.map(dk => { const d = DIET_OPTIONS.find(o => o.key === dk); return d ? escapeHtml(d.label) : ''; }).filter(Boolean).join(' · ')}</div>` : ''}
     ${img}
+    <hr class="print-divider">
     <div class="print-cols">
       <div class="print-ing-block">
         <div class="print-ing-title">Zutaten</div>
@@ -56,7 +57,7 @@ async function exportCookbookPdf() {
   const byCat = {};
   recipes.forEach(r => { const cat = (r.tags && r.tags[0]) || 'Weitere Rezepte'; (byCat[cat] = byCat[cat] || []).push(r); });
   const toc = Object.entries(byCat).map(([cat, list]) =>
-    `<div style="margin-bottom:10px;"><strong style="font-family:var(--font-display);color:#16261c;">${escapeHtml(cat)}</strong>
+    `<div style="margin-bottom:4px;"><div class="print-toc-category">${escapeHtml(cat)}</div>
      ${list.map(r => `<div class="print-toc-row"><span>${escapeHtml(r.title)}</span></div>`).join('')}</div>`
   ).join('');
   const cover = `<section class="print-cover">

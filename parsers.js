@@ -114,7 +114,11 @@ function parseFreeTextRecipe(raw) {
       const nextIdx = i + 1 < byPosition.length ? byPosition[i + 1].idx : lines.length;
       const continuation = lines.slice(step.idx + 1, nextIdx)
         .filter(l => !ingHeaderRe.test(l) && !stepHeaderRe.test(l) && !metaLineRe.test(l) && !isHashtagOnly(l));
-      if (continuation.length) step.text = (step.text + ' ' + continuation.join(' ')).replace(/\s+/g, ' ').trim();
+      if (continuation.length) {
+        let title = step.text.trim();
+        if (title && !/[.!?:]$/.test(title)) title += '.'; // sonst liest sich "Titel Fliesstext..." als ein Satz ohne Pause
+        step.text = (title + ' ' + continuation.join(' ')).replace(/\s+/g, ' ').trim();
+      }
     });
   }
 
@@ -162,10 +166,15 @@ function parseFreeTextRecipe(raw) {
   if (!r.ingredients.length) r.ingredients = [{ amount: '', unit: '', name: '' }];
   if (!r.steps.length) r.steps = [{ text: '' }];
 
-  const metaText = lines.filter(l => metaLineRe.test(l)).join(' ') || raw;
-  const timeMatch = metaText.match(/(\d+)\s*(min(?:uten)?|std\.?|stunden?)/i) || raw.match(/(\d+)\s*(min(?:uten)?|std\.?|stunden?)/i);
+  // Zeit/Portionen nur aus eindeutigen Meta-Zeilen uebernehmen (z.B. "Zubereitungszeit: 30 Min"),
+  // NICHT aus irgendeiner Zahl irgendwo im Fliesstext — sonst wird zufaellig die Dauer eines
+  // einzelnen Zwischenschritts (z.B. "~8 Min" beim Karamellisieren) faelschlich als Gesamtzeit
+  // uebernommen. Ohne klare Meta-Zeile bleibt der Standardwert stehen und wird im Import-Hinweis
+  // ehrlich als "nicht erkannt" markiert, statt eine moeglicherweise falsche Zahl zu zeigen.
+  const metaText = lines.filter(l => metaLineRe.test(l)).join(' ');
+  const timeMatch = metaText ? metaText.match(/(\d+)\s*(min(?:uten)?|std\.?|stunden?)/i) : null;
   if (timeMatch) r.timeMinutes = /std|stunden/i.test(timeMatch[2]) ? parseInt(timeMatch[1]) * 60 : parseInt(timeMatch[1]);
-  const servMatch = metaText.match(/(\d+)\s*(portionen|personen|servings)/i) || raw.match(/(\d+)\s*(portionen|personen|servings)/i);
+  const servMatch = metaText ? metaText.match(/(\d+)\s*(portionen|personen|servings)/i) : null;
   if (servMatch) r.servings = parseInt(servMatch[1]);
 
   const dietMap = { vegan: 'vegan', vegetarisch: 'vegetarisch', vegetarian: 'vegetarisch', glutenfrei: 'glutenfrei', laktosefrei: 'laktosefrei', nussfrei: 'nussfrei' };
