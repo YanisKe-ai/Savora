@@ -261,7 +261,7 @@
   .tag-chip {
     flex-shrink: 0;
     padding: 8px 14px;
-    min-height: 38px;
+    min-height: var(--tap-min);
     border-radius: 999px;
     border: 1px solid var(--border);
     background: var(--card-bg);
@@ -283,16 +283,16 @@
     overflow: hidden;
     box-shadow: var(--shadow-card);
     position: relative;
-    text-align: left;
-    border: none;
-    padding: 0;
-    display: flex;
-    flex-direction: column;
-    cursor: pointer;
     transition: transform 0.15s ease, box-shadow 0.15s ease;
   }
   .recipe-card:hover { transform: translateY(-2px); box-shadow: var(--shadow-soft); }
-  .recipe-card--featured { grid-column: 1 / -1; flex-direction: row; }
+  .recipe-card-main {
+    display: flex; flex-direction: column; width: 100%;
+    text-align: left; border: none; padding: 0; margin: 0;
+    background: none; cursor: pointer; color: inherit; font: inherit;
+  }
+  .recipe-card--featured { grid-column: 1 / -1; }
+  .recipe-card--featured .recipe-card-main { flex-direction: row; }
   .recipe-card--featured .recipe-card-img { width: 42%; aspect-ratio: auto; flex-shrink: 0; }
   .recipe-card--featured .recipe-card-body { justify-content: center; }
   .recipe-card--featured .recipe-card-title { font-size: 1.4rem; }
@@ -304,14 +304,14 @@
   .recipe-card-title { font-family: var(--font-display); font-optical-sizing: auto; font-size: var(--fs-title-md); font-weight: 600; line-height: 1.2; color: var(--text); }
   .recipe-card-meta { font-size: 12px; color: var(--text-muted); display: flex; gap: 8px; flex-wrap: wrap; margin-top: auto; padding-top: 6px; font-variant-numeric: tabular-nums; }
   .fav-btn {
-    position: absolute; top: 8px; right: 8px;
-    width: 34px; height: 34px; border-radius: 50%;
+    position: absolute; top: 4px; right: 4px;
+    width: var(--tap-min); height: var(--tap-min); border-radius: 50%;
     background: rgba(255,255,255,0.9);
     border: none;
     display: flex; align-items: center; justify-content: center;
     transition: background-color 0.15s ease, transform 0.15s ease;
   }
-  .fav-btn svg { width: 16px; height: 16px; color: var(--ember-600); }
+  .fav-btn svg { width: 18px; height: 18px; color: var(--ember-600); }
   .fav-btn--active { background: var(--ember-500); }
   .fav-btn--active svg { color: #fff; }
 
@@ -409,7 +409,7 @@
   .source-line a { text-decoration: underline; color: var(--accent); }
 
   .detail-tags { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 20px; }
-  .detail-tags .tag-chip { cursor: default; }
+  .detail-tags .tag-chip { cursor: default; min-height: 30px; }
 
   /* ---------- Diet / allergen badges ---------- */
   .diet-badge-row { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 14px; }
@@ -423,7 +423,7 @@
   .diet-select-row { display: flex; gap: 8px; flex-wrap: wrap; }
   .diet-select-chip {
     display: inline-flex; align-items: center; gap: 6px;
-    padding: 9px 13px; min-height: 40px; border-radius: 999px;
+    padding: 9px 13px; min-height: var(--tap-min); border-radius: 999px;
     border: 1px solid var(--border); background: var(--card-bg); color: var(--text-muted);
     font-size: 13px;
   }
@@ -432,6 +432,7 @@
 
   /* ---------- Timer chips (Kochmodus) ---------- */
   .timer-chip {
+    position: relative;
     display: inline-flex; align-items: center; gap: 5px;
     background: rgba(217,154,73,0.16); color: var(--ember-400);
     border: 1px solid rgba(217,154,73,0.35);
@@ -440,29 +441,37 @@
     font-variant-numeric: tabular-nums; vertical-align: middle;
     min-height: 32px;
   }
+  /* Der Chip bleibt optisch kompakt (inline im Fliesstext, sonst wuerden Zeilenabstaende
+     im Rezepttext auseinandergerissen) — die tatsaechliche Tapflaeche wird per
+     unsichtbarem, absolut positioniertem Pseudo-Element trotzdem auf 44px angehoben. */
+  .timer-chip::after {
+    content: ''; position: absolute; top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    width: max(44px, 100%); height: 44px;
+  }
   .timer-chip svg { width: 13px; height: 13px; flex-shrink: 0; }
   .timer-chip.running { background: rgba(217,154,73,0.28); }
   .timer-chip.done { background: rgba(63,125,78,0.22); color: var(--success-300); border-color: rgba(124,192,138,0.4); }
 
   /* ---------- Shopping list ---------- */
   .shopping-item {
-    display: flex; align-items: center; gap: 12px;
-    padding: 13px 4px; border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; gap: 8px;
+    padding: 6px 4px; border-bottom: 1px solid var(--border);
   }
   .shopping-check {
-    flex-shrink: 0; width: 26px; height: 26px; border-radius: 8px;
+    flex-shrink: 0; width: var(--tap-min); height: var(--tap-min); border-radius: 8px;
     border: 1.5px solid var(--border); background: var(--card-bg);
     display: flex; align-items: center; justify-content: center; color: var(--success);
   }
   .shopping-check.checked { background: var(--success); border-color: var(--success); color: #fff; }
-  .shopping-check svg { width: 15px; height: 15px; }
+  .shopping-check svg { width: 16px; height: 16px; }
   .shopping-item-text { flex: 1; font-size: 15px; }
   .shopping-item.checked .shopping-item-text { text-decoration: line-through; color: var(--text-muted); }
   .shopping-item-amount { font-weight: 600; color: var(--accent); font-variant-numeric: tabular-nums; margin-right: 4px; }
   .shopping-add-row { display: flex; gap: 8px; margin-bottom: 18px; }
   .shopping-add-row input { flex: 1; background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius-m); padding: 12px 14px; font-size: 15px; color: var(--text); min-height: var(--tap-min); }
   .shopping-group-title { font-size: 12px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-muted); margin: 20px 0 4px; }
-  .shopping-item-del { flex-shrink: 0; width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; color: var(--text-muted); background: none; border: none; }
+  .shopping-item-del { flex-shrink: 0; width: var(--tap-min); height: var(--tap-min); display: flex; align-items: center; justify-content: center; color: var(--text-muted); background: none; border: none; }
   .shopping-item-del svg { width: 15px; height: 15px; }
   .cart-badge {
     position: absolute; top: -3px; right: -3px; background: var(--ember-400); color: var(--forest-950);
@@ -509,7 +518,7 @@
   .section-heading { font-family: var(--font-display); font-optical-sizing: auto; font-size: 19px; color: var(--text); margin: 0 0 14px; display: flex; align-items: center; justify-content: space-between; }
 
   .servings-control { display: flex; align-items: center; gap: 10px; margin-bottom: 16px; background: var(--bg-elevated); border-radius: var(--radius-m); padding: 6px 12px; width: fit-content; }
-  .servings-control button { width: 36px; height: 36px; border-radius: 50%; border: 1px solid var(--border); background: var(--card-bg); color: var(--text); font-size: 16px; line-height: 1; }
+  .servings-control button { width: var(--tap-min); height: var(--tap-min); border-radius: 50%; border: 1px solid var(--border); background: var(--card-bg); color: var(--text); font-size: 16px; line-height: 1; }
   .servings-control span { font-size: 14px; font-weight: 600; min-width: 70px; text-align: center; font-variant-numeric: tabular-nums; }
 
   .ingredient-list { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 10px; }
@@ -680,7 +689,7 @@
     font-size: 13.5px; z-index: 200; box-shadow: 0 6px 18px rgba(0,0,0,0.25);
   }
   .toast-undo { display: flex; align-items: center; gap: 14px; padding: 10px 10px 10px 20px; white-space: nowrap; }
-  .toast-undo-btn { background: none; border: none; color: var(--ember-400); font-weight: 700; font-size: 13.5px; padding: 8px 10px; min-height: 36px; }
+  .toast-undo-btn { background: none; border: none; color: var(--ember-400); font-weight: 700; font-size: 13.5px; padding: 8px 10px; min-height: var(--tap-min); min-width: 44px; }
   .toast-error { background: var(--danger); }
 
   /* ---------- PDF-Kochbuch-Layout ---------- */

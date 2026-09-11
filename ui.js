@@ -65,11 +65,32 @@ function collectFormData() {
 
 let modalTriggerSelector = null;
 
+/* Zentrale Modal-Oeffnen-/Schliessen-Logik, von ALLEN Schliesswegen gemeinsam genutzt
+   (Escape, Abbrechen-Button, Backdrop, erfolgreiche Aktion) — vorher hatte Escape einen
+   eigenen, abweichenden Pfad ohne Fokus-Rueckgabe.
+   Wichtig: Savora rendert bei jedem render() das komplette #app-innerHTML neu (kein
+   Diffing) — eine direkt gehaltene Elementreferenz waere direkt nach dem oeffnenden
+   render() schon veraltet. Deshalb wird ein CSS-Selektor gespeichert und der Ausloeser
+   nach dem Schliessen frisch im neuen DOM wiedergefunden. */
+function openModal(modal, triggerSelector) {
+  modalTriggerSelector = triggerSelector || null;
+  state.modal = modal;
+  render();
+}
+function closeModal() {
+  state.modal = null;
+  render();
+  const trigger = modalTriggerSelector && document.querySelector(modalTriggerSelector);
+  if (trigger && document.contains(trigger) && typeof trigger.focus === 'function') {
+    trigger.focus();
+  }
+  modalTriggerSelector = null;
+}
+
 function onModalEscape(e) {
   if (e.key === 'Escape' && state.modal) {
     e.preventDefault();
-    state.modal = null;
-    render();
+    closeModal();
     return;
   }
   if (e.key === 'Tab' && state.modal) {
@@ -91,11 +112,6 @@ function onModalEscape(e) {
 function bindEvents() {
   App.querySelectorAll('[data-action]').forEach(el => {
     el.addEventListener('click', onAction);
-  });
-  App.querySelectorAll('.recipe-card[role="button"]').forEach(el => {
-    el.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onAction({ currentTarget: el }); }
-    });
   });
   if (state.view === 'cookmode') bindCookSwipe();
   hydrateLazyImages();
@@ -253,18 +269,11 @@ async function onAction(e) {
       render();
       break;
     case 'confirm-delete':
-      modalTriggerSelector = `[data-action="confirm-delete"][data-id="${id}"]`;
-      state.modal = { type: 'delete', recipeId: id };
-      render();
+      openModal({ type: 'delete', recipeId: id }, `[data-action="confirm-delete"][data-id="${id}"]`);
       break;
-    case 'close-modal': {
-      state.modal = null;
-      render();
-      const trigger = modalTriggerSelector && document.querySelector(modalTriggerSelector);
-      if (trigger) trigger.focus();
-      modalTriggerSelector = null;
+    case 'close-modal':
+      closeModal();
       break;
-    }
     case 'delete-recipe': {
       const recipeToDelete = state.recipes.find(x => x.id === id);
       if (!recipeToDelete) break;
@@ -430,9 +439,7 @@ async function onAction(e) {
       render();
       break;
     case 'open-day-picker':
-      modalTriggerSelector = `[data-action="open-day-picker"][data-date="${el.dataset.date}"]`;
-      state.modal = { type: 'pick-recipe', date: el.dataset.date };
-      render();
+      openModal({ type: 'pick-recipe', date: el.dataset.date }, `[data-action="open-day-picker"][data-date="${el.dataset.date}"]`);
       break;
     case 'assign-mealplan-recipe': {
       const date = el.dataset.date;
@@ -441,11 +448,7 @@ async function onAction(e) {
       if (!list.includes(rid)) list.push(rid);
       state.mealplan[date] = list;
       await dbPutMealplanDay({ date, recipeIds: list });
-      state.modal = null;
-      render();
-      const trigger = modalTriggerSelector && document.querySelector(modalTriggerSelector);
-      if (trigger) trigger.focus();
-      modalTriggerSelector = null;
+      closeModal();
       break;
     }
     case 'remove-mealplan-recipe': {

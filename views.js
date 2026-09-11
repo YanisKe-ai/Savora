@@ -108,18 +108,24 @@ function recipeCard(r, opts = {}) {
     : r.imageId
       ? `<div class="recipe-card-img placeholder" data-lazy-img="thumb" data-image-id="${r.imageId}" data-img-class="recipe-card-img">${ICONS.chef}</div>`
       : `<div class="recipe-card-img placeholder">${ICONS.chef}</div>`;
-  return `<div class="recipe-card ${featured ? 'recipe-card--featured' : ''}" data-action="open-recipe" data-id="${r.id}" role="button" tabindex="0">
-    ${img}
-    <button class="fav-btn${r.favorite ? ' fav-btn--active' : ''}" data-action="toggle-fav" data-id="${r.id}" aria-label="${r.favorite ? 'Aus Favoriten entfernen' : 'Zu Favoriten hinzufügen'}" aria-pressed="${r.favorite ? 'true' : 'false'}">${r.favorite ? ICONS.heart : ICONS.heartOutline}</button>
-    <div class="recipe-card-body">
-      ${featured ? `<div class="recipe-card-eyebrow">Zuletzt bearbeitet</div>` : ''}
-      <div class="recipe-card-title">${escapeHtml(r.title || 'Ohne Titel')}</div>
-      <div class="recipe-card-meta">
-        ${r.timeMinutes ? `<span>${r.timeMinutes} Min.</span>` : ''}
-        ${r.servings ? `<span>${r.servings} Port.</span>` : ''}
+  // Echtes <button> fuers Oeffnen statt div[role=button] — der Favoriten-Button steht
+  // daneben (Geschwister-Element), nicht mehr darin verschachtelt: ein Button darf laut
+  // HTML-Spezifikation kein weiteres interaktives Element enthalten (Screenreader/Tastatur-
+  // Verhalten sonst inkonsistent).
+  return `<article class="recipe-card ${featured ? 'recipe-card--featured' : ''}">
+    <button type="button" class="recipe-card-main" data-action="open-recipe" data-id="${r.id}" aria-label="${escapeHtml(r.title || 'Ohne Titel')} öffnen">
+      ${img}
+      <div class="recipe-card-body">
+        ${featured ? `<div class="recipe-card-eyebrow">Zuletzt bearbeitet</div>` : ''}
+        <div class="recipe-card-title">${escapeHtml(r.title || 'Ohne Titel')}</div>
+        <div class="recipe-card-meta">
+          ${r.timeMinutes ? `<span>${r.timeMinutes} Min.</span>` : ''}
+          ${r.servings ? `<span>${r.servings} Port.</span>` : ''}
+        </div>
       </div>
-    </div>
-  </div>`;
+    </button>
+    <button class="fav-btn${r.favorite ? ' fav-btn--active' : ''}" data-action="toggle-fav" data-id="${r.id}" aria-label="${r.favorite ? 'Aus Favoriten entfernen' : 'Zu Favoriten hinzufügen'}" aria-pressed="${r.favorite ? 'true' : 'false'}">${r.favorite ? ICONS.heart : ICONS.heartOutline}</button>
+  </article>`;
 }
 
 function detailView() {
@@ -292,22 +298,24 @@ function formView() {
 }
 
 function ingredientRow(i, idx) {
+  const n = idx + 1;
   return `<div class="repeat-row ing-row" data-ing-row="${idx}">
-    <div class="field ing-name"><input type="text" placeholder="Zutat" class="ing-name-input" value="${escapeHtml(i.name || '')}"></div>
+    <div class="field ing-name"><input type="text" placeholder="Zutat" aria-label="Zutat ${n} – Name" class="ing-name-input" value="${escapeHtml(i.name || '')}"></div>
     <div class="ing-row-meta">
-      <div class="field ing-amount"><input type="text" inputmode="decimal" placeholder="Menge" class="ing-amount-input" value="${escapeHtml(String(i.amount ?? ''))}"></div>
-      <div class="field ing-unit"><input type="text" placeholder="Einheit" class="ing-unit-input" value="${escapeHtml(i.unit || '')}"></div>
-      <button type="button" class="ing-convert-btn" data-action="convert-ingredient-row" data-idx="${idx}" title="In dein Masseinheiten-System umrechnen" aria-label="Menge in dein Masseinheiten-System umrechnen">${ICONS.swap}</button>
-      <button class="repeat-row-remove" data-action="remove-ingredient" data-idx="${idx}" aria-label="Zutat entfernen">${ICONS.trash}</button>
+      <div class="field ing-amount"><input type="text" inputmode="decimal" placeholder="Menge" aria-label="Zutat ${n} – Menge" class="ing-amount-input" value="${escapeHtml(String(i.amount ?? ''))}"></div>
+      <div class="field ing-unit"><input type="text" placeholder="Einheit" aria-label="Zutat ${n} – Einheit" class="ing-unit-input" value="${escapeHtml(i.unit || '')}"></div>
+      <button type="button" class="ing-convert-btn" data-action="convert-ingredient-row" data-idx="${idx}" title="In dein Masseinheiten-System umrechnen" aria-label="Menge von Zutat ${n} in dein Masseinheiten-System umrechnen">${ICONS.swap}</button>
+      <button class="repeat-row-remove" data-action="remove-ingredient" data-idx="${idx}" aria-label="Zutat ${n} entfernen">${ICONS.trash}</button>
     </div>
   </div>`;
 }
 
 function stepRow(s, idx) {
+  const n = idx + 1;
   return `<div class="repeat-row" data-step-row="${idx}">
-    <div class="step-num-badge">${idx + 1}</div>
-    <div class="field"><textarea class="step-text-input" placeholder="Was ist zu tun?" style="min-height:44px;">${escapeHtml(s.text || '')}</textarea></div>
-    <button class="repeat-row-remove" data-action="remove-step" data-idx="${idx}" aria-label="Schritt entfernen">${ICONS.trash}</button>
+    <div class="step-num-badge" aria-hidden="true">${n}</div>
+    <div class="field"><textarea class="step-text-input" placeholder="Was ist zu tun?" aria-label="Schritt ${n}" style="min-height:44px;">${escapeHtml(s.text || '')}</textarea></div>
+    <button class="repeat-row-remove" data-action="remove-step" data-idx="${idx}" aria-label="Schritt ${n} entfernen">${ICONS.trash}</button>
   </div>`;
 }
 
@@ -375,9 +383,11 @@ function shoppingView() {
   const open = items.filter(i => !i.checked);
   const checked = items.filter(i => i.checked);
   const row = (i) => `<div class="shopping-item ${i.checked ? 'checked' : ''}">
-    <button class="shopping-check ${i.checked ? 'checked' : ''}" data-action="toggle-shopping-item" data-id="${i.id}">${i.checked ? ICONS.check : ''}</button>
+    <button class="shopping-check ${i.checked ? 'checked' : ''}" data-action="toggle-shopping-item" data-id="${i.id}"
+      aria-pressed="${i.checked ? 'true' : 'false'}"
+      aria-label="${escapeHtml(i.name)}${i.checked ? ', erledigt. Als offen markieren' : ', offen. Als erledigt markieren'}">${i.checked ? ICONS.check : ''}</button>
     <div class="shopping-item-text">${i.amount ? `<span class="shopping-item-amount">${escapeHtml(String(i.amount))}${i.unit ? ' ' + escapeHtml(i.unit) : ''}</span>` : ''}${escapeHtml(i.name)}</div>
-    <button class="shopping-item-del" data-action="delete-shopping-item" data-id="${i.id}" aria-label="Eintrag entfernen">${ICONS.x}</button>
+    <button class="shopping-item-del" data-action="delete-shopping-item" data-id="${i.id}" aria-label="${escapeHtml(i.name)} entfernen">${ICONS.x}</button>
   </div>`;
 
   const grouped = {};
