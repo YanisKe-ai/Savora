@@ -123,6 +123,10 @@
   }
 
   * { box-sizing: border-box; }
+  .sr-only {
+    position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+    overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0;
+  }
   /* Sicherheitsnetz: jedes Icon-SVG ohne spezifischere Grössen-Regel bekommt eine
      vernünftige Default-Grösse relativ zur Schrift, statt auf den SVG-Standard
      (300x150) zurückzufallen, sobald der umgebende Button/Container keine feste
@@ -665,6 +669,7 @@
   }
   .toast-undo { display: flex; align-items: center; gap: 14px; padding: 10px 10px 10px 20px; white-space: nowrap; }
   .toast-undo-btn { background: none; border: none; color: var(--ember-400); font-weight: 700; font-size: 13.5px; padding: 8px 10px; min-height: 36px; }
+  .toast-error { background: var(--danger); }
 
   /* ---------- Print / PDF cookbook layout ---------- */
   #printRoot { display: none; }
@@ -706,6 +711,8 @@
 </div>
 <div id="app"></div>
 <div id="printRoot"></div>
+<div id="liveRegion" aria-live="polite" aria-atomic="true" class="sr-only"></div>
+<div id="liveRegionAssertive" aria-live="assertive" aria-atomic="true" class="sr-only"></div>
 
 <script>
 /* =========================================================
@@ -770,6 +777,7 @@ let dbPromise = null;
 function openDB() {
   if (dbPromise) return dbPromise;
   dbPromise = new Promise((resolve, reject) => {
+    if (!window.indexedDB) { reject(new Error('IndexedDB wird von diesem Browser nicht unterstützt.')); return; }
     const req = indexedDB.open(DB_NAME, DB_VERSION);
     req.onupgradeneeded = (e) => {
       const db = e.target.result;
@@ -784,8 +792,18 @@ function openDB() {
         db.createObjectStore('mealplan', { keyPath: 'date' });
       }
     };
-    req.onsuccess = () => resolve(req.result);
-    req.onerror = () => reject(req.error);
+    req.onsuccess = () => {
+      const db = req.result;
+      db.onversionchange = () => {
+        // Ein anderer Tab/Fenster fuehrt ein DB-Upgrade durch — diese Verbindung schliessen,
+        // damit das Upgrade dort nicht haengen bleibt (verhindert stillen Deadlock).
+        db.close();
+        dbPromise = null;
+      };
+      resolve(db);
+    };
+    req.onerror = () => reject(req.error || new Error('IndexedDB konnte nicht geöffnet werden.'));
+    req.onblocked = () => reject(new Error('Datenbank-Update blockiert — bitte alle anderen Savora-Tabs/-Fenster schliessen und neu laden.'));
   });
   return dbPromise;
 }
@@ -837,12 +855,27 @@ async function dbDeleteShopping(id) {
   });
 }
 
+/* ---------- Konservativer Namensabgleich fuer die Einkaufsliste (Singular/Plural) ---------- */
+function isSimpleGermanPluralPair(a, b) {
+  // Deckt genau die haeufigen Faelle ab (Tomate/Tomaten, Zwiebel/Zwiebeln) ohne
+  // generisches Wortstamm-Raten, das faelschlich unterschiedliche Zutaten verschmelzen koennte.
+  return a + 'n' === b || a + 'en' === b || b + 'n' === a || b + 'en' === a;
+}
+function ingredientNamesMatch(nameA, nameB) {
+  const a = (nameA || '').trim().toLowerCase().replace(/\s+/g, ' ');
+  const b = (nameB || '').trim().toLowerCase().replace(/\s+/g, ' ');
+  if (!a || !b) return false;
+  if (a === b) return true;
+  return isSimpleGermanPluralPair(a, b);
+}
+
 async function addRecipeIngredientsToShopping(r, servings) {
   const factor = servings / (r.servings || 1);
   for (const ing of (r.ingredients || [])) {
     if (!ing.name) continue;
-    const scaledAmount = ing.amount !== '' && ing.amount !== null ? Math.round(Number(ing.amount) * factor * 100) / 100 : '';
-    const match = state.shopping.find(s => !s.checked && s.name.toLowerCase() === ing.name.toLowerCase() && (s.unit || '') === (ing.unit || ''));
+    const parsedAmt = parseAmount(ing.amount);
+    const scaledAmount = parsedAmt !== null ? Math.round(parsedAmt * factor * 100) / 100 : '';
+    const match = state.shopping.find(s => !s.checked && ingredientNamesMatch(s.name, ing.name) && (s.unit || '') === (ing.unit || ''));
     if (match && typeof scaledAmount === 'number' && typeof match.amount === 'number') {
       match.amount = Math.round((match.amount + scaledAmount) * 100) / 100;
       await dbPutShopping(match);
@@ -898,6 +931,34 @@ function fmtAmount(n) {
   if (Math.abs(closest - rem) < 0.06) return (whole > 0 ? whole + ' ' : '') + frac[closest];
   return String(rounded);
 }
+
+/* ---------- Zentraler Mengen-Parser: verhindert NaN bei Bruechen/Komma ---------- */
+const UNICODE_FRACTIONS = { '¼': 0.25, '½': 0.5, '¾': 0.75, '⅓': 1 / 3, '⅔': 2 / 3, '⅕': 0.2, '⅖': 0.4, '⅗': 0.6, '⅘': 0.8, '⅛': 0.125, '⅜': 0.375, '⅝': 0.625, '⅞': 0.875 };
+function parseFractionPart(s) {
+  if (UNICODE_FRACTIONS[s] !== undefined) return UNICODE_FRACTIONS[s];
+  const m = /^(\d+)\/(\d+)$/.exec(s);
+  if (m) {
+    const num = parseInt(m[1], 10), den = parseInt(m[2], 10);
+    return den === 0 ? null : num / den;
+  }
+  return null;
+}
+function parseAmount(raw) {
+  if (raw === null || raw === undefined || raw === '') return null;
+  if (typeof raw === 'number') return isNaN(raw) ? null : raw;
+  const s = String(raw).trim();
+  if (!s) return null;
+  const mixed = /^(\d+)\s+(\d+\/\d+|[¼½¾⅓⅔⅕⅖⅗⅘⅛⅜⅝⅞])$/.exec(s);
+  if (mixed) {
+    const frac = parseFractionPart(mixed[2]);
+    return frac === null ? null : parseInt(mixed[1], 10) + frac;
+  }
+  const fracOnly = parseFractionPart(s);
+  if (fracOnly !== null) return fracOnly;
+  const num = parseFloat(s.replace(',', '.'));
+  return isNaN(num) ? null : num;
+}
+
 function fileToDataUrl(file) {
   return new Promise((resolve, reject) => {
     const r = new FileReader();
@@ -1024,7 +1085,7 @@ function convertAmountExplicit(amount, fromCanonical, toCanonical) {
   return roundNice((amount * table[fromCanonical]) / table[toCanonical]);
 }
 function autoConvertIngredient(ing) {
-  const amt = ing.amount !== '' && ing.amount !== null && ing.amount !== undefined ? Number(ing.amount) : null;
+  const amt = parseAmount(ing.amount);
   const canonical = normalizeUnit(ing.unit);
   if (amt === null || isNaN(amt) || !canonical) return ing;
   const result = convertToSystem(amt, canonical, state.unitSystem);
@@ -1057,15 +1118,24 @@ const state = {
   settingsOpen: new Set(),
 };
 
+const systemDarkQuery = window.matchMedia ? matchMedia('(prefers-color-scheme: dark)') : null;
 function applyTheme() {
   const root = document.documentElement;
   if (state.theme === 'auto') {
-    root.removeAttribute('data-theme');
+    const systemIsDark = systemDarkQuery ? systemDarkQuery.matches : false;
+    root.setAttribute('data-theme', systemIsDark ? 'dark' : 'light');
   } else {
     root.setAttribute('data-theme', state.theme);
   }
 }
 applyTheme();
+// Live-Reaktion, wenn das Betriebssystem waehrend geoeffneter App zwischen Hell/Dunkel wechselt
+// (nur wirksam, solange der Nutzer explizit "System" gewaehlt hat — eine manuelle Wahl wird nie ueberschrieben).
+if (systemDarkQuery) {
+  systemDarkQuery.addEventListener('change', () => {
+    if (state.theme === 'auto') applyTheme();
+  });
+}
 
 let lastRenderedView = null;
 function prefersReducedMotion() {
@@ -1105,17 +1175,40 @@ function emptyRecipe() {
 }
 
 /* ---------- Timer parsing for cook mode ---------- */
-function parseStepSegments(text) {
-  const re = /(\d+)\s*(Stunden?|Std\.?|Minuten?|Min\.?)\b/gi;
-  const segments = [];
-  let last = 0, m, i = 0;
+/* ---------- Zentraler Dauer-Parser (Zeitspannen, Sekunden, Dezimalstunden) ---------- */
+function durationUnitSeconds(unit) {
+  if (/^(Stunden?|Std\.?|h)$/i.test(unit)) return 3600;
+  if (/^(Sekunden?|Sek\.?|s)$/i.test(unit)) return 1;
+  return 60; // Minuten
+}
+function parseDurations(text) {
+  const re = /(\d+(?:[.,]\d+)?)\s*(?:(?:bis|-|–|—)\s*(\d+(?:[.,]\d+)?)\s*)?(Stunden?|Std\.?|Minuten?|Min\.?|Sekunden?|Sek\.?|h)\b/gi;
+  const results = [];
+  let m;
   while ((m = re.exec(text)) !== null) {
-    if (m.index > last) segments.push({ type: 'text', value: text.slice(last, m.index) });
-    const n = parseInt(m[1]);
-    const isHours = /Stunden?|Std/i.test(m[2]);
-    const seconds = isHours ? n * 3600 : n * 60;
-    segments.push({ type: 'timer', value: m[0], seconds, key: 'seg' + (i++) });
-    last = m.index + m[0].length;
+    const mult = durationUnitSeconds(m[3]);
+    const n1 = parseFloat(m[1].replace(',', '.'));
+    const n2 = m[2] ? parseFloat(m[2].replace(',', '.')) : null;
+    if (isNaN(n1)) continue;
+    const minSeconds = Math.round(n1 * mult);
+    const maxSeconds = n2 !== null && !isNaN(n2) ? Math.round(n2 * mult) : minSeconds;
+    results.push({
+      raw: m[0], index: m.index, length: m[0].length,
+      seconds: maxSeconds, // bei Zeitspannen wird der obere Wert vorgeschlagen
+      minSeconds, maxSeconds,
+      confidence: n2 !== null ? 'range' : 'exact',
+    });
+  }
+  return results;
+}
+function parseStepSegments(text) {
+  const durations = parseDurations(text);
+  const segments = [];
+  let last = 0, i = 0;
+  for (const d of durations) {
+    if (d.index > last) segments.push({ type: 'text', value: text.slice(last, d.index) });
+    segments.push({ type: 'timer', value: d.raw, seconds: d.seconds, key: 'seg' + (i++) });
+    last = d.index + d.length;
   }
   if (last < text.length) segments.push({ type: 'text', value: text.slice(last) });
   return segments;
@@ -1149,15 +1242,15 @@ function bottomNav() {
     { view: 'shopping', icon: ICONS.cart, label: 'Einkauf' },
     { view: 'settings', icon: ICONS.settings, label: 'Mehr' },
   ];
-  return `<nav class="bottom-nav">
-    ${tabs.map(t => `<button data-action="nav-tab" data-view="${t.view}" class="${state.view === t.view ? 'active' : ''}">
-      ${t.icon}<span>${t.label}</span>
-    </button>`).join('')}
+  return `<nav class="bottom-nav" aria-label="Hauptnavigation">
+    ${tabs.map(t => { const active = state.view === t.view; return `<button data-action="nav-tab" data-view="${t.view}" class="${active ? 'active' : ''}" ${active ? 'aria-current="page"' : ''}>
+      <span aria-hidden="true">${t.icon}</span><span>${t.label}</span>
+    </button>`; }).join('')}
   </nav>`;
 }
 
 function topbar(title, opts = {}) {
-  const backBtn = opts.back ? `<button class="icon-btn" data-action="back">${ICONS.back}</button>` : `<div class="brand">
+  const backBtn = opts.back ? `<button class="icon-btn" data-action="back" aria-label="Zurück">${ICONS.back}</button>` : `<div class="brand">
       <img src="icon-96.png" alt="Savora" class="brand-logo">
       <span class="brand-name">${escapeHtml(title || 'Savora')}</span>
     </div>`;
@@ -1199,7 +1292,8 @@ function homeView() {
       <div class="search-row">
         <div class="search-input-wrap">
           ${ICONS.search}
-          <input class="search-input" id="searchInput" type="text" placeholder="Rezepte, Zutaten, Tags durchsuchen…" value="${escapeHtml(state.query)}">
+          <label for="searchInput" class="sr-only">Rezepte durchsuchen</label>
+          <input class="search-input" id="searchInput" type="text" placeholder="Rezepte, Zutaten, Tags durchsuchen…" value="${escapeHtml(state.query)}" aria-label="Rezepte, Zutaten, Tags durchsuchen">
         </div>
         <button class="icon-btn" style="background:var(--card-bg);color:${state.favOnly ? 'var(--accent)' : 'var(--text-muted)'};border:1px solid var(--border);" data-action="toggle-fav-filter" aria-label="Nur Favoriten">${state.favOnly ? ICONS.heart : ICONS.heartOutline}</button>
       </div>
@@ -1232,7 +1326,7 @@ function recipeCard(r, opts = {}) {
     : `<div class="recipe-card-img placeholder">${ICONS.chef}</div>`;
   return `<div class="recipe-card ${featured ? 'recipe-card--featured' : ''}" data-action="open-recipe" data-id="${r.id}" role="button" tabindex="0">
     ${img}
-    <button class="fav-btn" data-action="toggle-fav" data-id="${r.id}">${r.favorite ? ICONS.heart : ICONS.heartOutline}</button>
+    <button class="fav-btn" data-action="toggle-fav" data-id="${r.id}" aria-label="${r.favorite ? 'Aus Favoriten entfernen' : 'Zu Favoriten hinzufügen'}" aria-pressed="${r.favorite ? 'true' : 'false'}">${r.favorite ? ICONS.heart : ICONS.heartOutline}</button>
     <div class="recipe-card-body">
       ${featured ? `<div class="recipe-card-eyebrow">Zuletzt bearbeitet</div>` : ''}
       <div class="recipe-card-title">${escapeHtml(r.title || 'Ohne Titel')}</div>
@@ -1253,9 +1347,9 @@ function detailView() {
 
   return `
     ${topbar(r.title, { back: true, actions: `
-      <button class="icon-btn" data-action="edit-recipe" data-id="${r.id}">${ICONS.edit}</button>
-      <button class="icon-btn" data-action="export-pdf" data-id="${r.id}">${ICONS.pdf}</button>
-      <button class="icon-btn" data-action="confirm-delete" data-id="${r.id}">${ICONS.trash}</button>
+      <button class="icon-btn" data-action="edit-recipe" data-id="${r.id}" aria-label="Rezept bearbeiten">${ICONS.edit}</button>
+      <button class="icon-btn" data-action="export-pdf" data-id="${r.id}" aria-label="Als PDF exportieren">${ICONS.pdf}</button>
+      <button class="icon-btn" data-action="confirm-delete" data-id="${r.id}" aria-label="Rezept löschen">${ICONS.trash}</button>
     ` })}
     <main class="has-tabbar">
       <div class="detail-hero">
@@ -1286,7 +1380,7 @@ function detailView() {
           </div>
           <ul class="ingredient-list">
             ${(r.ingredients || []).map(i => `<li>
-              <span class="ingredient-amount">${i.amount !== '' && i.amount !== null && i.amount !== undefined ? fmtAmount(Number(i.amount) * factor) + (i.unit ? ' ' + escapeHtml(i.unit) : '') : ''}</span>
+              <span class="ingredient-amount">${(() => { const pa = parseAmount(i.amount); return pa !== null ? fmtAmount(pa * factor) + (i.unit ? ' ' + escapeHtml(i.unit) : '') : ''; })()}</span>
               <span class="ingredient-name">${escapeHtml(i.name)}</span>
             </li>`).join('')}
           </ul>
@@ -1310,8 +1404,8 @@ function detailView() {
 
 function deleteModal(r) {
   return `<div class="modal-backdrop" data-action="close-modal">
-    <div class="modal-sheet" onclick="event.stopPropagation()">
-      <h3 class="modal-title">Rezept löschen?</h3>
+    <div class="modal-sheet" role="dialog" aria-modal="true" aria-labelledby="delete-modal-title" tabindex="-1" onclick="event.stopPropagation()">
+      <h3 class="modal-title" id="delete-modal-title">Rezept löschen?</h3>
       <p style="font-size:14px;color:var(--text-muted);">„${escapeHtml(r.title)}" wird endgültig aus deinem Kochbuch entfernt.</p>
       <div class="form-actions">
         <button class="ghost-btn" data-action="close-modal" style="flex:1;">Abbrechen</button>
@@ -1329,55 +1423,55 @@ function formView() {
     <main>
       <div class="form-page">
         <div class="field">
-          <label>Titel</label>
+          <label for="f-title">Titel</label>
           <input type="text" id="f-title" value="${escapeHtml(r.title)}" placeholder="z.B. Zitronen-Risotto">
         </div>
         <div class="field">
-          <label>Foto</label>
+          <label for="f-image">Foto</label>
           <div class="image-drop" id="imgDrop">
             ${r.image ? `<img src="${r.image}" alt="">` : `<div style="padding:10px 0;">${ICONS.chef}<div style="margin-top:6px;">Foto auswählen</div></div>`}
-            <input type="file" accept="image/*" id="f-image">
+            <input type="file" accept="image/*" id="f-image" aria-label="Foto auswählen">
           </div>
         </div>
         <div class="field-row" style="margin-bottom:18px;">
-          <div class="field" style="margin-bottom:0;"><label>Portionen</label><input type="number" id="f-servings" min="1" value="${r.servings}"></div>
-          <div class="field" style="margin-bottom:0;"><label>Zeit (Min.)</label><input type="number" id="f-time" min="0" value="${r.timeMinutes}"></div>
-          <div class="field" style="margin-bottom:0;"><label>Schwierigkeit</label>
+          <div class="field" style="margin-bottom:0;"><label for="f-servings">Portionen</label><input type="number" id="f-servings" min="1" value="${r.servings}"></div>
+          <div class="field" style="margin-bottom:0;"><label for="f-time">Zeit (Min.)</label><input type="number" id="f-time" min="0" value="${r.timeMinutes}"></div>
+          <div class="field" style="margin-bottom:0;"><label for="f-difficulty">Schwierigkeit</label>
             <select id="f-difficulty">
               ${['Einfach','Mittel','Anspruchsvoll'].map(d => `<option ${r.difficulty === d ? 'selected' : ''}>${d}</option>`).join('')}
             </select>
           </div>
         </div>
         <div class="field">
-          <label>Ernährungsform / Allergene</label>
-          <div class="diet-select-row">
-            ${DIET_OPTIONS.map(d => `<button type="button" class="diet-select-chip ${((r.diet)||[]).includes(d.key) ? 'active' : ''}" data-action="toggle-diet" data-diet="${d.key}">${ICONS[d.icon]}${d.label}</button>`).join('')}
+          <label id="diet-group-label">Ernährungsform / Allergene</label>
+          <div class="diet-select-row" role="group" aria-labelledby="diet-group-label">
+            ${DIET_OPTIONS.map(d => `<button type="button" class="diet-select-chip ${((r.diet)||[]).includes(d.key) ? 'active' : ''}" data-action="toggle-diet" data-diet="${d.key}" aria-pressed="${((r.diet)||[]).includes(d.key) ? 'true' : 'false'}">${ICONS[d.icon]}${d.label}</button>`).join('')}
           </div>
         </div>
         <div class="field">
-          <label>Tags</label>
+          <label for="f-tag-new">Tags</label>
           <div class="tag-input-row" id="tagInputRow">
-            ${(r.tags || []).map(t => `<span class="tag-pill">${escapeHtml(t)}<button data-action="remove-tag" data-tag="${escapeHtml(t)}">${ICONS.x}</button></span>`).join('')}
+            ${(r.tags || []).map(t => `<span class="tag-pill">${escapeHtml(t)}<button data-action="remove-tag" data-tag="${escapeHtml(t)}" aria-label="Tag ${escapeHtml(t)} entfernen">${ICONS.x}</button></span>`).join('')}
             <input type="text" id="f-tag-new" placeholder="Tag + Enter">
           </div>
           <div class="field-hint">z.B. ${ALL_TAGS_SEED.slice(0,4).join(', ')} …</div>
         </div>
         <div class="field">
-          <label>Zutaten</label>
-          <div id="ingRows">
+          <span id="ing-group-label" style="font-size:13px;font-weight:600;color:var(--text);display:block;margin-bottom:6px;">Zutaten</span>
+          <div id="ingRows" role="group" aria-labelledby="ing-group-label">
             ${(r.ingredients || []).map((i, idx) => ingredientRow(i, idx)).join('')}
           </div>
           <button class="add-row-btn" data-action="add-ingredient">${ICONS.plus} Zutat hinzufügen</button>
         </div>
         <div class="field">
-          <label>Zubereitung</label>
-          <div id="stepRows">
+          <span id="step-group-label" style="font-size:13px;font-weight:600;color:var(--text);display:block;margin-bottom:6px;">Zubereitung</span>
+          <div id="stepRows" role="group" aria-labelledby="step-group-label">
             ${(r.steps || []).map((s, idx) => stepRow(s, idx)).join('')}
           </div>
           <button class="add-row-btn" data-action="add-step">${ICONS.plus} Schritt hinzufügen</button>
         </div>
         <div class="field">
-          <label>Notizen (optional)</label>
+          <label for="f-notes">Notizen (optional)</label>
           <textarea id="f-notes" placeholder="Eigene Anmerkungen, Variationen …">${escapeHtml(r.notes || '')}</textarea>
         </div>
         <div class="form-actions">
@@ -1395,8 +1489,8 @@ function ingredientRow(i, idx) {
     <div class="ing-row-meta">
       <div class="field ing-amount"><input type="text" inputmode="decimal" placeholder="Menge" class="ing-amount-input" value="${escapeHtml(String(i.amount ?? ''))}"></div>
       <div class="field ing-unit"><input type="text" placeholder="Einheit" class="ing-unit-input" value="${escapeHtml(i.unit || '')}"></div>
-      <button type="button" class="ing-convert-btn" data-action="convert-ingredient-row" data-idx="${idx}" title="In dein Masseinheiten-System umrechnen">${ICONS.swap}</button>
-      <button class="repeat-row-remove" data-action="remove-ingredient" data-idx="${idx}">${ICONS.trash}</button>
+      <button type="button" class="ing-convert-btn" data-action="convert-ingredient-row" data-idx="${idx}" title="In dein Masseinheiten-System umrechnen" aria-label="Menge in dein Masseinheiten-System umrechnen">${ICONS.swap}</button>
+      <button class="repeat-row-remove" data-action="remove-ingredient" data-idx="${idx}" aria-label="Zutat entfernen">${ICONS.trash}</button>
     </div>
   </div>`;
 }
@@ -1404,7 +1498,7 @@ function stepRow(s, idx) {
   return `<div class="repeat-row" data-step-row="${idx}">
     <div class="step-num-badge">${idx + 1}</div>
     <div class="field"><textarea class="step-text-input" placeholder="Was ist zu tun?" style="min-height:44px;">${escapeHtml(s.text || '')}</textarea></div>
-    <button class="repeat-row-remove" data-action="remove-step" data-idx="${idx}">${ICONS.trash}</button>
+    <button class="repeat-row-remove" data-action="remove-step" data-idx="${idx}" aria-label="Schritt entfernen">${ICONS.trash}</button>
   </div>`;
 }
 
@@ -1416,7 +1510,7 @@ function renderStepWithTimers(text, stepIdx) {
     const t = state.timers[id];
     const label = t ? fmtClock(t.remaining) : seg.value;
     const cls = t && t.done ? 'done' : (t && t.running ? 'running' : '');
-    return `<button type="button" class="timer-chip ${cls}" data-timer-id="${id}" data-seconds="${seg.seconds}" data-action="toggle-timer">${t && t.done ? ICONS.check : ICONS.timer}<span data-timer-label="${id}">${label}</span></button>`;
+    return `<button type="button" class="timer-chip ${cls}" data-timer-id="${id}" data-seconds="${seg.seconds}" data-action="toggle-timer" aria-label="${t && t.done ? 'Timer fertig' : t && t.running ? 'Timer läuft, ' + fmtClock(t.remaining) + ' verbleiben' : 'Timer starten, ' + fmtClock(seg.seconds)}">${t && t.done ? ICONS.check : ICONS.timer}<span data-timer-label="${id}">${label}</span></button>`;
   }).join('');
 }
 
@@ -1424,15 +1518,23 @@ function startTimer(id, totalSeconds) {
   if (state.timers[id] && state.timers[id].running) return;
   const existing = state.timers[id];
   if (existing && existing.intervalId) clearInterval(existing.intervalId);
-  const t = { remaining: existing ? existing.remaining : totalSeconds, total: totalSeconds, running: true, done: false, intervalId: null };
+  const remainingSeconds = existing ? existing.remaining : totalSeconds;
+  const t = {
+    remaining: remainingSeconds,
+    total: totalSeconds,
+    endTime: Date.now() + remainingSeconds * 1000, // Zeitquelle: absolute Endzeit, nicht Herunterzaehlen
+    running: true,
+    done: false,
+    intervalId: null,
+  };
   state.timers[id] = t;
   t.intervalId = setInterval(() => tickTimer(id), 1000);
   updateTimerChipDOM(id);
 }
 function tickTimer(id) {
   const t = state.timers[id];
-  if (!t) return;
-  t.remaining -= 1;
+  if (!t || !t.running) return;
+  t.remaining = Math.max(0, Math.round((t.endTime - Date.now()) / 1000));
   if (t.remaining <= 0) {
     t.remaining = 0;
     t.running = false;
@@ -1442,6 +1544,11 @@ function tickTimer(id) {
     finishTimerFeedback();
   }
   updateTimerChipDOM(id);
+}
+function resyncRunningTimers() {
+  // setInterval wird im Hintergrund/bei gesperrtem Screen gedrosselt — beim Zurueckkommen
+  // sofort anhand der absoluten Endzeit neu berechnen, statt auf den naechsten Tick zu warten.
+  Object.keys(state.timers).forEach(id => { if (state.timers[id].running) tickTimer(id); });
 }
 function updateTimerChipDOM(id) {
   const t = state.timers[id];
@@ -1467,7 +1574,7 @@ function finishTimerFeedback() {
     g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.5);
     o.start(); o.stop(ctx.currentTime + 0.55);
   } catch (e) {}
-  showToast('Timer fertig');
+  showToast('Timer fertig', 'success', true);
 }
 
 function cookModeView() {
@@ -1478,7 +1585,7 @@ function cookModeView() {
   if (state.cookFinished) {
     return `<div class="cookmode-overlay">
       <div class="cookmode-top">
-        <button class="icon-btn" data-action="exit-cook">${ICONS.x}</button>
+        <button class="icon-btn" data-action="exit-cook" aria-label="Kochmodus verlassen">${ICONS.x}</button>
         <span></span><span style="width:38px;"></span>
       </div>
       <div class="cookmode-body">
@@ -1499,7 +1606,7 @@ function cookModeView() {
   const isLast = idx === steps.length - 1;
   return `<div class="cookmode-overlay">
     <div class="cookmode-top">
-      <button class="icon-btn" data-action="exit-cook">${ICONS.x}</button>
+      <button class="icon-btn" data-action="exit-cook" aria-label="Kochmodus verlassen">${ICONS.x}</button>
       <span class="cookmode-progress">Schritt ${idx + 1} / ${steps.length}</span>
       <div style="display:flex;align-items:center;gap:8px;">
         <button class="icon-btn" data-action="toggle-voice" aria-label="Schritte vorlesen" title="Schritte vorlesen">${state.voiceEnabled ? ICONS.volume : ICONS.volumeOff}</button>
@@ -1524,7 +1631,7 @@ function shoppingView() {
   const row = (i) => `<div class="shopping-item ${i.checked ? 'checked' : ''}">
     <button class="shopping-check ${i.checked ? 'checked' : ''}" data-action="toggle-shopping-item" data-id="${i.id}">${i.checked ? ICONS.check : ''}</button>
     <div class="shopping-item-text">${i.amount ? `<span class="shopping-item-amount">${escapeHtml(String(i.amount))}${i.unit ? ' ' + escapeHtml(i.unit) : ''}</span>` : ''}${escapeHtml(i.name)}</div>
-    <button class="shopping-item-del" data-action="delete-shopping-item" data-id="${i.id}">${ICONS.x}</button>
+    <button class="shopping-item-del" data-action="delete-shopping-item" data-id="${i.id}" aria-label="Eintrag entfernen">${ICONS.x}</button>
   </div>`;
 
   const grouped = {};
@@ -1535,7 +1642,7 @@ function shoppingView() {
     .join('');
 
   return `
-    ${topbar('Einkaufsliste', { actions: items.length ? `<button class="icon-btn" data-action="clear-all-shopping">${ICONS.trash}</button>` : '' })}
+    ${topbar('Einkaufsliste', { actions: items.length ? `<button class="icon-btn" data-action="clear-all-shopping" aria-label="Ganze Einkaufsliste leeren">${ICONS.trash}</button>` : '' })}
     <main class="has-tabbar">
       ${!items.length ? `<div class="empty-state">${ICONS.cart}<h2>Deine Einkaufsliste ist leer</h2><p>Öffne ein Rezept und tippe auf „Zur Einkaufsliste", um Zutaten hinzuzufügen.</p></div>` : `
         ${open.length ? openHtml : `<p style="text-align:center;color:var(--text-muted);font-size:14px;padding:20px 0;display:flex;align-items:center;justify-content:center;gap:6px;"><span class="icon-inline" style="width:16px;height:16px;">${ICONS.sparkle}</span>Alles abgehakt</p>`}
@@ -1580,7 +1687,7 @@ function mealplanView() {
     const chips = ids.map(id => {
       const r = state.recipes.find(x => x.id === id);
       if (!r) return '';
-      return `<div class="day-recipe-chip"><span>${escapeHtml(r.title)}</span><button data-action="remove-mealplan-recipe" data-date="${key}" data-id="${id}">${ICONS.x}</button></div>`;
+      return `<div class="day-recipe-chip"><span>${escapeHtml(r.title)}</span><button data-action="remove-mealplan-recipe" data-date="${key}" data-id="${id}" aria-label="Rezept von diesem Tag entfernen">${ICONS.x}</button></div>`;
     }).join('');
     return `<div class="day-card ${isToday ? 'is-today' : ''}">
       <div class="day-card-head">
@@ -1618,8 +1725,8 @@ function recipePickerModal() {
   const [y, m, d] = state.modal.date.split('-').map(Number);
   const labelDate = new Date(y, m - 1, d).toLocaleDateString('de-CH', { weekday: 'long', day: 'numeric', month: 'long' });
   return `<div class="modal-backdrop" data-action="close-modal">
-    <div class="modal-sheet" onclick="event.stopPropagation()">
-      <h3 class="modal-title">Rezept für ${labelDate}</h3>
+    <div class="modal-sheet" role="dialog" aria-modal="true" aria-labelledby="picker-modal-title" tabindex="-1" onclick="event.stopPropagation()">
+      <h3 class="modal-title" id="picker-modal-title">Rezept für ${labelDate}</h3>
       <div class="picker-list">${items}</div>
     </div>
   </div>`;
@@ -1663,13 +1770,13 @@ function unitConverterView() {
 function settingsSection(key, icon, title, bodyHtml, opts = {}) {
   const isOpen = state.settingsOpen.has(key);
   return `<div class="settings-section">
-    <button type="button" class="settings-section-header ${isOpen ? 'open' : ''}" data-action="toggle-settings-section" data-key="${key}">
-      <span class="icon-inline settings-section-icon">${icon}</span>
+    <button type="button" class="settings-section-header ${isOpen ? 'open' : ''}" data-action="toggle-settings-section" data-key="${key}" aria-expanded="${isOpen ? 'true' : 'false'}" aria-controls="sec-${key}">
+      <span class="icon-inline settings-section-icon" aria-hidden="true">${icon}</span>
       <span class="settings-section-title">${title}</span>
       ${opts.badge || ''}
-      <span class="icon-inline settings-chevron">${ICONS.chevronRight}</span>
+      <span class="icon-inline settings-chevron" aria-hidden="true">${ICONS.chevronRight}</span>
     </button>
-    <div class="settings-section-body ${isOpen ? 'open' : ''}" id="sec-${key}">${bodyHtml}</div>
+    <div class="settings-section-body ${isOpen ? 'open' : ''}" id="sec-${key}" ${isOpen ? '' : 'hidden'}>${bodyHtml}</div>
   </div>`;
 }
 
@@ -1749,8 +1856,9 @@ function releaseWakeLock() {
   if (state.wakeLock) { state.wakeLock.release().catch(() => {}); state.wakeLock = null; }
 }
 document.addEventListener('visibilitychange', async () => {
-  if (state.view === 'cookmode' && document.visibilityState === 'visible' && !state.wakeLock) {
-    await requestWakeLock();
+  if (document.visibilityState === 'visible') {
+    resyncRunningTimers();
+    if (state.view === 'cookmode' && !state.wakeLock) await requestWakeLock();
   }
 });
 
@@ -1772,7 +1880,7 @@ function printRecipeHtml(r) {
       <div class="print-ing-block">
         <div class="print-ing-title">Zutaten</div>
         <ul class="print-ing-list">
-          ${(r.ingredients || []).map(i => `<li><strong>${i.amount ? fmtAmount(Number(i.amount)) + (i.unit ? ' ' + escapeHtml(i.unit) : '') : ''}</strong> ${escapeHtml(i.name)}</li>`).join('')}
+          ${(r.ingredients || []).map(i => `<li><strong>${(() => { const pa = parseAmount(i.amount); return pa !== null ? fmtAmount(pa) + (i.unit ? ' ' + escapeHtml(i.unit) : '') : ''; })()}</strong> ${escapeHtml(i.name)}</li>`).join('')}
         </ul>
       </div>
       <div class="print-steps-block">
@@ -1839,7 +1947,7 @@ async function restoreBackupFromFile(file) {
     render();
   } catch (e) {
     if (statusEl) statusEl.innerHTML = `<div class="import-status err">Wiederherstellung fehlgeschlagen: ${escapeHtml(e.message)}</div>`;
-    else showToast('Wiederherstellung fehlgeschlagen');
+    else showToast('Wiederherstellung fehlgeschlagen', 'error');
   }
 }
 
@@ -2010,25 +2118,48 @@ function parseFreeTextRecipe(raw) {
   if (servMatch) r.servings = parseInt(servMatch[1]);
 
   const dietMap = { vegan: 'vegan', vegetarisch: 'vegetarisch', vegetarian: 'vegetarisch', glutenfrei: 'glutenfrei', laktosefrei: 'laktosefrei', nussfrei: 'nussfrei' };
+  const NEGATION_WORDS = ['nicht', 'kein', 'keine', 'keinen', 'keinem', 'ohne'];
   const lowerAll = (raw + ' ' + tagWords.join(' ')).toLowerCase();
-  r.diet = Array.from(new Set(Object.keys(dietMap).filter(k => lowerAll.includes(k)).map(k => dietMap[k])));
+  const detectedDiet = [];
+  for (const [kw, val] of Object.entries(dietMap)) {
+    let searchFrom = 0, idx;
+    let anyPositive = false;
+    // Alle Fundstellen pruefen, nicht nur die erste — falls "vegan" mehrfach vorkommt
+    // (z.B. einmal negiert, einmal nicht), zaehlt ein einziger echter Treffer.
+    while ((idx = lowerAll.indexOf(kw, searchFrom)) !== -1) {
+      const before = lowerAll.slice(Math.max(0, idx - 15), idx);
+      const negated = NEGATION_WORDS.some(w => before.includes(w));
+      if (!negated) { anyPositive = true; break; }
+      searchFrom = idx + kw.length;
+    }
+    if (anyPositive) detectedDiet.push(val);
+  }
+  r.diet = Array.from(new Set(detectedDiet));
   r.tags = Array.from(new Set(tagWords.filter(t => !dietMap[t.toLowerCase()]))).slice(0, 6);
   r.notes = 'Aus eingefügtem Text importiert — bitte vor dem Speichern prüfen.';
   return r;
 }
 
-/* ---------- Toast ---------- */
+/* ---------- Toast + Live Region (Screenreader-Ansagen) ---------- */
+function announceLive(msg, assertive) {
+  const region = document.getElementById(assertive ? 'liveRegionAssertive' : 'liveRegion');
+  if (!region) return;
+  region.textContent = '';
+  requestAnimationFrame(() => { region.textContent = msg; });
+}
 let toastTimer = null;
-function showToast(msg) {
+function showToast(msg, type = 'success', assertive = false) {
   state.toastMsg = msg;
-  const existing = document.querySelector('.toast');
+  const existing = document.querySelector('.toast:not(.toast-undo)');
   if (existing) existing.remove();
   const el = document.createElement('div');
-  el.className = 'toast';
+  el.className = 'toast' + (type === 'error' ? ' toast-error' : '');
   el.textContent = msg;
   document.body.appendChild(el);
+  announceLive(msg, assertive || type === 'error');
   clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => el.remove(), 2200);
+  const duration = type === 'error' ? 5500 : type === 'info' ? 4000 : 2500;
+  toastTimer = setTimeout(() => el.remove(), duration);
 }
 
 let undoState = null; // { timer, el, onExpire }
@@ -2040,6 +2171,7 @@ function showUndoToast(msg, onUndo, onExpire) {
   el.className = 'toast toast-undo';
   el.innerHTML = `<span>${escapeHtml(msg)}</span><button type="button" class="toast-undo-btn">Rückgängig</button>`;
   document.body.appendChild(el);
+  announceLive(msg, false);
   const timer = setTimeout(() => { el.remove(); undoState = null; onExpire(); }, 5000);
   el.querySelector('.toast-undo-btn').addEventListener('click', () => {
     clearTimeout(timer);
@@ -2112,6 +2244,14 @@ function bindCookSwipe() {
   }, { passive: true });
 }
 
+let modalTriggerSelector = null;
+function onModalEscape(e) {
+  if (e.key === 'Escape' && state.modal) {
+    e.preventDefault();
+    state.modal = null;
+    render();
+  }
+}
 function bindEvents() {
   App.querySelectorAll('[data-action]').forEach(el => {
     el.addEventListener('click', onAction);
@@ -2122,6 +2262,14 @@ function bindEvents() {
     });
   });
   if (state.view === 'cookmode') bindCookSwipe();
+
+  const modalSheet = document.querySelector('.modal-sheet');
+  if (modalSheet) {
+    modalSheet.focus();
+    document.addEventListener('keydown', onModalEscape);
+  } else {
+    document.removeEventListener('keydown', onModalEscape);
+  }
 
   const searchInput = document.getElementById('searchInput');
   if (searchInput) {
@@ -2244,13 +2392,18 @@ async function onAction(e) {
       render();
       break;
     case 'confirm-delete':
+      modalTriggerSelector = `[data-action="confirm-delete"][data-id="${id}"]`;
       state.modal = { type: 'delete', recipeId: id };
       render();
       break;
-    case 'close-modal':
+    case 'close-modal': {
       state.modal = null;
       render();
+      const trigger = modalTriggerSelector && document.querySelector(modalTriggerSelector);
+      if (trigger) trigger.focus();
+      modalTriggerSelector = null;
       break;
+    }
     case 'delete-recipe': {
       const recipeToDelete = state.recipes.find(x => x.id === id);
       if (!recipeToDelete) break;
@@ -2378,11 +2531,12 @@ async function onAction(e) {
       break;
     case 'toggle-settings-section': {
       const key = el.dataset.key;
-      if (state.settingsOpen.has(key)) state.settingsOpen.delete(key);
-      else state.settingsOpen.add(key);
+      const nowOpen = !state.settingsOpen.has(key);
+      if (nowOpen) state.settingsOpen.add(key); else state.settingsOpen.delete(key);
       const body = document.getElementById('sec-' + key);
-      if (body) body.classList.toggle('open');
-      el.classList.toggle('open');
+      if (body) { body.classList.toggle('open', nowOpen); body.toggleAttribute('hidden', !nowOpen); }
+      el.classList.toggle('open', nowOpen);
+      el.setAttribute('aria-expanded', nowOpen ? 'true' : 'false');
       return; // kein Re-Render — bewahrt unbestätigte Eingaben in anderen Feldern
     }
     case 'open-shopping':
@@ -2402,6 +2556,7 @@ async function onAction(e) {
       render();
       break;
     case 'open-day-picker':
+      modalTriggerSelector = `[data-action="open-day-picker"][data-date="${el.dataset.date}"]`;
       state.modal = { type: 'pick-recipe', date: el.dataset.date };
       render();
       break;
@@ -2414,6 +2569,9 @@ async function onAction(e) {
       await dbPutMealplanDay({ date, recipeIds: list });
       state.modal = null;
       render();
+      const trigger = modalTriggerSelector && document.querySelector(modalTriggerSelector);
+      if (trigger) trigger.focus();
+      modalTriggerSelector = null;
       break;
     }
     case 'remove-mealplan-recipe': {
@@ -2534,15 +2692,77 @@ async function onAction(e) {
 }
 
 /* ---------- Init ---------- */
+function renderStorageError(err) {
+  const splash = document.getElementById('splash');
+  if (splash) splash.remove();
+  App.innerHTML = `
+    <div class="topbar"><div class="topbar-left"><div class="brand"><img src="icon-96.png" alt="Savora" class="brand-logo"><span class="brand-name">Savora</span></div></div></div>
+    <main style="display:flex;align-items:center;justify-content:center;min-height:70vh;">
+      <div class="empty-state" style="max-width:340px;">
+        ${ICONS.trash}
+        <h2>Speicher konnte nicht geöffnet werden</h2>
+        <p>${escapeHtml(err && err.message ? err.message : 'Unbekannter Speicherfehler.')} Das passiert z.B. im privaten Browserfenster oder wenn der Gerätespeicher knapp ist. Deine bereits gespeicherten Rezepte sind davon nicht betroffen.</p>
+        <button class="primary-btn" data-action="retry-init">${ICONS.swap} Erneut versuchen</button>
+      </div>
+    </main>
+  `;
+  document.querySelectorAll('[data-action="retry-init"]').forEach(el => el.addEventListener('click', () => location.reload()));
+}
+
+/* ---------- Kontrollierter Service-Worker-Update-Flow ---------- */
+function showUpdateBanner(registration) {
+  const existing = document.getElementById('updateBanner');
+  if (existing) existing.remove();
+  const el = document.createElement('div');
+  el.id = 'updateBanner';
+  el.className = 'toast toast-undo';
+  el.innerHTML = `<span>Neue Version verfügbar</span><button type="button" class="toast-undo-btn">Aktualisieren</button>`;
+  document.body.appendChild(el);
+  el.querySelector('.toast-undo-btn').addEventListener('click', () => {
+    if (registration.waiting) registration.waiting.postMessage({ type: 'SKIP_WAITING' });
+  });
+}
+function registerServiceWorkerWithUpdatePrompt() {
+  navigator.serviceWorker.register('sw.js').then((registration) => {
+    // Falls beim Laden bereits ein Worker wartet (z.B. Tab war offen, waehrend ein
+    // Update installiert wurde).
+    if (registration.waiting && navigator.serviceWorker.controller) showUpdateBanner(registration);
+
+    registration.addEventListener('updatefound', () => {
+      const newWorker = registration.installing;
+      if (!newWorker) return;
+      newWorker.addEventListener('statechange', () => {
+        // "installed" + bereits ein aktiver Controller vorhanden = echtes Update,
+        // nicht die allererste Installation (dafuer gaebe es noch keinen Controller).
+        if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+          showUpdateBanner(registration);
+        }
+      });
+    });
+  }).catch(() => {});
+
+  let reloaded = false;
+  navigator.serviceWorker.addEventListener('controllerchange', () => {
+    if (reloaded) return;
+    reloaded = true;
+    location.reload();
+  });
+}
+
 (async function init() {
-  await loadRecipes();
-  await loadShopping();
-  await loadMealplan();
-  render();
-  if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('sw.js').catch(() => {});
+  try {
+    await loadRecipes();
+    await loadShopping();
+    await loadMealplan();
+    render();
+    if ('serviceWorker' in navigator) {
+      registerServiceWorkerWithUpdatePrompt();
+    }
+    runSplashSequence();
+  } catch (err) {
+    console.error('Savora Initialisierungsfehler:', err);
+    renderStorageError(err);
   }
-  runSplashSequence();
 })();
 
 /* ---------- Splash-Übergang: Logo morpht in den Header ---------- */
