@@ -3,7 +3,7 @@
      Service-Worker-Cache liegt. */
   @font-face {
     font-family: 'Baloo 2';
-    src: url('../fonts/baloo2.woff2') format('woff2-variations'), url('../fonts/baloo2.woff2') format('woff2');
+    src: url('baloo2.woff2') format('woff2-variations'), url('baloo2.woff2') format('woff2');
     font-weight: 400 800;
     font-style: normal;
     font-display: swap;

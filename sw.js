@@ -5,7 +5,7 @@
    - Kontrollierter Update-Flow: kein automatisches skipWaiting. Ein neuer Worker wartet, bis
      die Seite per postMessage({type:'SKIP_WAITING'}) explizit zustimmt.
 */
-const SW_VERSION = 'v1';
+const SW_VERSION = 'v2-flat';
 const CACHE_SHELL = 'savora-shell-' + SW_VERSION;
 const CACHE_RUNTIME = 'savora-runtime-' + SW_VERSION;
 const SHELL_ASSETS = [
@@ -15,23 +15,23 @@ const SHELL_ASSETS = [
   './icon-96.png',
   './icon-192.png',
   './icon-512.png',
-  './fonts/baloo2.woff2',
-  './css/styles.css',
-  './js/icons.js',
-  './js/db.js',
-  './js/images.js',
-  './js/utils.js',
-  './js/units.js',
-  './js/shopping.js',
-  './js/state.js',
-  './js/parsers.js',
-  './js/views.js',
-  './js/cookmode.js',
-  './js/pdf.js',
-  './js/backup.js',
-  './js/import.js',
-  './js/ui.js',
-  './js/app.js',
+  './baloo2.woff2',
+  './styles.css',
+  './icons.js',
+  './db.js',
+  './images.js',
+  './utils.js',
+  './units.js',
+  './shopping.js',
+  './state.js',
+  './parsers.js',
+  './views.js',
+  './cookmode.js',
+  './pdf.js',
+  './backup.js',
+  './import.js',
+  './ui.js',
+  './app.js',
 ];
 const RUNTIME_MAX_ENTRIES = 60;
 
