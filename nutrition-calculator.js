@@ -62,7 +62,7 @@ async function calculateRecipeNutrition(recipe) {
     if (isQualitativeIngredient(ing)) continue; // bewusst ausgeschlossen, kein Fehler
     relevantCount++;
 
-    const match = await matchIngredient(ing.name);
+    const match = await matchIngredient(ing.name, recipe.steps);
     if (match.status === 'unmatched' || !match.food) {
       unresolvedCount++;
       unresolvedIngredients.push({ name: ing.name, reason: 'not-found' });

@@ -65,51 +65,58 @@ async function searchAllFoods(query, limit = 20) {
   return [...custom, ...swiss].slice(0, limit);
 }
 
-/* Kernfunktion: ordnet einen einzelnen Zutatennamen einem Lebensmittel zu. */
-async function matchIngredient(rawName) {
+/* Kernfunktion: ordnet einen einzelnen Zutatennamen einem Lebensmittel zu. `steps` (optional)
+   sind die Zubereitungsschritte des Rezepts — wird eine Zubereitungsart erkannt (Punkt 21),
+   fliesst sie als zusaetzliches Suchwort ein (praeziserer Treffer, siehe nutrition-preparation.js). */
+async function matchIngredient(rawName, steps) {
   const normalized = normalizeIngredientText(rawName);
   if (!normalized) {
-    return { normalized, status: 'unmatched', food: null, candidates: [], confirmed: false };
+    return { normalized, status: 'unmatched', food: null, candidates: [], confirmed: false, preparation: null };
   }
+  const preparation = steps ? detectIngredientPreparation(rawName, steps) : null;
 
   // 1) Bestaetigte Zuordnung hat Vorrang vor jeder automatischen Suche.
   const confirmed = await dbGetNutritionMatch(normalized);
   if (confirmed && confirmed.foodId) {
     const food = await findFoodById(confirmed.foodId);
-    if (food) return { normalized, status: 'matched', food, candidates: [food], confirmed: true };
+    if (food) return { normalized, status: 'matched', food, candidates: [food], confirmed: true, preparation };
   }
 
   // 2) Eigene Lebensmittel vor der generischen Datenbank.
   const customHits = await searchCustomFoods(rawName, 5);
   if (customHits.length) {
     const exact = customHits.find((f) => normalizeIngredientText(f.name) === normalized);
-    if (exact) return { normalized, status: 'matched', food: exact, candidates: customHits, confirmed: false };
+    if (exact) return { normalized, status: 'matched', food: exact, candidates: customHits, confirmed: false, preparation };
   }
 
   // 3) Schweizer Naehrwertdatenbank — bei bekannten Alltagsbegriffen (Punkt 77) zusaetzlich
   //    mit der erweiterten Anfrage suchen, da die BLV-Nomenklatur oft anders lautet
   //    (z.B. "Poulet, Brust, ..." statt "Pouletbrust", "Hühnerei" statt "Ei").
   const aliasExpansion = expandIngredientQuery(rawName);
-  const swissHits = aliasExpansion
-    ? await searchSwissFoods(aliasExpansion, 8)
-    : await searchSwissFoods(rawName, 8);
+  const baseQuery = aliasExpansion || rawName;
+  // Erkannte Zubereitung als Zusatzwort anhaengen (Punkt 15/21) — nutzt dieselbe Wortstamm-
+  // Suche wie z.B. "Reis trocken" vs. "Reis gekocht" (siehe nutrition-swiss.js), macht das
+  // Matching praeziser statt es zu ersetzen: ohne Treffer greift die normale Suche weiter unten.
+  const searchQuery = preparation ? baseQuery + ' ' + preparation.method : baseQuery;
+  let swissHits = await searchSwissFoods(searchQuery, 8);
+  if (preparation && !swissHits.length) swissHits = await searchSwissFoods(baseQuery, 8); // Zubereitung fand nichts -> normale Suche als Fallback
   const candidates = [...customHits, ...swissHits];
   if (!candidates.length) {
-    return { normalized, status: 'unmatched', food: null, candidates: [], confirmed: false };
+    return { normalized, status: 'unmatched', food: null, candidates: [], confirmed: false, preparation };
   }
   const top = swissHits[0];
-  const topScore = top ? scoreNameMatch(aliasExpansion || rawName, top.name) : -1;
+  const topScore = top ? scoreNameMatch(searchQuery, top.name) : -1;
   if (topScore >= NUTRITION_MATCH_SCORE_CONFIDENT) {
-    return { normalized, status: 'matched', food: top, candidates, confirmed: false };
+    return { normalized, status: 'matched', food: top, candidates, confirmed: false, preparation };
   }
-  return { normalized, status: 'uncertain', food: candidates[0], candidates, confirmed: false };
+  return { normalized, status: 'uncertain', food: candidates[0], candidates, confirmed: false, preparation };
 }
 
 /* Ordnet mehrere Zutaten in einem Rutsch zu (fuer den Matching-Screen, Punkt 71). */
-async function matchIngredients(ingredients) {
+async function matchIngredients(ingredients, steps) {
   const results = [];
   for (const ing of ingredients) {
-    const result = await matchIngredient(ing.name);
+    const result = await matchIngredient(ing.name, steps);
     results.push({ ingredient: ing, ...result });
   }
   return results;

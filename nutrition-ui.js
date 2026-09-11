@@ -93,12 +93,14 @@ function nutritionStatusIcon(status) {
 function nutritionMatchRow(item) {
   const name = escapeHtml(item.ingredient.name);
   const foodName = item.food ? escapeHtml(item.food.name) : null;
+  const prepHint = item.preparation ? `<span class="nutrition-prep-hint">${ICONS.sparkle} Zubereitung erkannt: ${escapeHtml(item.preparation.label)}</span>` : '';
   if (item.status === 'matched') {
     return `<li class="nutrition-match-item">
       ${nutritionStatusIcon('matched')}
       <div class="nutrition-match-text">
         <span class="nutrition-match-ingredient">${name}</span>
         <span class="nutrition-match-food">${foodName}</span>
+        ${prepHint}
       </div>
       <button class="nutrition-match-change" data-action="nutrition-select-ingredient" data-name="${name}">Ändern</button>
     </li>`;
@@ -108,6 +110,7 @@ function nutritionMatchRow(item) {
     <div class="nutrition-match-text">
       <span class="nutrition-match-ingredient">${name}</span>
       <span class="nutrition-match-food">${item.status === 'uncertain' ? (foodName ? 'Vielleicht: ' + foodName : 'Unsicher') : 'Nicht erkannt'}</span>
+      ${prepHint}
     </div>
     ${ICONS.chevronRight}
   </li>`;

@@ -601,7 +601,7 @@ async function onAction(e) {
       const r = state.recipes.find(x => x.id === id);
       if (!r) break;
       const relevant = (r.ingredients || []).filter(i => i.name && i.name.trim() && !isQualitativeIngredient(i));
-      state.nutritionMatchItems = await matchIngredients(relevant);
+      state.nutritionMatchItems = await matchIngredients(relevant, r.steps);
       openModal({ type: 'nutrition', recipeId: id, stage: 'match' }, `[data-action="nutrition-open-match"][data-id="${id}"]`);
       break;
     }
@@ -622,8 +622,9 @@ async function onAction(e) {
     case 'nutrition-confirm-match': {
       const name = el.dataset.name, foodId = el.dataset.foodId;
       await confirmIngredientMatch(name, foodId);
+      const rCM = state.recipes.find(x => x.id === state.modal.recipeId);
       const idx = state.nutritionMatchItems.findIndex(it => it.ingredient.name === name);
-      if (idx > -1) state.nutritionMatchItems[idx] = { ingredient: state.nutritionMatchItems[idx].ingredient, ...(await matchIngredient(name)) };
+      if (idx > -1) state.nutritionMatchItems[idx] = { ingredient: state.nutritionMatchItems[idx].ingredient, ...(await matchIngredient(name, rCM && rCM.steps)) };
       state.modal.stage = 'match';
       render();
       showToast('Zuordnung gespeichert');
@@ -632,8 +633,9 @@ async function onAction(e) {
     case 'nutrition-reset-match': {
       const name = el.dataset.name;
       await resetIngredientMatch(name);
+      const rRM = state.recipes.find(x => x.id === state.modal.recipeId);
       const idx = state.nutritionMatchItems.findIndex(it => it.ingredient.name === name);
-      if (idx > -1) state.nutritionMatchItems[idx] = { ingredient: state.nutritionMatchItems[idx].ingredient, ...(await matchIngredient(name)) };
+      if (idx > -1) state.nutritionMatchItems[idx] = { ingredient: state.nutritionMatchItems[idx].ingredient, ...(await matchIngredient(name, rRM && rRM.steps)) };
       render();
       break;
     }
@@ -655,8 +657,9 @@ async function onAction(e) {
         },
       });
       await confirmIngredientMatch(name, food.id);
+      const rCF = state.recipes.find(x => x.id === state.modal.recipeId);
       const idx = state.nutritionMatchItems.findIndex(it => it.ingredient.name === name);
-      if (idx > -1) state.nutritionMatchItems[idx] = { ingredient: state.nutritionMatchItems[idx].ingredient, ...(await matchIngredient(name)) };
+      if (idx > -1) state.nutritionMatchItems[idx] = { ingredient: state.nutritionMatchItems[idx].ingredient, ...(await matchIngredient(name, rCF && rCF.steps)) };
       state.modal.stage = 'match';
       render();
       showToast('Eigenes Lebensmittel gespeichert');
