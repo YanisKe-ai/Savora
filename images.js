@@ -64,7 +64,7 @@ async function hydrateLazyImages() {
       activeImageObjectUrls.push(url);
       const img = document.createElement('img');
       img.src = url;
-      img.alt = '';
+      img.alt = node.dataset.imgAlt || '';
       img.className = node.dataset.imgClass || '';
       if (node.style.cssText) img.style.cssText = node.style.cssText;
       node.replaceWith(img);

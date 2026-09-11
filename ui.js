@@ -526,18 +526,26 @@ async function onAction(e) {
         applyTheme();
         render();
       };
-      if (document.startViewTransition && !prefersReducedMotion()) {
+      // Absicherung gegen ueberlappende View-Transitions: wer schnell zwischen zwei
+      // Theme-Optionen tippt, bevor die vorherige Kreis-Animation fertig ist, sollte
+      // trotzdem sofort das neue Theme bekommen, statt dass die Animation haengen bleibt.
+      if (document.startViewTransition && !prefersReducedMotion() && !state._themeTransitionActive) {
         const x = e.clientX, y = e.clientY;
         const endRadius = Math.hypot(Math.max(x, innerWidth - x), Math.max(y, innerHeight - y));
         document.documentElement.classList.add('theme-transitioning');
+        state._themeTransitionActive = true;
+        const finishUp = () => {
+          document.documentElement.classList.remove('theme-transitioning');
+          state._themeTransitionActive = false;
+        };
         const transition = document.startViewTransition(applyThemeChange);
         transition.ready.then(() => {
           document.documentElement.animate(
             { clipPath: [`circle(0px at ${x}px ${y}px)`, `circle(${endRadius}px at ${x}px ${y}px)`] },
             { duration: 550, easing: 'cubic-bezier(.4,0,.2,1)', pseudoElement: '::view-transition-new(root)' }
           );
-        });
-        transition.finished.then(() => document.documentElement.classList.remove('theme-transitioning'));
+        }).catch(() => {});
+        transition.finished.then(finishUp).catch(finishUp);
       } else {
         applyThemeChange();
       }

@@ -134,9 +134,9 @@ function detailView() {
   const servings = state.servingsOverride[r.id] || r.lastServings || r.servings || 1;
   const factor = servings / (r.servings || 1);
   const img = r.image
-    ? `<img class="detail-hero-img" src="${r.image}" alt="" style="view-transition-name: recipe-hero-img;">`
+    ? `<img class="detail-hero-img" src="${r.image}" alt="${escapeHtml(r.title || '')}" style="view-transition-name: recipe-hero-img;">`
     : r.imageId
-      ? `<div class="detail-hero-img placeholder" data-lazy-img="full" data-image-id="${r.imageId}" data-img-class="detail-hero-img" style="view-transition-name: recipe-hero-img;">${ICONS.chef}</div>`
+      ? `<div class="detail-hero-img placeholder" data-lazy-img="full" data-image-id="${r.imageId}" data-img-class="detail-hero-img" data-img-alt="${escapeHtml(r.title || '')}" style="view-transition-name: recipe-hero-img;">${ICONS.chef}</div>`
       : `<div class="detail-hero-img placeholder" style="view-transition-name: recipe-hero-img;">${ICONS.chef}</div>`;
 
   return `
@@ -176,7 +176,7 @@ function detailView() {
       ${(r.tags || []).length ? `<div class="detail-tags">${r.tags.map(t => `<span class="tag-chip">${escapeHtml(t)}</span>`).join('')}</div>` : ''}
       <div class="detail-columns">
         <div>
-          <h3 class="section-heading">Zutaten</h3>
+          <h2 class="section-heading">Zutaten</h2>
           <div class="servings-control">
             <button data-action="serv-dec" data-id="${r.id}" aria-label="Weniger Portionen">–</button>
             <span>${servings} Portionen</span>
@@ -190,14 +190,14 @@ function detailView() {
           </ul>
         </div>
         <div>
-          <h3 class="section-heading">Zubereitung</h3>
+          <h2 class="section-heading">Zubereitung</h2>
           <ol class="step-list">
             ${(r.steps || []).map((s, idx) => `<li class="step-item">
               <span class="step-num">${idx + 1}</span>
               <span class="step-text">${escapeHtml(s.text)}</span>
             </li>`).join('')}
           </ol>
-          ${r.notes ? `<h3 class="section-heading" style="margin-top:24px;">Notizen</h3><div class="notes-box">${escapeHtml(r.notes)}</div>` : ''}
+          ${r.notes ? `<h2 class="section-heading" style="margin-top:24px;">Notizen</h2><div class="notes-box">${escapeHtml(r.notes)}</div>` : ''}
         </div>
       </div>
     </main>
@@ -268,14 +268,14 @@ function formView() {
         <div class="field">
           <label id="diet-group-label">Ernährungsform</label>
           <div class="diet-select-row" role="group" aria-labelledby="diet-group-label">
-            ${DIET_OPTIONS.filter(d => d.tone === 'diet').map(d => `<button type="button" class="diet-select-chip ${((r.diet)||[]).includes(d.key) ? 'active' : ''}" data-action="toggle-diet" data-diet="${d.key}" aria-pressed="${((r.diet)||[]).includes(d.key) ? 'true' : 'false'}">${ICONS[d.icon]}${d.label}</button>`).join('')}
+            ${DIET_OPTIONS.filter(d => d.tone === 'diet').map(d => `<button type="button" class="diet-select-chip ${((r.diet)||[]).includes(d.key) ? 'active' : ''}" data-action="toggle-diet" data-diet="${d.key}" aria-pressed="${((r.diet)||[]).includes(d.key) ? 'true' : 'false'}">${((r.diet)||[]).includes(d.key) ? ICONS.check : ICONS[d.icon]}${d.label}</button>`).join('')}
           </div>
         </div>
         <div class="field">
           <label id="free-group-label">Hinweise / Frei von</label>
           <p class="settings-hint" style="margin:2px 0 8px;">Automatisch erkannte Angaben bitte immer selbst prüfen — keine medizinische Zusicherung.</p>
           <div class="diet-select-row" role="group" aria-labelledby="free-group-label">
-            ${DIET_OPTIONS.filter(d => d.tone === 'free').map(d => `<button type="button" class="diet-select-chip ${((r.diet)||[]).includes(d.key) ? 'active' : ''}" data-action="toggle-diet" data-diet="${d.key}" aria-pressed="${((r.diet)||[]).includes(d.key) ? 'true' : 'false'}">${ICONS[d.icon]}${d.label}</button>`).join('')}
+            ${DIET_OPTIONS.filter(d => d.tone === 'free').map(d => `<button type="button" class="diet-select-chip ${((r.diet)||[]).includes(d.key) ? 'active' : ''}" data-action="toggle-diet" data-diet="${d.key}" aria-pressed="${((r.diet)||[]).includes(d.key) ? 'true' : 'false'}">${((r.diet)||[]).includes(d.key) ? ICONS.check : ICONS[d.icon]}${d.label}</button>`).join('')}
           </div>
         </div>
         <div class="field">
