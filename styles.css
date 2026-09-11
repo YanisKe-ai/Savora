@@ -180,7 +180,7 @@
   #splash.hide #splashLogo { transform: scale(1.08) translateY(-8px); opacity: 0; }
   .splash-word {
     margin-top: 16px; font-family: var(--font-display); font-size: 26px; font-weight: 800;
-    color: var(--cream-50); letter-spacing: 0.01em;
+    color: var(--cream-50); letter-spacing: 0.03em; text-transform: uppercase;
     opacity: 0; transform: translateY(8px);
     transition: opacity 0.4s ease 0.1s, transform 0.4s ease 0.1s;
   }
