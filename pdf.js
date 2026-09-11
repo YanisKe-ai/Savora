@@ -61,7 +61,9 @@ async function exportCookbookPdf() {
      ${list.map(r => `<div class="print-toc-row"><span>${escapeHtml(r.title)}</span></div>`).join('')}</div>`
   ).join('');
   const cover = `<section class="print-cover">
+    <div class="print-cover-badge">${ICONS.chef}</div>
     <h1>Savora</h1>
+    <hr class="print-cover-rule">
     <p>${escapeHtml(state.cookbookTitle || 'Mein persönliches Kochbuch')}</p>
   </section>`;
   const tocPage = `<section class="print-toc"><h2>Inhalt</h2>${toc}</section>`;
