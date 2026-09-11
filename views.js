@@ -234,6 +234,7 @@ function importSummaryBanner(s) {
     ${row(s.servingsFound, s.servingsFound ? 'Portionen erkannt' : 'Portionen nicht erkannt — Standardwert eingetragen')}
     ${row(s.timeFound, s.timeFound ? 'Zeit erkannt' : 'Zeit nicht erkannt — Standardwert eingetragen')}
     ${s.dietFound ? row(true, 'Ernährungsform automatisch erkannt — bitte gegenprüfen') : ''}
+    ${s.notesFound ? row(true, 'Notizen/Tipps automatisch erkannt und abgetrennt') : ''}
   </div>`;
 }
 

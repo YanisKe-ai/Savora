@@ -125,8 +125,41 @@ function looksLikeIngredient(line) {
   return /^[\d½¼¾⅓⅔]/.test(s) || /^\s*[\p{P}\p{S}]/u.test(line) || /^[\p{Emoji_Presentation}\p{Extended_Pictographic}]/u.test(line);
 }
 
+/* ---------- Automatische Notiz-Erkennung beim Textimport (Master-Prompt Teil D, Punkt 49-58) ----------
+   Erkennt Tipps/Hinweise/Serviervorschläge etc. am Ende eines eingefügten Rezepttexts und trennt
+   sie automatisch von der eigentlichen Zubereitung ab, statt sie als Zubereitungsschritt zu
+   fehlinterpretieren. WICHTIG (Punkt 54): erfindet NIE eine Notiz — findet der Text keine
+   erkennbare Notiz-Sektion, bleibt notes leer. */
+
+// A) Eigenstaendige Ueberschriftszeile (Punkt 50) — die ganze Zeile besteht nur aus dem
+// Ueberschriftswort (+ optionalem Doppelpunkt), der eigentliche Inhalt folgt in Zeilen danach.
+const NOTE_HEADER_RE = /^(tipps?|hinweise?|gut zu wissen|notizen?|anmerkungen?|serviertipps?|servieren|zum servieren|dazu passt|dazu passen|varianten?|alternativen?|vorbereiten|vorbereitung|lässt sich( gut)? vorbereiten|haltbarkeit|aufbewahrung|lagerung|resteverwertung)\s*:?\s*$/i;
+
+// B) Satzstarter (Punkt 51) — Ueberschrift UND Inhalt in derselben Zeile, durch Doppelpunkt
+// getrennt. Bewusst nur die im Auftrag explizit gelisteten Formulierungen, damit z.B. "Mit
+// Petersilie servieren." (ein ganz normaler Zubereitungsschritt, Punkt 52) NICHT anschlaegt —
+// das erfordert weder einen Doppelpunkt noch steht "servieren" hier am Zeilenanfang.
+const NOTE_STARTER_RE = /^(tipp|dazu passt|dazu passen|schneller gehts|schneller geht's|lässt sich( gut)? vorbereiten|haltbarkeit|aufbewahrung|variante|alternativ|wer mag|nach belieben|zum servieren|zum anrichten)\s*:\s*\S/i;
+
+function isNoteSectionStart(line) {
+  return NOTE_HEADER_RE.test(line) || NOTE_STARTER_RE.test(line);
+}
+
+/* Sucht die ERSTE Zeile, die eine Notiz-Sektion einleitet, und trennt ab dort alles als Notiz
+   ab (Punkt 53: Struktur/Zeilenumbrueche bleiben erhalten, nichts wird zusammengeklebt).
+   Reine Hashtag-Zeilen ("#pasta #dinner") am Ende zaehlen nicht zu den Notizen und werden
+   uebersprungen, falls sie NACH dem Notiz-Beginn noch auftauchen. */
+function extractNotesSection(lines) {
+  const isHashtagOnly = (l) => !l.replace(/#[\wäöüÄÖÜß-]+/g, '').trim();
+  const startIdx = lines.findIndex((l) => isNoteSectionStart(l));
+  if (startIdx === -1) return { contentLines: lines, notes: '' };
+  const noteLines = lines.slice(startIdx).filter((l) => !isHashtagOnly(l));
+  return { contentLines: lines.slice(0, startIdx), notes: noteLines.join('\n').trim() };
+}
+
 function parseFreeTextRecipe(raw) {
-  const lines = raw.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
+  const rawLines = raw.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
+  const { contentLines: lines, notes: detectedNotes } = extractNotesSection(rawLines);
   const r = emptyRecipe();
   r.source = null;
 
@@ -242,7 +275,7 @@ function parseFreeTextRecipe(raw) {
   }
   r.diet = Array.from(new Set(detectedDiet));
   r.tags = Array.from(new Set(tagWords.filter(t => !dietMap[t.toLowerCase()]))).slice(0, 6);
-  r.notes = 'Aus eingefügtem Text importiert — bitte vor dem Speichern prüfen.';
+  r.notes = detectedNotes || '';
   r._importSummary = {
     titleFound: !!titleLine,
     ingredientCount: r.ingredients.filter(i => i.name).length,
@@ -250,6 +283,7 @@ function parseFreeTextRecipe(raw) {
     servingsFound: !!servMatch,
     timeFound: !!timeMatch,
     dietFound: r.diet.length > 0,
+    notesFound: !!detectedNotes,
   };
   return r;
 }
