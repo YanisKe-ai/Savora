@@ -427,7 +427,7 @@ function formView() {
         </div>
         <div class="field">
           <label id="free-group-label">Hinweise / Frei von</label>
-          <p class="settings-hint" style="margin:2px 0 8px;">Automatisch erkannte Angaben bitte immer selbst prüfen — keine medizinische Zusicherung.</p>
+          <p class="settings-hint" style="margin:2px 0 8px;">Automatisch erkannte Angaben bitte immer selbst prüfen, keine medizinische Zusicherung.</p>
           <div class="diet-select-row" role="group" aria-labelledby="free-group-label">
             ${DIET_OPTIONS.filter(d => d.tone === 'free').map(d => `<button type="button" class="diet-select-chip ${((r.diet)||[]).includes(d.key) ? 'active' : ''}" data-action="toggle-diet" data-diet="${d.key}" aria-pressed="${((r.diet)||[]).includes(d.key) ? 'true' : 'false'}">${((r.diet)||[]).includes(d.key) ? ICONS.check : ICONS[d.icon]}${d.label}</button>`).join('')}
           </div>
@@ -846,7 +846,7 @@ function settingsBackupView() {
       <div class="settings-group-card settings-group-card--padded">
         <button class="ghost-btn" data-action="trigger-restore">${ICONS.upload} Backup importieren</button>
         <input type="file" id="restoreFileInput" accept="application/json" style="display:none;">
-        <p class="settings-hint" style="margin:10px 0 0;">„Backup importieren" ist für deine eigenen Sicherungen gedacht. Ein von dir geteiltes Rezept kommt bei anderen als fertige PDF-Datei an — die lässt sich ansehen, ausdrucken oder weiterschicken, aber nicht zurück in Savora einspielen.</p>
+        <p class="settings-hint" style="margin:10px 0 0;">„Backup importieren" ist für deine eigenen Sicherungen gedacht. Ein von dir geteiltes Rezept kommt bei anderen als fertige PDF-Datei an: die lässt sich ansehen, ausdrucken oder weiterschicken, aber nicht zurück in Savora einspielen.</p>
         <div id="backupStatus"></div>
       </div>
     </div>`;
@@ -875,9 +875,35 @@ function settingsTermsView() {
 }
 
 function settingsSourcesView() {
-  const body = `<div class="settings-group"><div class="settings-group-card settings-group-card--padded">
-    <p class="settings-hint" style="margin:0;">Nährwerte basieren auf der Schweizer Nährwertdatenbank (BLV) sowie, wo per Barcode nachgeschlagen, auf Open Food Facts. Werte sind Schätzwerte ohne medizinische Zusicherung.</p>
-  </div></div>`;
+  const body = `<div class="settings-group">
+    <div class="settings-group-title">Schweizer Nährwertdatenbank</div>
+    <div class="settings-group-card settings-group-card--padded">
+      <p class="settings-hint" style="margin:0;">Primärquelle für die meisten Zutaten, herausgegeben vom Bundesamt für Lebensmittelsicherheit und Veterinärwesen (BLV). Lokal in Savora eingebettet, funktioniert offline.</p>
+    </div>
+  </div>
+  <div class="settings-group">
+    <div class="settings-group-title">Open Food Facts</div>
+    <div class="settings-group-card settings-group-card--padded">
+      <p class="settings-hint" style="margin:0;">Wird nur genutzt, wenn du ein Produkt per Barcode scannst und es in der Schweizer Datenbank nicht vorkommt. Ein offenes, community-gepflegtes Projekt: Angaben stammen von Herstellern und Nutzer_innen und können lückenhaft oder ungenau sein. Benötigt eine Internetverbindung.</p>
+    </div>
+  </div>
+  <div class="settings-group">
+    <div class="settings-group-title">USDA (FoodData Central)</div>
+    <div class="settings-group-card settings-group-card--padded">
+      <p class="settings-hint" style="margin:0;">Als zusätzliche Quelle vorbereitet, aber deaktiviert: eine sichere Anbindung würde einen eigenen Server erfordern, der API-Schlüssel schützt, statt sie im Browser offenzulegen. Wird erst aktiviert, wenn ein solches Backend existiert.</p>
+    </div>
+  </div>
+  <div class="settings-group">
+    <div class="settings-group-title">Eigene Angaben</div>
+    <div class="settings-group-card settings-group-card--padded">
+      <p class="settings-hint" style="margin:0;">Selbst erfasste Custom Foods und von dir bestätigte Zuordnungen haben Vorrang vor automatischen Treffern aus den Datenbanken oben.</p>
+    </div>
+  </div>
+  <div class="settings-group">
+    <div class="settings-group-card settings-group-card--padded">
+      <p class="settings-hint" style="margin:0;">Alle Werte sind Schätzungen ohne medizinische Zusicherung. Ein fehlender Wert wird als "–" angezeigt, nie als 0: das würde fälschlich "gemessen und tatsächlich null" statt "keine Daten vorhanden" bedeuten.</p>
+    </div>
+  </div>`;
   return settingsDetailShell('Datenquellen', body);
 }
 
@@ -896,7 +922,7 @@ function pasteImportView() {
   const body = `
     <div class="settings-group">
       <div class="settings-group-card settings-group-card--padded">
-        <p class="settings-hint">Bildunterschrift eines Instagram-/TikTok-Posts, eine WhatsApp-Nachricht, kopierter Rezepttext einer Webseite oder eine eigene Notiz einfügen. Savora erkennt Titel, Zutaten und Schritte automatisch — du prüfst den Entwurf danach kurz, bevor du speicherst.</p>
+        <p class="settings-hint">Bildunterschrift eines Instagram-/TikTok-Posts, eine WhatsApp-Nachricht, kopierter Rezepttext einer Webseite oder eine eigene Notiz einfügen. Savora erkennt Titel, Zutaten und Schritte automatisch, du prüfst den Entwurf danach kurz, bevor du speicherst.</p>
         <div class="field" style="margin-bottom:14px;">
           <textarea id="pasteText" placeholder="Rezepttext hier einfügen …" style="min-height:160px;"></textarea>
         </div>

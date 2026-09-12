@@ -81,6 +81,30 @@
     --radius-l: 24px;
     --tap-min: 48px;
     --tap-primary: 56px;
+
+    /* ============ SPACING/MOTION/Z-INDEX TOKENS (Punkt 8) ============
+       Nur definiert, noch nicht app-weit durchgezogen — der Auftrag sieht ausdruecklich
+       "schrittweise nur dort ersetzen, wo aktuelle Views ohnehin geaendert werden" vor,
+       keine grosse Refactor-Aktion. Neue/geaenderte Regeln in dieser und kuenftigen Runden
+       sollen diese Werte statt neuer Einzelwerte verwenden. */
+    --space-1: 4px;
+    --space-2: 8px;
+    --space-3: 12px;
+    --space-4: 16px;
+    --space-5: 20px;
+    --space-6: 24px;
+    --space-8: 32px;
+
+    --motion-fast: 0.15s;
+    --motion-normal: 0.25s;
+    --motion-slow: 0.4s;
+    --motion-easing: cubic-bezier(.4,0,.2,1);
+
+    --z-base: 1;
+    --z-sticky: 20;
+    --z-modal: 100;
+    --z-toast: 200;
+    --z-splash: 9999;
   }
 
   [data-theme="dark"] {
@@ -146,6 +170,10 @@
      Breite erzwingt. Spezifischere Klassen-Regeln (z.B. .fab svg) überstimmen dies. */
   svg { width: 1em; height: 1em; flex-shrink: 0; }
   html, body { margin: 0; padding: 0; }
+  /* Punkt 17: die Topbar ist sticky (z-index 20) und damit ~110-120px hoch — ohne diesen
+     Puffer kann der Browser ein per Tastatur fokussiertes Element genau dahinter scrollen,
+     der Fokusring waere dann unsichtbar. */
+  html { scroll-padding-top: 120px; }
   body {
     font-family: var(--font-sans);
     font-optical-sizing: auto;
@@ -182,7 +210,7 @@
 
   /* ---------- Splash / Öffnungs-Übergang ---------- */
   #splash {
-    position: fixed; inset: 0; z-index: 9999;
+    position: fixed; inset: 0; z-index: var(--z-splash);
     background: var(--forest-900);
     display: flex; flex-direction: column; align-items: center; justify-content: center;
     transition: opacity 1.1s cubic-bezier(.4,0,.2,1);
@@ -218,7 +246,7 @@
     gap: 14px;
     position: sticky;
     top: 0;
-    z-index: 20;
+    z-index: var(--z-sticky);
   }
   .brand { display: flex; align-items: center; gap: 12px; }
   .brand-logo { width: 72px; height: 72px; flex-shrink: 0; object-fit: contain; display: block; }
@@ -577,7 +605,7 @@
 
   /* ---------- Cook mode ---------- */
   .cookmode-overlay {
-    position: fixed; inset: 0; background: var(--forest-950); color: var(--cream-50); z-index: 100;
+    position: fixed; inset: 0; background: var(--forest-950); color: var(--cream-50); z-index: var(--z-modal); /* nie gleichzeitig mit einem echten Modal offen (siehe Audit), Wert bewusst geteilt */
     display: flex; flex-direction: column;
   }
   .cookmode-top { display: flex; justify-content: space-between; align-items: center; padding: 16px 18px; }
@@ -716,7 +744,7 @@
   .settings-hint { font-size: 13px; color: var(--text-muted); margin: 0 0 12px; line-height: 1.5; }
 
   /* ---------- Modal ---------- */
-  .modal-backdrop { position: fixed; inset: 0; background: rgba(15,26,19,0.5); z-index: 90; display: flex; align-items: flex-end; justify-content: center; }
+  .modal-backdrop { position: fixed; inset: 0; background: rgba(15,26,19,0.5); z-index: var(--z-modal); display: flex; align-items: flex-end; justify-content: center; }
   @media (min-width: 640px) { .modal-backdrop { align-items: center; } }
   .modal-sheet { background: var(--card-bg); border-radius: 18px 18px 0 0; width: 100%; max-width: 440px; padding: 22px 20px 28px; max-height: 85vh; overflow-y: auto; }
   @media (min-width: 640px) { .modal-sheet { border-radius: var(--radius-l); } }
@@ -726,7 +754,7 @@
     display: flex;
     background: var(--card-bg);
     border-top: 1px solid var(--border);
-    position: fixed; left: 0; right: 0; bottom: 0; z-index: 20;
+    position: fixed; left: 0; right: 0; bottom: 0; z-index: var(--z-sticky);
     padding-bottom: env(safe-area-inset-bottom, 0);
   }
   .bottom-nav button {
@@ -741,7 +769,7 @@
   .toast {
     position: fixed; bottom: calc(74px + env(safe-area-inset-bottom, 0)); left: 50%; transform: translateX(-50%);
     background: var(--forest-900); color: var(--cream-50); padding: 12px 20px; border-radius: 999px;
-    font-size: 13.5px; z-index: 200; box-shadow: 0 6px 18px rgba(0,0,0,0.25);
+    font-size: 13.5px; z-index: var(--z-toast); box-shadow: 0 6px 18px rgba(0,0,0,0.25);
   }
   .toast-undo { display: flex; align-items: center; gap: 14px; padding: 10px 10px 10px 20px; white-space: nowrap; }
   .toast-undo-btn { background: none; border: none; color: var(--ember-400); font-weight: 700; font-size: 13.5px; padding: 8px 10px; min-height: var(--tap-min); min-width: 44px; }
