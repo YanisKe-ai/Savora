@@ -356,10 +356,10 @@ function nutritionDetailModal(recipe, result) {
   return `<div class="modal-backdrop" data-action="close-modal">
     <div class="modal-sheet" role="dialog" aria-modal="true" aria-labelledby="nutrition-detail-title" tabindex="-1" onclick="event.stopPropagation()">
       <h3 class="modal-title" id="nutrition-detail-title">Nährwerte</h3>
-      <div class="nutrition-segmented" role="tablist">
-        <button role="tab" aria-selected="${mode === 'portion'}" class="${mode === 'portion' ? 'active' : ''}" data-action="nutrition-set-mode" data-mode="portion">Pro Portion</button>
-        <button role="tab" aria-selected="${mode === '100g'}" class="${mode === '100g' ? 'active' : ''}" data-action="nutrition-set-mode" data-mode="100g">Pro 100 g</button>
-        <button role="tab" aria-selected="${mode === 'total'}" class="${mode === 'total' ? 'active' : ''}" data-action="nutrition-set-mode" data-mode="total">Gesamt</button>
+      <div class="nutrition-segmented" role="radiogroup" aria-label="Anzeigeart">
+        <button role="radio" aria-checked="${mode === 'portion'}" class="${mode === 'portion' ? 'active' : ''}" data-action="nutrition-set-mode" data-mode="portion">Pro Portion</button>
+        <button role="radio" aria-checked="${mode === '100g'}" class="${mode === '100g' ? 'active' : ''}" data-action="nutrition-set-mode" data-mode="100g">Pro 100 g</button>
+        <button role="radio" aria-checked="${mode === 'total'}" class="${mode === 'total' ? 'active' : ''}" data-action="nutrition-set-mode" data-mode="total">Gesamt</button>
       </div>
       <div class="nutrition-confidence-line">
         <span class="nutrition-confidence-badge tone-${confidenceBadgeClass(result.confidence)}">${conf.label}</span>

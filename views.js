@@ -782,11 +782,11 @@ function settingsDisplayView() {
     <div class="settings-group">
       <div class="settings-group-card settings-group-card--padded">
         <p class="settings-hint">Dunkel eignet sich besonders gut zum Kochen am Abend.</p>
-        <div class="theme-switch theme-switch--grid">
-          <button class="theme-opt ${t === 'light' ? 'active' : ''}" data-action="set-theme" data-theme="light">${ICONS.sun} Hell</button>
-          <button class="theme-opt ${t === 'dark' ? 'active' : ''}" data-action="set-theme" data-theme="dark">${ICONS.moon} Dunkel</button>
-          <button class="theme-opt ${t === 'amoled' ? 'active' : ''}" data-action="set-theme" data-theme="amoled">${ICONS.moon} Schwarz</button>
-          <button class="theme-opt ${t === 'auto' ? 'active' : ''}" data-action="set-theme" data-theme="auto">${ICONS.auto} System</button>
+        <div class="theme-switch theme-switch--grid" role="radiogroup" aria-label="Darstellung">
+          <button class="theme-opt ${t === 'light' ? 'active' : ''}" data-action="set-theme" data-theme="light" role="radio" aria-checked="${t === 'light'}">${ICONS.sun} Hell</button>
+          <button class="theme-opt ${t === 'dark' ? 'active' : ''}" data-action="set-theme" data-theme="dark" role="radio" aria-checked="${t === 'dark'}">${ICONS.moon} Dunkel</button>
+          <button class="theme-opt ${t === 'amoled' ? 'active' : ''}" data-action="set-theme" data-theme="amoled" role="radio" aria-checked="${t === 'amoled'}">${ICONS.moon} Schwarz</button>
+          <button class="theme-opt ${t === 'auto' ? 'active' : ''}" data-action="set-theme" data-theme="auto" role="radio" aria-checked="${t === 'auto'}">${ICONS.auto} System</button>
         </div>
         <p class="settings-hint" style="margin:12px 0 0;">Schwarz: vollständig schwarzer Hintergrund für OLED-Displays.</p>
       </div>
@@ -799,9 +799,9 @@ function settingsUnitsView() {
     <div class="settings-group">
       <div class="settings-group-card settings-group-card--padded">
         <p class="settings-hint">Beim Importieren von Rezepten aus Text werden Mengen automatisch in dein bevorzugtes System umgerechnet. Du kannst jede Menge danach trotzdem frei anpassen.</p>
-        <div class="theme-switch">
-          <button class="theme-opt ${state.unitSystem === 'metric' ? 'active' : ''}" data-action="set-unit-system" data-system="metric">Metrisch (g, ml)</button>
-          <button class="theme-opt ${state.unitSystem === 'imperial' ? 'active' : ''}" data-action="set-unit-system" data-system="imperial">Imperial (oz, cup)</button>
+        <div class="theme-switch" role="radiogroup" aria-label="Masseinheiten">
+          <button class="theme-opt ${state.unitSystem === 'metric' ? 'active' : ''}" data-action="set-unit-system" data-system="metric" role="radio" aria-checked="${state.unitSystem === 'metric'}">Metrisch (g, ml)</button>
+          <button class="theme-opt ${state.unitSystem === 'imperial' ? 'active' : ''}" data-action="set-unit-system" data-system="imperial" role="radio" aria-checked="${state.unitSystem === 'imperial'}">Imperial (oz, cup)</button>
         </div>
       </div>
     </div>`;

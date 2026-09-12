@@ -27,10 +27,10 @@ function pdfExportOptionsStage() {
   return `
     <h3 class="modal-title" id="pdf-export-title">${title}</h3>
     <p class="nutrition-modal-subtitle">Nährwerte im PDF</p>
-    <div class="nutrition-segmented" role="tablist" style="margin-bottom:20px;">
-      <button role="tab" aria-selected="${level === 'off'}" class="${level === 'off' ? 'active' : ''}" data-action="pdf-export-set-detail" data-level="off">Aus</button>
-      <button role="tab" aria-selected="${level === 'compact'}" class="${level === 'compact' ? 'active' : ''}" data-action="pdf-export-set-detail" data-level="compact">Kompakt</button>
-      <button role="tab" aria-selected="${level === 'full'}" class="${level === 'full' ? 'active' : ''}" data-action="pdf-export-set-detail" data-level="full">Erweitert</button>
+    <div class="nutrition-segmented" role="radiogroup" aria-label="Nährwerte-Detailgrad" style="margin-bottom:20px;">
+      <button role="radio" aria-checked="${level === 'off'}" class="${level === 'off' ? 'active' : ''}" data-action="pdf-export-set-detail" data-level="off">Aus</button>
+      <button role="radio" aria-checked="${level === 'compact'}" class="${level === 'compact' ? 'active' : ''}" data-action="pdf-export-set-detail" data-level="compact">Kompakt</button>
+      <button role="radio" aria-checked="${level === 'full'}" class="${level === 'full' ? 'active' : ''}" data-action="pdf-export-set-detail" data-level="full">Erweitert</button>
     </div>
     <div class="form-actions">
       <button class="ghost-btn" data-action="close-modal" style="flex:1;">Abbrechen</button>
