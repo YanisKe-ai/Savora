@@ -668,6 +668,9 @@
     position: relative; cursor: pointer; background: var(--bg-elevated);
   }
   .image-drop img { border-radius: var(--radius-s); max-height: 220px; margin: 0 auto 10px; object-fit: cover; }
+  /* Punkt 10: reserviert dieselbe Hoehe wie das spaeter eingehaengte Foto (max-height oben),
+     damit die Bild-Hydration (Platzhalter-Icon -> echtes <img>) keinen Layout-Sprung erzeugt. */
+  .image-drop-placeholder { height: 220px; display: flex; flex-direction: column; align-items: center; justify-content: center; }
   .image-drop svg { width: 36px; height: 36px; }
   .image-drop input { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
 

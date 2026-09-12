@@ -399,8 +399,8 @@ function formView() {
             ${r.image
               ? `<img src="${r.image}" alt="">`
               : r.imageId
-                ? `<div data-lazy-img="full" data-image-id="${r.imageId}" style="padding:10px 0;">${ICONS.chef}</div>`
-                : `<div style="padding:10px 0;">${ICONS.chef}<div style="margin-top:6px;">Foto auswählen</div></div>`}
+                ? `<div data-lazy-img="full" data-image-id="${r.imageId}" class="image-drop-placeholder">${ICONS.chef}</div>`
+                : `<div class="image-drop-placeholder">${ICONS.chef}<div style="margin-top:6px;">Foto auswählen</div></div>`}
             <input type="file" accept="image/*" id="f-image" aria-label="Foto auswählen">
           </div>
         </div>
