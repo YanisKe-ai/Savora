@@ -456,7 +456,10 @@ async function onAction(e) {
       document.getElementById('restoreFileInput').click();
       break;
     case 'share-recipe':
-      shareRecipe(id);
+      // Punkt 2: identischer Ablauf wie 'export-pdf' — ein Rezept hat nur noch EINEN PDF-Weg,
+      // nicht zwei verschiedene (vorher: 'Teilen' ging direkt an navigator.share vorbei an
+      // jeder Vorschau, 'Als PDF exportieren' zeigte eine Vorschau — inkonsistent).
+      openModal({ type: 'pdf-export', target: 'single', recipeId: id, stage: 'options', nutritionDetail: await defaultPdfNutritionDetail('single', id) }, `[data-action="share-recipe"][data-id="${id}"]`);
       break;
     case 'save-profile-fields': {
       const titleInput = document.getElementById('f-cookbook-title');
@@ -807,5 +810,26 @@ async function onAction(e) {
       closeModal();
       showToast('PDF heruntergeladen');
       break;
+    case 'pdf-export-share': {
+      // Punkt 2: nutzt exakt denselben bereits erzeugten Blob wie Vorschau/Download — kein
+      // erneutes, moeglicherweise abweichendes Rendern.
+      const blob = state.modal.previewBlob;
+      const filename = state.modal.filename || 'savora.pdf';
+      try {
+        const file = new File([blob], filename, { type: 'application/pdf' });
+        if (navigator.canShare && !navigator.canShare({ files: [file] })) {
+          throw new Error('share-files-not-supported');
+        }
+        await navigator.share({ files: [file], title: filename });
+      } catch (err) {
+        if (err && err.name === 'AbortError') break; // Nutzer hat den Teilen-Dialog selbst abgebrochen
+        // Fallback: Web-Share-API existiert, aber Datei-Teilen wird nicht unterstuetzt oder
+        // ist fehlgeschlagen — dieselbe Datei stattdessen herunterladen (Punkt 2: "Fallback:
+        // Download/Speichern"), keine externe Upload-Vorschau.
+        triggerPdfDownload(blob, filename);
+        showToast('Teilen nicht möglich, PDF wurde stattdessen heruntergeladen', 'info');
+      }
+      break;
+    }
   }
 }

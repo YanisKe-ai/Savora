@@ -50,46 +50,11 @@ function slugifyTitle(title) {
     .replace(/^-+|-+$/g, '')
     .slice(0, 40) || 'rezept';
 }
-/* ---------- Einzelnes Rezept teilen — als PDF, nicht als JSON (Master-Prompt Teil E) ----------
-   JSON ist ein technisches Datenformat und bleibt ausschliesslich fuer Backup/Restore reserviert
-   (Punkt 59, 66-67). Beim normalen "Teilen" bekommt die andere Person eine fertig gestaltete
-   PDF-Datei — dieselbe Editorial-PDF-Engine wie beim regulaeren Export (Punkt 69), inklusive
-   korrektem Bildseitenverhaeltnis, Nutrition, Notizen nur wenn vorhanden. */
-async function shareRecipe(id) {
-  const r = state.recipes.find(x => x.id === id);
-  if (!r) return;
-  showToast('PDF wird erstellt …', 'info');
-
-  let result;
-  try {
-    result = await buildSinglePdf(id, await defaultPdfNutritionDetail('single', id));
-  } catch (e) {
-    showToast('PDF konnte nicht erstellt werden', 'error');
-    return;
-  }
-  if (!result) {
-    showToast('PDF konnte nicht erstellt werden', 'error');
-    return;
-  }
-  const { blob, filename } = result;
-
-  if (navigator.share) {
-    try {
-      const file = new File([blob], filename, { type: 'application/pdf' });
-      if (navigator.canShare && navigator.canShare({ files: [file] })) {
-        await navigator.share({ files: [file], title: r.title, text: `Rezept „${r.title}“ aus Savora` });
-        return;
-      }
-    } catch (e) {
-      if (e && e.name === 'AbortError') return; // Nutzer hat das Teilen-Sheet selbst abgebrochen — kein Fehler
-      // sonst: unten auf Datei-Download ausweichen (Punkt 65 Fallback)
-    }
-  }
-  // Fallback ohne Web-Share/Datei-Teilen (z.B. Desktop-Browser ohne Share-API): PDF direkt
-  // herunterladen, der Nutzer verschickt sie dann selbst per Mail/AirDrop/Messenger.
-  triggerPdfDownload(blob, filename);
-  showToast('PDF heruntergeladen — jetzt selbst verschicken');
-}
+/* Punkt 2 (Direkter Update-Prompt): "Teilen" ging vorher direkt an navigator.share vorbei an
+   jeder Vorschau — Einzelrezept und Kochbuch nutzten dadurch zwei verschiedene Wege. Die frühere
+   shareRecipe()-Funktion ist deshalb entfernt; "Teilen" oeffnet jetzt denselben
+   Optionen->Erstellen->Vorschau-Ablauf wie "Als PDF exportieren" (siehe ui.js 'share-recipe'),
+   Teilen passiert von dort aus ueber denselben bereits erzeugten Blob (pdf-export-share). */
 
 async function restoreBackupFromFile(file) {
   try {

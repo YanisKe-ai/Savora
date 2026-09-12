@@ -46,16 +46,24 @@ function pdfExportBuildingStage() {
   `;
 }
 
+/* Punkt 2 (Direkter Update-Prompt): Vorschau soll auf Mobile eigenstaendiger Fullscreen-Screen
+   sein statt kleinem Modal, und Teilen muss denselben bereits erzeugten Blob nutzen statt das
+   PDF ein zweites Mal (evtl. anders) zu rendern. */
 function pdfExportPreviewStage() {
   const m = state.modal;
+  const canShare = typeof navigator !== 'undefined' && !!navigator.share;
   return `
-    <h3 class="modal-title" id="pdf-export-title">Vorschau</h3>
-    <div class="pdf-preview-frame-wrap">
-      <iframe class="pdf-preview-frame" src="${m.previewUrl}" title="PDF-Vorschau"></iframe>
+    <div class="pdf-preview-header">
+      <h3 class="modal-title" id="pdf-export-title" style="margin:0;">Vorschau</h3>
+      <button class="icon-btn pdf-preview-close" data-action="pdf-export-back" aria-label="Vorschau schliessen, zurück zu den Optionen">${ICONS.back}</button>
     </div>
-    <div class="form-actions">
-      <button class="ghost-btn" data-action="pdf-export-back" style="flex:1;">Zurück</button>
-      <button class="primary-btn" data-action="pdf-export-download" style="flex:1;justify-content:center;">${ICONS.download} Herunterladen</button>
+    <div class="pdf-preview-frame-wrap">
+      <iframe class="pdf-preview-frame" src="${m.previewUrl}" title="PDF-Vorschau: ${escapeHtml(m.filename || 'Savora-PDF')}"></iframe>
+    </div>
+    <div class="form-actions pdf-preview-actions">
+      ${canShare ? `<button class="primary-btn" data-action="pdf-export-share" style="flex:1;justify-content:center;" aria-label="PDF teilen">${ICONS.share} Teilen</button>
+      <button class="ghost-btn" data-action="pdf-export-download" style="flex:1;justify-content:center;" aria-label="PDF herunterladen">${ICONS.download} Speichern</button>`
+      : `<button class="primary-btn" data-action="pdf-export-download" style="flex:1;justify-content:center;" aria-label="PDF herunterladen">${ICONS.download} Herunterladen</button>`}
     </div>
   `;
 }
@@ -67,7 +75,7 @@ function pdfExportModal() {
     : stage === 'preview' ? pdfExportPreviewStage()
     : pdfExportOptionsStage();
   return `<div class="modal-backdrop" data-action="${stage === 'preview' ? 'noop' : 'close-modal'}">
-    <div class="modal-sheet pdf-export-sheet" role="dialog" aria-modal="true" aria-labelledby="pdf-export-title" tabindex="-1" onclick="event.stopPropagation()">
+    <div class="modal-sheet pdf-export-sheet ${stage === 'preview' ? 'pdf-preview-fullscreen' : ''}" role="dialog" aria-modal="true" aria-labelledby="pdf-export-title" tabindex="-1" onclick="event.stopPropagation()">
       ${inner}
     </div>
   </div>`;

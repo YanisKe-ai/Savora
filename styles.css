@@ -976,12 +976,24 @@
   .pdf-layout-continuation { padding-top: 22mm; }
   .pdf-continuation-tag { font-family: var(--font-display); font-size: 9pt; font-weight: 700; text-transform: uppercase; letter-spacing: 0.14em; color: #a8681f; margin-bottom: 16px; padding-bottom: 8px; border-bottom: 1px solid #e3d9c4; }
 
-  /* Fortsetzungs-Kennzeichnung auf Folgeseiten eines zu langen Rezepts (Punkt 61) —
-     wird per Canvas-2D-Text nach dem Rendern eingezeichnet, siehe renderSectionsToPdf. */
+  /* Zusatzzeile in der Nutrition-Box im "Erweitert"-Detailgrad (Zucker/ges. Fett/Salz). */
   .pdf-nutrition-row-extra { margin-top: 4px; padding-top: 4px; border-top: 1px dotted #e3d9c4; }
   .pdf-export-sheet { max-width: 560px; }
   .pdf-preview-frame-wrap { background: #666; border-radius: var(--radius-s); overflow: hidden; margin-bottom: 14px; }
   .pdf-preview-frame { width: 100%; height: 60vh; border: none; display: block; }
+  .pdf-preview-header { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 14px; }
+  .pdf-preview-actions { position: sticky; bottom: 0; background: var(--card-bg); padding-top: 6px; }
+  /* Punkt 2: auf Mobile ist die Vorschau ein eigenstaendiger Near-Fullscreen-Screen statt ein
+     kleines Standardmodal, damit sich das PDF tatsaechlich beurteilen laesst. */
+  @media (max-width: 600px) {
+    .pdf-preview-fullscreen {
+      position: fixed; inset: 0; max-width: none; max-height: none; width: 100%; height: 100%;
+      border-radius: 0; margin: 0; display: flex; flex-direction: column;
+      padding: calc(14px + env(safe-area-inset-top, 0px)) 14px calc(14px + env(safe-area-inset-bottom, 0px));
+    }
+    .pdf-preview-fullscreen .pdf-preview-frame-wrap { flex: 1; margin-bottom: 10px; }
+    .pdf-preview-fullscreen .pdf-preview-frame { height: 100%; }
+  }
 
   /* ---------- Filter- und Kategoriensystem (Master-Prompt Teil I) ---------- */
   .diet-badge.tone-protein { background: rgba(162,67,47,0.12); color: var(--danger); }
