@@ -351,7 +351,8 @@ function nutritionDetailModal(recipe, result) {
   }
   const conf = NUTRITION_CONFIDENCE[result.confidence] || NUTRITION_CONFIDENCE.low;
   const mode = state.nutritionDetailMode;
-  const sourceLabel = result.sourceDataVersions && result.sourceDataVersions['swiss-fcd'] ? SWISS_FCD_LABEL + ' V' + result.sourceDataVersions['swiss-fcd'] : null;
+  const hasRealSource = result.sourceDataVersions && Object.keys(result.sourceDataVersions).length > 0;
+  const sourceLabel = hasRealSource ? nutritionSourceLabel(result.sourceDataVersions) : null;
   return `<div class="modal-backdrop" data-action="close-modal">
     <div class="modal-sheet" role="dialog" aria-modal="true" aria-labelledby="nutrition-detail-title" tabindex="-1" onclick="event.stopPropagation()">
       <h3 class="modal-title" id="nutrition-detail-title">Nährwerte</h3>

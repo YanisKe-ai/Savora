@@ -54,6 +54,29 @@ const NUTRITION_CONFIDENCE = {
   low:    { label: 'Grobe Schätzung',     order: 1 },
 };
 
+/* ---------- Quellenangabe (Reparatur-Auftrag Punkt 3) ----------
+   Sammelt ALLE tatsaechlich fuer ein Rezept verwendeten Naehrwertquellen, nicht nur Swiss-FCD —
+   sonst zeigt die PDF-Quellenzeile bei einer rein per Barcode oder als Custom Food erfassten
+   Zutat faelschlich "Berechnete Durchschnittswerte" statt der echten Quelle. */
+function buildSourceDataVersions(sourcesUsedSet) {
+  const versions = {};
+  if (sourcesUsedSet.has(SWISS_FCD_SOURCE)) versions[SWISS_FCD_SOURCE] = SWISS_FCD_VERSION;
+  if (sourcesUsedSet.has('open-food-facts')) versions['open-food-facts'] = true;
+  if (sourcesUsedSet.has('custom')) versions['custom'] = true;
+  return versions;
+}
+
+/* Gemeinsam von nutrition-ui.js und pdf-templates.js genutzt, damit App-Anzeige und PDF nie
+   auseinanderlaufen. Nennt jede tatsaechlich beteiligte Quelle, in fester Reihenfolge. */
+function nutritionSourceLabel(sourceDataVersions) {
+  if (!sourceDataVersions) return 'Berechnete Durchschnittswerte';
+  const parts = [];
+  if (sourceDataVersions[SWISS_FCD_SOURCE]) parts.push('Schweizer Nährwertdatenbank V' + sourceDataVersions[SWISS_FCD_SOURCE]);
+  if (sourceDataVersions['open-food-facts']) parts.push('Open Food Facts');
+  if (sourceDataVersions['custom']) parts.push('eigene Angaben');
+  return parts.length ? parts.join(' · ') : 'Berechnete Durchschnittswerte';
+}
+
 /* Leeres, vollständig-null Nährwert-Objekt (Grundgerüst, jeder Key vorhanden). */
 function emptyNutrients() {
   const out = {};

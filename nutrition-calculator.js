@@ -131,7 +131,11 @@ async function calculateRecipeNutrition(recipe) {
     recipeId: recipe.id,
     nutritionCalcVersion: NUTRITION_CALC_VERSION,
     ingredientHash: hashIngredientsForNutrition(ingredients, servings),
-    sourceDataVersions: sourcesUsed.has('swiss-fcd') ? { 'swiss-fcd': SWISS_FCD_VERSION } : {},
+    // Punkt 3 (Reparatur-Auftrag): vorher wurden nur Swiss-FCD-Quellen im Ergebnis behalten —
+    // war eine Zutat ausschliesslich per Open-Food-Facts-Barcode oder als Custom Food erfasst,
+    // verschwand das komplett und die Quellenzeile zeigte faelschlich "Berechnete
+    // Durchschnittswerte" statt der tatsaechlich verwendeten Quelle.
+    sourceDataVersions: buildSourceDataVersions(sourcesUsed),
     calculatedAt: Date.now(),
     servings,
     totalWeight: totalWeightGrams > 0 ? roundNutrientForDisplay(totalWeightGrams) : null,

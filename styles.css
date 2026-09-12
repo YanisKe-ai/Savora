@@ -39,6 +39,13 @@
     --danger-300: #d98166;
     --info: #4a7d78;
 
+    /* Punkt 6: rohes --warning (#d99a49) hat auf Cream nur ~2.3:1 Kontrast (WCAG AA fuer
+       normale Schrift verlangt 4.5:1) — deshalb eigene semantische Tokens statt --warning direkt
+       fuer Text/Badges zu verwenden. --warning-text nutzt ember-700 (~4.9:1 auf Cream, gemessen). */
+    --warning-bg: rgba(217,154,73,0.16);
+    --warning-border: rgba(217,154,73,0.4);
+    --warning-text: var(--ember-700);
+
     /* ============ SEMANTISCHE TOKENS — LIGHT (Standard) ============ */
     --bg: var(--cream-50);
     --bg-elevated: var(--cream-100);
@@ -95,6 +102,11 @@
     --danger: var(--danger-300);
     --shadow-card: 0 1px 2px rgba(0,0,0,0.3), 0 6px 18px rgba(0,0,0,0.35);
     --shadow-soft: 0 2px 8px rgba(0,0,0,0.4);
+    /* ember-400 hat auf dunklem Grund ~7.4:1 Kontrast (gemessen) — hier reicht die normale
+       Akzentfarbe direkt als Warning-Text, anders als im hellen Theme. */
+    --warning-bg: rgba(217,154,73,0.18);
+    --warning-border: rgba(217,154,73,0.45);
+    --warning-text: var(--ember-400);
   }
 
   /* True-Black/AMOLED: reines Schwarz für Akku auf OLED-Bildschirmen, sonst wie Dark Mode */
@@ -117,6 +129,10 @@
     --danger: var(--danger-300);
     --shadow-card: none;
     --shadow-soft: none;
+    /* ember-400 hat auf reinem Schwarz ~8.7:1 Kontrast (gemessen) */
+    --warning-bg: rgba(217,154,73,0.18);
+    --warning-border: rgba(217,154,73,0.45);
+    --warning-text: var(--ember-400);
   }
 
   * { box-sizing: border-box; }
@@ -191,6 +207,9 @@
     background: var(--forest-900);
     color: var(--cream-100);
     padding: clamp(14px, 2.4vh, 22px) clamp(16px, 4vw, 32px);
+    /* Punkt 7: env(...) faellt auf 0px zurueck, wo es keine Notch/Dynamic-Island-Insets gibt —
+       erzeugt also auf normalen Browsern/Android keinen zusaetzlichen Leerraum. */
+    padding-top: calc(clamp(14px, 2.4vh, 22px) + env(safe-area-inset-top, 0px));
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -484,7 +503,7 @@
   /* ---------- Meal plan ---------- */
   .week-nav { display: flex; align-items: center; justify-content: space-between; margin-bottom: 18px; gap: 8px; }
   .week-nav-label { font-family: var(--font-display); font-optical-sizing: auto; font-size: 16px; color: var(--text); text-align: center; flex: 1; }
-  .week-nav button { width: 40px; height: 40px; border-radius: var(--radius-s); border: 1px solid var(--border); background: var(--card-bg); color: var(--text); display: flex; align-items: center; justify-content: center; }
+  .week-nav button { width: var(--tap-min); height: var(--tap-min); border-radius: var(--radius-s); border: 1px solid var(--border); background: var(--card-bg); color: var(--text); display: flex; align-items: center; justify-content: center; }
   .day-card { background: var(--card-bg); border-radius: var(--radius-m); padding: 14px 16px; margin-bottom: 12px; box-shadow: var(--shadow-card); }
   .day-card.is-today { border: 1.5px solid var(--accent-solid); }
   .day-card-head { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 10px; }
@@ -627,7 +646,10 @@
   .tag-input-row input { border: none; flex: 1; min-width: 100px; font-size: 14px; padding: 4px; background: transparent; color: var(--text); }
   .tag-input-row input:focus { outline: none; }
   .tag-pill { background: var(--bg-elevated); border-radius: 999px; padding: 4px 10px; font-size: 12.5px; display: flex; align-items: center; gap: 5px; color: var(--text); }
-  .tag-pill button { background: none; border: none; padding: 0; display: flex; color: var(--text-muted); }
+  /* Punkt 5: sichtbare Pille bleibt kompakt, die tatsaechliche Hit-Area des Remove-Buttons wird
+     per negativem Rand auf ~32px vergroessert (Standard-Pattern fuer kleine Icon-Buttons in
+     dichten Listen), damit auf dem Handy nicht daneben-getippt wird. */
+  .tag-pill button { background: none; border: none; padding: 8px; margin: -8px -8px -8px -2px; display: flex; align-items: center; justify-content: center; min-width: 32px; min-height: 32px; color: var(--text-muted); }
   .tag-pill svg { width: 11px; height: 11px; }
 
   .form-actions { display: flex; gap: 10px; margin-top: 28px; padding-top: 18px; border-top: 1px solid var(--border); }
@@ -646,7 +668,6 @@
   .theme-opt.active { border-color: var(--accent-solid); background: var(--bg-elevated); color: var(--accent); font-weight: 600; }
   .theme-opt svg { width: 15px; height: 15px; }
 
-  /* ---------- Settings accordion (kompakt) ---------- */
   /* ---------- "Mehr" / Settings Rows (Redesign, ersetzt die fruehere Accordion-Wand) ---------- */
   .settings-page { max-width: 680px; margin: 0 auto; width: 100%; }
   .settings-group { margin-bottom: 22px; }
@@ -659,6 +680,11 @@
     font-family: var(--font-sans); font-size: 15px; color: var(--text); text-align: left;
   }
   .settings-row:last-child { border-bottom: none; }
+  @media (hover: hover) and (pointer: fine) {
+    .settings-row:hover { background: var(--bg-elevated); }
+  }
+  .settings-row:active { background: var(--bg-sunken); }
+  .settings-row:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: -2px; }
   .settings-row-icon { width: 20px; height: 20px; color: var(--accent); flex-shrink: 0; display: flex; }
   .settings-row-icon svg { width: 100%; height: 100%; }
   .settings-row-title { flex: 1; }
@@ -785,7 +811,7 @@
   .nutrition-compact-heading { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
   .nutrition-confidence-badge { font-size: 11.5px; font-weight: 700; padding: 3px 9px; border-radius: 999px; text-transform: uppercase; letter-spacing: 0.02em; }
   .nutrition-confidence-badge.tone-high { background: rgba(63,125,78,0.16); color: var(--success); }
-  .nutrition-confidence-badge.tone-medium { background: rgba(217,154,73,0.18); color: var(--warning); }
+  .nutrition-confidence-badge.tone-medium { background: var(--warning-bg); color: var(--warning-text); border: 1px solid var(--warning-border); }
   .nutrition-confidence-badge.tone-low { background: rgba(162,67,47,0.14); color: var(--danger); }
   .nutrition-review-link { background: none; border: none; color: var(--accent); font-size: 12.5px; font-weight: 600; padding: 2px 0; text-decoration: underline; }
   .nutrition-compact-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; }
@@ -807,7 +833,7 @@
   .nutrition-status-icon { width: 22px; height: 22px; border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0; font-size: 13px; font-weight: 700; }
   .nutrition-status-icon.ok { background: rgba(63,125,78,0.16); color: var(--success); }
   .nutrition-status-icon.ok svg { width: 12px; height: 12px; }
-  .nutrition-status-icon.warn { background: rgba(217,154,73,0.2); color: var(--warning); }
+  .nutrition-status-icon.warn { background: var(--warning-bg); color: var(--warning-text); }
   .nutrition-status-icon.unknown { background: rgba(162,67,47,0.14); color: var(--danger); }
   .nutrition-match-text { display: flex; flex-direction: column; flex: 1; min-width: 0; gap: 1px; }
   .nutrition-match-ingredient { font-size: 13.5px; color: var(--text); font-weight: 600; }
@@ -823,11 +849,11 @@
   .nutrition-candidate-source { font-size: 11px; color: var(--text-muted); }
 
   .nutrition-segmented { display: flex; background: var(--bg-elevated); border-radius: var(--radius-s); padding: 3px; gap: 3px; margin-bottom: 14px; }
-  .nutrition-segmented button { flex: 1; border: none; background: none; padding: 8px 6px; border-radius: 8px; font-size: 12.5px; font-weight: 600; color: var(--text-muted); min-height: 36px; }
+  .nutrition-segmented button { flex: 1; border: none; background: none; padding: 8px 6px; border-radius: 8px; font-size: 12.5px; font-weight: 600; color: var(--text-muted); min-height: 48px; }
   .nutrition-segmented button.active { background: var(--card-bg); color: var(--text); box-shadow: 0 1px 3px rgba(0,0,0,0.08); }
   .nutrition-confidence-line { display: flex; align-items: flex-start; gap: 8px; flex-wrap: wrap; margin-bottom: 6px; }
   .nutrition-confidence-detail { font-size: 12px; color: var(--text-muted); flex: 1; min-width: 140px; }
-  .nutrition-hint-text { font-size: 12px; color: var(--warning); margin: 6px 0 0; }
+  .nutrition-hint-text { font-size: 12px; color: var(--warning-text); margin: 6px 0 0; }
   .nutrition-group { margin-top: 18px; }
   .nutrition-group-title { font-family: var(--font-display); font-optical-sizing: auto; font-size: 14.5px; color: var(--text); margin: 0 0 8px; padding-bottom: 6px; border-bottom: 1px solid var(--border); }
   .nutrition-nutrient-row { display: flex; align-items: center; justify-content: space-between; padding: 5px 0; font-size: 13px; color: var(--text); }

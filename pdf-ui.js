@@ -30,7 +30,7 @@ function pdfExportOptionsStage() {
     <div class="nutrition-segmented" role="tablist" style="margin-bottom:20px;">
       <button role="tab" aria-selected="${level === 'off'}" class="${level === 'off' ? 'active' : ''}" data-action="pdf-export-set-detail" data-level="off">Aus</button>
       <button role="tab" aria-selected="${level === 'compact'}" class="${level === 'compact' ? 'active' : ''}" data-action="pdf-export-set-detail" data-level="compact">Kompakt</button>
-      <button role="tab" aria-selected="${level === 'full'}" class="${level === 'full' ? 'active' : ''}" data-action="pdf-export-set-detail" data-level="full">Vollständig</button>
+      <button role="tab" aria-selected="${level === 'full'}" class="${level === 'full' ? 'active' : ''}" data-action="pdf-export-set-detail" data-level="full">Erweitert</button>
     </div>
     <div class="form-actions">
       <button class="ghost-btn" data-action="close-modal" style="flex:1;">Abbrechen</button>

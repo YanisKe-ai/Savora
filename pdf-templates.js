@@ -37,8 +37,7 @@ function pdfNutritionBox(result, detailLevel) {
     const v = per[key];
     return `<span>${label || def.label} <strong>${v === null ? '–' : v + ' ' + def.unit}</strong></span>`;
   };
-  const sourceLabel = result.sourceDataVersions && result.sourceDataVersions['swiss-fcd']
-    ? 'Schweizer Nährwertdatenbank V' + result.sourceDataVersions['swiss-fcd'] : 'Berechnete Durchschnittswerte';
+  const sourceLabel = nutritionSourceLabel(result.sourceDataVersions);
   const extraRow = detailLevel === 'full'
     ? `<div class="pdf-nutrition-row pdf-nutrition-row-extra">${row('sugars', 'Zucker')}${row('saturatedFat', 'ges. Fett')}${row('salt')}</div>`
     : '';
