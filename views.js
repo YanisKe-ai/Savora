@@ -212,8 +212,8 @@ function filterSheetModal() {
       ${filterCheckboxGroup('Gericht', 'category', DISH_TYPE_OPTIONS, category, o => o.id, o => o.label)}
       ${filterCheckboxGroup('Zeit', 'time', TIME_BUCKET_OPTIONS, time, o => o.id, o => o.label)}
       <div class="form-actions">
-        <button class="ghost-btn" data-action="clear-all-filters" style="flex:1;">Zurücksetzen</button>
-        <button class="primary-btn" data-action="close-modal" style="flex:1;justify-content:center;">${resultCount} Rezept${resultCount === 1 ? '' : 'e'} anzeigen</button>
+        <button class="ghost-btn" data-action="clear-all-filters">Zurücksetzen</button>
+        <button class="primary-btn" data-action="close-modal">${resultCount} Rezept${resultCount === 1 ? '' : 'e'} anzeigen</button>
       </div>
     </div>
   </div>`;
@@ -286,7 +286,7 @@ function detailView() {
         </div>
       </div>
       <div class="detail-actions">
-        <button class="primary-btn" data-action="start-cook" data-id="${r.id}" style="flex:1;">${ICONS.play} Kochmodus starten</button>
+        <button class="primary-btn" data-action="start-cook" data-id="${r.id}">${ICONS.play} Kochmodus starten</button>
         <button class="detail-icon-action" data-action="add-to-shopping" data-id="${r.id}" aria-label="Zur Einkaufsliste" title="Zur Einkaufsliste">${ICONS.cart}</button>
         <button class="detail-icon-action" data-action="share-recipe" data-id="${r.id}" aria-label="Rezept teilen" title="Rezept teilen">${ICONS.share}</button>
       </div>
@@ -345,7 +345,7 @@ function deleteModal(r) {
       <h3 class="modal-title" id="delete-modal-title">Rezept löschen?</h3>
       <p style="font-size:14px;color:var(--text-muted);">„${escapeHtml(r.title)}" wird endgültig aus deinem Kochbuch entfernt.</p>
       <div class="form-actions">
-        <button class="ghost-btn" data-action="close-modal" style="flex:1;">Abbrechen</button>
+        <button class="ghost-btn" data-action="close-modal">Abbrechen</button>
         <button class="primary-btn" style="background:var(--danger);color:#fff;flex:1;justify-content:center;" data-action="delete-recipe" data-id="${r.id}">Löschen</button>
       </div>
     </div>

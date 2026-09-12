@@ -133,8 +133,8 @@ function nutritionMatchStage(recipe) {
     </details>` : ''}
     ${!items.length ? `<p class="nutrition-empty-text">Keine berechenbaren Zutaten gefunden.</p>` : ''}
     <div class="form-actions">
-      <button class="ghost-btn" data-action="close-modal" style="flex:1;">Abbrechen</button>
-      <button class="primary-btn" data-action="nutrition-apply" data-id="${recipe.id}" style="flex:1;justify-content:center;">Übernehmen</button>
+      <button class="ghost-btn" data-action="close-modal">Abbrechen</button>
+      <button class="primary-btn" data-action="nutrition-apply" data-id="${recipe.id}">Übernehmen</button>
     </div>
   `;
 }
@@ -164,7 +164,7 @@ function nutritionSelectStage(recipe) {
       <button class="add-row-btn" data-action="nutrition-open-custom" data-name="${escapeHtml(target)}">${ICONS.plus} Eigenes Lebensmittel erstellen</button>
     </div>
     <div class="form-actions">
-      <button class="ghost-btn" data-action="nutrition-back-to-match" style="flex:1;">Zurück</button>
+      <button class="ghost-btn" data-action="nutrition-back-to-match">Zurück</button>
     </div>
   `;
 }
@@ -256,7 +256,7 @@ function nutritionBarcodeStage() {
       <button class="primary-btn" data-action="nutrition-confirm-match" data-name="${escapeHtml(state.nutritionSelectTarget)}" data-food-id="${escapeHtml(product.id)}" style="width:100%;justify-content:center;margin-bottom:14px;">Übernehmen</button>
     ` : ''}
     <div class="form-actions">
-      <button class="ghost-btn" data-action="nutrition-close-barcode" style="flex:1;">Zurück</button>
+      <button class="ghost-btn" data-action="nutrition-close-barcode">Zurück</button>
     </div>
   `;
 }
@@ -287,8 +287,8 @@ function nutritionCustomStage() {
       ${field('cf-salt', 'Salz', 'g')}
     </div>
     <div class="form-actions">
-      <button class="ghost-btn" data-action="nutrition-back-to-match" style="flex:1;">Abbrechen</button>
-      <button class="primary-btn" data-action="nutrition-save-custom" style="flex:1;justify-content:center;">Speichern</button>
+      <button class="ghost-btn" data-action="nutrition-back-to-match">Abbrechen</button>
+      <button class="primary-btn" data-action="nutrition-save-custom">Speichern</button>
     </div>
   `;
 }
@@ -375,8 +375,8 @@ function nutritionDetailModal(recipe, result) {
       ${sourceLabel ? `<p class="nutrition-source-line">${ICONS.book} ${escapeHtml(sourceLabel)}</p>` : ''}
       <p class="nutrition-disclaimer">Berechnete Nährwerte sind Durchschnitts- bzw. Schätzwerte und können je nach Produkt, Zubereitung und tatsächlicher Menge abweichen. Keine medizinische Aussage.</p>
       <div class="form-actions">
-        <button class="ghost-btn" data-action="nutrition-open-match" data-id="${recipe.id}" style="flex:1;">Zuordnung bearbeiten</button>
-        <button class="primary-btn" data-action="close-modal" style="flex:1;justify-content:center;">Schliessen</button>
+        <button class="ghost-btn" data-action="nutrition-open-match" data-id="${recipe.id}">Zuordnung bearbeiten</button>
+        <button class="primary-btn" data-action="close-modal">Schliessen</button>
       </div>
     </div>
   </div>`;

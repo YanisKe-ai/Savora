@@ -437,7 +437,7 @@
     background: var(--forest-800);
     margin-bottom: 18px;
   }
-  .detail-hero-img { width: 100%; aspect-ratio: 16/9; object-fit: cover; }
+  .detail-hero-img { width: 100%; aspect-ratio: 16/9; object-fit: cover; max-height: 45vh; }
   .detail-hero-img.placeholder { display: flex; align-items: center; justify-content: center; color: var(--sage-300); }
   .detail-hero-img.placeholder svg { width: 56px; height: 56px; }
   .detail-hero-overlay {
@@ -452,6 +452,7 @@
   .detail-meta svg { width: 14px; height: 14px; }
 
   .detail-actions { display: flex; gap: 8px; margin-bottom: 14px; flex-wrap: wrap; align-items: center; }
+  .detail-actions .primary-btn { flex: 1; }
   .detail-icon-action {
     flex-shrink: 0; width: var(--tap-primary); height: var(--tap-primary);
     border-radius: 999px; border: 1.5px solid var(--border); background: var(--card-bg); color: var(--accent);
@@ -688,7 +689,7 @@
   .tag-pill svg { width: 11px; height: 11px; }
 
   .form-actions { display: flex; gap: 10px; margin-top: 28px; padding-top: 18px; border-top: 1px solid var(--border); }
-  .form-actions .primary-btn { flex: 1; justify-content: center; }
+  .form-actions .primary-btn, .form-actions .ghost-btn { flex: 1; justify-content: center; }
 
   /* ---------- Import ---------- */
   .import-panel { background: var(--card-bg); border-radius: var(--radius-m); padding: 18px; box-shadow: var(--shadow-card); margin-bottom: 20px; }

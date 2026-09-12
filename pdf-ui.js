@@ -33,8 +33,8 @@ function pdfExportOptionsStage() {
       <button role="radio" aria-checked="${level === 'full'}" class="${level === 'full' ? 'active' : ''}" data-action="pdf-export-set-detail" data-level="full">Erweitert</button>
     </div>
     <div class="form-actions">
-      <button class="ghost-btn" data-action="close-modal" style="flex:1;">Abbrechen</button>
-      <button class="primary-btn" data-action="pdf-export-build" style="flex:1;justify-content:center;">${ICONS.pdf} PDF erstellen</button>
+      <button class="ghost-btn" data-action="close-modal">Abbrechen</button>
+      <button class="primary-btn" data-action="pdf-export-build">${ICONS.pdf} PDF erstellen</button>
     </div>
   `;
 }
@@ -61,9 +61,9 @@ function pdfExportPreviewStage() {
       <iframe class="pdf-preview-frame" src="${m.previewUrl}" title="PDF-Vorschau: ${escapeHtml(m.filename || 'Savora-PDF')}"></iframe>
     </div>
     <div class="form-actions pdf-preview-actions">
-      ${canShare ? `<button class="primary-btn" data-action="pdf-export-share" style="flex:1;justify-content:center;" aria-label="PDF teilen">${ICONS.share} Teilen</button>
-      <button class="ghost-btn" data-action="pdf-export-download" style="flex:1;justify-content:center;" aria-label="PDF herunterladen">${ICONS.download} Speichern</button>`
-      : `<button class="primary-btn" data-action="pdf-export-download" style="flex:1;justify-content:center;" aria-label="PDF herunterladen">${ICONS.download} Herunterladen</button>`}
+      ${canShare ? `<button class="primary-btn" data-action="pdf-export-share" aria-label="PDF teilen">${ICONS.share} Teilen</button>
+      <button class="ghost-btn" data-action="pdf-export-download" aria-label="PDF herunterladen">${ICONS.download} Speichern</button>`
+      : `<button class="primary-btn" data-action="pdf-export-download" aria-label="PDF herunterladen">${ICONS.download} Herunterladen</button>`}
     </div>
   `;
 }
