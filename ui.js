@@ -229,11 +229,35 @@ function renderKeepFocus(id) {
   if (el2) { focusWithoutScroll(el2); if (pos !== null) el2.setSelectionRange(pos, pos); }
 }
 
+/* Punkt 11 (Interaction-Stability-Auftrag): schuetzt Aktionen, bei denen ein Doppel-Tap waehrend
+   der laufenden async-Operation eine doppelte Datenbank-/PDF-/Backup-Operation ausloesen wuerde
+   (z.B. zweimal "Speichern" antippen, bevor der erste dbPut() zurueckkommt). Global statt pro
+   Element gesperrt, weil zu jedem Zeitpunkt ohnehin nur eine dieser Aktionen sinnvoll aktiv sein
+   kann (ein Editor, ein PDF-Export-Modal, ein Backup-Vorgang). */
+const ASYNC_GUARDED_ACTIONS = new Set([
+  'save-recipe', 'export-backup', 'pdf-export-build', 'pdf-export-download', 'pdf-export-share',
+  'nutrition-confirm-match', 'nutrition-save-custom',
+]);
+const busyActions = new Set();
+
 async function onAction(e) {
   const el = e.currentTarget;
   const action = el.dataset.action;
   const id = el.dataset.id;
 
+  if (ASYNC_GUARDED_ACTIONS.has(action)) {
+    if (busyActions.has(action)) return; // laeuft bereits — Rapid-Tap wird ignoriert, kein Doppel-Write
+    busyActions.add(action);
+    el.setAttribute('aria-busy', 'true');
+  }
+  try {
+    await dispatchAction(action, id, el, e);
+  } finally {
+    if (ASYNC_GUARDED_ACTIONS.has(action)) busyActions.delete(action);
+  }
+}
+
+async function dispatchAction(action, id, el, e) {
   switch (action) {
     case 'new-recipe':
       state.modal = null;
@@ -811,16 +835,25 @@ async function onAction(e) {
       const result = m.target === 'cookbook'
         ? await buildCookbookPdf(m.nutritionDetail)
         : await buildSinglePdf(m.recipeId, m.nutritionDetail);
+      // Punkt 12: waehrend des Builds kann der Nutzer das Modal geschlossen oder gewechselt
+      // haben (der Backdrop ist ausser im 'preview'-Stage anklickbar) — state.modal zeigt dann
+      // nicht mehr auf dasselbe Objekt wie 'm'. Das Ergebnis in den inzwischen ungueltigen/
+      // fremden Modal-State zu schreiben wuerde entweder abstuerzen (null) oder das falsche
+      // Modal ueberschreiben. In beiden Faellen wird das fertige Ergebnis dann verworfen.
+      if (state.modal !== m) {
+        if (result && result.blob) { /* Blob wird nie in eine URL umgewandelt, kein Leak */ }
+        return;
+      }
       if (!result) {
         showToast('PDF konnte nicht erstellt werden', 'error');
-        state.modal.stage = 'options';
+        m.stage = 'options';
         render();
         break;
       }
-      state.modal.previewBlob = result.blob;
-      state.modal.filename = result.filename;
-      state.modal.previewUrl = URL.createObjectURL(result.blob);
-      state.modal.stage = 'preview';
+      m.previewBlob = result.blob;
+      m.filename = result.filename;
+      m.previewUrl = URL.createObjectURL(result.blob);
+      m.stage = 'preview';
       render();
       break;
     }
