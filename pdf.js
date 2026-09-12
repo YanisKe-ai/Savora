@@ -6,6 +6,15 @@
    dadurch garantiert genau einer PDF-Seite; renderSectionsToPdf schneidet nur noch als
    Sicherheitsnetz (siehe dort), nicht mehr im Regelfall. */
 
+/* Direkter Update-Prompt, Punkt 1: scale=2 (192 DPI) ergab bei kleiner Schrift bei starkem Zoom
+   sichtbar weichere Kanten als scale=3 (288 DPI) — mit echten Testseiten verglichen (gleicher
+   Bildausschnitt, gleiche Zielgroesse). scale=4 (384 DPI) brachte keinen wahrnehmbaren Gewinn
+   mehr, nur ~50% mehr Dateigroesse on top von scale=3. PNG statt JPEG fuer reine Textseiten
+   wurde ebenfalls gemessen und verglichen (siehe ABSCHLUSSBERICHT) — kein sichtbarer Vorteil bei
+   Qualitaet 0.92-0.95, dafuer teils GRÖSSERE Dateien als JPEG, deshalb bewusst nicht eingesetzt. */
+const PDF_RENDER_SCALE = 3;
+const PDF_JPEG_QUALITY = 0.95;
+
 async function resolveRecipeImageDataUrl(r) {
   if (r.image) return r.image;
   if (r.imageId) {
@@ -73,7 +82,7 @@ async function renderSectionsToPdf() {
       .map((iv) => iv.top)
       .filter((y) => !intervals.some((iv) => y > iv.top + 0.5 && y < iv.bottom - 0.5));
 
-    const canvas = await html2canvas(section, { scale: 2, backgroundColor: null, useCORS: true });
+    const canvas = await html2canvas(section, { scale: PDF_RENDER_SCALE, backgroundColor: null, useCORS: true });
     const scale = canvas.width / domWidth;
     const pxPerMm = canvas.width / pageWidthMm;
     const pageHeightPx = pageHeightMm * pxPerMm;
@@ -83,7 +92,7 @@ async function renderSectionsToPdf() {
     if (canvas.height <= pageHeightPx + 2 * pxPerMm) {
       if (!firstPage) pdf.addPage();
       firstPage = false;
-      const imgData = canvas.toDataURL('image/jpeg', 0.92);
+      const imgData = canvas.toDataURL('image/jpeg', PDF_JPEG_QUALITY);
       pdf.addImage(imgData, 'JPEG', 0, 0, pageWidthMm, canvas.height / pxPerMm);
       continue;
     }
@@ -110,7 +119,7 @@ async function renderSectionsToPdf() {
       sliceCanvas.width = canvas.width;
       sliceCanvas.height = sliceHeightPx;
       sliceCanvas.getContext('2d').drawImage(canvas, 0, cursor, canvas.width, sliceHeightPx, 0, 0, canvas.width, sliceHeightPx);
-      const imgData = sliceCanvas.toDataURL('image/jpeg', 0.92);
+      const imgData = sliceCanvas.toDataURL('image/jpeg', PDF_JPEG_QUALITY);
       pdf.addImage(imgData, 'JPEG', 0, 0, pageWidthMm, sliceHeightPx / pxPerMm);
       cursor = sliceEnd;
     }
