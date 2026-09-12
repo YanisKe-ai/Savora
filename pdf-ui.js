@@ -27,7 +27,7 @@ function pdfExportOptionsStage() {
   return `
     <h3 class="modal-title" id="pdf-export-title">${title}</h3>
     <p class="nutrition-modal-subtitle">Nährwerte im PDF</p>
-    <div class="nutrition-segmented" role="radiogroup" aria-label="Nährwerte-Detailgrad" style="margin-bottom:20px;">
+    <div class="nutrition-segmented" role="radiogroup" aria-label="Nährwerte-Detailgrad">
       <button role="radio" aria-checked="${level === 'off'}" class="${level === 'off' ? 'active' : ''}" data-action="pdf-export-set-detail" data-level="off">Aus</button>
       <button role="radio" aria-checked="${level === 'compact'}" class="${level === 'compact' ? 'active' : ''}" data-action="pdf-export-set-detail" data-level="compact">Kompakt</button>
       <button role="radio" aria-checked="${level === 'full'}" class="${level === 'full' ? 'active' : ''}" data-action="pdf-export-set-detail" data-level="full">Erweitert</button>
@@ -54,7 +54,7 @@ function pdfExportPreviewStage() {
   const canShare = typeof navigator !== 'undefined' && !!navigator.share;
   return `
     <div class="pdf-preview-header">
-      <h3 class="modal-title" id="pdf-export-title" style="margin:0;">Vorschau</h3>
+      <h3 class="modal-title" id="pdf-export-title">Vorschau</h3>
       <button class="icon-btn pdf-preview-close" data-action="pdf-export-back" aria-label="Vorschau schliessen, zurück zu den Optionen">${ICONS.back}</button>
     </div>
     <div class="pdf-preview-frame-wrap">

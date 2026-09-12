@@ -404,10 +404,10 @@ function formView() {
             <input type="file" accept="image/*" id="f-image" aria-label="Foto auswählen">
           </div>
         </div>
-        <div class="field-row" style="margin-bottom:18px;">
-          <div class="field" style="margin-bottom:0;"><label for="f-servings">Portionen</label><input type="number" id="f-servings" min="1" value="${r.servings}"></div>
-          <div class="field" style="margin-bottom:0;"><label for="f-time">Zeit (Min.)</label><input type="number" id="f-time" min="0" value="${r.timeMinutes}"></div>
-          <div class="field" style="margin-bottom:0;"><label for="f-difficulty">Schwierigkeit</label>
+        <div class="field-row">
+          <div class="field"><label for="f-servings">Portionen</label><input type="number" id="f-servings" min="1" value="${r.servings}"></div>
+          <div class="field"><label for="f-time">Zeit (Min.)</label><input type="number" id="f-time" min="0" value="${r.timeMinutes}"></div>
+          <div class="field"><label for="f-difficulty">Schwierigkeit</label>
             <select id="f-difficulty">
               ${['Einfach','Mittel','Anspruchsvoll'].map(d => `<option ${r.difficulty === d ? 'selected' : ''}>${d}</option>`).join('')}
             </select>
@@ -427,7 +427,7 @@ function formView() {
         </div>
         <div class="field">
           <label id="free-group-label">Hinweise / Frei von</label>
-          <p class="settings-hint" style="margin:2px 0 8px;">Automatisch erkannte Angaben bitte immer selbst prüfen, keine medizinische Zusicherung.</p>
+          <p class="settings-hint">Automatisch erkannte Angaben bitte immer selbst prüfen, keine medizinische Zusicherung.</p>
           <div class="diet-select-row" role="group" aria-labelledby="free-group-label">
             ${DIET_OPTIONS.filter(d => d.tone === 'free').map(d => `<button type="button" class="diet-select-chip ${((r.diet)||[]).includes(d.key) ? 'active' : ''}" data-action="toggle-diet" data-diet="${d.key}" aria-pressed="${((r.diet)||[]).includes(d.key) ? 'true' : 'false'}">${((r.diet)||[]).includes(d.key) ? ICONS.check : ICONS[d.icon]}${d.label}</button>`).join('')}
           </div>
@@ -497,7 +497,7 @@ function stepRow(s, idx) {
   const n = idx + 1;
   return `<div class="repeat-row" data-step-row="${idx}">
     <div class="step-num-badge" aria-hidden="true">${n}</div>
-    <div class="field"><textarea class="step-text-input" placeholder="Was ist zu tun?" aria-label="Schritt ${n}" style="min-height:44px;">${escapeHtml(s.text || '')}</textarea></div>
+    <div class="field"><textarea class="step-text-input" placeholder="Was ist zu tun?" aria-label="Schritt ${n}">${escapeHtml(s.text || '')}</textarea></div>
     <button class="repeat-row-remove" data-action="remove-step" data-idx="${idx}" aria-label="Schritt ${n} entfernen">${ICONS.trash}</button>
   </div>`;
 }
@@ -589,9 +589,9 @@ function shoppingView() {
         <button class="icon-btn" data-action="add-shopping-item-manual" aria-label="Hinzufügen">${ICONS.plus}</button>
       </div>
       ${!items.length ? `<div class="empty-state">${ICONS.cart}<h2>Deine Einkaufsliste ist leer</h2><p>Tippe oben einen Artikel ein oder öffne ein Rezept und tippe auf „Zur Einkaufsliste".</p></div>` : `
-        ${open.length ? openHtml : `<p style="text-align:center;color:var(--text-muted);font-size:14px;padding:20px 0;display:flex;align-items:center;justify-content:center;gap:6px;"><span class="icon-inline" style="width:16px;height:16px;">${ICONS.sparkle}</span>Alles abgehakt</p>`}
+        ${open.length ? openHtml : `<p class="shopping-all-checked"><span class="icon-inline shopping-all-checked-icon">${ICONS.sparkle}</span>Alles abgehakt</p>`}
         ${checked.length ? `<div class="shopping-group-title">Erledigt</div><div>${checked.map(row).join('')}</div>
-          <button class="ghost-btn" style="margin-top:16px;width:100%;justify-content:center;" data-action="clear-checked-shopping">Abgehakte entfernen</button>` : ''}
+          <button class="ghost-btn shopping-clear-checked-btn" data-action="clear-checked-shopping">Abgehakte entfernen</button>` : ''}
       `}
     </main>
     ${bottomNav()}
@@ -788,7 +788,7 @@ function settingsDisplayView() {
           <button class="theme-opt ${t === 'amoled' ? 'active' : ''}" data-action="set-theme" data-theme="amoled" role="radio" aria-checked="${t === 'amoled'}">${ICONS.moon} Schwarz</button>
           <button class="theme-opt ${t === 'auto' ? 'active' : ''}" data-action="set-theme" data-theme="auto" role="radio" aria-checked="${t === 'auto'}">${ICONS.auto} System</button>
         </div>
-        <p class="settings-hint" style="margin:12px 0 0;">Schwarz: vollständig schwarzer Hintergrund für OLED-Displays.</p>
+        <p class="settings-hint settings-hint--top">Schwarz: vollständig schwarzer Hintergrund für OLED-Displays.</p>
       </div>
     </div>`;
   return settingsDetailShell('Darstellung', body);
@@ -838,7 +838,7 @@ function settingsBackupView() {
       <div class="settings-group-card settings-group-card--padded">
         <p class="settings-hint">Savora speichert alles nur auf diesem Gerät. Erstelle regelmässig eine Sicherung, damit bei einem Gerätewechsel oder gelöschten Browserdaten nichts verloren geht.</p>
         <button class="primary-btn" data-action="export-backup">${ICONS.download} Backup erstellen</button>
-        <p class="settings-hint" style="margin:10px 0 0;">Letztes Backup: ${escapeHtml(lastBackupLabel)}</p>
+        <p class="settings-hint settings-hint--top">Letztes Backup: ${escapeHtml(lastBackupLabel)}</p>
       </div>
     </div>
     <div class="settings-group">
@@ -846,7 +846,7 @@ function settingsBackupView() {
       <div class="settings-group-card settings-group-card--padded">
         <button class="ghost-btn" data-action="trigger-restore">${ICONS.upload} Backup importieren</button>
         <input type="file" id="restoreFileInput" accept="application/json" style="display:none;">
-        <p class="settings-hint" style="margin:10px 0 0;">„Backup importieren" ist für deine eigenen Sicherungen gedacht. Ein von dir geteiltes Rezept kommt bei anderen als fertige PDF-Datei an: die lässt sich ansehen, ausdrucken oder weiterschicken, aber nicht zurück in Savora einspielen.</p>
+        <p class="settings-hint settings-hint--top">„Backup importieren" ist für deine eigenen Sicherungen gedacht. Ein von dir geteiltes Rezept kommt bei anderen als fertige PDF-Datei an: die lässt sich ansehen, ausdrucken oder weiterschicken, aber nicht zurück in Savora einspielen.</p>
         <div id="backupStatus"></div>
       </div>
     </div>`;
@@ -855,7 +855,7 @@ function settingsBackupView() {
 
 function settingsHelpView() {
   const body = `<div class="settings-group"><div class="settings-group-card settings-group-card--padded">
-    <p class="settings-hint" style="margin:0;">Fragen oder Feedback zu Savora kannst du direkt an die Person richten, von der du die App erhalten hast.</p>
+    <p class="settings-hint settings-hint--none">Fragen oder Feedback zu Savora kannst du direkt an die Person richten, von der du die App erhalten hast.</p>
   </div></div>`;
   return settingsDetailShell('Hilfe & Feedback', body);
 }
@@ -863,9 +863,9 @@ function settingsHelpView() {
 function settingsPrivacyView() {
   const body = `<div class="settings-group">
     <div class="settings-group-card settings-group-card--padded">
-      <p class="settings-hint" style="margin:0 0 10px;">Deine Rezepte, Fotos und Notizen bleiben ausschliesslich lokal auf diesem Gerät (IndexedDB). Savora hat keinen eigenen Server und schickt diese Daten nirgendwohin.</p>
-      <p class="settings-hint" style="margin:0 0 10px;">Eine Ausnahme: Wenn du ein Produkt per Barcode suchst und die Schweizer Nährwertdatenbank keinen Treffer hat, fragt Savora Open Food Facts online ab. Dabei werden nur die dafür nötigen Such-/Barcode-Daten an diesen Dienst übertragen, keine anderen Rezeptdaten.</p>
-      <p class="settings-hint" style="margin:0;">Exportierst oder teilst du ein Rezept selbst, verlässt genau diese Datei dein Gerät, sonst nichts. Diese Seite wird für die Beta-Version noch ausführlicher vorbereitet.</p>
+      <p class="settings-hint">Deine Rezepte, Fotos und Notizen bleiben ausschliesslich lokal auf diesem Gerät (IndexedDB). Savora hat keinen eigenen Server und schickt diese Daten nirgendwohin.</p>
+      <p class="settings-hint">Eine Ausnahme: Wenn du ein Produkt per Barcode suchst und die Schweizer Nährwertdatenbank keinen Treffer hat, fragt Savora Open Food Facts online ab. Dabei werden nur die dafür nötigen Such-/Barcode-Daten an diesen Dienst übertragen, keine anderen Rezeptdaten.</p>
+      <p class="settings-hint settings-hint--none">Exportierst oder teilst du ein Rezept selbst, verlässt genau diese Datei dein Gerät, sonst nichts. Diese Seite wird für die Beta-Version noch ausführlicher vorbereitet.</p>
     </div>
   </div>`;
   return settingsDetailShell('Datenschutz', body);
@@ -873,7 +873,7 @@ function settingsPrivacyView() {
 
 function settingsTermsView() {
   const body = `<div class="settings-group"><div class="settings-group-card settings-group-card--padded">
-    <p class="settings-hint" style="margin:0;">Diese Seite wird für die Beta-Version vorbereitet.</p>
+    <p class="settings-hint settings-hint--none">Diese Seite wird für die Beta-Version vorbereitet.</p>
   </div></div>`;
   return settingsDetailShell('Nutzungsbedingungen', body);
 }
@@ -882,30 +882,30 @@ function settingsSourcesView() {
   const body = `<div class="settings-group">
     <div class="settings-group-title">Schweizer Nährwertdatenbank</div>
     <div class="settings-group-card settings-group-card--padded">
-      <p class="settings-hint" style="margin:0;">Primärquelle für die meisten Zutaten, herausgegeben vom Bundesamt für Lebensmittelsicherheit und Veterinärwesen (BLV). Lokal in Savora eingebettet, funktioniert offline.</p>
+      <p class="settings-hint settings-hint--none">Primärquelle für die meisten Zutaten, herausgegeben vom Bundesamt für Lebensmittelsicherheit und Veterinärwesen (BLV). Lokal in Savora eingebettet, funktioniert offline.</p>
     </div>
   </div>
   <div class="settings-group">
     <div class="settings-group-title">Open Food Facts</div>
     <div class="settings-group-card settings-group-card--padded">
-      <p class="settings-hint" style="margin:0;">Wird nur genutzt, wenn du ein Produkt per Barcode scannst und es in der Schweizer Datenbank nicht vorkommt. Ein offenes, community-gepflegtes Projekt: Angaben stammen von Herstellern und Nutzer_innen und können lückenhaft oder ungenau sein. Benötigt eine Internetverbindung.</p>
+      <p class="settings-hint settings-hint--none">Wird nur genutzt, wenn du ein Produkt per Barcode scannst und es in der Schweizer Datenbank nicht vorkommt. Ein offenes, community-gepflegtes Projekt: Angaben stammen von Herstellern und Nutzer_innen und können lückenhaft oder ungenau sein. Benötigt eine Internetverbindung.</p>
     </div>
   </div>
   <div class="settings-group">
     <div class="settings-group-title">USDA (FoodData Central)</div>
     <div class="settings-group-card settings-group-card--padded">
-      <p class="settings-hint" style="margin:0;">Als zusätzliche Quelle vorbereitet, aber deaktiviert: eine sichere Anbindung würde einen eigenen Server erfordern, der API-Schlüssel schützt, statt sie im Browser offenzulegen. Wird erst aktiviert, wenn ein solches Backend existiert.</p>
+      <p class="settings-hint settings-hint--none">Als zusätzliche Quelle vorbereitet, aber deaktiviert: eine sichere Anbindung würde einen eigenen Server erfordern, der API-Schlüssel schützt, statt sie im Browser offenzulegen. Wird erst aktiviert, wenn ein solches Backend existiert.</p>
     </div>
   </div>
   <div class="settings-group">
     <div class="settings-group-title">Eigene Angaben</div>
     <div class="settings-group-card settings-group-card--padded">
-      <p class="settings-hint" style="margin:0;">Selbst erfasste Custom Foods und von dir bestätigte Zuordnungen haben Vorrang vor automatischen Treffern aus den Datenbanken oben.</p>
+      <p class="settings-hint settings-hint--none">Selbst erfasste Custom Foods und von dir bestätigte Zuordnungen haben Vorrang vor automatischen Treffern aus den Datenbanken oben.</p>
     </div>
   </div>
   <div class="settings-group">
     <div class="settings-group-card settings-group-card--padded">
-      <p class="settings-hint" style="margin:0;">Alle Werte sind Schätzungen ohne medizinische Zusicherung. Ein fehlender Wert wird als "–" angezeigt, nie als 0: das würde fälschlich "gemessen und tatsächlich null" statt "keine Daten vorhanden" bedeuten.</p>
+      <p class="settings-hint settings-hint--none">Alle Werte sind Schätzungen ohne medizinische Zusicherung. Ein fehlender Wert wird als "–" angezeigt, nie als 0: das würde fälschlich "gemessen und tatsächlich null" statt "keine Daten vorhanden" bedeuten.</p>
     </div>
   </div>`;
   return settingsDetailShell('Datenquellen', body);
@@ -915,7 +915,7 @@ function settingsAboutView() {
   const body = `<div class="settings-group"><div class="settings-group-card settings-group-card--padded" style="text-align:center;">
     <img src="logo-mark.png" alt="" style="width:56px;height:56px;margin:4px auto 12px;">
     <h2 style="font-family:var(--font-display);margin:0 0 4px;">Savora</h2>
-    <p class="settings-hint" style="margin:0;">Dein persönliches digitales Kochbuch.</p>
+    <p class="settings-hint settings-hint--none">Dein persönliches digitales Kochbuch.</p>
   </div></div>`;
   return settingsDetailShell('Über Savora', body);
 }
@@ -927,8 +927,8 @@ function pasteImportView() {
     <div class="settings-group">
       <div class="settings-group-card settings-group-card--padded">
         <p class="settings-hint">Bildunterschrift eines Instagram-/TikTok-Posts, eine WhatsApp-Nachricht, kopierter Rezepttext einer Webseite oder eine eigene Notiz einfügen. Savora erkennt Titel, Zutaten und Schritte automatisch, du prüfst den Entwurf danach kurz, bevor du speicherst.</p>
-        <div class="field" style="margin-bottom:14px;">
-          <textarea id="pasteText" placeholder="Rezepttext hier einfügen …" style="min-height:160px;"></textarea>
+        <div class="field field--tight">
+          <textarea id="pasteText" class="paste-import-textarea" placeholder="Rezepttext hier einfügen …"></textarea>
         </div>
         <button class="primary-btn" data-action="do-paste-import">${ICONS.sparkle} Rezept-Entwurf erstellen</button>
       </div>

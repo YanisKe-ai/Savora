@@ -543,6 +543,9 @@
   .shopping-add-row { display: flex; gap: 8px; margin-bottom: 18px; }
   .shopping-add-row input { flex: 1; background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius-m); padding: 12px 14px; font-size: 15px; color: var(--text); min-height: var(--tap-min); }
   .shopping-group-title { font-size: 12px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-muted); margin: 20px 0 4px; }
+  .shopping-all-checked { text-align: center; color: var(--text-muted); font-size: 14px; padding: 20px 0; display: flex; align-items: center; justify-content: center; gap: 6px; }
+  .shopping-all-checked-icon { width: 16px; height: 16px; }
+  .shopping-clear-checked-btn { margin-top: 16px; width: 100%; justify-content: center; }
   .shopping-item-del { flex-shrink: 0; width: var(--tap-min); height: var(--tap-min); display: flex; align-items: center; justify-content: center; color: var(--text-muted); background: none; border: none; }
   .shopping-item-del svg { width: 15px; height: 15px; }
   .cart-badge {
@@ -624,7 +627,7 @@
     position: fixed; inset: 0; background: var(--forest-950); color: var(--cream-50); z-index: var(--z-modal); /* nie gleichzeitig mit einem echten Modal offen (siehe Audit), Wert bewusst geteilt */
     display: flex; flex-direction: column;
   }
-  .cookmode-top { display: flex; justify-content: space-between; align-items: center; padding: 16px 18px; }
+  .cookmode-top { display: flex; justify-content: space-between; align-items: center; padding: calc(16px + env(safe-area-inset-top, 0)) 18px 16px; }
   .cookmode-progress { font-size: 13px; color: var(--sage-300); font-variant-numeric: tabular-nums; }
   .wakelock-chip {
     display: inline-flex; align-items: center; gap: 6px;
@@ -636,7 +639,7 @@
   .cookmode-body { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 20px 24px; text-align: center; gap: 22px; }
   .cookmode-stepnum { font-family: var(--font-display); font-size: 15px; color: var(--ember-400); letter-spacing: 0.08em; text-transform: uppercase; }
   .cookmode-steptext { font-family: var(--font-sans); font-optical-sizing: auto; font-size: var(--fs-cook-step); line-height: 1.6; max-width: 640px; }
-  .cookmode-nav { display: flex; gap: 14px; padding: 22px; justify-content: center; }
+  .cookmode-nav { display: flex; gap: 14px; padding: 22px 22px calc(22px + env(safe-area-inset-bottom, 0)); justify-content: center; }
   .cookmode-nav button {
     background: var(--forest-800); color: var(--cream-50); border: 1px solid var(--forest-700);
     border-radius: var(--radius-m); padding: 16px 28px; font-size: 16px; font-weight: 600; flex: 1; max-width: 220px;
@@ -667,7 +670,8 @@
   }
   .field textarea { resize: vertical; min-height: 70px; }
   .field input:focus, .field textarea:focus, .field select:focus { outline: none; border-color: var(--accent-solid); box-shadow: 0 0 0 3px rgba(201,131,47,0.15); }
-  .field-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+  .field-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 18px; }
+  .field-row .field { margin-bottom: 0; }
   .field-hint { font-size: 12px; color: var(--text-muted); margin-top: 4px; }
 
   .image-drop {
@@ -765,12 +769,17 @@
   .add-menu-option-text strong { font-family: var(--font-display); font-size: 15.5px; }
   .add-menu-option-text span:last-child { font-size: 13px; color: var(--text-muted); }
 
+  .step-text-input { min-height: 44px; }
+  .paste-import-textarea { min-height: 160px; }
+  .field--tight { margin-bottom: 14px; }
   .settings-hint { font-size: 13px; color: var(--text-muted); margin: 0 0 12px; line-height: 1.5; }
+  .settings-hint--none { margin: 0; }
+  .settings-hint--top { margin: 10px 0 0; }
 
   /* ---------- Modal ---------- */
   .modal-backdrop { position: fixed; inset: 0; background: rgba(15,26,19,0.5); z-index: var(--z-modal); display: flex; align-items: flex-end; justify-content: center; }
   @media (min-width: 640px) { .modal-backdrop { align-items: center; } }
-  .modal-sheet { background: var(--card-bg); border-radius: 18px 18px 0 0; width: 100%; max-width: 440px; padding: 22px 20px 28px; max-height: 85vh; max-height: 85dvh; overflow-y: auto; overscroll-behavior: contain; }
+  .modal-sheet { background: var(--card-bg); border-radius: 18px 18px 0 0; width: 100%; max-width: 440px; padding: 22px 20px calc(28px + env(safe-area-inset-bottom, 0)); max-height: 85vh; max-height: 85dvh; overflow-y: auto; overscroll-behavior: contain; }
   @media (min-width: 640px) { .modal-sheet { border-radius: var(--radius-l); } }
   .modal-title { font-family: var(--font-display); font-optical-sizing: auto; font-size: 19px; margin: 0 0 14px; color: var(--text); }
 
@@ -980,7 +989,8 @@
   .pdf-preview-frame-wrap { background: #666; border-radius: var(--radius-s); overflow: hidden; margin-bottom: 14px; }
   .pdf-preview-frame { width: 100%; height: 60vh; height: 60dvh; border: none; display: block; }
   .pdf-preview-header { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 14px; }
-  .pdf-preview-actions { position: sticky; bottom: 0; background: var(--card-bg); padding-top: 6px; }
+  .pdf-preview-header .modal-title { margin: 0; }
+  .pdf-preview-actions { position: sticky; bottom: 0; background: var(--card-bg); padding-top: 6px; padding-bottom: env(safe-area-inset-bottom, 0); }
   /* Punkt 2: auf Mobile ist die Vorschau ein eigenstaendiger Near-Fullscreen-Screen statt ein
      kleines Standardmodal, damit sich das PDF tatsaechlich beurteilen laesst. */
   @media (max-width: 600px) {
