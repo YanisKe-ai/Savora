@@ -188,6 +188,8 @@
     transition: opacity 1.1s cubic-bezier(.4,0,.2,1);
   }
   #splash.hide { opacity: 0; pointer-events: none; }
+  /* Punkt 11: schneller Uebergang fuer wiederholte Starts — kurz, aber kein hartes Umschalten */
+  #splash.hide-fast { opacity: 0; pointer-events: none; transition: opacity 0.3s ease; }
   #splashLogo {
     width: 148px; height: 148px;
     object-fit: contain; display: block;
@@ -256,6 +258,11 @@
   }
   .icon-btn:hover { background: rgba(245,239,223,0.12); border-color: rgba(245,239,223,0.5); }
   .icon-btn svg { width: 19px; height: 19px; }
+  /* Punkt 9: vorher Inline-Styles auf Home (Filter-/Favoriten-Button) — jetzt zentral steuerbar,
+     inkl. Hover/Active/Theme statt hart codierter Farbwerte im Markup. */
+  .icon-btn-outlined { background: var(--card-bg); border: 1px solid var(--border); color: var(--text-muted); }
+  .icon-btn-outlined.active { color: var(--accent); }
+  .icon-btn-outlined.has-badge { position: relative; }
 
   main { flex: 1; padding: clamp(16px, 3vh, 32px) clamp(16px, 4vw, 32px) 32px; max-width: 1100px; margin: 0 auto; width: 100%; }
   main.has-tabbar { padding-bottom: calc(80px + env(safe-area-inset-bottom, 0)); }

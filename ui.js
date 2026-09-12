@@ -302,6 +302,7 @@ async function onAction(e) {
       state.activeFilters.dietary.clear();
       state.activeFilters.category.clear();
       state.activeFilters.time.clear();
+      state.favOnly = false;
       closeModal();
       render();
       break;

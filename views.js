@@ -123,11 +123,11 @@ function homeView() {
           <label for="searchInput" class="sr-only">Rezepte durchsuchen</label>
           <input class="search-input" id="searchInput" type="text" placeholder="Rezepte, Zutaten, Tags durchsuchen…" value="${escapeHtml(state.query)}" aria-label="Rezepte, Zutaten, Tags durchsuchen">
         </div>
-        <button class="icon-btn" style="background:var(--card-bg);color:${filterCount ? 'var(--accent)' : 'var(--text-muted)'};border:1px solid var(--border);position:relative;" data-action="open-filter-sheet" aria-label="Filter${filterCount ? ' (' + filterCount + ' aktiv)' : ''}">${ICONS.filter}${filterCount ? `<span class="filter-count-badge">${filterCount}</span>` : ''}</button>
-        <button class="icon-btn" style="background:var(--card-bg);color:${state.favOnly ? 'var(--accent)' : 'var(--text-muted)'};border:1px solid var(--border);" data-action="toggle-fav-filter" aria-label="Nur Favoriten">${state.favOnly ? ICONS.heart : ICONS.heartOutline}</button>
+        <button class="icon-btn icon-btn-outlined has-badge ${filterCount ? 'active' : ''}" data-action="open-filter-sheet" aria-label="Filter${filterCount ? ' (' + filterCount + ' aktiv)' : ''}">${ICONS.filter}${filterCount ? `<span class="filter-count-badge">${filterCount}</span>` : ''}</button>
+        <button class="icon-btn icon-btn-outlined ${state.favOnly ? 'active' : ''}" data-action="toggle-fav-filter" aria-label="Nur Favoriten">${state.favOnly ? ICONS.heart : ICONS.heartOutline}</button>
       </div>
-      ${state.favOnly ? `<p style="font-size:12.5px;color:var(--text-muted);margin:-8px 0 14px;">Nur Favoriten werden angezeigt.</p>` : ''}
-      ${activeFilterChips.length ? `<div class="tag-row active-filter-row">
+      ${(activeFilterChips.length || state.favOnly) ? `<div class="tag-row active-filter-row">
+        ${state.favOnly ? `<button class="tag-chip active" data-action="toggle-fav-filter">${ICONS.heart} Favoriten ${ICONS.x}</button>` : ''}
         ${activeFilterChips.map(c => `<button class="tag-chip active" data-action="remove-active-filter" data-dim="${c.dim}" data-id="${escapeHtml(c.id)}">${escapeHtml(c.label)} ${ICONS.x}</button>`).join('')}
         <button class="tag-chip" data-action="clear-all-filters">Alle löschen</button>
       </div>` : ''}
