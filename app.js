@@ -90,8 +90,44 @@ function runSplashSequence() {
   setTimeout(() => splash.remove(), 350);
 }
 
+/* ---------- Mobile Keyboard / Visual Viewport (Punkt 9, Interaction-Stability-Auftrag) ----------
+   Fixed positionierte Elemente (Bottom-Nav, FAB, PDF-Preview-Actions) bleiben auf iOS/Android
+   beim Oeffnen der Bildschirmtastatur oft am Layout-Viewport haengen, statt sich an der
+   sichtbaren Flaeche auszurichten — dadurch koennen sie ein gerade fokussiertes Eingabefeld
+   verdecken. CSS allein (dvh) loest das fuer FIXED Elemente nicht zuverlaessig, deshalb hier
+   gezielt die VisualViewport-API: waehrend die Tastatur sichtbar ist, werden Bottom-Nav/FAB/
+   PDF-Preview-Actions ausgeblendet, statt zu riskieren, dass sie ein Eingabefeld ueberdecken.
+   Schwellenwert 150px, um ein normales Ein-/Ausblenden der Adressleiste beim Scrollen nicht
+   faelschlich als Tastatur zu werten (das aendert die Hoehe meist nur um 40-60px). */
+function setupVisualViewportKeyboardHandling() {
+  if (!window.visualViewport) return;
+  const vv = window.visualViewport;
+  let keyboardOpen = false;
+  const check = () => {
+    const shrink = window.innerHeight - vv.height;
+    const isOpen = shrink > 150;
+    if (isOpen !== keyboardOpen) {
+      keyboardOpen = isOpen;
+      document.body.classList.toggle('keyboard-open', isOpen);
+    }
+  };
+  vv.addEventListener('resize', check);
+  check();
+}
+// Ergaenzt die Sichtbarkeits-Steuerung: ein fokussiertes Eingabefeld in einem scrollbaren
+// Container (z.B. langes Formular, Modal) wird nach dem Aufklappen der Tastatur aktiv sichtbar
+// gehalten, statt sich auf das oft unzuverlaessige automatische Verhalten mobiler Browser zu
+// verlassen.
+document.addEventListener('focusin', (e) => {
+  const el = e.target;
+  if (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.tagName === 'SELECT') {
+    setTimeout(() => { el.scrollIntoView({ block: 'center', behavior: 'smooth' }); }, 300);
+  }
+});
+
 (async function init() {
   try {
+    setupVisualViewportKeyboardHandling();
     await loadRecipes();
     await loadShopping();
     await loadMealplan();
