@@ -92,6 +92,53 @@ function prefersReducedMotion() {
   return window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
 }
 
+/* Punkt 5 (Interaction-Stability-Auftrag): Browser/PWA-Back soll app-typisch funktionieren
+   (zuerst Modal schliessen, dann eine Drill-Down-Ansicht verlassen), nicht die App/den Tab
+   verlassen. Push nur fuer echte "Bildschirmwechsel" (Modal-Oeffnen, Drill-Down-Views) — nicht
+   fuer jeden Filter-Toggle oder Tab-Wechsel (Tabs sind gleichrangig, kein Stapel).
+   history.scrollRestoration='manual', weil Savora die Scrollposition bereits selbst verwaltet
+   (siehe scrollMemory oben) — der Browser wuerde sich sonst mit einer eigenen, an dieser
+   dynamisch aufgebauten Seite ohnehin nicht zuverlaessig treffenden Restauration einmischen. */
+if ('scrollRestoration' in history) history.scrollRestoration = 'manual';
+const HISTORY_DRILLDOWN_VIEWS = new Set(['detail', 'form', 'cookmode', 'unitconverter', 'paste-import']);
+function isHistoryDrilldownView(view) {
+  return HISTORY_DRILLDOWN_VIEWS.has(view) || view.indexOf('settings-') === 0;
+}
+function navHistorySnapshot() {
+  return { view: state.view, modalType: state.modal ? state.modal.type : null, activeRecipeId: state.activeRecipeId };
+}
+window.addEventListener('popstate', (e) => {
+  const wasModalOpen = !!state.modal;
+  state.modal = null;
+  if (!wasModalOpen) {
+    // Kein Modal offen -> ein echter Drill-Down-Schritt wird zurueckgenommen (der Regelfall
+    // beim Browser-/Geraete-Zurueck). e.state beschreibt den Eintrag, zu dem gerade
+    // zurueckgekehrt wird (von replaceState/pushState an der jeweiligen Stelle gesetzt).
+    if (e.state) {
+      state.view = e.state.view;
+      state.activeRecipeId = e.state.activeRecipeId || null;
+    } else {
+      state.view = 'home';
+    }
+  }
+  // War ein Modal offen, bleibt die dahinterliegende View unveraendert (Punkt 5: "Back
+  // schliesst zuerst Modal, dann Detail/Settings-Unterseite, bevor die App verlassen wird").
+  // render(true): unterdrueckt den History-Push fuer GENAU diesen Aufruf. Wichtig: das ist ein
+  // Parameter, keine geteilte Modul-Variable — render() kann intern ueber
+  // document.startViewTransition() ASYNCHRON zu Ende laufen (der DOM-Umbau passiert dann erst
+  // im naechsten Frame), eine gemeinsame Variable waere zu diesem spaeteren Zeitpunkt laengst
+  // wieder zurueckgesetzt und haette den Push bei jedem Zurueck-Schritt erneut ausgeloest —
+  // genau der Fehler, der hier zunaechst auftrat und mit einem echten Test aufgedeckt wurde.
+  render(true);
+  if (wasModalOpen && typeof modalTriggerSelector !== 'undefined') {
+    const trigger = modalTriggerSelector && document.querySelector(modalTriggerSelector);
+    if (trigger && document.contains(trigger) && typeof trigger.focus === 'function') {
+      focusWithoutScroll(trigger);
+    }
+    modalTriggerSelector = null;
+  }
+});
+
 /* Punkt 2/6/7/8: der Kern des Interaktions-Instabilitaets-Problems war, dass JEDE kleine Aktion
    (Favorit, Filter, Suche, Portionen, Zutat hinzufuegen...) ueber denselben globalen render()
    lief, der #app komplett neu aufbaut — UND danach kommentarlos entweder oben begann oder die
@@ -107,7 +154,7 @@ function prefersReducedMotion() {
    an mehreren Stellen im Code wird state.modal direkt auf null gesetzt (z.B. 'back',
    'new-recipe', 'goto-view'), ohne ueber closeModal() zu laufen. Nur eine zentrale Pruefung
    bei jedem render() erfasst zuverlaessig JEDEN Fall, in dem sich die Modal-Praesenz aendert. */
-function render() {
+function render(skipHistoryPush) {
   const prevView = lastRenderedView;
   const viewChanged = state.view !== prevView;
   const hadModal = bodyScrollLockY !== null;
@@ -153,6 +200,21 @@ function render() {
     if (preservedModalScrollTop !== null) {
       const newModalSheet = document.querySelector('.modal-sheet');
       if (newModalSheet) newModalSheet.scrollTop = preservedModalScrollTop;
+    }
+    // Punkt 5: History-Eintrag NACH dem DOM-Update setzen, aber nur fuer echte Bildschirm-
+    // wechsel (Modal-Oeffnen, Drill-Down-View) und nie bei einer Wiederherstellung durch
+    // popstate selbst (suppressHistoryPush), sonst waechst der Stack bei jedem Zurueck weiter.
+    // Tab-Wechsel (Home/Wochenplan/Einkauf/Mehr) sind gleichrangig, kein Drill-Down — der
+    // AKTUELLE Eintrag wird nur aktualisiert (replaceState), damit ein spaeterer Drill-Down-
+    // Push korrekt zu genau diesem Tab zurueckfuehrt, statt einen eigenen Stapel-Eintrag zu
+    // erzeugen (das wuerde bei jedem Tab-Tap einen Back-Schritt aufbauen, den niemand erwartet).
+    if (!skipHistoryPush) {
+      if (hasModal && !hadModal) {
+        history.pushState(navHistorySnapshot(), '');
+      } else if (viewChanged) {
+        if (isHistoryDrilldownView(state.view)) history.pushState(navHistorySnapshot(), '');
+        else history.replaceState(navHistorySnapshot(), '');
+      }
     }
   };
   if (viewChanged && document.startViewTransition && !prefersReducedMotion()) {

@@ -96,13 +96,12 @@ function openModal(modal, triggerSelector) {
 function closeModal() {
   stopNutritionBarcodeCamera(); // Kamera darf nie weiterlaufen, wenn das Modal verlassen wird
   revokePdfPreviewUrl(); // Blob-URL der PDF-Vorschau freigeben, sonst haengt der Blob im Speicher
-  state.modal = null;
-  render();
-  const trigger = modalTriggerSelector && document.querySelector(modalTriggerSelector);
-  if (trigger && document.contains(trigger) && typeof trigger.focus === 'function') {
-    focusWithoutScroll(trigger);
-  }
-  modalTriggerSelector = null;
+  // Punkt 5: ueber history.back() statt direktem state.modal=null, damit der beim Oeffnen
+  // gepushte History-Eintrag korrekt konsumiert wird (sonst haengt ein stiller Eintrag im
+  // Stapel, den ein spaeterer Browser-/Geraete-Zurueck-Druck faelschlich nochmal abarbeitet).
+  // Die Fokus-Rueckgabe an den Ausloeser passiert danach im zentralen popstate-Handler
+  // (state.js), da render() dort erst asynchron nach dem Popstate-Event laeuft.
+  history.back();
 }
 
 function onModalEscape(e) {
@@ -305,17 +304,12 @@ async function dispatchAction(action, id, el, e) {
       render();
       break;
     }
-    case 'back': {
-      state.modal = null;
-      const v = state.view;
-      if (v === 'form' && state.activeRecipeId) state.view = 'detail';
-      else if (v === 'unitconverter') state.view = 'settings';
-      else if (v.indexOf('settings-') === 0) state.view = 'settings';
-      else if (v === 'paste-import') state.view = 'home';
-      else state.view = 'home';
-      render();
+    case 'back':
+      // Punkt 5: nutzt denselben Mechanismus wie der echte Browser-/Geraete-Zurueck (history.back()
+      // + der zentrale popstate-Handler in state.js), statt eine zweite, parallele Logik zu
+      // pflegen, die mit der History leicht auseinanderlaufen wuerde.
+      history.back();
       break;
-    }
     case 'toggle-fav': {
       e.stopPropagation();
       const r = state.recipes.find(x => x.id === id);
@@ -481,8 +475,7 @@ async function dispatchAction(action, id, el, e) {
       Object.values(state.timers).forEach(t => { if (t.intervalId) clearInterval(t.intervalId); });
       state.timers = {};
       state.cookFinished = false;
-      state.view = 'detail';
-      render();
+      history.back(); // Punkt 5: einheitlich ueber history statt eigener state.view-Zuweisung
       break;
     case 'toggle-timer': {
       const id = el.dataset.timerId;
