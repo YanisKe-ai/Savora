@@ -119,6 +119,12 @@ function render() {
   // Waehrend der Hintergrund gesperrt ist, liest window.scrollY nur noch 0 (body ist fixed) —
   // das waere keine sinnvolle Position zum Erhalten, deshalb hier bewusst ausgeklammert.
   const preservedY = (!viewChanged && !hadModal) ? window.scrollY : null;
+  // Punkt 6: render() ersetzt bei JEDEM Aufruf das komplette #app-innerHTML, auch das
+  // .modal-sheet-Element selbst — dessen eigener scrollTop (z.B. beim Scrollen durch die
+  // Filter-Optionen) ginge dadurch bei jedem einzelnen Filter-Toggle verloren. Bleibt dasselbe
+  // Modal ueber den Render-Aufruf hinweg bestehen, wird sein scrollTop separat gemerkt.
+  const existingModalSheet = document.querySelector('.modal-sheet');
+  const preservedModalScrollTop = (hasModal && existingModalSheet) ? existingModalSheet.scrollTop : null;
   lastRenderedView = state.view;
 
   const applyScroll = () => {
@@ -144,6 +150,10 @@ function render() {
     // innerHTML entferntes/ersetztes Element eigenstaendig noch einmal scrollt.
     requestAnimationFrame(applyScroll);
     if (hasModal && !hadModal) lockBodyScroll();
+    if (preservedModalScrollTop !== null) {
+      const newModalSheet = document.querySelector('.modal-sheet');
+      if (newModalSheet) newModalSheet.scrollTop = preservedModalScrollTop;
+    }
   };
   if (viewChanged && document.startViewTransition && !prefersReducedMotion()) {
     document.startViewTransition(update);

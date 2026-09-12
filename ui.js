@@ -353,8 +353,7 @@ async function dispatchAction(action, id, el, e) {
       state.activeFilters.category.clear();
       state.activeFilters.time.clear();
       state.favOnly = false;
-      closeModal();
-      render();
+      closeModal(); // rendert bereits selbst — kein zusaetzliches render() noetig (Punkt 6)
       break;
     case 'confirm-delete':
       openModal({ type: 'delete', recipeId: id }, `[data-action="confirm-delete"][data-id="${id}"]`);
