@@ -140,6 +140,7 @@ const SWISS_GERMAN_SYNONYMS = {
   'haehnchen': 'poulet', 'hähnchen': 'poulet', // "Poulet" existiert nativ, "Haehnchen" nicht
   'pouletbrust': 'poulet brust', 'pouletbrustfilet': 'poulet brust filet',
   'huehnerbrust': 'poulet brust', 'hühnerbrust': 'poulet brust',
+  'haehnchenbrust': 'poulet brust', 'hähnchenbrust': 'poulet brust',
   'gschwellti': 'kartoffel gekocht',
   'zwetschgen': 'pflaumen', 'doerraprikosen': 'aprikosen getrocknet', 'dörraprikosen': 'aprikosen getrocknet',
 };
@@ -223,6 +224,7 @@ function normalizeIngredientPhrase(rawName) {
     optional: false,
     vagueAmount: false,
     searchQuery: '',
+    protected: false,
   };
   if (!originalText.trim()) return out;
 
@@ -298,6 +300,8 @@ function normalizeIngredientPhrase(rawName) {
 
   out.rawIngredientName = core || normalized;
   out.canonicalIngredient = canonicalCore || core || normalized;
+  out.protected = !!protectedPhrase; // true = canonicalIngredient ist eine geschuetzte Mehrwort-Verbindung
+                                       // (z.B. "vegane butter") und darf NIE wortweise zerlegt/geprueft werden
 
   // 10) Suchanfrage fuers Nutrition-Matching: Kern + erhaltene ernaehrungsrelevante Zustaende
   //     (gleiches Prinzip wie die Zubereitungserkennung aus den Schritten, nutrition-preparation.js).
