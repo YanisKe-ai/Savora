@@ -72,6 +72,22 @@ let modalTriggerSelector = null;
    Diffing) — eine direkt gehaltene Elementreferenz waere direkt nach dem oeffnenden
    render() schon veraltet. Deshalb wird ein CSS-Selektor gespeichert und der Ausloeser
    nach dem Schliessen frisch im neuen DOM wiedergefunden. */
+/* ---------- Punkt 1 (Interaction-Stability-Auftrag): zentrale Focus-API ----------
+   Ersetzt jeden programmatischen .focus()-Aufruf. Ohne preventScroll bringt der Browser das
+   fokussierte Element aktiv in den sichtbaren Bereich — genau das erzeugte die ungewollten
+   Scroll-Spruenge bei Modal-Schliessen, Fokus-Trap und Suche. Der try/catch-Fallback greift nur
+   fuer sehr alte Browser ohne { preventScroll }-Unterstuetzung. */
+function focusWithoutScroll(el, opts) {
+  if (!el) return;
+  const x = window.scrollX, y = window.scrollY;
+  try {
+    el.focus(Object.assign({ preventScroll: true }, opts));
+  } catch (e) {
+    el.focus();
+    window.scrollTo(x, y);
+  }
+}
+
 function openModal(modal, triggerSelector) {
   modalTriggerSelector = triggerSelector || null;
   state.modal = modal;
@@ -84,7 +100,7 @@ function closeModal() {
   render();
   const trigger = modalTriggerSelector && document.querySelector(modalTriggerSelector);
   if (trigger && document.contains(trigger) && typeof trigger.focus === 'function') {
-    trigger.focus();
+    focusWithoutScroll(trigger);
   }
   modalTriggerSelector = null;
 }
@@ -104,10 +120,10 @@ function onModalEscape(e) {
     const first = focusables[0], last = focusables[focusables.length - 1];
     // Fokus-Falle: Tab/Shift+Tab kreist innerhalb des Dialogs, statt auf die
     // dahinterliegende Seite auszubrechen.
-    if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
-    else if (e.shiftKey && !modal.contains(document.activeElement)) { e.preventDefault(); last.focus(); }
-    else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
-    else if (!e.shiftKey && !modal.contains(document.activeElement)) { e.preventDefault(); first.focus(); }
+    if (e.shiftKey && document.activeElement === first) { e.preventDefault(); focusWithoutScroll(last); }
+    else if (e.shiftKey && !modal.contains(document.activeElement)) { e.preventDefault(); focusWithoutScroll(last); }
+    else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); focusWithoutScroll(first); }
+    else if (!e.shiftKey && !modal.contains(document.activeElement)) { e.preventDefault(); focusWithoutScroll(first); }
   }
 }
 
@@ -122,7 +138,7 @@ function bindEvents() {
 
   const modalSheet = document.querySelector('.modal-sheet');
   if (modalSheet) {
-    modalSheet.focus();
+    focusWithoutScroll(modalSheet);
     document.addEventListener('keydown', onModalEscape);
   } else {
     document.removeEventListener('keydown', onModalEscape);
@@ -133,6 +149,13 @@ function bindEvents() {
     let searchDebounceTimer = null;
     searchInput.addEventListener('input', (e) => {
       state.query = e.target.value;
+      // Punkt 2: der Sprung entsteht hier nicht durch render()/focus() (die sind bereits mit
+      // preventScroll abgesichert), sondern durch natives Browser-Verhalten, das ein fokussiertes
+      // Eingabefeld beim Tippen aktiv in den sichtbaren Bereich scrollt, sobald es (z.B. hinter
+      // der sticky Topbar) ausserhalb des Viewports liegt. requestAnimationFrame faengt genau das
+      // im naechsten Frame wieder ab, bevor es sichtbar wird.
+      const y = window.scrollY;
+      requestAnimationFrame(() => { if (window.scrollY !== y) window.scrollTo(0, y); });
       clearTimeout(searchDebounceTimer);
       searchDebounceTimer = setTimeout(() => renderKeepFocus('searchInput'), 120);
     });
@@ -203,7 +226,7 @@ function renderKeepFocus(id) {
   const pos = el ? el.selectionStart : null;
   render();
   const el2 = document.getElementById(id);
-  if (el2) { el2.focus(); if (pos !== null) el2.setSelectionRange(pos, pos); }
+  if (el2) { focusWithoutScroll(el2); if (pos !== null) el2.setSelectionRange(pos, pos); }
 }
 
 async function onAction(e) {
@@ -251,7 +274,10 @@ async function onAction(e) {
       if (cardImg) cardImg.style.viewTransitionName = 'recipe-hero-img';
       state.activeRecipeId = id;
       state.view = 'detail';
-      window.scrollTo(0, 0);
+      // Punkt 4: kein manuelles scrollTo mehr hier — render() setzt bei echtem View-Wechsel
+      // selbst und zum richtigen Zeitpunkt (nach dem DOM-Tausch, nicht davor) auf Position 0,
+      // sonst wuerde die View-Transition-Momentaufnahme der "alten" Seite faelschlich schon
+      // oben zeigen statt an der tatsaechlichen Scrollposition.
       render();
       break;
     }
@@ -562,7 +588,7 @@ async function onAction(e) {
       // Fokus nach dem Re-Render zurueck ins Eingabefeld, damit man mehrere Artikel
       // hintereinander eintippen kann ohne jedes Mal neu hinzutippen zu muessen.
       const freshInput = document.getElementById('shoppingAddInput');
-      if (freshInput) freshInput.focus();
+      if (freshInput) focusWithoutScroll(freshInput);
       break;
     }
     case 'delete-shopping-item':

@@ -861,9 +861,13 @@ function settingsHelpView() {
 }
 
 function settingsPrivacyView() {
-  const body = `<div class="settings-group"><div class="settings-group-card settings-group-card--padded">
-    <p class="settings-hint" style="margin:0;">Savora speichert dein Kochbuch ausschliesslich lokal auf diesem Gerät (IndexedDB). Es findet keine Übertragung an einen Server statt, ausser du exportierst oder teilst ein Rezept selbst aktiv. Diese Seite wird für die Beta-Version noch ausführlicher vorbereitet.</p>
-  </div></div>`;
+  const body = `<div class="settings-group">
+    <div class="settings-group-card settings-group-card--padded">
+      <p class="settings-hint" style="margin:0 0 10px;">Deine Rezepte, Fotos und Notizen bleiben ausschliesslich lokal auf diesem Gerät (IndexedDB). Savora hat keinen eigenen Server und schickt diese Daten nirgendwohin.</p>
+      <p class="settings-hint" style="margin:0 0 10px;">Eine Ausnahme: Wenn du ein Produkt per Barcode suchst und die Schweizer Nährwertdatenbank keinen Treffer hat, fragt Savora Open Food Facts online ab. Dabei werden nur die dafür nötigen Such-/Barcode-Daten an diesen Dienst übertragen, keine anderen Rezeptdaten.</p>
+      <p class="settings-hint" style="margin:0;">Exportierst oder teilst du ein Rezept selbst, verlässt genau diese Datei dein Gerät, sonst nichts. Diese Seite wird für die Beta-Version noch ausführlicher vorbereitet.</p>
+    </div>
+  </div>`;
   return settingsDetailShell('Datenschutz', body);
 }
 

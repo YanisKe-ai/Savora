@@ -173,7 +173,7 @@
   /* Punkt 17: die Topbar ist sticky (z-index 20) und damit ~110-120px hoch — ohne diesen
      Puffer kann der Browser ein per Tastatur fokussiertes Element genau dahinter scrollen,
      der Fokusring waere dann unsichtbar. */
-  html { scroll-padding-top: 120px; }
+  html { scroll-padding-top: 120px; scrollbar-gutter: stable; }
   body {
     font-family: var(--font-sans);
     font-optical-sizing: auto;
@@ -184,7 +184,9 @@
     transition: background 0.2s ease, color 0.2s ease;
   }
   img { max-width: 100%; display: block; }
-  button { font-family: inherit; cursor: pointer; }
+  /* Punkt 14: verhindert die ~300ms Doppel-Tap-Zoom-Verzoegerung mobiler Browser auf allen
+     Buttons/klickbaren Rows, ohne echtes Pinch-Zoom an anderer Stelle zu beeintraechtigen. */
+  button { font-family: inherit; cursor: pointer; touch-action: manipulation; }
   input, textarea, select { font-family: inherit; }
   a { color: inherit; }
   :focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 2px; }
@@ -339,7 +341,12 @@
     position: relative;
     transition: transform 0.15s ease, box-shadow 0.15s ease;
   }
-  .recipe-card:hover { transform: translateY(-2px); box-shadow: var(--shadow-soft); }
+  /* Punkt 14 (Interaction-Stability-Auftrag): Hover nur fuer Geraete mit echtem Zeiger, sonst
+     kann der Hover-Zustand nach einem Tap auf Touch-Geraeten haengen bleiben ("klebender Hover"). */
+  @media (hover: hover) and (pointer: fine) {
+    .recipe-card:hover { transform: translateY(-2px); box-shadow: var(--shadow-soft); }
+  }
+  .recipe-card:active { transform: scale(0.99); }
   .recipe-card-main {
     display: flex; flex-direction: column; width: 100%;
     text-align: left; border: none; padding: 0; margin: 0;
@@ -549,11 +556,11 @@
   .day-recipe-chip span { flex: 1; }
   .day-recipe-chip button { flex-shrink: 0; color: var(--text-muted); background: none; border: none; display: flex; }
   .day-recipe-chip button svg { width: 14px; height: 14px; }
-  .day-add-btn { background: none; border: 1.5px dashed var(--border); color: var(--text-muted); border-radius: var(--radius-s); padding: 9px; width: 100%; font-size: 13px; display: flex; align-items: center; justify-content: center; gap: 6px; min-height: 40px; }
+  .day-add-btn { background: none; border: 1.5px dashed var(--border); color: var(--text-muted); border-radius: var(--radius-s); padding: 9px; width: 100%; font-size: 13px; display: flex; align-items: center; justify-content: center; gap: 6px; min-height: var(--tap-min); }
   .day-add-btn svg { width: 14px; height: 14px; flex-shrink: 0; }
   .icon-inline { display: inline-flex; flex-shrink: 0; }
   .icon-inline svg { width: 100%; height: 100%; display: block; }
-  .picker-list { display: flex; flex-direction: column; gap: 6px; max-height: 50vh; overflow-y: auto; }
+  .picker-list { display: flex; flex-direction: column; gap: 6px; max-height: 50vh; overflow-y: auto; overscroll-behavior: contain; }
   .picker-item { display: flex; align-items: center; gap: 10px; padding: 10px; border-radius: var(--radius-s); background: var(--bg-elevated); text-align: left; border: none; color: var(--text); font-size: 14px; min-height: 48px; }
   .picker-item img { width: 36px; height: 36px; border-radius: 6px; object-fit: cover; flex-shrink: 0; }
 
@@ -678,14 +685,19 @@
   .add-row-btn { background: none; border: 1.5px dashed var(--border); color: var(--text); border-radius: var(--radius-s); padding: 12px; min-height: var(--tap-min); width: 100%; font-size: 13.5px; display: flex; align-items: center; justify-content: center; gap: 6px; }
   .add-row-btn svg { width: 14px; height: 14px; }
 
-  .tag-input-row { display: flex; gap: 6px; flex-wrap: wrap; padding: 10px; border: 1px solid var(--border); border-radius: var(--radius-s); background: var(--card-bg); }
+  .tag-input-row { display: flex; gap: 10px; flex-wrap: wrap; padding: 10px; border: 1px solid var(--border); border-radius: var(--radius-s); background: var(--card-bg); }
   .tag-input-row input { border: none; flex: 1; min-width: 100px; font-size: 14px; padding: 4px; background: transparent; color: var(--text); }
   .tag-input-row input:focus { outline: none; }
   .tag-pill { background: var(--bg-elevated); border-radius: 999px; padding: 4px 10px; font-size: 12.5px; display: flex; align-items: center; gap: 5px; color: var(--text); }
   /* Punkt 5: sichtbare Pille bleibt kompakt, die tatsaechliche Hit-Area des Remove-Buttons wird
      per negativem Rand auf ~32px vergroessert (Standard-Pattern fuer kleine Icon-Buttons in
      dichten Listen), damit auf dem Handy nicht daneben-getippt wird. */
-  .tag-pill button { background: none; border: none; padding: 8px; margin: -8px -8px -8px -2px; display: flex; align-items: center; justify-content: center; min-width: 32px; min-height: 32px; color: var(--text-muted); }
+  /* Punkt 14: 48px waere hier nicht ohne Ueberlappung benachbarter unsichtbarer Hit-Areas
+     erreichbar (Pillen liegen dicht gepackt in einer Flex-Wrap-Zeile) — das verbietet der
+     Auftrag ausdruecklich staerker als die 48px-Zielgroesse selbst. 40px ist der groesste Wert,
+     der bei 10px Pillenabstand garantiert nicht mit dem Nachbarn ueberlappt (2x20px < 10px+
+     Button-Eigenbreite reicht knapp nicht fuer 44px+, siehe Kommentar am Container-Gap oben). */
+  .tag-pill button { background: none; border: none; padding: 9px; margin: -9px -9px -9px -3px; display: flex; align-items: center; justify-content: center; min-width: 40px; min-height: 40px; color: var(--text-muted); }
   .tag-pill svg { width: 11px; height: 11px; }
 
   .form-actions { display: flex; gap: 10px; margin-top: 28px; padding-top: 18px; border-top: 1px solid var(--border); }
@@ -747,7 +759,7 @@
   /* ---------- Modal ---------- */
   .modal-backdrop { position: fixed; inset: 0; background: rgba(15,26,19,0.5); z-index: var(--z-modal); display: flex; align-items: flex-end; justify-content: center; }
   @media (min-width: 640px) { .modal-backdrop { align-items: center; } }
-  .modal-sheet { background: var(--card-bg); border-radius: 18px 18px 0 0; width: 100%; max-width: 440px; padding: 22px 20px 28px; max-height: 85vh; overflow-y: auto; }
+  .modal-sheet { background: var(--card-bg); border-radius: 18px 18px 0 0; width: 100%; max-width: 440px; padding: 22px 20px 28px; max-height: 85vh; max-height: 85dvh; overflow-y: auto; overscroll-behavior: contain; }
   @media (min-width: 640px) { .modal-sheet { border-radius: var(--radius-l); } }
   .modal-title { font-family: var(--font-display); font-optical-sizing: auto; font-size: 19px; margin: 0 0 14px; color: var(--text); }
 

@@ -62,15 +62,89 @@ if (systemDarkQuery) {
 }
 
 let lastRenderedView = null;
+// Punkt 4 (Interaction-Stability-Auftrag): Scrollposition je Haupttab merken, damit z.B.
+// Home -> Detail -> Zurueck wieder an derselben Stelle landet, statt oben zu beginnen.
+const scrollMemory = {};
+// Punkt 3: Body-Scroll-Lock waehrend ein Modal offen ist. null = nicht gesperrt, sonst die
+// Scrollposition, zu der beim Entsperren zurueckgekehrt wird.
+let bodyScrollLockY = null;
+
+function lockBodyScroll() {
+  bodyScrollLockY = window.scrollY;
+  document.body.style.position = 'fixed';
+  document.body.style.top = `-${bodyScrollLockY}px`;
+  document.body.style.left = '0';
+  document.body.style.right = '0';
+  document.body.style.width = '100%';
+}
+function unlockBodyScroll() {
+  const y = bodyScrollLockY;
+  document.body.style.position = '';
+  document.body.style.top = '';
+  document.body.style.left = '';
+  document.body.style.right = '';
+  document.body.style.width = '';
+  if (y !== null) window.scrollTo(0, y);
+  bodyScrollLockY = null;
+}
 
 function prefersReducedMotion() {
   return window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
 }
 
+/* Punkt 2/6/7/8: der Kern des Interaktions-Instabilitaets-Problems war, dass JEDE kleine Aktion
+   (Favorit, Filter, Suche, Portionen, Zutat hinzufuegen...) ueber denselben globalen render()
+   lief, der #app komplett neu aufbaut — UND danach kommentarlos entweder oben begann oder die
+   Browser-Standardclamping der Scrollposition zuschlug, sobald sich die Inhaltshoehe aenderte.
+   Statt jede einzelne Aktion auf gezielte DOM-Mutation umzubauen (grosser, riskanter Umbau ohne
+   Geraetetests), wird der Effekt hier zentral an der Wurzel behoben: bleibt die View gleich
+   (der Normalfall bei fast allen lokalen Aktionen), wird die Fensterposition exakt erhalten.
+   Nur ein echter View-Wechsel darf die Position aendern — und dann gezielt: Haupttabs merken
+   sich ihre letzte Position (Punkt 4), alles andere (Detail, Formular, Kochmodus, Settings-
+   Unterseiten) startet bewusst oben, wie im Auftrag verlangt.
+
+   Punkt 3: Body-Scroll-Lock ist hier zentral verdrahtet, NICHT nur in openModal/closeModal —
+   an mehreren Stellen im Code wird state.modal direkt auf null gesetzt (z.B. 'back',
+   'new-recipe', 'goto-view'), ohne ueber closeModal() zu laufen. Nur eine zentrale Pruefung
+   bei jedem render() erfasst zuverlaessig JEDEN Fall, in dem sich die Modal-Praesenz aendert. */
 function render() {
-  const viewChanged = state.view !== lastRenderedView;
+  const prevView = lastRenderedView;
+  const viewChanged = state.view !== prevView;
+  const hadModal = bodyScrollLockY !== null;
+  const hasModal = !!state.modal;
+
+  if (viewChanged && prevView && !hadModal && typeof TAB_VIEWS !== 'undefined' && TAB_VIEWS.includes(prevView)) {
+    scrollMemory[prevView] = window.scrollY;
+  }
+  // Waehrend der Hintergrund gesperrt ist, liest window.scrollY nur noch 0 (body ist fixed) —
+  // das waere keine sinnvolle Position zum Erhalten, deshalb hier bewusst ausgeklammert.
+  const preservedY = (!viewChanged && !hadModal) ? window.scrollY : null;
   lastRenderedView = state.view;
-  const update = () => { App.innerHTML = viewFor(state.view); bindEvents(); };
+
+  const applyScroll = () => {
+    if (hasModal) return; // Hintergrund bleibt gesperrt, eigenes Scrollen ist hier nicht relevant
+    if (!viewChanged) {
+      if (preservedY !== null) window.scrollTo(0, preservedY);
+    } else if (typeof TAB_VIEWS !== 'undefined' && TAB_VIEWS.includes(state.view) && scrollMemory[state.view] != null) {
+      window.scrollTo(0, scrollMemory[state.view]);
+    } else {
+      window.scrollTo(0, 0);
+    }
+  };
+
+  const update = () => {
+    App.innerHTML = viewFor(state.view);
+    bindEvents();
+    // Erst entsperren (stellt die gemerkte Position wieder her), DANN die normale
+    // Scroll-Entscheidung anwenden — sonst wuerde applyScroll auf der noch gesperrten,
+    // nicht scrollbaren Seite operieren.
+    if (!hasModal && hadModal) unlockBodyScroll();
+    applyScroll();
+    // Faengt ein natives Browser-Verhalten ab, das NACH einem Klick auf ein gerade per
+    // innerHTML entferntes/ersetztes Element eigenstaendig noch einmal scrollt.
+    requestAnimationFrame(applyScroll);
+    if (hasModal && !hadModal) lockBodyScroll();
+  };
   if (viewChanged && document.startViewTransition && !prefersReducedMotion()) {
     document.startViewTransition(update);
   } else {
