@@ -287,7 +287,7 @@ async function handleActionV2(action, id, el, e) {
       render();
       saveCookProgress();
       speakCurrentStepIfEnabled();
-      state.wakeLockUnsupported = !('wakeLock' in navigator);
+      state.wakeLockUnsupported = !('wakeLock' in navigator) && !SavoraNative.isNative;
       await requestWakeLock();
       if (state.view === 'cookmode') render();
       return true;
@@ -316,7 +316,7 @@ async function handleActionV2(action, id, el, e) {
       releaseWakeLock();
       if ('speechSynthesis' in window) window.speechSynthesis.cancel();
       Object.values(state.timers).forEach(t => { if (t.intervalId) clearInterval(t.intervalId); t.intervalId = null; t.running = false; });
-      state.timers = {};
+      state.timers = {}; SavoraNative.cancelAllTimers();
       state.cookFinished = false;
       history.back();
       return true;
@@ -331,7 +331,7 @@ async function handleActionV2(action, id, el, e) {
       checkedSetFor(r.id).clear();
       releaseWakeLock();
       Object.values(state.timers).forEach(t => { if (t.intervalId) clearInterval(t.intervalId); });
-      state.timers = {};
+      state.timers = {}; SavoraNative.cancelAllTimers();
       state.cookFinished = false;
       state.cookStepIndex = 0;
       state.cookProgressHandled = true;
@@ -487,8 +487,9 @@ async function handleActionV2(action, id, el, e) {
       });
       const text = lines.join('\n').trim() || 'Einkaufsliste ist leer';
       try {
+        if (SavoraNative.isNative) { await SavoraNative.shareText('Einkaufsliste', text); return true; }
         if (navigator.share) { await navigator.share({ title: 'Einkaufsliste', text }); return true; }
-      } catch (err) { if (err && err.name === 'AbortError') return true; }
+      } catch (err) { if (SavoraNative.isCancel(err) || (err && err.name === 'AbortError')) return true; }
       try { await navigator.clipboard.writeText(text); showToast('Einkaufsliste kopiert'); }
       catch (err) { showToast('Teilen wird hier nicht unterstützt', 'error'); }
       return true;

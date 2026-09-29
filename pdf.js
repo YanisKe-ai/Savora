@@ -221,6 +221,12 @@ async function renderSectionsToPdf() {
 /* Startet den eigentlichen Dateidownload — getrennt von renderSectionsToPdf(), damit dazwischen
    erst eine Vorschau gezeigt werden kann (Punkt 65/138-149). */
 function triggerPdfDownload(blob, filename) {
+  if (SavoraNative.isNative) {   // iOS-App: "Herunterladen" gibt es nicht, das Teilen-Fenster bietet "In Dateien sichern"
+    SavoraNative.shareFile(blob, filename, filename).catch((err) => {
+      if (!SavoraNative.isCancel(err)) showToast('Speichern nicht möglich', 'error');
+    });
+    return;
+  }
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url; a.download = filename;

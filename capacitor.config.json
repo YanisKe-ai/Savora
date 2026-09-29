@@ -1,0 +1,9 @@
+{
+  "appId": "ch.yaniskeusch.savora",
+  "appName": "Savora",
+  "webDir": "www",
+  "ios": {
+    "backgroundColor": "#F8F7FC",
+    "contentInset": "never"
+  }
+}

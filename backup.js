@@ -31,9 +31,17 @@ async function downloadBackup() {
     settings: { collections: getCollections(), cookbookConfig: readJsonKey(COOKBOOK_CONFIG_KEY, null) },
   };
   const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+  const stamp = new Date().toISOString().slice(0, 10);
+  if (SavoraNative.isNative) {   // iOS-App: Sicherung ueber das Teilen-Fenster ("In Dateien sichern")
+    try {
+      await SavoraNative.shareFile(blob, `savora-sicherung-${stamp}.json`, 'Savora Sicherung');
+      state.lastBackupAt = payload.exportedAt;
+      localStorage.setItem(LAST_BACKUP_KEY, payload.exportedAt);
+    } catch (err) { if (!SavoraNative.isCancel(err)) showToast('Sicherung konnte nicht gespeichert werden', 'error'); }
+    return;
+  }
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
-  const stamp = new Date().toISOString().slice(0, 10);
   a.href = url;
   a.download = `savora-sicherung-${stamp}.json`;
   document.body.appendChild(a);

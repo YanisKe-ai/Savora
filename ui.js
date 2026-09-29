@@ -489,7 +489,7 @@ async function dispatchAction(action, id, el, e) {
       releaseWakeLock();
       if ('speechSynthesis' in window) window.speechSynthesis.cancel();
       Object.values(state.timers).forEach(t => { if (t.intervalId) clearInterval(t.intervalId); });
-      state.timers = {};
+      state.timers = {}; SavoraNative.cancelAllTimers();
       state.cookFinished = false;
       history.back(); // Punkt 5: einheitlich ueber history statt eigener state.view-Zuweisung
       break;
@@ -882,6 +882,11 @@ async function dispatchAction(action, id, el, e) {
       // erneutes, moeglicherweise abweichendes Rendern.
       const blob = state.modal.previewBlob;
       const filename = state.modal.filename || 'savora.pdf';
+      if (SavoraNative.isNative) {
+        try { await SavoraNative.shareFile(blob, filename, filename); }
+        catch (err) { if (!SavoraNative.isCancel(err)) showToast('Teilen nicht möglich', 'error'); }
+        break;
+      }
       try {
         const file = new File([blob], filename, { type: 'application/pdf' });
         if (navigator.canShare && !navigator.canShare({ files: [file] })) {

@@ -3,6 +3,10 @@
 Format: neueste Version oben. `VERSION` und `SW_VERSION` in `sw.js` werden bei jeder Änderung gemeinsam erhöht.
 
 ## Unveröffentlicht (Branch dev)
+- 0.26.0 (SW v26-ios-native): iOS-App mit Capacitor vorbereitet (`ios/`, `capacitor.config.json`, `scripts/build-www.js`, `assets/`).
+- Neue Datei `native.js`: PDF, Sicherung und Einkaufsliste über das iOS-Teilen-Fenster, Bildschirm bleibt im Kochmodus an, Timer-Benachrichtigung. Im Browser unverändert (Rückfall auf Web-Version).
+- Service Worker wird in der nativen App nicht registriert.
+- Neuer Test `tests/test_native.py` (simuliert die nativen Plugins).
 - Tests ins Repo übernommen (`tests/`), laufen lokal und bei jedem Push über GitHub Actions.
 - Datenerhalt-Test vergleicht gegen einen früheren Git-Commit (v20).
 - `VERSION` und `CHANGELOG.md` eingeführt.

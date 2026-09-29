@@ -51,7 +51,7 @@ function pdfExportBuildingStage() {
    PDF ein zweites Mal (evtl. anders) zu rendern. */
 function pdfExportPreviewStage() {
   const m = state.modal;
-  const canShare = typeof navigator !== 'undefined' && !!navigator.share;
+  const canShare = SavoraNative.isNative || (typeof navigator !== 'undefined' && !!navigator.share);
   return `
     <div class="pdf-preview-header">
       <h3 class="modal-title" id="pdf-export-title">Vorschau</h3>
