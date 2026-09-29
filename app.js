@@ -137,7 +137,7 @@ document.addEventListener('focusin', (e) => {
     await loadShopping();
     await loadMealplan();
     render();
-    if ('serviceWorker' in navigator) {
+    if ('serviceWorker' in navigator && !SavoraNative.isNative) {
       registerServiceWorkerWithUpdatePrompt();
     }
     runSplashSequence();

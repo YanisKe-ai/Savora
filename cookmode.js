@@ -13,6 +13,10 @@ function startTimer(id, totalSeconds) {
   };
   state.timers[id] = t;
   t.intervalId = setInterval(() => tickTimer(id), 1000);
+  if (SavoraNative.isNative) {   // Benachrichtigung, falls das Telefon gesperrt ist
+    const rec = (state.recipes || []).find((x) => x.id === state.activeRecipeId);
+    SavoraNative.scheduleTimer(id, t.endTime, rec && rec.title);
+  }
   updateTimerChipDOM(id);
 }
 
@@ -27,6 +31,7 @@ function tickTimer(id) {
     clearInterval(t.intervalId);
     t.intervalId = null;
     finishTimerFeedback();
+    SavoraNative.cancelTimer(id);   // App ist im Vordergrund: die App meldet selbst, keine doppelte Meldung
   }
   updateTimerChipDOM(id);
 }
@@ -67,6 +72,7 @@ function finishTimerFeedback() {
 
 /* ---------- Cook mode: wake lock ---------- */
 async function requestWakeLock() {
+  if (SavoraNative.isNative) { state.wakeLock = await SavoraNative.keepAwake(); return; }
   try {
     if ('wakeLock' in navigator) {
       state.wakeLock = await navigator.wakeLock.request('screen');
