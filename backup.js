@@ -21,10 +21,14 @@ async function downloadBackup() {
   const [customFoods, nutritionMatches, nutritionResults] = await Promise.all([
     dbGetAllCustomFoods(), dbGetAllNutritionMatches(), dbGetAllNutritionResults(),
   ]);
+  const mealplan = await dbGetAllMealplan();
   const payload = {
-    app: 'savora', version: 3, exportedAt: new Date().toISOString(),
+    // version bleibt fuer aeltere App-Staende lesbar; schemaVersion beschreibt den Inhalt.
+    app: 'savora', version: 3, schemaVersion: 4, exportedAt: new Date().toISOString(),
     recipes: recipesForExport, shopping: state.shopping,
     customFoods, nutritionMatches, nutritionResults,
+    mealplan,
+    settings: { collections: getCollections(), cookbookConfig: readJsonKey(COOKBOOK_CONFIG_KEY, null) },
   };
   const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
   const url = URL.createObjectURL(blob);
@@ -85,7 +89,10 @@ async function restoreBackupFromFile(file) {
     for (const r of data.recipes) {
       const clone = JSON.parse(JSON.stringify(r));
       const oldId = clone.id;
-      clone.id = uid();
+      // Original-ID behalten, wenn sie auf diesem Geraet frei ist (z.B. Wiederherstellung auf
+      // neuem Geraet). Nur bei Kollision entsteht eine neue ID, damit nichts ueberschrieben wird.
+      const idTaken = !oldId || state.recipes.some(x => x.id === oldId) || Object.values(recipeIdMap).includes(oldId);
+      if (idTaken) clone.id = uid();
       clone.updatedAt = Date.now();
       await dbPut(clone);
       if (oldId) recipeIdMap[oldId] = clone.id;
@@ -122,9 +129,37 @@ async function restoreBackupFromFile(file) {
       addedResults++;
     }
 
+    // Ab schemaVersion 4: Wochenplan, Sammlungen und Kochbuch-Auswahl. Aeltere Sicherungen haben
+    // diese Felder nicht, dann passiert hier nichts. Rezept-IDs werden auf die neuen IDs umgebogen;
+    // vorhandene Wochenplan-Eintraege werden ergaenzt, nie ersetzt.
+    let addedPlan = 0;
+    for (const day of (data.mealplan || [])) {
+      if (!day || !day.date) continue;
+      const incoming = Array.isArray(day.entries) ? day.entries : (day.recipeIds || []).map(rid => ({ recipeId: rid, meal: '', servings: null }));
+      const mapped = incoming.map(en => ({ ...en, id: uid(), recipeId: recipeIdMap[en.recipeId] })).filter(en => en.recipeId);
+      if (!mapped.length) continue;
+      await loadMealplan();
+      const existing = planEntriesFor(day.date);
+      await savePlanEntries(day.date, existing.concat(mapped));
+      addedPlan += mapped.length;
+    }
+    // Kochbuch-Auswahl nur uebernehmen, wenn hier noch keine eigene gespeichert ist.
+    if (data.settings && data.settings.cookbookConfig && !readJsonKey(COOKBOOK_CONFIG_KEY, null)) {
+      const cfg = data.settings.cookbookConfig;
+      cfg.items = (cfg.items || []).map(it => ({ ...it, recipeId: recipeIdMap[it.recipeId] })).filter(it => it.recipeId);
+      if (cfg.coverRecipeId) cfg.coverRecipeId = recipeIdMap[cfg.coverRecipeId] || '';
+      if (cfg.items.length) saveCookbookConfig(cfg);
+    }
+    if (data.settings && Array.isArray(data.settings.collections)) {
+      const cols = getCollections();
+      data.settings.collections.forEach(c => { if (c && c.id && !cols.some(x => x.id === c.id)) cols.push(c); });
+      saveCollections(cols);
+    }
     await loadRecipes();
     await loadShopping();
+    await loadMealplan();
     const extras = [];
+    if (addedPlan) extras.push(`${addedPlan} Wochenplan-Eintr${addedPlan === 1 ? 'ag' : 'äge'}`);
     if (addedFoods) extras.push(`${addedFoods} eigene${addedFoods === 1 ? 's' : ''} Lebensmittel`);
     if (addedMatches) extras.push(`${addedMatches} gelernte Zuordnung${addedMatches === 1 ? '' : 'en'}`);
     const msg = `${added} Rezept${added === 1 ? '' : 'e'}${addedItems ? `, ${addedItems} Einkaufslisten-Eintrag(e)` : ''}${extras.length ? ' und ' + extras.join(', ') : ''} wiederhergestellt.`;

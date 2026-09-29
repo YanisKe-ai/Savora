@@ -12,41 +12,49 @@
 
   :root {
     /* ============ FARB-TOKENS (Rohwerte) ============ */
-    --forest-950: #0f1a13;
-    --forest-900: #16261c;
-    --forest-850: #1c3325;
-    --forest-800-elevated: #24402e;
-    --forest-800: #203327;
-    --forest-700: #2c4534;
-    --forest-600: #3d5c46;
-    --sage-400: #8fa88c;
-    --sage-300: #b3c4ac;
-    --cream-50: #faf7ee;
-    --cream-100: #f5efdf;
-    --cream-200: #ece2c8;
-    --ember-500: #c9832f;
-    --ember-400: #d99a49;
-    --ember-400-dark: #d69a52;
-    --ember-600: #a8681f;
-    --ember-700: #98601c;
-    --ember-100: #f2ddb8;
-    --ink: #1b2118;
+    /* Feast x Bloom (Uebergabepaket 03_DESIGN_TOKENS.json). Die alten Variablennamen bleiben
+       bestehen, damit jede bestehende Regel weiter greift; nur ihre Werte zeigen jetzt auf die
+       neue Farbwelt: forest = Violett, cream = Lavendel/Weiss, ember = Limette (Flaeche) bzw.
+       Violett (Text-Akzent, weil Limette als Textfarbe auf Hell nie genug Kontrast hat). */
+    --forest-950: #1E0C33;
+    --forest-900: #32164F;
+    --forest-850: #3E1F5F;
+    --forest-800-elevated: #4A2A6E;
+    --forest-800: #3A1B58;
+    --forest-700: #5A3A7E;
+    --forest-600: #765F8C;
+    --sage-400: #9487A1;
+    --sage-300: #C9BEDA;
+    --cream-50: #F8F7FC;
+    --cream-100: #F2EFFA;
+    --cream-200: #EBE4F7;
+    --ember-500: #D1E681;
+    --ember-400: #DCEC9F;
+    --ember-400-dark: #DCEC9F;
+    --ember-600: #6E45A2;
+    --ember-700: #5A3589;
+    --ember-100: #F1F7D6;
+    --ink: #32164F;
+    --lime: #DCEC9F;
+    --lime-hover: #D1E681;
+    --lime-ink: #28133E;
+    --violet: #6E45A2;
+    --text-soft: #765F8C;
+    --text-faint: #9487A1;
+    --surface-soft: #F2EFFA;
+    --surface-selected: #EBE4F7;
+    --danger-soft: #FBEAEC;
 
-    --success: #3f7d4e;
+    --success: #397553;
     --success-300: #7cc08a;
-    --warning: #d99a49;
-    --danger: #a2432f;
-    --danger-300: #d98166;
-    --info: #4a7d78;
+    --warning: #A66A14;
+    --danger: #B33A4A;
+    --danger-300: #E58A96;
+    --info: #6E45A2;
+    --warning-bg: rgba(166,106,20,0.10);
+    --warning-border: rgba(166,106,20,0.35);
+    --warning-text: #8A560E;
 
-    /* Punkt 6: rohes --warning (#d99a49) hat auf Cream nur ~2.3:1 Kontrast (WCAG AA fuer
-       normale Schrift verlangt 4.5:1) — deshalb eigene semantische Tokens statt --warning direkt
-       fuer Text/Badges zu verwenden. --warning-text nutzt ember-700 (~4.9:1 auf Cream, gemessen). */
-    --warning-bg: rgba(217,154,73,0.16);
-    --warning-border: rgba(217,154,73,0.4);
-    --warning-text: var(--ember-700);
-
-    /* ============ SEMANTISCHE TOKENS — LIGHT (Standard) ============ */
     --bg: var(--cream-50);
     --bg-elevated: var(--cream-100);
     --bg-sunken: var(--cream-200);
@@ -54,16 +62,16 @@
     --text: var(--ink);
     --text-muted: var(--forest-600);
     --brand: var(--forest-900);
-    --brand-ink: var(--cream-100);
-    --accent: var(--ember-700);
-    --accent-solid: var(--ember-400);
-    --accent-icon: var(--ember-600);
-    --on-accent: var(--forest-950);
-    --border: rgba(61,92,70,0.22);
-    --focus-ring: var(--ember-400);
+    --brand-ink: #ffffff;
+    --accent: var(--violet);
+    --accent-solid: var(--lime);
+    --accent-icon: var(--violet);
+    --on-accent: var(--lime-ink);
+    --border: #E5DFF0;
+    --focus-ring: #6E45A2;
     --card-bg: #ffffff;
-    --shadow-card: 0 1px 2px rgba(15,26,19,0.06), 0 6px 18px rgba(15,26,19,0.08);
-    --shadow-soft: 0 2px 8px rgba(15,26,19,0.08), 0 8px 24px rgba(15,26,19,0.06);
+    --shadow-card: 0 1px 2px rgba(50,22,79,0.05);
+    --shadow-soft: 0 2px 10px rgba(50,22,79,0.07);
 
     /* ============ TYPOGRAFIE ============ */
     --font-display: 'Baloo 2', 'Segoe UI', system-ui, -apple-system, sans-serif;
@@ -78,8 +86,9 @@
 
     --radius-s: 10px;
     --radius-m: 14px;
-    --radius-l: 24px;
-    --tap-min: 48px;
+    --radius-l: 18px;
+    --radius-pill: 999px;
+    --tap-min: 44px;
     --tap-primary: 56px;
 
     /* ============ SPACING/MOTION/Z-INDEX TOKENS (Punkt 8) ============
@@ -95,8 +104,8 @@
     --space-6: 24px;
     --space-8: 32px;
 
-    --motion-fast: 0.15s;
-    --motion-normal: 0.25s;
+    --motion-fast: 0.16s;
+    --motion-normal: 0.22s;
     --motion-slow: 0.4s;
     --motion-easing: cubic-bezier(.4,0,.2,1);
 
@@ -108,55 +117,64 @@
   }
 
   [data-theme="dark"] {
-    --bg: var(--forest-950);
-    --bg-elevated: var(--forest-850);
-    --bg-sunken: #0c1410;
-    --bg-level2: var(--forest-800-elevated);
-    --text: #f0ece0;
-    --text-muted: var(--sage-300);
-    --brand: #f0ece0;
-    --brand-ink: var(--forest-900);
-    --accent: var(--ember-400);
-    --accent-solid: var(--ember-400-dark);
-    --accent-icon: var(--ember-400);
-    --on-accent: var(--forest-950);
-    --border: rgba(179,196,172,0.20);
-    --card-bg: var(--forest-850);
+    --bg: #140A22;
+    --bg-elevated: #1F1233;
+    --bg-sunken: #0E0718;
+    --bg-level2: #2A1A42;
+    --text: #F2EFFA;
+    --text-muted: #B7A9C9;
+    --text-soft: #B7A9C9;
+    --text-faint: #8F81A3;
+    --surface-soft: #241638;
+    --surface-selected: #33204D;
+    --danger-soft: rgba(229,138,150,0.14);
+    --brand: #F2EFFA;
+    --brand-ink: #1F1233;
+    --accent: #C9B2EC;
+    --accent-solid: var(--lime);
+    --accent-icon: #C9B2EC;
+    --on-accent: var(--lime-ink);
+    --border: rgba(220,210,240,0.14);
+    --focus-ring: #C9B2EC;
+    --card-bg: #1F1233;
     --success: var(--success-300);
     --danger: var(--danger-300);
-    --shadow-card: 0 1px 2px rgba(0,0,0,0.3), 0 6px 18px rgba(0,0,0,0.35);
-    --shadow-soft: 0 2px 8px rgba(0,0,0,0.4);
-    /* ember-400 hat auf dunklem Grund ~7.4:1 Kontrast (gemessen) — hier reicht die normale
-       Akzentfarbe direkt als Warning-Text, anders als im hellen Theme. */
-    --warning-bg: rgba(217,154,73,0.18);
-    --warning-border: rgba(217,154,73,0.45);
-    --warning-text: var(--ember-400);
+    --shadow-card: none;
+    --shadow-soft: 0 2px 10px rgba(0,0,0,0.35);
+    --warning-bg: rgba(220,236,159,0.10);
+    --warning-border: rgba(220,236,159,0.35);
+    --warning-text: #E8C77E;
   }
 
-  /* True-Black/AMOLED: reines Schwarz für Akku auf OLED-Bildschirmen, sonst wie Dark Mode */
+  /* True-Black/AMOLED: reines Schwarz fuer Akku auf OLED-Bildschirmen, sonst wie Dark Mode */
   [data-theme="amoled"] {
     --bg: #000000;
-    --bg-elevated: #121212;
+    --bg-elevated: #110A1A;
     --bg-sunken: #000000;
-    --bg-level2: #1c1c1c;
-    --text: #f0ece0;
-    --text-muted: var(--sage-300);
-    --brand: #f0ece0;
-    --brand-ink: #121212;
-    --accent: var(--ember-400);
-    --accent-solid: var(--ember-400-dark);
-    --accent-icon: var(--ember-400);
+    --bg-level2: #1A1026;
+    --text: #F2EFFA;
+    --text-muted: #B7A9C9;
+    --text-soft: #B7A9C9;
+    --text-faint: #8F81A3;
+    --surface-soft: #140C20;
+    --surface-selected: #241638;
+    --danger-soft: rgba(229,138,150,0.14);
+    --brand: #F2EFFA;
+    --brand-ink: #110A1A;
+    --accent: #C9B2EC;
+    --accent-solid: var(--lime);
+    --accent-icon: #C9B2EC;
     --on-accent: #000000;
-    --border: rgba(179,196,172,0.18);
-    --card-bg: #121212;
+    --border: rgba(220,210,240,0.13);
+    --focus-ring: #C9B2EC;
+    --card-bg: #110A1A;
     --success: var(--success-300);
     --danger: var(--danger-300);
     --shadow-card: none;
     --shadow-soft: none;
-    /* ember-400 hat auf reinem Schwarz ~8.7:1 Kontrast (gemessen) */
-    --warning-bg: rgba(217,154,73,0.18);
-    --warning-border: rgba(217,154,73,0.45);
-    --warning-text: var(--ember-400);
+    --warning-bg: rgba(220,236,159,0.10);
+    --warning-border: rgba(220,236,159,0.35);
+    --warning-text: #E8C77E;
   }
 
   * { box-sizing: border-box; }
@@ -311,7 +329,7 @@
     font-size: 16px;
     color: var(--text);
   }
-  .search-input:focus { outline: none; border-color: var(--accent-solid); box-shadow: 0 0 0 3px rgba(201,131,47,0.15); }
+  .search-input:focus { outline: none; border-color: var(--accent-solid); box-shadow: 0 0 0 3px rgba(110,69,162,0.15); }
 
   .tag-row { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 4px; margin-bottom: 20px; -webkit-overflow-scrolling: touch; }
   .tag-row::-webkit-scrollbar { display: none; }
@@ -400,7 +418,7 @@
     align-items: center;
     justify-content: center;
     gap: 8px;
-    box-shadow: 0 3px 10px rgba(201,131,47,0.28);
+    box-shadow: 0 3px 10px rgba(110,69,162,0.28);
   }
   .primary-btn svg { width: 17px; height: 17px; }
   .primary-btn:active { transform: scale(0.98); }
@@ -429,7 +447,7 @@
     background: linear-gradient(135deg, var(--ember-400), var(--ember-500));
     color: var(--on-accent);
     border: none;
-    box-shadow: 0 6px 18px rgba(201,131,47,0.4);
+    box-shadow: 0 6px 18px rgba(110,69,162,0.4);
     display: flex; align-items: center; justify-content: center;
     z-index: 15;
     transition: transform 0.15s ease;
@@ -457,7 +475,7 @@
   .detail-hero-img.placeholder svg { width: 56px; height: 56px; }
   .detail-hero-overlay {
     position: absolute; inset: 0;
-    background: linear-gradient(to top, rgba(15,26,19,0.85) 0%, rgba(15,26,19,0.12) 55%, transparent 100%);
+    background: linear-gradient(to top, rgba(50,22,79,0.85) 0%, rgba(50,22,79,0.12) 55%, transparent 100%);
     display: flex; flex-direction: column; justify-content: flex-end;
     padding: 20px;
   }
@@ -506,8 +524,8 @@
   .timer-chip {
     position: relative;
     display: inline-flex; align-items: center; gap: 5px;
-    background: rgba(217,154,73,0.16); color: var(--ember-400);
-    border: 1px solid rgba(217,154,73,0.35);
+    background: rgba(220,236,159,0.16); color: var(--ember-400);
+    border: 1px solid rgba(220,236,159,0.35);
     border-radius: 999px; padding: 4px 11px 4px 9px; margin: 0 2px;
     font-family: var(--font-sans); font-size: 0.62em; font-weight: 700;
     font-variant-numeric: tabular-nums; vertical-align: middle;
@@ -522,7 +540,7 @@
     width: max(44px, 100%); height: 44px;
   }
   .timer-chip svg { width: 13px; height: 13px; flex-shrink: 0; }
-  .timer-chip.running { background: rgba(217,154,73,0.28); }
+  .timer-chip.running { background: rgba(220,236,159,0.28); }
   .timer-chip.done { background: rgba(63,125,78,0.22); color: var(--success-300); border-color: rgba(124,192,138,0.4); }
 
   /* ---------- Shopping list ---------- */
@@ -631,8 +649,8 @@
   .cookmode-progress { font-size: 13px; color: var(--sage-300); font-variant-numeric: tabular-nums; }
   .wakelock-chip {
     display: inline-flex; align-items: center; gap: 6px;
-    background: rgba(217,154,73,0.14); color: var(--ember-400);
-    border: 1px solid rgba(217,154,73,0.3);
+    background: rgba(220,236,159,0.14); color: var(--ember-400);
+    border: 1px solid rgba(220,236,159,0.3);
     border-radius: 999px; padding: 5px 11px; font-size: 11.5px;
   }
   .wakelock-chip svg { width: 13px; height: 13px; }
@@ -669,7 +687,7 @@
     font-size: 16px; background: var(--card-bg); color: var(--text); min-height: var(--tap-min);
   }
   .field textarea { resize: vertical; min-height: 70px; }
-  .field input:focus, .field textarea:focus, .field select:focus { outline: none; border-color: var(--accent-solid); box-shadow: 0 0 0 3px rgba(201,131,47,0.15); }
+  .field input:focus, .field textarea:focus, .field select:focus { outline: none; border-color: var(--accent-solid); box-shadow: 0 0 0 3px rgba(110,69,162,0.15); }
   .field-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 18px; }
   .field-row .field { margin-bottom: 0; }
   .field-hint { font-size: 12px; color: var(--text-muted); margin-top: 4px; }
@@ -777,7 +795,7 @@
   .settings-hint--top { margin: 10px 0 0; }
 
   /* ---------- Modal ---------- */
-  .modal-backdrop { position: fixed; inset: 0; background: rgba(15,26,19,0.5); z-index: var(--z-modal); display: flex; align-items: flex-end; justify-content: center; }
+  .modal-backdrop { position: fixed; inset: 0; background: rgba(50,22,79,0.5); z-index: var(--z-modal); display: flex; align-items: flex-end; justify-content: center; }
   @media (min-width: 640px) { .modal-backdrop { align-items: center; } }
   .modal-sheet { background: var(--card-bg); border-radius: 18px 18px 0 0; width: 100%; max-width: 440px; padding: 22px 20px calc(28px + env(safe-area-inset-bottom, 0)); max-height: 85vh; max-height: 85dvh; overflow-y: auto; overscroll-behavior: contain; }
   @media (min-width: 640px) { .modal-sheet { border-radius: var(--radius-l); } }
@@ -818,32 +836,32 @@
     width: 210mm; min-height: 297mm; box-sizing: border-box;
   }
   .pdf-page-recipe {
-    font-family: var(--font-sans); color: #1b2118;
-    background: #faf7ee; padding: 18mm 16mm;
+    font-family: var(--font-sans); color: #32164F;
+    background: #F8F7FC; padding: 18mm 16mm;
   }
   .pdf-page-cover {
-    background: #faf7ee; color: #16261c;
+    background: #F8F7FC; color: #32164F;
     display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center;
     padding: 28mm 24mm;
   }
   .pdf-cover-badge {
-    width: 34mm; height: 34mm; border-radius: 8mm; background: #0f1a13; margin-bottom: 14mm;
+    width: 34mm; height: 34mm; border-radius: 8mm; background: #1E0C33; margin-bottom: 14mm;
     display: flex; align-items: center; justify-content: center;
   }
   .pdf-cover-badge img { width: 20mm; height: 20mm; object-fit: contain; display: block; }
-  .pdf-page-cover h1 { font-family: var(--font-display); font-size: 40pt; font-weight: 700; margin: 0; color: #16261c; letter-spacing: -0.01em; }
-  .pdf-cover-rule { width: 26mm; height: 2.5pt; background: #c9832f; margin: 7mm 0; border: none; }
+  .pdf-page-cover h1 { font-family: var(--font-display); font-size: 40pt; font-weight: 700; margin: 0; color: #32164F; letter-spacing: -0.01em; }
+  .pdf-cover-rule { width: 26mm; height: 2.5pt; background: #6E45A2; margin: 7mm 0; border: none; }
   .pdf-page-cover p { font-family: var(--font-sans); font-size: 9.5pt; letter-spacing: 0.16em; text-transform: uppercase; color: #7a8a7c; margin: 0; }
 
-  .pdf-page-toc { background: #faf7ee; padding: 26mm 20mm; color: #16261c; }
-  .pdf-page-toc h2 { font-family: var(--font-display); font-size: 24pt; font-weight: 700; color: #16261c; border-bottom: 2px solid #16261c; padding-bottom: 10px; margin: 0 0 18px; }
-  .print-toc-category { font-family: var(--font-display); font-size: 10pt; font-weight: 700; text-transform: uppercase; letter-spacing: 0.12em; color: #a8681f; margin: 20px 0 4px; }
+  .pdf-page-toc { background: #F8F7FC; padding: 26mm 20mm; color: #32164F; }
+  .pdf-page-toc h2 { font-family: var(--font-display); font-size: 24pt; font-weight: 700; color: #32164F; border-bottom: 2px solid #32164F; padding-bottom: 10px; margin: 0 0 18px; }
+  .print-toc-category { font-family: var(--font-display); font-size: 10pt; font-weight: 700; text-transform: uppercase; letter-spacing: 0.12em; color: #6E45A2; margin: 20px 0 4px; }
   /* Punkt 29/63-65: kraeftigerer Titel-Kontrast, echte Seitenzahl statt Ratewert, Punktlinie
      dazwischen statt eines schwachen Trennstrichs unter der ganzen Zeile. */
   .print-toc-row { display: flex; align-items: baseline; gap: 8px; font-family: var(--font-sans); font-size: 10.5pt; padding: 7px 0; }
-  .print-toc-row .toc-title { color: #16261c; font-weight: 600; flex-shrink: 0; max-width: 70%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .print-toc-row .toc-title { color: #32164F; font-weight: 600; flex-shrink: 0; max-width: 70%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .print-toc-row .toc-leader { flex: 1; border-bottom: 1px dotted #b8ac8c; height: 1px; margin-bottom: 4px; min-width: 8mm; }
-  .print-toc-row .toc-page { flex-shrink: 0; font-variant-numeric: tabular-nums; font-weight: 700; color: #a8681f; }
+  .print-toc-row .toc-page { flex-shrink: 0; font-variant-numeric: tabular-nums; font-weight: 700; color: #6E45A2; }
 
   /* ---------- Nutrition (Savora Nutrition C) ---------- */
   .nutrition-section { margin-top: 32px; }
@@ -911,11 +929,11 @@
 
   /* ---------- PDF Editorial Engine: Layout-Varianten (Punkt 43-49) ---------- */
   .pdf-img-cover { width: 100%; height: 100%; object-fit: cover; display: block; }
-  .pdf-header { font-family: var(--font-display); font-size: 9pt; font-weight: 700; text-transform: uppercase; letter-spacing: 0.16em; color: #a8681f; margin-bottom: 8px; }
-  .pdf-title { font-family: var(--font-display); font-size: 26pt; font-weight: 700; color: #16261c; margin: 0 0 10px; line-height: 1.12; }
-  .pdf-meta { font-family: var(--font-sans); font-size: 9.5pt; color: #4a5a4c; margin-bottom: 8px; }
+  .pdf-header { font-family: var(--font-display); font-size: 9pt; font-weight: 700; text-transform: uppercase; letter-spacing: 0.16em; color: #6E45A2; margin-bottom: 8px; }
+  .pdf-title { font-family: var(--font-display); font-size: 26pt; font-weight: 700; color: #32164F; margin: 0 0 10px; line-height: 1.12; }
+  .pdf-meta { font-family: var(--font-sans); font-size: 9.5pt; color: #765F8C; margin-bottom: 8px; }
   .pdf-cols { display: grid; grid-template-columns: 1fr 1.8fr; gap: 10mm; align-items: start; }
-  .pdf-ing-title, .pdf-steps-title { font-family: var(--font-display); font-size: 9pt; font-weight: 700; text-transform: uppercase; letter-spacing: 0.14em; color: #a8681f; margin: 0 0 10px; padding-bottom: 6px; border-bottom: 1.5pt solid #c9832f; }
+  .pdf-ing-title, .pdf-steps-title { font-family: var(--font-display); font-size: 9pt; font-weight: 700; text-transform: uppercase; letter-spacing: 0.14em; color: #6E45A2; margin: 0 0 10px; padding-bottom: 6px; border-bottom: 1.5pt solid #6E45A2; }
   .pdf-ing-list { list-style: none; padding: 0; margin: 0 0 14px; font-family: var(--font-sans); font-weight: 400; font-size: 10.5pt; }
   .pdf-ing-list li { padding: 5px 0; border-bottom: 1px solid #eee; }
   .pdf-step-list { list-style: none; padding: 0; margin: 0; counter-reset: pstep; }
@@ -926,7 +944,7 @@
   .pdf-step-list li::before {
     counter-increment: pstep; content: counter(pstep);
     position: absolute; left: 0; top: 1px; width: 18px; height: 18px;
-    background: #16261c; color: #f5efdf; border-radius: 50%; font-family: var(--font-display); font-size: 8.5pt; font-weight: 600;
+    background: #32164F; color: #F2EFFA; border-radius: 50%; font-family: var(--font-display); font-size: 8.5pt; font-weight: 600;
     display: flex; align-items: center; justify-content: center;
   }
   .pdf-notes { margin-top: 14px; }
@@ -935,10 +953,10 @@
 
   /* Nutrition-Box: ruhig, wie Teil eines Kochbuchs (Punkt 58) */
   .pdf-nutrition-box { margin-top: 16px; padding: 10px 14px; background: #f2ece0; border-radius: 6px; border: 1px solid #e3d9c4; }
-  .pdf-nutrition-title { font-family: var(--font-display); font-size: 8pt; font-weight: 700; text-transform: uppercase; letter-spacing: 0.12em; color: #a8681f; margin-bottom: 6px; }
+  .pdf-nutrition-title { font-family: var(--font-display); font-size: 8pt; font-weight: 700; text-transform: uppercase; letter-spacing: 0.12em; color: #6E45A2; margin-bottom: 6px; }
   .pdf-nutrition-row { display: flex; flex-wrap: wrap; gap: 14px; font-family: var(--font-sans); font-size: 9pt; color: #3a453c; }
-  .pdf-nutrition-row strong { color: #16261c; font-weight: 700; }
-  .pdf-nutrition-source { font-family: var(--font-sans); font-size: 7pt; color: #9aa79b; margin-top: 6px; font-style: italic; }
+  .pdf-nutrition-row strong { color: #32164F; font-weight: 700; }
+  .pdf-nutrition-source { font-family: var(--font-sans); font-size: 7pt; color: #9487A1; margin-top: 6px; font-style: italic; }
 
   /* Layout A — Cinematic Hero: Foto 40% der Seite, randlos */
   .pdf-layout-hero { padding: 0; display: flex; flex-direction: column; }
@@ -964,16 +982,16 @@
   .pdf-layout-full-statement .pdf-statement-photo { position: relative; width: 210mm; height: 150mm; overflow: hidden; }
   .pdf-layout-full-statement .pdf-statement-overlay {
     position: absolute; left: 0; right: 0; bottom: 0; padding: 14mm 16mm 10mm;
-    background: linear-gradient(to top, rgba(15,26,19,0.88), rgba(15,26,19,0));
+    background: linear-gradient(to top, rgba(50,22,79,0.88), rgba(50,22,79,0));
   }
-  .pdf-layout-full-statement .pdf-title-statement { color: #faf7ee; font-size: 28pt; margin-bottom: 6px; }
+  .pdf-layout-full-statement .pdf-title-statement { color: #F8F7FC; font-size: 28pt; margin-bottom: 6px; }
   .pdf-layout-full-statement .pdf-statement-overlay .pdf-meta { color: #e7e2d2; }
   .pdf-layout-full-statement .pdf-statement-body { padding: 14mm 16mm 18mm; }
 
   /* Layout G — Typography: kein Foto, eigenstaendige Textseite statt Platzhalter (Punkt 49) */
   .pdf-layout-typography { padding: 22mm 18mm; }
   .pdf-layout-typography .pdf-title-typography { font-size: 32pt; }
-  .pdf-layout-typography .pdf-typo-rule { width: 26mm; height: 2.5pt; background: #c9832f; margin: 10px 0 20px; }
+  .pdf-layout-typography .pdf-typo-rule { width: 26mm; height: 2.5pt; background: #6E45A2; margin: 10px 0 20px; }
 
   /* Layout F — Long Recipe + Fortsetzung (Teil F): einspaltig, damit sich eine zu lange Seite an
      jeder Blockgrenze sauber umbrechen laesst, ohne zwei ungleich lange Spalten zu erzeugen
@@ -981,7 +999,7 @@
   .pdf-layout-long { display: flex; flex-direction: column; }
   .pdf-long-photo { width: calc(100% + 32mm); margin: -18mm -16mm 14px; height: 85mm; overflow: hidden; }
   .pdf-layout-continuation { padding-top: 22mm; }
-  .pdf-continuation-tag { font-family: var(--font-display); font-size: 9pt; font-weight: 700; text-transform: uppercase; letter-spacing: 0.14em; color: #a8681f; margin-bottom: 16px; padding-bottom: 8px; border-bottom: 1px solid #e3d9c4; }
+  .pdf-continuation-tag { font-family: var(--font-display); font-size: 9pt; font-weight: 700; text-transform: uppercase; letter-spacing: 0.14em; color: #6E45A2; margin-bottom: 16px; padding-bottom: 8px; border-bottom: 1px solid #e3d9c4; }
 
   /* Zusatzzeile in der Nutrition-Box im "Erweitert"-Detailgrad (Zucker/ges. Fett/Salz). */
   .pdf-nutrition-row-extra { margin-top: 4px; padding-top: 4px; border-top: 1px dotted #e3d9c4; }
@@ -1013,7 +1031,7 @@
   .filter-group-title { font-family: var(--font-display); font-optical-sizing: auto; font-size: 14.5px; color: var(--text); margin: 0 0 10px; }
   .filter-checkbox-row { display: flex; flex-wrap: wrap; gap: 8px; }
   .filter-checkbox { display: flex; align-items: center; gap: 7px; padding: 8px 12px; border-radius: var(--radius-s); border: 1px solid var(--border); background: var(--bg-elevated); color: var(--text); font-size: 13px; min-height: var(--tap-min); }
-  .filter-checkbox.active { border-color: var(--accent-solid); background: rgba(201,131,47,0.12); color: var(--accent); font-weight: 600; }
+  .filter-checkbox.active { border-color: var(--accent-solid); background: rgba(110,69,162,0.12); color: var(--accent); font-weight: 600; }
   .filter-checkbox-box { width: 16px; height: 16px; border-radius: 4px; border: 1.5px solid var(--border); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
   .filter-checkbox-box svg { width: 11px; height: 11px; }
   .filter-checkbox.active .filter-checkbox-box { border-color: var(--accent-solid); background: var(--accent-solid); color: var(--on-accent); }

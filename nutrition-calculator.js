@@ -44,7 +44,8 @@ function addNutrientContribution(totals, known, food, grams) {
    (siehe recalculateAndStoreNutrition), damit diese Funktion auch fuer Vorschau/Tests
    ohne Nebenwirkungen nutzbar ist. */
 async function calculateRecipeNutrition(recipe) {
-  const ingredients = recipe.ingredients || [];
+  // Gruppentitel wie "Teig:" sind keine Zutaten und duerfen nicht als "ungeklaert" zaehlen.
+  const ingredients = (recipe.ingredients || []).filter(i => !(typeof isIngredientHeaderRow === 'function' && isIngredientHeaderRow(i)));
   const servings = Number(recipe.servings) > 0 ? Number(recipe.servings) : 1;
 
   const totals = {};

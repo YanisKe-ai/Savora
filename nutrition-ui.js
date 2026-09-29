@@ -18,6 +18,24 @@ function nutritionCardSection(recipeId) {
   </div>`;
 }
 
+/* Zutatenstatus fuer die Transparenz der Schaetzung: erkannt, unklar, fehlende Menge. */
+function nutritionIngredientStatus(recipe, result) {
+  const list = result.unresolvedIngredients || [];
+  const missing = list.filter(u => u.reason && u.reason !== 'not-found' && u.reason !== 'uncertain-match');
+  const unclear = list.filter(u => u.reason === 'not-found' || u.reason === 'uncertain-match');
+  const matched = result.matchedCount || 0;
+  const reasonText = (u) => u.reason === 'uncertain-match' ? `unsicher${u.candidate ? ', evtl. ' + escapeHtml(u.candidate) : ''}` : u.reason === 'not-found' ? 'nicht gefunden' : 'Menge fehlt oder nicht umrechenbar';
+  return `<div class="nutri-status">
+    <div class="nutri-status-row">
+      <span class="nutri-pill nutri-pill--ok">${matched} erkannt</span>
+      ${unclear.length ? `<span class="nutri-pill nutri-pill--warn">${unclear.length} unklar</span>` : ''}
+      ${missing.length ? `<span class="nutri-pill nutri-pill--warn">${missing.length} ohne Menge</span>` : ''}
+    </div>
+    ${list.length ? `<details class="nutri-status-details"><summary>Nicht eingerechnet (${list.length})</summary><ul>${list.map(u => `<li><strong>${escapeHtml(u.name)}</strong>: ${reasonText(u)}</li>`).join('')}</ul>
+      <button class="text-btn" data-action="nutrition-open-match" data-id="${recipe.id}">Zuordnung korrigieren</button></details>` : ''}
+  </div>`;
+}
+
 function confidenceBadgeClass(confidence) {
   return confidence === 'high' ? 'high' : confidence === 'medium' ? 'medium' : 'low';
 }
@@ -44,6 +62,7 @@ function nutritionCompactInner(recipe, result) {
       ${result.unresolvedCount > 0 ? `<button class="nutrition-review-link" data-action="nutrition-open-match" data-id="${recipe.id}">${result.unresolvedCount} Zutat${result.unresolvedCount === 1 ? '' : 'en'} prüfen</button>` : ''}
     </div>
     <div class="nutrition-compact-grid">${rows}</div>
+    ${nutritionIngredientStatus(recipe, result)}
     <div class="nutrition-compact-actions">
       <button class="nutrition-detail-link" data-action="nutrition-open-detail" data-id="${recipe.id}">Alle Nährwerte ${ICONS.chevronRight}</button>
       <button class="nutrition-recalc-link" data-action="nutrition-open-match" data-id="${recipe.id}">${ICONS.swap} Neu berechnen</button>
@@ -357,7 +376,7 @@ function nutritionDetailModal(recipe, result) {
     <div class="modal-sheet" role="dialog" aria-modal="true" aria-labelledby="nutrition-detail-title" tabindex="-1" onclick="event.stopPropagation()">
       <h3 class="modal-title" id="nutrition-detail-title">Nährwerte</h3>
       <div class="nutrition-segmented" role="radiogroup" aria-label="Anzeigeart">
-        <button role="radio" aria-checked="${mode === 'portion'}" class="${mode === 'portion' ? 'active' : ''}" data-action="nutrition-set-mode" data-mode="portion">Pro Portion</button>
+        <button role="radio" aria-checked="${mode === 'portion'}" class="${mode === 'portion' ? 'active' : ''}" data-action="nutrition-set-mode" data-mode="portion">${typeof servingMode === 'function' && servingMode(recipe) === 'pieces' ? 'Pro Stück' : 'Pro Portion'}</button>
         <button role="radio" aria-checked="${mode === '100g'}" class="${mode === '100g' ? 'active' : ''}" data-action="nutrition-set-mode" data-mode="100g">Pro 100 g</button>
         <button role="radio" aria-checked="${mode === 'total'}" class="${mode === 'total' ? 'active' : ''}" data-action="nutrition-set-mode" data-mode="total">Gesamt</button>
       </div>

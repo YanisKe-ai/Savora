@@ -88,24 +88,27 @@ document.addEventListener('visibilitychange', async () => {
 
 /* ---------- Event binding ---------- */
 /* ---------- Kochmodus: Navigation & Sprachausgabe ---------- */
+// Leere Schritte werden im Kochmodus uebersprungen (gleiche Liste wie in cookModeView).
+function cookSteps(r) { return (r.steps || []).filter(s => (s.text || '').trim()); }
+
 function currentCookRecipe() { return state.recipes.find(x => x.id === state.activeRecipeId); }
 
 function cookGoNext() {
   const r = currentCookRecipe();
   if (!r) return;
-  const steps = r.steps || [];
-  if (state.cookStepIndex < steps.length - 1) { state.cookStepIndex++; render(); speakCurrentStepIfEnabled(); }
+  const steps = cookSteps(r);
+  if (state.cookStepIndex < steps.length - 1) { state.cookStepIndex++; if (typeof saveCookProgress === 'function') saveCookProgress(); render(); speakCurrentStepIfEnabled(); }
 }
 
 function cookGoPrev() {
-  if (state.cookStepIndex > 0) { state.cookStepIndex--; render(); speakCurrentStepIfEnabled(); }
+  if (state.cookStepIndex > 0) { state.cookStepIndex--; if (typeof saveCookProgress === 'function') saveCookProgress(); render(); speakCurrentStepIfEnabled(); }
 }
 
 function speakCurrentStepIfEnabled() {
   if (!state.voiceEnabled || !('speechSynthesis' in window)) return;
   const r = currentCookRecipe();
   if (!r) return;
-  const step = (r.steps || [])[state.cookStepIndex];
+  const step = cookSteps(r)[state.cookStepIndex];
   if (!step || !step.text) return;
   window.speechSynthesis.cancel();
   const utter = new SpeechSynthesisUtterance(step.text);

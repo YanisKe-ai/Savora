@@ -37,6 +37,16 @@ const state = {
   // Dimension ODER, zwischen Dimensionen UND (Punkt 107). Als Sets, damit Mehrfachauswahl
   // pro Dimension moeglich ist.
   activeFilters: { dietary: new Set(), category: new Set(), time: new Set() },
+  // Feast x Bloom Umbau: reine UI-Zustaende, nichts davon wird ungefragt gespeichert.
+  activeCollection: 'all',       // 'all' | 'favorites' | 'uncooked' | 'frequent' | <Sammlungs-ID>
+  homeLayout: (function () { try { return localStorage.getItem('savora-home-layout') || 'grid'; } catch (e) { return 'grid'; } })(),
+  detailTab: 'ingredients',      // 'ingredients' | 'steps' | 'nutrition' | 'notes'
+  formStep: 0,                   // gefuehrte Erfassung, 0..4
+  checkedIngredients: {},        // recipeId -> Set(index), temporaerer Kochfortschritt
+  cookAllSteps: false,
+  cookShowAllIngredients: false,
+  planSelectedDays: new Set(),
+  mealplanRecords: {},           // dateKey -> vollstaendiger Record inkl. unbekannter Felder
 };
 
 const systemDarkQuery = window.matchMedia ? matchMedia('(prefers-color-scheme: dark)') : null;
@@ -100,7 +110,7 @@ function prefersReducedMotion() {
    (siehe scrollMemory oben) — der Browser wuerde sich sonst mit einer eigenen, an dieser
    dynamisch aufgebauten Seite ohnehin nicht zuverlaessig treffenden Restauration einmischen. */
 if ('scrollRestoration' in history) history.scrollRestoration = 'manual';
-const HISTORY_DRILLDOWN_VIEWS = new Set(['detail', 'form', 'cookmode', 'unitconverter', 'paste-import']);
+const HISTORY_DRILLDOWN_VIEWS = new Set(['detail', 'form', 'cookmode', 'unitconverter', 'paste-import', 'cookbook']);
 function isHistoryDrilldownView(view) {
   return HISTORY_DRILLDOWN_VIEWS.has(view) || view.indexOf('settings-') === 0;
 }
@@ -108,6 +118,17 @@ function navHistorySnapshot() {
   return { view: state.view, modalType: state.modal ? state.modal.type : null, activeRecipeId: state.activeRecipeId };
 }
 window.addEventListener('popstate', (e) => {
+  if (state.view === 'form' && typeof isFormDirty === 'function' && isFormDirty()) {
+    if (!window.confirm('Ungespeicherte Änderungen verwerfen?')) {
+      history.pushState(navHistorySnapshot(), '');
+      return;
+    }
+    if (typeof clearRecipeDraft === 'function') clearRecipeDraft();
+  }
+  // Geraete-/Browser-Zurueck aus dem Kochmodus: Stand sichern. Kam der Wechsel ueber den
+  // Schliessen-Button oder den Abschluss, wurde das dort schon erledigt.
+  if (state.view === 'cookmode' && !state.cookProgressHandled && !state.cookFinished && typeof saveCookProgress === 'function') saveCookProgress();
+  state.cookProgressHandled = false;
   const wasModalOpen = !!state.modal;
   state.modal = null;
   if (!wasModalOpen) {
@@ -212,12 +233,19 @@ function render(skipHistoryPush) {
       if (hasModal && !hadModal) {
         history.pushState(navHistorySnapshot(), '');
       } else if (viewChanged) {
-        if (isHistoryDrilldownView(state.view)) history.pushState(navHistorySnapshot(), '');
+        // Wechselt eine Aktion direkt aus einem offenen Modal in eine andere Ansicht (z.B.
+        // Overflow-Menue -> Bearbeiten), wird der Modal-Eintrag ERSETZT statt ein weiterer
+        // gestapelt: sonst braucht "Zurueck" danach zwei Schritte.
+        if (hadModal) history.replaceState(navHistorySnapshot(), '');
+        else if (isHistoryDrilldownView(state.view)) history.pushState(navHistorySnapshot(), '');
         else history.replaceState(navHistorySnapshot(), '');
       }
     }
   };
-  if (viewChanged && document.startViewTransition && !prefersReducedMotion()) {
+  // Formular und Kochmodus ohne View-Transition: der DOM-Tausch muss dort sofort und synchron
+  // abgeschlossen sein (Entwurfs-/Dirty-Schnappschuss, Fortschritts-Wiederherstellung).
+  const NO_TRANSITION_VIEWS = new Set(['form', 'cookmode']);
+  if (viewChanged && document.startViewTransition && !prefersReducedMotion() && !NO_TRANSITION_VIEWS.has(state.view)) {
     document.startViewTransition(update);
   } else {
     update();
@@ -238,7 +266,11 @@ async function loadShopping() {
 async function loadMealplan() {
   const rows = await dbGetAllMealplan();
   state.mealplan = {};
-  rows.forEach(r => { state.mealplan[r.date] = r.recipeIds || []; });
+  state.mealplanRecords = {};
+  rows.forEach(r => {
+    state.mealplanRecords[r.date] = r; // kompletter Record, damit beim Speichern nichts verloren geht
+    state.mealplan[r.date] = Array.isArray(r.entries) ? r.entries.map(e => e.recipeId) : (r.recipeIds || []);
+  });
 }
 
 function emptyRecipe() {

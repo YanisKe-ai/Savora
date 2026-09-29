@@ -14,7 +14,7 @@ function pdfMetaLine(recipe) {
 function pdfIngredientsList(recipe, factor) {
   return `<div class="pdf-ing-title">Zutaten</div>
     <ul class="pdf-ing-list">
-      ${(recipe.ingredients || []).filter((i) => i.name && i.name.trim()).map((i) => `<li class="pdf-safe-break"><strong>${(() => { const pa = parseAmount(i.amount); return pa !== null ? fmtAmount(pa * factor) + (i.unit ? ' ' + escapeHtml(i.unit) : '') : ''; })()}</strong> ${escapeHtml(i.name)}</li>`).join('')}
+      ${pdfIngredientItemsHtml(recipe, factor).map(li => li.replace('<li>', '<li class="pdf-safe-break">').replace('<li class="pdf-ing-group">', '<li class="pdf-ing-group pdf-safe-break">')).join('')}
     </ul>`;
 }
 
@@ -52,8 +52,10 @@ function pdfNutritionBox(result, detailLevel) {
 }
 
 function pdfNotesBlock(recipe) {
-  if (!recipe.notes) return '';
-  return `<div class="pdf-notes pdf-safe-break"><div class="pdf-steps-title">Notizen</div><p>${escapeHtml(recipe.notes)}</p></div>`;
+  const log = (recipe.cookLog || []).filter(n => n && (n.text || '').trim());
+  if (!recipe.notes && !log.length) return '';
+  const logHtml = log.map(n => `<p class="pdf-note-dated"><strong>${escapeHtml(new Date(n.date).toLocaleDateString('de-CH'))}:</strong> ${escapeHtml(n.text)}</p>`).join('');
+  return `<div class="pdf-notes pdf-safe-break"><div class="pdf-steps-title">Notizen</div>${recipe.notes ? `<p>${escapeHtml(recipe.notes)}</p>` : ''}${logHtml}</div>`;
 }
 
 function pdfHeaderTag(recipe) {
@@ -168,11 +170,19 @@ function pdfLayoutTypography(recipe, result, factor, nutritionDetail) {
    nie nachtraeglich auf ein fertiges Canvas gemalt (Punkt 34/58) — kann sich deshalb strukturell
    nicht mit Inhalt ueberlagern. */
 function pdfIngredientItemsHtml(recipe, factor) {
-  return (recipe.ingredients || []).filter((i) => i.name && i.name.trim()).map((i) => {
-    const pa = parseAmount(i.amount);
-    const amount = pa !== null ? `<strong>${fmtAmount(pa * factor)}${i.unit ? ' ' + escapeHtml(i.unit) : ''}</strong> ` : '';
-    return `<li>${amount}${escapeHtml(i.name)}</li>`;
+  // Gruppen (auch alte Kopfzeilen wie "Teig:") als Zwischentitel, nie als Zutat mit leerer Menge.
+  const groups = getIngredientGroups(recipe);
+  const showTitles = groups.length > 1 || (groups[0] && groups[0].title !== 'Zutaten');
+  const out = [];
+  groups.forEach((g) => {
+    if (showTitles) out.push(`<li class="pdf-ing-group">${escapeHtml(g.title)}</li>`);
+    g.ingredients.forEach((i) => {
+      const amt = scaledAmountText(i, factor);
+      const amount = amt ? `<strong>${escapeHtml(amt)}${i.unit ? ' ' + escapeHtml(i.unit) : ''}</strong> ` : (i.unit ? `<strong>${escapeHtml(i.unit)}</strong> ` : '');
+      out.push(`<li>${amount}${escapeHtml(i.name)}</li>`);
+    });
   });
+  return out;
 }
 
 function pdfStepItemsHtml(recipe) {

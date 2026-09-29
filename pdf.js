@@ -231,46 +231,75 @@ async function buildSinglePdf(id, nutritionDetail) {
    durchgerechnet (wie viele Seiten jedes Rezept tatsaechlich braucht), bevor die TOC-Seite gebaut
    wird — nicht geraten, sondern aus dem tatsaechlichen Ergebnis abgeleitet. */
 async function buildCookbookPdf(nutritionDetail) {
-  const recipes = state.recipes;
+  // Kochbuch-Designer: Auswahl, Reihenfolge, Kapitel, Titel und Cover kommen aus der
+  // gespeicherten Konfiguration. Ohne Konfiguration: alle Rezepte wie bisher.
+  const cfg = getCookbookConfig();
+  const sections = cookbookOrderedSections(cfg);
+  const recipes = sections.flatMap(s => s.recipes);
   if (!recipes.length) return null;
   await ensureFontsReadyForPdf();
 
-  const byCat = {};
-  recipes.forEach(r => { const cat = (r.tags && r.tags[0]) || 'Weitere Rezepte'; (byCat[cat] = byCat[cat] || []).push(r); });
-
   let previousLayout = null;
-  const recipePages = []; // { recipe, htmlPages }
+  const pagesByRecipeId = {};
   for (const r of recipes) {
     const { htmlPages, layout } = await buildRecipePdfPage(r, previousLayout, nutritionDetail);
-    recipePages.push({ recipe: r, htmlPages });
+    pagesByRecipeId[r.id] = htmlPages;
     previousLayout = layout;
   }
-  const pageCountByRecipeId = {};
-  recipePages.forEach(({ recipe, htmlPages }) => { pageCountByRecipeId[recipe.id] = htmlPages.length; });
 
-  // Seite 1 = Cover, Seite 2 = Inhaltsverzeichnis, danach die Rezepte in derselben Reihenfolge.
-  const COVER_PAGES = 1, TOC_PAGES = 1;
-  let runningPage = COVER_PAGES + TOC_PAGES + 1;
-  const startPageByRecipeId = {};
-  recipes.forEach((r) => {
-    startPageByRecipeId[r.id] = runningPage;
-    runningPage += pageCountByRecipeId[r.id];
-  });
-
-  const toc = Object.entries(byCat).map(([cat, list]) =>
-    `<div style="margin-bottom:4px;"><div class="print-toc-category">${escapeHtml(cat)}</div>
-     ${list.map(r => `<div class="print-toc-row"><span class="toc-title">${escapeHtml(r.title)}</span><span class="toc-leader"></span><span class="toc-page">${startPageByRecipeId[r.id]}</span></div>`).join('')}</div>`
-  ).join('');
-  const cover = `<section class="pdf-page-cover">
+  // Seite 1 = Cover, Seite 2 = Inhaltsverzeichnis, danach je Kapitel eine Kapitelseite und die
+  // Rezepte. Seitenzahlen werden aus der fertigen Pagination abgeleitet, nicht geschaetzt.
+  const hasChapters = sections.some(s => s.chapter);
+  // Das Inhaltsverzeichnis kann bei vielen Rezepten selbst mehrere Seiten brauchen. Deshalb wird
+  // es zuerst mit Probe-Seitenzahlen gebaut und real gemessen, danach mit korrektem Versatz neu.
+  const buildBody = (firstPage) => {
+    let runningPage = firstPage;
+    const tocBlocks = [];
+    const bodyParts = [];
+    sections.forEach((s) => {
+      let chapterPage = null;
+      if (hasChapters) {
+        chapterPage = runningPage;
+        const title = s.chapter ? s.chapter.name : 'Weitere Rezepte';
+        bodyParts.push(`<section class="pdf-page-chapter"><div class="pdf-chapter-inner"><span class="pdf-chapter-eyebrow">Kapitel</span><h2>${escapeHtml(title)}</h2><hr class="pdf-cover-rule"></div></section>`);
+        runningPage += 1;
+      }
+      const rows = s.recipes.map((r) => {
+        const row = `<div class="print-toc-row"><span class="toc-title">${escapeHtml(r.title || 'Ohne Titel')}</span><span class="toc-leader"></span><span class="toc-page">${runningPage}</span></div>`;
+        bodyParts.push(pagesByRecipeId[r.id].join(''));
+        runningPage += pagesByRecipeId[r.id].length;
+        return row;
+      }).join('');
+      tocBlocks.push(`<div class="pdf-toc-block">${hasChapters ? `<div class="print-toc-category">${escapeHtml(s.chapter ? s.chapter.name : 'Weitere Rezepte')}<span class="toc-page">${chapterPage}</span></div>` : ''}${rows}</div>`);
+    });
+    return { tocHtml: `<section class="pdf-page-toc"><h2>Inhalt</h2>${tocBlocks.join('')}</section>`, bodyParts };
+  };
+  let built = buildBody(3);
+  let tocPages = 1;
+  if (typeof measureSectionHeightMm === 'function') {
+    tocPages = Math.max(1, Math.ceil((measureSectionHeightMm(built.tocHtml) - 2) / 297));
+    if (tocPages > 1) built = buildBody(2 + tocPages);
+  }
+  const tocPage = built.tocHtml;
+  const bodyParts = built.bodyParts;
+  const title = (cfg.title || state.cookbookTitle || 'Mein persönliches Kochbuch');
+  let coverImg = '';
+  if (cfg.coverRecipeId) {
+    const cr = state.recipes.find(x => x.id === cfg.coverRecipeId);
+    if (cr) {
+      const url = await resolveRecipeImageDataUrl(cr);
+      if (url) coverImg = `<div class="pdf-cover-photo"><img src="${url}" alt=""></div>`;
+    }
+  }
+  const cover = `<section class="pdf-page-cover ${coverImg ? 'pdf-page-cover--photo' : ''}">
+    ${coverImg}
     <div class="pdf-cover-badge"><img src="logo-mark.png" alt=""></div>
-    <h1>Savora</h1>
+    <h1>${escapeHtml(title)}</h1>
     <hr class="pdf-cover-rule">
-    <p>${escapeHtml(state.cookbookTitle || 'Mein persönliches Kochbuch')}</p>
+    ${cfg.subtitle ? `<p>${escapeHtml(cfg.subtitle)}</p>` : '<p>Savora</p>'}
   </section>`;
-  const tocPage = `<section class="pdf-page-toc"><h2>Inhalt</h2>${toc}</section>`;
 
-  const pages = recipePages.map(({ htmlPages }) => htmlPages.join('')).join('');
-  document.getElementById('printRoot').innerHTML = cover + tocPage + pages;
+  document.getElementById('printRoot').innerHTML = cover + tocPage + bodyParts.join('');
   cleanupPdfMeasureProbe();
   const stamp = new Date().toISOString().slice(0, 10);
   const blob = await renderSectionsToPdf();

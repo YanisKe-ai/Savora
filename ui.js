@@ -51,11 +51,24 @@ function collectFormData() {
   r.timeMinutes = parseInt(document.getElementById('f-time').value) || 0;
   r.difficulty = document.getElementById('f-difficulty').value;
   r.notes = document.getElementById('f-notes').value;
-  r.ingredients = Array.from(document.querySelectorAll('#ingRows [data-ing-row]')).map(row => ({
-    amount: row.querySelector('.ing-amount-input').value.trim(),
-    unit: row.querySelector('.ing-unit-input').value.trim(),
-    name: row.querySelector('.ing-name-input').value.trim(),
-  }));
+  // Zutaten in DOM-Reihenfolge lesen: Gruppenzeilen setzen das group-Feld der folgenden Zutaten.
+  // Unbekannte Zusatzfelder einer bestehenden Zutat (z.B. note, optional) bleiben erhalten.
+  const prevIngredients = r.ingredients || [];
+  let currentGroup = '';
+  r.ingredients = [];
+  document.querySelectorAll('#ingRows [data-ing-row], #ingRows [data-group-row]').forEach(row => {
+    if (row.hasAttribute('data-group-row')) { currentGroup = row.querySelector('.group-name-input').value.trim(); return; }
+    const prev = prevIngredients[parseInt(row.dataset.ingRow, 10)];
+    const base = prev && !isIngredientHeaderRow(prev) ? { ...prev } : {};
+    base.amount = row.querySelector('.ing-amount-input').value.trim();
+    base.unit = row.querySelector('.ing-unit-input').value.trim();
+    base.name = row.querySelector('.ing-name-input').value.trim();
+    if (currentGroup) base.group = currentGroup; else delete base.group;
+    delete base.isGroupHeader;
+    r.ingredients.push(base);
+  });
+  const modeEl = document.getElementById('f-serving-mode');
+  if (modeEl) r.servingMode = modeEl.value === 'pieces' ? 'pieces' : 'portions';
   r.steps = Array.from(document.querySelectorAll('#stepRows [data-step-row]')).map(row => ({
     text: row.querySelector('.step-text-input').value.trim(),
   }));
@@ -64,6 +77,7 @@ function collectFormData() {
 }
 
 let modalTriggerSelector = null;
+let searchDebounceTimer = null; // Modulebene: ein Timer aus einem frueheren Render-Zyklus wird sicher abgebrochen
 
 /* Zentrale Modal-Oeffnen-/Schliessen-Logik, von ALLEN Schliesswegen gemeinsam genutzt
    (Escape, Abbrechen-Button, Backdrop, erfolgreiche Aktion) — vorher hatte Escape einen
@@ -145,7 +159,7 @@ function bindEvents() {
 
   const searchInput = document.getElementById('searchInput');
   if (searchInput) {
-    let searchDebounceTimer = null;
+    clearTimeout(searchDebounceTimer);
     searchInput.addEventListener('input', (e) => {
       state.query = e.target.value;
       // Punkt 2: der Sprung entsteht hier nicht durch render()/focus() (die sind bereits mit
@@ -235,7 +249,8 @@ function renderKeepFocus(id) {
    kann (ein Editor, ein PDF-Export-Modal, ein Backup-Vorgang). */
 const ASYNC_GUARDED_ACTIONS = new Set([
   'save-recipe', 'export-backup', 'pdf-export-build', 'pdf-export-download', 'pdf-export-share',
-  'nutrition-confirm-match', 'nutrition-save-custom',
+  'nutrition-confirm-match', 'nutrition-save-custom', 'nutrition-barcode-lookup',
+  'duplicate-recipe', 'confirm-shop-select', 'cook-complete', 'save-note',
 ]);
 const busyActions = new Set();
 
@@ -257,6 +272,7 @@ async function onAction(e) {
 }
 
 async function dispatchAction(action, id, el, e) {
+  if (typeof handleActionV2 === 'function' && await handleActionV2(action, id, el, e)) return;
   switch (action) {
     case 'new-recipe':
       state.modal = null;
@@ -691,7 +707,7 @@ async function dispatchAction(action, id, el, e) {
     case 'nutrition-open-match': {
       const r = state.recipes.find(x => x.id === id);
       if (!r) break;
-      const relevant = (r.ingredients || []).filter(i => i.name && i.name.trim() && !isQualitativeIngredient(i));
+      const relevant = (r.ingredients || []).filter(i => i.name && i.name.trim() && !isIngredientHeaderRow(i) && !isQualitativeIngredient(i));
       state.nutritionMatchItems = await matchIngredients(relevant, r.steps);
       openModal({ type: 'nutrition', recipeId: id, stage: 'match' }, `[data-action="nutrition-open-match"][data-id="${id}"]`);
       break;
