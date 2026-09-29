@@ -21,6 +21,10 @@ const CLOUD_META_KEY = 'savora-sync-meta';
 const CLOUD_CURSOR_KEY = 'savora-sync-cursor';
 const CLOUD_LAST_KEY = 'savora-sync-last';
 const CLOUD_SITE_URL = 'https://yaniske-ai.github.io/Savora/';
+// Geschlossene Testphase: Konten werden auf Einladung angelegt. Auf true setzen, sobald ein eigener
+// Mail-Dienst eingerichtet und die Registrierung in Supabase wieder offen ist.
+const CLOUD_SIGNUP_OPEN = false;
+const CLOUD_CLOSED_BETA_TEXT = 'Savora ist in einer geschlossenen Testphase. Frag nach einem Zugang.';
 
 const cloud = { syncing: false, lastError: null, timer: null, applyingRemote: false, pendingAgain: false };
 
@@ -36,7 +40,7 @@ function cloudErrorText(body, status) {
   if (code === 'email_not_confirmed' || /not confirmed/i.test(msg)) return 'Bitte zuerst den Link in der Bestätigungs-E-Mail antippen.';
   if (code === 'user_already_exists' || /already registered/i.test(msg)) return 'Für diese E-Mail gibt es schon ein Konto. Bitte anmelden.';
   if (code === 'weak_password' || /password/i.test(msg) && /least|weak|short/i.test(msg)) return 'Das Passwort ist zu schwach. Mindestens 8 Zeichen verwenden.';
-  if (code === 'signup_disabled' || /signups not allowed/i.test(msg)) return 'Neue Konten sind für Savora derzeit geschlossen.';
+  if (code === 'signup_disabled' || /signups not allowed/i.test(msg)) return CLOUD_CLOSED_BETA_TEXT;
   if (status === 429 || /rate limit/i.test(msg)) return 'Zu viele Versuche. Bitte in ein paar Minuten nochmals.';
   if (status === 0) return 'Keine Verbindung zum Internet.';
   return msg || `Unbekannter Fehler (${status}).`;
@@ -408,6 +412,12 @@ function settingsSyncView() {
         <button class="ghost-btn primary-btn--block" data-action="cloud-sign-out">Abmelden</button>
         <p class="settings-hint settings-hint--top">Beim Abmelden bleiben deine Daten auf diesem Gerät erhalten.</p>
       </div></div>
+      <div class="settings-group"><div class="settings-group-title">Passwort ändern</div><div class="settings-group-card settings-group-card--padded">
+        <div class="field"><label for="cloudNewPassword">Neues Passwort</label><input type="password" id="cloudNewPassword" autocomplete="new-password" minlength="8"></div>
+        <div class="field"><label for="cloudNewPassword2">Neues Passwort wiederholen</label><input type="password" id="cloudNewPassword2" autocomplete="new-password" minlength="8"></div>
+        <p class="cloud-error" id="cloudError" role="alert"></p>
+        <button class="ghost-btn primary-btn--block" data-action="cloud-save-password">Passwort speichern</button>
+      </div></div>
       <div class="settings-group"><div class="settings-group-title">Konto</div><div class="settings-group-card settings-group-card--padded">
         <p class="settings-hint">Löscht dein Konto und alle Daten in der Cloud endgültig. Die Rezepte auf diesem Gerät bleiben erhalten.</p>
         <button class="ghost-btn danger-btn primary-btn--block" data-action="cloud-delete-account">Konto und Cloud-Daten löschen</button>
@@ -422,9 +432,10 @@ function settingsSyncView() {
         <p class="cloud-error" id="cloudError" role="alert"></p>
         <button class="primary-btn primary-btn--block" data-action="${mode === 'signup' ? 'cloud-sign-up' : mode === 'reset' ? 'cloud-reset' : 'cloud-sign-in'}">${mode === 'signup' ? 'Konto erstellen' : mode === 'reset' ? 'Link zum Zurücksetzen senden' : 'Anmelden'}</button>
         <div class="cloud-links">
-          ${mode !== 'signin' ? `<button class="text-btn" data-action="cloud-mode" data-id="signin">Ich habe schon ein Konto</button>` : `<button class="text-btn" data-action="cloud-mode" data-id="signup">Konto erstellen</button><button class="text-btn" data-action="cloud-mode" data-id="reset">Passwort vergessen?</button>`}
+          ${mode !== 'signin' ? `<button class="text-btn" data-action="cloud-mode" data-id="signin">Zurück zur Anmeldung</button>` : `${CLOUD_SIGNUP_OPEN ? `<button class="text-btn" data-action="cloud-mode" data-id="signup">Konto erstellen</button>` : ''}<button class="text-btn" data-action="cloud-mode" data-id="reset">Passwort vergessen?</button>`}
         </div>
       </div></div>
+      ${CLOUD_SIGNUP_OPEN ? '' : `<p class="settings-hint beta-note">${ICONS.info} Noch kein Zugang? ${escapeHtml(CLOUD_CLOSED_BETA_TEXT)}</p>`}
       <p class="settings-hint">Gespeichert wird in Zürich (Supabase). Nur du hast Zugriff auf deine Daten.</p>`;
   }
   return settingsDetailShell('Synchronisation', body) + (state.modal && state.modal.type === 'cloud-new-password' ? cloudNewPasswordModal() : '');
@@ -476,9 +487,19 @@ async function handleCloudAction(action, id, el) {
     }
     case 'cloud-save-password': {
       const pw = (document.getElementById('cloudNewPassword') || {}).value || '';
-      if (pw.length < 8) { cloudShowError('Mindestens 8 Zeichen.'); return true; }
-      try { await cloudAuthUpdatePassword(pw); state.modal = null; state.view = 'settings-sync'; render(); showToast('Passwort geändert'); cloudSyncNow(); }
-      catch (e) { cloudShowError(e.message); }
+      const pw2El = document.getElementById('cloudNewPassword2');
+      if (pw.length < 8) { cloudShowError('Das Passwort braucht mindestens 8 Zeichen.'); return true; }
+      if (pw2El && pw2El.value !== pw) { cloudShowError('Die beiden Passwörter stimmen nicht überein.'); return true; }
+      el.disabled = true;
+      try {
+        await cloudAuthUpdatePassword(pw);
+        const fromLink = state.modal && state.modal.type === 'cloud-new-password';
+        state.view = 'settings-sync';
+        if (fromLink) { state.modal = null; render(); } else render();
+        showToast('Passwort geändert. Beim nächsten Anmelden das neue verwenden.');
+        cloudSyncNow();
+      } catch (e) { cloudShowError(e.message); }
+      finally { if (document.contains(el)) el.disabled = false; }
       return true;
     }
     case 'cloud-sync-now': {
