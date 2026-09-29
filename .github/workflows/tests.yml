@@ -1,0 +1,27 @@
+name: Tests
+
+# Laeuft bei jedem Push auf jeden Branch und bei jedem Pull Request nach main.
+on:
+  push:
+  pull_request:
+    branches: [main]
+
+jobs:
+  tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0   # volle Historie: der Datenerhalt-Test braucht einen frueheren Commit
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Abhaengigkeiten installieren
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y poppler-utils
+          pip install -r tests/requirements.txt
+          playwright install --with-deps chromium
+      - name: Alle Tests ausfuehren
+        run: python tests/run_all.py
