@@ -689,3 +689,32 @@ body { font-size: 16px; }
 .step-list-v2 p { font-size: 17px; }
 .source-row .source-line { font-size: 15px; }
 @media (min-width: 720px) { .recent-card { max-width: 640px; } }
+
+/* ---------- Paket 1 (30.09.2026): Rezeptseite kompakter, Platzhalter, Tippflaechen ---------- */
+/* Foto flacher (2:1), damit die Zutaten schon ohne Scrollen sichtbar sind. Der grosse Titel bleibt (Vorlage). */
+.hero-img { aspect-ratio: 2 / 1; max-height: 30dvh; }
+.detail-head { padding-top: 10px; }
+.topbar--detail .topbar-title { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }   /* Titel bleibt fuer Screenreader, steht sichtbar gross darunter */
+.detail-tools { display: flex; gap: 8px; margin: 8px 0 2px; }
+.detail-tools .outline-btn { flex: 0 1 auto; min-height: 44px; padding-inline: 16px; }
+/* Kochmodus-Leiste fest ueber der unteren Navigation */
+.cook-bar { position: fixed; left: 0; right: 0; bottom: calc(73px + env(safe-area-inset-bottom, 0px)); z-index: var(--z-sticky, 20); padding: 10px clamp(16px, 4vw, 32px) 8px; background: linear-gradient(to bottom, transparent, var(--bg) 40%); pointer-events: none; }
+.cook-bar .primary-btn { pointer-events: auto; margin: 0; max-width: 820px; margin-inline: auto; box-shadow: 0 6px 18px rgba(42, 17, 72, .18); }
+.detail-main { padding-bottom: calc(160px + env(safe-area-inset-bottom, 0px)); }
+body.keyboard-open .cook-bar { display: none; }
+/* Platzhalter ohne Foto: Anfangsbuchstabe auf Farbverlauf (stabile Farbe je Rezept) */
+.placeholder[class*="ph-"] { --pa: #E4D5F5; --pb: #CDB4EC; background: linear-gradient(135deg, var(--pa), var(--pb)); color: #2A1148; }
+.placeholder.ph-1 { --pa: #F8E4D2; --pb: #F0C9A8; }
+.placeholder.ph-2 { --pa: #E0EDD6; --pb: #C3DCB3; }
+.placeholder.ph-3 { --pa: #F7DCE1; --pb: #EDB6C2; }
+.placeholder.ph-4 { --pa: #D9EAF0; --pb: #B4D4E2; }
+.placeholder.ph-5 { --pa: #F0EBC6; --pb: #E1D88F; }
+[data-theme="dark"] .placeholder[class*="ph-"], [data-theme="amoled"] .placeholder[class*="ph-"] { background: linear-gradient(135deg, color-mix(in srgb, var(--pa) 30%, #1F1232), color-mix(in srgb, var(--pb) 22%, #1F1232)); color: var(--pa); }
+.ph-letter { font-family: var(--font-display); font-weight: 800; line-height: 1; font-size: 40px; letter-spacing: 0; }
+.rrow-img .ph-letter, .plan-thumb .ph-letter, .picker-thumb .ph-letter { font-size: 24px; }
+.hero-img .ph-letter { font-size: 84px; }
+/* Tippflaechen mindestens 44 x 44 px */
+.icon-toggle { width: 48px; min-height: 44px; height: 44px; }
+.icon-btn--small { width: 44px; height: 44px; min-width: 44px; }
+.day-select input { width: 22px; height: 22px; }
+.day-select { padding-inline: 6px; }

@@ -56,7 +56,7 @@ function topbar(title, opts = {}) {
   const left = opts.back
     ? `<button class="icon-btn" data-action="back" aria-label="Zurück">${ICONS.back}</button>`
     : `<div class="brand-v2"><span class="brand-word">savora</span></div>`;
-  return `<header class="topbar ${opts.back ? 'topbar--sub' : ''}">
+  return `<header class="topbar ${opts.back ? 'topbar--sub' : ''} ${opts.cls || ''}">
     <div class="topbar-left">${left}${opts.back ? `<h1 class="topbar-title">${escapeHtml(title)}</h1>` : ''}</div>
     <div class="topbar-actions">${opts.actions || ''}</div>
   </header>`;
@@ -123,10 +123,21 @@ function filterSheetModal() {
 }
 
 /* ---------- Rezeptuebersicht ---------- */
+/* Platzhalter fuer Rezepte ohne Foto: Anfangsbuchstabe auf einem Farbverlauf. Die Farbe ergibt sich
+   stabil aus der Rezept-ID (6 Farben, siehe .ph-0 bis .ph-5), wechselt also nie beim Neuladen. */
+function placeholderInner(r) {
+  const ch = (String(r.title || '').trim().match(/[A-Za-zÀ-ÿ0-9]/) || ['·'])[0].toUpperCase();
+  return `<span class="ph-letter" aria-hidden="true">${escapeHtml(ch)}</span>`;
+}
+function placeholderClass(r) {
+  let h = 0; const s = String(r.id || r.title || '');
+  for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) >>> 0;
+  return 'ph-' + (h % 6);
+}
 function recipeImageHtml(r, cls, size) {
   if (r.image) return `<img class="${cls}" src="${r.image}" alt="" loading="lazy">`;
-  if (r.imageId) return `<div class="${cls} placeholder" data-lazy-img="${size}" data-image-id="${r.imageId}" data-img-class="${cls}">${ICONS.chef}</div>`;
-  return `<div class="${cls} placeholder">${ICONS.chef}</div>`;
+  if (r.imageId) return `<div class="${cls} placeholder ${placeholderClass(r)}" data-lazy-img="${size}" data-image-id="${r.imageId}" data-img-class="${cls}">${placeholderInner(r)}</div>`;
+  return `<div class="${cls} placeholder ${placeholderClass(r)}">${placeholderInner(r)}</div>`;
 }
 function recipeMetaLine(r, full) {
   const parts = [];
@@ -198,7 +209,7 @@ function homeView() {
   if (!state.recipes.length) content = emptyState();
   else if (!list.length) content = emptyFilterState();
   else {
-    const recent = !isFiltered ? state.recipes[0] : null; // state.recipes ist nach updatedAt sortiert
+    const recent = (!isFiltered && state.recipes.length >= 4) ? state.recipes[0] : null; // state.recipes ist nach updatedAt sortiert; erst ab 4 Rezepten, sonst doppelt es die Liste darunter
     const items = state.homeLayout === 'list' ? `<div class="rlist">${list.map(recipeRow).join('')}</div>` : `<div class="rgrid">${list.map(recipeCard).join('')}</div>`;
     content = `
       ${recent ? `<section class="home-section" aria-labelledby="recent-h"><h2 class="section-title" id="recent-h">Zuletzt bearbeitet</h2>${recentCard(recent)}</section>` : ''}
@@ -329,26 +340,26 @@ function detailView() {
   const hero = r.image
     ? `<img class="hero-img" src="${r.image}" alt="${escapeHtml(r.title || '')}" style="view-transition-name: recipe-hero-img;">`
     : r.imageId
-      ? `<div class="hero-img placeholder" data-lazy-img="full" data-image-id="${r.imageId}" data-img-class="hero-img" data-img-alt="${escapeHtml(r.title || '')}" style="view-transition-name: recipe-hero-img;">${ICONS.chef}</div>`
-      : `<div class="hero-img placeholder" style="view-transition-name: recipe-hero-img;">${ICONS.chef}</div>`;
+      ? `<div class="hero-img placeholder" data-lazy-img="full" data-image-id="${r.imageId}" data-img-class="hero-img" data-img-alt="${escapeHtml(r.title || '')}" style="view-transition-name: recipe-hero-img;">${placeholderInner(r)}</div>`
+      : `<div class="hero-img placeholder ${placeholderClass(r)}" style="view-transition-name: recipe-hero-img;">${placeholderInner(r)}</div>`;
   const meta = [r.timeMinutes ? `${r.timeMinutes} Min.` : '', servingMode(r) === 'pieces' ? `${servings} Stück` : servingLabel(r, servings), r.difficulty || ''].filter(Boolean);
   const sourceText = r.sharedBy
     ? `${ICONS.sparkle}<span>Geteilt von ${escapeHtml(r.sharedBy)}</span>`
     : r.source ? `${ICONS.link}<span>Quelle: <a href="${escapeHtml(r.source)}" target="_blank" rel="noopener">${escapeHtml(domainFromUrl(r.source))}</a></span>`
-    : textSourceHint(r) ? `${ICONS.link}<span>Quelle: ${escapeHtml(textSourceHint(r))}</span>` : `${ICONS.bookOpen}<span>Aus deinem eigenen Kochbuch</span>`;
+    : textSourceHint(r) ? `${ICONS.link}<span>Quelle: ${escapeHtml(textSourceHint(r))}</span>` : '';   // eigene Rezepte: keine Zeile
   const tagChips = [];
   const conflicts = dietConflicts(r);
   const conflictLabels = new Set(conflicts.map(c => c.label));
   (r.diet || []).forEach(dk => { const d = DIET_OPTIONS.find(o => o.key === dk); if (d && !conflictLabels.has(dk) && !(dk === 'vegetarisch' && r.diet.includes('vegan'))) tagChips.push(d.label); });
   (r.categoryTags || []).forEach(c => tagChips.push(categoryLabelFor(c)));
-  const source = `<div class="source-row"><p class="source-line">${sourceText}</p>${tagChips.length ? `<span class="source-chips">${tagChips.slice(0, 2).map(t => `<span class="source-chip">${escapeHtml(t)}</span>`).join('')}</span>` : ''}</div>`;
+  const source = (!sourceText && !tagChips.length) ? '' : `<div class="source-row">${sourceText ? `<p class="source-line">${sourceText}</p>` : ''}${tagChips.length ? `<span class="source-chips">${tagChips.slice(0, 2).map(t => `<span class="source-chip">${escapeHtml(t)}</span>`).join('')}</span>` : ''}</div>`;
   const conflictBox = conflicts.length ? `<div class="diet-warning" role="note">
       <strong>Kennzeichnung prüfen</strong>
       <p>${conflicts.map(c => `Als <b>${c.label === 'vegan' ? 'vegan' : 'vegetarisch'}</b> markiert, enthält aber: ${escapeHtml(Array.from(new Set(c.items)).slice(0, 4).join(', '))}${new Set(c.items).size > 4 ? ' …' : ''}.`).join(' ')}</p>
       <div class="diet-warning-actions"><button class="outline-btn outline-btn--small" data-action="fix-diet-conflict" data-id="${r.id}">Kennzeichnung entfernen</button><button class="text-btn" data-action="edit-recipe" data-id="${r.id}">Bearbeiten</button></div>
     </div>` : '';
   return `
-    ${topbar(r.title || 'Rezept', { back: true, actions: `<button class="icon-btn" data-action="open-detail-menu" data-id="${r.id}" aria-label="Weitere Aktionen" aria-haspopup="dialog">${ICONS.more}</button>` })}
+    ${topbar(r.title || 'Rezept', { back: true, cls: 'topbar--detail', actions: `<button class="icon-btn" data-action="open-detail-menu" data-id="${r.id}" aria-label="Weitere Aktionen" aria-haspopup="dialog">${ICONS.more}</button>` })}
     <main class="has-tabbar detail-main">
       <div class="hero">${hero}</div>
       <div class="detail-head">
@@ -358,10 +369,9 @@ function detailView() {
         </div>
         <p class="detail-meta-v2">${meta.map(escapeHtml).join('<span class="meta-sep" aria-hidden="true">•</span>')}</p>
       </div>
-      <button class="primary-btn primary-btn--block" data-action="start-cook" data-id="${r.id}">${ICONS.play} Kochmodus starten</button>
-      <div class="secondary-actions">
-        <button class="outline-btn" data-action="add-to-shopping" data-id="${r.id}">${ICONS.cart} Einkauf</button>
-        <button class="outline-btn" data-action="share-recipe" data-id="${r.id}">${ICONS.share} Teilen</button>
+      <div class="detail-tools">
+        <button class="outline-btn outline-btn--small" data-action="add-to-shopping" data-id="${r.id}">${ICONS.cart} Einkauf</button>
+        <button class="outline-btn outline-btn--small" data-action="share-recipe" data-id="${r.id}">${ICONS.share} Teilen</button>
       </div>
       ${source}
       ${conflictBox}
@@ -370,6 +380,7 @@ function detailView() {
       </div>
       ${tabs.map(t => `<div class="tab-panel" id="panel-${t.id}" role="tabpanel" aria-labelledby="tab-${t.id}" ${tab === t.id ? '' : 'hidden'}>${panelHtml[t.id]}</div>`).join('')}
     </main>
+    <div class="cook-bar"><button class="primary-btn primary-btn--block" data-action="start-cook" data-id="${r.id}">${ICONS.play} Kochmodus starten</button></div>
     ${bottomNav()}
     ${state.modal && state.modal.type === 'delete' ? deleteModal(r) : ''}
     ${state.modal && state.modal.type === 'detail-menu' ? detailMenuModal(r) : ''}

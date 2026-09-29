@@ -3,6 +3,7 @@
 Format: neueste Version oben. `VERSION` und `SW_VERSION` in `sw.js` werden bei jeder Änderung gemeinsam erhöht.
 
 ## Unveröffentlicht (Branch dev)
+- 0.27.0 (SW v27-paket1): Rezeptseite kompakter (Foto 2:1, Titel nur einmal, Zutaten ohne Scrollen sichtbar, feste Kochmodus-Leiste). Startseite: "Zuletzt bearbeitet" erst ab 4 Rezepten. Rezepte ohne Foto: Anfangsbuchstabe auf Farbverlauf. Tippflächen mindestens 44 px. `import.js` entfernt. Zeile "Aus deinem eigenen Kochbuch" entfernt.
 - 0.26.0 (SW v26-ios-native): iOS-App mit Capacitor vorbereitet (`ios/`, `capacitor.config.json`, `scripts/build-www.js`, `assets/`).
 - Neue Datei `native.js`: PDF, Sicherung und Einkaufsliste über das iOS-Teilen-Fenster, Bildschirm bleibt im Kochmodus an, Timer-Benachrichtigung. Im Browser unverändert (Rückfall auf Web-Version).
 - Service Worker wird in der nativen App nicht registriert.
