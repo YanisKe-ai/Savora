@@ -20,6 +20,7 @@ function viewFor(view) {
     case 'mealplan': return mealplanView();
     case 'unitconverter': return unitConverterView();
     case 'cookbook': return cookbookDesignerView();
+    case 'settings-sync': return settingsSyncView();
     default: return homeView();
   }
 }
@@ -259,6 +260,7 @@ function settingsView() {
         settingsRow({ icon: ICONS.ruler, title: 'Masseinheiten', summary: unitLabel, view: 'settings-units' }),
       ].join(''))}
       ${settingsGroup('Daten &amp; Export', [
+        settingsRow({ icon: ICONS.cloud, title: 'Synchronisation', summary: cloudSettingsSummary(), view: 'settings-sync' }),
         settingsRow({ icon: ICONS.download, title: 'Backup &amp; Wiederherstellung', view: 'settings-backup' }),
         settingsRow({ icon: ICONS.pdf, title: 'Kochbuch gestalten und als PDF', action: 'goto-view', view: 'cookbook' }),
       ].join(''))}
@@ -363,7 +365,8 @@ function settingsHelpView() {
 function settingsPrivacyView() {
   const body = `<div class="settings-group">
     <div class="settings-group-card settings-group-card--padded">
-      <p class="settings-hint">Deine Rezepte, Fotos und Notizen bleiben ausschliesslich lokal auf diesem Gerät (IndexedDB). Savora hat keinen eigenen Server und schickt diese Daten nirgendwohin.</p>
+      <p class="settings-hint">Deine Rezepte, Fotos und Notizen bleiben ausschliesslich lokal auf diesem Gerät (IndexedDB). Ohne Anmeldung verlassen sie das Gerät nie.</p>
+      <p class="settings-hint">Nur wenn du dich unter „Synchronisation“ anmeldest, werden Rezepte, Fotos, Wochenplan, Einkaufsliste, Sammlungen und Kochbuch-Auswahl verschlüsselt übertragen und in deinem privaten Bereich bei Supabase in Zürich gespeichert, damit sie auf deinen anderen Geräten erscheinen. Nur dein Konto hat Zugriff. Du kannst Konto und Cloud-Daten jederzeit in der App löschen.</p>
       <p class="settings-hint">Eine Ausnahme: Wenn du ein Produkt per Barcode suchst und die Schweizer Nährwertdatenbank keinen Treffer hat, fragt Savora Open Food Facts online ab. Dabei werden nur die dafür nötigen Such-/Barcode-Daten an diesen Dienst übertragen, keine anderen Rezeptdaten.</p>
       <p class="settings-hint settings-hint--none">Exportierst oder teilst du ein Rezept selbst, verlässt genau diese Datei dein Gerät, sonst nichts. Diese Seite wird für die Beta-Version noch ausführlicher vorbereitet.</p>
     </div>

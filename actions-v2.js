@@ -628,7 +628,7 @@ async function handleActionV2(action, id, el, e) {
       setTimeout(() => { if (state.view === 'form') { state.formStep = 0; state.editingRecipeSnapshot = '__import__'; } }, 0);
       return false;
     default:
-      return false;
+      return typeof handleCloudAction === 'function' ? handleCloudAction(action, id, el, e) : false;
   }
 }
 

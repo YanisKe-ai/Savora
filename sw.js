@@ -5,7 +5,7 @@
    - Kontrollierter Update-Flow: kein automatisches skipWaiting. Ein neuer Worker wartet, bis
      die Seite per postMessage({type:'SKIP_WAITING'}) explizit zustimmt.
 */
-const SW_VERSION = 'v21-feast-bloom';
+const SW_VERSION = 'v22-cloud-sync';
 const CACHE_SHELL = 'savora-shell-' + SW_VERSION;
 const CACHE_RUNTIME = 'savora-runtime-' + SW_VERSION;
 // Statische Referenzdaten (z.B. Schweizer Naehrwertdatenbank): aendert sich nur bei
@@ -61,6 +61,7 @@ const SHELL_ASSETS = [
   './backup.js',
   './ui.js',
   './actions-v2.js',
+  './cloud.js',
   './nutrition-ui.js',
   './app.js',
 ];
@@ -110,6 +111,8 @@ function isStaticDataRequest(url) {
 self.addEventListener('fetch', (event) => {
   if (event.request.method !== 'GET') return;
   const url = new URL(event.request.url);
+  // Cloud-Abgleich nie aus dem Cache beantworten: sonst saehe ein Geraet veraltete Daten.
+  if (url.hostname.endsWith('.supabase.co')) return;
 
   if (isStaticDataRequest(url)) {
     event.respondWith(

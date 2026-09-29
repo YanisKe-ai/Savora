@@ -136,6 +136,7 @@ document.addEventListener('focusin', (e) => {
       registerServiceWorkerWithUpdatePrompt();
     }
     runSplashSequence();
+    if (typeof cloudStartup === 'function') cloudStartup();
     // Schweizer Naehrwertdatenbank im Hintergrund einspielen (einmalig, danach nur
     // noch aus IndexedDB) — blockiert bewusst nicht den ersten Render.
     ensureSwissDataSeeded().catch((err) => {
