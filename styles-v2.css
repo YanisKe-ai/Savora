@@ -4,13 +4,14 @@
    Gewicht, Groesse und enge Laufweite bei Titeln.
    ========================================================================== */
 /* ---------- Schriften nach Design-Vorlage (lokal, offline verfuegbar) ----------
-   Titel: Sofia Sans Extra Condensed (sehr schmal, kraeftig). Text: Roboto Condensed. Schriftzug: Archivo Black (schmal). */
+   Titel: Sofia Sans Extra Condensed (sehr schmal, kraeftig). Text: Roboto. Schriftzug: Archivo Black (schmal). */
 @font-face { font-family: 'Sofia Sans Extra Condensed'; font-style: normal; font-weight: 700 900; font-display: swap; src: url(sofia-sans-extra-condensed.woff2) format('woff2'); }
-@font-face { font-family: 'Roboto Condensed'; font-style: normal; font-weight: 400 700; font-display: swap; src: url(roboto-condensed.woff2) format('woff2'); }
+@font-face { font-family: 'Roboto'; font-style: normal; font-weight: 400 700; font-display: swap; src: url(roboto.woff2) format('woff2'); }
 @font-face { font-family: 'Archivo'; font-style: normal; font-weight: 900; font-stretch: 80%; font-display: swap; src: url(archivo.woff2) format('woff2'); }
 :root {
   --font-display: 'Sofia Sans Extra Condensed', 'Arial Narrow', system-ui, sans-serif;
-  --font-sans: 'Roboto Condensed', 'Arial Narrow', system-ui, sans-serif;
+  /* F09: gut lesbare Textschrift fuer Inhalte und Bedienung; die schmale Schrift bleibt den Titeln vorbehalten. */
+  --font-sans: 'Roboto', system-ui, -apple-system, 'Segoe UI', sans-serif;
   --font-logo: 'Archivo', 'Arial Black', system-ui, sans-serif;
 }
 body { background: var(--bg); color: var(--text); font-family: var(--font-sans); }
@@ -647,3 +648,44 @@ h1, h2, h3, .modal-title { font-family: var(--font-display); font-weight: 800; l
 .recent-img { width: 47%; }
 .recent-title { font-size: 25px; }
 .recent-body { padding: 12px 38px 12px 14px; }
+
+/* ---------- Pruefbericht 29.09.: Zutaten je Schritt, Zwischentitel, Ernaehrungswarnung ---------- */
+.modal-backdrop--top { z-index: calc(var(--z-modal) + 20); }
+.cook-section { font-family: var(--font-display); font-weight: 800; font-size: 20px; color: var(--lime); letter-spacing: 0.01em; margin: 0 0 8px; }
+.cook-all-steps .cook-section { margin: 8px 0 6px; font-size: 17px; }
+.cook-match-note { font-weight: 400; color: #9E8FB5; }
+.cook-ings-actions { display: flex; gap: 2px; }
+.cook-ing-group { font-size: 12px; background: rgba(255,255,255,0.14); border-radius: 999px; padding: 2px 8px; margin-left: 4px; }
+.cook-ing.is-ambiguous { border-style: dashed; }
+.step-list-v2 li.step-heading { display: block; }
+.step-list-v2 li.step-heading h3 { font-family: var(--font-display); font-weight: 800; font-size: 22px; margin: 10px 0 0; color: var(--text); }
+.diet-warning { margin: 14px 0 0; padding: 12px 14px; border-radius: 12px; background: var(--warning-bg); border: 1px solid var(--warning-border); color: var(--warning-text); font-size: 15px; }
+.diet-warning strong { display: block; font-size: 16px; margin-bottom: 2px; }
+.diet-warning p { margin: 0 0 8px; }
+.diet-warning-actions { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.uc-error { color: var(--danger); font-size: 15px; margin: 8px 0; }
+.nutrition-basis { font-size: 14px; color: var(--text-soft); margin: 6px 0 4px; }
+/* PDF: Schritt-Zwischentitel ohne Nummer, Zutatengruppen als Titel */
+.pdf-step-list li.pdf-step-heading { padding-left: 0; font-family: var(--font-display); font-weight: 800; font-size: 12.5pt; color: #32164F; margin: 3mm 0 1.5mm; }
+.pdf-step-list li.pdf-step-heading::before { content: none; }
+/* PDF-Vorschau am Desktop: grosszuegige Flaeche statt schmalem Dialog */
+@media (min-width: 700px) {
+  .modal-sheet.pdf-export-sheet.pdf-preview-fullscreen, .modal-sheet.pdf-export-sheet:has(.pdf-preview-frame) { max-width: min(920px, 94vw); width: 94vw; max-height: 92vh; max-height: 92dvh; }
+  .pdf-export-sheet .pdf-preview-frame { height: 72vh; height: 72dvh; }
+}
+
+/* F09: Textgroessen fuer die normal breite Textschrift leicht angepasst; Desktop-Karte begrenzt */
+body { font-size: 16px; }
+.chip { font-size: 16px; }
+.search-field .search-input { font-size: 17px; }
+.recent-meta, .rcard-meta, .rrow-meta { font-size: 15px; }
+.detail-meta-v2 { font-size: 16.5px; }
+.tab-v2 { font-size: 16px; }
+.ing-check { font-size: 16.5px; }
+.amount-row-label, .stepper-value { font-size: 16.5px; }
+.outline-btn { font-size: 16.5px; }
+.primary-btn { font-size: 18px; }
+.bottom-nav button { font-size: 13px; }
+.step-list-v2 p { font-size: 17px; }
+.source-row .source-line { font-size: 15px; }
+@media (min-width: 720px) { .recent-card { max-width: 640px; } }

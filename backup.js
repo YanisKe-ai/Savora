@@ -134,13 +134,15 @@ async function restoreBackupFromFile(file) {
     // vorhandene Wochenplan-Eintraege werden ergaenzt, nie ersetzt.
     let addedPlan = 0;
     for (const day of (data.mealplan || [])) {
-      if (!day || !day.date) continue;
+      if (!day || !day.date || day.movedTo) continue;
+      // Sicherungen vor der Datumskorrektur (ohne keyVersion) auf den gemeinten Tag abbilden.
+      const dayKey = day.keyVersion ? day.date : legacyUtcKeyToLocal(day.date);
       const incoming = Array.isArray(day.entries) ? day.entries : (day.recipeIds || []).map(rid => ({ recipeId: rid, meal: '', servings: null }));
       const mapped = incoming.map(en => ({ ...en, id: uid(), recipeId: recipeIdMap[en.recipeId] })).filter(en => en.recipeId);
       if (!mapped.length) continue;
       await loadMealplan();
-      const existing = planEntriesFor(day.date);
-      await savePlanEntries(day.date, existing.concat(mapped));
+      const existing = planEntriesFor(dayKey);
+      await savePlanEntries(dayKey, existing.concat(mapped));
       addedPlan += mapped.length;
     }
     // Kochbuch-Auswahl nur uebernehmen, wenn hier noch keine eigene gespeichert ist.

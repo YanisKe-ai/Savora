@@ -21,7 +21,7 @@ function pdfIngredientsList(recipe, factor) {
 function pdfStepsList(recipe) {
   return `<div class="pdf-steps-title">Zubereitung</div>
     <ol class="pdf-step-list">
-      ${(recipe.steps || []).filter((s) => s.text && s.text.trim()).map((s) => `<li class="pdf-safe-break">${escapeHtml(s.text)}</li>`).join('')}
+      ${pdfStepItemsHtml(recipe).map((li) => li.replace(/^<li( class="([^"]*)")?>/, (m0, a, cls) => `<li class="pdf-safe-break${cls ? ' ' + cls : ''}">`)).join('')}
     </ol>`;
 }
 
@@ -185,8 +185,11 @@ function pdfIngredientItemsHtml(recipe, factor) {
   return out;
 }
 
+// Zwischentitel alter Rezepte ("Speck vorbereiten:") ohne Nummer und als Titel darstellen (F11).
 function pdfStepItemsHtml(recipe) {
-  return (recipe.steps || []).filter((s) => s.text && s.text.trim()).map((s) => `<li>${escapeHtml(s.text)}</li>`);
+  return stepEntries(recipe).map((e) => e.heading
+    ? `<li class="pdf-step-heading">${escapeHtml(String(e.text).trim().replace(/:$/, ''))}</li>`
+    : `<li>${escapeHtml(e.text)}</li>`);
 }
 
 /* Baut EINE Long-Recipe-Seite aus einer bereits vorbereiteten Liste von Bloecken (siehe
@@ -207,6 +210,22 @@ function pdfLongRecipeSection(recipe, imgUrl, bodyHtml, isContinuation) {
   </section>`;
 }
 
+/* F06: Zwischentitel (Zutatengruppe oder Schritt-Titel) nie allein am Seitenende: jeder Titel wird
+   mit dem direkt folgenden Eintrag zu EINEM unteilbaren Block verbunden. */
+function pdfKeepWithNext(items, isTitle) {
+  const out = [];
+  for (let i = 0; i < items.length; i++) {
+    if (!isTitle(items[i].html)) { out.push(items[i]); continue; }
+    // Mehrere Titel hintereinander ("Kombinieren", "Cremig vollenden") samt erstem Inhalt koppeln
+    let j = i, html = '', num = 0;
+    while (j < items.length && isTitle(items[j].html)) { html += items[j].html; num += items[j].num || 0; j++; }
+    if (j < items.length) { html += items[j].html; num += items[j].num || 0; }
+    out.push({ ...items[i], html, num });
+    i = j;
+  }
+  return out;
+}
+
 /* Gruppiert aufeinanderfolgende Bloecke gleichen Typs unter einer gemeinsamen Ueberschrift, auch
    wenn die Gruppe ueber mehrere Seiten laeuft (Punkt 55: Zutatenblock zusammenhalten, wo moeglich,
    bei Fortsetzung klare eigene Ueberschrift). Zubereitungsschritte behalten ihre echte Nummer
@@ -225,7 +244,7 @@ function pdfRenderBlockGroups(sliceBlocks, allBlocks, sliceStartIdx) {
     if (type === 'ing') {
       html += `<div class="pdf-ing-title">Zutaten${isContinuationOfType ? ' · Fortsetzung' : ''}</div><ul class="pdf-ing-list">${group.map((b) => b.html).join('')}</ul>`;
     } else if (type === 'step') {
-      const stepsBefore = allBlocks.slice(0, globalStart).filter((b) => b.type === 'step').length;
+      const stepsBefore = allBlocks.slice(0, globalStart).filter((b) => b.type === 'step').reduce((n, b) => n + (b.num === undefined ? 1 : b.num), 0);
       html += `<div class="pdf-steps-title">Zubereitung${isContinuationOfType ? ' · Fortsetzung' : ''}</div><ol class="pdf-step-list" style="counter-reset: pstep ${stepsBefore};">${group.map((b) => b.html).join('')}</ol>`;
     } else {
       html += group.map((b) => b.html).join('');

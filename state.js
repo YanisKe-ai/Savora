@@ -263,8 +263,38 @@ async function loadShopping() {
   state.shopping = (await dbGetAllShopping()).sort((a, b) => a.name.localeCompare(b.name, 'de'));
 }
 
+/* F01-Migration (einmalig, additiv, mit Sicherung): Wochenplan-Tage ohne keyVersion wurden mit dem
+   alten UTC-Schluessel gespeichert. Ihr Inhalt wird auf den Tag gelegt, der beim Planen angezeigt
+   wurde. Der alte Datensatz bleibt erhalten (leer, mit Verweis movedTo und Originalinhalt in
+   beforeMigration), sodass nichts verloren geht und ein Rueckbau moeglich bleibt. */
+async function migrateLegacyMealplanKeys(rows) {
+  const legacy = rows.filter(r => r && r.date && !r.keyVersion);
+  if (!legacy.length) return false;
+  try {
+    if (!localStorage.getItem('savora-mealplan-backup-v1')) localStorage.setItem('savora-mealplan-backup-v1', JSON.stringify({ savedAt: Date.now(), rows: legacy }));
+  } catch (e) { /* Speicher voll: Migration trotzdem additiv, Original bleibt im Datensatz */ }
+  const byDate = Object.fromEntries(rows.map(r => [r.date, r]));
+  for (const old of legacy) {
+    const entries = Array.isArray(old.entries) ? old.entries : (old.recipeIds || []).map((rid, n) => ({ id: `${old.date}-${n}-${rid}`, recipeId: rid, meal: '', servings: null }));
+    const target = legacyUtcKeyToLocal(old.date);
+    if (target === old.date || !entries.length) {
+      await dbPutMealplanDay({ ...old, keyVersion: 2 });
+      continue;
+    }
+    const existing = byDate[target] && byDate[target].keyVersion ? byDate[target] : null;
+    const merged = (existing && Array.isArray(existing.entries) ? existing.entries : []).slice();
+    entries.forEach(e => { if (!merged.some(x => x.id === e.id)) merged.push(e); });
+    const moved = { ...(existing || {}), date: target, entries: merged, recipeIds: merged.map(e => e.recipeId), keyVersion: 2 };
+    await dbPutMealplanDay(moved);
+    byDate[target] = moved;
+    await dbPutMealplanDay({ ...old, entries: [], recipeIds: [], keyVersion: 2, movedTo: target, beforeMigration: { entries, recipeIds: old.recipeIds || [] } });
+  }
+  return true;
+}
+
 async function loadMealplan() {
-  const rows = await dbGetAllMealplan();
+  let rows = await dbGetAllMealplan();
+  if (await migrateLegacyMealplanKeys(rows)) rows = await dbGetAllMealplan();
   state.mealplan = {};
   state.mealplanRecords = {};
   rows.forEach(r => {

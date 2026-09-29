@@ -90,9 +90,11 @@ function emptyFilterState() {
 
 /* ---------- Filter-Sheet (Punkt 104-107, 118) ---------- */
 function filterCheckboxGroup(title, groupId, options, activeSet, getId, getLabel) {
+  // Eindeutige ID je Gruppe (Mahlzeit und Gericht teilen sich dieselbe Filterdimension).
+  const headingId = `filter-group-${groupId}-${String(title).toLowerCase().replace(/[^a-z0-9]+/g, '-')}`;
   return `<div class="filter-group">
-    <h3 class="filter-group-title" id="filter-group-${groupId}">${title}</h3>
-    <div class="filter-checkbox-row" role="group" aria-labelledby="filter-group-${groupId}">
+    <h3 class="filter-group-title" id="${headingId}">${title}</h3>
+    <div class="filter-checkbox-row" role="group" aria-labelledby="${headingId}">
       ${options.map(o => {
         const id = getId(o), label = getLabel(o);
         const active = activeSet.has(id);
@@ -127,10 +129,10 @@ function importSummaryBanner(s) {
   return `<div class="import-summary">
     <div class="import-summary-title">${ICONS.sparkle} Automatisch erkannt — bitte kurz prüfen</div>
     ${row(s.titleFound, s.titleFound ? 'Titel erkannt' : 'Titel nicht erkannt — bitte eintragen')}
-    ${row(s.ingredientCount > 0, s.ingredientCount + ' Zutat' + (s.ingredientCount === 1 ? '' : 'en') + ' erkannt')}
+    ${row(s.ingredientCount > 0, s.ingredientCount + ' Zutat' + (s.ingredientCount === 1 ? '' : 'en') + (s.groupCount ? ` in ${s.groupCount} Gruppe${s.groupCount === 1 ? '' : 'n'}` : '') + ' erkannt')}
     ${row(s.stepCount > 0, s.stepCount + ' Zubereitungsschritt' + (s.stepCount === 1 ? '' : 'e') + ' erkannt')}
     ${row(s.servingsFound, s.servingsFound ? 'Portionen erkannt' : 'Portionen nicht erkannt — Standardwert eingetragen')}
-    ${row(s.timeFound, s.timeFound ? 'Zeit erkannt' : 'Zeit nicht erkannt — Standardwert eingetragen')}
+    ${row(s.timeFound, s.timeFound ? 'Zeit erkannt' : 'Zeit nicht erkannt. Bitte selbst eintragen, sie bleibt bis dahin leer.')}
     ${s.dietFound ? row(true, 'Ernährungsform automatisch erkannt — bitte gegenprüfen') : ''}
     ${s.notesFound ? row(true, 'Notizen/Tipps automatisch erkannt und abgetrennt') : ''}
     ${s.categoryFound ? row(true, 'Mahlzeit/Gerichtstyp automatisch erkannt — bitte gegenprüfen') : ''}
@@ -186,10 +188,14 @@ function unitConverterUnitOptions(selected) {
 }
 
 function unitConverterResultsHtml() {
-  const amount = parseFloat(state.ucAmount);
+  // F04: zentraler Parser, "0,5" und "0.5" ergeben dasselbe; Ungueltiges wird sichtbar abgelehnt.
+  const parsed = parseQuantityInput(state.ucAmount);
   const unit = state.ucUnit;
   const dim = unitDimension(unit);
-  if (!dim || isNaN(amount)) return `<p style="font-size:13.5px;color:var(--text-muted);">Menge eingeben, um Umrechnungen zu sehen.</p>`;
+  if (parsed.error) return `<p class="uc-error" role="alert">${escapeHtml(parsed.error)}</p>`;
+  if (parsed.value < 0 || parsed.value > 1e6) return `<p class="uc-error" role="alert">Bitte eine Menge zwischen 0 und 1'000'000 eingeben.</p>`;
+  if (!dim) return `<p class="settings-hint">Diese Einheit lässt sich nicht umrechnen.</p>`;
+  const amount = parsed.value;
   const table = dim === 'weight' ? WEIGHT_TABLE : VOLUME_TABLE;
   const others = Object.keys(table).filter(u => u !== unit);
   return `<div class="uc-result-list">${others.map(u => {
@@ -205,10 +211,13 @@ function unitConverterView() {
     ${topbar('Masseinheiten-Rechner', { back: true })}
     <main class="has-tabbar">
       <div class="uc-input-row">
-        <input type="text" inputmode="decimal" id="ucAmount" value="${escapeHtml(state.ucAmount)}">
+        <label for="ucAmount" class="sr-only">Menge</label>
+        <input type="text" inputmode="decimal" id="ucAmount" value="${escapeHtml(state.ucAmount)}" aria-describedby="ucResults" autocomplete="off">
+        <label for="ucUnit" class="sr-only">Einheit</label>
         <select id="ucUnit">${unitConverterUnitOptions(state.ucUnit)}</select>
       </div>
-      <div id="ucResults">${unitConverterResultsHtml()}</div>
+      <p class="settings-hint">Komma oder Punkt, auch Brüche wie 1/2 oder ½.</p>
+      <div id="ucResults" aria-live="polite">${unitConverterResultsHtml()}</div>
     </main>
     ${bottomNav()}
   `;
@@ -338,7 +347,9 @@ function settingsBackupView() {
     <div class="settings-group">
       <div class="settings-group-title">Backup</div>
       <div class="settings-group-card settings-group-card--padded">
-        <p class="settings-hint">Savora speichert alles nur auf diesem Gerät. Erstelle regelmässig eine Sicherung, damit bei einem Gerätewechsel oder gelöschten Browserdaten nichts verloren geht.</p>
+        <p class="settings-hint">${typeof cloudSignedIn === 'function' && cloudSignedIn()
+          ? 'Deine Daten liegen auf diesem Gerät und werden zusätzlich über die Synchronisation mit deinen anderen Geräten abgeglichen. Der Abgleich ist keine Sicherung: löschst du etwas, verschwindet es überall. Eine Sicherungsdatei hält einen festen Stand fest, zu dem du zurückkehren kannst.'
+          : 'Deine Daten liegen nur auf diesem Gerät. Erstelle regelmässig eine Sicherung, damit bei einem Gerätewechsel oder gelöschten Browserdaten nichts verloren geht. Unter „Synchronisation“ kannst du zusätzlich einen Abgleich mit deinen anderen Geräten einrichten.'}</p>
         <button class="primary-btn" data-action="export-backup">${ICONS.download} Backup erstellen</button>
         <p class="settings-hint settings-hint--top">Letztes Backup: ${escapeHtml(lastBackupLabel)}</p>
       </div>

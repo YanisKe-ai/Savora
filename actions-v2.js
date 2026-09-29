@@ -340,6 +340,42 @@ async function handleActionV2(action, id, el, e) {
       return true;
     }
 
+    case 'cook-edit-step-ings':
+      openModal({ type: 'step-ings', stepIndex: parseInt(el.dataset.idx, 10) }, '[data-action="cook-edit-step-ings"]');
+      return true;
+    case 'save-step-ings': case 'reset-step-ings': {
+      const r = state.recipes.find(x => x.id === state.activeRecipeId);
+      const step = r && (r.steps || [])[parseInt(el.dataset.idx, 10)];
+      if (!step) { closeModal(); return true; }
+      if (action === 'reset-step-ings') delete step.ingredientRefs;
+      else {
+        const chosen = Array.from(document.querySelectorAll('[data-step-ing]:checked')).map(x => parseInt(x.dataset.stepIng, 10));
+        // Zutaten erhalten nur dann eine feste ID, wenn sie zugeordnet werden (additiv, Mengen unveraendert).
+        step.ingredientRefs = chosen.map(idx => { const ing = r.ingredients[idx]; if (!ing.id) ing.id = 'ing_' + uid(); return 'id:' + ing.id; });
+      }
+      await dbPut(r);
+      closeModal();
+      showToast(action === 'reset-step-ings' ? 'Wieder automatischer Vorschlag' : 'Zuordnung gespeichert');
+      return true;
+    }
+    case 'fix-diet-conflict': {
+      const r = state.recipes.find(x => x.id === id);
+      const conflicts = dietConflicts(r);
+      if (!conflicts.length) return true;
+      const labels = conflicts.map(c => c.label === 'vegan' ? 'Vegan' : 'Vegetarisch').join(' und ');
+      if (!window.confirm(`Kennzeichnung „${labels}“ bei „${r.title}“ entfernen? Die Zutaten bleiben unverändert.`)) return true;
+      const drop = new Set(conflicts.map(c => c.label));
+      r.diet = (r.diet || []).filter(d => !drop.has(d));
+      const f = dietFindings(r);
+      if (f.meat.length && !r.diet.includes('fleisch')) r.diet.push('fleisch');
+      if (f.fish.length && !r.diet.includes('fisch')) r.diet.push('fisch');
+      r.updatedAt = Date.now();
+      await dbPut(r);
+      render();
+      showToast('Kennzeichnung korrigiert');
+      return true;
+    }
+
     /* ----- Einkauf ----- */
     case 'add-to-shopping': {
       const r = state.recipes.find(x => x.id === id);

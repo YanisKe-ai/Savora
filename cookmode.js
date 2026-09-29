@@ -89,7 +89,18 @@ document.addEventListener('visibilitychange', async () => {
 /* ---------- Event binding ---------- */
 /* ---------- Kochmodus: Navigation & Sprachausgabe ---------- */
 // Leere Schritte werden im Kochmodus uebersprungen (gleiche Liste wie in cookModeView).
-function cookSteps(r) { return (r.steps || []).filter(s => (s.text || '').trim()); }
+function cookSteps(r) {
+  // Zwischentitel ("Speck vorbereiten:") sind keine eigenen Kochschritte; sie erscheinen als
+  // Ueberschrift ueber dem folgenden Schritt. Der gespeicherte Rezepttext bleibt unveraendert.
+  let section = '';
+  const out = [];
+  stepEntries(r).forEach(e => {
+    if (e.heading) { section = String(e.text).trim().replace(/:$/, ''); return; }
+    out.push(Object.assign({}, e.step, { _section: section, _sourceIndex: e.sourceIndex }));
+    section = '';
+  });
+  return out;
+}
 
 function currentCookRecipe() { return state.recipes.find(x => x.id === state.activeRecipeId); }
 

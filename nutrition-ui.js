@@ -49,7 +49,7 @@ function nutritionCompactInner(recipe, result) {
   }
   const rows = NUTRITION_COMPACT_KEYS.map((key) => {
     const def = NUTRIENT_KEYS[key];
-    const val = result.nutrientsPerPortion[key];
+    const val = roundNutrientForDisplay(result.nutrientsPerPortion[key]);
     return `<div class="nutrition-compact-stat">
       <span class="nutrition-compact-value">${val === null ? '–' : val}${val === null ? '' : ' ' + def.unit}</span>
       <span class="nutrition-compact-label">${def.label}</span>
@@ -61,6 +61,7 @@ function nutritionCompactInner(recipe, result) {
       <span class="nutrition-confidence-badge tone-${confidenceBadgeClass(result.confidence)}">${conf.label}</span>
       ${result.unresolvedCount > 0 ? `<button class="nutrition-review-link" data-action="nutrition-open-match" data-id="${recipe.id}">${result.unresolvedCount} Zutat${result.unresolvedCount === 1 ? '' : 'en'} prüfen</button>` : ''}
     </div>
+    <p class="nutrition-basis">Werte pro ${typeof servingMode === 'function' && servingMode(recipe) === 'pieces' ? 'Stück' : 'Portion'}, geschätzt</p>
     <div class="nutrition-compact-grid">${rows}</div>
     ${nutritionIngredientStatus(recipe, result)}
     <div class="nutrition-compact-actions">
@@ -345,7 +346,8 @@ function nutritionDetailGroup(group, result) {
   const keys = Object.keys(NUTRIENT_KEYS).filter((k) => NUTRIENT_KEYS[k].group === group.key);
   const rows = keys.map((key) => {
     const def = NUTRIENT_KEYS[key];
-    const val = nutritionValueFor(result, key);
+    // F07: alle Ansichten gleich runden (Gesamt zeigte sonst Gleitkomma-Reste wie 22.648500000000006).
+    const val = roundNutrientForDisplay(nutritionValueFor(result, key));
     return `<div class="nutrition-nutrient-row">
       <span>${def.label}</span>
       <span>${val === null ? '–' : val + ' ' + def.unit}</span>

@@ -80,7 +80,7 @@ function applyAllFilters(recipes) {
   if (state.activeTag) list = list.filter(r => (r.tags || []).includes(state.activeTag));
   if (state.favOnly) list = list.filter(r => r.favorite);
   const { dietary, category, time } = state.activeFilters;
-  if (dietary.size) list = list.filter(r => (r.diet || []).some(d => dietary.has(d)));
+  if (dietary.size) list = list.filter(r => { const bad = new Set(dietConflicts(r).map(c => c.label)); return (r.diet || []).some(d => dietary.has(d) && !bad.has(d)); });
   if (category.size) list = list.filter(r => (r.categoryTags || []).some(c => category.has(c)));
   if (time.size) list = list.filter(r => timeBucketsFor(r.timeMinutes).some(b => time.has(b)));
   return list;
@@ -291,9 +291,12 @@ function ingredientsPanel(r) {
     ${checked.size ? `<button class="text-btn" data-action="reset-ingredient-checks" data-id="${r.id}">Häkchen zurücksetzen</button>` : ''}`;
 }
 function stepsPanel(r) {
-  const steps = (r.steps || []).filter(s => (s.text || '').trim());
-  if (!steps.length) return `<p class="hint-line">Noch keine Zubereitungsschritte erfasst.</p>`;
-  return `<ol class="step-list-v2">${steps.map((s, idx) => `<li><span class="step-no" aria-hidden="true">${idx + 1}</span><p>${escapeHtml(s.text)}</p></li>`).join('')}</ol>`;
+  const entries = stepEntries(r);
+  if (!entries.length) return `<p class="hint-line">Noch keine Zubereitungsschritte erfasst.</p>`;
+  let n = 0;
+  return `<ol class="step-list-v2">${entries.map(e => e.heading
+    ? `<li class="step-heading"><h3>${escapeHtml(String(e.text).trim().replace(/:$/, ''))}</h3></li>`
+    : `<li><span class="step-no" aria-hidden="true">${++n}</span><p>${escapeHtml(e.text)}</p></li>`).join('')}</ol>`;
 }
 function notesPanel(r) {
   const log = (r.cookLog || []).slice().sort((a, b) => (b.date || 0) - (a.date || 0));
@@ -331,11 +334,19 @@ function detailView() {
   const meta = [r.timeMinutes ? `${r.timeMinutes} Min.` : '', servingMode(r) === 'pieces' ? `${servings} Stück` : servingLabel(r, servings), r.difficulty || ''].filter(Boolean);
   const sourceText = r.sharedBy
     ? `${ICONS.sparkle}<span>Geteilt von ${escapeHtml(r.sharedBy)}</span>`
-    : r.source ? `${ICONS.link}<span>Quelle: <a href="${escapeHtml(r.source)}" target="_blank" rel="noopener">${escapeHtml(domainFromUrl(r.source))}</a></span>` : `${ICONS.bookOpen}<span>Aus deinem eigenen Kochbuch</span>`;
+    : r.source ? `${ICONS.link}<span>Quelle: <a href="${escapeHtml(r.source)}" target="_blank" rel="noopener">${escapeHtml(domainFromUrl(r.source))}</a></span>`
+    : textSourceHint(r) ? `${ICONS.link}<span>Quelle: ${escapeHtml(textSourceHint(r))}</span>` : `${ICONS.bookOpen}<span>Aus deinem eigenen Kochbuch</span>`;
   const tagChips = [];
-  (r.diet || []).forEach(dk => { const d = DIET_OPTIONS.find(o => o.key === dk); if (d && !(dk === 'vegetarisch' && r.diet.includes('vegan'))) tagChips.push(d.label); });
+  const conflicts = dietConflicts(r);
+  const conflictLabels = new Set(conflicts.map(c => c.label));
+  (r.diet || []).forEach(dk => { const d = DIET_OPTIONS.find(o => o.key === dk); if (d && !conflictLabels.has(dk) && !(dk === 'vegetarisch' && r.diet.includes('vegan'))) tagChips.push(d.label); });
   (r.categoryTags || []).forEach(c => tagChips.push(categoryLabelFor(c)));
   const source = `<div class="source-row"><p class="source-line">${sourceText}</p>${tagChips.length ? `<span class="source-chips">${tagChips.slice(0, 2).map(t => `<span class="source-chip">${escapeHtml(t)}</span>`).join('')}</span>` : ''}</div>`;
+  const conflictBox = conflicts.length ? `<div class="diet-warning" role="note">
+      <strong>Kennzeichnung prüfen</strong>
+      <p>${conflicts.map(c => `Als <b>${c.label === 'vegan' ? 'vegan' : 'vegetarisch'}</b> markiert, enthält aber: ${escapeHtml(Array.from(new Set(c.items)).slice(0, 4).join(', '))}${new Set(c.items).size > 4 ? ' …' : ''}.`).join(' ')}</p>
+      <div class="diet-warning-actions"><button class="outline-btn outline-btn--small" data-action="fix-diet-conflict" data-id="${r.id}">Kennzeichnung entfernen</button><button class="text-btn" data-action="edit-recipe" data-id="${r.id}">Bearbeiten</button></div>
+    </div>` : '';
   return `
     ${topbar(r.title || 'Rezept', { back: true, actions: `<button class="icon-btn" data-action="open-detail-menu" data-id="${r.id}" aria-label="Weitere Aktionen" aria-haspopup="dialog">${ICONS.more}</button>` })}
     <main class="has-tabbar detail-main">
@@ -353,6 +364,7 @@ function detailView() {
         <button class="outline-btn" data-action="share-recipe" data-id="${r.id}">${ICONS.share} Teilen</button>
       </div>
       ${source}
+      ${conflictBox}
       <div class="tabbar-v2" role="tablist" aria-label="Rezeptinhalt">
         ${tabs.map(t => `<button role="tab" id="tab-${t.id}" class="tab-v2 ${tab === t.id ? 'is-active' : ''}" aria-selected="${tab === t.id}" aria-controls="panel-${t.id}" tabindex="${tab === t.id ? '0' : '-1'}" data-action="set-detail-tab" data-id="${t.id}">${t.label}</button>`).join('')}
       </div>
@@ -369,6 +381,13 @@ function detailView() {
     ${nutritionDetailModal(r, state._nutritionDetailResult)}
     ${pdfExportModal()}
   `;
+}
+// Eine im Rezepttext vermerkte Quelle ("Quelle: kookmutsjes.com") wird angezeigt statt der
+// Aussage "Aus deinem eigenen Kochbuch". Der Rezepttext selbst bleibt unveraendert.
+function textSourceHint(r) {
+  const hay = [r.notes || ''].concat((r.steps || []).map(s => s.text || '')).join('\n');
+  const m = hay.match(/Quelle\s*:\s*([^\n]{2,80})/i);
+  return m ? m[1].trim().replace(/[.\s]+$/, '') : '';
 }
 function sheet(id, title, body) {
   return `<div class="modal-backdrop" data-action="close-modal">
@@ -440,7 +459,7 @@ function shopSelectModal() {
 function cookModeView() {
   const r = state.recipes.find(x => x.id === state.activeRecipeId);
   if (!r) { state.view = 'home'; return homeView(); }
-  const steps = (r.steps || []).filter(s => (s.text || '').trim());
+  const steps = cookSteps(r);
   const checked = checkedSetFor(r.id);
   if (state.cookFinished) {
     return `<div class="cookmode-overlay cook-v2">
@@ -462,21 +481,27 @@ function cookModeView() {
   const idx = Math.min(state.cookStepIndex, total - 1);
   const step = steps[idx] || { text: 'Für dieses Rezept sind noch keine Schritte erfasst.' };
   const isLast = idx >= total - 1;
-  const stepIngs = ingredientsForStep(r, step.text);
-  const shownIngs = state.cookShowAllIngredients ? realIngredients(r).map(i => ({ ...i, _index: r.ingredients.indexOf(i) })) : stepIngs;
+  const match = step._sourceIndex !== undefined ? stepIngredientMatch(r, step) : { items: [], fixed: false, ambiguous: false };
+  const stepIngs = match.items;
+  const groupsById = new Map(); getIngredientGroups(r).forEach(g => g.ingredients.forEach(i => groupsById.set(i._index, g.title)));
+  const shownIngs = state.cookShowAllIngredients ? realIngredients(r).map(i => { const idx = r.ingredients.indexOf(i); return { ...i, _index: idx, _group: groupsById.get(idx) }; }) : stepIngs;
+  const showGroups = hasNamedGroups(r);
   const factor = currentServings(r) / (r.servings || 1);
-  const ingChips = shownIngs.map(i => `<button type="button" class="cook-ing ${checked.has(i._index) ? 'is-checked' : ''}" data-action="toggle-ingredient-check" data-id="${r.id}" data-idx="${i._index}" role="checkbox" aria-checked="${checked.has(i._index)}"><span class="check-box" aria-hidden="true">${ICONS.check}</span>${escapeHtml(scaledAmountText(i, factor))}${i.unit ? ' ' + escapeHtml(i.unit) : ''} ${escapeHtml(i.name)}</button>`).join('');
+  const ingChips = shownIngs.map(i => `<button type="button" class="cook-ing ${checked.has(i._index) ? 'is-checked' : ''} ${i._ambiguous ? 'is-ambiguous' : ''}" data-action="toggle-ingredient-check" data-id="${r.id}" data-idx="${i._index}" role="checkbox" aria-checked="${checked.has(i._index)}"><span class="check-box" aria-hidden="true">${ICONS.check}</span>${escapeHtml(scaledAmountText(i, factor))}${i.unit ? ' ' + escapeHtml(i.unit) : ''} ${escapeHtml(i.name)}${showGroups && i._group && (i._ambiguous || state.cookShowAllIngredients) ? `<span class="cook-ing-group">${escapeHtml(i._group)}</span>` : ''}</button>`).join('');
+  const matchNote = state.cookShowAllIngredients ? '' : match.fixed ? 'Von dir festgelegt' : match.ambiguous ? 'Vorschlag, nicht eindeutig' : (stepIngs.length ? 'Vorschlag' : '');
   const body = state.cookAllSteps
-    ? `<ol class="cook-all-steps">${steps.map((s, n) => `<li><button class="cook-all-step ${n === idx ? 'is-current' : ''}" data-action="cook-goto" data-idx="${n}"><span class="step-no">${n + 1}</span><span>${escapeHtml(s.text)}</span></button></li>`).join('')}</ol>`
+    ? `<ol class="cook-all-steps">${steps.map((s, n) => `<li>${s._section ? `<div class="cook-section">${escapeHtml(s._section)}</div>` : ''}<button class="cook-all-step ${n === idx ? 'is-current' : ''}" data-action="cook-goto" data-idx="${n}"><span class="step-no">${n + 1}</span><span>${escapeHtml(s.text)}</span></button></li>`).join('')}</ol>`
     : `<div class="cook-step-card">
+        ${step._section ? `<div class="cook-section">${escapeHtml(step._section)}</div>` : ''}
         <div class="cookmode-steptext">${renderStepWithTimers(step.text, idx)}</div>
       </div>
       <div class="cook-ings">
-        <div class="cook-ings-head"><span>${state.cookShowAllIngredients ? 'Alle Zutaten' : (stepIngs.length ? 'Für diesen Schritt' : 'Keine Zutat im Schritt erkannt')}</span>
-          <button class="text-btn" data-action="cook-toggle-all-ings">${state.cookShowAllIngredients ? 'Nur für diesen Schritt' : 'Alle Zutaten'}</button></div>
+        <div class="cook-ings-head"><span>${state.cookShowAllIngredients ? 'Alle Zutaten' : (stepIngs.length ? 'Für diesen Schritt' : 'Keine Zutat im Schritt erkannt')}${matchNote ? ` <span class="cook-match-note">· ${matchNote}</span>` : ''}</span>
+          <span class="cook-ings-actions">${!state.cookShowAllIngredients && step._sourceIndex !== undefined ? `<button class="text-btn" data-action="cook-edit-step-ings" data-idx="${step._sourceIndex}">Anpassen</button>` : ''}<button class="text-btn" data-action="cook-toggle-all-ings">${state.cookShowAllIngredients ? 'Nur dieser Schritt' : 'Alle Zutaten'}</button></span></div>
         ${ingChips ? `<div class="cook-ing-list">${ingChips}</div>` : ''}
       </div>`;
-  return `<div class="cookmode-overlay cook-v2">
+  const refModal = state.modal && state.modal.type === 'step-ings' ? stepIngredientsModal(r, state.modal.stepIndex) : '';
+  return `${refModal}<div class="cookmode-overlay cook-v2">
     <div class="cookmode-top">
       <button class="icon-btn" data-action="exit-cook" aria-label="Kochmodus verlassen">${ICONS.x}</button>
       <span class="cookmode-progress" aria-live="polite">Schritt ${idx + 1} von ${total}</span>
@@ -491,6 +516,29 @@ function cookModeView() {
     <div class="cookmode-nav">
       <button data-action="cook-prev" ${idx === 0 ? 'disabled' : ''}>Zurück</button>
       <button class="primary" data-action="${isLast ? 'cook-finish' : 'cook-next'}">${isLast ? 'Fertig' : 'Weiter'}</button>
+    </div>
+  </div>`;
+}
+
+function stepIngredientsModal(r, stepIndex) {
+  const step = (r.steps || [])[stepIndex];
+  if (!step) return '';
+  const current = new Set(stepIngredientMatch(r, step).items.map(i => i._index));
+  const groups = getIngredientGroups(r);
+  const showTitles = hasNamedGroups(r);
+  return `<div class="modal-backdrop modal-backdrop--top" data-action="close-modal">
+    <div class="modal-sheet" role="dialog" aria-modal="true" aria-labelledby="step-ings-title" tabindex="-1" onclick="event.stopPropagation()">
+      <div class="sheet-handle" aria-hidden="true"></div>
+      <h3 class="modal-title" id="step-ings-title">Zutaten für diesen Schritt</h3>
+      <p class="hint-line">„${escapeHtml(String(step.text).slice(0, 90))}${String(step.text).length > 90 ? ' …' : ''}“</p>
+      <div class="shop-select-list">
+        ${groups.map(g => `${showTitles ? `<h4 class="shop-select-recipe">${escapeHtml(g.title)}</h4>` : ''}${g.ingredients.map(i => `<label class="shop-select-row"><input type="checkbox" data-step-ing="${i._index}" ${current.has(i._index) ? 'checked' : ''}><span class="ing-amount">${escapeHtml(String(i.amount || ''))}${i.unit ? ' ' + escapeHtml(i.unit) : ''}</span><span class="ing-name">${escapeHtml(i.name)}</span></label>`).join('')}`).join('')}
+      </div>
+      <p class="hint-line">Deine Auswahl wird gespeichert und ersetzt den automatischen Vorschlag. Mengen und Text bleiben unverändert.</p>
+      <div class="form-actions">
+        ${Array.isArray(step.ingredientRefs) ? `<button class="ghost-btn" data-action="reset-step-ings" data-idx="${stepIndex}">Automatisch</button>` : `<button class="ghost-btn" data-action="close-modal">Abbrechen</button>`}
+        <button class="primary-btn" data-action="save-step-ings" data-idx="${stepIndex}">Speichern</button>
+      </div>
     </div>
   </div>`;
 }

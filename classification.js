@@ -13,7 +13,7 @@ const MEAT_INDICATOR_WORDS = new Set([
   'hackfleisch', 'rinderhackfleisch', 'speck', 'speckwuerfeli', 'schinken', 'rohschinken', 'kochschinken',
   'salami', 'salsiz', 'mortadella', 'prosciutto', 'buendnerfleisch', 'bündnerfleisch', 'chorizo', 'cervelat',
   'wurst', 'bratwurst', 'geflügel', 'gefluegel', 'ente', 'gans', 'wild', 'hirsch', 'reh', 'bacon', 'poulardenbrust',
-  'putenbrust', 'pute', 'truthahn',
+  'putenbrust', 'pute', 'truthahn', 'pancetta', 'guanciale', 'bauchspeck', 'lardo', 'coppa', 'pastrami', 'nduja', 'kebab',
 ]);
 const FISH_INDICATOR_WORDS = new Set([
   'lachs', 'rauchlachs', 'thunfisch', 'dorsch', 'forelle', 'crevetten', 'garnelen', 'muscheln', 'tintenfisch',
@@ -26,7 +26,8 @@ const NON_VEGAN_ANIMAL_WORDS = new Set([
   'milch', 'vollmilch', 'magermilch', 'halbfettmilch', 'buttermilch', 'rahm', 'sahne', 'vollrahm', 'halbrahm', 'doppelrahm',
   'butter', 'kaese', 'käse', 'joghurt', 'griechischer joghurt', 'quark', 'magerquark', 'skyr', 'mascarpone', 'ricotta',
   'creme fraiche', 'crème fraîche', 'frischkaese', 'frischkäse', 'doppelrahmfrischkaese', 'doppelrahmfrischkäse',
-  'huettenkaese', 'hüttenkäse', 'ei', 'eier', 'eigelb', 'eiweiss', 'honig',
+  'huettenkaese', 'hüttenkäse', 'ei', 'eier', 'eigelb', 'eiweiss', 'honig', 'parmesan', 'pecorino', 'grana', 'mozzarella',
+  'feta', 'gruyere', 'gruyère', 'emmentaler', 'sbrinz', 'cheddar', 'gorgonzola', 'burrata', 'sauerrahm', 'schmand', 'ghee', 'butterschmalz', 'kondensmilch',
 ]);
 const GELATINE_WORDS = new Set(['gelatine']);
 

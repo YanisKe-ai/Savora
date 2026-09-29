@@ -99,6 +99,27 @@ function parseISODuration(iso) {
   return (parseInt(m[1] || 0) * 60) + parseInt(m[2] || 0);
 }
 
+// Zeile, die nur aus einer Dauer besteht ("20 Minuten", "ca. 1 Std. 30 Min.")
+function isDurationOnlyLine(l) {
+  return /^(ca\.?|etwa|rund|zeit:?|dauer:?)?\s*\d+([.,]\d+)?\s*(h|std\.?|stunden?|min\.?|minuten?)(\s*(und\s*)?\d+\s*(min\.?|minuten?))?\.?$/i.test(stripBullet(String(l)).trim());
+}
+// Kurze Zwischenueberschrift zwischen Zutaten ("Teig:", "Für die Sauce:")
+function isGroupHeadingLine(l) {
+  const s = stripBullet(String(l)).trim();
+  return /:$/.test(s) && s.length <= 40 && !/\d/.test(s) && s.split(/\s+/).length <= 5;
+}
+
+/* Wandelt eine Dauerangabe in Minuten um: "20 Minuten", "1 Std. 30 Min.", "1,5 h", "90 min". */
+function parseDurationText(s) {
+  const text = String(s || '').toLowerCase();
+  let total = 0, found = false, m;
+  const hRe = /(\d+(?:[.,]\d+)?)\s*(h\b|std\.?|stunden?)/g;
+  while ((m = hRe.exec(text))) { total += parseFloat(m[1].replace(',', '.')) * 60; found = true; }
+  const mRe = /(\d+)\s*(min\.?|minuten?)\b/g;
+  while ((m = mRe.exec(text))) { total += parseInt(m[1], 10); found = true; }
+  return found ? Math.round(total) : null;
+}
+
 function parseIngredientLine(line) {
   const m = /^([\d.,\/]+)\s*([a-zA-ZäöüÄÖÜ.]*)\s+(.*)$/.exec(line.trim());
   if (m) return { amount: m[1].replace(',', '.'), unit: m[2], name: m[3] };
@@ -219,7 +240,7 @@ function parseFreeTextRecipe(raw) {
       const end = (stepStart !== -1 && stepStart > ingStart) ? stepStart : firstStepIdx;
       ingLines = lines.slice(ingStart + 1, Math.max(end, ingStart + 1)).filter(l => !STEP_NUM_RE.test(l));
     } else {
-      ingLines = lines.slice(0, firstStepIdx).filter(l => l !== titleLine && looksLikeIngredient(l));
+      ingLines = lines.slice(0, firstStepIdx).filter(l => l !== titleLine && !isDurationOnlyLine(l) && (looksLikeIngredient(l) || isGroupHeadingLine(l)));
     }
   } else if (ingStart !== -1 || stepStart !== -1) {
     const firstSectionIdx = [ingStart, stepStart].filter(i => i !== -1).sort((a, b) => a - b)[0];
@@ -243,8 +264,17 @@ function parseFreeTextRecipe(raw) {
   stepLines = stepLines.filter(l => !metaLineRe.test(l) && !isHashtagOnly(l));
 
   r.title = titleLine ? stripBullet(titleLine).slice(0, 80) : 'Importiertes Rezept';
+  ingLines = ingLines.filter(l => !isDurationOnlyLine(l));
   r.ingredients = ingLines.map(l => parseIngredientLine(stripBullet(l))).filter(i => i.name);
   r.ingredients = r.ingredients.map(i => autoConvertIngredient(i));
+  // Gruppenzeilen ("Teig:") werden beim Import direkt zum group-Feld der folgenden Zutaten; sie
+  // zaehlen damit nicht als Zutat und landen nie in der Einkaufsliste.
+  let importGroup = '';
+  r.ingredients = r.ingredients.filter(i => {
+    if (typeof isIngredientHeaderRow === 'function' && isIngredientHeaderRow(i)) { importGroup = headerTitle(i); return false; }
+    if (importGroup) i.group = importGroup;
+    return true;
+  });
   r.steps = stepLines.map(l => ({ text: stripStepNumber(stripBullet(l)) })).filter(s => s.text);
   if (!r.ingredients.length) r.ingredients = [{ amount: '', unit: '', name: '' }];
   if (!r.steps.length) r.steps = [{ text: '' }];
@@ -255,8 +285,17 @@ function parseFreeTextRecipe(raw) {
   // uebernommen. Ohne klare Meta-Zeile bleibt der Standardwert stehen und wird im Import-Hinweis
   // ehrlich als "nicht erkannt" markiert, statt eine moeglicherweise falsche Zahl zu zeigen.
   const metaText = lines.filter(l => metaLineRe.test(l)).join(' ');
-  const timeMatch = metaText ? metaText.match(/(\d+)\s*(min(?:uten)?|std\.?|stunden?)/i) : null;
-  if (timeMatch) r.timeMinutes = /std|stunden/i.test(timeMatch[2]) ? parseInt(timeMatch[1]) * 60 : parseInt(timeMatch[1]);
+  // F08: Zeit aus Meta-Zeilen ODER aus einer Zeile, die nur aus einer Dauer besteht ("20 Minuten",
+  // "1 Std. 30 Min.", "ca. 45 min"). Dauern mitten in Zubereitungsschritten zaehlen weiterhin nicht,
+  // und einzelne Timer werden nicht aufsummiert.
+  let timeMinutes = metaText ? parseDurationText(metaText) : null;
+  if (timeMinutes === null) {
+    const onlyDuration = lines.map(l => stripBullet(l).trim()).find(l => /^(ca\.?|etwa|rund|zeit:?|dauer:?)?\s*\d+([.,]\d+)?\s*(h|std\.?|stunden?|min\.?|minuten?)(\s*(und\s*)?\d+\s*(min\.?|minuten?))?\.?$/i.test(l));
+    if (onlyDuration) timeMinutes = parseDurationText(onlyDuration);
+  }
+  const timeMatch = timeMinutes !== null && timeMinutes > 0;
+  // Unbekannte Zeit bleibt leer (0) statt eines Standardwerts, der wie ein echter Wert aussieht.
+  r.timeMinutes = timeMatch ? timeMinutes : 0;
   const servMatch = metaText ? metaText.match(/(\d+)\s*(portionen|personen|servings)/i) : null;
   if (servMatch) r.servings = parseInt(servMatch[1]);
 
@@ -289,9 +328,16 @@ function parseFreeTextRecipe(raw) {
   const lowConfidenceHints = lowConfidenceSuggestions(autoClassification);
   r.tags = Array.from(new Set(tagWords.filter(t => !dietMap[t.toLowerCase()]))).slice(0, 6);
   r.notes = detectedNotes || '';
+  // Klar widerspruechliche Ernaehrungsvorschlaege (z.B. "vegan" bei Speck oder Parmesan) bei neuen
+  // Importen gar nicht erst setzen. Bestehende Rezepte werden davon nicht beruehrt.
+  if (typeof dietConflicts === 'function') {
+    const conflicting = new Set(dietConflicts(r).map(c => c.label));
+    if (conflicting.size) r.diet = r.diet.filter(d => !conflicting.has(d));
+  }
   r._importSummary = {
     titleFound: !!titleLine,
-    ingredientCount: r.ingredients.filter(i => i.name).length,
+    ingredientCount: typeof realIngredients === 'function' ? realIngredients(r).length : r.ingredients.filter(i => i.name).length,
+    groupCount: typeof getIngredientGroups === 'function' ? getIngredientGroups(r).filter(g => g.title !== 'Zutaten').length : 0,
     stepCount: r.steps.filter(s => s.text).length,
     servingsFound: !!servMatch,
     timeFound: !!timeMatch,

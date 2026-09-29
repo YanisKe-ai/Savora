@@ -112,7 +112,8 @@ function recipesInCollection(key, recipes) {
   if (!key || key === 'all') return recipes;
   if (key === 'favorites') return recipes.filter(r => r.favorite);
   if (key === 'quick') return recipes.filter(r => r.timeMinutes > 0 && r.timeMinutes <= 30);
-  if (key === 'veggie') return recipes.filter(r => (r.diet || []).some(d => d === 'vegetarisch' || d === 'vegan'));
+  // Widerspruechlich gekennzeichnete Rezepte (z.B. "vegan" mit Speck) erscheinen nicht im Ernaehrungsfilter.
+  if (key === 'veggie') return recipes.filter(r => (r.diet || []).some(d => d === 'vegetarisch' || d === 'vegan') && !dietConflicts(r).length);
   if (key === 'uncooked') return recipes.filter(isUncooked);
   if (key === 'frequent') return recipes.filter(isFrequentlyCooked);
   return recipes.filter(r => (r.collections || []).includes(key));
@@ -137,21 +138,177 @@ function checkedSetFor(recipeId) {
   if (!state.checkedIngredients[recipeId]) state.checkedIngredients[recipeId] = new Set();
   return state.checkedIngredients[recipeId];
 }
-// Zutaten, die im Schritttext namentlich vorkommen (konservativ, nur Woerter ab 4 Zeichen).
-function ingredientsForStep(r, stepText) {
-  const text = ' ' + String(stepText || '').toLowerCase().replace(/[^a-zäöüßéèàç0-9\s-]/gi, ' ') + ' ';
+/* ---------- Zutaten je Kochschritt (F03) ----------
+   Heuristik mit Wortgrenzen statt Teilstring-Suche, damit auch kurze Namen ("Ei") gefunden werden,
+   ohne dass "Ei" in "Eis" oder "weich" hineinpasst. Zusammengesetzte Woerter liefern zusaetzlich
+   ihren Grundbegriff (Trockenhefe -> Hefe, Weissmehl -> Mehl, Rinderhackfleisch -> Hackfleisch).
+   Gibt es dieselbe Zutat in mehreren Gruppen (z.B. Salz im Teig und in der Fuellung), entscheidet
+   die Gruppe, zu der die uebrigen eindeutig erkannten Zutaten des Schritts gehoeren. Bleibt es
+   unklar, werden alle Kandidaten gezeigt und als mehrdeutig markiert. Eine vom Nutzer
+   festgelegte Zuordnung (step.ingredientRefs) hat immer Vorrang. */
+const STEP_BASE_WORDS = ['hefe', 'mehl', 'salz', 'zucker', 'pfeffer', 'milch', 'butter', 'oel', 'öl', 'kaese', 'käse',
+  'fleisch', 'hackfleisch', 'sauce', 'sosse', 'soße', 'rahm', 'sahne', 'wasser', 'essig', 'senf', 'honig', 'teig', 'nudeln',
+  'reis', 'speck', 'schinken', 'zwiebel', 'knoblauch', 'tomaten', 'tomate', 'kartoffeln', 'kartoffel', 'bouillon', 'bruehe',
+  'brühe', 'schokolade', 'nuesse', 'nüsse', 'mandeln', 'joghurt', 'quark', 'pulver', 'sesam', 'eier', 'ei'];
+const STEP_STOP_WORDS = new Set(['und', 'oder', 'mit', 'ohne', 'fuer', 'für', 'frisch', 'frische', 'frischer', 'gross', 'groß', 'grosse',
+  'klein', 'kleine', 'gerieben', 'geriebener', 'gehackt', 'fein', 'grob', 'lauwarm', 'warm', 'kalt', 'weich', 'geschmolzen',
+  'ungesalzen', 'gesalzen', 'etwas', 'nach', 'belieben', 'am', 'stueck', 'stück', 'optional', 'alternativ', 'ca', 'zum', 'die',
+  'der', 'das', 'den', 'dem', 'des', 'ein', 'eine', 'einer', 'aus', 'von', 'bis', 'je', 'plus', 'mühle', 'muehle']);
+const STEP_ADJECTIVES = new Set(['duenne', 'dünne', 'lange', 'kurze', 'grosse', 'große', 'kleine', 'reife', 'mittelgross', 'gross', 'größe', 'groesse', 'alternativ', 'gerieben', 'geriebenen', 'frisch', 'gehackt', 'gehackte', 'verquirlt']);
+const INGREDIENT_SYNONYMS = { eier: ['ei'], ei: ['eier', 'eigelb', 'eiweiss'], hackfleisch: ['hack'], sahne: ['rahm'], rahm: ['sahne'],
+  zwiebelpulver: ['zwiebelpulver'], knoblauchzehe: ['knoblauch'], knoblauchzehen: ['knoblauch'] };
+function stepWordTokens(text) {
+  return String(text || '').toLowerCase().replace(/[^a-zäöüßéèàç0-9]+/gi, ' ').split(' ').filter(Boolean);
+}
+// Alte Importe haben manchmal das Lebensmittel im Einheitenfeld ("1" | "Ei" | "(gross)").
+const COUNT_UNIT_WORDS = new Set(['stk', 'stk.', 'stück', 'stueck', 'prise', 'prisen', 'pk', 'pck', 'pack', 'packung', 'päckchen', 'bund', 'dose', 'dosen',
+  'el', 'tl', 'becher', 'zehe', 'zehen', 'scheibe', 'scheiben', 'tasse', 'tassen', 'glas', 'msp', 'handvoll', 'tropfen', 'blatt', 'blätter', 'cm', 'wuerfel', 'würfel', 'schuss', 'spritzer', 'stange', 'stangen', 'kopf', 'knolle']);
+function isMeasureUnit(u) {
+  const s = String(u || '').trim().toLowerCase();
+  if (!s) return true;
+  if (typeof normalizeUnit === 'function' && normalizeUnit(s)) return true;
+  return COUNT_UNIT_WORDS.has(s) || /^(g|kg|mg|ml|cl|dl|l)$/.test(s);
+}
+function ingredientText(i) {
+  return (isMeasureUnit(i.unit) ? '' : String(i.unit) + ' ') + String(i.name || '');
+}
+function ingredientKeywords(i) {
+  const raw = ingredientText(i).toLowerCase();
+  let core = raw.replace(/\([^)]*\)/g, ' ').split(',')[0];
+  if (!core.trim()) core = raw.replace(/[()]/g, ' ');
+  // Aus Klammern nur Nomen (im Deutschen gross geschrieben), z.B. "(alternativ Bauchspeck oder Bacon)".
+  const paren = (ingredientText(i).match(/\(([^)]*)\)/g) || []).join(' ').split(/[^A-Za-zÄÖÜäöüßéèàç]+/).filter(w => /^[A-ZÄÖÜ]/.test(w)).join(' ').toLowerCase();
+  const words = stepWordTokens(core).filter(w => w.length >= 2 && !STEP_STOP_WORDS.has(w) && !/^\d/.test(w))
+    .concat(stepWordTokens(paren).filter(w => w.length >= 5 && !STEP_STOP_WORDS.has(w) && !STEP_ADJECTIVES.has(w)));
+  const keys = new Set();
+  words.forEach(w => {
+    keys.add(w);
+    STEP_BASE_WORDS.forEach(b => { if (w.length > b.length + 2 && w.endsWith(b)) keys.add(b); });
+    (INGREDIENT_SYNONYMS[w] || []).forEach(s => keys.add(s));
+  });
+  return Array.from(keys);
+}
+function tokenMatchesKeyword(tok, key) {
+  if (tok === key) return true;
+  if (key.length <= 2) return ['er', 'ern'].some(s => tok === key + s); // Ei -> Eier, Eiern, aber nicht Eis
+  if (tok.length >= 4 && (tok === key + 'n' || tok === key + 'en' || tok === key + 'e' || tok === key + 's' || tok === key + 'er' || tok === key + 'es')) return true;
+  if (key.length >= 4 && tok.length >= 4 && (key === tok + 'n' || key === tok + 'en' || key === tok + 'e' || key === tok + 's')) return true;
+  if (key.length >= 5 && tok.length >= key.length + 3 && tok.endsWith(key)) return true; // Cayennepfeffer -> Pfeffer
+  if (tok.length >= 5 && key.length >= tok.length + 3 && key.startsWith(tok)) return true; // Paprika -> Paprikapulver
+  return false;
+}
+function ingredientIdentity(i, idx) { return i && i.id ? 'id:' + i.id : 'idx:' + idx; }
+function stepIngredientMatch(r, step) {
+  const all = [];
+  (r.ingredients || []).forEach((i, idx) => { if (i && String(i.name || '').trim() && !isIngredientHeaderRow(i)) all.push({ ...i, _index: idx }); });
+  const groupOf = new Map();
+  getIngredientGroups(r).forEach(g => g.ingredients.forEach(i => groupOf.set(i._index, g.title)));
+  // 1. Festgelegte Zuordnung
+  if (step && Array.isArray(step.ingredientRefs)) {
+    const refs = new Set(step.ingredientRefs);
+    return { items: all.filter(i => refs.has(ingredientIdentity(i, i._index))).map(i => ({ ...i, _group: groupOf.get(i._index) })), fixed: true, ambiguous: false };
+  }
+  const tokens = stepWordTokens(step && step.text);
+  if (!tokens.length) return { items: [], fixed: false, ambiguous: false };
+  const hits = all.filter(i => ingredientKeywords(i).some(k => tokens.some(t => tokenMatchesKeyword(t, k))));
+  // 2. Gleichnamige Zutaten aus verschiedenen Gruppen aufloesen
+  const byName = {};
+  hits.forEach(i => { const k = ingredientKeywords(i)[0] || i.name.toLowerCase(); (byName[k] = byName[k] || []).push(i); });
+  const unique = Object.values(byName).filter(list => list.length === 1).map(list => list[0]);
+  const votes = {};
+  unique.forEach(i => { const g = groupOf.get(i._index); if (g) votes[g] = (votes[g] || 0) + 1; });
+  tokens.forEach(t => Object.keys(votes).concat(getIngredientGroups(r).map(g => g.title)).forEach(g => { if (stepWordTokens(g).some(w => w.length >= 4 && tokenMatchesKeyword(t, w))) votes[g] = (votes[g] || 0) + 2; }));
+  const ranked = Object.entries(votes).sort((a, b) => b[1] - a[1]);
+  const winner = ranked.length && (ranked.length === 1 || ranked[0][1] > ranked[1][1]) ? ranked[0][0] : null;
+  let ambiguous = false;
+  const items = [];
+  Object.values(byName).forEach(list => {
+    if (list.length === 1) { items.push(list[0]); return; }
+    // Beschreibende Woerter ("verquirlt") entscheiden zuerst, dann die Gruppe des Schritts.
+    const described = list.filter(i => stepWordTokens(String(i.name).split(',').slice(1).join(' ') + ' ' + (String(i.name).match(/\(([^)]*)\)/) || ['', ''])[1]).some(w => w.length >= 5 && tokens.some(t => t === w || (t.length >= 6 && w.length >= 6 && t.slice(0, 6) === w.slice(0, 6)))));
+    if (described.length === 1) { items.push(described[0]); return; }
+    const inWinner = winner ? list.filter(i => groupOf.get(i._index) === winner) : [];
+    if (inWinner.length === 1) { items.push(inWinner[0]); return; }
+    ambiguous = true;
+    list.forEach(i => items.push(i));
+  });
+  items.sort((a, b) => a._index - b._index);
+  return { items: items.map(i => ({ ...i, _group: groupOf.get(i._index), _ambiguous: ambiguous && (byName[ingredientKeywords(i)[0]] || []).length > 1 })), fixed: false, ambiguous };
+}
+// Kompatibel zur bisherigen Signatur (Text statt Schritt-Objekt)
+function ingredientsForStep(r, stepOrText) {
+  const step = typeof stepOrText === 'string' ? { text: stepOrText } : stepOrText;
+  return stepIngredientMatch(r, step).items;
+}
+
+/* ---------- Zwischenueberschriften in Schritten (F11) ----------
+   Alte Rezepte enthalten Zeilen wie "Speck vorbereiten" als eigenen Schritt. Sie werden nur in der
+   ANZEIGE als Zwischentitel ohne Nummer dargestellt; der gespeicherte Text bleibt unveraendert. */
+function isHeadingStep(text, nextText) {
+  const t = String(text || '').trim();
+  if (!t || !nextText) return false;
+  if (t.length > 42 || /[.!?;]$/.test(t) || /\d/.test(t)) return false;
+  if (/:.+/.test(t)) return false; // "Tipp: Text" ist Inhalt, kein Titel
+  return t.replace(/:$/, '').split(/\s+/).length <= 5;
+}
+function stepEntries(r) {
+  const steps = (r.steps || []).filter(s => s && String(s.text || '').trim());
   const out = [];
-  (r.ingredients || []).forEach((i, idx) => {
-    if (!i || isIngredientHeaderRow(i)) return;
-    const core = String(i.name || '').toLowerCase().replace(/\(.*?\)/g, ' ').split(',')[0];
-    const words = core.split(/[\s-]+/).map(w => w.replace(/[^a-zäöüßéèàç]/g, '')).filter(w => w.length >= 4);
-    const hit = words.some(w => {
-      const stem = w.length > 5 ? w.slice(0, w.length - 1) : w;
-      return text.includes(' ' + stem) || text.includes(stem);
-    });
-    if (hit) out.push({ ...i, _index: idx });
+  steps.forEach((s, i) => {
+    const heading = isHeadingStep(s.text, steps[i + 1] && steps[i + 1].text);
+    out.push({ step: s, text: s.text, heading, sourceIndex: (r.steps || []).indexOf(s) });
   });
   return out;
+}
+
+/* ---------- Ernaehrungskennzeichnung pruefen (F02) ----------
+   Vergleicht die gespeicherte Kennzeichnung mit erkennbaren Zutaten. Aendert NICHTS am Rezept;
+   liefert nur Hinweise, die in der Oberflaeche angezeigt und bewusst korrigiert werden koennen. */
+const DIET_CHECK_MEAT = ['fleisch', 'hackfleisch', 'speck', 'bauchspeck', 'bacon', 'pancetta', 'guanciale', 'schinken', 'salami', 'wurst', 'chorizo',
+  'prosciutto', 'lardo', 'coppa', 'pastrami', 'poulet', 'huhn', 'hähnchen', 'haehnchen', 'rind', 'schwein', 'kalb', 'lamm', 'ente', 'pute',
+  'truthahn', 'wild', 'hirsch', 'reh', 'cervelat', 'mortadella', 'kebab', 'gelatine'];
+const DIET_CHECK_FISH = ['fisch', 'lachs', 'thunfisch', 'sardelle', 'sardellen', 'anchovis', 'crevetten', 'garnelen', 'muscheln', 'scampi', 'kaviar',
+  'dorsch', 'kabeljau', 'forelle', 'hering', 'makrele', 'tintenfisch', 'surimi', 'fischsauce'];
+const DIET_CHECK_ANIMAL = ['ei', 'eier', 'eigelb', 'eiweiss', 'eiklar', 'milch', 'butter', 'butterschmalz', 'ghee', 'rahm', 'sahne', 'sauerrahm', 'schmand',
+  'käse', 'kaese', 'parmesan', 'pecorino', 'grana', 'mozzarella', 'feta', 'gruyère', 'gruyere', 'emmentaler', 'sbrinz', 'cheddar', 'gorgonzola',
+  'burrata', 'ricotta', 'mascarpone', 'quark', 'joghurt', 'jogurt', 'honig', 'crème', 'creme', 'kondensmilch', 'molke', 'schmelzkäse'];
+function dietFindings(r) {
+  const found = { meat: [], fish: [], animal: [] };
+  const plantQualifier = /(vegan|pflanzlich|hafer|soja|mandel|kokos|reis-?milch|erbsen)/i;
+  realIngredients(r).forEach(i => {
+    const toks = stepWordTokens(ingredientText(i));
+    const has = (list) => toks.some(t => list.some(w => t === w || (w.length >= 4 && t.length > w.length + 2 && t.endsWith(w)) || (w === 'ei' && (t === 'eier' || t === 'eiern'))));
+    if (has(DIET_CHECK_MEAT)) found.meat.push(i.name);
+    else if (has(DIET_CHECK_FISH)) found.fish.push(i.name);
+    else if (has(DIET_CHECK_ANIMAL) && !plantQualifier.test(i.name)) found.animal.push(i.name);
+  });
+  return found;
+}
+function dietConflicts(r) {
+  const diet = r.diet || [];
+  if (!diet.includes('vegan') && !diet.includes('vegetarisch')) return [];
+  const f = dietFindings(r);
+  const out = [];
+  if (diet.includes('vegan') && (f.meat.length || f.fish.length || f.animal.length)) out.push({ label: 'vegan', items: f.meat.concat(f.fish, f.animal) });
+  if (diet.includes('vegetarisch') && (f.meat.length || f.fish.length)) out.push({ label: 'vegetarisch', items: f.meat.concat(f.fish) });
+  return out;
+}
+
+/* ---------- Zahleneingaben (F04) ----------
+   Strenger Parser fuer Eingabefelder: akzeptiert 0,5 / 0.5 / 1/2 / 1 1/2 / ½ / 1½ / 1'000.
+   Gibt { value } oder { error } zurueck, nie stillschweigend 0. */
+function parseQuantityInput(raw) {
+  const s = String(raw === undefined || raw === null ? '' : raw).trim().replace(/[’']/g, '');
+  if (!s) return { error: 'Bitte eine Menge eingeben.' };
+  const glyph = { '¼': 0.25, '½': 0.5, '¾': 0.75, '⅓': 1 / 3, '⅔': 2 / 3, '⅛': 0.125 };
+  let m;
+  if ((m = /^(\d+)\s*([¼½¾⅓⅔⅛])$/.exec(s))) return { value: parseInt(m[1], 10) + glyph[m[2]] };
+  if (glyph[s] !== undefined) return { value: glyph[s] };
+  if ((m = /^(\d+)\s+(\d+)\s*\/\s*(\d+)$/.exec(s))) return Number(m[3]) ? { value: parseInt(m[1], 10) + Number(m[2]) / Number(m[3]) } : { error: 'Division durch null ist nicht möglich.' };
+  if ((m = /^(\d+(?:[.,]\d+)?)\s*\/\s*(\d+(?:[.,]\d+)?)$/.exec(s))) { const d = Number(m[2].replace(',', '.')); return d ? { value: Number(m[1].replace(',', '.')) / d } : { error: 'Division durch null ist nicht möglich.' }; }
+  if (/^\d+(?:[.,]\d+)?$/.test(s)) return { value: Number(s.replace(',', '.')) };
+  if (/^\d{1,3}(?:\.\d{3})+(?:,\d+)?$/.test(s)) return { value: Number(s.replace(/\./g, '').replace(',', '.')) };
+  return { error: 'Das ist keine gültige Zahl. Beispiele: 0,5 oder 1/2.' };
 }
 
 /* ---------- Entwurf ---------- */
@@ -181,7 +338,7 @@ function planEntriesFor(dateKey) {
 }
 async function savePlanEntries(dateKey, entries) {
   const existing = (state.mealplanRecords || {})[dateKey] || {};
-  const record = { ...existing, date: dateKey, entries, recipeIds: entries.map(e => e.recipeId) };
+  const record = { ...existing, date: dateKey, entries, recipeIds: entries.map(e => e.recipeId), keyVersion: 2 };
   state.mealplanRecords = state.mealplanRecords || {};
   state.mealplanRecords[dateKey] = record;
   state.mealplan[dateKey] = record.recipeIds;

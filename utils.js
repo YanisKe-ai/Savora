@@ -74,7 +74,20 @@ function domainFromUrl(url) {
   try { return new URL(url).hostname.replace(/^www\./, ''); } catch (e) { return url; }
 }
 
-function fmtDateKey(d) { return d.toISOString().slice(0, 10); }
+// Kalendertag im LOKALEN Kalender (F01). Frueher toISOString(): das rechnete lokale Mitternacht in
+// UTC um und lieferte in Zeitzonen oestlich von UTC (z.B. Zuerich) den Vortag als Schluessel.
+function fmtDateKey(d) {
+  const y = d.getFullYear(), m = d.getMonth() + 1, day = d.getDate();
+  return `${y}-${m < 10 ? '0' : ''}${m}-${day < 10 ? '0' : ''}${day}`;
+}
+function parseDateKey(key) { const [y, m, d] = String(key).split('-').map(Number); return new Date(y, m - 1, d); }
+// Schluessel, die mit der alten UTC-Logik entstanden sind, dem gemeinten lokalen Tag zuordnen:
+// der alte Schluessel war das UTC-Datum der lokalen Mitternacht des gemeinten Tages.
+function legacyUtcKeyToLocal(key) {
+  const d = parseDateKey(key);
+  const next = new Date(d.getFullYear(), d.getMonth(), d.getDate() + 1);
+  return next.toISOString().slice(0, 10) === key ? fmtDateKey(next) : key;
+}
 
 function getMonday(d) {
   const date = new Date(d);

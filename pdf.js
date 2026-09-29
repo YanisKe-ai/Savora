@@ -49,8 +49,8 @@ async function ensureFontsReadyForPdf() {
   try {
     await Promise.all([
       document.fonts.load('800 26pt "Sofia Sans Extra Condensed"'),
-      document.fonts.load('400 10.5pt "Roboto Condensed"'),
-      document.fonts.load('700 10.5pt "Roboto Condensed"'),
+      document.fonts.load('400 10.5pt "Roboto"'),
+      document.fonts.load('700 10.5pt "Roboto"'),
     ]);
   } catch (e) { /* Font-API-Eigenheiten je Browser — document.fonts.ready ist die harte Garantie */ }
 }
@@ -60,6 +60,91 @@ async function ensureFontsReadyForPdf() {
    auf eine Seite; die Slice-Schleife greift nur noch als Sicherheitsnetz, falls eine Section
    (z.B. ein sehr langes Inhaltsverzeichnis) dennoch zu hoch geraet — dann lieber ein sauberer,
    an sicheren Stellen gesetzter Schnitt als ein abgeschnittenes PDF. */
+/* F05: html2canvas beachtet object-fit nicht und zieht Fotos deshalb auf die Rahmengroesse (Manti
+   wurde breit und flach). Darum wird jedes Foto VOR dem Rastern auf genau das Seitenverhaeltnis
+   seines Rahmens zugeschnitten (wie object-fit: cover, mit Fokuspunkt). Danach passen Bild und
+   Rahmen exakt zusammen, es gibt nichts mehr zu verzerren. */
+async function pdfBakeCoverImages(section) {
+  const imgs = Array.from(section.querySelectorAll('img.pdf-img-cover'));
+  for (const img of imgs) {
+    try {
+      if (!img.complete || !img.naturalWidth) await img.decode();
+      const box = img.getBoundingClientRect();
+      const bw = box.width, bh = box.height, nw = img.naturalWidth, nh = img.naturalHeight;
+      if (!bw || !bh || !nw || !nh) continue;
+      const pos = (img.style.objectPosition || '50% 50%').split(/\s+/).map((v) => parseFloat(v) / 100);
+      const fx = isNaN(pos[0]) ? 0.5 : pos[0], fy = isNaN(pos[1]) ? 0.5 : pos[1];
+      const frameRatio = bw / bh, imgRatio = nw / nh;
+      let sw = nw, sh = nh;
+      if (imgRatio > frameRatio) sw = nh * frameRatio; else sh = nw / frameRatio;
+      const sx = (nw - sw) * fx, sy = (nh - sh) * fy;
+      const scale = Math.min(PDF_RENDER_SCALE, Math.max(1, sw / bw));
+      const cw = Math.max(1, Math.round(bw * scale)), ch = Math.max(1, Math.round(bh * scale));
+      const c = document.createElement('canvas'); c.width = cw; c.height = ch;
+      c.getContext('2d').drawImage(img, sx, sy, sw, sh, 0, 0, cw, ch);
+      img.src = c.toDataURL('image/jpeg', 0.92);
+      img.style.objectFit = 'fill';
+      await img.decode();
+    } catch (e) { /* Bild bleibt wie es war; der Export bricht deshalb nicht ab */ }
+  }
+}
+
+/* F06: Unsichtbare Textebene ueber dem Seitenbild, damit das PDF durchsucht, kopiert und vorgelesen
+   werden kann. Die Optik bleibt das gerasterte Seitenbild; der Text liegt deckungsgleich darueber. */
+function pdfAddTextLayer(pdf, section, mmPerPx) {
+  try {
+    const secRect = section.getBoundingClientRect();
+    const range = document.createRange();
+    const words = [];
+    const walker = document.createTreeWalker(section, NodeFilter.SHOW_TEXT);
+    let node;
+    while ((node = walker.nextNode())) {
+      const txt = node.textContent;
+      if (!txt || !txt.trim()) continue;
+      const el = node.parentElement;
+      const cs = el && getComputedStyle(el);
+      if (!cs || cs.visibility === 'hidden' || cs.display === 'none' || parseFloat(cs.opacity) === 0) continue;
+      const fs = parseFloat(cs.fontSize) || 12;
+      const re = /\S+/g; let m;
+      while ((m = re.exec(txt))) {
+        range.setStart(node, m.index); range.setEnd(node, m.index + m[0].length);
+        const r = range.getBoundingClientRect();
+        if (!r.width || !r.height) continue;
+        words.push({ t: m[0], x: r.left - secRect.left, y: r.bottom - secRect.top, w: r.width, fs });
+      }
+    }
+    // Zu Zeilen zusammenfassen (gleiche Grundlinie, fortlaufend von links nach rechts)
+    const lines = [];
+    words.forEach((w) => {
+      const line = lines.find((l) => Math.abs(l.y - w.y) < w.fs * 0.35 && w.x >= l.right - 2 && w.x - l.right < w.fs * 2.5);
+      if (line) { line.text += ' ' + w.t; line.right = w.x + w.w; }
+      else lines.push({ text: w.t, x: w.x, y: w.y, right: w.x + w.w, fs: w.fs });
+    });
+    pdf.setFont('helvetica', 'normal');
+    lines.forEach((l) => {
+      const sizePt = (l.fs * mmPerPx) / 0.3528;
+      pdf.setFontSize(sizePt);
+      const baselineMm = (l.y - l.fs * 0.22) * mmPerPx;
+      const widthMm = (l.right - l.x) * mmPerPx;
+      const natural = pdf.getTextWidth(l.text) || widthMm;
+      pdf.text(l.text, l.x * mmPerPx, baselineMm, { renderingMode: 'invisible', horizontalScale: widthMm / natural });
+    });
+  } catch (e) { /* Textebene ist ein Zusatz; Fehler duerfen den Export nicht verhindern */ }
+}
+
+/* F06: echte, sichtbare Seitenzahlen (als Vektortext). Das Deckblatt eines Kochbuchs bleibt ohne Zahl. */
+function pdfAddPageNumbers(pdf, hasCover) {
+  const total = pdf.getNumberOfPages();
+  for (let i = 1; i <= total; i++) {
+    if (hasCover && i === 1) continue;
+    pdf.setPage(i);
+    pdf.setFont('helvetica', 'normal');
+    pdf.setFontSize(8.5);
+    pdf.setTextColor(118, 95, 140);
+    pdf.text(String(i), 196, 290, { align: 'right' });
+  }
+}
+
 async function renderSectionsToPdf() {
   const container = document.getElementById('printRoot');
   const sections = Array.from(container.children);
@@ -83,6 +168,7 @@ async function renderSectionsToPdf() {
       .map((iv) => iv.top)
       .filter((y) => !intervals.some((iv) => y > iv.top + 0.5 && y < iv.bottom - 0.5));
 
+    await pdfBakeCoverImages(section);
     const canvas = await html2canvas(section, { scale: PDF_RENDER_SCALE, backgroundColor: null, useCORS: true });
     const scale = canvas.width / domWidth;
     const pxPerMm = canvas.width / pageWidthMm;
@@ -95,6 +181,7 @@ async function renderSectionsToPdf() {
       firstPage = false;
       const imgData = canvas.toDataURL('image/jpeg', PDF_JPEG_QUALITY);
       pdf.addImage(imgData, 'JPEG', 0, 0, pageWidthMm, canvas.height / pxPerMm);
+      pdfAddTextLayer(pdf, section, pageWidthMm / domWidth);
       continue;
     }
 
@@ -127,6 +214,7 @@ async function renderSectionsToPdf() {
   }
 
   container.innerHTML = '';
+  pdfAddPageNumbers(pdf, sections[0] && sections[0].classList.contains('pdf-page-cover'));
   return pdf.output('blob');
 }
 
@@ -149,8 +237,8 @@ function triggerPdfDownload(blob, filename) {
    Fortsetzung (Punkt 53), deterministisch bei gleichem Rezeptstand (Punkt 40). */
 function buildLongRecipePages(recipe, imgUrl, result, nutritionDetail) {
   const factor = 1;
-  const ingItems = pdfIngredientItemsHtml(recipe, factor).map((html) => ({ type: 'ing', html }));
-  const stepItems = pdfStepItemsHtml(recipe).map((html) => ({ type: 'step', html }));
+  const ingItems = pdfKeepWithNext(pdfIngredientItemsHtml(recipe, factor).map((html) => ({ type: 'ing', html })), (h) => h.includes('pdf-ing-group'));
+  const stepItems = pdfKeepWithNext(pdfStepItemsHtml(recipe).map((html) => ({ type: 'step', html, num: html.includes('pdf-step-heading') ? 0 : 1 })), (h) => h.startsWith('<li class="pdf-step-heading"'));
   const notesHtml = pdfNotesBlock(recipe);
   const nutritionHtml = pdfNutritionBox(result, nutritionDetail);
   const extraBlocks = [];
