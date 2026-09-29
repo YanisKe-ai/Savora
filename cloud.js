@@ -425,7 +425,7 @@ function settingsSyncView() {
   } else {
     const mode = state.cloudMode || 'signin';
     body = `<div class="settings-group"><div class="settings-group-card settings-group-card--padded">
-        <p class="settings-hint">Mit einem Konto sind deine Rezepte auf iPhone, Laptop und Tablet gleich und bleiben erhalten, auch wenn du die App löschst oder ein neues Gerät hast. Ohne Anmeldung bleibt alles wie bisher nur auf diesem Gerät.</p>
+        <p class="settings-hint">Mit einem Konto sind deine Rezepte auf iPhone, Laptop und Tablet gleich und sind auch auf einem neuen Gerät sofort da. Die Synchronisation ersetzt keine Sicherung. Ohne Anmeldung bleibt alles wie bisher nur auf diesem Gerät.</p>
         <div class="field"><label for="cloudEmail">E-Mail</label><input type="email" id="cloudEmail" autocomplete="username" inputmode="email" autocapitalize="off" spellcheck="false" value="${escapeHtml(state.cloudEmail || '')}"></div>
         ${mode !== 'reset' ? `<div class="field"><label for="cloudPassword">Passwort</label><input type="password" id="cloudPassword" autocomplete="${mode === 'signup' ? 'new-password' : 'current-password'}" minlength="8"></div>` : ''}
         ${mode === 'signup' ? `<p class="settings-hint">Mindestens 8 Zeichen. Tipp: vom iPhone im iCloud-Schlüsselbund speichern lassen.</p>` : ''}

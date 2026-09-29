@@ -379,7 +379,7 @@ async function dispatchAction(action, id, el, e) {
       state.view = 'home';
       render();
       showUndoToast(
-        `„${recipeToDelete.title}" gelöscht`,
+        `„${recipeToDelete.title}“ gelöscht`,
         () => { state.recipes.push(recipeToDelete); state.recipes.sort((a, b) => b.updatedAt - a.updatedAt); render(); },
         async () => { await dbDelete(id); if (recipeToDelete.imageId) dbDeleteImage(recipeToDelete.imageId).catch(() => {}); }
       );
@@ -875,7 +875,7 @@ async function dispatchAction(action, id, el, e) {
     case 'pdf-export-download':
       triggerPdfDownload(state.modal.previewBlob, state.modal.filename);
       closeModal();
-      showToast('PDF heruntergeladen');
+      if (!SavoraNative.isNative) showToast('PDF heruntergeladen');   // in der iOS-App erscheint stattdessen das Teilen-Fenster
       break;
     case 'pdf-export-share': {
       // Punkt 2: nutzt exakt denselben bereits erzeugten Blob wie Vorschau/Download — kein

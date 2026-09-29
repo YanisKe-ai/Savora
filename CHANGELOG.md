@@ -3,6 +3,7 @@
 Format: neueste Version oben. `VERSION` und `SW_VERSION` in `sw.js` werden bei jeder Änderung gemeinsam erhöht.
 
 ## Unveröffentlicht (Branch dev)
+- 0.28.0 (SW v28-paket2): Rechtliche und allgemeine Texte überarbeitet (neue Datei `legal.js`): Datenschutz, Nutzungsbedingungen, Datenquellen, neue Seite Lizenzen, Über Savora mit Version, Hilfe mit häufigen Fragen. Kontaktangaben stehen als markierte Platzhalter in `LEGAL`. Einheitlich "Sicherung" statt "Backup", typografisch korrekte Anführungszeichen, persönliche Beispiele im Profil ersetzt, Allergen-Hinweis bei Nährwerten.
 - 0.27.0 (SW v27-paket1): Rezeptseite kompakter (Foto 2:1, Titel nur einmal, Zutaten ohne Scrollen sichtbar, feste Kochmodus-Leiste). Startseite: "Zuletzt bearbeitet" erst ab 4 Rezepten. Rezepte ohne Foto: Anfangsbuchstabe auf Farbverlauf. Tippflächen mindestens 44 px. `import.js` entfernt. Zeile "Aus deinem eigenen Kochbuch" entfernt.
 - 0.26.0 (SW v26-ios-native): iOS-App mit Capacitor vorbereitet (`ios/`, `capacitor.config.json`, `scripts/build-www.js`, `assets/`).
 - Neue Datei `native.js`: PDF, Sicherung und Einkaufsliste über das iOS-Teilen-Fenster, Bildschirm bleibt im Kochmodus an, Timer-Benachrichtigung. Im Browser unverändert (Rückfall auf Web-Version).
