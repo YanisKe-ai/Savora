@@ -19,6 +19,10 @@ Object.assign(ICONS, {
   listSteps: `${SVG_OPEN}<path d="M9 6h11M9 12h11M9 18h11"/><path d="M4 6h1M4 12h1M4 18h1"/></svg>`,
   split: `${SVG_OPEN}<path d="M16 3h5v5"/><path d="M8 3H3v5"/><path d="M21 3 14 10"/><path d="m3 3 7 7"/><path d="M12 14v7"/></svg>`,
   box: `${SVG_OPEN}<path d="M21 8 12 3 3 8v8l9 5 9-5z"/><path d="m3 8 9 5 9-5M12 13v8"/></svg>`,
+  bookmark: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M6.5 3.5h11a1 1 0 0 1 1 1V21l-6.5-4.6L5.5 21V4.5a1 1 0 0 1 1-1z"/></svg>`,
+  bookmarkFilled: `<svg viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M6.5 3.5h11a1 1 0 0 1 1 1V21l-6.5-4.6L5.5 21V4.5a1 1 0 0 1 1-1z"/></svg>`,
+  sliders: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 6h9M17 6h3M4 12h3M11 12h9M4 18h11M19 18h1"/><circle cx="15" cy="6" r="2"/><circle cx="9" cy="12" r="2"/><circle cx="17" cy="18" r="2"/></svg>`,
+  homeFilled: `<svg viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"><path d="M3.2 10.4 12 3l8.8 7.4V20a1.2 1.2 0 0 1-1.2 1.2h-4.4v-5.7a1.2 1.2 0 0 0-1.2-1.2h-4a1.2 1.2 0 0 0-1.2 1.2v5.7H4.4A1.2 1.2 0 0 1 3.2 20z"/></svg>`,
   cloud: `${SVG_OPEN}<path d="M7 18h10a4 4 0 0 0 .6-7.95A6 6 0 0 0 6.1 9.2 4.5 4.5 0 0 0 7 18z"/></svg>`,
   bookOpen: `${SVG_OPEN}<path d="M2 5h7a3 3 0 0 1 3 3v12a2 2 0 0 0-2-2H2z"/><path d="M22 5h-7a3 3 0 0 0-3 3v12a2 2 0 0 1 2-2h8z"/></svg>`,
 });
@@ -29,7 +33,7 @@ const DAY_SHORT = ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So'];
 /* ---------- Navigation ---------- */
 function bottomNav() {
   const tabs = [
-    { view: 'home', icon: ICONS.home, label: 'Rezepte' },
+    { view: 'home', icon: ICONS.home, iconActive: ICONS.homeFilled, label: 'Rezepte' },
     { view: 'mealplan', icon: ICONS.calendar, label: 'Wochenplan' },
     { view: 'shopping', icon: ICONS.cart, label: 'Einkauf' },
     { view: 'settings', icon: ICONS.moreH, label: 'Mehr' },
@@ -40,7 +44,7 @@ function bottomNav() {
       const active = t.view === 'settings' ? isMoreSectionView(state.view) : (t.view === 'home' ? ['home', 'detail'].includes(state.view) : state.view === t.view);
       const badge = t.view === 'shopping' && openCount ? `<span class="nav-badge" aria-hidden="true">${openCount > 99 ? '99+' : openCount}</span>` : '';
       return `<button data-action="nav-tab" data-view="${t.view}" class="${active ? 'active' : ''}" ${active ? 'aria-current="page"' : ''}>
-        <span class="nav-icon" aria-hidden="true">${t.icon}${badge}</span><span>${t.label}</span>
+        <span class="nav-icon" aria-hidden="true">${active && t.iconActive ? t.iconActive : t.icon}${badge}</span><span class="nav-label">${t.label}</span>
       </button>`;
     }).join('')}
   </nav>`;
@@ -51,7 +55,7 @@ function bottomNav() {
 function topbar(title, opts = {}) {
   const left = opts.back
     ? `<button class="icon-btn" data-action="back" aria-label="Zurück">${ICONS.back}</button>`
-    : `<div class="brand-v2"><span class="brand-mark" aria-hidden="true"></span><span class="brand-word">savora</span></div>`;
+    : `<div class="brand-v2"><span class="brand-word">savora</span></div>`;
   return `<header class="topbar ${opts.back ? 'topbar--sub' : ''}">
     <div class="topbar-left">${left}${opts.back ? `<h1 class="topbar-title">${escapeHtml(title)}</h1>` : ''}</div>
     <div class="topbar-actions">${opts.actions || ''}</div>
@@ -83,7 +87,7 @@ function applyAllFilters(recipes) {
 }
 
 function collectionChips() {
-  const chips = [{ id: 'all', label: 'Alle' }, { id: 'favorites', label: 'Favoriten' }, { id: 'uncooked', label: 'Noch nicht gekocht' }];
+  const chips = [{ id: 'all', label: 'Alle' }, { id: 'quick', label: 'Schnell' }, { id: 'veggie', label: 'Vegetarisch' }, { id: 'favorites', label: 'Favoriten' }, { id: 'uncooked', label: 'Noch nicht gekocht' }];
   if (state.recipes.some(isFrequentlyCooked)) chips.push({ id: 'frequent', label: 'Häufig gekocht' });
   getCollections().forEach(c => chips.push({ id: c.id, label: c.name }));
   const current = state.favOnly ? 'favorites' : state.activeCollection;
@@ -124,14 +128,14 @@ function recipeImageHtml(r, cls, size) {
   if (r.imageId) return `<div class="${cls} placeholder" data-lazy-img="${size}" data-image-id="${r.imageId}" data-img-class="${cls}">${ICONS.chef}</div>`;
   return `<div class="${cls} placeholder">${ICONS.chef}</div>`;
 }
-function recipeMetaLine(r) {
+function recipeMetaLine(r, full) {
   const parts = [];
   if (r.timeMinutes) parts.push(`${r.timeMinutes} Min.`);
-  if (r.servings) parts.push(servingShort(r, r.servings));
-  return parts.join(' · ');
+  if (full && r.servings) parts.push(servingMode(r) === 'pieces' ? `${r.servings} Stück` : `${r.servings} ${r.servings === 1 ? 'Portion' : 'Portionen'}`);
+  return parts.join('  •  ');
 }
 function favButton(r, extraCls) {
-  return `<button type="button" class="fav-toggle ${extraCls || ''} ${r.favorite ? 'is-active' : ''}" data-action="toggle-fav" data-id="${r.id}" aria-pressed="${r.favorite ? 'true' : 'false'}" aria-label="${r.favorite ? 'Aus Favoriten entfernen' : 'Zu Favoriten hinzufügen'}">${r.favorite ? ICONS.heart : ICONS.heartOutline}</button>`;
+  return `<button type="button" class="fav-toggle ${extraCls || ''} ${r.favorite ? 'is-active' : ''}" data-action="toggle-fav" data-id="${r.id}" aria-pressed="${r.favorite ? 'true' : 'false'}" aria-label="${r.favorite ? 'Aus Favoriten entfernen' : 'Zu Favoriten hinzufügen'}">${r.favorite ? ICONS.bookmarkFilled : ICONS.bookmark}</button>`;
 }
 function recipeCard(r) {
   return `<article class="rcard">
@@ -139,7 +143,7 @@ function recipeCard(r) {
       ${recipeImageHtml(r, 'rcard-img', 'thumb')}
       <span class="rcard-body">
         <span class="rcard-title">${escapeHtml(r.title || 'Ohne Titel')}</span>
-        <span class="rcard-meta">${escapeHtml(recipeMetaLine(r))}</span>
+        <span class="rcard-meta">${escapeHtml(recipeMetaLine(r, false))}</span>
       </span>
     </button>
     ${favButton(r, 'rcard-fav')}
@@ -151,7 +155,7 @@ function recipeRow(r) {
       ${recipeImageHtml(r, 'rrow-img', 'thumb')}
       <span class="rrow-body">
         <span class="rrow-title">${escapeHtml(r.title || 'Ohne Titel')}</span>
-        <span class="rrow-meta">${escapeHtml(recipeMetaLine(r))}${isUncooked(r) ? ' · noch nicht gekocht' : ''}</span>
+        <span class="rrow-meta">${escapeHtml(recipeMetaLine(r, true))}${isUncooked(r) ? ' · noch nicht gekocht' : ''}</span>
       </span>
     </button>
     ${favButton(r, 'rrow-fav')}
@@ -163,7 +167,7 @@ function recentCard(r) {
       ${recipeImageHtml(r, 'recent-img', 'thumb')}
       <span class="recent-body">
         <span class="recent-title">${escapeHtml(r.title || 'Ohne Titel')}</span>
-        <span class="recent-meta">${escapeHtml(recipeMetaLine(r))}</span>
+        <span class="recent-meta">${escapeHtml(recipeMetaLine(r, true))}</span>
       </span>
     </button>
     ${favButton(r, 'recent-fav')}
@@ -212,7 +216,7 @@ function homeView() {
 
   return `
     <header class="topbar topbar--home">
-      <div class="topbar-left"><div class="brand-v2"><span class="brand-mark" aria-hidden="true"></span><span class="brand-word">savora</span></div></div>
+      <div class="topbar-left"><div class="brand-v2"><span class="brand-word">savora</span></div></div>
       <div class="topbar-actions">
         <button class="round-btn" data-action="focus-search" aria-label="Suchen">${ICONS.search}</button>
         <button class="round-btn round-btn--accent" data-action="open-add-menu" aria-label="Rezept hinzufügen">${ICONS.plus}</button>
@@ -228,7 +232,7 @@ function homeView() {
       </div>
       ${state.recipes.length ? `<div class="chip-row" role="group" aria-label="Sammlungen">
         ${collectionChips()}
-        <button type="button" class="chip chip--icon ${filterCount ? 'chip--active' : ''}" data-action="open-filter-sheet" aria-label="Weitere Filter${filterCount ? ', ' + filterCount + ' aktiv' : ''}">${ICONS.filter}${filterCount ? `<span class="chip-count">${filterCount}</span>` : ''}</button>
+        <button type="button" class="chip chip--icon ${filterCount ? 'chip--active' : ''}" data-action="open-filter-sheet" aria-label="Weitere Filter${filterCount ? ', ' + filterCount + ' aktiv' : ''}">${ICONS.sliders}${filterCount ? `<span class="chip-count">${filterCount}</span>` : ''}</button>
       </div>` : ''}
       ${(chips.length || state.activeTag) ? `<div class="chip-row chip-row--active">
         ${state.activeTag ? `<button class="chip chip--removable" data-action="filter-tag" data-tag="">${escapeHtml(state.activeTag)} ${ICONS.x}</button>` : ''}
@@ -324,10 +328,14 @@ function detailView() {
     : r.imageId
       ? `<div class="hero-img placeholder" data-lazy-img="full" data-image-id="${r.imageId}" data-img-class="hero-img" data-img-alt="${escapeHtml(r.title || '')}" style="view-transition-name: recipe-hero-img;">${ICONS.chef}</div>`
       : `<div class="hero-img placeholder" style="view-transition-name: recipe-hero-img;">${ICONS.chef}</div>`;
-  const meta = [r.timeMinutes ? `${r.timeMinutes} Min.` : '', servingLabel(r, servings), r.difficulty || ''].filter(Boolean);
-  const source = r.sharedBy
-    ? `<p class="source-line">${ICONS.sparkle} Geteilt von ${escapeHtml(r.sharedBy)}</p>`
-    : r.source ? `<p class="source-line">${ICONS.link} Quelle: <a href="${escapeHtml(r.source)}" target="_blank" rel="noopener">${escapeHtml(domainFromUrl(r.source))}</a></p>` : '';
+  const meta = [r.timeMinutes ? `${r.timeMinutes} Min.` : '', servingMode(r) === 'pieces' ? `${servings} Stück` : servingLabel(r, servings), r.difficulty || ''].filter(Boolean);
+  const sourceText = r.sharedBy
+    ? `${ICONS.sparkle}<span>Geteilt von ${escapeHtml(r.sharedBy)}</span>`
+    : r.source ? `${ICONS.link}<span>Quelle: <a href="${escapeHtml(r.source)}" target="_blank" rel="noopener">${escapeHtml(domainFromUrl(r.source))}</a></span>` : `${ICONS.bookOpen}<span>Aus deinem eigenen Kochbuch</span>`;
+  const tagChips = [];
+  (r.diet || []).forEach(dk => { const d = DIET_OPTIONS.find(o => o.key === dk); if (d && !(dk === 'vegetarisch' && r.diet.includes('vegan'))) tagChips.push(d.label); });
+  (r.categoryTags || []).forEach(c => tagChips.push(categoryLabelFor(c)));
+  const source = `<div class="source-row"><p class="source-line">${sourceText}</p>${tagChips.length ? `<span class="source-chips">${tagChips.slice(0, 2).map(t => `<span class="source-chip">${escapeHtml(t)}</span>`).join('')}</span>` : ''}</div>`;
   return `
     ${topbar(r.title || 'Rezept', { back: true, actions: `<button class="icon-btn" data-action="open-detail-menu" data-id="${r.id}" aria-label="Weitere Aktionen" aria-haspopup="dialog">${ICONS.more}</button>` })}
     <main class="has-tabbar detail-main">
@@ -337,7 +345,7 @@ function detailView() {
           <h2 class="detail-title-v2">${escapeHtml(r.title || 'Ohne Titel')}</h2>
           ${favButton(r, 'detail-fav')}
         </div>
-        <p class="detail-meta-v2">${meta.map(escapeHtml).join(' · ')}${isUncooked(r) ? ' · <span class="status-dot">noch nicht gekocht</span>' : (r.cookCount ? ` · ${r.cookCount}× gekocht` : '')}</p>
+        <p class="detail-meta-v2">${meta.map(escapeHtml).join('<span class="meta-sep" aria-hidden="true">•</span>')}</p>
       </div>
       <button class="primary-btn primary-btn--block" data-action="start-cook" data-id="${r.id}">${ICONS.play} Kochmodus starten</button>
       <div class="secondary-actions">
@@ -345,10 +353,8 @@ function detailView() {
         <button class="outline-btn" data-action="share-recipe" data-id="${r.id}">${ICONS.share} Teilen</button>
       </div>
       ${source}
-      ${dietChipsHtml(r)}
       <div class="tabbar-v2" role="tablist" aria-label="Rezeptinhalt">
         ${tabs.map(t => `<button role="tab" id="tab-${t.id}" class="tab-v2 ${tab === t.id ? 'is-active' : ''}" aria-selected="${tab === t.id}" aria-controls="panel-${t.id}" tabindex="${tab === t.id ? '0' : '-1'}" data-action="set-detail-tab" data-id="${t.id}">${t.label}</button>`).join('')}
-        ${!hasNotes ? `<button class="tab-v2 tab-v2--add" data-action="open-note-modal" data-id="${r.id}">${ICONS.plus} Notiz</button>` : ''}
       </div>
       ${tabs.map(t => `<div class="tab-panel" id="panel-${t.id}" role="tabpanel" aria-labelledby="tab-${t.id}" ${tab === t.id ? '' : 'hidden'}>${panelHtml[t.id]}</div>`).join('')}
     </main>
@@ -383,6 +389,7 @@ function detailMenuModal(r) {
     ${item('add-to-cookbook', ICONS.bookOpen, 'Zum Kochbuch hinzufügen')}
     ${item('open-collections-modal', ICONS.folder, 'Zu Sammlung hinzufügen')}
     ${item('open-plan-recipe', ICONS.calendar, 'In den Wochenplan')}
+    ${item('open-note-modal', ICONS.note, 'Notiz hinzufügen')}
     ${item('confirm-delete', ICONS.trash, 'Löschen', 'menu-item--danger')}
   </div>`);
 }

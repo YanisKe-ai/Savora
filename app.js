@@ -50,7 +50,12 @@ function registerServiceWorkerWithUpdatePrompt() {
   }).catch(() => {});
 
   let reloaded = false;
+  // Nur bei einem echten Update neu laden. Beim allerersten Besuch uebernimmt der Service Worker
+  // die Seite ebenfalls (controllerchange), ein Neuladen wuerde dann mitten in die erste Nutzung
+  // (z.B. eine Anmeldung) fahren.
+  const hadController = !!navigator.serviceWorker.controller;
   navigator.serviceWorker.addEventListener('controllerchange', () => {
+    if (!hadController) return;
     if (reloaded) return;
     reloaded = true;
     location.reload();

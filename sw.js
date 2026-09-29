@@ -5,7 +5,7 @@
    - Kontrollierter Update-Flow: kein automatisches skipWaiting. Ein neuer Worker wartet, bis
      die Seite per postMessage({type:'SKIP_WAITING'}) explizit zustimmt.
 */
-const SW_VERSION = 'v23-closed-beta';
+const SW_VERSION = 'v24-design-vorlage';
 const CACHE_SHELL = 'savora-shell-' + SW_VERSION;
 const CACHE_RUNTIME = 'savora-runtime-' + SW_VERSION;
 // Statische Referenzdaten (z.B. Schweizer Naehrwertdatenbank): aendert sich nur bei
@@ -28,6 +28,9 @@ const SHELL_ASSETS = [
   './icon-192-maskable.png',
   './icon-512-maskable.png',
   './baloo2.woff2',
+  './sofia-sans-extra-condensed.woff2',
+  './roboto-condensed.woff2',
+  './archivo.woff2',
   './styles.css',
   './styles-v2.css',
   './icons.js',

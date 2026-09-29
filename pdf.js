@@ -48,8 +48,9 @@ async function ensureFontsReadyForPdf() {
   await document.fonts.ready;
   try {
     await Promise.all([
-      document.fonts.load('700 26pt "Baloo 2"'),
-      document.fonts.load('400 10.5pt "Baloo 2"'),
+      document.fonts.load('800 26pt "Sofia Sans Extra Condensed"'),
+      document.fonts.load('400 10.5pt "Roboto Condensed"'),
+      document.fonts.load('700 10.5pt "Roboto Condensed"'),
     ]);
   } catch (e) { /* Font-API-Eigenheiten je Browser — document.fonts.ready ist die harte Garantie */ }
 }

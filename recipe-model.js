@@ -111,6 +111,8 @@ function isFrequentlyCooked(r) { return (r.cookCount || 0) >= 3; }
 function recipesInCollection(key, recipes) {
   if (!key || key === 'all') return recipes;
   if (key === 'favorites') return recipes.filter(r => r.favorite);
+  if (key === 'quick') return recipes.filter(r => r.timeMinutes > 0 && r.timeMinutes <= 30);
+  if (key === 'veggie') return recipes.filter(r => (r.diet || []).some(d => d === 'vegetarisch' || d === 'vegan'));
   if (key === 'uncooked') return recipes.filter(isUncooked);
   if (key === 'frequent') return recipes.filter(isFrequentlyCooked);
   return recipes.filter(r => (r.collections || []).includes(key));
