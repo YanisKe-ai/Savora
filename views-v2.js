@@ -344,7 +344,9 @@ function detailView() {
   if (hasNotes) tabs.push({ id: 'notes', label: 'Notizen' });
   const tab = tabs.some(t => t.id === state.detailTab) ? state.detailTab : 'ingredients';
   // Alle Panels liegen im DOM, der Tabwechsel blendet nur um (kein Neuaufbau, kein Scrollsprung).
-  const panelHtml = { ingredients: ingredientsPanel(r), steps: stepsPanel(r), nutrition: state.showNutrition ? nutritionPanel(r) : '', notes: hasNotes ? notesPanel(r) : '' };
+  const wide = !!(window.matchMedia && matchMedia('(min-width: 900px)').matches);   // breit: Zutaten stehen links (Seitenspalte) statt im Reiter, nie doppelt im DOM
+  const ingHtml = ingredientsPanel(r);
+  const panelHtml = { ingredients: wide ? '' : ingHtml, steps: stepsPanel(r), nutrition: state.showNutrition ? nutritionPanel(r) : '', notes: hasNotes ? notesPanel(r) : '' };
   const hero = r.image
     ? `<img class="hero-img" src="${r.image}" alt="${escapeHtml(r.title || '')}" style="view-transition-name: recipe-hero-img;">`
     : r.imageId
@@ -368,8 +370,9 @@ function detailView() {
     </div>` : '';
   return `
     ${topbar(r.title || 'Rezept', { back: true, cls: 'topbar--detail', actions: `<button class="icon-btn" data-action="open-detail-menu" data-id="${r.id}" aria-label="Weitere Aktionen" aria-haspopup="dialog">${ICONS.more}</button>` })}
-    <main class="has-tabbar detail-main">
+    <main class="has-tabbar detail-main" data-tab="${tab}">
       <div class="hero">${hero}</div>
+      <div class="detail-cols"><div class="detail-col detail-col--info">
       <div class="detail-head">
         <div class="detail-title-row">
           <h2 class="detail-title-v2">${escapeHtml(r.title || 'Ohne Titel')}</h2>
@@ -383,10 +386,13 @@ function detailView() {
       </div>
       ${source}
       ${conflictBox}
+      <div class="detail-aside-ing" aria-label="Zutaten">${wide ? ingHtml : ''}</div>
+      </div><div class="detail-col detail-col--content">
       <div class="tabbar-v2" role="tablist" aria-label="Rezeptinhalt">
         ${tabs.map(t => `<button role="tab" id="tab-${t.id}" class="tab-v2 ${tab === t.id ? 'is-active' : ''}" aria-selected="${tab === t.id}" aria-controls="panel-${t.id}" tabindex="${tab === t.id ? '0' : '-1'}" data-action="set-detail-tab" data-id="${t.id}">${t.label}</button>`).join('')}
       </div>
       ${tabs.map(t => `<div class="tab-panel" id="panel-${t.id}" role="tabpanel" aria-labelledby="tab-${t.id}" ${tab === t.id ? '' : 'hidden'}>${panelHtml[t.id]}</div>`).join('')}
+      </div></div>
     </main>
     <div class="cook-bar"><button class="primary-btn primary-btn--block" data-action="start-cook" data-id="${r.id}">${ICONS.play} Kochmodus starten</button></div>
     ${bottomNav()}

@@ -814,3 +814,32 @@ body.keyboard-open .cook-bar { display: none; }
 .empty-steps li { position: relative; padding: 12px 14px 12px 52px; background: var(--card-bg); border: 1px solid var(--border); border-radius: 14px; font-size: 14.5px; color: var(--text-soft); counter-increment: es; }
 .empty-steps li::before { content: counter(es); position: absolute; left: 14px; top: 50%; transform: translateY(-50%); width: 28px; height: 28px; border-radius: 50%; background: var(--lime); color: var(--lime-ink); font-weight: 800; display: flex; align-items: center; justify-content: center; font-size: 14px; }
 .empty-steps b { color: var(--text); }
+
+/* ---------- Paket 7: breite Bildschirme (iPad quer, Desktop) ---------- */
+.detail-cols, .detail-col { display: block; }
+.detail-aside-ing { display: none; }
+@media (min-width: 900px) {
+  body { padding-left: 232px; }
+  /* Seitenleiste statt unterer Leiste */
+  .bottom-nav { top: 0; right: auto; bottom: 0; width: 232px; flex-direction: column; justify-content: flex-start; gap: 6px; padding: calc(28px + env(safe-area-inset-top, 0px)) 12px 24px; border-top: none; border-right: 1px solid var(--border); background: var(--card-bg); -webkit-backdrop-filter: none; backdrop-filter: none; }
+  .bottom-nav button { flex: none; flex-direction: row; justify-content: flex-start; align-items: center; gap: 14px; min-height: 52px; padding: 0 16px; border-radius: 14px; font-size: 16px; font-weight: 700; text-align: left; }
+  .bottom-nav button.active { background: var(--surface-selected); color: var(--text); }
+  .bottom-nav button.active::after { display: none; }
+  .bottom-nav .nav-icon svg { width: 22px; height: 22px; }
+  .bottom-nav .nav-badge { top: -7px; right: -11px; }
+  main.has-tabbar { padding-bottom: 56px; }
+  .topbar { padding-left: max(32px, calc((100vw - 232px - 1180px) / 2 + 32px)); padding-right: max(32px, calc((100vw - 232px - 1180px) / 2 + 32px)); }
+  .cook-bar { left: 232px; bottom: 16px; padding-bottom: 0; background: none; }
+  .detail-main { max-width: 1140px; padding-bottom: 96px; }
+  /* Rezeptseite zweispaltig: links Kopf und Zutaten, rechts Zubereitung */
+  .detail-cols { display: grid; grid-template-columns: minmax(320px, 400px) minmax(0, 1fr); column-gap: 48px; align-items: start; }
+  .detail-col--info { position: sticky; top: calc(76px + env(safe-area-inset-top, 0px)); max-height: calc(100dvh - 96px); overflow-y: auto; padding-bottom: 8px; }
+  .detail-aside-ing { display: block; margin-top: 18px; padding-top: 6px; border-top: 1px solid var(--border); }
+  .detail-col--content .tabbar-v2 { top: calc(64px + env(safe-area-inset-top, 0px)); margin-top: 14px; }
+  #tab-ingredients, #panel-ingredients { display: none !important; }
+  .detail-main[data-tab="ingredients"] #panel-steps { display: block; }
+  .detail-main[data-tab="ingredients"] #tab-steps { color: var(--text); }
+  .detail-main[data-tab="ingredients"] #tab-steps::after { content: ''; position: absolute; left: 10px; right: 10px; bottom: -1px; height: 3px; border-radius: 3px; background: var(--lime); }
+  .hero-img { max-height: 34dvh; }
+}
+@media (min-width: 1240px) { .rgrid { grid-template-columns: repeat(4, minmax(0, 1fr)); } }

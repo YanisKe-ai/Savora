@@ -10,6 +10,7 @@ Arbeit ohne Rückfragen, alles auf Zweigen, nichts auf `main`. Die Zweige bauen 
 | 4 Formular | `paket-4-formular` | fertig | alle 11 Testdateien grün (lokal) |
 | 5 Darstellung und Barrierefreiheit | `paket-5-darstellung` | fertig | alle 13 Testdateien grün (lokal) |
 | 6 Kochmodus und Kleinigkeiten | `paket-6-kleinigkeiten` | fertig | alle 14 Testdateien grün (lokal) |
+| 7 Breites Layout (iPad, Desktop) | `paket-7-breit` | fertig | alle 15 Testdateien grün (lokal) |
 
 ## Paket 2: was du entscheiden oder eintragen musst
 - In `legal.js` steht oben `LEGAL` mit `[Name der verantwortlichen Person]`, `[Kontakt-E-Mail]` und `[Ort]`. Bitte ausfüllen. Solange die Werte mit `[` beginnen, erscheinen sie in der App grün markiert.

@@ -130,6 +130,9 @@ document.addEventListener('focusin', (e) => {
   }
 });
 
+// Breitenwechsel (z.B. iPad drehen): die Rezeptseite ordnet die Zutaten neu an
+if (window.matchMedia) matchMedia('(min-width: 900px)').addEventListener('change', () => { if (state.view === 'detail') render(); });
+
 (async function init() {
   try {
     setupVisualViewportKeyboardHandling();
