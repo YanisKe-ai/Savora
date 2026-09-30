@@ -8,10 +8,12 @@
    in der Detailansicht folgt demselben Lazy-Muster (data-lazy-nutrition), da das Ergebnis aus
    IndexedDB async geladen werden muss und der erste Render synchron bleiben soll. */
 
+/* Zahlen mit Dezimalkomma (Schweizer/deutsche Schreibweise) */
+function nutFmt(v) { return String(v).replace('.', ','); }
+
 /* ---------- Kompakte Karte (Punkt 24) — Platzhalter + Nachladen ---------- */
 function nutritionCardSection(recipeId) {
   return `<div class="nutrition-section">
-    <h2 class="section-heading">${ICONS.apple} Nährwerte</h2>
     <div data-lazy-nutrition data-recipe-id="${recipeId}" class="nutrition-card nutrition-card-loading">
       <span class="nutrition-loading-text">Wird geladen …</span>
     </div>
@@ -55,14 +57,14 @@ function nutritionCompactInner(recipe, result) {
   if (!result) {
     return `
       <p class="nutrition-empty-text">Noch nicht berechnet.</p>
-      <button class="primary-btn" data-action="nutrition-open-match" data-id="${recipe.id}">${ICONS.apple} Nährwerte automatisch berechnen</button>
+      <button class="primary-btn" data-action="nutrition-open-match" data-id="${recipe.id}">Nährwerte berechnen</button>
     `;
   }
   const rows = NUTRITION_COMPACT_KEYS.map((key) => {
     const def = NUTRIENT_KEYS[key];
     const val = roundNutrientForDisplay(result.nutrientsPerPortion[key]);
     return `<div class="nutrition-compact-stat">
-      <span class="nutrition-compact-value">${val === null ? '–' : val}${val === null ? '' : ' ' + def.unit}</span>
+      <span class="nutrition-compact-value">${val === null ? '–' : nutFmt(val)}${val === null ? '' : ' ' + def.unit}</span>
       <span class="nutrition-compact-label">${def.label}</span>
     </div>`;
   }).join('');
@@ -358,7 +360,7 @@ function nutritionDetailGroup(group, result) {
     const val = roundNutrientForDisplay(nutritionValueFor(result, key));
     return `<div class="nutrition-nutrient-row">
       <span>${def.label}</span>
-      <span>${val === null ? '–' : val + ' ' + def.unit}</span>
+      <span>${val === null ? '–' : nutFmt(val) + ' ' + def.unit}</span>
     </div>`;
   }).join('');
   return `<div class="nutrition-group">

@@ -114,6 +114,9 @@ async function handleActionV2(action, id, el, e) {
       try { localStorage.setItem(HOME_LAYOUT_KEY, state.homeLayout); } catch (err) {}
       render();
       return true;
+    case 'clear-search':
+      state.query = ''; render();
+      return true;
     case 'clear-all-filters':
       state.activeFilters.dietary.clear(); state.activeFilters.category.clear(); state.activeFilters.time.clear();
       state.favOnly = false; state.activeTag = null; state.activeCollection = 'all';

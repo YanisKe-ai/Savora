@@ -1011,3 +1011,42 @@ input[type="checkbox"], input[type="radio"] { accent-color: #6E45A2; }
 [data-theme="dark"] .nutrition-segmented, [data-theme="amoled"] .nutrition-segmented { background: rgba(255, 255, 255, .08); }
 .nutrition-segmented button.active { background: var(--lime); color: var(--lime-ink, #1F2A08); box-shadow: none; }
 @media (prefers-color-scheme: dark) { html:not([data-theme="light"]) .nutrition-segmented { background: rgba(255, 255, 255, .08); } }
+
+/* ===== Paket 24: Punkte aus dem Live-Test ===== */
+/* Timer-Knopf im Text: 44 px grosse Tippflaeche, ohne die Zeilenhoehe zu aendern */
+.timer-chip { position: relative; }
+.timer-chip::before { content: ''; position: absolute; left: -4px; right: -4px; top: -8px; bottom: -8px; }
+/* Kopfbalken ohne harten Weiss-Sprung auf hellem Grund */
+.topbar--sub { background: var(--bg); }
+[data-theme="light"] .topbar--sub, :root:not([data-theme]) .topbar--sub { background: var(--bg); }
+/* Rezept loeschen: dezent, ausserhalb der Hauptknoepfe */
+.danger-link { display: inline-flex; align-items: center; gap: 8px; min-height: 44px; margin-top: 8px; color: var(--danger, #A2432F); font-weight: 600; }
+.danger-link svg { width: 18px; height: 18px; }
+/* Text importieren: grosses Eingabefeld */
+.paste-import-textarea { min-height: 200px; }
+/* Einkauf: beide Schnellknoepfe gleich hoch, ohne Umbruch */
+.shop-quick .outline-btn { min-height: 48px; white-space: nowrap; }
+/* Seitenleiste ab 900 px mit Logo */
+.nav-brand { display: none; }
+@media (min-width: 900px) {
+  .nav-brand { display: flex; align-items: center; gap: 10px; padding: 6px 12px 18px; }
+  .nav-brand img { border-radius: 9px; box-shadow: 0 2px 6px rgba(50,22,79,.25); }
+  .nav-brand span { font-family: var(--font-logo, var(--font-display)); font-weight: 900; font-stretch: 80%; font-size: 26px; color: #28133E; line-height: 1; }
+  [data-theme="dark"] .nav-brand span, [data-theme="amoled"] .nav-brand span { color: #F2EFFA; }
+  /* feste Leiste deckt die letzten Zeilen nicht mehr ab */
+  .detail-main { padding-bottom: 140px; }
+  .detail-col--info { padding-bottom: 96px; }
+}
+/* Vorschau-Kopf: Zurueck links, dann Titel und Angaben */
+.pdf-preview-header { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.pdf-preview-header .pdf-preview-close { min-height: 44px; padding: 0 12px; display: inline-flex; align-items: center; gap: 6px; }
+.pdf-preview-header .pdf-preview-close svg { width: 18px; height: 18px; }
+/* Kleine Telefone (320 px / niedrige Bildschirme): Foto flacher, Reiter passen, Leiste kompakter */
+@media (max-width: 360px), (max-height: 640px) {
+  .hero-img { aspect-ratio: 16 / 7; max-height: 28vh; max-height: 28dvh; }
+  .tab-v2 { padding-left: 8px; padding-right: 8px; font-size: 14px; }
+  .cook-bar { padding-top: 6px; }
+  .cook-bar .primary-btn { min-height: 46px; }
+  .detail-title-v2 { font-size: clamp(26px, 8vw, 32px); }
+}
+.pdf-preview-meta { white-space: nowrap; }
