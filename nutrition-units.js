@@ -28,16 +28,16 @@ const NUTRITION_UNIT_ALIASES = {
   floz: ['floz', 'fl.oz', 'flooz', 'fluidounce', 'fluidounces'],
   // Stueck-/Gebindeeinheiten haben keinen festen Umrechnungsfaktor — sie brauchen entweder ein
   // Stueckgewicht (piece) oder muessen vom Nutzer bestaetigt werden (container).
-  piece: ['stück', 'stk', 'stk.', 'stange', 'stangen', 'blatt', 'blätter', 'kopf', 'köpfe', 'knolle', 'knollen', 'zweig', 'zweige', 'stiel', 'stiele', 'stängel', 'kugel', 'kugeln', 'ecke', 'ecken'],
-  clove: ['zehe', 'zehen'],
-  slice: ['scheibe', 'scheiben'],
-  pinch: ['prise', 'prisen', 'msp', 'messerspitze', 'messerspitzen'],
-  handful: ['handvoll'],
+  piece: ['stück', 'stk', 'stk.', 'piece', 'pieces', 'sprig', 'sprigs', 'stalk', 'stalks', 'head', 'heads', 'stange', 'stangen', 'blatt', 'blätter', 'kopf', 'köpfe', 'knolle', 'knollen', 'zweig', 'zweige', 'stiel', 'stiele', 'stängel', 'kugel', 'kugeln', 'ecke', 'ecken'],
+  clove: ['zehe', 'zehen', 'clove', 'cloves'],
+  slice: ['scheibe', 'scheiben', 'slice', 'slices'],
+  pinch: ['prise', 'prisen', 'pinch', 'dash', 'msp', 'messerspitze', 'messerspitzen'],
+  handful: ['handvoll', 'handful'],
   splash: ['schuss', 'spritzer'],
-  bunch: ['bund', 'bd', 'bündel'],
+  bunch: ['bund', 'bd', 'bündel', 'bunch'],
   cube: ['würfel', 'würfeli'],
-  pack: ['päckchen', 'päckli', 'paeckli', 'paeckchen', 'pck', 'pk', 'pkg', 'packung', 'packungen', 'beutel'],
-  container: ['dose', 'dosen', 'glas', 'gläser', 'flasche', 'flaschen', 'becher', 'tube'],
+  pack: ['package', 'packages', 'päckchen', 'päckli', 'paeckli', 'paeckchen', 'pck', 'pk', 'pkg', 'packung', 'packungen', 'beutel'],
+  container: ['dose', 'dosen', 'can', 'cans', 'jar', 'jars', 'glas', 'gläser', 'flasche', 'flaschen', 'becher', 'tube'],
 };
 
 function normalizeNutritionUnit(raw) {
@@ -56,6 +56,11 @@ function normalizeNutritionUnit(raw) {
    gewinnt, daher spezifischere Begriffe vor allgemeinen einsortiert). */
 const PIECE_WEIGHT_TABLE = [
   { match: 'süsskartoffel', grams: 250, unit: 'piece' },
+  { match: 'paprika', grams: 160, unit: 'piece' },
+  { match: 'schweinsfilet', grams: 300, unit: 'piece' },
+  { match: 'schweinefilet', grams: 300, unit: 'piece' },
+  { match: 'rindsfilet', grams: 250, unit: 'piece' },
+  { match: 'zwiebel', grams: 110, unit: 'piece' },
   { match: 'lammkotelett', grams: 120, unit: 'piece' },
   { match: 'schweinskotelett', grams: 180, unit: 'piece' },
   { match: 'schweinekotelett', grams: 180, unit: 'piece' },
@@ -179,8 +184,8 @@ function lookupPieceWeight(normalizedName, unitKind) {
 
 /* Gebinde-/Bundgewichte (geschaetzt, gaengige Packungsgroessen). Key = Teil des Zutatennamens. */
 const PACK_WEIGHT_TABLE = {
-  container: [['bouillon', 200], ['fond', 400], ['tomate', 400], ['mais', 285], ['bohne', 240], ['kichererbse', 240], ['linse', 240], ['erbse', 250], ['thon', 112], ['thunfisch', 112], ['kokos', 400], ['champignon', 230], ['ananas', 340], ['mandarine', 175], ['sardine', 90], ['maroni', 200]],
-  pack: [['backpulver', 15], ['vanillezucker', 8], ['vanillin', 1], ['trockenhefe', 7], ['hefe', 7], ['puddingpulver', 40], ['gelatine', 10], ['butter', 250], ['mozzarella', 125], ['blätterteig', 250], ['pizzateig', 250], ['mürbeteig', 250], ['teig', 250], ['mascarpone', 250], ['quark', 250], ['frischkäse', 200], ['speck', 150], ['tofu', 200], ['spinat', 450], ['rahm', 200], ['sahne', 200], ['sauerrahm', 180]],
+  container: [['joghurt', 180], ['sahne', 200], ['rahm', 200], ['crème fraîche', 150], ['quark', 250], ['passata', 700], ['bouillon', 200], ['fond', 400], ['tomate', 400], ['mais', 285], ['bohne', 240], ['kichererbse', 240], ['linse', 240], ['erbse', 250], ['thon', 112], ['thunfisch', 112], ['kokos', 400], ['champignon', 230], ['ananas', 340], ['mandarine', 175], ['sardine', 90], ['maroni', 200]],
+  pack: [['joghurt', 180], ['sahne', 200], ['rahm', 200], ['passata', 700], ['backpulver', 15], ['vanillezucker', 8], ['vanillin', 1], ['trockenhefe', 7], ['hefe', 7], ['puddingpulver', 40], ['gelatine', 10], ['butter', 250], ['mozzarella', 125], ['blätterteig', 250], ['pizzateig', 250], ['mürbeteig', 250], ['teig', 250], ['mascarpone', 250], ['quark', 250], ['frischkäse', 200], ['speck', 150], ['tofu', 200], ['spinat', 450], ['rahm', 200], ['sahne', 200], ['sauerrahm', 180]],
   bunch: [['petersilie', 50], ['schnittlauch', 25], ['basilikum', 30], ['koriander', 30], ['dill', 30], ['minze', 30], ['rucola', 100], ['radieschen', 150], ['frühlingszwiebel', 120], ['lauchzwiebel', 120], ['rüebli', 400], ['karotte', 400], ['spargel', 500], ['mangold', 400], ['thymian', 15], ['rosmarin', 15]],
   cube: [['hefe', 42], ['bouillon', 10], ['brühe', 10], ['fond', 10]],
 };
@@ -195,6 +200,7 @@ function lookupPackWeight(kind, normalizedName) {
 /* Richtdichten (g/ml) fuer Loeffel-/Tassen-/dl-Angaben, wenn die Datenbank keine Dichte liefert.
    Standard-Kuechenwerte, immer als "geschaetzt" gekennzeichnet. Reihenfolge: spezifisch vor allgemein. */
 const DENSITY_HINTS = [
+  [/tomate|passata|tomaten/, 1.03],
   [/paniermehl|semmelbrösel/, 0.45], [/puderzucker|staubzucker/, 0.55], [/zucker/, 0.85], [/kochsalz|\bsalz\b/, 1.2],
   [/haferflocken/, 0.35], [/kakaopulver|kakao/, 0.45], [/milchpulver/, 0.5], [/stärke/, 0.6], [/weizenmehl|dinkelmehl|roggenmehl|mehl/, 0.55],
   [/reis|griess|couscous|bulgur|quinoa|hirse/, 0.8], [/linse|kichererbse|bohne/, 0.8],

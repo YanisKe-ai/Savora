@@ -98,7 +98,21 @@ function scoreNameMatch(query, candidateName) {
    Score anhand von food.name allein neu berechnen wuerden und dabei einen Synonym-Treffer
    verlieren wuerden (Bug: "Butter" fand ueber das offizielle BLV-Synonym "Vorzugsbutter" mit
    Score 100, wurde aber bei der Neuberechnung ueber den Eigennamen als "unsicher" eingestuft). */
-async function searchSwissFoodsWithScores(query, limit = 20) {
+/* Zusammengesetzte Gerichte (zubereitet, gebacken, mit Sauce ...) bekommen einen Abzug, wenn die Suche
+   nicht ausdruecklich danach fragt; Rohprodukte werden leicht bevorzugt. */
+const NUT_DISH_WORDS = /(zubereitet|hausgemacht|gebacken|gebraten|frittiert|piccata|wähe|kuchen|torte|suppe|sauce|gratin|salat|püree|auflauf|omelette|crêpes|burger|sandwich|pizza|cordon|eintopf|risotto|curry|riegel|brei|schnitte|creme|cake|gebäck|müesli|getränk)/i;
+function nutDishPenalty(q, name) {
+  const n = String(name || '');
+  let pen = 0;
+  if (NUT_DISH_WORDS.test(n)) {
+    const words = n.toLowerCase().match(NUT_DISH_WORDS);
+    if (!words || !q.includes(words[1])) pen += 28;
+  }
+  if (/, roh\b|\(roh\)/i.test(n)) pen -= 3;
+  return pen;
+}
+
+async function searchSwissFoodsWithScores(query, limit = 20, minScore) {
   const q = normalizeIngredientText(query);
   if (!q) return [];
   const foods = await getSwissFoodsCached();
@@ -107,7 +121,8 @@ async function searchSwissFoodsWithScores(query, limit = 20) {
     let best = scoreNameMatch(q, f.name);
     for (const syn of f.synonyms || []) best = Math.max(best, scoreNameMatch(q, syn));
     if (f.nameEn) best = Math.max(best, scoreNameMatch(q, f.nameEn) - 15); // EN nur als schwaecherer Fallback
-    if (best >= NUTRITION_MATCH_SCORE_MIN_DEFAULT) scored.push({ food: f, score: best });
+    best -= nutDishPenalty(q, f.name);   // Fertiggerichte nicht mit Grundzutaten verwechseln
+    if (best >= (typeof minScore === 'number' ? minScore : NUTRITION_MATCH_SCORE_MIN_DEFAULT)) scored.push({ food: f, score: best });
   }
   scored.sort((a, b) => b.score - a.score || a.food.name.length - b.food.name.length);
   return scored.slice(0, limit);

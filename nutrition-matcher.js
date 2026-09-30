@@ -129,7 +129,10 @@ async function matchIngredient(rawName, steps, opts) {
   const swissHits = scoredHits.map((s) => s.food);
   const candidates = [...customHits, ...swissHits];
   if (!candidates.length) {
-    return { normalized, status: 'unmatched', food: null, candidates: [], confirmed: false, preparation, ingredientInfo };
+    // Nichts sicher gefunden: trotzdem die aehnlichsten Eintraege als Vorschlag anbieten (ein Tipp genuegt)
+    let suggestions = [];
+    try { suggestions = (await searchSwissFoodsWithScores(baseQuery, 4, 6)).map((s) => s.food); } catch (e) { /* Vorschlaege sind optional */ }
+    return { normalized, status: 'unmatched', food: null, candidates: suggestions, confirmed: false, preparation, ingredientInfo };
   }
   const top = swissHits[0];
   // Der tatsaechlich ermittelte Score (inkl. Synonym-/EN-Bonus) wird wiederverwendet statt ihn
@@ -146,7 +149,8 @@ async function matchIngredient(rawName, steps, opts) {
 async function matchIngredients(ingredients, steps) {
   const results = [];
   for (const ing of ingredients) {
-    const result = await matchIngredient(ing.name, steps);
+    const prepared = (typeof nutPrepareIngredient === 'function') ? nutPrepareIngredient(ing) : ing;
+    const result = await matchIngredient(prepared.name, steps);
     results.push({ ingredient: ing, ...result });
   }
   return results;
