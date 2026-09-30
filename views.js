@@ -220,6 +220,7 @@ function settingsView() {
   return `
     ${topbar('Mehr')}
     <main class="has-tabbar settings-page">
+      <h1 class="sr-only">Mehr</h1>
       ${settingsGroup('Mein Kochbuch', settingsRow({ icon: ICONS.book, title: 'Kochbuch & Profil', summary: cookbookSummary, view: 'settings-profile' }))}
       ${settingsGroup('App', [
         settingsRow({ icon: ICONS.moon, title: 'Darstellung', summary: themeLabel, view: 'settings-display' }),

@@ -17,10 +17,14 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
       - name: Abhaengigkeiten installieren
         run: |
           sudo apt-get update
           sudo apt-get install -y poppler-utils
+          npm ci
           pip install -r tests/requirements.txt
           playwright install --with-deps chromium
       - name: Alle Tests ausfuehren

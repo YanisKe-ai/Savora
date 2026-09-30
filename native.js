@@ -79,5 +79,12 @@ const SavoraNative = (() => {
     try { await LN.cancel({ notifications: list }); } catch (e) {}
   }
 
-  return { isNative, isCancel, shareFile, shareText, keepAwake, scheduleTimer, cancelTimer, cancelAllTimers };
+  /* iOS-Statusleiste: heller Text auf dunklem Grund (dark = true), sonst dunkler Text */
+  async function setStatusBarDark(dark) {
+    const SB = plugin('StatusBar');
+    if (!SB) return;
+    try { await SB.setStyle({ style: dark ? 'DARK' : 'LIGHT' }); } catch (e) {}
+  }
+
+  return { isNative, isCancel, shareFile, shareText, keepAwake, scheduleTimer, cancelTimer, cancelAllTimers, setStatusBarDark };
 })();

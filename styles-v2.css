@@ -490,13 +490,13 @@ h1, h2, h3, .modal-title { font-family: var(--font-display); font-weight: 800; l
 .search-field { min-height: 54px; border-radius: 16px; padding: 0 16px; gap: 12px; background: #F2EFFA; margin-bottom: 14px; }
 .search-field svg { width: 22px; height: 22px; color: #28133E; }
 .search-field .search-input { font-size: 18px; font-family: var(--font-sans); color: var(--text); }
-.search-field .search-input::placeholder { color: #765F8C; }
+.search-field .search-input::placeholder { color: var(--text-soft); }
 [data-theme="dark"] .search-field, [data-theme="amoled"] .search-field { background: var(--surface-soft); }
 [data-theme="dark"] .search-field svg, [data-theme="amoled"] .search-field svg { color: var(--text); }
 
 /* Chips */
 .chip-row { gap: 10px; margin-bottom: 14px; }
-.chip { min-height: 46px; padding: 0 20px; font-size: 18px; font-weight: 400; color: #765F8C; background: #F2EFFA; }
+.chip { min-height: 46px; padding: 0 20px; font-size: 18px; font-weight: 400; color: var(--text-soft); background: #F2EFFA; }
 .chip--active { background: var(--lime); color: #28133E; font-weight: 700; }
 .chip--icon { width: 46px; padding: 0; justify-content: center; color: #28133E; }
 .chip--icon svg { width: 22px; height: 22px; }
@@ -525,7 +525,7 @@ h1, h2, h3, .modal-title { font-family: var(--font-display); font-weight: 800; l
 .recent-img { width: 50%; max-width: 260px; aspect-ratio: 4 / 3; }
 .recent-body { padding: 14px 44px 14px 18px; gap: 8px; }
 .recent-title { font-family: var(--font-display); font-weight: 800; font-size: 30px; letter-spacing: 0; line-height: 1.1; color: #28133E; }
-.recent-meta, .rcard-meta, .rrow-meta { font-size: 16px; color: #765F8C; }
+.recent-meta, .rcard-meta, .rrow-meta { font-size: 16px; color: var(--text-soft); }
 .recent-fav { top: 2px; right: 2px; }
 [data-theme="dark"] .recent-title, [data-theme="amoled"] .recent-title { color: var(--text); }
 
@@ -542,7 +542,7 @@ h1, h2, h3, .modal-title { font-family: var(--font-display); font-weight: 800; l
 /* Untere Navigation */
 .bottom-nav { background: #fff; border-top: 1px solid #EFEAF6; }
 [data-theme="dark"] .bottom-nav, [data-theme="amoled"] .bottom-nav { background: var(--card-bg); border-top-color: var(--border); }
-.bottom-nav button { min-height: 72px; padding-top: 10px; gap: 4px; color: #765F8C; font-size: 15px; font-weight: 400; font-family: var(--font-sans); }
+.bottom-nav button { min-height: 72px; padding-top: 10px; gap: 4px; color: var(--text-soft); font-size: 15px; font-weight: 400; font-family: var(--font-sans); }
 .bottom-nav svg { width: 26px; height: 26px; }
 .bottom-nav button.active { color: #28133E; font-weight: 700; }
 .bottom-nav button.active::after { bottom: 7px; width: 36px; height: 5px; margin-left: -18px; border-radius: 5px; background: #C8DC6E; }
@@ -562,7 +562,7 @@ h1, h2, h3, .modal-title { font-family: var(--font-display); font-weight: 800; l
 .detail-title-v2 { font-family: var(--font-display); font-weight: 800; font-size: clamp(46px, 13.8vw, 64px); letter-spacing: 0; line-height: 0.98; color: #28133E; }
 [data-theme="dark"] .detail-title-v2, [data-theme="amoled"] .detail-title-v2 { color: var(--text); }
 .detail-fav svg { width: 28px; height: 28px; }
-.detail-meta-v2 { font-size: 18px; color: #765F8C; margin: 6px 0 14px; }
+.detail-meta-v2 { font-size: 18px; color: var(--text-soft); margin: 6px 0 14px; }
 .meta-sep { display: inline-block; margin: 0 10px; font-size: 12px; vertical-align: 2px; }
 
 /* Detail: Aktionen */
@@ -577,16 +577,16 @@ h1, h2, h3, .modal-title { font-family: var(--font-display); font-weight: 800; l
 
 /* Detail: Quelle */
 .source-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin: 16px 0 0; padding: 12px 0; border-top: 1px solid #E5DFF0; border-bottom: 1px solid #E5DFF0; }
-.source-row .source-line { margin: 0; padding: 0; border: none; font-size: 16px; color: #765F8C; min-width: 0; }
+.source-row .source-line { margin: 0; padding: 0; border: none; font-size: 16px; color: var(--text-soft); min-width: 0; }
 .source-row .source-line svg { width: 20px; height: 20px; color: #28133E; flex-shrink: 0; }
 .source-chips { display: flex; gap: 6px; flex-shrink: 0; }
-.source-chip { background: #F2EFFA; color: #765F8C; border-radius: 10px; padding: 6px 12px; font-size: 15px; }
+.source-chip { background: #F2EFFA; color: var(--text-soft); border-radius: 10px; padding: 6px 12px; font-size: 15px; }
 [data-theme="dark"] .source-row, [data-theme="amoled"] .source-row { border-color: var(--border); }
 [data-theme="dark"] .source-chip, [data-theme="amoled"] .source-chip { background: var(--surface-soft); color: var(--text-soft); }
 
 /* Detail: Tabs */
 .tabbar-v2 { margin: 0; gap: 0; background: var(--bg); }
-.tab-v2 { flex: 1 1 0; font-family: var(--font-sans); font-size: 18px; font-weight: 400; color: #765F8C; min-height: 56px; padding: 0 6px; }
+.tab-v2 { flex: 1 1 0; font-family: var(--font-sans); font-size: 18px; font-weight: 400; color: var(--text-soft); min-height: 56px; padding: 0 6px; }
 .tab-v2.is-active { color: #28133E; font-weight: 700; }
 .tab-v2.is-active::after { left: 0; right: 0; height: 4px; border-radius: 4px 4px 0 0; background: #C8DC6E; }
 [data-theme="dark"] .tab-v2.is-active, [data-theme="amoled"] .tab-v2.is-active { color: var(--text); }
@@ -594,11 +594,11 @@ h1, h2, h3, .modal-title { font-family: var(--font-display); font-weight: 800; l
 
 /* Detail: Menge */
 .amount-row { padding: 14px 0; }
-.amount-row-label { font-size: 18px; color: #765F8C; }
+.amount-row-label { font-size: 18px; color: var(--text-soft); }
 .stepper { background: #F2EFFA; border-color: #E5DFF0; border-radius: 12px; }
 .stepper button { width: 52px; height: 48px; color: #28133E; }
 .stepper button svg { width: 20px; height: 20px; }
-.stepper-value { font-weight: 400; font-size: 18px; color: #765F8C; min-width: 96px; }
+.stepper-value { font-weight: 400; font-size: 18px; color: var(--text-soft); min-width: 96px; }
 [data-theme="dark"] .stepper, [data-theme="amoled"] .stepper { background: var(--surface-soft); border-color: var(--border); }
 [data-theme="dark"] .stepper button, [data-theme="amoled"] .stepper button { color: var(--text); }
 
@@ -611,7 +611,7 @@ h1, h2, h3, .modal-title { font-family: var(--font-display); font-weight: 800; l
 .ing-list li::after { content: ''; position: absolute; left: 42px; right: 0; bottom: 0; height: 1px; background: #E5DFF0; }
 [data-theme="dark"] .ing-list li::after, [data-theme="amoled"] .ing-list li::after { background: var(--border); }
 .ing-amount { font-weight: 700; color: #28133E; font-variant-numeric: normal; }
-.ing-name { color: #765F8C; }
+.ing-name { color: var(--text-soft); }
 .check-box { width: 24px; height: 24px; border-radius: 5px; border: 1.8px solid #C9BEDA; }
 [data-theme="dark"] .ing-amount, [data-theme="amoled"] .ing-amount { color: var(--text); }
 
@@ -770,3 +770,23 @@ body.keyboard-open .cook-bar { display: none; }
 .uc-input-row .uc-input, .uc-input-row .uc-select { width: 100%; flex: none; }
 .uc-result-unit { text-transform: none; letter-spacing: 0; }
 @media (max-width: 359px) { .uc-tab { font-size: 12.5px; } .uc-input { font-size: 26px; } }
+
+/* ---------- Paket 4: Zutatenzeile und Zutaten einfuegen ---------- */
+.ing-row { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto; grid-template-areas: "amount unit acts" "name name name"; gap: 8px; align-items: start; }
+.ing-row .ing-amount { grid-area: amount; } .ing-row .ing-unit { grid-area: unit; } .ing-row .ing-name { grid-area: name; }
+.ing-row-actions { grid-area: acts; display: flex; gap: 6px; align-items: flex-start; }
+.ing-row-actions .ing-convert-btn, .ing-row-actions .repeat-row-remove { width: 44px; height: 48px; min-width: 44px; }
+@media (min-width: 480px) {
+  .ing-row { grid-template-columns: 84px 96px minmax(0, 1fr) auto; grid-template-areas: "amount unit name acts"; }
+}
+.ingp-list { list-style: none; margin: 8px 0 12px; padding: 0; max-height: 30dvh; overflow: auto; border: 1px solid var(--border); border-radius: 12px; background: var(--card-bg); }
+.ingp-row { display: grid; grid-template-columns: 96px 1fr; gap: 10px; padding: 8px 12px; border-top: 1px solid var(--border); font-size: 15px; }
+.ingp-row:first-child, .ingp-group + .ingp-row { border-top: none; }
+.ingp-amount { font-weight: 700; font-variant-numeric: tabular-nums; color: var(--text); }
+.ingp-name { color: var(--text-soft); }
+.ingp-group { padding: 8px 12px 4px; font-size: 12px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--accent); background: var(--surface-soft); }
+
+/* ---------- Paket 5: Darstellung ---------- */
+/* Systemelemente (Haekchenfelder, Auswahllisten, Scrollbalken) folgen dem gewaehlten Modus */
+[data-theme="light"] { color-scheme: light; }
+[data-theme="dark"], [data-theme="amoled"] { color-scheme: dark; }
