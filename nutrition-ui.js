@@ -112,7 +112,7 @@ function nutritionStatusIcon(status) {
 
 function nutritionMatchRow(item) {
   const name = escapeHtml(item.ingredient.name);
-  const foodName = item.food ? escapeHtml(item.food.name) : null;
+  const foodName = item.food ? escapeHtml(item.food.name) : (item.skipped === 'nonCaloric' ? 'Wird nicht mitgerechnet (enthält keine Nährwerte)' : item.skipped === 'negligible' ? 'Gewürz oder Triebmittel, in dieser Menge vernachlässigbar' : null);
   const prepHint = item.preparation ? `<span class="nutrition-prep-hint">${ICONS.sparkle} Zubereitung erkannt: ${escapeHtml(item.preparation.label)}</span>` : '';
   if (item.status === 'matched') {
     return `<li class="nutrition-match-item">

@@ -1,0 +1,262 @@
+/* ---------- Nutrition: Alltagsbegriffe -> Eintrag der Schweizer Naehrwertdatenbank ----------
+   Die BLV-Datenbank benennt Lebensmittel fachlich ("Zucker, weiss", "Vollmilch, pasteurisiert",
+   "Hühnerei, ganz, roh"). Rezepte schreiben "Zucker", "Milch", "Eier", "Rüebli". Diese kuratierte
+   Tabelle verbindet beides direkt, damit die haeufigsten Zutaten sicher erkannt werden, statt
+   ueber eine unsichere Textsuche zu raten. Es werden KEINE Naehrwerte erfunden: jeder Eintrag
+   zeigt auf einen echten Datensatz der Datenbank (Test: tests/test_nutrition.py prueft, dass jedes
+   Ziel existiert). Zutaten ohne Naehrwert-Bedeutung (Wasser) und Gewuerze in Kleinstmengen
+   (Pfeffer, Backpulver) werden bewusst nicht mitgerechnet, ohne dass sie als Fehler zaehlen. */
+
+const NUTRITION_ALIAS_TABLE = [
+  [['salz', 'kochsalz', 'meersalz', 'jodsalz', 'tafelsalz', 'speisesalz', 'fleur de sel', 'himalayasalz', 'salz fein'], 'Kochsalz mit Jod'],
+  [['zucker', 'haushaltszucker', 'kristallzucker', 'feinkristallzucker', 'rohrzucker', 'puderzucker', 'staubzucker', 'vanillezucker', 'vanille zucker', 'brauner zucker', 'braunzucker', 'rohzucker', 'streuzucker', 'hagelzucker', 'zucker weiss'], 'Zucker, weiss'],
+  [['mehl', 'weissmehl', 'weizenmehl', 'backmehl', 'universalmehl', 'zopfmehl', 'weizenmehl weiss', 'mehl weiss', 'mehl hell'], 'Weizenmehl (Backmehl), Typ 550'],
+  [['halbweissmehl', 'halbweisses mehl'], 'Weizenmehl, halbweiss, Typ 720'],
+  [['ruchmehl'], 'Weizenmehl, Ruch, Typ 1100'],
+  [['vollkornmehl', 'weizenvollkornmehl', 'vollkorn mehl'], 'Weizenmehl, Vollkorn, Typ 1700'],
+  [['dinkelmehl', 'dinkelmehl weiss'], 'Dinkelmehl, weiss, Typ 550'],
+  [['roggenmehl'], 'Roggenmehl, halbweiss, Typ 815'],
+  [['maisstärke', 'speisestärke', 'stärke', 'maizena', 'maisstaerke'], 'Maisstärke'],
+  [['kartoffelstärke'], 'Kartoffelstärke'],
+  [['öl', 'speiseöl', 'pflanzenöl', 'rapsöl', 'bratöl', 'öl zum braten', 'öl zum anbraten'], 'Rapsöl'],
+  [['sonnenblumenöl'], 'Sonnenblumenöl'],
+  [['olivenöl', 'olivenöl extra vergine', 'olivenöl extra', 'öl olive', 'natives olivenöl'], 'Olivenöl'],
+  [['butter', 'streichbutter', 'tafelbutter', 'vorzugsbutter', 'butter weich', 'butter kalt', 'butter flüssig', 'flüssige butter', 'geschmolzene butter', 'ungesalzene butter'], 'Vorzugsbutter'],
+  [['milch', 'vollmilch', 'frischmilch', 'kuhmilch', 'milch 3.5'], 'Vollmilch, pasteurisiert'],
+  [['teilentrahmte milch', 'halbfettmilch', 'milch teilentrahmt', 'drinkmilch'], 'Teilentrahmte Milch, pasteurisiert'],
+  [['rahm', 'vollrahm', 'sahne', 'schlagsahne', 'schlagrahm', 'rahm sahne', 'flüssiger rahm', 'rahm flüssig', 'kochrahm', 'schlagobers', 'rahm 35'], 'Vollrahm, pasteurisiert'],
+  [['halbrahm', 'kaffeerahm', 'halbrahm 25'], 'Halbrahm, pasteurisiert'],
+  [['sauerrahm', 'saurer rahm', 'saurer halbrahm', 'crème fraîche', 'creme fraiche', 'crème fraiche'], 'Sauerrahm'],
+  [['joghurt', 'jogurt', 'joghurt nature', 'naturjoghurt', 'naturejoghurt', 'natur joghurt', 'joghurt natur', 'griechischer joghurt'], 'Joghurt, nature'],
+  [['quark', 'speisequark', 'quark halbfett'], 'Quark, nature, halbfett'],
+  [['magerquark', 'quark mager'], 'Quark, nature, mager'],
+  [['hüttenkäse', 'körniger frischkäse'], 'Hüttenkäse, nature'],
+  [['ei', 'eier', 'vollei', 'vollei roh', 'hühnerei', 'hühnereier', 'freilandeier', 'eier gross', 'eier mittelgross', 'ei gross'], 'Hühnerei, ganz, roh'],
+  [['eigelb', 'eidotter', 'eigelbe', 'eidotter roh'], 'Hühnereigelb, roh (Eidotter)'],
+  [['eiweiss', 'eiklar', 'eiweisse', 'eiweiß'], 'Hühnereiweiss, roh (Eiklar)'],
+  [['hackfleisch gemischt', 'gemischtes hackfleisch', 'hackfleisch', 'gehacktes', 'gehacktes gemischt', 'hack'], 'Gehacktes (Durchschnitt aus Rind, Kalb, Schwein, Poulet), roh'],
+  [['rindshackfleisch', 'rinderhackfleisch', 'rindergehacktes', 'rindsgehacktes', 'rinderhack', 'hackfleisch rind', 'hackfleisch vom rind', 'rindfleisch gehackt', 'rind gehackt', 'gehacktes rind'], 'Rind, Gehacktes, roh'],
+  [['schweinshackfleisch', 'schweinehackfleisch', 'schweinegehacktes', 'hackfleisch schwein'], 'Schwein, Gehacktes, roh'],
+  [['pouletbrust', 'pouletbrüste', 'pouletbrustfilet', 'poulet brust', 'hähnchenbrust', 'hähnchenbrustfilet', 'hühnerbrust', 'hühnerbrustfilet', 'chicken breast', 'pouletschnitzel', 'poulet geschnetzeltes'], 'Poulet, Brust, ohne Haut, roh'],
+  [['schweinefilet', 'schweinsfilet', 'schweinsfilets'], 'Schwein, Filet, roh'],
+  [['rindsfilet', 'rinderfilet', 'rindfilet'], 'Rind, Filet, roh'],
+  [['rindfleisch', 'rindsfleisch', 'rindsragout', 'rindsgeschnetzeltes', 'rindsgulasch', 'rindsschulter'], 'Rindfleisch (Durchschnitt exkl. Innereien, Rippensteak), roh'],
+  [['speck', 'bratspeck', 'speckwürfel', 'speckwürfeli', 'speckstreifen', 'frühstücksspeck', 'bacon', 'rohessspeck'], 'Rohessspeck'],
+  [['kochspeck'], 'Kochspeck'],
+  [['schinken', 'kochschinken', 'hinterschinken', 'vorderschinken', 'schinkenwürfel'], 'Hinterschinken'],
+  [['rohschinken', 'schinken roh', 'prosciutto'], 'Rohschinken'],
+  [['lachs', 'lachsfilet', 'zuchtlachs'], 'Lachs, Zucht, roh'],
+  [['räucherlachs', 'geräucherter lachs', 'lachs geräuchert'], 'Lachs, geräuchert'],
+  [['thon', 'thunfisch', 'thon in öl', 'thunfisch in öl', 'thon dose', 'thunfisch dose'], 'Thon im Öl, abgetropft'],
+  [['thon im wasser', 'thunfisch im wasser', 'thunfisch natur'], 'Thon im Wasser, abgetropft'],
+  [['tomate', 'tomaten', 'fleischtomate', 'fleischtomaten', 'cherrytomate', 'cherrytomaten', 'cocktailtomaten', 'rispentomaten', 'peperoncini tomate'], 'Tomate, roh'],
+  [['gehackte tomaten', 'passierte tomaten', 'geschälte tomaten', 'pelati', 'tomaten gehackt', 'tomaten dose', 'tomaten aus der dose', 'stückige tomaten', 'tomatenstücke', 'tomaten passiert', 'tomaten geschält'], 'Tomate, geschält (Konserve)'],
+  [['tomatenmark', 'tomatenpüree', 'tomatenkonzentrat', 'tomatenpurée', 'doppelt konzentriertes tomatenmark'], 'Tomatenpüree'],
+  [['tomatensauce', 'tomatensosse', 'tomatensugo', 'sugo'], 'Tomatensauce'],
+  [['zwiebel', 'zwiebeln', 'küchenzwiebel', 'gemüsezwiebel', 'rote zwiebel', 'rote zwiebeln', 'weisse zwiebel', 'speisezwiebel', 'zwiebel rot', 'zwiebel gross', 'schalotte', 'schalotten', 'frühlingszwiebel', 'frühlingszwiebeln', 'lauchzwiebel', 'lauchzwiebeln', 'zwiebeln rot'], 'Zwiebel, roh'],
+  [['knoblauch', 'knoblauchzehe', 'knoblauchzehen', 'knoblauchknolle', 'zehe knoblauch', 'zehen knoblauch'], 'Knoblauch, roh'],
+  [['karotte', 'karotten', 'rüebli', 'möhre', 'möhren', 'rübli', 'karotten gerieben'], 'Karotte, roh'],
+  [['peperoni', 'peperoni rot', 'rote peperoni', 'rote peperoni', 'rote paprika', 'paprika rot', 'rote paprikaschote', 'paprikaschote', 'paprikaschoten', 'gelbe peperoni', 'gelbe paprika', 'peperoni gelb', 'peperoni orange', 'paprika', 'peperoni rot gross', 'rote peperoni gross'], 'Peperoni, rot, roh'],
+  [['grüne peperoni', 'peperoni grün', 'grüne paprika', 'grüne paprikaschote'], 'Peperoni, grün, roh'],
+  [['zucchetti', 'zucchini', 'zucchetto', 'zucchetti klein'], 'Zucchetti, roh'],
+  [['aubergine', 'auberginen', 'melanzane'], 'Aubergine, roh'],
+  [['gurke', 'gurken', 'salatgurke', 'salatgurken', 'schlangengurke', 'cornichons'], 'Gurke, roh'],
+  [['champignon', 'champignons', 'egerlinge', 'braune champignons', 'weisse champignons', 'zuchtchampignons'], 'Champignon, roh'],
+  [['pilz', 'pilze', 'waldpilze', 'gemischte pilze', 'pilzmischung', 'shiitake', 'austernpilze', 'eierschwämme', 'pfifferlinge', 'steinpilze'], 'Pilz (Durchschnitt), roh'],
+  [['spinat', 'blattspinat', 'babyspinat', 'frischer spinat'], 'Spinat, roh'],
+  [['broccoli', 'brokkoli', 'broccoliröschen'], 'Broccoli, roh'],
+  [['blumenkohl', 'blumenkohlröschen'], 'Blumenkohl, roh'],
+  [['lauch', 'porree', 'lauchstange', 'lauchstangen'], 'Lauch, roh'],
+  [['sellerie', 'knollensellerie', 'sellerieknolle', 'selleriewurzel'], 'Knollensellerie, roh'],
+  [['stangensellerie', 'bleichsellerie', 'staudensellerie', 'selleriestangen', 'sellerie stangen'], 'Stangensellerie, roh'],
+  [['kartoffel', 'kartoffeln', 'erdäpfel', 'erdapfel', 'mehlig kochende kartoffeln', 'festkochende kartoffeln', 'grumbeeren', 'salzkartoffeln', 'gschwellti'], 'Kartoffel, geschält, roh'],
+  [['süsskartoffel', 'süsskartoffeln', 'batate', 'bataten'], 'Süsskartoffel, roh'],
+  [['kürbis', 'butternusskürbis', 'butternuss', 'hokkaido', 'hokkaidokürbis', 'kürbisfleisch'], 'Kürbis, roh'],
+  [['fenchel', 'fenchelknolle'], 'Fenchel, roh'],
+  [['rande', 'randen', 'rote bete', 'rote beete', 'rote rüben'], 'Rande, roh'],
+  [['kohlrabi'], 'Kohlrabi, roh'],
+  [['blattsalat', 'salat', 'kopfsalat', 'lattich', 'rucola', 'nüsslisalat', 'feldsalat', 'lollo', 'batavia', 'blattsalate', 'salatmischung'], 'Blattsalat (Durchschnitt), roh'],
+  [['eisbergsalat', 'eisberg'], 'Eisbergsalat, roh'],
+  [['apfel', 'äpfel', 'apfelstück', 'apfelstücke'], 'Apfel, roh'],
+  [['banane', 'bananen', 'reife banane', 'reife bananen'], 'Banane, roh'],
+  [['birne', 'birnen'], 'Birne, roh'],
+  [['orange', 'orangen'], 'Orange, roh'],
+  [['zitrone', 'zitronen', 'bio zitrone', 'bio zitronen'], 'Zitrone, roh'],
+  [['zitronensaft', 'saft zitrone', 'saft einer zitrone', 'zitronensaft frisch'], 'Zitronensaft'],
+  [['erdbeere', 'erdbeeren'], 'Erdbeere, roh'],
+  [['himbeere', 'himbeeren'], 'Himbeere, roh'],
+  [['heidelbeere', 'heidelbeeren', 'blaubeeren', 'blaubeere'], 'Heidelbeere, roh'],
+  [['mango', 'mangos'], 'Mango, roh'],
+  [['avocado', 'avocados'], 'Avocado, roh'],
+  [['rosinen', 'rosine', 'sultaninen', 'sultanine'], 'Rosine, getrocknet'],
+  [['spaghetti', 'penne', 'fusilli', 'tagliatelle', 'nudeln', 'pasta', 'macaroni', 'makkaroni', 'rigatoni', 'farfalle', 'linguine', 'teigwaren', 'hörnli', 'spaghettini', 'trockene teigwaren', 'lasagneblätter', 'lasagneplatten', 'cannelloni', 'orecchiette', 'bandnudeln', 'suppennudeln', 'gabelspaghetti', 'penne rigate', 'spiralen', 'spirelli', 'fettuccine', 'pappardelle', 'tortiglioni', 'pasta trocken'], 'Teigwaren ohne Ei, trocken'],
+  [['eiernudeln', 'eierteigwaren', 'nudeln mit ei', 'teigwaren mit ei', 'spätzli', 'spätzle'], 'Teigwaren mit Ei, trocken'],
+  [['reis', 'basmatireis', 'jasminreis', 'langkornreis', 'rundkornreis', 'risottoreis', 'arborio', 'arborioreis', 'naturreis', 'weisser reis', 'reis trocken', 'duftreis', 'sushireis', 'carnaroli'], 'Reis poliert, trocken'],
+  [['parmesan', 'parmigiano', 'parmigiano reggiano', 'grana padano', 'grana'], 'Parmesan'],
+  [['mozzarella', 'büffelmozzarella'], 'Mozzarella'],
+  [['emmentaler', 'emmentaler käse', 'emmental'], 'Emmentaler, vollfett'],
+  [['gruyère', 'gruyere', 'greyerzer', 'gruyère käse'], 'Greyerzer, vollfett'],
+  [['appenzeller'], 'Appenzeller, vollfett'],
+  [['feta', 'fetakäse', 'feta käse', 'schafskäse', 'hirtenkäse', 'salakis'], 'Käse in Salzlake (Schaf- und Ziegenmilch)'],
+  [['geriebener käse', 'reibkäse', 'käse gerieben', 'geriebenen käse', 'käse'], 'Reibkäse'],
+  [['raclettekäse', 'raclette käse'], 'Raclettekäse'],
+  [['sbrinz'], 'Sbrinz'],
+  [['mascarpone'], 'Mascarpone'],
+  [['mandeln', 'mandel', 'gemahlene mandeln', 'mandeln gemahlen', 'mandelstifte', 'mandelblätter', 'geschälte mandeln', 'mandeln gehackt', 'ganze mandeln'], 'Mandel'],
+  [['haselnüsse', 'haselnuss', 'gemahlene haselnüsse', 'haselnüsse gemahlen', 'haselnusskerne'], 'Haselnuss'],
+  [['baumnüsse', 'baumnuss', 'walnüsse', 'walnuss', 'walnusskerne', 'baumnusskerne'], 'Baumnuss'],
+  [['erdnüsse', 'erdnuss', 'erdnusskerne'], 'Erdnuss'],
+  [['cashewnüsse', 'cashewnuss', 'cashews', 'cashewkerne'], 'Cashewnuss'],
+  [['pinienkerne', 'pinienkern'], 'Pinienkerne'],
+  [['sonnenblumenkerne'], 'Sonnenblumenkerne'],
+  [['kürbiskerne'], 'Kürbiskerne'],
+  [['sesam', 'sesamsamen', 'sesamkörner'], 'Sesamsamen ungeschält'],
+  [['leinsamen'], 'Leinsamen'],
+  [['chiasamen', 'chia samen', 'chia'], 'Chia-Samen'],
+  [['haferflocken', 'haferflocken zart', 'kernige haferflocken', 'zarte haferflocken', 'köllnflocken'], 'Haferflocken'],
+  [['paniermehl', 'semmelbrösel', 'semmelmehl', 'brösel', 'panade', 'weggli brösel'], 'Paniermehl'],
+  [['brötchen', 'semmel', 'semmeli', 'weggli', 'brötli', 'brot brötchen', 'kaiserbrötchen'], 'Semmeli'],
+  [['brot', 'weissbrot', 'toastbrot', 'toast', 'baguette', 'ruchbrot', 'halbweissbrot', 'zopf', 'brotwürfel', 'brotscheibe', 'brotscheiben', 'altes brot', 'hartes brot', 'ciabatta', 'fladenbrot'], 'Brot (Durchschnitt)'],
+  [['honig', 'blütenhonig', 'akazienhonig', 'waldhonig'], 'Honig (Blütenhonig)'],
+  [['ahornsirup'], 'Ahornsirup'],
+  [['agavendicksaft', 'agavensirup'], 'Agavensirup'],
+  [['senf', 'dijonsenf', 'mittelscharfer senf', 'körniger senf'], 'Senf'],
+  [['ketchup', 'tomatenketchup'], 'Ketchup'],
+  [['mayonnaise', 'mayo'], 'Mayonnaise'],
+  [['sojasauce', 'sojasosse', 'soja sauce', 'soyasauce', 'shoyu'], 'Sojasauce'],
+  [['worcestersauce', 'worcester sauce', 'worcestershire sauce'], 'Worcester Sauce'],
+  [['essig', 'weissweinessig', 'apfelessig', 'rotweinessig', 'branntweinessig', 'kräuteressig', 'weissweinessig mild'], 'Essig'],
+  [['balsamico', 'balsamicoessig', 'aceto balsamico', 'balsamessig'], 'Balsamicoessig'],
+  [['schokolade', 'zartbitterschokolade', 'kochschokolade', 'dunkle schokolade', 'bitterschokolade', 'schokolade dunkel', 'kuvertüre', 'kuvertüre dunkel', 'zartbitter kuvertüre'], 'Schokolade, dunkel (bitter)'],
+  [['milchschokolade', 'vollmilchschokolade', 'milchkuvertüre'], 'Milchschokolade'],
+  [['weisse schokolade', 'schokolade weiss'], 'Schokolade, weiss'],
+  [['kakao', 'kakaopulver', 'backkakao', 'kakao ungezuckert', 'kakaopulver ungezuckert', 'backkakaopulver', 'kakao pulver'], 'Kakaopulver, ohne Zucker'],
+  [['wein', 'weisswein', 'weisser wein', 'trockener weisswein', 'kochwein'], 'Wein weiss, 12.5 vol%'],
+  [['rotwein', 'roter wein', 'trockener rotwein'], 'Wein rot, 12 vol%'],
+  [['bouillon', 'gemüsebouillon', 'gemüsebrühe', 'gemüsefond', 'brühe', 'gemüsebouillon zubereitet', 'bouillon gemüse'], 'Bouillon, Gemüse, zubereitet'],
+  [['fleischbouillon', 'rinderbouillon', 'fleischbrühe', 'rindsbouillon', 'rinderbrühe', 'fond', 'kalbsfond'], 'Bouillon, Fleisch, zubereitet'],
+  [['hühnerbouillon', 'geflügelbouillon', 'hühnerbrühe', 'pouletbouillon', 'geflügelbrühe', 'hühnerfond'], 'Bouillon, Geflügel, zubereitet'],
+  [['kokosmilch', 'kokosnussmilch', 'kokosmilch dose'], 'Kokosnussmilch'],
+  [['bohnen', 'kidneybohnen', 'weisse bohnen', 'schwarze bohnen', 'rote bohnen', 'bohnen dose', 'kidney bohnen', 'cannellinibohnen', 'borlottibohnen', 'gekochte bohnen'], 'Bohne (alle Arten), gekocht (ohne Zugabe von Fett und Salz)'],
+  [['grüne bohnen', 'gartenbohnen', 'buschbohnen', 'stangenbohnen', 'fadenbohnen', 'bohnen grün'], 'Bohne, grün, roh'],
+  [['kichererbsen', 'kichererbse', 'kichererbsen dose', 'gekochte kichererbsen'], 'Kichererbse, gekocht (ohne Zugabe von Fett und Salz)'],
+  [['linsen', 'linse', 'rote linsen', 'braune linsen', 'tellerlinsen', 'belugalinsen', 'berglinsen'], 'Linse, ganz, getrocknet'],
+  [['erbsen', 'erbse', 'grüne erbsen', 'tiefkühlerbsen', 'zuckererbsen', 'gartenerbsen'], 'Erbse, grün, tiefgekühlt'],
+  [['mais', 'maiskörner', 'zuckermais', 'mais dose', 'maiskörner dose'], 'Mais, roh'],
+  [['tofu', 'naturtofu', 'tofu natur', 'festen tofu'], 'Tofu, fest, nature (Durchschnitt)'],
+  [['ingwer', 'frischer ingwer', 'ingwerwurzel', 'ingwerstück'], 'Ingwer, roh'],
+  [['petersilie', 'glatte petersilie', 'krause petersilie', 'peterli'], 'Petersilie, roh'],
+  [['schnittlauch'], 'Schnittlauch, roh'],
+  [['basilikum', 'frisches basilikum', 'basilikumblätter'], 'Basilikum, roh'],
+  [['paprikapulver', 'paprika edelsüss', 'paprika pulver', 'edelsüsses paprikapulver', 'paprika scharf', 'paprikapulver edelsüss', 'geräuchertes paprikapulver', 'paprika geräuchert'], 'Paprika (Gewürz)'],
+  [['zimt', 'zimtpulver', 'gemahlener zimt', 'zimt gemahlen'], 'Zimt'],
+  [['erdnussbutter', 'erdnussmus', 'peanutbutter'], 'Erdnussbutter'],
+  [['konfitüre', 'marmelade', 'konfi', 'aprikosenkonfitüre', 'erdbeerkonfitüre', 'himbeerkonfitüre', 'gelee'], 'Konfitüre'],
+  [['margarine'], 'Margarine, ohne Butter, 70 - 80 % Fett'],
+  [['schweineschmalz', 'schmalz', 'schweinefett'], 'Schweineschmalz'],
+  [['hafermilch', 'haferdrink', 'hafergetränk', 'haferdrink nature'], 'Hafergetränk, nature'],
+  [['sojamilch', 'sojadrink', 'sojagetränk'], 'Sojagetränk, nature'],
+  [['mandelmilch', 'mandeldrink', 'mandelgetränk'], 'Mandelgetränk, nature'],
+  [['pouletschenkel', 'poulet schenkel', 'hähnchenschenkel', 'hühnerschenkel', 'pouletunterschenkel', 'pouletkeule'], 'Poulet, Schenkel, ohne Haut, roh'],
+  [['kabis', 'weisskohl', 'weisser kabis', 'weisskabis', 'weisskraut', 'kraut'], 'Weisskohl, roh'],
+  [['rotkohl', 'rotkabis', 'rotkraut', 'blaukraut'], 'Rotkohl, roh'],
+  [['wirz', 'wirsing'], 'Wirz, roh'],
+  [['lammfilet', 'lamm filet'], 'Lamm, Filet, roh'],
+  [['kokosraspel', 'kokosflocken', 'raspelkokos', 'kokos geraspelt', 'kokosraspeln'], 'Kokosnuss, getrocknet (Kokosrapseln, Kokosflocken)'],
+  [['oliven', 'olive', 'grüne oliven'], 'Olive, grün, in Salzlake, abgetropft'],
+  [['schwarze oliven', 'olive schwarz'], 'Olive, schwarz'],
+  [['ziegenkäse', 'ziegenweichkäse', 'chèvre', 'chevre'], 'Weichkäse aus Ziegenmilch'],
+  [['ziegenfrischkäse'], 'Ziegenfrischkäse, zum Streichen'],
+  [['crevetten', 'garnelen', 'shrimps', 'scampi', 'riesencrevetten', 'crevette'], 'Garnele, geschält, roh (frisch oder tiefgekuhlt)'],
+  [['datteln', 'dattel', 'medjool datteln', 'medjool'], 'Dattel, getrocknet'],
+  [['apfelmus', 'apfelmark'], 'Apfelmus, ungezuckert (Konserve)'],
+  [['würstchen', 'wienerli', 'wienerlis', 'wiener würstchen', 'wiener'], 'Wienerli'],
+  [['bratwurst', 'schweinsbratwurst', 'bratwürste'], 'Schweinsbratwurst'],
+  [['cervelat', 'servelat'], 'Cervelat'],
+  [['hefe', 'frischhefe', 'bäckerhefe', 'hefewürfel', 'hefe frisch', 'würfel hefe', 'hefe würfel'], 'Bäckerhefe, gepresst'],
+  [['blätterteig', 'blätterteig ausgewallt', 'ausgewallter blätterteig', 'rechteckiger blätterteig', 'runder blätterteig', 'butterblätterteig'], 'Blätterteig, hausgemacht (Butter), ungebacken'],
+  [['pizzateig', 'fertiger pizzateig', 'pizzateig ausgewallt'], 'Pizzateig (mit Olivenöl), ungebacken'],
+  [['griess', 'hartweizengriess', 'weizengriess', 'griess trocken'], 'Hartweizengriess, trocken'],
+  [['polenta', 'maisgriess', 'polenta trocken', 'maisgriess trocken'], 'Maisgriess, trocken'],
+  [['couscous', 'couscous trocken'], 'Couscous-Körner (vorgekochtes Hartweizengriess), gekocht (ohne Zugabe von Fett und Salz)'],
+  [['quinoa'], 'Quinoa, roh'],
+  [['hirse', 'hirsekörner'], 'Hirse, Korn geschält'],
+];
+
+/* Zutaten ohne Naehrwert-Beitrag: werden nicht mitgerechnet und zaehlen nicht als Fehler. */
+const NUTRITION_NON_CALORIC_TERMS = ['wasser', 'leitungswasser', 'mineralwasser', 'kaltes wasser', 'warmes wasser', 'heisses wasser', 'lauwarmes wasser', 'eiswürfel', 'eis', 'kochwasser', 'nudelwasser', 'sprudelwasser', 'wasser lauwarm', 'wasser kalt', 'wasser warm', 'wasser heiss', 'salzwasser', 'tafelwasser', 'eiswasser'];
+
+/* Gewuerze/Triebmittel: bei Kleinstmengen (Prise, Msp, TL, bis 10 g) vernachlaessigbar. */
+const NUTRITION_NEGLIGIBLE_TERMS = ['pfeffer', 'schwarzer pfeffer', 'pfeffer aus der mühle', 'gemahlener pfeffer', 'weisser pfeffer', 'pfefferkörner', 'backpulver', 'natron', 'backnatron', 'weinsteinbackpulver', 'muskat', 'muskatnuss', 'muskatnuss gerieben', 'curry', 'currypulver', 'kurkuma', 'gelbwurz', 'oregano', 'thymian', 'rosmarin', 'majoran', 'lorbeer', 'lorbeerblatt', 'lorbeerblätter', 'chili', 'chilipulver', 'chiliflocken', 'cayenne', 'cayennepfeffer', 'kreuzkümmel', 'kümmel', 'kardamom', 'gewürznelken', 'nelken', 'vanille', 'vanilleschote', 'vanilleextrakt', 'vanillearoma', 'vanillepaste', 'gewürz', 'gewürze', 'gewürzmischung', 'kräuter', 'kräuter der provence', 'italienische kräuter', 'salbei', 'estragon', 'koriander gemahlen', 'safran', 'zitronenschale', 'orangenschale', 'zitronenabrieb', 'zitronenzeste', 'garam masala', 'ras el hanout', 'paprika edelsüss ', 'salz und pfeffer', 'pfeffer und salz', 'sternanis', 'anis', 'fenchelsamen', 'sumach', 'wacholderbeeren', 'liebstöckel', 'bohnenkraut', 'dill', 'kerbel', 'minze', 'pfefferminze', 'zitronenmelisse', 'weinstein', 'aroma', 'lebensmittelfarbe', 'backaroma', 'bittermandelaroma', 'rumaroma', 'zitronenaroma'];
+
+const NUTRITION_NEGLIGIBLE_MAX_GRAMS = 10;
+
+/* Bereinigt einen Zutatennamen fuer den Alias-Abgleich: Kleinbuchstaben, ohne Klammern und
+   Zusaetze nach dem Komma, ohne Groessen-/Zustandswoerter. Liefert mehrere Varianten
+   (von genau bis grob), die der Reihe nach geprueft werden. */
+const NUTRITION_ALIAS_DROP_WORDS = new Set(['frische', 'frischer', 'frisches', 'frischen', 'frisch', 'grosse', 'grosser', 'grosses', 'grossen', 'kleine', 'kleiner', 'kleines', 'kleinen', 'mittelgrosse', 'mittelgrosser', 'mittelgrosses', 'mittlere', 'reife', 'reifer', 'reifes', 'reifen', 'junge', 'junger', 'weiche', 'weicher', 'weiches', 'weichen', 'geriebene', 'geriebener', 'geriebenes', 'geriebenen', 'gehackte', 'gehackter', 'gehacktes', 'gehackten', 'gewürfelte', 'gewürfelter', 'gewürfelten', 'geschnittene', 'geschnittener', 'geschnittenen', 'gemahlene', 'gemahlener', 'gemahlenes', 'gemahlenen', 'feine', 'feiner', 'feines', 'feinen', 'grobe', 'grober', 'groben', 'ganze', 'ganzer', 'ganzes', 'ganzen', 'halbe', 'halber', 'halbes', 'halben', 'bio', 'lauwarme', 'lauwarmer', 'lauwarmes', 'lauwarmen', 'kalte', 'kalter', 'kaltes', 'kalten', 'warme', 'warmer', 'warmes', 'warmen', 'flüssige', 'flüssiger', 'flüssiges', 'flüssigen', 'geschmolzene', 'geschmolzener', 'geschmolzenes', 'zimmerwarme', 'zimmerwarmer', 'zimmerwarmes', 'gute', 'guter', 'gutes', 'guten', 'qualität', 'nach', 'belieben', 'geschmack', 'etwas', 'ca', 'circa', 'etwa', 'evtl', 'eventuell', 'optional', 'zum', 'zur', 'für', 'fuer', 'und', 'oder', 'aus', 'der', 'dem', 'die', 'das', 'den', 'vom', 'von', 'mit', 'ohne', 'in', 'im', 'ein', 'eine', 'einen', 'einer', 'eines', 'gross', 'klein', 'mittelgross', 'reif', 'jung', 'weich', 'fein', 'grob', 'ganz', 'halb', 'gestrichen', 'gestrichene', 'gehäuft', 'gehäufte', 'gehäufter', 'gestrichener', 'gestrichenes', 'stück', 'stücke', 'stk', 'scheibe', 'scheiben', 'würfel', 'würfeli', 'streifen', 'stängel', 'stiel', 'stiele', 'zweig', 'zweige', 'blätter', 'blatt', 'zerdrückt', 'zerdrückte', 'zerdrückter', 'gepresst', 'gepresste', 'geschält', 'geschälte', 'geschälter', 'geschälten', 'entkernt', 'entkernte', 'entkernten', 'gewaschen', 'gewaschene', 'gewaschenen', 'gerüstet', 'gerüstete', 'gerüsteten', 'geraspelt', 'geraspelte', 'geraspelter', 'gerieben', 'gehackt', 'gewürfelt', 'geschnitten', 'gemahlen', 'zerkleinert', 'zerkleinerte', 'abgetropft', 'abgetropfte', 'abgetropften', 'gekocht', 'gekochte', 'gekochten', 'roh', 'rohe', 'rohen', 'natur', 'naturell', 'weiss', 'weisse', 'weisser', 'weissen', 'hell', 'helle', 'heller', 'hellen', 'gelb', 'gelbe', 'gelber', 'gelben', 'orangen', 'gross', 'kleingehackt', 'kleingehackte', 'fein gehackt', 'fein gehackte']);
+
+function nutAliasKeys(rawName) {
+  let s = String(rawName || '').toLowerCase().normalize('NFC');
+  s = s.replace(/\([^)]*\)/g, ' ');            // Klammern weg
+  s = s.replace(/[*!?"':;]/g, ' ');
+  const beforeComma = s.split(',')[0];
+  const flat = beforeComma.replace(/[.\/]/g, ' ').replace(/\d+([.,]\d+)?\s*(%|g|kg|ml|dl|l)?\b/g, ' ').replace(/\s+/g, ' ').trim();
+  const keys = [];
+  const push = (k) => { k = (k || '').trim(); if (k && !keys.includes(k)) keys.push(k); };
+  push(flat);
+  const tokens = flat.split(' ').filter(Boolean);
+  const kept = tokens.filter((t) => !NUTRITION_ALIAS_DROP_WORDS.has(t));
+  push(kept.join(' '));
+  // ohne Farb-Adjektive (rote/rot/grüne...), falls der genaue Begriff nicht bekannt ist
+  const noColor = kept.filter((t) => !/^(rot|rote|roter|rotes|roten|grün|grüne|grüner|grünes|grünen)$/.test(t));
+  push(noColor.join(' '));
+  // letztes Wort (Kernwort) und erstes Wort als grobe Rueckfaelle
+  if (kept.length > 1) { push(kept[kept.length - 1]); push(kept[0]); }
+  return keys;
+}
+function nutSingularVariants(k) {
+  const out = [k];
+  for (const suf of ['en', 'n', 'e', 's']) if (k.length > 4 && k.endsWith(suf)) out.push(k.slice(0, -suf.length));
+  if (k.endsWith('ü' + 'en')) out.push(k.slice(0, -3) + 'u');
+  return out;
+}
+
+let _nutAliasIndex = null;
+function nutAliasIndex() {
+  if (_nutAliasIndex) return _nutAliasIndex;
+  const idx = { food: new Map(), nonCaloric: new Set(NUTRITION_NON_CALORIC_TERMS), negligible: new Set(NUTRITION_NEGLIGIBLE_TERMS.map((t) => t.trim())) };
+  for (const [terms, target] of NUTRITION_ALIAS_TABLE) for (const t of terms) if (!idx.food.has(t)) idx.food.set(t, target);
+  _nutAliasIndex = idx;
+  return idx;
+}
+
+/* Sucht den Namen im Alias-Index. Liefert { kind: 'food', target } | { kind: 'nonCaloric' } | { kind: 'negligible' } | null.
+   Reihenfolge: genaue Varianten zuerst (z.B. "rote peperoni"), dann gekuerzte. */
+function lookupNutritionAlias(rawName) {
+  const idx = nutAliasIndex();
+  const keys = nutAliasKeys(rawName);
+  for (const key of keys) {
+    for (const v of nutSingularVariants(key)) {
+      if (idx.food.has(v)) return { kind: 'food', target: idx.food.get(v), key: v };
+      if (idx.nonCaloric.has(v)) return { kind: 'nonCaloric', key: v };
+      if (idx.negligible.has(v)) return { kind: 'negligible', key: v };
+    }
+  }
+  return null;
+}
+
+/* Liefert den Datensatz zum Alias-Ziel (genauer Name, sonst erster Name, der so beginnt). */
+async function findSwissFoodByExactName(target) {
+  const foods = await getSwissFoodsCached();
+  const t = target.toLowerCase();
+  return foods.find((f) => f.name.toLowerCase() === t) || foods.find((f) => f.name.toLowerCase().startsWith(t)) || null;
+}
+
+async function resolveNutritionAlias(rawName) {
+  const hit = lookupNutritionAlias(rawName);
+  if (!hit) return null;
+  if (hit.kind !== 'food') return hit;
+  const food = await findSwissFoodByExactName(hit.target);
+  return food ? { kind: 'food', food, key: hit.key } : null;
+}

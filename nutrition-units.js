@@ -28,11 +28,16 @@ const NUTRITION_UNIT_ALIASES = {
   floz: ['floz', 'fl.oz', 'flooz', 'fluidounce', 'fluidounces'],
   // Stueck-/Gebindeeinheiten haben keinen festen Umrechnungsfaktor — sie brauchen entweder ein
   // Stueckgewicht (piece) oder muessen vom Nutzer bestaetigt werden (container).
-  piece: ['stück', 'stk', 'stk.', 'stange', 'blatt', 'blätter'],
+  piece: ['stück', 'stk', 'stk.', 'stange', 'stangen', 'blatt', 'blätter', 'kopf', 'köpfe', 'knolle', 'knollen', 'zweig', 'zweige', 'stiel', 'stiele', 'stängel', 'kugel', 'kugeln', 'ecke', 'ecken'],
   clove: ['zehe', 'zehen'],
   slice: ['scheibe', 'scheiben'],
-  pinch: ['prise', 'prisen'],
-  container: ['dose', 'dosen', 'packung', 'packungen', 'päckchen', 'glas', 'gläser', 'beutel'],
+  pinch: ['prise', 'prisen', 'msp', 'messerspitze', 'messerspitzen'],
+  handful: ['handvoll'],
+  splash: ['schuss', 'spritzer'],
+  bunch: ['bund', 'bd', 'bündel'],
+  cube: ['würfel', 'würfeli'],
+  pack: ['päckchen', 'paeckchen', 'pck', 'pk', 'pkg', 'packung', 'packungen', 'beutel'],
+  container: ['dose', 'dosen', 'glas', 'gläser', 'flasche', 'flaschen', 'becher', 'tube'],
 };
 
 function normalizeNutritionUnit(raw) {
@@ -50,12 +55,20 @@ function normalizeNutritionUnit(raw) {
    Key = Substring, der im normalisierten Zutatennamen gesucht wird (erste Übereinstimmung
    gewinnt, daher spezifischere Begriffe vor allgemeinen einsortiert). */
 const PIECE_WEIGHT_TABLE = [
+  { match: 'frühlingszwiebel', grams: 15, unit: 'piece' },
+  { match: 'lauchzwiebel', grams: 15, unit: 'piece' },
+  { match: 'knoblauchzehe', grams: 5, unit: 'piece' },
+  { match: 'eigelb', grams: 18, unit: 'piece' },
+  { match: 'eiweiss', grams: 35, unit: 'piece' },
+  { match: 'eiweiß', grams: 35, unit: 'piece' },
   { match: 'ei', grams: 53, unit: 'piece', wholeWordOnly: true, alsoMatch: ['eier'] },
   { match: 'zwiebel', grams: 110, unit: 'piece' },
   { match: 'schalotte', grams: 25, unit: 'piece' },
   { match: 'zitrone', grams: 58, unit: 'piece' },
   { match: 'limette', grams: 44, unit: 'piece' },
   { match: 'apfel', grams: 180, unit: 'piece' },
+  { match: 'äpfel', grams: 180, unit: 'piece' },
+  { match: 'birnen', grams: 180, unit: 'piece' },
   { match: 'banane', grams: 120, unit: 'piece' },
   { match: 'kartoffel', grams: 150, unit: 'piece' },
   { match: 'tomate', grams: 123, unit: 'piece' },
@@ -63,6 +76,49 @@ const PIECE_WEIGHT_TABLE = [
   { match: 'rüebli', grams: 61, unit: 'piece' },
   { match: 'peperoni', grams: 120, unit: 'piece' },
   { match: 'avocado', grams: 170, unit: 'piece' },
+  { match: 'zucchetti', grams: 200, unit: 'piece' },
+  { match: 'zucchini', grams: 200, unit: 'piece' },
+  { match: 'aubergine', grams: 250, unit: 'piece' },
+  { match: 'gurke', grams: 300, unit: 'piece' },
+  { match: 'broccoli', grams: 350, unit: 'piece' },
+  { match: 'brokkoli', grams: 350, unit: 'piece' },
+  { match: 'blumenkohl', grams: 600, unit: 'piece' },
+  { match: 'stangensellerie', grams: 45, unit: 'piece' },
+  { match: 'sellerie', grams: 400, unit: 'piece' },
+  { match: 'lauch', grams: 200, unit: 'piece' },
+  { match: 'porree', grams: 200, unit: 'piece' },
+  { match: 'rande', grams: 100, unit: 'piece' },
+  { match: 'kohlrabi', grams: 200, unit: 'piece' },
+  { match: 'fenchel', grams: 250, unit: 'piece' },
+  { match: 'süsskartoffel', grams: 250, unit: 'piece' },
+  { match: 'chili', grams: 15, unit: 'piece' },
+  { match: 'ingwer', grams: 25, unit: 'piece' },
+  { match: 'knoblauch', grams: 45, unit: 'piece' },
+  { match: 'birne', grams: 180, unit: 'piece' },
+  { match: 'kiwi', grams: 75, unit: 'piece' },
+  { match: 'kabis', grams: 1000, unit: 'piece' },
+  { match: 'rotkohl', grams: 1000, unit: 'piece' },
+  { match: 'pouletschenkel', grams: 150, unit: 'piece' },
+  { match: 'pouletkeule', grams: 200, unit: 'piece' },
+  { match: 'orange', grams: 200, unit: 'piece' },
+  { match: 'pfirsich', grams: 150, unit: 'piece' },
+  { match: 'mango', grams: 300, unit: 'piece' },
+  { match: 'brötchen', grams: 60, unit: 'piece' },
+  { match: 'semmel', grams: 60, unit: 'piece' },
+  { match: 'weggli', grams: 60, unit: 'piece' },
+  { match: 'pouletbrust', grams: 160, unit: 'piece' },
+  { match: 'pouletbrü', grams: 160, unit: 'piece' },
+  { match: 'poulet brust', grams: 160, unit: 'piece' },
+  { match: 'hähnchenbrust', grams: 160, unit: 'piece' },
+  { match: 'schnitzel', grams: 120, unit: 'piece' },
+  { match: 'würstchen', grams: 50, unit: 'piece' },
+  { match: 'wienerli', grams: 50, unit: 'piece' },
+  { match: 'bratwurst', grams: 120, unit: 'piece' },
+  { match: 'cervelat', grams: 100, unit: 'piece' },
+  { match: 'tortilla', grams: 40, unit: 'piece' },
+  { match: 'champignon', grams: 20, unit: 'piece' },
+  { match: 'cherrytomate', grams: 15, unit: 'piece' },
+  { match: 'mozzarella', grams: 125, unit: 'piece' },
   { match: 'brot', grams: 30, unit: 'slice' },
   { match: 'toast', grams: 25, unit: 'slice' },
   { match: 'käse', grams: 20, unit: 'slice' },
@@ -88,6 +144,54 @@ function lookupPieceWeight(normalizedName, unitKind) {
   return null;
 }
 
+/* Gebinde-/Bundgewichte (geschaetzt, gaengige Packungsgroessen). Key = Teil des Zutatennamens. */
+const PACK_WEIGHT_TABLE = {
+  container: [['tomate', 400], ['mais', 285], ['bohne', 240], ['kichererbse', 240], ['linse', 240], ['erbse', 250], ['thon', 112], ['thunfisch', 112], ['kokos', 400], ['champignon', 230], ['ananas', 340], ['mandarine', 175], ['sardine', 90], ['maroni', 200]],
+  pack: [['backpulver', 15], ['vanillezucker', 8], ['vanillin', 1], ['trockenhefe', 7], ['hefe', 7], ['puddingpulver', 40], ['gelatine', 10], ['butter', 250], ['mozzarella', 125], ['blätterteig', 250], ['pizzateig', 250], ['mürbeteig', 250], ['teig', 250], ['mascarpone', 250], ['quark', 250], ['frischkäse', 200], ['speck', 150], ['tofu', 200], ['spinat', 450], ['rahm', 200], ['sahne', 200], ['sauerrahm', 180]],
+  bunch: [['petersilie', 50], ['schnittlauch', 25], ['basilikum', 30], ['koriander', 30], ['dill', 30], ['minze', 30], ['rucola', 100], ['radieschen', 150], ['frühlingszwiebel', 120], ['lauchzwiebel', 120], ['rüebli', 400], ['karotte', 400], ['spargel', 500], ['mangold', 400], ['thymian', 15], ['rosmarin', 15]],
+  cube: [['hefe', 42], ['bouillon', 10], ['brühe', 10], ['fond', 10]],
+};
+const BUNCH_DEFAULT_GRAMS = 30; // Kraeuterbund, falls der Name nichts Genaueres verraet
+
+function lookupPackWeight(kind, normalizedName) {
+  const list = PACK_WEIGHT_TABLE[kind] || [];
+  for (const [key, grams] of list) if (normalizedName.includes(key)) return grams;
+  return kind === 'bunch' ? BUNCH_DEFAULT_GRAMS : null;
+}
+
+/* Richtdichten (g/ml) fuer Loeffel-/Tassen-/dl-Angaben, wenn die Datenbank keine Dichte liefert.
+   Standard-Kuechenwerte, immer als "geschaetzt" gekennzeichnet. Reihenfolge: spezifisch vor allgemein. */
+const DENSITY_HINTS = [
+  [/paniermehl|semmelbrösel/, 0.45], [/puderzucker|staubzucker/, 0.55], [/zucker/, 0.85], [/kochsalz|\bsalz\b/, 1.2],
+  [/haferflocken/, 0.35], [/kakaopulver|kakao/, 0.45], [/milchpulver/, 0.5], [/stärke/, 0.6], [/weizenmehl|dinkelmehl|roggenmehl|mehl/, 0.55],
+  [/reis|griess|couscous|bulgur|quinoa|hirse/, 0.8], [/linse|kichererbse|bohne/, 0.8],
+  [/mandel|haselnuss|baumnuss|erdnuss|cashew|pinienkern|kerne|samen|sesam|chia|leinsamen/, 0.5],
+  [/paprika \(gewürz\)|zimt|kurkuma|curry|muskat|pfeffer|gewürz/, 0.45], [/rosine|getrocknet/, 0.65],
+  [/reibkäse|parmesan|sbrinz/, 0.4],
+  [/honig|sirup|agave|ahorn|melasse|dicksaft/, 1.4], [/tomatenpüree|tomatenmark/, 1.1], [/ketchup|sojasauce|worcester/, 1.15],
+  [/mayonnaise/, 0.95], [/erdnussbutter|hummus|konfitüre|senf/, 1.1],
+  [/butter|margarine|schmalz|kokosfett/, 0.95],
+  [/öl\b|öl,|^öl/, 0.92],
+  [/rahm|sahne|mascarpone|frischkäse|quark|joghurt|milch|kefir|buttermilch|saft|bouillon|wein|bier|essig|wasser|sauce|suppe/, 1.03],
+];
+function estimateDensity(food, normalizedName) {
+  const hay = ((food && food.name ? food.name.toLowerCase() : '') + ' | ' + (normalizedName || '')).toLowerCase();
+  for (const [re, d] of DENSITY_HINTS) if (re.test(hay)) return d;
+  return null;
+}
+
+/* Milliliter pro Einheit: nutzt die im Rechner gewaehlten Loeffelmasse (Schweiz: TL 5 ml, EL 15 ml, Tasse 250 ml). */
+function nutMlPerUnit(kind) {
+  try {
+    if (typeof ucVolumeTable === 'function') {
+      const t = ucVolumeTable();
+      const map = { tsp: t.tsp, tbsp: t.tbsp, cup: t.cup };
+      if (map[kind]) return map[kind];
+    }
+  } catch (e) { /* Rueckfall auf die festen Werte unten */ }
+  return NUTRITION_VOLUME_TO_ML[kind];
+}
+
 /* Kernfunktion: rechnet eine Zutatenzeile + (optional) passendes Lebensmittel in Gramm um.
    Gibt NIE einen erfundenen Wert zurueck — wenn keine verlaessliche Umrechnung moeglich ist,
    kommt grams:null + needsConfirmation:true zurueck (siehe Punkt 74 "wichtige Fehlerfaelle"). */
@@ -107,12 +211,12 @@ function resolveIngredientGrams(ing, food) {
   }
 
   if (unitKind && NUTRITION_VOLUME_TO_ML[unitKind] !== undefined) {
-    const density = food && typeof food.density === 'number' ? food.density : null;
-    if (density === null) {
-      return { grams: null, estimated: false, needsConfirmation: true, reason: 'volume-needs-density' };
-    }
-    const ml = amt * NUTRITION_VOLUME_TO_ML[unitKind];
-    return { grams: ml * density, estimated: false, needsConfirmation: false, reason: null };
+    const ml = amt * nutMlPerUnit(unitKind);
+    const dbDensity = food && typeof food.density === 'number' ? food.density : null;
+    if (dbDensity !== null) return { grams: ml * dbDensity, estimated: false, needsConfirmation: false, reason: null };
+    const guess = estimateDensity(food, normalizedName);
+    if (guess === null) return { grams: null, estimated: false, needsConfirmation: true, reason: 'volume-needs-density' };
+    return { grams: ml * guess, estimated: true, needsConfirmation: false, reason: 'estimated-density' };
   }
 
   if (unitKind === 'piece' || unitKind === 'clove' || unitKind === 'slice') {
@@ -123,6 +227,14 @@ function resolveIngredientGrams(ing, food) {
     return { grams: amt * pieceGrams, estimated: true, needsConfirmation: false, reason: 'estimated-piece-weight' };
   }
 
-  // Dose/Packung/Prise/unbekannte Einheit: keine verlaessliche generische Umrechnung.
-  return { grams: null, estimated: false, needsConfirmation: true, reason: unitKind === 'container' ? 'container-unit' : 'unknown-unit' };
+  if (unitKind === 'pinch') return { grams: amt * 0.4, estimated: true, needsConfirmation: false, reason: 'estimated-pinch' };
+  if (unitKind === 'handful') return { grams: amt * 30, estimated: true, needsConfirmation: false, reason: 'estimated-handful' };
+  if (unitKind === 'splash') return { grams: amt * 10, estimated: true, needsConfirmation: false, reason: 'estimated-splash' };
+  if (unitKind === 'bunch' || unitKind === 'pack' || unitKind === 'cube' || unitKind === 'container') {
+    const w = lookupPackWeight(unitKind, normalizedName);
+    if (w !== null) return { grams: amt * w, estimated: true, needsConfirmation: false, reason: 'estimated-pack-weight' };
+    return { grams: null, estimated: false, needsConfirmation: true, reason: unitKind === 'container' || unitKind === 'pack' ? 'container-unit' : 'unknown-unit' };
+  }
+
+  return { grams: null, estimated: false, needsConfirmation: true, reason: 'unknown-unit' };
 }
