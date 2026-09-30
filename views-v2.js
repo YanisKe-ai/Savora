@@ -763,6 +763,9 @@ function cookbookDesignerView() {
         <h2 class="section-title">1. Titel und Cover</h2>
         <div class="field"><label for="cbTitle">Titel</label><input type="text" id="cbTitle" data-cb-field="title" value="${escapeHtml(cfg.title || '')}" placeholder="${escapeHtml(state.cookbookTitle || 'Mein persönliches Kochbuch')}"></div>
         <div class="field"><label for="cbSubtitle">Untertitel</label><input type="text" id="cbSubtitle" data-cb-field="subtitle" value="${escapeHtml(cfg.subtitle || '')}" placeholder="z.B. Lieblingsrezepte 2026"></div>
+        <div class="field"><label for="cbAuthor">Autor oder Autorin (Deckblatt und Fusszeile)</label><input type="text" id="cbAuthor" data-cb-field="author" value="${escapeHtml(cfg.author || '')}" placeholder="optional"></div>
+        <div class="field"><label for="cbTemplate">Vorlage</label><select id="cbTemplate" data-cb-field="pdfTemplate">${Object.values(PDF_TEMPLATES).map(t => `<option value="${t.id}" ${(cfg.pdfTemplate || pdfDefaultTemplateId()) === t.id ? 'selected' : ''}>${t.id} · ${t.name}</option>`).join('')}</select></div>
+        <label class="check-row"><input type="checkbox" data-cb-flag="showLogo" ${cfg.showLogo === false ? '' : 'checked'}> <span>Kleines Savora-Logo auf dem Deckblatt</span></label>
         <div class="field"><label for="cbCover">Titelbild</label><select id="cbCover" data-cb-field="coverRecipeId"><option value="">Ohne Bild (nur Logo)</option>${withImage.map(r => `<option value="${r.id}" ${cfg.coverRecipeId === r.id ? 'selected' : ''}>${escapeHtml(r.title || 'Ohne Titel')}</option>`).join('')}</select></div>
       </section>
       <section class="panel">
@@ -771,6 +774,7 @@ function cookbookDesignerView() {
           <button class="icon-btn icon-btn--small" data-action="cb-move-chapter" data-id="${escapeHtml(c.id)}" data-delta="-1" ${n === 0 ? 'disabled' : ''} aria-label="Kapitel nach oben">${ICONS.arrowUp}</button>
           <button class="icon-btn icon-btn--small" data-action="cb-move-chapter" data-id="${escapeHtml(c.id)}" data-delta="1" ${n === cfg.chapters.length - 1 ? 'disabled' : ''} aria-label="Kapitel nach unten">${ICONS.arrowDown}</button>
           <button class="icon-btn icon-btn--small" data-action="cb-delete-chapter" data-id="${escapeHtml(c.id)}" aria-label="Kapitel ${escapeHtml(c.name)} löschen">${ICONS.trash}</button></div>`).join('') || '<p class="hint-line">Ohne Kapitel erscheinen alle Rezepte in einer Liste.</p>'}
+        ${cfg.chapters.length ? `<label class="check-row"><input type="checkbox" data-cb-flag="chapterPages" ${cfg.chapterPages ? 'checked' : ''}> <span>Eigene Seite vor jedem Kapitel (sonst nur im Inhaltsverzeichnis)</span></label>` : ''}
         <div class="inline-add"><label for="cbNewChapter" class="sr-only">Neues Kapitel</label><input type="text" id="cbNewChapter" placeholder="Neues Kapitel, z.B. Hauptgänge"><button class="primary-btn" data-action="cb-add-chapter">Anlegen</button></div>
       </section>
       <section class="panel">

@@ -1,6 +1,6 @@
 /* ---------- Nutrition: Berechnungsengine (Implementierungsauftrag Punkt 16-23) ---------- */
 
-const NUTRITION_CALC_VERSION = 1;
+const NUTRITION_CALC_VERSION = 2;   // 2: Zuordnung ueber Alias-Tabelle, Richtdichten; Ergebnisse aus Version 1 gelten als veraltet
 
 /* Zeilen, die erkennbar keine berechenbare Menge tragen ("Salz nach Geschmack", "etwas
    Butter", "eine Handvoll Nüsse", ...) fliessen NICHT als Fehler, sondern als bewusst
@@ -170,6 +170,7 @@ async function calculateRecipeNutrition(recipe) {
     unresolvedCount,
     relevantCount,
     unresolvedIngredients,
+    complete: unresolvedCount === 0 && relevantCount > 0,
     nutrientsTotal,
     nutrientsPerPortion,
     nutrientsPer100g,
@@ -191,5 +192,23 @@ async function getFreshNutritionResult(recipe) {
   const servings = Number(recipe.servings) > 0 ? Number(recipe.servings) : 1;
   const currentHash = hashIngredientsForNutrition(recipe.ingredients || [], servings);
   if (stored.ingredientHash !== currentHash) return null;
+  if ((stored.nutritionCalcVersion || 1) < NUTRITION_CALC_VERSION) return null;   // mit aelterer Berechnung erstellt
   return stored;
+}
+
+/* Einheitlicher Status fuer App, Vorschau und PDF:
+     not-calculated  nie berechnet (nicht dasselbe wie 0)
+     calculated      aktuell und alle relevanten Zutaten eingerechnet
+     incomplete      aktuell, aber Zutaten fehlen -> keine Portionssumme anzeigen
+     stale           Zutaten/Portionen geaendert oder mit aelterer Berechnung erstellt
+     failed          Speicher nicht lesbar */
+async function nutritionStatusFor(recipe) {
+  let stored = null;
+  try { stored = await dbGetNutritionResult(recipe.id); } catch (e) { return { status: 'failed', result: null }; }
+  if (!stored) return { status: 'not-calculated', result: null };
+  const servings = Number(recipe.servings) > 0 ? Number(recipe.servings) : 1;
+  const hashOk = stored.ingredientHash === hashIngredientsForNutrition(recipe.ingredients || [], servings);
+  if (!hashOk || (stored.nutritionCalcVersion || 1) < NUTRITION_CALC_VERSION) return { status: 'stale', result: stored };
+  const complete = stored.relevantCount > 0 && !(stored.unresolvedCount > 0);
+  return { status: complete ? 'calculated' : 'incomplete', result: stored };
 }

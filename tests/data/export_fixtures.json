@@ -1,0 +1,388 @@
+[
+ {
+  "id": "fx_carbonara",
+  "title": "Carbonara",
+  "servings": 2,
+  "timeMinutes": 25,
+  "tags": [
+   "Hauptgang"
+  ],
+  "categoryTags": [],
+  "diet": [],
+  "difficulty": "",
+  "notes": "",
+  "ingredients": [
+   {
+    "amount": "240",
+    "unit": "g",
+    "name": "Spaghetti"
+   },
+   {
+    "amount": "100",
+    "unit": "g",
+    "name": "Pancetta oder Guanciale"
+   },
+   {
+    "amount": "2",
+    "unit": "",
+    "name": "Eier, Grösse M"
+   },
+   {
+    "amount": "40",
+    "unit": "g",
+    "name": "Parmesan oder Grana Padano"
+   },
+   {
+    "amount": "40",
+    "unit": "g",
+    "name": "Pecorino Romano"
+   },
+   {
+    "amount": "",
+    "unit": "",
+    "name": "Salz für das Nudelwasser"
+   },
+   {
+    "amount": "",
+    "unit": "",
+    "name": "Schwarzer Pfeffer"
+   }
+  ],
+  "steps": [
+   {
+    "text": "Speck ausbraten"
+   },
+   {
+    "text": "Speck würfeln und ohne zusätzliches Fett bei mittlerer Hitze knusprig ausbraten."
+   },
+   {
+    "text": "Kombinieren"
+   },
+   {
+    "text": ""
+   },
+   {
+    "text": "Pasta in Salzwasser al dente kochen, Kochwasser auffangen, Eier und Käse verrühren und mit der Pasta und dem Speck vermengen."
+   },
+   {
+    "text": "Tipp: Die Pfanne von der heissen Platte nehmen, bevor die Ei-Käse-Mischung dazukommt."
+   }
+  ]
+ },
+ {
+  "id": "fx_cookies",
+  "title": "Chocolate Chip Cookies",
+  "servings": 4,
+  "timeMinutes": 15,
+  "tags": [
+   "Dessert"
+  ],
+  "categoryTags": [],
+  "diet": [],
+  "difficulty": "",
+  "notes": "",
+  "ingredients": [
+   {
+    "amount": "",
+    "unit": "",
+    "name": "Teig:"
+   },
+   {
+    "amount": "250",
+    "unit": "g",
+    "name": "Butter, weich"
+   },
+   {
+    "amount": "½",
+    "unit": "",
+    "name": "Ei"
+   },
+   {
+    "amount": "1",
+    "unit": "TL",
+    "name": "Vanilleextrakt"
+   },
+   {
+    "amount": "300",
+    "unit": "g",
+    "name": "Mehl"
+   },
+   {
+    "amount": "200",
+    "unit": "g",
+    "name": "Schokoladentropfen"
+   }
+  ],
+  "servingMode": "pieces",
+  "steps": [
+   {
+    "text": "Formen und Backen"
+   },
+   {
+    "text": "Aus dem Teig etwa 20 Kugeln formen und mit Abstand auf ein Blech mit Backpapier legen."
+   },
+   {
+    "text": "Im Ofen bei 180 Grad 15 Minuten backen und auskühlen lassen."
+   },
+   {
+    "text": "Haltbarkeit: Gut verschlossen in einer Dose etwa 2 Wochen haltbar."
+   },
+   {
+    "text": "Vorbereiten / Einfrieren: Die ungebackenen Teigkugeln lassen sich in einem Gefrierbeutel etwa 1 Monat tiefkühlen. Die Backzeit verlängert sich dann um etwa 5 Minuten."
+   },
+   {
+    "text": "Quelle: bettybossi.ch/rezept/chocolate-chip-cookies"
+   }
+  ]
+ },
+ {
+  "id": "fx_manti",
+  "title": "Türkische Manti",
+  "servings": 4,
+  "timeMinutes": 30,
+  "tags": [
+   "Hauptgang"
+  ],
+  "categoryTags": [],
+  "diet": [],
+  "difficulty": "",
+  "notes": "Mit gehacktem Sumach servieren.",
+  "ingredients": [
+   {
+    "amount": "",
+    "unit": "",
+    "name": "Für den Teig:"
+   },
+   {
+    "amount": "500",
+    "unit": "g",
+    "name": "Mehl"
+   },
+   {
+    "amount": "1",
+    "unit": "",
+    "name": "Ei"
+   },
+   {
+    "amount": "1",
+    "unit": "TL",
+    "name": "Salz"
+   },
+   {
+    "amount": "230",
+    "unit": "ml",
+    "name": "Wasser"
+   },
+   {
+    "amount": "",
+    "unit": "",
+    "name": "Für die Füllung:"
+   },
+   {
+    "amount": "250",
+    "unit": "g",
+    "name": "Rinderhackfleisch"
+   },
+   {
+    "amount": "1",
+    "unit": "",
+    "name": "Zwiebel, geraspelt"
+   },
+   {
+    "amount": "2",
+    "unit": "",
+    "name": "Knoblauchzehen, geraspelt"
+   },
+   {
+    "amount": "½",
+    "unit": "TL",
+    "name": "Paprikapulver"
+   },
+   {
+    "amount": "",
+    "unit": "",
+    "name": "Für die Joghurtsauce:"
+   },
+   {
+    "amount": "250",
+    "unit": "g",
+    "name": "türkischer Joghurt (10 % Fett)"
+   },
+   {
+    "amount": "½",
+    "unit": "",
+    "name": "Knoblauchzehe, fein gerieben"
+   },
+   {
+    "amount": "1",
+    "unit": "Prise",
+    "name": "Salz"
+   },
+   {
+    "amount": "",
+    "unit": "",
+    "name": "Für die rote Butter-Sauce:"
+   },
+   {
+    "amount": "100",
+    "unit": "g",
+    "name": "Butter"
+   },
+   {
+    "amount": "1",
+    "unit": "EL",
+    "name": "Paprikamark edelsüss"
+   },
+   {
+    "amount": "¼",
+    "unit": "TL",
+    "name": "Paprikaflocken"
+   }
+  ],
+  "steps": [
+   {
+    "text": "Teig zubereiten"
+   },
+   {
+    "text": "Mehl, Wasser, ein halbes verquirltes Ei und Salz gründlich zu einem festen, elastischen Nudelteig verkneten. Abgedeckt mit einem sauberen Küchentuch 30 Minuten ruhen lassen."
+   },
+   {
+    "text": "Füllung zubereiten"
+   },
+   {
+    "text": "Hackfleisch, geraspelte Zwiebel und Knoblauch, Petersilie sowie Paprikapulver, Salz und Pfeffer in eine Schüssel geben und gut vermengen."
+   },
+   {
+    "text": "Teig ausrollen, in kleine Quadrate von etwa 3 cm schneiden, je einen kleinen Klecks Füllung daraufsetzen und die Ecken zu kleinen Taschen zusammendrücken."
+   },
+   {
+    "text": "Die Manti in kochendem Salzwasser 8 bis 10 Minuten garen, bis sie oben schwimmen."
+   },
+   {
+    "text": "Für die Sauce die Butter schmelzen und Paprikamark sowie Paprikaflocken kurz darin schwenken."
+   },
+   {
+    "text": "Manti mit Joghurtsauce und roter Butter anrichten."
+   }
+  ]
+ },
+ {
+  "id": "fx_sloppy",
+  "title": "Sloppy Joe Buns",
+  "servings": 9,
+  "timeMinutes": 120,
+  "tags": [
+   "Backen"
+  ],
+  "categoryTags": [],
+  "diet": [],
+  "difficulty": "",
+  "notes": "",
+  "ingredients": [
+   {
+    "amount": "",
+    "unit": "",
+    "name": "Teig:"
+   },
+   {
+    "amount": "250",
+    "unit": "ml",
+    "name": "Milch, lauwarm"
+   },
+   {
+    "amount": "15",
+    "unit": "g",
+    "name": "Honig"
+   },
+   {
+    "amount": "7",
+    "unit": "g",
+    "name": "Trockenhefe"
+   },
+   {
+    "amount": "500",
+    "unit": "g",
+    "name": "Mehl"
+   },
+   {
+    "amount": "",
+    "unit": "",
+    "name": "Sloppy-Joe-Füllung:"
+   },
+   {
+    "amount": "500",
+    "unit": "g",
+    "name": "Hackfleisch"
+   },
+   {
+    "amount": "2",
+    "unit": "",
+    "name": "Zwiebeln"
+   },
+   {
+    "amount": "2",
+    "unit": "g",
+    "name": "Knoblauchpulver"
+   },
+   {
+    "amount": "100",
+    "unit": "g",
+    "name": "Ketchup"
+   },
+   {
+    "amount": "",
+    "unit": "",
+    "name": "Zum Füllen und Bestreichen:"
+   },
+   {
+    "amount": "",
+    "unit": "",
+    "name": "Käsescheiben"
+   },
+   {
+    "amount": "",
+    "unit": "",
+    "name": "Big-Mac-Sauce"
+   },
+   {
+    "amount": "1",
+    "unit": "",
+    "name": "Ei, verquirlt"
+   },
+   {
+    "amount": "",
+    "unit": "",
+    "name": "Sesam"
+   }
+  ],
+  "steps": [
+   {
+    "text": "Lauwarme Milch, Honig und Hefe in einer grossen Schüssel verrühren und 5 Minuten stehen lassen."
+   },
+   {
+    "text": "Ei und Butter dazugeben und gut vermischen. Mehl und Salz hinzufügen und den Teig 10 bis 12 Minuten glatt kneten."
+   },
+   {
+    "text": "Schüssel abdecken und den Teig an einem warmen Ort 1 Stunde gehen lassen, bis er sich verdoppelt hat."
+   },
+   {
+    "text": "Olivenöl in einer Pfanne bei mittlerer bis hoher Hitze erwärmen. Hackfleisch mit Salz und Gewürzen 7 bis 8 Minuten anbraten, bis es durchgegart und gebräunt ist."
+   },
+   {
+    "text": "Ketchup unterrühren, bis alles gut vermischt ist. Füllung vollständig auskühlen lassen."
+   },
+   {
+    "text": "Aufgegangenen Teig in 9 gleich grosse Stücke teilen, zu Kugeln formen und zu runden Fladen ausrollen."
+   },
+   {
+    "text": "In die Mitte jedes Fladens eine Käsescheibe legen, dann Füllung und Sauce daraufgeben. Teig nach innen einschlagen und gut zusammendrücken."
+   },
+   {
+    "text": "Brötchen mit der Naht nach unten auf ein Blech legen, mit Ei bestreichen, mit Sesam bestreuen und 30 Minuten gehen lassen."
+   },
+   {
+    "text": "Im vorgeheizten Ofen bei 200 °C 12 bis 18 Minuten goldbraun backen. Quelle: kookmutsjes.com"
+   }
+  ]
+ }
+]

@@ -55,7 +55,8 @@ document.addEventListener('change', (e) => {
   }
   if (state.view === 'cookbook' && t.matches) {
     const cfg = getCookbookConfig();
-    if (t.matches('[data-cb-field]')) cfg[t.dataset.cbField] = t.value.trim();
+    if (t.matches('[data-cb-flag]')) cfg[t.dataset.cbFlag] = !!t.checked;
+    else if (t.matches('[data-cb-field]')) cfg[t.dataset.cbField] = t.value.trim();
     else if (t.matches('[data-cb-chapter]')) { const c = cfg.chapters.find(x => x.id === t.dataset.cbChapter); if (c) c.name = t.value.trim() || c.name; }
     else if (t.matches('[data-cb-item-chapter]')) { const it = cfg.items.find(x => x.recipeId === t.dataset.cbItemChapter); if (it) it.chapterId = t.value; }
     else return;

@@ -525,10 +525,10 @@ async function dispatchAction(action, id, el, e) {
       break;
     }
     case 'export-pdf':
-      openModal({ type: 'pdf-export', target: 'single', recipeId: id, stage: 'options', nutritionDetail: await defaultPdfNutritionDetail('single', id) }, `[data-action="export-pdf"][data-id="${id}"]`);
+      openModal({ type: 'pdf-export', target: 'single', recipeId: id, stage: 'options', template: pdfDefaultTemplateId(), nutritionDetail: await defaultPdfNutritionDetail('single', id) }, `[data-action="export-pdf"][data-id="${id}"]`);
       break;
     case 'export-cookbook':
-      openModal({ type: 'pdf-export', target: 'cookbook', stage: 'options', nutritionDetail: await defaultPdfNutritionDetail('cookbook') }, `[data-action="export-cookbook"]`);
+      openModal({ type: 'pdf-export', target: 'cookbook', stage: 'options', template: (getCookbookConfig().pdfTemplate || pdfDefaultTemplateId()), nutritionDetail: await defaultPdfNutritionDetail('cookbook') }, `[data-action="export-cookbook"]`);
       break;
     case 'export-backup':
       downloadBackup();
@@ -540,7 +540,7 @@ async function dispatchAction(action, id, el, e) {
       // Punkt 2: identischer Ablauf wie 'export-pdf' — ein Rezept hat nur noch EINEN PDF-Weg,
       // nicht zwei verschiedene (vorher: 'Teilen' ging direkt an navigator.share vorbei an
       // jeder Vorschau, 'Als PDF exportieren' zeigte eine Vorschau — inkonsistent).
-      openModal({ type: 'pdf-export', target: 'single', recipeId: id, stage: 'options', nutritionDetail: await defaultPdfNutritionDetail('single', id) }, `[data-action="share-recipe"][data-id="${id}"]`);
+      openModal({ type: 'pdf-export', target: 'single', recipeId: id, stage: 'options', template: pdfDefaultTemplateId(), nutritionDetail: await defaultPdfNutritionDetail('single', id) }, `[data-action="share-recipe"][data-id="${id}"]`);
       break;
     case 'save-profile-fields': {
       const titleInput = document.getElementById('f-cookbook-title');
@@ -871,6 +871,11 @@ async function dispatchAction(action, id, el, e) {
     /* ---------- PDF-Export-Vorschau (Punkt 59, 65) ---------- */
     case 'noop':
       break;
+    case 'pdf-export-set-template':
+      state.modal.template = id;
+      pdfRememberTemplate(id);
+      render();
+      break;
     case 'pdf-export-set-detail':
       state.modal.nutritionDetail = el.dataset.level;
       render();
@@ -879,20 +884,20 @@ async function dispatchAction(action, id, el, e) {
       state.modal.stage = 'building';
       render();
       const m = state.modal;
-      const result = m.target === 'cookbook'
-        ? await buildCookbookPdf(m.nutritionDetail)
-        : await buildSinglePdf(m.recipeId, m.nutritionDetail);
-      // Punkt 12: waehrend des Builds kann der Nutzer das Modal geschlossen oder gewechselt
-      // haben (der Backdrop ist ausser im 'preview'-Stage anklickbar) — state.modal zeigt dann
-      // nicht mehr auf dasselbe Objekt wie 'm'. Das Ergebnis in den inzwischen ungueltigen/
-      // fremden Modal-State zu schreiben wuerde entweder abstuerzen (null) oder das falsche
-      // Modal ueberschreiben. In beiden Faellen wird das fertige Ergebnis dann verworfen.
-      if (state.modal !== m) {
-        if (result && result.blob) { /* Blob wird nie in eine URL umgewandelt, kein Leak */ }
-        return;
+      let result = null;
+      try {
+        const opts = { template: m.template };
+        result = m.target === 'cookbook'
+          ? await buildCookbookPdf(m.nutritionDetail, opts)
+          : await buildSinglePdf(m.recipeId, m.nutritionDetail, opts);
+      } catch (err) {
+        console.warn('PDF-Erstellung fehlgeschlagen', err);
+        result = null;
       }
+      // waehrend des Builds kann das Modal geschlossen/gewechselt worden sein: Ergebnis dann verwerfen
+      if (state.modal !== m) return;
       if (!result) {
-        showToast('PDF konnte nicht erstellt werden', 'error');
+        showToast('PDF konnte nicht erstellt werden. Deine Rezepte sind unverändert.', 'error');
         m.stage = 'options';
         render();
         break;

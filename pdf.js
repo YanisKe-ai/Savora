@@ -50,6 +50,9 @@ async function ensureFontsReadyForPdf() {
     await Promise.all([
       document.fonts.load('800 26pt "Sofia Sans Extra Condensed"'),
       document.fonts.load('400 10.5pt "Roboto"'),
+      document.fonts.load('600 10.5pt "Roboto"'),
+      document.fonts.load('400 26pt "Source Serif 4"'),
+      document.fonts.load('600 26pt "Source Serif 4"'),
       document.fonts.load('700 10.5pt "Roboto"'),
     ]);
   } catch (e) { /* Font-API-Eigenheiten je Browser — document.fonts.ready ist die harte Garantie */ }
@@ -133,18 +136,23 @@ function pdfAddTextLayer(pdf, section, mmPerPx) {
 }
 
 /* F06: echte, sichtbare Seitenzahlen (als Vektortext). Das Deckblatt eines Kochbuchs bleibt ohne Zahl. */
-function pdfAddPageNumbers(pdf, hasCover) {
+function pdfAddPageNumbers(pdf, skipPages) {
   const total = pdf.getNumberOfPages();
+  const c = (PDF_CTX && PDF_CTX.tpl && PDF_CTX.tpl.pageNo) || [118, 95, 140];
   for (let i = 1; i <= total; i++) {
-    if (hasCover && i === 1) continue;
+    if (skipPages && skipPages.has(i)) continue;
     pdf.setPage(i);
-    pdf.setFont('helvetica', 'normal');
+    pdf.setFont('helvetica', 'bold');
     pdf.setFontSize(8.5);
-    pdf.setTextColor(118, 95, 140);
-    pdf.text(String(i), 196, 290, { align: 'right' });
+    pdf.setTextColor(c[0], c[1], c[2]);
+    pdf.text(String(i), 195, 290.2, { align: 'right' });
   }
 }
 
+/* Rendert jedes direkte Kind von #printRoot als eigene PDF-Seite (randlos, A4). Jede Section passt
+   durch die Vor-Pagination auf eine Seite; die Schnittlogik unten ist nur Sicherheitsnetz.
+   Sammelt dabei Seitennummern der Rezeptanfaenge, die Klickflaechen des Inhaltsverzeichnisses und
+   die Lesezeichen (Outline). */
 async function renderSectionsToPdf() {
   const container = document.getElementById('printRoot');
   const sections = Array.from(container.children);
@@ -155,66 +163,96 @@ async function renderSectionsToPdf() {
   const pdf = new jsPDF({ unit: 'mm', format: 'a4', compress: true });
   const pageWidthMm = 210, pageHeightMm = 297;
   let firstPage = true;
+  const recipeStart = {};       // recipeId -> Seite (1-basiert)
+  const recipeTitles = [];      // [{ id, title, chapter, page }]
+  const tocLinks = [];          // [{ page, x, y, w, h, target }]
+  const skipNumbers = new Set();
 
   for (const section of sections) {
     const domWidth = section.offsetWidth || 1;
     const sectionTop = section.getBoundingClientRect().top;
+    const kind = section.dataset.pageKind || '';
     const breakEls = Array.from(section.querySelectorAll('.pdf-safe-break'));
     const intervals = breakEls.map((el) => {
       const r = el.getBoundingClientRect();
       return { top: r.top - sectionTop, bottom: r.bottom - sectionTop };
     });
-    const domBreakTops = intervals
-      .map((iv) => iv.top)
-      .filter((y) => !intervals.some((iv) => y > iv.top + 0.5 && y < iv.bottom - 0.5));
+    const domBreakTops = intervals.map((iv) => iv.top).filter((y) => !intervals.some((iv) => y > iv.top + 0.5 && y < iv.bottom - 0.5));
+
+    // Klickflaechen fuer das Inhaltsverzeichnis vor dem Rastern messen
+    const mmPerPx = pageWidthMm / domWidth;
+    const rowRects = kind === 'toc' ? Array.from(section.querySelectorAll('[data-toc-id]')).map((el) => {
+      const r = el.getBoundingClientRect();
+      return { target: el.dataset.tocId, x: (r.left - section.getBoundingClientRect().left) * mmPerPx, y: (r.top - sectionTop) * mmPerPx, w: r.width * mmPerPx, h: r.height * mmPerPx };
+    }) : [];
 
     await pdfBakeCoverImages(section);
     const canvas = await html2canvas(section, { scale: PDF_RENDER_SCALE, backgroundColor: null, useCORS: true });
-    const scale = canvas.width / domWidth;
     const pxPerMm = canvas.width / pageWidthMm;
+    const scale = canvas.width / domWidth;
     const pageHeightPx = pageHeightMm * pxPerMm;
 
-    // Regelfall (garantiert durch die Vor-Pagination): passt komplett auf eine Seite -> ein Bild,
-    // keine Schnittlogik noetig. Das ist jetzt der Normalpfad, nicht mehr der Sonderfall.
+    let pageNo;
     if (canvas.height <= pageHeightPx + 2 * pxPerMm) {
       if (!firstPage) pdf.addPage();
       firstPage = false;
+      pageNo = pdf.getNumberOfPages();
       const imgData = canvas.toDataURL('image/jpeg', PDF_JPEG_QUALITY);
       pdf.addImage(imgData, 'JPEG', 0, 0, pageWidthMm, canvas.height / pxPerMm);
       pdfAddTextLayer(pdf, section, pageWidthMm / domWidth);
-      continue;
-    }
-
-    // Sicherheitsnetz: nur falls eine Section trotz Vor-Pagination zu hoch ist (z.B. ein sehr
-    // langes Inhaltsverzeichnis bei vielen Rezepten) — schneidet an sicheren Stellen, nie mitten
-    // in einem markierten Block, und malt NICHTS nachtraeglich auf den Schnitt (Punkt 34).
-    const breakPointsPx = domBreakTops.map((t) => t * scale).sort((a, b) => a - b);
-    const minSlicePx = 10 * pxPerMm;
-    let cursor = 0;
-    while (cursor < canvas.height - 1) {
-      const naiveEnd = Math.min(canvas.height, cursor + pageHeightPx);
-      let sliceEnd = naiveEnd;
-      if (naiveEnd < canvas.height - 1) {
-        const candidate = breakPointsPx.filter((p) => p > cursor + minSlicePx && p <= naiveEnd).pop();
-        if (candidate !== undefined) sliceEnd = candidate;
+    } else {
+      // Sicherheitsnetz: nur falls eine Section trotz Vor-Pagination zu hoch ist
+      const breakPointsPx = domBreakTops.map((t) => t * scale).sort((a, b) => a - b);
+      const minSlicePx = 10 * pxPerMm;
+      let cursor = 0; pageNo = null;
+      while (cursor < canvas.height - 1) {
+        const naiveEnd = Math.min(canvas.height, cursor + pageHeightPx);
+        let sliceEnd = naiveEnd;
+        if (naiveEnd < canvas.height - 1) {
+          const candidate = breakPointsPx.filter((p) => p > cursor + minSlicePx && p <= naiveEnd).pop();
+          if (candidate !== undefined) sliceEnd = candidate;
+        }
+        if (canvas.height - sliceEnd < 15 * pxPerMm) sliceEnd = canvas.height;
+        if (!firstPage) pdf.addPage();
+        firstPage = false;
+        if (pageNo === null) pageNo = pdf.getNumberOfPages();
+        const sliceHeightPx = sliceEnd - cursor;
+        const sliceCanvas = document.createElement('canvas');
+        sliceCanvas.width = canvas.width; sliceCanvas.height = sliceHeightPx;
+        sliceCanvas.getContext('2d').drawImage(canvas, 0, cursor, canvas.width, sliceHeightPx, 0, 0, canvas.width, sliceHeightPx);
+        pdf.addImage(sliceCanvas.toDataURL('image/jpeg', PDF_JPEG_QUALITY), 'JPEG', 0, 0, pageWidthMm, sliceHeightPx / pxPerMm);
+        cursor = sliceEnd;
       }
-      if (canvas.height - sliceEnd < 15 * pxPerMm) sliceEnd = canvas.height;
-
-      if (!firstPage) pdf.addPage();
-      firstPage = false;
-      const sliceHeightPx = sliceEnd - cursor;
-      const sliceCanvas = document.createElement('canvas');
-      sliceCanvas.width = canvas.width;
-      sliceCanvas.height = sliceHeightPx;
-      sliceCanvas.getContext('2d').drawImage(canvas, 0, cursor, canvas.width, sliceHeightPx, 0, 0, canvas.width, sliceHeightPx);
-      const imgData = sliceCanvas.toDataURL('image/jpeg', PDF_JPEG_QUALITY);
-      pdf.addImage(imgData, 'JPEG', 0, 0, pageWidthMm, sliceHeightPx / pxPerMm);
-      cursor = sliceEnd;
     }
+    if (kind === 'cover') skipNumbers.add(pageNo);
+    if (kind === 'chapter') skipNumbers.add(pageNo);
+    if (kind === 'recipe' && section.dataset.recipeId && !(section.dataset.recipeId in recipeStart)) {
+      recipeStart[section.dataset.recipeId] = pageNo;
+      recipeTitles.push({ id: section.dataset.recipeId, title: section.dataset.title || '', chapter: section.dataset.chapter || '', page: pageNo });
+    }
+    rowRects.forEach((rr) => tocLinks.push({ ...rr, page: pageNo }));
   }
 
   container.innerHTML = '';
-  pdfAddPageNumbers(pdf, sections[0] && sections[0].classList.contains('pdf-page-cover'));
+  pdfAddPageNumbers(pdf, skipNumbers);
+  // Echte, anklickbare Seitenlinks im Inhaltsverzeichnis
+  tocLinks.forEach((l) => {
+    const target = recipeStart[l.target];
+    if (!target) return;
+    try { pdf.setPage(l.page); pdf.link(l.x, l.y, l.w, l.h, { pageNumber: target }); } catch (e) { /* Link ist ein Zusatz */ }
+  });
+  // Lesezeichen (Kapitel als Ueberordnung, wenn vorhanden)
+  try {
+    if (pdf.outline && recipeTitles.length) {
+      let parent = null, parentName = null;
+      recipeTitles.forEach((rt) => {
+        if (rt.chapter && rt.chapter !== parentName) { parent = pdf.outline.add(null, rt.chapter, { pageNumber: rt.page }); parentName = rt.chapter; }
+        if (!rt.chapter) { parent = null; parentName = null; }
+        pdf.outline.add(rt.chapter ? parent : null, rt.title || 'Rezept', { pageNumber: rt.page });
+      });
+    }
+  } catch (e) { /* Lesezeichen sind ein Zusatz */ }
+  pdf.setProperties({ title: (PDF_CTX && PDF_CTX.bookTitle) || 'Savora', creator: 'Savora' });
   return pdf.output('blob');
 }
 
@@ -234,167 +272,190 @@ function triggerPdfDownload(blob, filename) {
   setTimeout(() => URL.revokeObjectURL(url), 3000);
 }
 
-/* ---------- Teil F: Long-Recipe-Pagination ----------
-   Wird nur aufgerufen, wenn die real gemessene Hoehe des normal gewaehlten Layouts (Hero/Split/
-   Floating/Full-Statement/Typography) eine A4-Seite ueberschreitet. Zerlegt Zutaten, Zubereitung,
-   Notizen und Naehrwerte in atomare Bloecke und packt sie GREEDY anhand echter Nachmessung auf so
-   viele einspaltige Long-Recipe-Seiten wie noetig — nie mitten in einer Zutat/einem Schritt
-   (Punkt 54-55), Naehrwerte-Box immer als Ganzes (Punkt 56-57), kein Bildfragment auf der
-   Fortsetzung (Punkt 53), deterministisch bei gleichem Rezeptstand (Punkt 40). */
-function buildLongRecipePages(recipe, imgUrl, result, nutritionDetail) {
-  const factor = 1;
-  const ingItems = pdfKeepWithNext(pdfIngredientItemsHtml(recipe, factor).map((html) => ({ type: 'ing', html })), (h) => h.includes('pdf-ing-group'));
-  const stepItems = pdfKeepWithNext(pdfStepItemsHtml(recipe).map((html) => ({ type: 'step', html, num: html.includes('pdf-step-heading') ? 0 : 1 })), (h) => h.startsWith('<li class="pdf-step-heading"'));
-  const notesHtml = pdfNotesBlock(recipe);
-  const nutritionHtml = pdfNutritionBox(result, nutritionDetail);
-  const extraBlocks = [];
-  if (notesHtml) extraBlocks.push({ type: 'notes', html: notesHtml });
-  if (nutritionHtml) extraBlocks.push({ type: 'nutrition', html: nutritionHtml });
-  const allBlocks = ingItems.concat(stepItems, extraBlocks);
+/* ---------- Seitenaufbau eines Rezepts (Vorlagen A/B/C) ---------- */
 
-  if (!allBlocks.length) {
-    // Randfall: Rezept ohne Zutaten/Schritte/Notizen/Naehrwerte, aber trotzdem zu hoch (z.B. sehr
-    // langer Titel) — dann bleibt es bei genau einer Seite, mehr gibt es nicht zu verteilen.
-    return [pdfLongRecipeSection(recipe, imgUrl, '', false)];
-  }
-
-  const pages = [];
-  let cursor = 0;
-  let pageIndex = 0;
-  while (cursor < allBlocks.length) {
-    const isFirst = pageIndex === 0;
-    let end = cursor + 1; // Punkt 40: mindestens ein Block pro Seite, sonst Endlosschleife
-    // Punkt 39/72: nicht schaetzen, sondern nach jedem Kandidaten-Block real nachmessen, wie hoch
-    // die Seite MIT diesem Layout (Foto nur auf Seite 1) tatsaechlich wird.
-    while (end < allBlocks.length) {
-      const tryEnd = end + 1;
-      const bodyHtml = pdfRenderBlockGroups(allBlocks.slice(cursor, tryEnd), allBlocks, cursor);
-      const testHtml = pdfLongRecipeSection(recipe, isFirst ? imgUrl : null, bodyHtml, !isFirst);
-      if (!candidateFitsOnePage(testHtml)) break;
-      end = tryEnd;
-    }
-    const bodyHtml = pdfRenderBlockGroups(allBlocks.slice(cursor, end), allBlocks, cursor);
-    pages.push(pdfLongRecipeSection(recipe, isFirst ? imgUrl : null, bodyHtml, !isFirst));
-    cursor = end;
-    pageIndex++;
-  }
-  return pages;
+/* Messen ohne die grossen Bild-Daten (Rahmen haben feste Groesse): schnell und Layout-neutral. */
+function pdfFits(html) {
+  return candidateFitsOnePage(html.replace(/src="data:[^"]+"/g, 'src=""'));
 }
 
-/* Baut eine einzelne Rezeptseite (oder mehrere, bei einem zu langen Rezept) komplett auf:
-   Bildmasse ermitteln, Layout waehlen, Nutrition laden, HTML erzeugen — und JETZT zusaetzlich
-   real nachmessen, ob das gewaehlte Layout ueberhaupt auf eine A4-Seite passt (Punkt 35-36/72),
-   statt das erst beim Rendern per Zufall festzustellen. Passt es nicht, wird komplett auf das
-   Long-Recipe-Layout mit echten Fortsetzungsseiten umgeschaltet (Teil F) — das betrifft vor allem
-   Split/Full-Statement, deren Foto sonst ueber die Seitenkante hinauslaufen wuerde (Punkt 26-27).
-   Gibt IMMER ein Array von HTML-Seiten zurueck (normalerweise genau eine). */
+/* Reihenfolge der Versuche bei knappem Platz: Foto innerhalb erlaubter Grenzen verkleinern ->
+   Abstaende moderat reduzieren -> erst dann mehrere Seiten. Die Schrift wird nie verkleinert. */
+function pdfPhotoPlans(imgUrl, dims, tplId) {
+  if (!imgUrl || !dims) return [{ photo: 'none' }, { photo: 'none', tight: true }];
+  const ar = dims.width / dims.height;
+  const portrait = ar < 0.85;
+  const lowRes = !imageResolutionSufficientForFrame(dims.width, 180);
+  const side = portrait ? { w: 52, h: 68 } : (ar <= 1.15 ? { w: 56, h: 56 } : { w: 64, h: 46 });
+  const sideSmall = portrait ? { w: 40, h: 52 } : (ar <= 1.15 ? { w: 44, h: 44 } : { w: 50, h: 36 });
+  if (tplId === 'C') return [{ photo: 'side', side }, { photo: 'side', side: sideSmall, tight: true }];
+  if (portrait || lowRes) return [{ photo: 'side', side }, { photo: 'side', side: sideSmall, tight: true }];
+  return [
+    { photo: 'band', bandMm: 66 }, { photo: 'band', bandMm: 58 }, { photo: 'band', bandMm: 50 },
+    { photo: 'band', bandMm: 50, tight: true }, { photo: 'band', bandMm: 42, tight: true },
+    { photo: 'side', side: sideSmall, tight: true },
+  ];
+}
+
+/* Lange Rezepte: Seite 1 mit Kopf und zwei Spalten, danach Fortsetzungsseiten. Zutaten und
+   Zubereitung werden Einheit fuer Einheit gefuellt und real nachgemessen; Zwischentitel bleiben
+   bei ihrem Inhalt, kleine Zutatenkomponenten zusammen. */
+function pdfLongPages(m, recipe, imgUrl, dims, detail, tight) {
+  const ingQ = pvIngredientUnits(m.ingredients).slice();
+  const stepQ = pvStepUnits(m.steps).slice();
+  const extras = pvExtrasHtml(m, detail);
+  const ar = dims ? dims.width / dims.height : 1.5;
+  const side = ar < 0.85 ? { w: 36, h: 48 } : (ar <= 1.15 ? { w: 40, h: 40 } : { w: 46, h: 33 });
+  // grobe Hoehenschaetzung je Einheit (Zeilen), damit beide Spalten gemeinsam leerlaufen
+  const estIng = (u) => (u.html.match(/pv-ing"/g) || []).length * 1.9 + (u.html.match(/pv-ing-group/g) || []).length * 1.6 + (u.html.replace(/<[^>]+>/g, '').length / 26);
+  const estStep = (u) => u.html.replace(/<[^>]+>/g, '').length / 62 + 1.1;
+  const firstOpts = (p, withExtras) => ({ photo: imgUrl ? 'side' : 'none', side, tight, ingUnits: p.ing, stepUnits: p.steps, extras: withExtras });
+  const htmlOf = (p, withExtras) => p.first
+    ? pvRecipePage(m, recipe, imgUrl, firstOpts(p, withExtras), detail)
+    : pvContinuationPage(m, p.ing, p.steps, withExtras ? extras : '', tight, p.ingRight);
+  const pages = [];
+  let guard = 0;
+  while ((ingQ.length || stepQ.length) && guard++ < 80) {
+    const first = pages.length === 0;
+    const twoIngCols = !first && !stepQ.length && ingQ.length > 0;
+    const cur = { first, ing: [], steps: [], ingRight: twoIngCols ? [] : null };
+    const rightList = twoIngCols ? cur.ingRight : cur.steps;
+    const rightQ = twoIngCols ? ingQ : stepQ;
+    const leftQ = ingQ;
+    let hL = 0, hR = 0, leftOpen = true, rightOpen = true;
+    const halfEst = twoIngCols ? ingQ.reduce((n, u) => n + estIng(u), 0) / 2 : 0;
+    const fits = () => pdfFits(htmlOf(cur, false));
+    // bei twoIngCols teilen sich beide Spalten dieselbe Warteschlange
+    while ((leftOpen && leftQ.length) || (rightOpen && rightQ.length)) {
+      const canL = leftOpen && leftQ.length, canR = rightOpen && rightQ.length && !(twoIngCols && !leftQ.length);
+      const pickLeft = canL && (twoIngCols ? (hL < halfEst || !canR) : (!canR || hL <= hR));
+      if (pickLeft) {
+        const u = leftQ[0]; cur.ing.push(u);
+        if (fits() || (cur.ing.length === 1 && !rightList.length)) { leftQ.shift(); hL += estIng(u); }
+        else { cur.ing.pop(); leftOpen = false; }
+      } else if (canR) {
+        const u = rightQ[0]; rightList.push(u);
+        if (fits() || (rightList.length === 1 && !cur.ing.length)) { rightQ.shift(); hR += twoIngCols ? estIng(u) : estStep(u); }
+        else { rightList.pop(); rightOpen = false; }
+      } else break;
+    }
+    pages.push(cur);
+    if (!cur.ing.length && !rightList.length) break;   // Sicherheitsnetz gegen Endlosschleife
+  }
+  // Zusatzbloecke (Hinweise, Notizen, Naehrwerte, Quelle) ans Ende der letzten Seite, sonst eigene Seite
+  const last = pages[pages.length - 1];
+  let extrasOnOwnPage = false;
+  if (extras) {
+    last.extrasInline = pdfFits(htmlOf(last, true));
+    if (!last.extrasInline) extrasOnOwnPage = true;
+  }
+  const out = pages.map((p) => htmlOf(p, !!p.extrasInline));
+  if (extrasOnOwnPage) out.push(pvContinuationPage(m, [], [], extras, tight, null));
+  return { html: out, extrasAlone: extrasOnOwnPage };
+}
+
+/* Ergebnis: { htmlPages, layout }. Liefert IMMER Seiten mit dem kompletten Rezeptinhalt. */
 async function buildRecipePdfPage(r, previousLayout, nutritionDetail) {
   const imgUrl = await resolveRecipeImageDataUrl(r);
-  const imgDims = imgUrl ? await getImageDimensions(imgUrl) : null;
+  const dims = imgUrl ? await getImageDimensions(imgUrl) : null;
+  const detail = nutritionDetail || 'off';
   let result = null;
-  if (nutritionDetail !== 'off') {
-    try { result = await getFreshNutritionResult(r); } catch (e) { /* Nutrition optional — PDF funktioniert auch ohne */ }
+  if (detail !== 'off') { try { result = await pdfNutritionForExport(r); } catch (e) { /* Nährwerte sind optional */ } }
+  const m = pdfBuildModel(r, result);
+  const plans = pdfPhotoPlans(imgUrl, dims, PDF_CTX.tpl.id);
+  for (const opts of plans) {
+    const html = pvRecipePage(m, r, imgUrl, opts, detail);
+    if (pdfFits(html)) return { htmlPages: [html], layout: opts.photo + (opts.tight ? '-tight' : '') };
   }
-  const detail = nutritionDetail || 'compact';
-  const { html, layout } = buildRecipePdfSection(r, imgUrl, imgDims, result, previousLayout, detail);
-
-  if (candidateFitsOnePage(html)) {
-    return { htmlPages: [html], layout };
+  let long = pdfLongPages(m, r, imgUrl, dims, detail, false);
+  // Keine letzte Seite nur fuer einen kurzen Hinweis: mit engeren Abstaenden erneut versuchen
+  if (long.extrasAlone) {
+    const tightLong = pdfLongPages(m, r, imgUrl, dims, detail, true);
+    if (tightLong.html.length <= long.html.length) long = tightLong;
   }
-  const longPages = buildLongRecipePages(r, imgUrl, result, detail);
-  return { htmlPages: longPages, layout: 'long' };
+  return { htmlPages: long.html, layout: 'long' };
 }
 
-/* Baut das PDF fuer ein einzelnes Rezept und gibt {blob, filename} zurueck (kein Auto-Download —
-   siehe pdf-ui.js fuer Vorschau/Download-Flow, Punkt 65). null bei Fehler. Nutzt dieselben
-   Bausteine (Layouts, Pagination) wie der Kochbuch-Export, damit beide Exportwege dieselbe
-   typografische Qualitaet haben (Punkt 121). */
-async function buildSinglePdf(id, nutritionDetail) {
+/* Naehrwerte nur, wenn vollstaendig und aktuell berechnet (sonst weglassen statt Teilsummen zu drucken) */
+async function pdfNutritionForExport(r) {
+  const st = await nutritionStatusFor(r);
+  return st.status === 'calculated' ? st.result : null;
+}
+
+function pdfSetContext(templateId, bookTitle, author, logo) {
+  PDF_CTX = { tpl: pdfTemplateById(templateId), bookTitle: bookTitle || '', author: author || '', logo: logo !== false };
+}
+function pdfWrapTitle(html, r, chapter) {
+  return html.replace('data-page-kind="recipe"', `data-page-kind="recipe" data-title="${escapeHtml(r.title || 'Ohne Titel')}" data-chapter="${escapeHtml(chapter || '')}"`);
+}
+
+/* Einzelrezept-PDF: gleiche Layoutlogik wie das Kochbuch. */
+async function buildSinglePdf(id, nutritionDetail, opts) {
   const r = state.recipes.find(x => x.id === id);
   if (!r) return null;
+  const templateId = (opts && opts.template) || pdfDefaultTemplateId();
+  pdfSetContext(templateId, '', '', false);
   await ensureFontsReadyForPdf();
   const { htmlPages } = await buildRecipePdfPage(r, null, nutritionDetail);
-  document.getElementById('printRoot').innerHTML = htmlPages.join('');
+  document.getElementById('printRoot').innerHTML = htmlPages.map((h, i) => (i === 0 ? pdfWrapTitle(h, r, '') : h)).join('');
   cleanupPdfMeasureProbe();
   const blob = await renderSectionsToPdf();
   if (!blob) return null;
   return { blob, filename: `savora-${slugifyTitle(r.title)}.pdf` };
 }
 
-/* Baut das PDF fuer das komplette Kochbuch und gibt {blob, filename} zurueck. Das Inhaltsverzeichnis
-   bekommt jetzt echte Seitenzahlen (Punkt 63-65): dafuer wird zuerst die komplette Pagination
-   durchgerechnet (wie viele Seiten jedes Rezept tatsaechlich braucht), bevor die TOC-Seite gebaut
-   wird — nicht geraten, sondern aus dem tatsaechlichen Ergebnis abgeleitet. */
-async function buildCookbookPdf(nutritionDetail) {
-  // Kochbuch-Designer: Auswahl, Reihenfolge, Kapitel, Titel und Cover kommen aus der
-  // gespeicherten Konfiguration. Ohne Konfiguration: alle Rezepte wie bisher.
+/* Gesamtes Kochbuch. Deckblatt, Inhaltsverzeichnis (nach der fertigen Pagination erzeugt, mit
+   echten Seitenlinks), optionale Kapitelseiten, Rezepte. Auswahl und Reihenfolge kommen aus der
+   Kochbuch-Konfiguration. */
+async function buildCookbookPdf(nutritionDetail, opts) {
   const cfg = getCookbookConfig();
   const sections = cookbookOrderedSections(cfg);
   const recipes = sections.flatMap(s => s.recipes);
   if (!recipes.length) return null;
+  const templateId = (opts && opts.template) || cfg.pdfTemplate || pdfDefaultTemplateId();
+  const title = (cfg.title || state.cookbookTitle || 'Mein persönliches Kochbuch');
+  const author = cfg.author || '';
+  pdfSetContext(templateId, title, author, cfg.showLogo !== false);
   await ensureFontsReadyForPdf();
 
-  let previousLayout = null;
   const pagesByRecipeId = {};
+  let previousLayout = null;
   for (const r of recipes) {
     const { htmlPages, layout } = await buildRecipePdfPage(r, previousLayout, nutritionDetail);
     pagesByRecipeId[r.id] = htmlPages;
     previousLayout = layout;
   }
 
-  // Seite 1 = Cover, Seite 2 = Inhaltsverzeichnis, danach je Kapitel eine Kapitelseite und die
-  // Rezepte. Seitenzahlen werden aus der fertigen Pagination abgeleitet, nicht geschaetzt.
   const hasChapters = sections.some(s => s.chapter);
-  // Das Inhaltsverzeichnis kann bei vielen Rezepten selbst mehrere Seiten brauchen. Deshalb wird
-  // es zuerst mit Probe-Seitenzahlen gebaut und real gemessen, danach mit korrektem Versatz neu.
-  const buildBody = (firstPage) => {
-    let runningPage = firstPage;
-    const tocBlocks = [];
-    const bodyParts = [];
+  const chapterPages = !!cfg.chapterPages && hasChapters;   // eigene Kapitelseiten nur auf Wunsch
+  const build = (firstBodyPage) => {
+    let page = firstBodyPage;
+    const rows = []; const body = [];
     sections.forEach((s) => {
-      let chapterPage = null;
-      if (hasChapters) {
-        chapterPage = runningPage;
-        const title = s.chapter ? s.chapter.name : 'Weitere Rezepte';
-        bodyParts.push(`<section class="pdf-page-chapter"><div class="pdf-chapter-inner"><span class="pdf-chapter-eyebrow">Kapitel</span><h2>${escapeHtml(title)}</h2><hr class="pdf-cover-rule"></div></section>`);
-        runningPage += 1;
-      }
-      const rows = s.recipes.map((r) => {
-        const row = `<div class="print-toc-row"><span class="toc-title">${escapeHtml(r.title || 'Ohne Titel')}</span><span class="toc-leader"></span><span class="toc-page">${runningPage}</span></div>`;
-        bodyParts.push(pagesByRecipeId[r.id].join(''));
-        runningPage += pagesByRecipeId[r.id].length;
-        return row;
-      }).join('');
-      tocBlocks.push(`<div class="pdf-toc-block">${hasChapters ? `<div class="print-toc-category">${escapeHtml(s.chapter ? s.chapter.name : 'Weitere Rezepte')}<span class="toc-page">${chapterPage}</span></div>` : ''}${rows}</div>`);
+      const chName = s.chapter ? s.chapter.name : (hasChapters ? 'Weitere Rezepte' : '');
+      if (hasChapters) rows.push({ kind: 'chapter', title: chName });
+      if (chapterPages) { body.push(pvChapterPage(chName)); page += 1; }
+      s.recipes.forEach((r) => {
+        rows.push({ kind: 'recipe', title: r.title || 'Ohne Titel', page, id: r.id });
+        const pages = pagesByRecipeId[r.id];
+        body.push(pages.map((h, i) => (i === 0 ? pdfWrapTitle(h, r, chName) : h)).join(''));
+        page += pages.length;
+      });
     });
-    return { tocHtml: `<section class="pdf-page-toc"><h2>Inhalt</h2>${tocBlocks.join('')}</section>`, bodyParts };
+    return { rows, body };
   };
-  let built = buildBody(3);
-  let tocPages = 1;
-  if (typeof measureSectionHeightMm === 'function') {
-    tocPages = Math.max(1, Math.ceil((measureSectionHeightMm(built.tocHtml) - 2) / 297));
-    if (tocPages > 1) built = buildBody(2 + tocPages);
-  }
-  const tocPage = built.tocHtml;
-  const bodyParts = built.bodyParts;
-  const title = (cfg.title || state.cookbookTitle || 'Mein persönliches Kochbuch');
+  let built = build(3);
+  const tocCount = pvTocPages(built.rows).length;
+  if (tocCount !== 1) built = build(2 + tocCount);
+  const tocHtml = pvTocPages(built.rows).join('');
+
   let coverImg = '';
   if (cfg.coverRecipeId) {
     const cr = state.recipes.find(x => x.id === cfg.coverRecipeId);
-    if (cr) {
-      const url = await resolveRecipeImageDataUrl(cr);
-      if (url) coverImg = `<div class="pdf-cover-photo"><img src="${url}" alt=""></div>`;
-    }
+    if (cr) { const url = await resolveRecipeImageDataUrl(cr); if (url) coverImg = url; }
   }
-  const cover = `<section class="pdf-page-cover ${coverImg ? 'pdf-page-cover--photo' : ''}">
-    ${coverImg}
-    <div class="pdf-cover-badge"><img src="icon-512.png" alt=""></div>
-    <h1>${escapeHtml(title)}</h1>
-    <hr class="pdf-cover-rule">
-    ${cfg.subtitle ? `<p>${escapeHtml(cfg.subtitle)}</p>` : '<p>Savora</p>'}
-  </section>`;
-
-  document.getElementById('printRoot').innerHTML = cover + tocPage + bodyParts.join('');
+  const cover = pvCoverPage(title, author, coverImg, cfg.subtitle || '');
+  document.getElementById('printRoot').innerHTML = cover + tocHtml + built.body.join('');
   cleanupPdfMeasureProbe();
   const stamp = new Date().toISOString().slice(0, 10);
   const blob = await renderSectionsToPdf();
