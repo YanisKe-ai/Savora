@@ -144,6 +144,7 @@ async function handleActionV2(action, id, el, e) {
       const set = checkedSetFor(id);
       if (set.has(idx)) set.delete(idx); else set.add(idx);
       const on = set.has(idx);
+      SavoraNative.haptic('light');
       document.querySelectorAll(`[data-action="toggle-ingredient-check"][data-id="${id}"][data-idx="${idx}"]`).forEach(b => { b.classList.toggle('is-checked', on); b.setAttribute('aria-checked', String(on)); });
       const p = loadCookProgress();
       if (state.view === 'cookmode' || (p && p.recipeId === id)) { const prev = state.activeRecipeId; state.activeRecipeId = id; saveCookProgress(); state.activeRecipeId = prev; }
@@ -292,12 +293,33 @@ async function handleActionV2(action, id, el, e) {
       if (state.view === 'cookmode') render();
       return true;
     }
+    case 'cook-font':
+      state.cookScale = ((state.cookScale || 0) + 1) % 3;
+      try { localStorage.setItem('savora-cook-scale', String(state.cookScale)); } catch (err) {}
+      SavoraNative.haptic('light');
+      render();
+      showToast('Schrift: ' + ['Normal', 'Gross', 'Sehr gross'][state.cookScale]);
+      return true;
+    case 'timer-plus':
+      timerPlusMinute(el.dataset.timer);
+      return true;
+    case 'cook-goto-timer':
     case 'cook-goto':
       state.cookStepIndex = parseInt(el.dataset.idx, 10) || 0;
       state.cookAllSteps = false;
       saveCookProgress();
       render();
       speakCurrentStepIfEnabled();
+      return true;
+    case 'backup-nudge-dismiss':
+      try { localStorage.setItem(BACKUP_NUDGE_KEY, String(Date.now() + 7 * 86400000)); } catch (err) {}
+      render();
+      return true;
+    case 'set-show-nutrition':
+      state.showNutrition = el.dataset.value === '1';
+      try { localStorage.setItem('savora-show-nutrition', state.showNutrition ? '1' : '0'); } catch (err) {}
+      if (!state.showNutrition && state.detailTab === 'nutrition') state.detailTab = 'ingredients';
+      render();
       return true;
     case 'cook-toggle-all-steps':
       state.cookAllSteps = !state.cookAllSteps;

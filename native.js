@@ -86,5 +86,15 @@ const SavoraNative = (() => {
     try { await SB.setStyle({ style: dark ? 'DARK' : 'LIGHT' }); } catch (e) {}
   }
 
-  return { isNative, isCancel, shareFile, shareText, keepAwake, scheduleTimer, cancelTimer, cancelAllTimers, setStatusBarDark };
+  /* Haptisches Feedback: kind = 'light' | 'medium' | 'success' */
+  function haptic(kind) {
+    const H = plugin('Haptics');
+    if (!H) return;
+    try {
+      if (kind === 'success') H.notification({ type: 'SUCCESS' });
+      else H.impact({ style: kind === 'medium' ? 'MEDIUM' : 'LIGHT' });
+    } catch (e) {}
+  }
+
+  return { isNative, isCancel, shareFile, shareText, keepAwake, scheduleTimer, cancelTimer, cancelAllTimers, setStatusBarDark, haptic };
 })();

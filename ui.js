@@ -184,7 +184,6 @@ function bindEvents() {
 
   if (typeof ucBindInputs === 'function') ucBindInputs();   // Masseinheiten-Rechner (unit-converter.js)
   if (typeof ingPasteBind === 'function') ingPasteBind();   // Zutaten einfuegen (ingredient-paste.js)
-
   const tagNew = document.getElementById('f-tag-new');
   if (tagNew) {
     tagNew.addEventListener('keydown', (e) => {
@@ -477,9 +476,11 @@ async function dispatchAction(action, id, el, e) {
       if (state.voiceEnabled) speakCurrentStepIfEnabled();
       break;
     case 'cook-next':
+      SavoraNative.haptic('light');
       cookGoNext();
       break;
     case 'cook-prev':
+      SavoraNative.haptic('light');
       cookGoPrev();
       break;
     case 'cook-finish':

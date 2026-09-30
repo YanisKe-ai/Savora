@@ -193,6 +193,11 @@ function emptyState() {
       <button class="primary-btn" data-action="new-recipe">${ICONS.plus} Erstes Rezept eintragen</button>
       <button class="ghost-btn" data-action="open-paste-import">${ICONS.sparkle} Aus Text importieren</button>
     </div>
+    <ol class="empty-steps" aria-label="So geht es weiter">
+      <li><b>Rezepte sammeln.</b> Von Hand eintragen oder Text aus WhatsApp, Instagram und Webseiten einfügen.</li>
+      <li><b>Woche planen.</b> Rezepte auf Tage legen, die Einkaufsliste entsteht daraus.</li>
+      <li><b>Kochen.</b> Im Kochmodus siehst du einen Schritt nach dem anderen, mit Timern.</li>
+    </ol>
   </div>`;
 }
 function homeView() {
@@ -241,6 +246,9 @@ function homeView() {
         <label for="searchInput" class="sr-only">Rezepte, Zutaten, Tags durchsuchen</label>
         <input class="search-input" id="searchInput" type="search" enterkeyhint="search" placeholder="Rezepte, Zutaten, Tags durchsuchen …" value="${escapeHtml(state.query)}" autocomplete="off">
       </div>
+      ${(() => { const n = backupNudgeInfo(); return n ? `<div class="nudge-card" role="note">
+        <div class="nudge-text"><b>${n.never ? 'Noch keine Sicherung' : 'Letzte Sicherung vor ' + n.days + ' Tagen'}</b><span>Sichere deine Rezepte, damit bei einem Gerätewechsel nichts verloren geht.</span></div>
+        <div class="nudge-actions"><button class="outline-btn outline-btn--small" data-action="goto-view" data-view="settings-backup">Sichern</button><button class="text-btn" data-action="backup-nudge-dismiss">Später</button></div></div>` : ''; })()}
       ${state.recipes.length ? `<div class="chip-row" role="group" aria-label="Sammlungen">
         ${collectionChips()}
         <button type="button" class="chip chip--icon ${filterCount ? 'chip--active' : ''}" data-action="open-filter-sheet" aria-label="Weitere Filter${filterCount ? ', ' + filterCount + ' aktiv' : ''}">${ICONS.sliders}${filterCount ? `<span class="chip-count">${filterCount}</span>` : ''}</button>
@@ -331,12 +339,12 @@ function detailView() {
   const tabs = [
     { id: 'ingredients', label: 'Zutaten' },
     { id: 'steps', label: 'Zubereitung' },
-    { id: 'nutrition', label: 'Nährwerte' },
   ];
+  if (state.showNutrition) tabs.push({ id: 'nutrition', label: 'Nährwerte' });
   if (hasNotes) tabs.push({ id: 'notes', label: 'Notizen' });
   const tab = tabs.some(t => t.id === state.detailTab) ? state.detailTab : 'ingredients';
   // Alle Panels liegen im DOM, der Tabwechsel blendet nur um (kein Neuaufbau, kein Scrollsprung).
-  const panelHtml = { ingredients: ingredientsPanel(r), steps: stepsPanel(r), nutrition: nutritionPanel(r), notes: hasNotes ? notesPanel(r) : '' };
+  const panelHtml = { ingredients: ingredientsPanel(r), steps: stepsPanel(r), nutrition: state.showNutrition ? nutritionPanel(r) : '', notes: hasNotes ? notesPanel(r) : '' };
   const hero = r.image
     ? `<img class="hero-img" src="${r.image}" alt="${escapeHtml(r.title || '')}" style="view-transition-name: recipe-hero-img;">`
     : r.imageId
@@ -512,11 +520,13 @@ function cookModeView() {
         ${ingChips ? `<div class="cook-ing-list">${ingChips}</div>` : ''}
       </div>`;
   const refModal = state.modal && state.modal.type === 'step-ings' ? stepIngredientsModal(r, state.modal.stepIndex) : '';
-  return `${refModal}<div class="cookmode-overlay cook-v2" role="main" aria-label="Kochmodus">
+  const scaleLabel = ['Normal', 'Gross', 'Sehr gross'][state.cookScale || 0];
+  return `${refModal}<div class="cookmode-overlay cook-v2 cook-scale-${state.cookScale || 0}" role="main" aria-label="Kochmodus">
     <div class="cookmode-top">
       <button class="icon-btn" data-action="exit-cook" aria-label="Kochmodus verlassen">${ICONS.x}</button>
       <span class="cookmode-progress" aria-live="polite">Schritt ${idx + 1} von ${total}</span>
       <div class="cook-top-actions">
+        <button class="icon-btn cook-font-btn" data-action="cook-font" aria-label="Schriftgrösse ändern, aktuell ${scaleLabel}"><span aria-hidden="true">Aa</span></button>
         <button class="icon-btn ${state.cookAllSteps ? 'is-active' : ''}" data-action="cook-toggle-all-steps" aria-pressed="${state.cookAllSteps}" aria-label="Alle Schritte anzeigen">${ICONS.listSteps}</button>
         <button class="icon-btn" data-action="toggle-voice" aria-pressed="${!!state.voiceEnabled}" aria-label="Schritte vorlesen">${state.voiceEnabled ? ICONS.volume : ICONS.volumeOff}</button>
       </div>
@@ -524,6 +534,7 @@ function cookModeView() {
     <div class="cook-progress" aria-hidden="true"><span style="width:${Math.round(((idx + 1) / total) * 100)}%"></span></div>
     <div class="cook-title-line">${escapeHtml(r.title)}${state.wakeLock ? `<span class="wakelock-chip">${ICONS.sun} Bildschirm bleibt an</span>` : (state.wakeLockUnsupported ? `<span class="wakelock-chip wakelock-chip--off">Bildschirm kann ausgehen</span>` : '')}</div>
     <div class="cookmode-body">${body}</div>
+    <div class="cook-timerbar" id="cookTimerBar" role="group" aria-label="Laufende Timer" ${cookTimerBarHtml(r) ? '' : 'hidden'}>${cookTimerBarHtml(r)}</div>
     <div class="cookmode-nav">
       <button data-action="cook-prev" ${idx === 0 ? 'disabled' : ''}>Zurück</button>
       <button class="primary" data-action="${isLast ? 'cook-finish' : 'cook-next'}">${isLast ? 'Fertig' : 'Weiter'}</button>
