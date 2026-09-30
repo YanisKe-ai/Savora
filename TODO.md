@@ -51,7 +51,7 @@ Heute nur Gewicht und Volumen mit einfachem Eingabefeld. Vorschlag:
 - [x] Rezeptseite zweispaltig, Zutaten links (bleiben stehen), Zubereitung rechts
 
 ## Später
-- [ ] Kamera und Foto-Scan (iOS-Texterkennung) in den Text-Import (braucht echtes iPhone zum Prüfen, ca. 4 bis 6 Std.)
+- [x] Foto scannen (iOS-Texterkennung) in den Text-Import (im Simulator bestätigt; Aufnahme mit der echten Kamera bitte auf dem iPhone prüfen)
 - [x] iOS: Haptik (umgesetzt)
 - [ ] iOS: Systemschriftgröße (Dynamic Type), Wischen zum Löschen im Einkauf
 - [ ] Alte Oberflächen-Schicht (`views.js`, `styles.css`, `ui.js`) in die neue überführen (ca. 4 bis 8 Std., riskant)

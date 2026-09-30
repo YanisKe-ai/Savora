@@ -104,5 +104,31 @@ const SavoraNative = (() => {
     } catch (e) {}
   }
 
-  return { isNative, isCancel, shareFile, shareText, keepAwake, scheduleTimer, cancelTimer, cancelAllTimers, setStatusBarDark, haptic };
+  /* Foto -> Text (Apple Vision, auf dem Geraet). Das Foto wird vorher auf max. 2400 px verkleinert. */
+  function canRecognizeText() { return !!plugin('TextRecognition'); }
+  function fileToJpegBase64(file, maxDim) {
+    return new Promise((resolve, reject) => {
+      const url = URL.createObjectURL(file);
+      const img = new Image();
+      img.onload = () => {
+        try {
+          const scale = Math.min(1, (maxDim || 2400) / Math.max(img.naturalWidth, img.naturalHeight));
+          const c = document.createElement('canvas');
+          c.width = Math.max(1, Math.round(img.naturalWidth * scale)); c.height = Math.max(1, Math.round(img.naturalHeight * scale));
+          c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);   // WebKit dreht das Foto dabei nach seiner Ausrichtung
+          resolve(c.toDataURL('image/jpeg', 0.92).split(',')[1]);
+        } catch (e) { reject(e); } finally { URL.revokeObjectURL(url); }
+      };
+      img.onerror = () => { URL.revokeObjectURL(url); reject(new Error('image-load-failed')); };
+      img.src = url;
+    });
+  }
+  async function recognizeText(file) {
+    const TR = plugin('TextRecognition');
+    if (!TR) throw new Error('native-plugin-missing');
+    const res = await TR.recognize({ image: await fileToJpegBase64(file, 2400) });
+    return String((res && res.text) || '').trim();
+  }
+
+  return { isNative, isCancel, shareFile, shareText, keepAwake, scheduleTimer, cancelTimer, cancelAllTimers, setStatusBarDark, haptic, canRecognizeText, recognizeText };
 })();

@@ -88,3 +88,26 @@ function ingPasteApply() {
   render();
   showToast(`${items.length} Zutat${items.length === 1 ? '' : 'en'} eingefügt`);
 }
+
+/* ---------- Foto scannen (iOS-App): Text aus einem Foto in das Importfeld ---------- */
+function bindPhotoScan() {
+  const input = document.getElementById('ocrInput');
+  if (!input || input.dataset.bound) return;
+  input.dataset.bound = '1';
+  input.addEventListener('change', async () => {
+    const file = input.files && input.files[0];
+    if (!file) return;
+    const status = document.getElementById('ocrStatus');
+    const say = (t) => { if (status) status.textContent = t; };
+    say('Text wird erkannt …');
+    try {
+      const text = await SavoraNative.recognizeText(file);
+      if (!text) { say('Es wurde kein Text erkannt. Versuche es mit mehr Licht und einem geraden Foto.'); return; }
+      const ta = document.getElementById('pasteText');
+      if (ta) { ta.value = (ta.value.trim() ? ta.value.trim() + '\n' : '') + text; ta.style.height = 'auto'; ta.style.height = Math.min(ta.scrollHeight + 6, window.innerHeight * 0.5) + 'px'; }   // Feld waechst mit dem Text
+      say('Text erkannt. Prüfe ihn kurz und tippe dann auf „Rezept-Entwurf erstellen“.');
+    } catch (e) {
+      say('Die Texterkennung hat nicht geklappt. Du kannst den Text auch von Hand einfügen.');
+    } finally { input.value = ''; }
+  });
+}

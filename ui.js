@@ -184,6 +184,7 @@ function bindEvents() {
 
   if (typeof ucBindInputs === 'function') ucBindInputs();   // Masseinheiten-Rechner (unit-converter.js)
   if (typeof ingPasteBind === 'function') ingPasteBind();   // Zutaten einfuegen (ingredient-paste.js)
+  if (typeof bindPhotoScan === 'function') bindPhotoScan();   // Foto scannen (nur iOS-App)
   if (typeof bindPdfPreview === 'function') bindPdfPreview();   // PDF-Vorschau mit PDF.js (pdf-preview.js)
   const stepper = document.querySelector('.form-stepper');
   const stepAct = stepper && stepper.querySelector('.is-active');
@@ -287,6 +288,14 @@ async function dispatchAction(action, id, el, e) {
       state.view = 'paste-import';
       render();
       break;
+    case 'open-photo-scan': {   // Import-Bildschirm oeffnen und gleich die Fotoauswahl zeigen
+      state.modal = null;
+      state.view = 'paste-import';
+      render();
+      const scanInput = document.getElementById('ocrInput');
+      if (scanInput) scanInput.click();
+      break;
+    }
     case 'edit-recipe':
       state.editingRecipe = JSON.parse(JSON.stringify(state.recipes.find(r => r.id === id)));
       state.view = 'form';

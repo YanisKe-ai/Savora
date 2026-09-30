@@ -231,7 +231,7 @@ function importStartsWithAmount(l) {
 function importIsSentence(l) {
   const s = importStripEmoji(stripBullet(String(l))).trim();
   const words = s.split(/\s+/).filter(Boolean).length;
-  return words >= 5 && (/[.!?]$/.test(s) || s.length >= 70);
+  return (words >= 3 && /[.!?]$/.test(s) && !/^\d/.test(s)) || (words >= 5 && s.length >= 70);
 }
 const IMPORT_ABBREV = /(?:^|\s)(?:min|std|sek|ca|pck|pkg|stk|z\.b|bzw|ggf|evtl|nr|el|tl|msp|dl|cl|ml|kg|g)\.$/i;
 function importSplitSentences(text) {

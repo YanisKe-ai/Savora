@@ -92,6 +92,10 @@ Fry in a pan for 2 minutes per side.""", dict(title='Pancakes', ings=['200|g|flo
 🍅 250 g Kirschtomaten
 🧂 1 Prise Salz
 1. Alles klein schneiden und mischen.""", dict(title='Bowl mit Avocado', ings=['2||Avocados', '250|g|Kirschtomaten', '1|Prise|Salz'], nsteps=1)),
+'kurzer_satz': ("""Pfannkuchen
+200 g Mehl
+2 Eier
+Teig rühren und braten.""", dict(title='Pfannkuchen', ings=['200|g|Mehl', '2||Eier'], nsteps=1)),
 'gesamtzeit': ("""Brot
 Arbeitszeit ca. 20 Min.
 Backzeit ca. 30 Min.

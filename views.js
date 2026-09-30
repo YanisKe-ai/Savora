@@ -73,6 +73,13 @@ function addMenuModal() {
             <span>Bildunterschrift, Nachricht oder kopierter Text</span>
           </span>
         </button>
+        ${SavoraNative.canRecognizeText() ? `<button type="button" class="add-menu-option" data-action="open-photo-scan">
+          <span class="add-menu-option-icon">${ICONS.camera}</span>
+          <span class="add-menu-option-text">
+            <strong>Foto scannen</strong>
+            <span>Buchseite oder Zettel fotografieren</span>
+          </span>
+        </button>` : ''}
       </div>
     </div>
   </div>`;
@@ -366,6 +373,12 @@ function pasteImportView() {
     <div class="settings-group">
       <div class="settings-group-card settings-group-card--padded">
         <p class="settings-hint">Bildunterschrift eines Instagram-/TikTok-Posts, eine WhatsApp-Nachricht, kopierter Rezepttext einer Webseite oder eine eigene Notiz einfügen. Savora erkennt Titel, Zutaten und Schritte automatisch, du prüfst den Entwurf danach kurz, bevor du speicherst.</p>
+        ${SavoraNative.canRecognizeText() ? `<div class="ocr-box">
+          <label class="ghost-btn ocr-btn" for="ocrInput">${ICONS.camera} Foto scannen</label>
+          <input type="file" id="ocrInput" class="ocr-input" accept="image/*" aria-label="Foto von einem Rezept aufnehmen oder auswählen">
+          <p class="hint-line">Buchseite, Zettel oder Bildschirm fotografieren. Die Texterkennung läuft auf deinem Gerät, das Foto wird nicht gespeichert.</p>
+          <div id="ocrStatus" class="ocr-status" role="status" aria-live="polite"></div>
+        </div>` : ''}
         <div class="field field--tight">
           <textarea id="pasteText" class="paste-import-textarea" placeholder="Rezepttext hier einfügen …"></textarea>
         </div>
