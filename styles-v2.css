@@ -867,3 +867,8 @@ body.keyboard-open .cook-bar { display: none; }
 .sort-chip { min-height: 44px; padding: 0 16px; border-radius: 999px; border: 1px solid var(--border); background: var(--surface-soft); color: var(--text); font-weight: 700; font-size: 15px; }
 .sort-chip.is-active { background: var(--lime); border-color: var(--lime); color: var(--lime-ink); }
 .sort-note { font-family: var(--font-sans); font-size: 14px; font-weight: 500; color: var(--text-soft); letter-spacing: 0; }
+
+/* ---------- Paket 11: iOS-App ---------- */
+/* Dunkel/Schwarz: kein Gummiband-Effekt, sonst blitzt am Rand der helle Hintergrund der Web-Ansicht auf */
+html.is-native[data-theme="dark"], html.is-native[data-theme="amoled"] { overscroll-behavior-y: none; }
+html.is-native { -webkit-touch-callout: none; }

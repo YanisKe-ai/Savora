@@ -4,6 +4,7 @@
   "webDir": "www",
   "ios": {
     "backgroundColor": "#F8F7FC",
-    "contentInset": "never"
+    "contentInset": "never",
+    "allowsLinkPreview": false
   }
 }

@@ -44,6 +44,7 @@ async def main():
         await page.wait_for_timeout(300)
 
         check('Native Umgebung erkannt', await page.evaluate("SavoraNative.isNative") is True)
+        check('iOS-App: Stil-Haken (is-native) und kein Gummiband im Dunkelmodus', await page.evaluate("(() => { document.documentElement.setAttribute('data-theme','dark'); const ok = document.documentElement.classList.contains('is-native') && getComputedStyle(document.documentElement).overscrollBehaviorY === 'none'; document.documentElement.setAttribute('data-theme','light'); return ok })()"))
         check('Service Worker wird in der nativen App nicht registriert', await page.evaluate("window.__swRegister") == 0)
 
         # PDF: "Herunterladen" wird zum Teilen-Fenster (Datei in Cache geschrieben, dann Share)

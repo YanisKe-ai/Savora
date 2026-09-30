@@ -4,6 +4,7 @@
 const SavoraNative = (() => {
   const cap = (typeof window !== 'undefined') ? window.Capacitor : null;
   const isNative = !!(cap && typeof cap.isNativePlatform === 'function' && cap.isNativePlatform());
+  if (isNative && document.documentElement) document.documentElement.classList.add('is-native');   // Stil-Haken fuer die iOS-App
   const plugin = (name) => (isNative && cap.Plugins && cap.Plugins[name]) || null;
 
   function blobToBase64(blob) {
