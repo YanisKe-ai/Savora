@@ -183,6 +183,7 @@ function bindEvents() {
   }
 
   if (typeof ucBindInputs === 'function') ucBindInputs();   // Masseinheiten-Rechner (unit-converter.js)
+  if (typeof ingPasteBind === 'function') ingPasteBind();   // Zutaten einfuegen (ingredient-paste.js)
 
   const tagNew = document.getElementById('f-tag-new');
   if (tagNew) {
@@ -377,6 +378,14 @@ async function dispatchAction(action, id, el, e) {
       );
       break;
     }
+    case 'open-ing-paste':
+      state.editingRecipe = collectFormData();
+      state.modal = { type: 'ing-paste', text: '' };
+      render();
+      break;
+    case 'ing-paste-apply':
+      ingPasteApply();
+      break;
     case 'add-ingredient':
       state.editingRecipe = collectFormData();
       state.editingRecipe.ingredients.push({ amount: '', unit: '', name: '' });

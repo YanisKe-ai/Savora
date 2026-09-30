@@ -781,11 +781,12 @@ function cookbookDesignerView() {
 const FORM_STEPS = ['Basis', 'Kategorien', 'Zutaten', 'Zubereitung', 'Kontrolle'];
 function ingredientRow(i, idx) {
   const n = idx + 1;
+  // Reihenfolge wie im Rezept: Menge, Einheit, Name (schmal: Menge/Einheit oben, Name darunter)
   return `<div class="repeat-row ing-row" data-ing-row="${idx}">
+    <div class="field ing-amount"><input type="text" inputmode="decimal" placeholder="Menge" aria-label="Zutat ${n}, Menge" class="ing-amount-input" value="${escapeHtml(String(i.amount ?? ''))}"></div>
+    <div class="field ing-unit"><input type="text" placeholder="Einheit" aria-label="Zutat ${n}, Einheit" class="ing-unit-input" value="${escapeHtml(i.unit || '')}"></div>
     <div class="field ing-name"><input type="text" placeholder="Zutat" aria-label="Zutat ${n}, Name" class="ing-name-input" value="${escapeHtml(i.name || '')}"></div>
-    <div class="ing-row-meta">
-      <div class="field ing-amount"><input type="text" inputmode="decimal" placeholder="Menge" aria-label="Zutat ${n}, Menge" class="ing-amount-input" value="${escapeHtml(String(i.amount ?? ''))}"></div>
-      <div class="field ing-unit"><input type="text" placeholder="Einheit" aria-label="Zutat ${n}, Einheit" class="ing-unit-input" value="${escapeHtml(i.unit || '')}"></div>
+    <div class="ing-row-actions">
       <button type="button" class="ing-convert-btn" data-action="convert-ingredient-row" data-idx="${idx}" aria-label="Menge von Zutat ${n} in dein Masseinheiten-System umrechnen">${ICONS.swap}</button>
       <button class="repeat-row-remove" data-action="remove-ingredient" data-idx="${idx}" aria-label="Zutat ${n} entfernen">${ICONS.trash}</button>
     </div>
@@ -861,7 +862,7 @@ function formView() {
         <section class="form-step ${step === 2 ? 'is-active' : ''}" data-form-step="2" aria-label="Zutaten">
           <p class="hint-line">Mit Gruppen teilst du Zutaten z.B. in „Teig“ und „Füllung“. Gruppentitel landen nie in der Einkaufsliste.</p>
           <div id="ingRows" role="group" aria-label="Zutaten">${editorIngredientRows(r)}</div>
-          <div class="row-actions"><button class="add-row-btn" data-action="add-ingredient">${ICONS.plus} Zutat</button><button class="add-row-btn" data-action="add-ingredient-group">${ICONS.folder} Gruppe</button></div>
+          <div class="row-actions"><button class="add-row-btn" data-action="add-ingredient">${ICONS.plus} Zutat</button><button class="add-row-btn" data-action="add-ingredient-group">${ICONS.folder} Gruppe</button><button class="add-row-btn" data-action="open-ing-paste">${ICONS.list} Mehrere einfügen</button></div>
         </section>
         <section class="form-step ${step === 3 ? 'is-active' : ''}" data-form-step="3" aria-label="Zubereitung">
           <div id="stepRows" role="group" aria-label="Zubereitungsschritte">${(r.steps || []).map((s, idx) => stepRow(s, idx)).join('')}</div>
@@ -885,5 +886,6 @@ function formView() {
       </div>
     </main>
     ${state.modal && state.modal.type === 'delete' ? deleteModal(r) : ''}
+    ${state.modal && state.modal.type === 'ing-paste' ? ingPasteModal() : ''}
   `;
 }
