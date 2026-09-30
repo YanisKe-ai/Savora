@@ -3,6 +3,7 @@
 Format: neueste Version oben. `VERSION` und `SW_VERSION` in `sw.js` werden bei jeder Änderung gemeinsam erhöht.
 
 ## Unveröffentlicht (Branch dev)
+- 0.40.0 (SW v40-paket15): Einheiten dl und cl (Schweiz) überall bekannt: Einkaufsliste führt "1 dl Milch" und "200 ml Milch" zusammen, Umrechnung ins Imperiale. Neuer Test `test_units.py`.
 - 0.39.0 (SW v39-paket14): Speicher wird beim Start als "dauerhaft" angefragt (`navigator.storage.persist()`), damit iOS und Browser ihn bei Platzmangel nicht räumen. Wird er nicht gewährt (nur im Browser), erscheint auf der Sicherungsseite ein Hinweis.
 - 0.38.0 (SW v38-paket13): PDF-Vorschau auf iPhone, iPad und in der iOS-App mit PDF.js (`pdf-preview.js`, `vendor/pdfjs`, Apache 2.0): alle Seiten, passend zur Breite, nur sichtbare Seiten im Speicher. Vorher zeigte iOS nur die erste Seite und schnitt sie rechts ab. Desktop bleibt beim eingebauten Betrachter. Bibliothek wird beim Öffnen des Export-Dialogs vorgeladen (offlinefähig). Kopier-Skript nimmt `vendor/` mit. Neuer Test `test_pdfpreview.py`. README und `tests/README.md` angelegt, Test-Port per `SAVORA_TEST_PORT` änderbar.
 - 0.37.0 (SW v37-paket11): iOS-App: Kamera-Hinweistext (`NSCameraUsageDescription`, sonst kann die Barcode-Suche abstürzen), Foto-Hinweistext, Verschlüsselungs-Angabe (`ITSAppUsesNonExemptEncryption`), Link-Vorschau aus, kein Gummiband-Effekt im Dunkelmodus (verhindert hellen Blitz am Rand), Stil-Haken `is-native`.

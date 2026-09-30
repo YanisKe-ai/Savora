@@ -1,9 +1,9 @@
 /* ---------- Masseinheiten: Normalisierung & Umrechnung ---------- */
 const WEIGHT_TABLE = { g: 1, kg: 1000, oz: 28.3495, lb: 453.592 };
 
-const VOLUME_TABLE = { ml: 1, l: 1000, tsp: 4.92892, tbsp: 14.7868, cup: 236.588, floz: 29.5735 };
+const VOLUME_TABLE = { ml: 1, cl: 10, dl: 100, l: 1000, tsp: 4.92892, tbsp: 14.7868, cup: 236.588, floz: 29.5735 };
 
-const METRIC_UNITS = new Set(['g', 'kg', 'ml', 'l']);
+const METRIC_UNITS = new Set(['g', 'kg', 'ml', 'cl', 'dl', 'l']);
 
 const IMPERIAL_UNITS = new Set(['oz', 'lb', 'cup', 'floz']);
 
@@ -13,6 +13,8 @@ const UNIT_ALIASES = {
   oz: ['oz', 'ounce', 'ounces', 'unze', 'unzen'],
   lb: ['lb', 'lbs', 'pound', 'pounds', 'pfund'],
   ml: ['ml', 'milliliter', 'millilitre'],
+  cl: ['cl', 'zentiliter', 'centiliter'],
+  dl: ['dl', 'deziliter', 'deciliter'],
   l: ['l', 'liter', 'litre'],
   tsp: ['tl', 'tsp', 'teelöffel', 'teaspoon', 'teaspoons'],
   tbsp: ['el', 'tbsp', 'esslöffel', 'tablespoon', 'tablespoons'],
@@ -20,7 +22,7 @@ const UNIT_ALIASES = {
   floz: ['floz', 'fl.oz', 'flooz', 'fluidounce', 'fluidounces'],
 };
 
-const UNIT_LABELS = { g: 'g', kg: 'kg', oz: 'oz', lb: 'lb', ml: 'ml', l: 'l', tsp: 'TL', tbsp: 'EL', cup: 'Cup', floz: 'fl. oz' };
+const UNIT_LABELS = { g: 'g', kg: 'kg', oz: 'oz', lb: 'lb', ml: 'ml', cl: 'cl', dl: 'dl', l: 'l', tsp: 'TL', tbsp: 'EL', cup: 'Cup', floz: 'fl. oz' };
 
 function normalizeUnit(raw) {
   if (!raw) return null;
