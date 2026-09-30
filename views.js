@@ -180,50 +180,6 @@ function renderStepWithTimers(text, stepIdx) {
 
 
 
-function unitConverterUnitOptions(selected) {
-  const groups = [
-    { label: 'Gewicht', units: ['g', 'kg', 'oz', 'lb'] },
-    { label: 'Volumen', units: ['ml', 'l', 'tsp', 'tbsp', 'cup', 'floz'] },
-  ];
-  return groups.map(g => `<optgroup label="${g.label}">${g.units.map(u => `<option value="${u}" ${u === selected ? 'selected' : ''}>${UNIT_LABELS[u]}</option>`).join('')}</optgroup>`).join('');
-}
-
-function unitConverterResultsHtml() {
-  // F04: zentraler Parser, "0,5" und "0.5" ergeben dasselbe; Ungueltiges wird sichtbar abgelehnt.
-  const parsed = parseQuantityInput(state.ucAmount);
-  const unit = state.ucUnit;
-  const dim = unitDimension(unit);
-  if (parsed.error) return `<p class="uc-error" role="alert">${escapeHtml(parsed.error)}</p>`;
-  if (parsed.value < 0 || parsed.value > 1e6) return `<p class="uc-error" role="alert">Bitte eine Menge zwischen 0 und 1'000'000 eingeben.</p>`;
-  if (!dim) return `<p class="settings-hint">Diese Einheit lässt sich nicht umrechnen.</p>`;
-  const amount = parsed.value;
-  const table = dim === 'weight' ? WEIGHT_TABLE : VOLUME_TABLE;
-  const others = Object.keys(table).filter(u => u !== unit);
-  return `<div class="uc-result-list">${others.map(u => {
-    const val = convertAmountExplicit(amount, unit, u);
-    return `<div class="uc-result-row"><span class="uc-result-value">${val}</span><span class="uc-result-unit">${UNIT_LABELS[u]}</span></div>`;
-  }).join('')}</div>`;
-}
-
-function unitConverterView() {
-  if (state.ucAmount === undefined) state.ucAmount = '100';
-  if (state.ucUnit === undefined) state.ucUnit = 'g';
-  return `
-    ${topbar('Masseinheiten-Rechner', { back: true })}
-    <main class="has-tabbar">
-      <div class="uc-input-row">
-        <label for="ucAmount" class="sr-only">Menge</label>
-        <input type="text" inputmode="decimal" id="ucAmount" value="${escapeHtml(state.ucAmount)}" aria-describedby="ucResults" autocomplete="off">
-        <label for="ucUnit" class="sr-only">Einheit</label>
-        <select id="ucUnit">${unitConverterUnitOptions(state.ucUnit)}</select>
-      </div>
-      <p class="settings-hint">Komma oder Punkt, auch Brüche wie 1/2 oder ½.</p>
-      <div id="ucResults" aria-live="polite">${unitConverterResultsHtml()}</div>
-    </main>
-    ${bottomNav()}
-  `;
-}
-
 /* ---------- "Mehr" (frueher "Einstellungen") — Redesign, Teil A ----------
    Ersetzt die Accordion-Wand durch klar gruppierte Zeilen (Settings Rows). Einstellungen,
    Aktionen und Informationen stehen in eigenen Gruppen, nicht mehr gleichrangig nebeneinander.

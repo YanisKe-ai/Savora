@@ -733,3 +733,40 @@ body.keyboard-open .cook-bar { display: none; }
 .faq summary::after { content: '+'; margin-left: auto; padding-left: 12px; font-size: 22px; color: var(--accent); }
 .faq[open] summary::after { content: '\2212'; }
 .faq p { margin: 0 0 10px; }
+
+/* ---------- Paket 3: Masseinheiten-Rechner ---------- */
+.uc-page { display: flex; flex-direction: column; gap: 14px; max-width: 640px; }
+.uc-tabs { display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; padding: 4px; background: var(--surface-soft); border-radius: var(--radius-l, 18px); }
+.uc-tab { min-height: 44px; border: none; background: none; border-radius: 14px; font-weight: 700; font-size: 14px; color: var(--text-soft); padding: 0 4px; }
+.uc-tab.is-active { background: var(--card-bg); color: var(--text); box-shadow: 0 1px 4px rgba(42, 17, 72, .12); }
+.uc-card { background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius-l, 18px); padding: 16px; display: flex; flex-direction: column; gap: 12px; }
+.uc-input-row { display: grid; grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr); gap: 12px; }
+.uc-field { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.uc-field label { font-size: 12.5px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; color: var(--text-soft); }
+.uc-input, .uc-select { width: 100%; min-height: 56px; border: 1.5px solid var(--border); border-radius: 14px; background: var(--bg); color: var(--text); padding: 0 14px; font: inherit; font-size: 17px; }
+.uc-input { font-family: var(--font-display); font-weight: 800; font-size: 30px; font-variant-numeric: tabular-nums; letter-spacing: 0; }
+.uc-select { -webkit-appearance: none; appearance: none; font-weight: 700; padding-right: 38px; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%237a43b6' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 12px center; }
+.uc-input:focus-visible, .uc-select:focus-visible { outline: 3px solid var(--accent); outline-offset: 1px; border-color: var(--accent); }
+.uc-quick { display: flex; flex-wrap: wrap; gap: 8px; }
+.uc-chip { min-height: 44px; min-width: 52px; padding: 0 14px; border-radius: 999px; border: 1px solid var(--border); background: var(--surface-soft); color: var(--text); font-weight: 700; font-size: 15px; font-variant-numeric: tabular-nums; }
+.uc-chip:active { background: var(--lime); color: var(--lime-ink); }
+.uc-dim-label { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: .08em; color: var(--text-soft); margin: 10px 2px 8px; }
+.uc-result-list { display: flex; flex-direction: column; gap: 8px; }
+.uc-result-row { display: grid; grid-template-columns: auto 1fr auto; align-items: baseline; column-gap: 10px; row-gap: 2px; width: 100%; min-height: 60px; padding: 10px 14px; text-align: left; background: var(--card-bg); border: 1px solid var(--border); border-radius: 14px; color: var(--text); }
+.uc-result-row--static { opacity: .7; }
+.uc-result-value { grid-row: 1; font-family: var(--font-display); font-weight: 800; font-size: 28px; line-height: 1.1; font-variant-numeric: tabular-nums; letter-spacing: 0; }
+.uc-result-unit { grid-row: 1; font-size: 14px; font-weight: 700; color: var(--text-soft); }
+.uc-result-note { grid-column: 1 / -1; grid-row: 2; font-size: 13px; color: var(--text-soft); }
+.uc-result-copy { grid-row: 1; grid-column: 3; align-self: center; color: var(--accent); display: inline-flex; }
+.uc-result-copy svg { width: 18px; height: 18px; }
+.uc-result-row:active { background: var(--surface-soft); }
+.uc-error { color: var(--danger); font-size: 15px; margin: 8px 0; }
+.uc-defs { display: flex; flex-direction: column; }
+.uc-table { display: flex; flex-direction: column; border: 1px solid var(--border); border-radius: 14px; overflow: hidden; background: var(--card-bg); }
+.uc-table-head, .uc-table-row { display: grid; grid-template-columns: repeat(4, 1fr); text-align: center; align-items: center; min-height: 44px; font-variant-numeric: tabular-nums; }
+.uc-table-head { background: var(--surface-soft); font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: var(--text-soft); }
+.uc-table-row { border: none; border-top: 1px solid var(--border); background: none; color: var(--text); font-size: 16px; font-weight: 600; width: 100%; }
+.uc-table-row:active { background: var(--lime); color: var(--lime-ink); }
+.uc-input-row .uc-input, .uc-input-row .uc-select { width: 100%; flex: none; }
+.uc-result-unit { text-transform: none; letter-spacing: 0; }
+@media (max-width: 359px) { .uc-tab { font-size: 12.5px; } .uc-input { font-size: 26px; } }

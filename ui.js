@@ -182,15 +182,7 @@ function bindEvents() {
     });
   }
 
-  const ucAmount = document.getElementById('ucAmount');
-  const ucUnit = document.getElementById('ucUnit');
-  const updateUc = () => {
-    state.ucAmount = ucAmount.value;
-    state.ucUnit = ucUnit.value;
-    document.getElementById('ucResults').innerHTML = unitConverterResultsHtml();
-  };
-  if (ucAmount) ucAmount.addEventListener('input', updateUc);
-  if (ucUnit) ucUnit.addEventListener('change', updateUc);
+  if (typeof ucBindInputs === 'function') ucBindInputs();   // Masseinheiten-Rechner (unit-converter.js)
 
   const tagNew = document.getElementById('f-tag-new');
   if (tagNew) {
@@ -678,6 +670,22 @@ async function dispatchAction(action, id, el, e) {
       break;
     case 'open-unitconverter':
       state.view = 'unitconverter';
+      render();
+      break;
+    case 'uc-tab':
+      ucSwitchTab(el.dataset.id);
+      render();
+      break;
+    case 'uc-quick':
+      state.ucAmount = el.dataset.value;
+      render();
+      break;
+    case 'uc-defs':
+      try { localStorage.setItem(UC_KEY, el.dataset.id); } catch (err) {}
+      render();
+      break;
+    case 'uc-temp-row':
+      state.ucUnit = 'c'; state.ucAmount = el.dataset.c;
       render();
       break;
     case 'convert-ingredient-row': {
