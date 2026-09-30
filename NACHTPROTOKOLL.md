@@ -13,6 +13,7 @@ Arbeit ohne Rückfragen, alles auf Zweigen, nichts auf `main`. Die Zweige bauen 
 | 7 Breites Layout (iPad, Desktop) | `paket-7-breit` | fertig | alle 15 Testdateien grün (lokal) |
 | 8 Feinschliff | `paket-8-feinschliff` | fertig | alle 16 Testdateien grün (lokal) |
 | 9 Suche und Sortierung | `paket-9-suche` | fertig | alle 17 Testdateien grün (lokal) |
+| 10 Text-Import | `paket-10-import` | fertig | alle 18 Testdateien grün (lokal) |
 
 ## Paket 2: was du entscheiden oder eintragen musst
 - In `legal.js` steht oben `LEGAL` mit `[Name der verantwortlichen Person]`, `[Kontakt-E-Mail]` und `[Ort]`. Bitte ausfüllen. Solange die Werte mit `[` beginnen, erscheinen sie in der App grün markiert.

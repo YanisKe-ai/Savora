@@ -4,7 +4,8 @@
    unveraendert als Name (mit leerer Menge). Uebernommen wird erst nach dem Tippen auf "Uebernehmen". */
 const ING_PASTE_UNITS = ['kg', 'g', 'gr', 'mg', 'l', 'dl', 'cl', 'ml', 'tl', 'el', 'msp', 'prise', 'prisen', 'bund', 'dose', 'dosen', 'pk', 'pkg', 'packung', 'packungen',
   'stk', 'stück', 'stueck', 'zehe', 'zehen', 'scheibe', 'scheiben', 'tasse', 'tassen', 'cup', 'cups', 'tsp', 'tbsp', 'oz', 'lb', 'becher', 'handvoll', 'zweig', 'zweige',
-  'kopf', 'stange', 'stangen', 'blatt', 'blätter', 'würfel', 'flasche', 'flaschen', 'glas', 'gläser', 'rispe', 'rispen', 'knolle', 'knollen'];
+  'kopf', 'stange', 'stangen', 'blatt', 'blätter', 'würfel', 'flasche', 'flaschen', 'glas', 'gläser', 'rispe', 'rispen', 'knolle', 'knollen',
+  'pck', 'päckchen', 'paeckchen', 'schuss', 'spritzer', 'tropfen', 'stängel', 'bd', 'bündel', 'ecke', 'ecken', 'kugel', 'kugeln', 'liter', 'gramm', 'kilo', 'milliliter', 'deziliter', 'zentiliter', 'pfund'];
 const ING_PASTE_GLYPH = { '¼': 0.25, '½': 0.5, '¾': 0.75, '⅓': 1 / 3, '⅔': 2 / 3, '⅛': 0.125 };
 const ING_PASTE_AMOUNT_RE = new RegExp('^(?:ca\\.?\\s*|etwa\\s+|ungefähr\\s+)?(' +
   '\\d+\\s*[¼½¾⅓⅔⅛]|[¼½¾⅓⅔⅛]|\\d+\\s+\\d+\\/\\d+|\\d+\\/\\d+|\\d+(?:[.,]\\d+)?(?:\\s*[-–]\\s*\\d+(?:[.,]\\d+)?)?)\\s*(.*)$', 'i');

@@ -47,7 +47,7 @@ async def open_ctx(p, w=390, h=844, motion="reduce"):
     return browser, ctx
 async def goto(page):
     await page.goto(URL)
-    await page.wait_for_function("typeof state !== 'undefined' && document.getElementById('app').children.length > 0", timeout=15000)
+    await page.wait_for_function("typeof state !== 'undefined' && document.getElementById('app').children.length > 0", timeout=30000)   # grosszuegig: der Mac hat zwischendurch Lastspitzen
     await page.wait_for_timeout(700)
 
 async def show(page, js, selector):
