@@ -36,6 +36,17 @@ function nutritionIngredientStatus(recipe, result) {
   </div>`;
 }
 
+/* Unvollstaendig: KEINE Portionswerte zeigen (eine Teilsumme wuerde wie ein vollstaendiger Wert wirken). */
+function nutritionIncompleteInner(recipe, result) {
+  const total = result.relevantCount || 0;
+  return `
+    <p class="nutrition-empty-text"><strong>Unvollständig berechnet:</strong> ${result.matchedCount || 0} von ${total} Zutaten konnten eingerechnet werden. Eine Portionssumme wäre daher zu niedrig und wird nicht angezeigt.</p>
+    ${nutritionIngredientStatus(recipe, result)}
+    <div class="nutrition-compact-actions">
+      <button class="primary-btn" data-action="nutrition-open-match" data-id="${recipe.id}">${ICONS.apple} Zutaten zuordnen</button>
+    </div>`;
+}
+
 function confidenceBadgeClass(confidence) {
   return confidence === 'high' ? 'high' : confidence === 'medium' ? 'medium' : 'low';
 }
@@ -82,18 +93,15 @@ async function hydrateNutritionCards() {
     const recipe = state.recipes.find((r) => r.id === recipeId);
     if (!recipe) continue;
     try {
-      const result = await getFreshNutritionResult(recipe);
+      const st = await nutritionStatusFor(recipe);
       node.classList.remove('nutrition-card-loading');
-      if (!result) {
-        // Entweder nie berechnet, oder veraltet (Zutaten/Portionen geaendert seit letzter Berechnung).
-        const stored = await dbGetNutritionResult(recipe.id);
-        node.innerHTML = stored ? `
-          <p class="nutrition-empty-text">${ICONS.sparkle} Zutaten haben sich geändert — Nährwerte sind veraltet.</p>
-          <button class="primary-btn" data-action="nutrition-open-match" data-id="${recipe.id}">${ICONS.swap} Neu berechnen</button>
-        ` : nutritionCompactInner(recipe, null);
-      } else {
-        node.innerHTML = nutritionCompactInner(recipe, result);
-      }
+      if (st.status === 'not-calculated') node.innerHTML = nutritionCompactInner(recipe, null);
+      else if (st.status === 'stale') node.innerHTML = `
+          <p class="nutrition-empty-text">${ICONS.sparkle} Die Nährwerte sind veraltet (Zutaten, Portionen oder die Berechnung haben sich geändert). Bitte neu berechnen.</p>
+          <button class="primary-btn" data-action="nutrition-open-match" data-id="${recipe.id}">${ICONS.swap} Neu berechnen</button>`;
+      else if (st.status === 'failed') node.innerHTML = `<p class="nutrition-empty-text">Die Nährwerte konnten nicht gelesen werden.</p>`;
+      else if (st.status === 'incomplete') node.innerHTML = nutritionIncompleteInner(recipe, st.result);
+      else node.innerHTML = nutritionCompactInner(recipe, st.result);
       node.querySelectorAll('[data-action]').forEach((el) => el.addEventListener('click', onAction));
     } catch (err) {
       console.warn('Die Nährwert-Karte konnte nicht geladen werden.', err);
@@ -112,7 +120,7 @@ function nutritionStatusIcon(status) {
 
 function nutritionMatchRow(item) {
   const name = escapeHtml(item.ingredient.name);
-  const foodName = item.food ? escapeHtml(item.food.name) : null;
+  const foodName = item.food ? escapeHtml(item.food.name) : (item.skipped === 'nonCaloric' ? 'Wird nicht mitgerechnet (enthält keine Nährwerte)' : item.skipped === 'negligible' ? 'Gewürz oder Triebmittel, in dieser Menge vernachlässigbar' : null);
   const prepHint = item.preparation ? `<span class="nutrition-prep-hint">${ICONS.sparkle} Zubereitung erkannt: ${escapeHtml(item.preparation.label)}</span>` : '';
   if (item.status === 'matched') {
     return `<li class="nutrition-match-item">

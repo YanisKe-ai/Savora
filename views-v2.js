@@ -357,7 +357,8 @@ function detailView() {
     : r.imageId
       ? `<div class="hero-img placeholder" data-lazy-img="full" data-image-id="${r.imageId}" data-img-class="hero-img" data-img-alt="${escapeHtml(r.title || '')}" style="view-transition-name: recipe-hero-img;">${placeholderInner(r)}</div>`
       : `<div class="hero-img placeholder ${placeholderClass(r)}" style="view-transition-name: recipe-hero-img;">${placeholderInner(r)}</div>`;
-  const meta = [r.timeMinutes ? `${r.timeMinutes} Min.` : '', servingMode(r) === 'pieces' ? `${servings} Stück` : servingLabel(r, servings), r.difficulty || ''].filter(Boolean);
+  const extraTimes = [r.prepMinutes ? `aktiv ${r.prepMinutes} Min.` : '', r.restMinutes ? `Ruhen ${r.restMinutes} Min.` : '', r.cookMinutes ? `Garen/Backen ${r.cookMinutes} Min.` : ''].filter(Boolean);
+  const meta = [r.timeMinutes ? `${r.timeMinutes} Min.` : '', ...(extraTimes.length ? [`(${extraTimes.join(', ')})`] : []), servingMode(r) === 'pieces' ? `${servings} Stück` : servingLabel(r, servings), r.difficulty || ''].filter(Boolean);
   const sourceText = r.sharedBy
     ? `${ICONS.sparkle}<span>Geteilt von ${escapeHtml(r.sharedBy)}</span>`
     : r.source ? `${ICONS.link}<span>Quelle: <a href="${escapeHtml(r.source)}" target="_blank" rel="noopener">${escapeHtml(domainFromUrl(r.source))}</a></span>`
@@ -391,6 +392,7 @@ function detailView() {
       </div>
       ${source}
       ${conflictBox}
+      ${recipeCheckHtml(r)}
       <div class="detail-aside-ing" role="region" aria-label="Zutaten">${wide ? ingHtml : ''}</div>
       </div><div class="detail-col detail-col--content">
       <div class="tabbar-v2" role="tablist" aria-label="Rezeptinhalt">
@@ -763,6 +765,9 @@ function cookbookDesignerView() {
         <h2 class="section-title">1. Titel und Cover</h2>
         <div class="field"><label for="cbTitle">Titel</label><input type="text" id="cbTitle" data-cb-field="title" value="${escapeHtml(cfg.title || '')}" placeholder="${escapeHtml(state.cookbookTitle || 'Mein persönliches Kochbuch')}"></div>
         <div class="field"><label for="cbSubtitle">Untertitel</label><input type="text" id="cbSubtitle" data-cb-field="subtitle" value="${escapeHtml(cfg.subtitle || '')}" placeholder="z.B. Lieblingsrezepte 2026"></div>
+        <div class="field"><label for="cbAuthor">Autor oder Autorin (Deckblatt und Fusszeile)</label><input type="text" id="cbAuthor" data-cb-field="author" value="${escapeHtml(cfg.author || '')}" placeholder="optional"></div>
+        <div class="field"><label for="cbTemplate">Vorlage</label><select id="cbTemplate" data-cb-field="pdfTemplate">${Object.values(PDF_TEMPLATES).map(t => `<option value="${t.id}" ${(cfg.pdfTemplate || pdfDefaultTemplateId()) === t.id ? 'selected' : ''}>${t.id} · ${t.name}</option>`).join('')}</select></div>
+        <label class="check-row"><input type="checkbox" data-cb-flag="showLogo" ${cfg.showLogo === false ? '' : 'checked'}> <span>Kleines Savora-Logo auf dem Deckblatt</span></label>
         <div class="field"><label for="cbCover">Titelbild</label><select id="cbCover" data-cb-field="coverRecipeId"><option value="">Ohne Bild (nur Logo)</option>${withImage.map(r => `<option value="${r.id}" ${cfg.coverRecipeId === r.id ? 'selected' : ''}>${escapeHtml(r.title || 'Ohne Titel')}</option>`).join('')}</select></div>
       </section>
       <section class="panel">
@@ -771,6 +776,7 @@ function cookbookDesignerView() {
           <button class="icon-btn icon-btn--small" data-action="cb-move-chapter" data-id="${escapeHtml(c.id)}" data-delta="-1" ${n === 0 ? 'disabled' : ''} aria-label="Kapitel nach oben">${ICONS.arrowUp}</button>
           <button class="icon-btn icon-btn--small" data-action="cb-move-chapter" data-id="${escapeHtml(c.id)}" data-delta="1" ${n === cfg.chapters.length - 1 ? 'disabled' : ''} aria-label="Kapitel nach unten">${ICONS.arrowDown}</button>
           <button class="icon-btn icon-btn--small" data-action="cb-delete-chapter" data-id="${escapeHtml(c.id)}" aria-label="Kapitel ${escapeHtml(c.name)} löschen">${ICONS.trash}</button></div>`).join('') || '<p class="hint-line">Ohne Kapitel erscheinen alle Rezepte in einer Liste.</p>'}
+        ${cfg.chapters.length ? `<label class="check-row"><input type="checkbox" data-cb-flag="chapterPages" ${cfg.chapterPages ? 'checked' : ''}> <span>Eigene Seite vor jedem Kapitel (sonst nur im Inhaltsverzeichnis)</span></label>` : ''}
         <div class="inline-add"><label for="cbNewChapter" class="sr-only">Neues Kapitel</label><input type="text" id="cbNewChapter" placeholder="Neues Kapitel, z.B. Hauptgänge"><button class="primary-btn" data-action="cb-add-chapter">Anlegen</button></div>
       </section>
       <section class="panel">
@@ -866,8 +872,16 @@ function formView() {
           </div>
           <div class="field-row field-row--2">
             <div class="field"><label for="f-time">Zeit (Min.)</label><input type="number" id="f-time" min="0" value="${r.timeMinutes}"></div>
-            <div class="field"><label for="f-difficulty">Schwierigkeit</label><select id="f-difficulty">${['Einfach', 'Mittel', 'Anspruchsvoll'].map(d => `<option ${r.difficulty === d ? 'selected' : ''}>${d}</option>`).join('')}</select></div>
+            <div class="field"><label for="f-difficulty">Schwierigkeit</label><select id="f-difficulty">${['', 'Einfach', 'Mittel', 'Anspruchsvoll'].map(d => `<option value="${d}" ${(r.difficulty || '') === d ? 'selected' : ''}>${d || 'Keine Angabe'}</option>`).join('')}</select></div>
           </div>
+          <details class="field-more"${(r.prepMinutes || r.restMinutes || r.cookMinutes) ? ' open' : ''}><summary>Weitere Zeitangaben (optional)</summary>
+            <div class="field-row field-row--3">
+              <div class="field"><label for="f-prep">Aktiv (Min.)</label><input type="number" id="f-prep" min="0" value="${r.prepMinutes || ''}"></div>
+              <div class="field"><label for="f-rest">Ruhen (Min.)</label><input type="number" id="f-rest" min="0" value="${r.restMinutes || ''}"></div>
+              <div class="field"><label for="f-cook">Garen/Backen (Min.)</label><input type="number" id="f-cook" min="0" value="${r.cookMinutes || ''}"></div>
+            </div>
+            <p class="hint-line">Nur ausfüllen, was du sicher weisst. Leere Felder bleiben unbekannt und werden nicht erfunden.</p>
+          </details>
         </section>
         <section class="form-step ${step === 1 ? 'is-active' : ''}" data-form-step="1" aria-label="Kategorien">
           ${chipSet('Ernährungsform', 'diet-group-label', DIET_OPTIONS.filter(d => d.tone === 'diet'), d => d.key, d => d.label, 'toggle-diet', 'diet', r.diet)}

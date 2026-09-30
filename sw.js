@@ -5,7 +5,7 @@
    - Kontrollierter Update-Flow: kein automatisches skipWaiting. Ein neuer Worker wartet, bis
      die Seite per postMessage({type:'SKIP_WAITING'}) explizit zustimmt.
 */
-const SW_VERSION = 'v45-paket20';
+const SW_VERSION = 'v47-paket22b';
 const CACHE_SHELL = 'savora-shell-' + SW_VERSION;
 const CACHE_RUNTIME = 'savora-runtime-' + SW_VERSION;
 // Statische Referenzdaten (z.B. Schweizer Naehrwertdatenbank): aendert sich nur bei
@@ -33,6 +33,7 @@ const SHELL_ASSETS = [
   './archivo.woff2',
   './styles.css',
   './styles-v2.css',
+  './pdf-print.css',
   './icons.js',
   './db.js',
   './nutrition-model.js',
@@ -40,6 +41,7 @@ const SHELL_ASSETS = [
   './classification.js',
   './nutrition-units.js',
   './nutrition-swiss.js',
+  './nutrition-aliases.js',
   './nutrition-matcher.js',
   './nutrition-preparation.js',
   './nutrition-off.js',
@@ -53,6 +55,7 @@ const SHELL_ASSETS = [
   './shopping.js',
   './state.js',
   './recipe-model.js',
+  './recipe-check.js',
   './parsers.js',
   './ingredient-paste.js',
   './views.js',
@@ -72,6 +75,9 @@ const SHELL_ASSETS = [
   './cloud.js',
   './nutrition-ui.js',
   './app.js',
+  './vendor/fonts/source-serif-4-400.woff2',
+  './vendor/fonts/source-serif-4-400i.woff2',
+  './vendor/fonts/source-serif-4-600.woff2',
 ];
 const RUNTIME_MAX_ENTRIES = 60;
 

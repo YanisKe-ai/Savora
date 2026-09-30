@@ -1,286 +1,284 @@
-/* ---------- PDF Editorial Engine: HTML-Templates (Punkt 43-49, 54-60) ----------
-   Gemeinsame Bausteine (Meta, Zutaten, Zubereitung, Nutrition-Box) werden von allen Layouts
-   genutzt, damit Typografie/Farben/Nummerierung ueberall identisch bleiben (Punkt 82) — nur
-   Bildposition/-groesse und Spaltenaufteilung unterscheiden sich zwischen den Layouts. */
+/* ---------- PDF-Vorlagen A/B/C und Seitenaufbau ----------
+   Drei auswaehlbare Vorlagen mit gemeinsamer Datenbasis und gemeinsamen Bausteinen:
+     A  Warm Editorial  (Creme/Gruen, Serifentitel)  Standard fuer neue Kochbuecher
+     B  Bold Kitchen    (Violett/Limette, kraeftige Titel)
+     C  Kuechenblatt    (Weiss, sparsam, Druckvariante, kleines Bild neben dem Titel)
+   Die Seiten sind reines HTML (Klassen mit Praefix pv-), das in pdf.js gemessen, paginiert und
+   gerastert wird. Nichts hier veraendert Rezeptdaten: es wird nur dargestellt.
 
-function pdfMetaLine(recipe) {
-  const fact = (value, label) => `<span class="pdf-fact"><b>${value}</b><i>${label}</i></span>`;
-  const parts = [];
-  if (recipe.timeMinutes) parts.push(fact(recipe.timeMinutes, 'Minuten'));
-  const sv = recipe.servings || 1;
-  parts.push(fact(sv, sv === 1 ? 'Portion' : 'Portionen'));
-  if (recipe.difficulty) parts.push(fact(escapeHtml(recipe.difficulty), 'Aufwand'));
-  return `<div class="pdf-meta">${parts.join('')}</div>`;
+   Grundregeln: Originalmengen unveraendert (keine Kuechenrundung), leere Bloecke werden nicht
+   gezeichnet (Darstellungsbereinigung, Rezept bleibt unveraendert), Fliesstext mind. 10 pt,
+   Bilder nie gestreckt. */
+
+const PDF_TEMPLATES = {
+  A: { id: 'A', name: 'Warm Editorial', hint: 'Creme und Grün, Serifentitel. Standard.', cls: 'pv-tpl-a', pageNo: [36, 69, 54] },
+  B: { id: 'B', name: 'Bold Kitchen', hint: 'Violett mit Limetten-Akzent, kräftige Titel.', cls: 'pv-tpl-b', pageNo: [64, 32, 95] },
+  C: { id: 'C', name: 'Küchenblatt', hint: 'Weiss, sparsam, gut zum Drucken.', cls: 'pv-tpl-c', pageNo: [52, 60, 53] },
+};
+const PDF_TEMPLATE_KEY = 'savora-pdf-template';
+
+function pdfTemplateById(id) { return PDF_TEMPLATES[id] || PDF_TEMPLATES.A; }
+function pdfDefaultTemplateId() {
+  let v = null; try { v = localStorage.getItem(PDF_TEMPLATE_KEY); } catch (e) {}
+  return PDF_TEMPLATES[v] ? v : 'A';
+}
+function pdfRememberTemplate(id) { try { if (PDF_TEMPLATES[id]) localStorage.setItem(PDF_TEMPLATE_KEY, id); } catch (e) {} }
+
+/* Kontext des laufenden Exports (Vorlage, Buchtitel/Autor fuer die Fusszeile) */
+let PDF_CTX = { tpl: PDF_TEMPLATES.A, bookTitle: '', author: '', logo: true };
+
+/* ---------- Darstellungsmodell (abgeleitet, aendert nichts am Rezept) ---------- */
+
+function pdfAmountText(i) {
+  // Originalwortlaut: nur das Zahlenformat vereinheitlichen (1/2 -> ½), niemals runden oder umrechnen.
+  const raw = String(i.amount == null ? '' : i.amount).trim();
+  if (!raw) return '';
+  const range = /^([\d.,\/½¼¾⅓⅔ ]+?)\s*[-–]\s*([\d.,\/½¼¾⅓⅔ ]+?)$/.exec(raw);
+  const one = (s) => { const n = parseAmount(s); return n === null ? s : fmtAmount(n); };
+  if (range) return one(range[1]) + '–' + one(range[2]);
+  if (/^[\d.,\/½¼¾⅓⅔⅛ ]+$/.test(raw)) { const n = parseAmount(raw); return n === null ? raw : fmtAmount(n); }
+  return raw;
 }
 
-function pdfIngredientsList(recipe, factor) {
-  return `<div class="pdf-ing-title">Zutaten</div>
-    <ul class="pdf-ing-list">
-      ${pdfIngredientItemsHtml(recipe, factor).map(li => li.replace('<li>', '<li class="pdf-safe-break">').replace('<li class="pdf-ing-group">', '<li class="pdf-ing-group pdf-safe-break">')).join('')}
-    </ul>`;
+/* Hinweise/Quellen, die als Schritt gespeichert wurden, gehoeren nicht in die nummerierte Anleitung.
+   Nur eindeutige Anfaenge werden so behandelt (sonst bleibt es ein Schritt). */
+function pdfClassifyStepText(text) {
+  const t = String(text || '').trim();
+  if (/^(quelle|source|rezept (von|nach)|fotos?)\s*[:\-–]/i.test(t) || (/^quelle\b/i.test(t) && t.length < 140)) return 'source';
+  if (/^(tipp|tipps|küchentipp|hinweis|hinweise|aufbewahrung|aufbewahren|haltbarkeit|haltbar|einfrieren|vorbereiten\s*\/\s*einfrieren|vorbereiten und einfrieren|variante|varianten)\b/i.test(t)) return 'tip';
+  return 'step';
 }
 
-function pdfStepsList(recipe) {
-  return `<div class="pdf-steps-title">Zubereitung</div>
-    <ol class="pdf-step-list">
-      ${pdfStepItemsHtml(recipe).map((li) => li.replace(/^<li( class="([^"]*)")?>/, (m0, a, cls) => `<li class="pdf-safe-break${cls ? ' ' + cls : ''}">`)).join('')}
-    </ol>`;
+function pdfFormatMinutes(m) {
+  m = Math.round(Number(m) || 0);
+  if (m < 60) return m + ' Min.';
+  const h = Math.floor(m / 60), r = m % 60;
+  return h + ' Std.' + (r ? ' ' + r + ' Min.' : '');
 }
 
-/* Kompakte Nutrition-Box (Punkt 58-60) — bewusst zurueckhaltend, keine Fitness-App-Kacheln.
-   `result` kommt bereits berechnet aus nutrition-calculator.js; fehlende Werte werden als "–"
-   dargestellt statt als 0 (dieselbe Regel wie in der App-UI). `detailLevel`: 'compact' (5
-   Kernwerte) oder 'full' (zusaetzlich Zucker, gesaettigte Fettsaeuren, Salz — Punkt 59). */
-function pdfNutritionBox(result, detailLevel) {
+function pdfBuildModel(recipe, nutritionResult) {
+  const groups = getIngredientGroups(recipe);
+  const showGroupTitles = groups.length > 1 || (groups[0] && groups[0].title !== 'Zutaten');
+  const ingredients = [];
+  groups.forEach((g) => {
+    ingredients.push({ type: 'group', title: g.title, show: showGroupTitles, size: g.ingredients.length });
+    g.ingredients.forEach((i) => {
+      const amt = pdfAmountText(i);
+      const unit = String(i.unit || '').trim();
+      ingredients.push({ type: 'ing', group: g.title, amount: amt ? amt + (unit ? ' ' + unit : '') : unit, name: String(i.name || '').trim() });
+    });
+  });
+
+  const steps = []; const tips = []; let source = '';
+  const entries = stepEntries(recipe);
+  entries.forEach((e, idx) => {
+    if (e.heading) {
+      // Zwischentitel nur zeichnen, wenn danach echter Inhalt folgt (sonst leere Ueberschrift)
+      const next = entries[idx + 1];
+      if (next && !next.heading) steps.push({ type: 'heading', text: String(e.text).trim().replace(/:$/, '') });
+      return;
+    }
+    const kind = pdfClassifyStepText(e.text);
+    if (kind === 'source') { source = source ? source + ' · ' + String(e.text).trim() : String(e.text).trim(); return; }
+    if (kind === 'tip') { tips.push(String(e.text).trim()); return; }
+    steps.push({ type: 'step', text: String(e.text).trim() });
+  });
+  let n = 0; steps.forEach((s) => { if (s.type === 'step') s.no = ++n; });
+
+  const rs = recipe.source;
+  const sourceField = rs ? (typeof rs === 'string' ? rs : (rs.title || rs.url || rs.name || '')) : '';
+  const cat = (recipe.categoryTags || [])[0] || (recipe.tags || [])[0] || '';
+  const log = (recipe.cookLog || []).filter((x) => x && String(x.text || '').trim());
+  const facts = [];
+  const sv = Number(recipe.servings) || 0;
+  const pieces = servingMode(recipe) === 'pieces';
+  if (sv) facts.push({ label: pieces ? 'Ergibt' : (sv === 1 ? 'Portion' : 'Portionen'), value: pieces ? sv + ' Stück' : String(sv) });
+  if (recipe.timeMinutes) facts.push({ label: 'Zeit', value: pdfFormatMinutes(recipe.timeMinutes) });
+  if (recipe.prepMinutes) facts.push({ label: 'Aktiv', value: pdfFormatMinutes(recipe.prepMinutes) });
+  if (recipe.restMinutes) facts.push({ label: 'Ruhen', value: pdfFormatMinutes(recipe.restMinutes) });
+  if (recipe.cookMinutes) facts.push({ label: 'Garen/Backen', value: pdfFormatMinutes(recipe.cookMinutes) });
+  return {
+    id: recipe.id, title: String(recipe.title || 'Ohne Titel').trim(), category: cat, facts, ingredients, steps, tips,
+    source: [sourceField, source].filter(Boolean).join(' · '), notes: String(recipe.notes || '').trim(), log,
+    nutrition: nutritionResult || null, pieces,
+  };
+}
+
+/* ---------- Bausteine ---------- */
+
+function pvEsc(s) { return escapeHtml(String(s)); }
+
+function pvIngUnit(it, cont) {
+  if (it.type === 'group') return it.show ? `<div class="pv-ing-group">${pvEsc(it.title)}${cont ? ' <span class="pv-cont">· Fortsetzung</span>' : ''}</div>` : '';
+  return `<div class="pv-ing"><span class="pv-ing-amt">${pvEsc(it.amount)}</span><span class="pv-ing-name">${pvEsc(it.name)}</span></div>`;
+}
+function pvStepUnit(s) {
+  if (s.type === 'heading') return `<div class="pv-step-heading">${pvEsc(s.text)}</div>`;
+  return `<div class="pv-step"><span class="pv-step-no">${String(s.no).padStart(2, '0')}</span><span class="pv-step-text">${pvEsc(s.text)}</span></div>`;
+}
+
+/* Kleine Komponenten (<= 8 Zutaten) bleiben zusammen; Ueberschrift nie allein am Ende. */
+function pvIngredientUnits(ingredients) {
+  const units = [];
+  let i = 0;
+  while (i < ingredients.length) {
+    const it = ingredients[i];
+    if (it.type === 'group') {
+      const rows = [];
+      let j = i + 1;
+      while (j < ingredients.length && ingredients[j].type === 'ing') { rows.push(ingredients[j]); j++; }
+      if (rows.length && rows.length <= 8) {
+        units.push({ html: pvIngUnit(it) + rows.map((r) => pvIngUnit(r)).join(''), group: it.title, whole: true });
+      } else {
+        rows.forEach((r, k) => units.push({ html: (k === 0 ? pvIngUnit(it) : '') + pvIngUnit(r), group: it.title, groupHead: it, first: k === 0 }));
+      }
+      i = j;
+    } else i++;
+  }
+  return units;
+}
+function pvStepUnits(steps) {
+  const units = [];
+  for (let i = 0; i < steps.length; i++) {
+    const s = steps[i];
+    if (s.type === 'heading') {
+      let html = pvStepUnit(s); let j = i + 1;
+      while (j < steps.length && steps[j].type === 'heading') { html += pvStepUnit(steps[j]); j++; }
+      if (j < steps.length) { html += pvStepUnit(steps[j]); i = j; } else i = j - 1;
+      units.push({ html });
+    } else units.push({ html: pvStepUnit(s) });
+  }
+  return units;
+}
+
+function pvNutritionBox(result, detailLevel, pieces) {
   if (!result) return '';
   const per = result.nutrientsPerPortion;
-  const row = (key, label) => {
-    const def = NUTRIENT_KEYS[key];
-    const v = per[key];
-    return `<span>${label || def.label} <strong>${v === null ? '–' : v + ' ' + def.unit}</strong></span>`;
+  const cell = (key, label) => {
+    const def = NUTRIENT_KEYS[key]; const v = per[key];
+    return v === null || v === undefined ? '' : `<span><b>${pvEsc(String(v))}</b> ${pvEsc(def.unit)} ${pvEsc(label || def.label)}</span>`;
   };
-  const sourceLabel = nutritionSourceLabel(result.sourceDataVersions);
-  const extraRow = detailLevel === 'full'
-    ? `<div class="pdf-nutrition-row pdf-nutrition-row-extra">${row('sugars', 'Zucker')}${row('saturatedFat', 'ges. Fett')}${row('salt')}</div>`
-    : '';
-  return `<div class="pdf-nutrition-box pdf-safe-break">
-    <div class="pdf-nutrition-title">Nährwerte · pro Portion</div>
-    <div class="pdf-nutrition-row">
-      ${row('energyKcal')}${row('protein')}${row('carbohydrates', 'Kohlenh.')}${row('fat')}${row('fiber', 'Ballaststoffe')}
-    </div>
-    ${extraRow}
-    <div class="pdf-nutrition-source">${escapeHtml(sourceLabel)} — Schätzwerte, keine medizinische Aussage.</div>
-  </div>`;
+  const rows = [cell('energyKcal', 'Energie'), cell('protein', 'Protein'), cell('carbohydrates', 'Kohlenhydrate'), cell('fat', 'Fett'), cell('fiber', 'Ballaststoffe')];
+  if (detailLevel === 'full') rows.push(cell('sugars', 'Zucker'), cell('saturatedFat', 'ges. Fett'), cell('salt', 'Salz'));
+  return `<div class="pv-nutri"><div class="pv-label">Nährwerte ${pieces ? 'pro Stück' : 'pro Portion'}, geschätzt</div><div class="pv-nutri-row">${rows.filter(Boolean).join('')}</div>
+    <div class="pv-small">${pvEsc(nutritionSourceLabel(result.sourceDataVersions))}. Schätzwerte, keine medizinische Aussage.</div></div>`;
 }
 
-function pdfNotesBlock(recipe) {
-  const log = (recipe.cookLog || []).filter(n => n && (n.text || '').trim());
-  if (!recipe.notes && !log.length) return '';
-  const logHtml = log.map(n => `<p class="pdf-note-dated"><strong>${escapeHtml(new Date(n.date).toLocaleDateString('de-CH'))}:</strong> ${escapeHtml(n.text)}</p>`).join('');
-  return `<div class="pdf-notes pdf-safe-break"><div class="pdf-steps-title">Notizen</div>${recipe.notes ? `<p>${escapeHtml(recipe.notes)}</p>` : ''}${logHtml}</div>`;
+function pvExtrasHtml(m, nutritionDetail) {
+  const parts = [];
+  if (m.tips.length) parts.push(`<div class="pv-tips"><div class="pv-label">${m.tips.length > 1 ? 'Hinweise' : 'Hinweis'}</div>${m.tips.map((t) => `<p>${pvEsc(t)}</p>`).join('')}</div>`);
+  if (m.notes || m.log.length) {
+    const logHtml = m.log.map((n) => `<p><b>${pvEsc(new Date(n.date).toLocaleDateString('de-CH'))}:</b> ${pvEsc(n.text)}</p>`).join('');
+    parts.push(`<div class="pv-notes"><div class="pv-label">Notizen</div>${m.notes ? `<p>${pvEsc(m.notes)}</p>` : ''}${logHtml}</div>`);
+  }
+  if (m.nutrition && nutritionDetail && nutritionDetail !== 'off') parts.push(pvNutritionBox(m.nutrition, nutritionDetail, m.pieces));
+  if (m.source) parts.push(`<div class="pv-source"><span class="pv-label">Quelle</span> ${pvEsc(m.source.replace(/^\s*quelle\s*[:\-–]\s*/i, ''))}</div>`);
+  return parts.map((h) => `<div class="pv-extra">${h}</div>`).join('');
 }
 
-function pdfHeaderTag(recipe) {
-  return escapeHtml((recipe.tags || [])[0] || 'Savora');
+function pvFooter() {
+  const t = PDF_CTX;
+  const left = [t.bookTitle, t.author].filter(Boolean).join('  /  ') || 'Savora';
+  return `<footer class="pv-foot"><span>${pvEsc(left)}</span></footer>`;
 }
 
-/* Punkt 50: nutzt recipe.focalPoint, falls vorhanden (Datenmodell-Vorbereitung, siehe
-   emptyRecipe() in state.js) — ohne gesetzten Fokuspunkt entspricht das exakt dem bisherigen
-   mittigen Crop, aendert also nichts am Aussehen bestehender Rezepte. */
+function pvTitleClass(title) { return title.length <= 20 ? 'pv-t-s' : title.length <= 36 ? 'pv-t-m' : title.length <= 60 ? 'pv-t-l' : 'pv-t-xl'; }
+
 function pdfImgTag(imgUrl, recipe) {
   const fp = recipe && recipe.focalPoint;
   const x = fp && typeof fp.x === 'number' ? Math.round(fp.x * 100) : 50;
   const y = fp && typeof fp.y === 'number' ? Math.round(fp.y * 100) : 50;
-  return `<img src="${imgUrl}" class="pdf-img-cover" style="object-position:${x}% ${y}%;">`;
+  return `<img src="${imgUrl}" class="pdf-img-cover" style="object-position:${x}% ${y}%;" alt="">`;
 }
 
-/* ---------- Layout A: Cinematic Hero — Foto oben (35-45% der Seite), Inhalt darunter ---------- */
-function pdfLayoutHero(recipe, imgUrl, result, factor, nutritionDetail) {
-  return `<section class="pdf-page-recipe pdf-layout-hero">
-    <div class="pdf-hero-photo">${pdfImgTag(imgUrl, recipe)}</div>
-    <div class="pdf-hero-body">
-      <div class="pdf-header">${pdfHeaderTag(recipe)}</div>
-      <h1 class="pdf-title">${escapeHtml(recipe.title)}</h1>
-      ${pdfMetaLine(recipe)}
-      <div class="pdf-cols">
-        <div>${pdfIngredientsList(recipe, factor)}</div>
-        <div>${pdfStepsList(recipe)}${pdfNotesBlock(recipe)}</div>
+/* ---------- Seite 1 eines Rezepts ----------
+   opts: { photo: 'band'|'side'|'none', bandMm, side: {w,h}, tight, ingUnits, stepUnits, extras } */
+function pvRecipePage(m, recipe, imgUrl, opts, nutritionDetail) {
+  const tpl = PDF_CTX.tpl;
+  const photoMode = imgUrl ? opts.photo : 'none';
+  const cls = ['pv-page', 'pv-recipe', tpl.cls, opts.tight ? 'pv-tight' : '', 'pv-photo-' + photoMode].filter(Boolean).join(' ');
+  const photoBand = photoMode === 'band' ? `<div class="pv-photo pv-photo-band" style="height:${opts.bandMm}mm">${pdfImgTag(imgUrl, recipe)}</div>` : '';
+  const photoSide = photoMode === 'side' ? `<div class="pv-photo pv-photo-side" style="width:${opts.side.w}mm;height:${opts.side.h}mm">${pdfImgTag(imgUrl, recipe)}</div>` : '';
+  const facts = m.facts.length ? `<div class="pv-facts">${m.facts.map((f) => `<span class="pv-fact"><b>${pvEsc(f.value)}</b><i>${pvEsc(f.label)}</i></span>`).join('')}</div>` : '';
+  const head = `<header class="pv-head ${photoSide ? 'pv-head-side' : ''}">
+      <div class="pv-head-text">
+        ${m.category ? `<div class="pv-cat">${pvEsc(m.category)}</div>` : ''}
+        <h1 class="pv-title ${pvTitleClass(m.title)}">${pvEsc(m.title)}</h1>
+        ${photoSide ? facts : ''}
       </div>
-      ${pdfNutritionBox(result, nutritionDetail)}
-    </div>
-    <div class="pdf-footer">Savora · Dein Kochbuch</div>
-  </section>`;
-}
-
-/* ---------- Layout B/C: Editorial Split (Foto links oder rechts, Punkt 44-45) ---------- */
-function pdfLayoutSplit(recipe, imgUrl, result, factor, side, nutritionDetail) {
-  const photo = `<div class="pdf-split-photo">${pdfImgTag(imgUrl, recipe)}</div>`;
-  const body = `<div class="pdf-split-body">
-      <div class="pdf-header">${pdfHeaderTag(recipe)}</div>
-      <h1 class="pdf-title pdf-title-split">${escapeHtml(recipe.title)}</h1>
-      ${pdfMetaLine(recipe)}
-      ${pdfIngredientsList(recipe, factor)}
-      ${pdfStepsList(recipe)}
-      ${pdfNotesBlock(recipe)}
-      ${pdfNutritionBox(result, nutritionDetail)}
+      ${photoSide}
+    </header>`;
+  const ingHtml = (opts.ingUnits || pvIngredientUnits(m.ingredients)).map((u) => u.html).join('');
+  const stepHtml = (opts.stepUnits || pvStepUnits(m.steps)).map((u) => u.html).join('');
+  const single = !ingHtml;
+  const body = `<div class="pv-body ${single ? 'pv-body-single' : ''}">
+      ${ingHtml ? `<aside class="pv-ing-col"><div class="pv-label">Zutaten</div>${ingHtml}</aside>` : ''}
+      ${stepHtml ? `<div class="pv-steps-col"><div class="pv-label">Zubereitung</div>${stepHtml}</div>` : ''}
     </div>`;
-  return `<section class="pdf-page-recipe pdf-layout-split pdf-layout-split-${side}">
-    ${side === 'left' ? photo + body : body + photo}
-    <div class="pdf-footer pdf-footer-split">Savora · Dein Kochbuch</div>
+  const extras = opts.extras === false ? '' : pvExtrasHtml(m, nutritionDetail);
+  return `<section class="${cls}" lang="de" data-recipe-id="${pvEsc(m.id)}" data-page-kind="recipe">
+    ${head}
+    ${photoBand}
+    ${!photoSide ? facts : ''}
+    ${body}
+    ${extras ? `<div class="pv-extras">${extras}</div>` : ''}
+    ${pvFooter()}
   </section>`;
 }
 
-/* ---------- Layout D: Floating Photo — Foto neben Zutaten, gut fuer quadratische/kleine Bilder ---------- */
-function pdfLayoutFloating(recipe, imgUrl, result, factor, nutritionDetail) {
-  return `<section class="pdf-page-recipe pdf-layout-floating">
-    <div class="pdf-header">${pdfHeaderTag(recipe)}</div>
-    <h1 class="pdf-title">${escapeHtml(recipe.title)}</h1>
-    ${pdfMetaLine(recipe)}
-    <div class="pdf-floating-wrap">
-      <div class="pdf-floating-photo">${pdfImgTag(imgUrl, recipe)}</div>
-      <div class="pdf-floating-ing">${pdfIngredientsList(recipe, factor)}</div>
+/* Fortsetzungsseite: kleiner Kopf, dann Spalten bzw. eine volle Spalte */
+function pvContinuationPage(m, ingUnits, stepUnits, extrasHtml, tight, ingRight) {
+  const tpl = PDF_CTX.tpl;
+  const cls = ['pv-page', 'pv-recipe', 'pv-cont-page', tpl.cls, tight ? 'pv-tight' : ''].filter(Boolean).join(' ');
+  const ingHtml = ingUnits.map((u, i) => (i === 0 && u.group && !u.first && !u.whole ? pvIngUnit(u.groupHead || { type: 'group', title: u.group, show: true }, true) : '') + u.html).join('');
+  const stepHtml = stepUnits.map((u) => u.html).join('');
+  const single = !ingHtml && !(ingRight && ingRight.length);
+  return `<section class="${cls}" lang="de" data-recipe-id="${pvEsc(m.id)}" data-page-kind="continuation">
+    <header class="pv-cont-head"><span>${pvEsc(m.title)}</span><i>Fortsetzung</i></header>
+    <div class="pv-body ${single ? 'pv-body-single' : ''}">
+      ${ingHtml ? `<aside class="pv-ing-col"><div class="pv-label">Zutaten · Fortsetzung</div>${ingHtml}</aside>` : ''}
+      ${stepHtml ? `<div class="pv-steps-col"><div class="pv-label">Zubereitung · Fortsetzung</div>${stepHtml}</div>` : ''}
+      ${ingRight && ingRight.length ? `<aside class="pv-ing-col pv-ing-col-2">${ingRight.map((u) => u.html).join('')}</aside>` : ''}
     </div>
-    ${pdfStepsList(recipe)}
-    ${pdfNotesBlock(recipe)}
-    ${pdfNutritionBox(result, nutritionDetail)}
-    <div class="pdf-footer">Savora · Dein Kochbuch</div>
+    ${extrasHtml ? `<div class="pv-extras">${extrasHtml}</div>` : ''}
+    ${pvFooter()}
   </section>`;
 }
 
-/* ---------- Layout E: Full Photo Statement — grossflaechiges Foto, kurzer Text darunter ---------- */
-function pdfLayoutFullStatement(recipe, imgUrl, result, factor, nutritionDetail) {
-  return `<section class="pdf-page-recipe pdf-layout-full-statement">
-    <div class="pdf-statement-photo">${pdfImgTag(imgUrl, recipe)}
-      <div class="pdf-statement-overlay">
-        <h1 class="pdf-title pdf-title-statement">${escapeHtml(recipe.title)}</h1>
-        ${pdfMetaLine(recipe)}
-      </div>
+/* ---------- Deckblatt, Inhaltsverzeichnis, Kapitel ---------- */
+
+function pvCoverPage(title, author, coverImgUrl, subtitle) {
+  const tpl = PDF_CTX.tpl;
+  const logo = PDF_CTX.logo ? `<img class="pv-cover-logo" src="icon-96.png" alt="">` : '';
+  return `<section class="pv-page pv-cover ${tpl.cls} ${coverImgUrl ? 'pv-cover-photo' : ''}" data-page-kind="cover">
+    ${coverImgUrl ? `<div class="pv-cover-img"><img src="${coverImgUrl}" class="pdf-img-cover" alt=""></div>` : ''}
+    <div class="pv-cover-text">
+      <div class="pv-cat">Kochbuch</div>
+      <h1 class="pv-cover-title ${title.length > 28 ? 'pv-t-l' : 'pv-t-m'}">${pvEsc(title)}</h1>
+      <div class="pv-cover-rule"></div>
+      ${subtitle ? `<p class="pv-cover-sub">${pvEsc(subtitle)}</p>` : ''}
+      ${author ? `<p class="pv-cover-author">${pvEsc(author)}</p>` : ''}
     </div>
-    <div class="pdf-statement-body">
-      <div class="pdf-cols">
-        <div>${pdfIngredientsList(recipe, factor)}</div>
-        <div>${pdfStepsList(recipe)}${pdfNotesBlock(recipe)}</div>
-      </div>
-      ${pdfNutritionBox(result, nutritionDetail)}
-    </div>
-    <div class="pdf-footer">Savora · Dein Kochbuch</div>
+    ${logo}
   </section>`;
 }
 
-/* ---------- Layout G: Typography — kein Foto, eigenstaendige Textseite statt Platzhalter (Punkt 49) ---------- */
-function pdfLayoutTypography(recipe, result, factor, nutritionDetail) {
-  return `<section class="pdf-page-recipe pdf-layout-typography">
-    <div class="pdf-header">${pdfHeaderTag(recipe)}</div>
-    <h1 class="pdf-title pdf-title-typography">${escapeHtml(recipe.title)}</h1>
-    ${pdfMetaLine(recipe)}
-    <div class="pdf-typo-rule"></div>
-    <div class="pdf-cols">
-      <div>${pdfIngredientsList(recipe, factor)}</div>
-      <div>${pdfStepsList(recipe)}${pdfNotesBlock(recipe)}</div>
-    </div>
-    ${pdfNutritionBox(result, nutritionDetail)}
-    <div class="pdf-footer">Savora · Dein Kochbuch</div>
-  </section>`;
+/* rows: [{ kind:'chapter', title } | { kind:'recipe', title, page, id }] in Chunks je Seite */
+function pvTocPages(rows) {
+  const tpl = PDF_CTX.tpl;
+  const perPage = 27;
+  const chunks = [];
+  for (let i = 0; i < rows.length; i += perPage) chunks.push(rows.slice(i, i + perPage));
+  if (!chunks.length) chunks.push([]);
+  return chunks.map((chunk, n) => `<section class="pv-page pv-toc ${tpl.cls}" data-page-kind="toc">
+    <h1 class="pv-toc-title">${n === 0 ? 'Inhalt' : 'Inhalt · Fortsetzung'}</h1>
+    <div class="pv-toc-list">${chunk.map((r) => r.kind === 'chapter'
+      ? `<div class="pv-toc-chapter">${pvEsc(r.title)}</div>`
+      : `<div class="pv-toc-row" data-toc-id="${pvEsc(r.id)}"><span class="pv-toc-name">${pvEsc(r.title)}</span><span class="pv-toc-dots"></span><span class="pv-toc-pg">${r.page}</span></div>`).join('')}</div>
+    ${pvFooter()}
+  </section>`);
 }
 
-/* ---------- Layout F/G: Long Recipe + echte Fortsetzungsseiten (Reparatur-Auftrag Teil F) ----------
-   Wird nur verwendet, wenn eine echte DOM-Messung (pdf-layout.js) zeigt, dass ein Rezept nicht
-   auf eine A4-Seite passt. Bewusst EINSPALTIG statt pdf-cols: eine zweispaltige Seite laesst sich
-   nicht sauber an einer beliebigen Stelle umbrechen, ohne dass eine Spalte staerker gefuellt ist
-   als die andere — Punkt 76 sieht dieses Layout ausdruecklich als eigenstaendig vor, nicht als
-   Fehlerfall. Die Fortsetzungs-Kennzeichnung ist hier echter HTML-Text im neuen Seiten-Template,
-   nie nachtraeglich auf ein fertiges Canvas gemalt (Punkt 34/58) — kann sich deshalb strukturell
-   nicht mit Inhalt ueberlagern. */
-function pdfIngredientItemsHtml(recipe, factor) {
-  // Gruppen (auch alte Kopfzeilen wie "Teig:") als Zwischentitel, nie als Zutat mit leerer Menge.
-  const groups = getIngredientGroups(recipe);
-  const showTitles = groups.length > 1 || (groups[0] && groups[0].title !== 'Zutaten');
-  const out = [];
-  groups.forEach((g) => {
-    if (showTitles) out.push(`<li class="pdf-ing-group">${escapeHtml(g.title)}</li>`);
-    g.ingredients.forEach((i) => {
-      const amt = scaledAmountText(i, factor);
-      const amount = amt ? `<strong>${escapeHtml(amt)}${i.unit ? ' ' + escapeHtml(i.unit) : ''}</strong> ` : (i.unit ? `<strong>${escapeHtml(i.unit)}</strong> ` : '');
-      out.push(`<li>${amount}${escapeHtml(i.name)}</li>`);
-    });
-  });
-  return out;
-}
-
-/* Nummern-Kreis als eingebettetes SVG: html2canvas setzt Text in Flex-/Zeilenhoehen-Kreisen zu tief,
-   SVG-Text mit text-anchor/dominant-baseline sitzt dagegen exakt in der Mitte. */
-function pdfStepBadge(n) {
-  const size = String(n).length > 1 ? 9 : 10.5;
-  return `<svg class="pdf-step-no" viewBox="0 0 20 20" width="20" height="20" xmlns="http://www.w3.org/2000/svg"><circle cx="10" cy="10" r="10" fill="#32164F"/><text x="10" y="10" text-anchor="middle" dominant-baseline="central" font-family="Helvetica, Arial, sans-serif" font-weight="700" font-size="${size}" fill="#E9FFA6">${n}</text></svg>`;
-}
-
-// Zwischentitel alter Rezepte ("Speck vorbereiten:") ohne Nummer und als Titel darstellen (F11).
-function pdfStepItemsHtml(recipe) {
-  // Nummer als echtes Element (nicht per ::before/counter): html2canvas setzt Zahlen in Pseudo-Elementen
-  // nicht zuverlaessig in die Mitte des Kreises.
-  let n = 0;
-  return stepEntries(recipe).map((e) => {
-    if (e.heading) return `<li class="pdf-step-heading">${escapeHtml(String(e.text).trim().replace(/:$/, ''))}</li>`;
-    n++;
-    return `<li>${pdfStepBadge(n)}${escapeHtml(e.text)}</li>`;
-  });
-}
-
-/* Baut EINE Long-Recipe-Seite aus einer bereits vorbereiteten Liste von Bloecken (siehe
-   buildLongRecipePages in pdf.js). `imgUrl` nur auf Seite 1 gesetzt (Punkt 45: Hero-Foto gehoert
-   zu Seite 1, wird bei Fortsetzung nicht wiederholt/fortgesetzt — Punkt 53). */
-function pdfLongRecipeSection(recipe, imgUrl, bodyHtml, isContinuation) {
-  const header = isContinuation
-    ? `<div class="pdf-continuation-tag">${escapeHtml(recipe.title)} · Fortsetzung</div>`
-    : `<div class="pdf-header">${pdfHeaderTag(recipe)}</div><h1 class="pdf-title">${escapeHtml(recipe.title)}</h1>${pdfMetaLine(recipe)}`;
-  const photo = (!isContinuation && imgUrl) ? `<div class="pdf-long-photo">${pdfImgTag(imgUrl, recipe)}</div>` : '';
-  return `<section class="pdf-page-recipe pdf-layout-long ${isContinuation ? 'pdf-layout-continuation' : ''}">
-    ${photo}
-    <div class="pdf-long-body">
-      ${header}
-      ${bodyHtml}
-    </div>
-    <div class="pdf-footer">Savora · Dein Kochbuch</div>
-  </section>`;
-}
-
-/* F06: Zwischentitel (Zutatengruppe oder Schritt-Titel) nie allein am Seitenende: jeder Titel wird
-   mit dem direkt folgenden Eintrag zu EINEM unteilbaren Block verbunden. */
-function pdfKeepWithNext(items, isTitle) {
-  const out = [];
-  for (let i = 0; i < items.length; i++) {
-    if (!isTitle(items[i].html)) { out.push(items[i]); continue; }
-    // Mehrere Titel hintereinander ("Kombinieren", "Cremig vollenden") samt erstem Inhalt koppeln
-    let j = i, html = '', num = 0;
-    while (j < items.length && isTitle(items[j].html)) { html += items[j].html; num += items[j].num || 0; j++; }
-    if (j < items.length) { html += items[j].html; num += items[j].num || 0; }
-    out.push({ ...items[i], html, num });
-    i = j;
-  }
-  return out;
-}
-
-/* Gruppiert aufeinanderfolgende Bloecke gleichen Typs unter einer gemeinsamen Ueberschrift, auch
-   wenn die Gruppe ueber mehrere Seiten laeuft (Punkt 55: Zutatenblock zusammenhalten, wo moeglich,
-   bei Fortsetzung klare eigene Ueberschrift). Zubereitungsschritte behalten ihre echte Nummer
-   ueber die gesamte Fortsetzung hinweg (Punkt 54) — via CSS counter-reset, da die Nummern-Kreise
-   per ::before/counter gerendert werden, nicht ueber das HTML-Attribut ol-start. */
-function pdfRenderBlockGroups(sliceBlocks, allBlocks, sliceStartIdx) {
-  let html = '';
-  let i = 0;
-  while (i < sliceBlocks.length) {
-    const type = sliceBlocks[i].type;
-    let j = i;
-    while (j < sliceBlocks.length && sliceBlocks[j].type === type) j++;
-    const group = sliceBlocks.slice(i, j);
-    const globalStart = sliceStartIdx + i;
-    const isContinuationOfType = allBlocks.slice(0, globalStart).some((b) => b.type === type);
-    if (type === 'ing') {
-      html += `<div class="pdf-ing-title">Zutaten${isContinuationOfType ? ' · Fortsetzung' : ''}</div><ul class="pdf-ing-list">${group.map((b) => b.html).join('')}</ul>`;
-    } else if (type === 'step') {
-      const stepsBefore = allBlocks.slice(0, globalStart).filter((b) => b.type === 'step').reduce((n, b) => n + (b.num === undefined ? 1 : b.num), 0);
-      html += `<div class="pdf-steps-title">Zubereitung${isContinuationOfType ? ' · Fortsetzung' : ''}</div><ol class="pdf-step-list" style="counter-reset: pstep ${stepsBefore};">${group.map((b) => b.html).join('')}</ol>`;
-    } else {
-      html += group.map((b) => b.html).join('');
-    }
-    i = j;
-  }
-  return html;
-}
-
-/* Haupteinstieg: waehlt Layout deterministisch und baut das passende HTML. `imgDims` ist
-   {width,height} des Originalbilds oder null (kein Foto -> Layout G, Punkt 49). */
-function buildRecipePdfSection(recipe, imgUrl, imgDims, result, previousLayout, nutritionDetail) {
-  const factor = 1; // PDF-Export nutzt immer die Basisportionen des Rezepts, keine Live-Skalierung
-  if (!imgUrl || !imgDims) return { html: pdfLayoutTypography(recipe, result, factor, nutritionDetail), layout: 'typography' };
-  const layout = selectPdfLayout(recipe, imgDims, previousLayout);
-  const builders = {
-    hero: () => pdfLayoutHero(recipe, imgUrl, result, factor, nutritionDetail),
-    'split-left': () => pdfLayoutSplit(recipe, imgUrl, result, factor, 'left', nutritionDetail),
-    'split-right': () => pdfLayoutSplit(recipe, imgUrl, result, factor, 'right', nutritionDetail),
-    floating: () => pdfLayoutFloating(recipe, imgUrl, result, factor, nutritionDetail),
-    'full-statement': () => pdfLayoutFullStatement(recipe, imgUrl, result, factor, nutritionDetail),
-  };
-  const build = builders[layout] || builders.hero;
-  return { html: build(), layout };
+function pvChapterPage(title) {
+  return `<section class="pv-page pv-chapter ${PDF_CTX.tpl.cls}" data-page-kind="chapter"><div class="pv-chapter-in"><div class="pv-cat">Kapitel</div><h2 class="pv-chapter-title">${pvEsc(title)}</h2><div class="pv-cover-rule"></div></div></section>`;
 }

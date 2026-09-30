@@ -72,7 +72,7 @@ async function searchAllFoods(query, limit = 20) {
    daraus eine Zubereitungsart erkannt (Punkt 21), fliesst sie NUR ein, wenn die Zutatenzeile
    selbst noch keinen expliziten ernaehrungsrelevanten Zustand nennt (die explizite Angabe in
    der Zutat selbst hat Vorrang vor der aus dem Fliesstext erratenen). */
-async function matchIngredient(rawName, steps) {
+async function matchIngredient(rawName, steps, opts) {
   const normalized = normalizeIngredientText(rawName);
   if (!normalized) {
     return { normalized, status: 'unmatched', food: null, candidates: [], confirmed: false, preparation: null, ingredientInfo: null };
@@ -96,6 +96,16 @@ async function matchIngredient(rawName, steps) {
   if (customHits.length) {
     const exact = customHits.find((f) => normalizeIngredientText(f.name) === normalized);
     if (exact) return { normalized, status: 'matched', food: exact, candidates: customHits, confirmed: false, preparation, ingredientInfo };
+  }
+
+  // 2b) Kuratierte Alltagsbegriffe (Zucker, Milch, Eier, Rüebli ...) direkt auf den passenden
+  //     Datenbank-Eintrag; Wasser und Gewuerze in Kleinstmengen werden nicht mitgerechnet.
+  const alias = await resolveNutritionAlias(rawName);
+  if (alias) {
+    if (alias.kind === 'food') return { normalized, status: 'matched', food: alias.food, candidates: [alias.food], confirmed: false, preparation, ingredientInfo, viaAlias: true };
+    if (alias.kind === 'nonCaloric' || !(opts && opts.ignoreNegligible)) {
+      return { normalized, status: 'matched', food: null, skipped: alias.kind, candidates: [], confirmed: false, preparation, ingredientInfo };
+    }
   }
 
   // 3) Schweizer Naehrwertdatenbank — Suchbegriff ist der vom Normalizer bereinigte Kern

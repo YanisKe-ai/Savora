@@ -71,7 +71,7 @@ function slugifyTitle(title) {
 /* Inhaltlicher Fingerabdruck eines Rezepts: zwei Rezepte mit gleichem Fingerabdruck sind fuer die
    Wiederherstellung dasselbe Rezept (Zeitstempel, Fotos und Zaehler zaehlen nicht). */
 function backupRecipeFingerprint(r) {
-  return JSON.stringify([r.title || '', r.servings, r.servingMode || '', r.timeMinutes || 0, r.difficulty || '', r.ingredients || [], r.steps || [], r.notes || '', r.tags || [], r.diet || [], r.categoryTags || []]);
+  return JSON.stringify([r.title || '', r.servings, r.servingMode || '', r.timeMinutes || 0, r.ingredients || [], r.steps || [], r.notes || '', r.tags || [], r.diet || [], r.categoryTags || []]);
 }
 
 async function restoreBackupFromFile(file) {

@@ -458,6 +458,7 @@ function cookbookWarnings(cfg) {
     if (!(r.steps || []).some(s => (s.text || '').trim())) warnings.push({ level: 'warn', text: `„${t}“ hat keine Zubereitungsschritte.` });
     if ((r.steps || []).length > 12 || realIngredients(r).length > 22) warnings.push({ level: 'info', text: `„${t}“ ist lang und wird über mehrere Seiten gesetzt.` });
     if (!r.image && !r.imageId) warnings.push({ level: 'info', text: `„${t}“ hat kein Foto, die Seite wird ohne Bild gestaltet.` });
+    if (typeof recipeIssuesSummary === 'function') { const w = recipeIssuesSummary(r); if (w) warnings.push({ level: 'info', text: w }); }
   });
   cfg.chapters.forEach(c => { if (!cfg.items.some(it => it.chapterId === c.id)) warnings.push({ level: 'info', text: `Kapitel „${c.name}“ ist leer und wird übersprungen.` }); });
   if (cfg.coverRecipeId) {

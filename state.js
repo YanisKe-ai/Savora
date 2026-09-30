@@ -317,7 +317,7 @@ async function loadMealplan() {
 
 function emptyRecipe() {
   return {
-    id: uid(), title: '', image: null, servings: 4, timeMinutes: 30, difficulty: 'Mittel',
+    id: uid(), title: '', image: null, servings: 4, timeMinutes: 30, difficulty: '',
     tags: [], diet: [], categoryTags: [], suppressedTags: [], ingredients: [{ amount: '', unit: '', name: '' }], steps: [{ text: '' }],
     notes: '', favorite: false, source: null, createdAt: Date.now(), updatedAt: Date.now(),
     // Punkt 50: Datenmodell vorbereitet, auch ohne eigene UI zum Setzen — {x:0.5,y:0.5} entspricht

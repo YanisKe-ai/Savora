@@ -1,0 +1,139 @@
+/* ===== PDF-Vorlagen A (Warm Editorial), B (Bold Kitchen), C (Küchenblatt) =====
+   Alle Klassen mit Präfix pv-. Die Seiten werden ausserhalb des Bildschirms gemessen und gerastert
+   (pdf.js). Körpertext mindestens 10 pt. Schrift: Serifentitel = Source Serif 4 (OFL, vendor/fonts). */
+@font-face { font-family: 'Source Serif 4'; font-weight: 400; font-style: normal; font-display: swap; src: url(vendor/fonts/source-serif-4-400.woff2) format('woff2'); }
+@font-face { font-family: 'Source Serif 4'; font-weight: 400; font-style: italic; font-display: swap; src: url(vendor/fonts/source-serif-4-400i.woff2) format('woff2'); }
+@font-face { font-family: 'Source Serif 4'; font-weight: 600; font-style: normal; font-display: swap; src: url(vendor/fonts/source-serif-4-600.woff2) format('woff2'); }
+
+.pv-page { --pv-bg: #FAF7F0; --pv-ink: #282723; --pv-accent: #244536; --pv-accent2: #365546; --pv-panel: #E9EEE5; --pv-muted: #6B6A62; --pv-rule: #D5D0C1;
+  --pv-title-font: 'Source Serif 4', Georgia, 'Times New Roman', serif; --pv-title-weight: 400; --pv-title-case: none; --pv-tsize-s: 34pt; --pv-tsize-m: 28pt; --pv-tsize-l: 23pt; --pv-tsize-xl: 19pt;
+  width: 210mm; min-height: 297mm; box-sizing: border-box; position: relative; background: var(--pv-bg); color: var(--pv-ink);
+  font-family: Roboto, Arial, sans-serif; font-size: 10.5pt; line-height: 1.42; padding: 16mm 15mm 21mm; overflow-wrap: break-word; hyphens: none; -webkit-hyphens: none; }
+.pv-tpl-b { --pv-bg: #FFFDF8; --pv-accent: #40205F; --pv-accent2: #40205F; --pv-panel: #F0E9F5; --pv-muted: #6A5F77; --pv-rule: #DAD0E4; --lime: #DDF57E;
+  --pv-title-font: 'Sofia Sans Extra Condensed', 'Roboto Condensed', sans-serif; --pv-title-weight: 800; --pv-title-case: uppercase; --pv-tsize-s: 42pt; --pv-tsize-m: 35pt; --pv-tsize-l: 29pt; --pv-tsize-xl: 23pt; }
+.pv-tpl-c { --pv-bg: #FFFFFF; --pv-ink: #343C35; --pv-accent: #343C35; --pv-accent2: #343C35; --pv-panel: transparent; --pv-muted: #6D746E; --pv-rule: #C4C9C4;
+  --pv-tsize-s: 32pt; --pv-tsize-m: 27pt; --pv-tsize-l: 22pt; --pv-tsize-xl: 18pt; }
+
+.pv-label { font-size: 8.5pt; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; color: var(--pv-accent); margin: 0 0 3.5mm; }
+.pv-cat { font-size: 8.5pt; font-weight: 700; letter-spacing: .16em; text-transform: uppercase; color: var(--pv-accent2); margin: 0 0 3mm; }
+.pv-title { font-family: var(--pv-title-font); font-weight: var(--pv-title-weight); text-transform: var(--pv-title-case); color: var(--pv-accent); margin: 0 0 4mm; line-height: 1.08; letter-spacing: -.005em; }
+.pv-t-s { font-size: var(--pv-tsize-s); } .pv-t-m { font-size: var(--pv-tsize-m); } .pv-t-l { font-size: var(--pv-tsize-l); } .pv-t-xl { font-size: var(--pv-tsize-xl); }
+.pv-tpl-c .pv-title { color: var(--pv-ink); }
+
+/* Kopf und Foto */
+.pv-head { margin: 0 0 5mm; }
+.pv-head-side { display: grid; grid-template-columns: 1fr auto; column-gap: 8mm; align-items: start; }
+.pv-tpl-b .pv-head { background: #40205F; color: #fff; margin: -16mm -15mm 6mm; padding: 15mm 15mm 8mm; }
+.pv-tpl-b .pv-title, .pv-tpl-b .pv-cat { color: #fff; } .pv-tpl-b .pv-cat { color: var(--lime); }
+.pv-photo { overflow: hidden; background: #ddd; flex: none; }
+.pv-photo-band { margin: 0 0 6mm; }
+.pv-tpl-c .pv-photo-band { margin-bottom: 5mm; }
+.pv-head-side .pv-photo-side { align-self: start; }
+.pv-tpl-c .pv-head { border-bottom: 1.4pt solid var(--pv-ink); padding-bottom: 6mm; margin-bottom: 7mm; }
+.pv-tpl-c .pv-head .pv-title { margin-bottom: 3mm; }
+
+/* Fakten: Ausbeute und Zeiten */
+.pv-facts { display: flex; flex-wrap: wrap; column-gap: 9mm; row-gap: 2mm; margin: 0 0 6mm; }
+.pv-fact { display: block; line-height: 1.15; }
+.pv-fact b { display: block; font-size: 11.5pt; font-weight: 700; color: var(--pv-ink); }
+.pv-fact i { display: block; font-style: normal; font-size: 8pt; letter-spacing: .12em; text-transform: uppercase; color: var(--pv-muted); margin-top: .6mm; }
+.pv-tpl-b .pv-head .pv-fact b { color: #fff; } .pv-tpl-b .pv-head .pv-fact i { color: #DDD0EE; }
+.pv-head-text .pv-facts { margin: 3mm 0 0; }
+
+/* Körper: Zutaten links (ca. 32 %), Zubereitung rechts (ca. 63 %) */
+.pv-body { display: grid; grid-template-columns: 33.5% 61.5%; column-gap: 5%; align-items: start; }
+.pv-body-single { display: block; }
+.pv-ing-col { background: var(--pv-panel); padding: 5mm 4mm 4mm; }
+.pv-tpl-b .pv-ing-col, .pv-tpl-c .pv-ing-col { background: transparent; padding: 0; }
+.pv-tpl-c .pv-ing-col { padding-right: 2mm; }
+.pv-ing { display: grid; grid-template-columns: 13.5mm 1fr; column-gap: 1.5mm; padding: 1.4mm 0; }
+.pv-ing-amt { font-weight: 600; color: var(--pv-accent2); }
+.pv-ing-group { font-weight: 700; color: var(--pv-accent); margin: 3.5mm 0 1mm; font-size: 10.5pt; }
+.pv-ing-group:first-of-type { margin-top: 0; }
+.pv-cont { font-weight: 400; color: var(--pv-muted); font-size: 9pt; }
+.pv-step { display: grid; grid-template-columns: 9.5mm 1fr; margin: 0 0 4mm; }
+.pv-step-no { font-weight: 700; color: var(--pv-accent); font-size: 10pt; font-variant-numeric: tabular-nums; padding-top: .5mm; }
+.pv-step-heading { font-weight: 700; color: var(--pv-accent); margin: 5mm 0 2.2mm; font-size: 10.5pt; }
+.pv-step-heading:first-of-type { margin-top: 0; }
+.pv-body-single .pv-steps-col { max-width: 160mm; }
+
+/* Zusatzblöcke: Hinweise, Notizen, Nährwerte, Quelle */
+.pv-extras { margin-top: 7mm; }
+.pv-extra { margin: 0 0 4mm; }
+.pv-extra p { margin: 0 0 1.5mm; font-size: 10pt; }
+.pv-extra .pv-label { margin-bottom: 1.5mm; }
+.pv-tpl-b .pv-tips { background: var(--pv-panel); padding: 4mm 5mm; }
+.pv-tpl-c .pv-tips, .pv-tpl-c .pv-notes { border-top: .6pt solid var(--pv-rule); padding-top: 3mm; }
+.pv-tpl-a .pv-tips { border-left: 1.1mm solid var(--pv-accent2); padding-left: 4mm; }
+.pv-nutri { background: var(--pv-panel); padding: 3.5mm 4.5mm; }
+.pv-tpl-c .pv-nutri { border-top: .6pt solid var(--pv-rule); padding: 3mm 0 0; }
+.pv-nutri-row { display: flex; flex-wrap: wrap; column-gap: 6mm; row-gap: 1mm; font-size: 10pt; }
+.pv-small { font-size: 8.5pt; color: var(--pv-muted); margin-top: 2mm; }
+.pv-source { font-size: 8.5pt; color: var(--pv-muted); word-break: break-all; }
+.pv-source .pv-label { display: inline; font-size: 8pt; margin: 0 2mm 0 0; }
+
+/* Fusszeile (Seitenzahl setzt jsPDF als Text) */
+.pv-foot { position: absolute; left: 15mm; right: 30mm; bottom: 8.5mm; font-size: 7.5pt; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--pv-accent2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pv-tpl-c .pv-foot { color: var(--pv-muted); }
+
+/* Fortsetzungsseite */
+.pv-cont-head { display: flex; justify-content: space-between; align-items: baseline; gap: 6mm; font-size: 8.5pt; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: var(--pv-accent2); border-bottom: .6pt solid var(--pv-rule); padding-bottom: 2.5mm; margin: 0 0 7mm; }
+.pv-cont-head i { font-style: normal; font-weight: 400; color: var(--pv-muted); }
+
+/* Kompakt: unkritische Abstände etwas enger (Schrift bleibt gleich gross) */
+.pv-tight { padding-top: 13mm; }
+.pv-tight.pv-tpl-b .pv-head { margin-top: -13mm; padding-top: 12mm; }
+.pv-tight .pv-step { margin-bottom: 2.9mm; } .pv-tight .pv-ing { padding: .9mm 0; } .pv-tight .pv-facts { margin-bottom: 4mm; }
+.pv-tight .pv-photo-band { margin-bottom: 4mm; } .pv-tight .pv-extras { margin-top: 5mm; }
+
+/* Deckblatt, Inhalt, Kapitel */
+.pv-cover { display: flex; flex-direction: column; justify-content: center; padding: 26mm 24mm; }
+.pv-cover-photo { justify-content: flex-start; padding: 0 0 20mm; }
+.pv-cover-img { width: 210mm; height: 150mm; overflow: hidden; margin-bottom: 16mm; }
+.pv-cover-photo .pv-cover-text { padding: 0 24mm; }
+.pv-cover-title { font-family: var(--pv-title-font); font-weight: var(--pv-title-weight); text-transform: var(--pv-title-case); color: var(--pv-accent); margin: 0 0 6mm; line-height: 1.05; }
+.pv-cover-title.pv-t-m { font-size: calc(var(--pv-tsize-s) * 1.25); } .pv-cover-title.pv-t-l { font-size: var(--pv-tsize-s); }
+.pv-tpl-c .pv-cover-title { color: var(--pv-ink); }
+.pv-cover-rule { width: 28mm; height: 2.6pt; background: var(--pv-accent2); margin: 0 0 7mm; }
+.pv-cover-sub { font-size: 12pt; color: var(--pv-muted); margin: 0 0 3mm; }
+.pv-cover-author { font-size: 11pt; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--pv-accent2); margin: 0; }
+.pv-cover-logo { position: absolute; bottom: 13mm; right: 15mm; width: 11mm; height: 11mm; border-radius: 2.6mm; }
+.pv-tpl-b.pv-cover { background: #40205F; }
+.pv-tpl-b .pv-cover-title { color: #fff; } .pv-tpl-b .pv-cover-rule { background: var(--lime); } .pv-tpl-b .pv-cover-author { color: var(--lime); } .pv-tpl-b .pv-cover-sub { color: #E4D8F2; } .pv-tpl-b .pv-cover .pv-cat, .pv-tpl-b.pv-cover .pv-cat { color: var(--lime); }
+.pv-tpl-c .pv-cover-text { border-top: 1.4pt solid var(--pv-ink); padding-top: 8mm; }
+
+.pv-toc { padding-top: 24mm; }
+.pv-toc-title { font-family: var(--pv-title-font); font-weight: var(--pv-title-weight); text-transform: var(--pv-title-case); color: var(--pv-accent); font-size: 26pt; margin: 0 0 9mm; line-height: 1.1; }
+.pv-tpl-c .pv-toc-title { color: var(--pv-ink); }
+.pv-toc-chapter { font-size: 8.5pt; font-weight: 700; letter-spacing: .16em; text-transform: uppercase; color: var(--pv-accent2); margin: 6mm 0 1mm; }
+.pv-toc-row { display: flex; align-items: baseline; gap: 3mm; padding: 1.9mm 0; font-size: 11pt; line-height: 1.35; }
+.pv-toc-name { flex: 0 1 auto; max-width: 78%; font-weight: 600; }
+.pv-toc-dots { flex: 1 1 auto; border-bottom: .5pt dotted var(--pv-muted); min-width: 6mm; transform: translateY(-1mm); }
+.pv-toc-pg { flex: none; font-weight: 700; color: var(--pv-accent2); font-variant-numeric: tabular-nums; }
+.pv-chapter { display: flex; align-items: center; justify-content: flex-start; padding: 30mm 24mm; }
+.pv-chapter-title { font-family: var(--pv-title-font); font-weight: var(--pv-title-weight); text-transform: var(--pv-title-case); color: var(--pv-accent); font-size: 34pt; margin: 0 0 6mm; line-height: 1.1; }
+
+/* Auswahl der Vorlage im Export-Dialog */
+.pdf-tpl-choice { display: grid; gap: 8px; margin: 0 0 16px; }
+.pdf-tpl-opt { display: grid; grid-template-columns: 34px 1fr; grid-template-rows: auto auto; column-gap: 12px; align-items: center; text-align: left; padding: 10px 12px; min-height: 56px; border: 1.5px solid var(--border, #d9d3e6); border-radius: 12px; background: var(--card-bg, #fff); color: inherit; font: inherit; }
+.pdf-tpl-opt b { font-size: 14.5px; } .pdf-tpl-opt small { grid-column: 2; color: var(--text-soft, #765F8C); font-size: 12.5px; }
+.pdf-tpl-opt .pdf-tpl-swatch { grid-row: 1 / 3; width: 34px; height: 44px; border-radius: 4px; border: 1px solid rgba(0,0,0,.15); }
+.pdf-tpl-opt.active { border-color: var(--accent, #6E45A2); box-shadow: 0 0 0 2px var(--accent-soft, rgba(110,69,162,.18)); }
+.pdf-tpl-swatch-a { background: linear-gradient(180deg, #FAF7F0 55%, #E9EEE5 55%); }
+.pdf-tpl-swatch-b { background: linear-gradient(180deg, #40205F 38%, #FFFDF8 38%); }
+.pdf-tpl-swatch-c { background: linear-gradient(180deg, #fff 60%, #eee 60%); }
+.check-row { display: flex; align-items: center; gap: 10px; min-height: 44px; margin: 4px 0 10px; }
+.check-row input { width: 20px; height: 20px; }
+
+.pv-cont-head span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pv-cont-head i { flex: none; white-space: nowrap; }
+.pv-ing-col-2 { margin-top: 0; }
+.pv-body:has(.pv-ing-col-2) { grid-template-columns: 47.5% 47.5%; column-gap: 5%; }
+
+.pv-head-text .pv-facts { margin: 5mm 0 0; }
+.pv-tpl-c .pv-head .pv-title { margin-bottom: 0; }
+.pdf-preview-meta { flex: 1; margin-left: 10px; color: var(--text-soft, #765F8C); font-size: 13.5px; }
+.pdf-zoom { display: inline-flex; gap: 6px; margin-right: 6px; }
+.pdf-zoom .icon-btn { min-width: 44px; min-height: 44px; font-size: 22px; font-weight: 700; }
+.pdf-pages { overflow-x: auto; }
+.pdf-pages .pdf-page-slot { width: calc(100% * var(--pdf-zoom, 1)); max-width: none; }

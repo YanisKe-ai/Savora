@@ -50,6 +50,13 @@ function collectFormData() {
   r.servings = parseInt(document.getElementById('f-servings').value) || 1;
   r.timeMinutes = parseInt(document.getElementById('f-time').value) || 0;
   r.difficulty = document.getElementById('f-difficulty').value;
+  // Weitere Zeitangaben sind optional und additiv: leer = unbekannt (Feld wird entfernt, nichts erfunden)
+  [['f-prep', 'prepMinutes'], ['f-rest', 'restMinutes'], ['f-cook', 'cookMinutes']].forEach(([elId, key]) => {
+    const el = document.getElementById(elId);
+    if (!el) return;
+    const v = parseInt(el.value, 10);
+    if (v > 0) r[key] = v; else delete r[key];
+  });
   r.notes = document.getElementById('f-notes').value;
   // Zutaten in DOM-Reihenfolge lesen: Gruppenzeilen setzen das group-Feld der folgenden Zutaten.
   // Unbekannte Zusatzfelder einer bestehenden Zutat (z.B. note, optional) bleiben erhalten.
@@ -250,7 +257,7 @@ function renderKeepFocus(id) {
 const ASYNC_GUARDED_ACTIONS = new Set([
   'save-recipe', 'export-backup', 'pdf-export-build', 'pdf-export-download', 'pdf-export-share',
   'nutrition-confirm-match', 'nutrition-save-custom', 'nutrition-barcode-lookup',
-  'duplicate-recipe', 'confirm-shop-select', 'cook-complete', 'save-note',
+  'duplicate-recipe', 'rc-apply', 'confirm-shop-select', 'cook-complete', 'save-note',
 ]);
 const busyActions = new Set();
 
@@ -525,10 +532,10 @@ async function dispatchAction(action, id, el, e) {
       break;
     }
     case 'export-pdf':
-      openModal({ type: 'pdf-export', target: 'single', recipeId: id, stage: 'options', nutritionDetail: await defaultPdfNutritionDetail('single', id) }, `[data-action="export-pdf"][data-id="${id}"]`);
+      openModal({ type: 'pdf-export', target: 'single', recipeId: id, stage: 'options', template: pdfDefaultTemplateId(), nutritionDetail: await defaultPdfNutritionDetail('single', id) }, `[data-action="export-pdf"][data-id="${id}"]`);
       break;
     case 'export-cookbook':
-      openModal({ type: 'pdf-export', target: 'cookbook', stage: 'options', nutritionDetail: await defaultPdfNutritionDetail('cookbook') }, `[data-action="export-cookbook"]`);
+      openModal({ type: 'pdf-export', target: 'cookbook', stage: 'options', template: (getCookbookConfig().pdfTemplate || pdfDefaultTemplateId()), nutritionDetail: await defaultPdfNutritionDetail('cookbook') }, `[data-action="export-cookbook"]`);
       break;
     case 'export-backup':
       downloadBackup();
@@ -540,7 +547,7 @@ async function dispatchAction(action, id, el, e) {
       // Punkt 2: identischer Ablauf wie 'export-pdf' — ein Rezept hat nur noch EINEN PDF-Weg,
       // nicht zwei verschiedene (vorher: 'Teilen' ging direkt an navigator.share vorbei an
       // jeder Vorschau, 'Als PDF exportieren' zeigte eine Vorschau — inkonsistent).
-      openModal({ type: 'pdf-export', target: 'single', recipeId: id, stage: 'options', nutritionDetail: await defaultPdfNutritionDetail('single', id) }, `[data-action="share-recipe"][data-id="${id}"]`);
+      openModal({ type: 'pdf-export', target: 'single', recipeId: id, stage: 'options', template: pdfDefaultTemplateId(), nutritionDetail: await defaultPdfNutritionDetail('single', id) }, `[data-action="share-recipe"][data-id="${id}"]`);
       break;
     case 'save-profile-fields': {
       const titleInput = document.getElementById('f-cookbook-title');
@@ -871,6 +878,25 @@ async function dispatchAction(action, id, el, e) {
     /* ---------- PDF-Export-Vorschau (Punkt 59, 65) ---------- */
     case 'noop':
       break;
+    case 'rc-apply': {
+      const ok = await applyRecipeFix(id, el.dataset.issue);
+      showToast(ok ? 'Vorschlag übernommen' : 'Der Vorschlag passt nicht mehr');
+      render();
+      break;
+    }
+    case 'pdf-zoom': {   // Vorschau (Canvas-Modus) vergroessern/verkleinern
+      const m = state.modal; if (!m) break;
+      const z = Math.max(1, Math.min(3, (m.zoom || 1) + (id === 'in' ? 0.5 : -0.5)));
+      m.zoom = z;
+      const box = document.getElementById('pdfPages');
+      if (box) { box.style.setProperty('--pdf-zoom', String(z)); box.querySelectorAll('canvas').forEach((c) => { c.width = 0; c.height = 0; c.remove(); }); renderPdfPreview(m.previewBlob, box); }
+      break;
+    }
+    case 'pdf-export-set-template':
+      state.modal.template = id;
+      pdfRememberTemplate(id);
+      render();
+      break;
     case 'pdf-export-set-detail':
       state.modal.nutritionDetail = el.dataset.level;
       render();
@@ -879,25 +905,27 @@ async function dispatchAction(action, id, el, e) {
       state.modal.stage = 'building';
       render();
       const m = state.modal;
-      const result = m.target === 'cookbook'
-        ? await buildCookbookPdf(m.nutritionDetail)
-        : await buildSinglePdf(m.recipeId, m.nutritionDetail);
-      // Punkt 12: waehrend des Builds kann der Nutzer das Modal geschlossen oder gewechselt
-      // haben (der Backdrop ist ausser im 'preview'-Stage anklickbar) — state.modal zeigt dann
-      // nicht mehr auf dasselbe Objekt wie 'm'. Das Ergebnis in den inzwischen ungueltigen/
-      // fremden Modal-State zu schreiben wuerde entweder abstuerzen (null) oder das falsche
-      // Modal ueberschreiben. In beiden Faellen wird das fertige Ergebnis dann verworfen.
-      if (state.modal !== m) {
-        if (result && result.blob) { /* Blob wird nie in eine URL umgewandelt, kein Leak */ }
-        return;
+      let result = null;
+      try {
+        const opts = { template: m.template };
+        result = m.target === 'cookbook'
+          ? await buildCookbookPdf(m.nutritionDetail, opts)
+          : await buildSinglePdf(m.recipeId, m.nutritionDetail, opts);
+      } catch (err) {
+        console.warn('PDF-Erstellung fehlgeschlagen', err);
+        result = null;
       }
+      // waehrend des Builds kann das Modal geschlossen/gewechselt worden sein: Ergebnis dann verwerfen
+      if (state.modal !== m) return;
       if (!result) {
-        showToast('PDF konnte nicht erstellt werden', 'error');
+        showToast('PDF konnte nicht erstellt werden. Deine Rezepte sind unverändert.', 'error');
         m.stage = 'options';
         render();
         break;
       }
       m.previewBlob = result.blob;
+      m.pageCount = result.blob.pageCount || 0;
+      m.zoom = 1;
       m.filename = result.filename;
       m.previewUrl = URL.createObjectURL(result.blob);
       m.stage = 'preview';
