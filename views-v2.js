@@ -52,10 +52,15 @@ function bottomNav() {
 
 // Kompakte App-Bar fuer Unterseiten (Zurueck, Titel, Aktionen). Wird auch von den
 // Einstellungsseiten in views.js verwendet, deshalb gleiche Signatur wie bisher.
+/* Kopfzeile: kleines Logo + Wortmarke, klar getrennt vom Seitentitel darunter */
+function brandLockup() {
+  return `<div class="brand-v2"><img class="brand-icon" src="icon-96.png" alt="" width="34" height="34"><span class="brand-word">savora</span></div>`;
+}
+
 function topbar(title, opts = {}) {
   const left = opts.back
     ? `<button class="icon-btn" data-action="back" aria-label="Zurück">${ICONS.back}</button>`
-    : `<div class="brand-v2"><span class="brand-word">savora</span></div>`;
+    : brandLockup();
   return `<header class="topbar ${opts.back ? 'topbar--sub' : ''} ${opts.cls || ''}">
     <div class="topbar-left">${left}${opts.back ? `<h1 class="topbar-title">${escapeHtml(title)}</h1>` : ''}</div>
     <div class="topbar-actions">${opts.actions || ''}</div>
@@ -231,7 +236,7 @@ function homeView() {
 
   return `
     <header class="topbar topbar--home">
-      <div class="topbar-left"><div class="brand-v2"><span class="brand-word">savora</span></div></div>
+      <div class="topbar-left">${brandLockup()}</div>
       <div class="topbar-actions">
         <button class="round-btn" data-action="focus-search" aria-label="Suchen">${ICONS.search}</button>
         <button class="round-btn round-btn--accent" data-action="open-add-menu" aria-label="Rezept hinzufügen">${ICONS.plus}</button>

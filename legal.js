@@ -2,7 +2,7 @@
    Alle Angaben, die nur die verantwortliche Person kennt, stehen zentral in LEGAL. Solange ein Wert
    mit "[" beginnt, ist er ein Platzhalter und wird in der App farbig markiert angezeigt.
    Kein Rechtsrat: Vor einer oeffentlichen Veroeffentlichung von einer Fachperson pruefen lassen. */
-const APP_VERSION = '0.44.1';   // muss mit der Datei VERSION uebereinstimmen (Test: tests/test_paket2.py)
+const APP_VERSION = '0.45.0';   // muss mit der Datei VERSION uebereinstimmen (Test: tests/test_paket2.py)
 const LEGAL = {
   name: '[Name der verantwortlichen Person]',
   email: '[Kontakt-E-Mail]',

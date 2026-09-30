@@ -388,7 +388,7 @@ async function buildCookbookPdf(nutritionDetail) {
   }
   const cover = `<section class="pdf-page-cover ${coverImg ? 'pdf-page-cover--photo' : ''}">
     ${coverImg}
-    <div class="pdf-cover-badge"><img src="logo-mark.png" alt=""></div>
+    <div class="pdf-cover-badge"><img src="icon-512.png" alt=""></div>
     <h1>${escapeHtml(title)}</h1>
     <hr class="pdf-cover-rule">
     ${cfg.subtitle ? `<p>${escapeHtml(cfg.subtitle)}</p>` : '<p>Savora</p>'}
