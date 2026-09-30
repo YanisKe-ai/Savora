@@ -381,7 +381,7 @@ function detailView() {
       <div class="detail-cols"><div class="detail-col detail-col--info">
       <div class="detail-head">
         <div class="detail-title-row">
-          <h2 class="detail-title-v2">${escapeHtml(r.title || 'Ohne Titel')}</h2>
+          <h2 class="detail-title-v2 ${(r.title || '').length > 34 ? 'is-long' : ''}">${escapeHtml(r.title || 'Ohne Titel')}</h2>
           ${favButton(r, 'detail-fav')}
         </div>
         <p class="detail-meta-v2">${meta.map(escapeHtml).join('<span class="meta-sep" aria-hidden="true">•</span>')}</p>
@@ -768,7 +768,7 @@ function cookbookDesignerView() {
         <div class="field"><label for="cbAuthor">Autor oder Autorin (Deckblatt und Fusszeile)</label><input type="text" id="cbAuthor" data-cb-field="author" value="${escapeHtml(cfg.author || '')}" placeholder="optional"></div>
         <div class="field"><label for="cbTemplate">Vorlage</label><select id="cbTemplate" data-cb-field="pdfTemplate">${Object.values(PDF_TEMPLATES).map(t => `<option value="${t.id}" ${(cfg.pdfTemplate || pdfDefaultTemplateId()) === t.id ? 'selected' : ''}>${t.id} · ${t.name}</option>`).join('')}</select></div>
         <label class="check-row"><input type="checkbox" data-cb-flag="showLogo" ${cfg.showLogo === false ? '' : 'checked'}> <span>Kleines Savora-Logo auf dem Deckblatt</span></label>
-        <div class="field"><label for="cbCover">Titelbild</label><select id="cbCover" data-cb-field="coverRecipeId"><option value="">Ohne Bild (nur Logo)</option>${withImage.map(r => `<option value="${r.id}" ${cfg.coverRecipeId === r.id ? 'selected' : ''}>${escapeHtml(r.title || 'Ohne Titel')}</option>`).join('')}</select></div>
+        <div class="field"><label for="cbCover">Titelbild</label><select id="cbCover" data-cb-field="coverRecipeId"><option value="">Ohne Bild</option>${withImage.map(r => `<option value="${r.id}" ${cfg.coverRecipeId === r.id ? 'selected' : ''}>${escapeHtml(r.title || 'Ohne Titel')}</option>`).join('')}</select></div>
       </section>
       <section class="panel">
         <h2 class="section-title">2. Kapitel</h2>

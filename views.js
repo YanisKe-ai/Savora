@@ -345,7 +345,7 @@ function settingsBackupView() {
         <div id="backupStatus"></div>
       </div>
     </div>`;
-  return settingsDetailShell('Sicherung & Wiederherstellung', body);
+  return settingsDetailShell('Sicherung', body);
 }
 
 function settingsHelpView() {
