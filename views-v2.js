@@ -69,21 +69,14 @@ function pageTitle(title, actions) {
 /* ---------- Filter ---------- */
 function applyAllFilters(recipes) {
   let list = recipesInCollection(state.activeCollection, recipes);
-  if (state.query.trim()) {
-    const q = state.query.trim().toLowerCase();
-    list = list.filter(r =>
-      (r.title || '').toLowerCase().includes(q) ||
-      (r.ingredients || []).some(i => (i.name || '').toLowerCase().includes(q)) ||
-      (r.tags || []).some(t => t.toLowerCase().includes(q))
-    );
-  }
+  if (state.query.trim()) list = list.filter(r => recipeMatchesQuery(r, state.query));
   if (state.activeTag) list = list.filter(r => (r.tags || []).includes(state.activeTag));
   if (state.favOnly) list = list.filter(r => r.favorite);
   const { dietary, category, time } = state.activeFilters;
   if (dietary.size) list = list.filter(r => { const bad = new Set(dietConflicts(r).map(c => c.label)); return (r.diet || []).some(d => dietary.has(d) && !bad.has(d)); });
   if (category.size) list = list.filter(r => (r.categoryTags || []).some(c => category.has(c)));
   if (time.size) list = list.filter(r => timeBucketsFor(r.timeMinutes).some(b => time.has(b)));
-  return list;
+  return sortRecipes(list, state.sortBy);
 }
 
 function collectionChips() {
@@ -104,6 +97,12 @@ function filterSheetModal() {
     <div class="modal-sheet filter-sheet" role="dialog" aria-modal="true" aria-labelledby="filter-sheet-title" tabindex="-1" onclick="event.stopPropagation()">
       <div class="sheet-handle" aria-hidden="true"></div>
       <h3 class="modal-title" id="filter-sheet-title">Filter</h3>
+      <div class="filter-group">
+        <h3 class="filter-group-title" id="filter-group-sort">Sortierung</h3>
+        <div class="sort-row" role="radiogroup" aria-labelledby="filter-group-sort">
+          ${SORT_OPTIONS.map(o => `<button type="button" class="sort-chip ${state.sortBy === o.id ? 'is-active' : ''}" role="radio" aria-checked="${state.sortBy === o.id}" data-action="set-sort" data-id="${o.id}">${o.label}</button>`).join('')}
+        </div>
+      </div>
       ${filterCheckboxGroup('Ernährung', 'dietary', dietaryOptions, dietary, o => o.id, o => o.label)}
       ${filterCheckboxGroup('Mahlzeit', 'category', MEAL_TYPE_OPTIONS, category, o => o.id, o => o.label)}
       ${filterCheckboxGroup('Gericht', 'category', DISH_TYPE_OPTIONS, category, o => o.id, o => o.label)}
@@ -220,7 +219,7 @@ function homeView() {
       ${recent ? `<section class="home-section" aria-labelledby="recent-h"><h2 class="section-title" id="recent-h">Zuletzt bearbeitet</h2>${recentCard(recent)}</section>` : ''}
       <section class="home-section" aria-labelledby="all-h">
         <div class="section-title-row">
-          <h2 class="section-title" id="all-h">${isFiltered ? `${list.length} Treffer` : 'Alle Rezepte'}</h2>
+          <h2 class="section-title" id="all-h">${isFiltered ? `${list.length} Treffer` : 'Alle Rezepte'}${state.sortBy !== 'updated' ? `<span class="sort-note"> · ${escapeHtml((SORT_OPTIONS.find(o => o.id === state.sortBy) || {}).label || '')}</span>` : ''}</h2>
           <div class="layout-toggle" role="group" aria-label="Darstellung">
             <button type="button" class="icon-toggle ${state.homeLayout !== 'list' ? 'is-active' : ''}" data-action="set-home-layout" data-id="grid" aria-pressed="${state.homeLayout !== 'list'}" aria-label="Rasteransicht">${ICONS.grid}</button>
             <button type="button" class="icon-toggle ${state.homeLayout === 'list' ? 'is-active' : ''}" data-action="set-home-layout" data-id="list" aria-pressed="${state.homeLayout === 'list'}" aria-label="Listenansicht">${ICONS.list}</button>

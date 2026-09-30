@@ -3,6 +3,7 @@
 Format: neueste Version oben. `VERSION` und `SW_VERSION` in `sw.js` werden bei jeder Änderung gemeinsam erhöht.
 
 ## Unveröffentlicht (Branch dev)
+- 0.35.0 (SW v35-paket9): Suche tolerant: Umlaute und Akzente egal ("gemuse", "Gemuese", "Gemüse"), Bindestriche zählen als Leerzeichen, mehrere Wörter müssen alle vorkommen (auch verteilt auf Titel, Zutaten, Tags). Neu: Sortierung (Zuletzt bearbeitet, A bis Z, Zuletzt gekocht, Kürzeste Zeit) im Filterdialog.
 - 0.34.0 (SW v34-paket8): Feinschliff nach Bildkontrolle: Formular-Schrittleiste zeigt auf dem Handy alle 5 Schritte (nur der aktive mit Namen, wird in den sichtbaren Bereich gescrollt), Knöpfe "Rezept speichern" und "PDF erstellen" brechen nicht mehr um, Sicherungs-Erinnerung kompakter, Wortlaut bei Synchronisation.
 - 0.33.0 (SW v33-paket7): Breite Bildschirme ab 900 px (iPad quer, Desktop): Seitenleiste statt unterer Leiste, Rezeptseite zweispaltig (Zutaten links, Zubereitung rechts), 4 Spalten im Rezeptraster ab 1240 px. Schmale Bildschirme unverändert.
 - 0.32.0 (SW v32-paket6): Kochmodus: Schriftgrösse in drei Stufen ("Aa"), Timer-Leiste mit allen laufenden Timern (auch aus anderen Schritten, "+1 Min.", Tippen springt zum Schritt). Haptisches Feedback in der iOS-App (`@capacitor/haptics`). Sicherungs-Erinnerung auf der Startseite (ab 3 Rezepten, nach 14 Tagen ohne Sicherung, "Später" für 7 Tage). Nährwerte in "Mehr" ausblendbar (Reiter und PDF-Option). Einstiegsschritte im leeren Kochbuch.

@@ -861,3 +861,9 @@ body.keyboard-open .cook-bar { display: none; }
 .nudge-text { min-width: 0; flex: 1 1 100%; font-size: 14px; }
 @media (max-width: 559px) { .nudge-card { flex-wrap: nowrap; align-items: center; } .nudge-text { flex: 1 1 auto; } .nudge-actions { flex: 0 0 auto; flex-direction: column; align-items: stretch; gap: 0; } .nudge-actions .text-btn { text-align: center; } }
 @media (min-width: 560px) { .nudge-text { flex: 1 1 260px; } .nudge-actions { flex: 0 0 auto; } }
+
+/* ---------- Paket 9: Suche und Sortierung ---------- */
+.sort-row { display: flex; flex-wrap: wrap; gap: 8px; }
+.sort-chip { min-height: 44px; padding: 0 16px; border-radius: 999px; border: 1px solid var(--border); background: var(--surface-soft); color: var(--text); font-weight: 700; font-size: 15px; }
+.sort-chip.is-active { background: var(--lime); border-color: var(--lime); color: var(--lime-ink); }
+.sort-note { font-family: var(--font-sans); font-size: 14px; font-weight: 500; color: var(--text-soft); letter-spacing: 0; }

@@ -312,6 +312,11 @@ async function handleActionV2(action, id, el, e) {
       render();
       speakCurrentStepIfEnabled();
       return true;
+    case 'set-sort':
+      state.sortBy = el.dataset.id;
+      try { localStorage.setItem(SORT_KEY, state.sortBy); } catch (err) {}
+      render();
+      return true;
     case 'backup-nudge-dismiss':
       try { localStorage.setItem(BACKUP_NUDGE_KEY, String(Date.now() + 7 * 86400000)); } catch (err) {}
       render();

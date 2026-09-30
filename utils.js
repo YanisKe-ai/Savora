@@ -128,3 +128,47 @@ function backupNudgeInfo() {
     return days >= 14 ? { never: false, days } : null;
   } catch (e) { return null; }
 }
+
+/* ---------- Suche ----------
+   Gross/Klein, Umlaute und Akzente sind egal ("gemuse", "Gemuese" und "Gemüse" finden dasselbe),
+   Bindestriche und Satzzeichen zaehlen als Leerzeichen. Mehrere Woerter muessen alle vorkommen,
+   auch verteilt (Titel, Zutaten, Tags). */
+function searchNorm(s) {
+  return String(s === undefined || s === null ? '' : s).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+    .replace(/ß/g, 'ss').replace(/ae/g, 'a').replace(/oe/g, 'o').replace(/ue/g, 'u')
+    .replace(/[^a-z0-9]+/g, ' ').trim();
+}
+const _searchCache = new Map();
+function recipeSearchText(r) {
+  const key = r.id + '|' + (r.updatedAt || 0);
+  let v = _searchCache.get(key);
+  if (v === undefined) {
+    v = searchNorm([r.title || ''].concat((r.ingredients || []).map(i => i.name || ''), r.tags || []).join(' '));
+    if (_searchCache.size > 5000) _searchCache.clear();
+    _searchCache.set(key, v);
+  }
+  return v;
+}
+function recipeMatchesQuery(r, query) {
+  const tokens = searchNorm(query).split(' ').filter(Boolean);
+  if (!tokens.length) return true;
+  const hay = recipeSearchText(r);
+  return tokens.every(t => hay.includes(t));
+}
+
+/* ---------- Sortierung der Rezeptliste ---------- */
+const SORT_KEY = 'savora-sort';
+const SORT_OPTIONS = [
+  { id: 'updated', label: 'Zuletzt bearbeitet' },
+  { id: 'az', label: 'A bis Z' },
+  { id: 'cooked', label: 'Zuletzt gekocht' },
+  { id: 'time', label: 'Kürzeste Zeit' },
+];
+function sortRecipes(list, by) {
+  const arr = list.slice();
+  const title = (r) => String(r.title || '');
+  if (by === 'az') return arr.sort((a, b) => title(a).localeCompare(title(b), 'de', { sensitivity: 'base' }));
+  if (by === 'cooked') return arr.sort((a, b) => (b.lastCookedAt || 0) - (a.lastCookedAt || 0) || title(a).localeCompare(title(b), 'de', { sensitivity: 'base' }));
+  if (by === 'time') return arr.sort((a, b) => ((a.timeMinutes || 1e9) - (b.timeMinutes || 1e9)) || title(a).localeCompare(title(b), 'de', { sensitivity: 'base' }));
+  return arr;   // 'updated': state.recipes ist bereits danach sortiert
+}
