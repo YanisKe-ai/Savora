@@ -3,6 +3,7 @@
 Format: neueste Version oben. `VERSION` und `SW_VERSION` in `sw.js` werden bei jeder Änderung gemeinsam erhöht.
 
 ## Unveröffentlicht (Branch dev)
+- 0.43.0 (SW v43-paket18): Wiederherstellung verdoppelt nichts mehr: Rezepte, die mit gleicher ID und gleichem Inhalt schon da sind, Einkaufslisten-Einträge und Wochenplan-Einträge werden übersprungen. Ein inhaltlich anderes Rezept bleibt wie bisher als zusätzliche Kopie erhalten (es wird nie etwas überschrieben). Hinweis im Kochbuch-Designer bei über 40 Rezepten (Dauer und Speicher). Neuer Test `test_restore.py`.
 - 0.42.0 (SW v42-paket17): **Foto scannen** (iOS-App): Buchseite oder Zettel fotografieren oder aus den Fotos wählen, die Texterkennung (Apple Vision, auf dem Gerät, eigenes Plugin `native-plugins/text-recognition`) schreibt den Text ins Importfeld, danach wie gewohnt "Rezept-Entwurf erstellen". Menü "Rezept hinzufügen" bekommt den Eintrag "Foto scannen" (nur iOS-App). Satzerkennung im Import verfeinert (kurze Sätze wie "Teig rühren und braten." sind Schritte). Im Simulator mit einem Testfoto bestätigt. Neue Tests `test_photoscan.py`.
 - 0.41.0 (SW v41-paket16): iOS-App: Sind Mitteilungen ausgeschaltet, erklärt ein Hinweis (einmal pro Sitzung), warum sich Timer bei gesperrtem Telefon nicht melden. Neuer Test `test_shell.py` prüft, dass jede geladene Datei in der Service-Worker-Liste steht.
 - 0.40.0 (SW v40-paket15): Einheiten dl und cl (Schweiz) überall bekannt: Einkaufsliste führt "1 dl Milch" und "200 ml Milch" zusammen, Umrechnung ins Imperiale. Neuer Test `test_units.py`.

@@ -33,6 +33,8 @@ async def main():
             nh = await page.evaluate("document.querySelector('.nudge-card').getBoundingClientRect().height")
             check(f'{w} px: Sicherungs-Erinnerung höchstens 130 px hoch', nh <= 130, f'{nh:.0f}')
             if w == 390:
+                big = await page.evaluate("() => { const items = Array.from({ length: 45 }, (_, i) => ({ recipeId: state.recipes[0].id, chapterId: '' })); return cookbookWarnings({ items, chapters: [], coverRecipeId: '' }).map(w => w.text) }")
+                check('Kochbuch mit über 40 Rezepten: Hinweis auf Dauer und Speicher', any('einige Minuten und viel Speicher' in t for t in big), str(big[:2]))
                 await page.evaluate("() => { state.storagePersisted = false; state.view = 'settings-backup'; render(); }"); await page.wait_for_timeout(200)
                 check('Browser ohne dauerhaften Speicher: Hinweis auf der Sicherungsseite', 'nicht als dauerhaft' in await page.evaluate("document.body.innerText"))
                 await page.evaluate("() => { state.storagePersisted = true; render(); }"); await page.wait_for_timeout(200)

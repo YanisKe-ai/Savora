@@ -20,6 +20,7 @@ Arbeit ohne Rückfragen, alles auf Zweigen, nichts auf `main`. Die Zweige bauen 
 | 14 Einheit dl und cl | `paket-15-dl` | fertig | Tests grün (lokal) |
 | 15 Mitteilungs-Hinweis, Service-Worker-Prüfung | `paket-16-mitteilungen` | fertig | Tests grün (lokal) |
 | 16 Foto scannen (Texterkennung) | `paket-17-fotoscan` | fertig, im Simulator mit Testfoto bestätigt | Tests grün (lokal) |
+| 17 Sicherung ohne Verdopplung | `paket-18-wiederherstellung` | fertig | Tests grün (lokal) |
 
 ## Paket 2: was du entscheiden oder eintragen musst
 - In `legal.js` steht oben `LEGAL` mit `[Name der verantwortlichen Person]`, `[Kontakt-E-Mail]` und `[Ort]`. Bitte ausfüllen. Solange die Werte mit `[` beginnen, erscheinen sie in der App grün markiert.

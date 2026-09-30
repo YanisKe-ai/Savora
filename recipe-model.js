@@ -445,6 +445,7 @@ function cookbookWarnings(cfg) {
   const warnings = [];
   const byId = Object.fromEntries(state.recipes.map(r => [r.id, r]));
   if (!cfg.items.length) warnings.push({ level: 'error', text: 'Es ist noch kein Rezept ausgewählt.' });
+  if (cfg.items.length > 40) warnings.push({ level: 'warn', text: `Ein Kochbuch mit ${cfg.items.length} Rezepten braucht beim Erstellen einige Minuten und viel Speicher. Teile es bei Bedarf in mehrere Bücher auf.` });
   cfg.items.forEach(it => {
     const r = byId[it.recipeId]; if (!r) return;
     const t = r.title || 'Ohne Titel';
