@@ -58,6 +58,12 @@ Heute nur Gewicht und Volumen mit einfachem Eingabefeld. Vorschlag:
 - [ ] Teilen-Menü-Eintrag "An Savora senden" und Live Activity für Timer (Machbarkeit mit Personal Team unklar)
 - [x] Einstieg im leeren Kochbuch (3 Schritte); eine eigene Einführung beim ersten Start bleibt optional
 
+## Offen aus der unabhängigen Prüfung (klein)
+- [ ] Einkaufsliste und Einheiten-Umrechnung mit Bereichen ("2-3 Zwiebeln") und Rundung beim Zusammenführen
+- [ ] Mehrere kurze Sätze in einem Import-Schritt trennen; Titel-Rückfall bei fehlender Titelzeile
+- [ ] Seitenleiste ab 900 pt: seitliche Safe-Area (grosse iPhones quer); PDF.js in die Vorab-Liste des Service Workers
+- [ ] Suche ab Wortmitte bei Umlauten ("esli" findet "Müesli")
+
 ## Offen, entscheidet oder prüft Yanis
 - [ ] Apple Developer Program: später
 - [ ] Supabase-Projekt im Dashboard prüfen (Pausierung bei Inaktivität im kostenlosen Tarif)
