@@ -843,3 +843,21 @@ body.keyboard-open .cook-bar { display: none; }
   .hero-img { max-height: 34dvh; }
 }
 @media (min-width: 1240px) { .rgrid { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+
+/* ---------- Paket 8: Feinschliff ---------- */
+/* Formular-Schritte: auf dem Handy sind alle 5 sichtbar, nur der aktive zeigt seinen Namen */
+@media (max-width: 520px) {
+  .form-stepper { gap: 6px; }
+  .form-step-btn { position: relative; padding: 0 6px; flex: 0 0 auto; }   /* relative: der versteckte Name bleibt innerhalb der scrollbaren Leiste */
+  .form-step-btn:not(.is-active) { min-width: 44px; justify-content: center; }
+  .form-step-btn:not(.is-active) .form-step-label { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }   /* bleibt fuer Screenreader */
+  .form-step-btn.is-active { padding-right: 14px; }
+}
+/* Knoepfe im Dialog-Fuss brechen nicht mehr um */
+.form-actions .primary-btn { flex: 1.4; white-space: nowrap; }
+.form-actions .ghost-btn { white-space: nowrap; min-width: 0; }
+/* Sicherungs-Erinnerung kompakter */
+.nudge-card { padding: 10px 12px; gap: 6px 12px; }
+.nudge-text { min-width: 0; flex: 1 1 100%; font-size: 14px; }
+@media (max-width: 559px) { .nudge-card { flex-wrap: nowrap; align-items: center; } .nudge-text { flex: 1 1 auto; } .nudge-actions { flex: 0 0 auto; flex-direction: column; align-items: stretch; gap: 0; } .nudge-actions .text-btn { text-align: center; } }
+@media (min-width: 560px) { .nudge-text { flex: 1 1 260px; } .nudge-actions { flex: 0 0 auto; } }

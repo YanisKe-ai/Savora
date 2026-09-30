@@ -184,6 +184,12 @@ function bindEvents() {
 
   if (typeof ucBindInputs === 'function') ucBindInputs();   // Masseinheiten-Rechner (unit-converter.js)
   if (typeof ingPasteBind === 'function') ingPasteBind();   // Zutaten einfuegen (ingredient-paste.js)
+  const stepper = document.querySelector('.form-stepper');
+  const stepAct = stepper && stepper.querySelector('.is-active');
+  if (stepper && stepAct) {   // aktiver Schritt sichtbar machen (auf sehr schmalen Handys scrollt die Leiste)
+    stepper.scrollLeft += (stepAct.getBoundingClientRect().left - stepper.getBoundingClientRect().left) - (stepper.clientWidth - stepAct.offsetWidth) / 2;
+  }
+
   const tagNew = document.getElementById('f-tag-new');
   if (tagNew) {
     tagNew.addEventListener('keydown', (e) => {
