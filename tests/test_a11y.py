@@ -29,16 +29,18 @@ async def main():
         await goto(page); await page.evaluate(open(SEED_PATH).read()); await page.wait_for_timeout(600)
         await page.add_script_tag(content=axe)
         n = 0
-        for th in ['light', 'dark', 'amoled']:
-            await page.evaluate(f"() => document.documentElement.setAttribute('data-theme','{th}')")
-            for name, js in VIEWS:
-                await page.evaluate("() => {" + js + "; render(); }"); await page.wait_for_timeout(300)
-                v = await page.evaluate("""async () => { const r = await axe.run(document, { runOnly: ['wcag2a','wcag2aa','wcag21aa','best-practice'] });
-                    return r.violations.map(x => x.id + ' (' + x.nodes.length + '): ' + x.nodes[0].target.join(' ').slice(-60)) }""")
-                n += 1
-                if v:
-                    fails.append(f'{th} / {name}: {v}'); print('FEHL ', th, name, v)
-        print(f'{n} Ansichten geprueft (Hell, Dunkel, Schwarz)')
+        for width, height in [(390, 844), (1280, 800)]:
+          await page.set_viewport_size({'width': width, 'height': height})
+          for th in ['light', 'dark', 'amoled']:
+              await page.evaluate(f"() => document.documentElement.setAttribute('data-theme','{th}')")
+              for name, js in VIEWS:
+                  await page.evaluate("() => {" + js + "; render(); }"); await page.wait_for_timeout(300)
+                  v = await page.evaluate("""async () => { const r = await axe.run(document, { runOnly: ['wcag2a','wcag2aa','wcag21aa','best-practice'] });
+                      return r.violations.map(x => x.id + ' (' + x.nodes.length + '): ' + x.nodes[0].target.join(' ').slice(-60)) }""")
+                  n += 1
+                  if v:
+                      fails.append(f'{width}px {th} / {name}: {v}'); print('FEHL ', width, th, name, v)
+        print(f'{n} Ansichten geprueft (Hell, Dunkel, Schwarz, 390 und 1280 px)')
         if errs: fails.append('Seitenfehler: ' + str(errs[:2]))
         await browser.close()
     print('\nFEHLGESCHLAGEN:', fails or 'keine')
