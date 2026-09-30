@@ -335,15 +335,16 @@ function detailView() {
   if (!r) { state.view = 'home'; return homeView(); }
   const servings = currentServings(r);
   const hasNotes = !!(r.notes || (r.cookLog || []).length);
+  const wide = !!(window.matchMedia && matchMedia('(min-width: 900px)').matches);   // breit: Zutaten stehen links (Seitenspalte) statt im Reiter, nie doppelt im DOM
   const tabs = [
     { id: 'ingredients', label: 'Zutaten' },
     { id: 'steps', label: 'Zubereitung' },
   ];
+  if (wide) tabs.shift();   // kein versteckter Reiter, den die Tastatur nicht erreicht
   if (state.showNutrition) tabs.push({ id: 'nutrition', label: 'Nährwerte' });
   if (hasNotes) tabs.push({ id: 'notes', label: 'Notizen' });
-  const tab = tabs.some(t => t.id === state.detailTab) ? state.detailTab : 'ingredients';
+  const tab = tabs.some(t => t.id === state.detailTab) ? state.detailTab : tabs[0].id;
   // Alle Panels liegen im DOM, der Tabwechsel blendet nur um (kein Neuaufbau, kein Scrollsprung).
-  const wide = !!(window.matchMedia && matchMedia('(min-width: 900px)').matches);   // breit: Zutaten stehen links (Seitenspalte) statt im Reiter, nie doppelt im DOM
   const ingHtml = ingredientsPanel(r);
   const panelHtml = { ingredients: wide ? '' : ingHtml, steps: stepsPanel(r), nutrition: state.showNutrition ? nutritionPanel(r) : '', notes: hasNotes ? notesPanel(r) : '' };
   const hero = r.image
@@ -385,7 +386,7 @@ function detailView() {
       </div>
       ${source}
       ${conflictBox}
-      <div class="detail-aside-ing" aria-label="Zutaten">${wide ? ingHtml : ''}</div>
+      <div class="detail-aside-ing" role="region" aria-label="Zutaten">${wide ? ingHtml : ''}</div>
       </div><div class="detail-col detail-col--content">
       <div class="tabbar-v2" role="tablist" aria-label="Rezeptinhalt">
         ${tabs.map(t => `<button role="tab" id="tab-${t.id}" class="tab-v2 ${tab === t.id ? 'is-active' : ''}" aria-selected="${tab === t.id}" aria-controls="panel-${t.id}" tabindex="${tab === t.id ? '0' : '-1'}" data-action="set-detail-tab" data-id="${t.id}">${t.label}</button>`).join('')}

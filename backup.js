@@ -99,6 +99,7 @@ async function restoreBackupFromFile(file) {
 
     if (!data || !Array.isArray(data.recipes)) throw new Error('Diese Datei sieht nicht wie eine Savora-Sicherung oder ein geteiltes Rezept aus');
     let added = 0, skipped = 0;
+    const skippedIds = new Set();   // schon vorhandene, identische Rezepte: ihre lokalen Nährwert-Ergebnisse bleiben
     const recipeIdMap = {}; // alte Rezept-ID (aus der Sicherung) -> neue ID (siehe unten, wichtig fuer nutritionResults)
     for (const r of data.recipes) {
       const clone = JSON.parse(JSON.stringify(r));
@@ -108,7 +109,7 @@ async function restoreBackupFromFile(file) {
       // Ist dasselbe Rezept (gleiche ID, gleicher Inhalt) schon da, wird es uebersprungen statt verdoppelt.
       // Ist es inhaltlich anders, bleibt es als zusaetzliche Kopie erhalten: es wird nie etwas ueberschrieben.
       const existingSame = oldId && state.recipes.find(x => x.id === oldId);
-      if (existingSame && backupRecipeFingerprint(existingSame) === backupRecipeFingerprint(clone)) { recipeIdMap[oldId] = oldId; skipped++; continue; }
+      if (existingSame && backupRecipeFingerprint(existingSame) === backupRecipeFingerprint(clone)) { recipeIdMap[oldId] = oldId; skippedIds.add(oldId); skipped++; continue; }
       const idTaken = !oldId || state.recipes.some(x => x.id === oldId) || Object.values(recipeIdMap).includes(oldId);
       if (idTaken) clone.id = uid();
       clone.updatedAt = Date.now();
@@ -142,7 +143,7 @@ async function restoreBackupFromFile(file) {
     for (const res of (data.nutritionResults || [])) {
       const clone = JSON.parse(JSON.stringify(res));
       const newRecipeId = recipeIdMap[clone.recipeId];
-      if (!newRecipeId) continue; // Rezept aus der Sicherung ist nicht (mehr) dabei -> Ergebnis waere verwaist
+      if (!newRecipeId || skippedIds.has(clone.recipeId)) continue; // Rezept aus der Sicherung ist nicht (mehr) dabei -> Ergebnis waere verwaist
       clone.recipeId = newRecipeId;
       await dbPutNutritionResult(clone);
       addedResults++;

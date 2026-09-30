@@ -753,7 +753,9 @@ body.keyboard-open .cook-bar { display: none; }
 .uc-dim-label { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: .08em; color: var(--text-soft); margin: 10px 2px 8px; }
 .uc-result-list { display: flex; flex-direction: column; gap: 8px; }
 .uc-result-row { display: grid; grid-template-columns: auto 1fr auto; align-items: baseline; column-gap: 10px; row-gap: 2px; width: 100%; min-height: 60px; padding: 10px 14px; text-align: left; background: var(--card-bg); border: 1px solid var(--border); border-radius: 14px; color: var(--text); }
-.uc-result-row--static { opacity: .7; }
+.uc-result-row--static { opacity: 1; }
+.uc-result-row--static .uc-result-label, .uc-result-row--static small { font-weight: 500; }
+.cook-timer-go:focus-visible, .cook-timer-plus:focus-visible, .cook-mode :focus-visible { outline-color: var(--lime); }
 .uc-result-value { grid-row: 1; font-family: var(--font-display); font-weight: 800; font-size: 28px; line-height: 1.1; font-variant-numeric: tabular-nums; letter-spacing: 0; }
 .uc-result-unit { grid-row: 1; font-size: 14px; font-weight: 700; color: var(--text-soft); }
 .uc-result-note { grid-column: 1 / -1; grid-row: 2; font-size: 13px; color: var(--text-soft); }
@@ -832,7 +834,7 @@ body.keyboard-open .cook-bar { display: none; }
   .cook-bar { left: 232px; bottom: 16px; padding-bottom: 0; background: none; }
   .detail-main { max-width: 1140px; padding-bottom: 96px; }
   /* Rezeptseite zweispaltig: links Kopf und Zutaten, rechts Zubereitung */
-  .detail-cols { display: grid; grid-template-columns: minmax(320px, 400px) minmax(0, 1fr); column-gap: 48px; align-items: start; }
+  .detail-cols { display: grid; grid-template-columns: minmax(300px, 360px) minmax(0, 1fr); column-gap: 32px; align-items: start; }
   .detail-col--info { position: sticky; top: calc(76px + env(safe-area-inset-top, 0px)); max-height: calc(100dvh - 96px); overflow-y: auto; padding-bottom: 8px; }
   .detail-aside-ing { display: block; margin-top: 18px; padding-top: 6px; border-top: 1px solid var(--border); }
   .detail-col--content .tabbar-v2 { top: calc(64px + env(safe-area-inset-top, 0px)); margin-top: 14px; }

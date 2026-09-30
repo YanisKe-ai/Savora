@@ -8,11 +8,12 @@ const ING_PASTE_UNITS = ['kg', 'g', 'gr', 'mg', 'l', 'dl', 'cl', 'ml', 'tl', 'el
   'pck', 'päckchen', 'paeckchen', 'schuss', 'spritzer', 'tropfen', 'stängel', 'bd', 'bündel', 'ecke', 'ecken', 'kugel', 'kugeln', 'liter', 'gramm', 'kilo', 'milliliter', 'deziliter', 'zentiliter', 'pfund'];
 const ING_PASTE_GLYPH = { '¼': 0.25, '½': 0.5, '¾': 0.75, '⅓': 1 / 3, '⅔': 2 / 3, '⅛': 0.125 };
 const ING_PASTE_AMOUNT_RE = new RegExp('^(?:ca\\.?\\s*|etwa\\s+|ungefähr\\s+)?(' +
-  '\\d+\\s*[¼½¾⅓⅔⅛]|[¼½¾⅓⅔⅛]|\\d+\\s+\\d+\\/\\d+|\\d+\\/\\d+|\\d+(?:[.,]\\d+)?(?:\\s*[-–]\\s*\\d+(?:[.,]\\d+)?)?)\\s*(.*)$', 'i');
+  '\\d{1,3}(?:[.\'’]\\d{3})+(?!\\d)|\\d+\\s*[¼½¾⅓⅔⅛]|[¼½¾⅓⅔⅛]|\\d+\\s+\\d+\\/\\d+|\\d+\\/\\d+|\\d+(?:[.,]\\d+)?(?:\\s*[-–]\\s*\\d+(?:[.,]\\d+)?)?)\\s*(.*)$', 'i');
 
 function ingPasteAmount(raw) {
   const s = raw.trim();
   let m;
+  if (/^\d{1,3}(?:[.'’]\d{3})+$/.test(s)) return s.replace(/[.'’]/g, '');   // Tausendertrenner: 1.000 / 1'000 = 1000
   if ((m = /^(\d+)\s*([¼½¾⅓⅔⅛])$/.exec(s))) return String(Math.round((parseInt(m[1], 10) + ING_PASTE_GLYPH[m[2]]) * 1000) / 1000);
   if (ING_PASTE_GLYPH[s] !== undefined) return String(Math.round(ING_PASTE_GLYPH[s] * 1000) / 1000);
   return s.replace(/(\d),(\d)/g, '$1.$2').replace(/\s*[-–]\s*/, '-');
@@ -22,6 +23,7 @@ function ingPasteParseLine(line) {
   if (!s) return null;
   const m = ING_PASTE_AMOUNT_RE.exec(s);
   if (!m) return { amount: '', unit: '', name: s };
+  if (/^[-–]/.test(m[2])) return { amount: '', unit: '', name: s };   // z.B. "7-Kräuter-Mix": Zahl gehört zum Namen
   const amount = ingPasteAmount(m[1]);
   let rest = m[2].trim();
   let unit = '';
@@ -82,6 +84,8 @@ function ingPasteApply() {
   if (!items.length) { showToast('Keine Zutaten erkannt'); return; }
   const r = collectFormData();
   const existing = (r.ingredients || []).filter(i => (i.name || '').trim() || (i.amount || '').toString().trim());   // leere Startzeile entfernen
+  const lastGroup = existing.length ? (existing[existing.length - 1].group || '') : '';
+  if (lastGroup) items.forEach(i => { if (!i.group) i.group = lastGroup; });   // der Editor kennt keine Zutat ohne Gruppe hinter einer Gruppe
   r.ingredients = existing.concat(items);   // bestehende Zutaten bleiben, neue kommen ans Ende
   state.editingRecipe = r;
   state.modal = null;

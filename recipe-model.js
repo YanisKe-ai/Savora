@@ -98,6 +98,11 @@ function kitchenAmount(value, unit) {
   return fmtAmount(value);
 }
 function scaledAmountText(i, factor) {
+  const range = /^\s*([\d.,\/½¼¾⅓⅔ ]+?)\s*[-–]\s*([\d.,\/½¼¾⅓⅔ ]+?)\s*$/.exec(String(i.amount == null ? '' : i.amount));
+  if (range) {   // Bereich "2-3": beide Grenzen skalieren, nie nur die untere
+    const lo = parseAmount(range[1]), hi = parseAmount(range[2]);
+    if (lo !== null && hi !== null) return kitchenAmount(lo * factor, i.unit) + '-' + kitchenAmount(hi * factor, i.unit);
+  }
   const pa = parseAmount(i.amount);
   if (pa === null) return String(i.amount || '').trim(); // freie Angaben ("etwas") nie erfinden
   return kitchenAmount(pa * factor, i.unit);

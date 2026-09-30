@@ -292,8 +292,13 @@ async function dispatchAction(action, id, el, e) {
       state.modal = null;
       state.view = 'paste-import';
       render();
-      const scanInput = document.getElementById('ocrInput');
-      if (scanInput) scanInput.click();
+      let scanTries = 0;   // render() kann per View Transition verzoegert sein: kurz warten, bis das Feld da ist
+      const openScan = () => {
+        const scanInput = document.getElementById('ocrInput');
+        if (scanInput) scanInput.click();
+        else if (++scanTries < 20) setTimeout(openScan, 50);
+      };
+      openScan();
       break;
     }
     case 'edit-recipe':

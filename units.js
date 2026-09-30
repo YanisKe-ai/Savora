@@ -19,7 +19,7 @@ const UNIT_ALIASES = {
   tsp: ['tl', 'tsp', 'teelöffel', 'teaspoon', 'teaspoons'],
   tbsp: ['el', 'tbsp', 'esslöffel', 'tablespoon', 'tablespoons'],
   cup: ['cup', 'cups', 'tasse', 'tassen'],
-  floz: ['floz', 'fl.oz', 'flooz', 'fluidounce', 'fluidounces'],
+  floz: ['floz', 'fl.oz', 'fl. oz', 'flooz', 'fluidounce', 'fluidounces'],
 };
 
 const UNIT_LABELS = { g: 'g', kg: 'kg', oz: 'oz', lb: 'lb', ml: 'ml', cl: 'cl', dl: 'dl', l: 'l', tsp: 'TL', tbsp: 'EL', cup: 'Cup', floz: 'fl. oz' };

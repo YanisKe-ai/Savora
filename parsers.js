@@ -23,6 +23,10 @@ function parseTimeNumberToken(tok) {
   if (tok == null) return null;
   const t = tok.trim();
   if (/^½$/.test(t)) return 0.5;
+  const mixedFrac = /^(\d+)\s+(\d+)\/(\d+)$/.exec(t);
+  if (mixedFrac && +mixedFrac[3] > 0) return +mixedFrac[1] + mixedFrac[2] / mixedFrac[3];
+  const plainFrac = /^(\d+)\/(\d+)$/.exec(t);
+  if (plainFrac && +plainFrac[2] > 0) return plainFrac[1] / plainFrac[2];
   const halfMatch = /^(\d+)\s*½$/.exec(t);
   if (halfMatch) return parseInt(halfMatch[1], 10) + 0.5;
   const wordMatch = new RegExp(`^(${TIME_NUMBER_WORD_PATTERN})$`, 'i').exec(t);
@@ -49,7 +53,7 @@ function parseDurations(text) {
   // 2) Allgemeines Muster: Ziffer, Dezimalzahl, Zahlwort, ½ oder "1½" [bis/– weitere Zahl] Einheit.
   //    Die Einheit muss unmittelbar folgen — nur so werden "180 Grad", "2 Portionen" oder
   //    "5 Eier" zuverlaessig NICHT als Zeitangabe erkannt (kein False Positive).
-  const numTok = `(?:\\d+(?:[.,]\\d+)?\\s*½?|½|${TIME_NUMBER_WORD_PATTERN})`;
+  const numTok = `(?:\\d+\\s+\\d+\/\\d+|\\d+\/\\d+|\\d+(?:[.,]\\d+)?\\s*½?|½|${TIME_NUMBER_WORD_PATTERN})`;
   const re = new RegExp(`(${numTok})\\s*(?:(?:bis|-|–|—)\\s*(${numTok})\\s*)?(Stunden?|Std\\.?|Minuten?|Min\\.?|Sekunden?|Sek\\.?|h)\\b`, 'gi');
   let m;
   while ((m = re.exec(text)) !== null) {
@@ -158,7 +162,7 @@ function parseIngredientLine(line) {
 function stripBullet(line) {
   // Deckt per Unicode-Kategorie (Symbol/Interpunktion) praktisch jedes gaengige Bullet-Zeichen ab
   // (-, *, •, ‣, ▪, ◦, ·, ∙, ●, ➤, ✦ ...), nicht nur eine feste Liste.
-  return line.replace(/^[\s]*[\p{P}\p{S}]+\s*/u, '').replace(/^[\p{Emoji_Presentation}\p{Extended_Pictographic}]\s*/u, '').trim();
+  return line.replace(/^[\s]*(?![.,]\d)(?!\()[\p{P}\p{S}]+\s*/u, '').replace(/^[\p{Emoji_Presentation}\p{Extended_Pictographic}]\s*/u, '').trim();
 }
 
 function stripStepNumber(line) {
@@ -171,7 +175,7 @@ function looksLikeIngredient(line) {
   if (STEP_NUM_RE.test(line)) return false;
   const s = stripBullet(line);
   if (!s) return false;
-  return /^[\d½¼¾⅓⅔]/.test(s) || /^\s*[\p{P}\p{S}]/u.test(line) || /^[\p{Emoji_Presentation}\p{Extended_Pictographic}]/u.test(line);
+  return /^[\d½¼¾⅓⅔⅕⅖⅗⅘⅛⅜⅝⅞]/.test(s) || /^\s*[\p{P}\p{S}]/u.test(line) || /^[\p{Emoji_Presentation}\p{Extended_Pictographic}]/u.test(line);
 }
 
 /* ---------- Automatische Notiz-Erkennung beim Textimport (Master-Prompt Teil D, Punkt 49-58) ----------
@@ -256,7 +260,9 @@ function parseFreeTextRecipe(raw) {
 
   const ingHeaderRe = { test: (l) => importIsIngHeader(l) };
   const stepHeaderRe = { test: (l) => importIsStepHeader(l) };
-  const metaLineRe = /portionen|personen|servings|dauert|zubereitungszeit|gesamtzeit|kochzeit|arbeitszeit|backzeit|ruhezeit|zeitaufwand|schwierigkeit|zutaten\s*(?:für|fuer)\s+\d+|^[\p{Extended_Pictographic}\uFE0F\s]*(?:für|fuer)\s+\d+\s*(?:stück|stk|port|pers)|[⏱⏲🕒🕐🕑🕓🕔🕕]/iu;
+  const metaLineWords = /portionen|personen|servings|dauert|zubereitungszeit|gesamtzeit|kochzeit|arbeitszeit|backzeit|ruhezeit|zeitaufwand|schwierigkeit|zutaten\s*(?:für|fuer)\s+\d+|^[\p{Extended_Pictographic}\uFE0F\s]*(?:für|fuer)\s+\d+\s*(?:stück|stk|port|pers)|[⏱⏲🕒🕐🕑🕓🕔🕕]/iu;
+  // Meta-Zeilen sind kurz ("Portionen: 4", "Dauer 30 Min."); ein Satz, der nur ein solches Wort enthaelt, bleibt Schritt oder Zutat
+  const metaLineRe = { test: (l) => metaLineWords.test(l) && !/^\s*\d+(?:[.,]\d+)?\s+(?:portionen?|personen?)\s+\p{L}/iu.test(l) && (/[⏱⏲🕒🕐🕑🕓🕔🕕]/u.test(l) || (l.length <= 50 && l.trim().split(/\s+/).length <= 5)) };
   const isHashtagOnly = (l) => !l.replace(/#[\wäöüÄÖÜß-]+/g, '').trim();
 
   let tagWords = [];
