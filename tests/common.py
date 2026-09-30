@@ -29,6 +29,7 @@ class _Handler(SimpleHTTPRequestHandler):
 def _start_server():
     import time
     ThreadingHTTPServer.allow_reuse_address = True
+    ThreadingHTTPServer.request_queue_size = 256   # Standard ist 5: bei ~45 gleichzeitigen Anfragen und Last brechen sonst Verbindungen ab (ERR_CONNECTION_RESET)
     for attempt in range(10):   # der Port ist direkt nach dem vorigen Test manchmal noch kurz belegt
         try:
             srv = ThreadingHTTPServer(('127.0.0.1', PORT), _Handler); break
