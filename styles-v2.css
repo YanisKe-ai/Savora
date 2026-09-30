@@ -998,3 +998,16 @@ main > .page-eyebrow:first-child + .page-title-row { margin-top: 2px; }
 .field-more { margin: 4px 0 12px; } .field-more > summary { min-height: 44px; display: flex; align-items: center; font-weight: 600; cursor: pointer; }
 .field-row--3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
 @media (max-width: 420px) { .field-row--3 { grid-template-columns: 1fr; } }
+
+/* ===== Paket 22: Feinschliff aus dem Live-Test ===== */
+/* Lange Woerter und Links (z. B. eine Quell-URL in einem Schritt) duerfen die Seite nie breiter machen */
+.tab-panel, .step-text, .cook-step-card, .notes-text, .ing-row, .ingredient-row, .detail-col, .note-card, .cookmode-steptext, .list-title, .recipe-card-title { overflow-wrap: anywhere; min-width: 0; }
+.tab-panel p, .tab-panel li, .tab-panel span { overflow-wrap: anywhere; }
+.detail-title-v2 { overflow-wrap: anywhere; hyphens: auto; }
+.detail-title-v2.is-long { font-size: clamp(28px, 8.4vw, 38px); line-height: 1.08; }
+input[type="checkbox"], input[type="radio"] { accent-color: #6E45A2; }
+/* Umschalter (z. B. Naehrwerte im PDF) auch im Dunkelmodus klar erkennbar */
+.nutrition-segmented { background: rgba(110, 69, 162, .12); }
+[data-theme="dark"] .nutrition-segmented, [data-theme="amoled"] .nutrition-segmented { background: rgba(255, 255, 255, .08); }
+.nutrition-segmented button.active { background: var(--lime); color: var(--lime-ink, #1F2A08); box-shadow: none; }
+@media (prefers-color-scheme: dark) { html:not([data-theme="light"]) .nutrition-segmented { background: rgba(255, 255, 255, .08); } }
