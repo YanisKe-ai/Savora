@@ -324,6 +324,7 @@ function settingsBackupView() {
         <p class="settings-hint">${typeof cloudSignedIn === 'function' && cloudSignedIn()
           ? 'Deine Daten liegen auf diesem Gerät und werden zusätzlich über die Synchronisation mit deinen anderen Geräten abgeglichen. Der Abgleich ist keine Sicherung: löschst du etwas, verschwindet es überall. Eine Sicherungsdatei hält einen festen Stand fest, zu dem du zurückkehren kannst.'
           : 'Deine Daten liegen nur auf diesem Gerät. Erstelle regelmässig eine Sicherung, damit bei einem Gerätewechsel oder gelöschten Browserdaten nichts verloren geht. Unter „Synchronisation“ kannst du zusätzlich einen Abgleich mit deinen anderen Geräten einrichten.'}</p>
+        ${(!SavoraNative.isNative && state.storagePersisted === false) ? '<p class="settings-hint settings-hint--warn">Dein Browser hat den Speicher nicht als dauerhaft freigegeben und kann ihn bei Platzmangel räumen. Erstelle deshalb regelmässig eine Sicherung.</p>' : ''}
         <button class="primary-btn" data-action="export-backup">${ICONS.download} Sicherung erstellen</button>
         <p class="settings-hint settings-hint--top">Letzte Sicherung: ${escapeHtml(lastBackupLabel)}</p>
       </div>

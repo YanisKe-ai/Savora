@@ -881,3 +881,4 @@ html.is-native { -webkit-touch-callout: none; }
 .pdf-preview-frame-wrap:has(.pdf-pages) { height: 60vh; height: 60dvh; }
 .pdf-preview-fullscreen .pdf-preview-frame-wrap:has(.pdf-pages) { height: auto; min-height: 0; }
 .pdf-preview-fullscreen .pdf-pages { height: 100%; }
+.settings-hint--warn { color: var(--warning-text); background: var(--warning-bg); border: 1px solid var(--warning-border); border-radius: 12px; padding: 10px 12px; }

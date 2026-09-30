@@ -16,6 +16,7 @@ Arbeit ohne Rückfragen, alles auf Zweigen, nichts auf `main`. Die Zweige bauen 
 | 10 Text-Import | `paket-10-import` | fertig | alle 18 Testdateien grün (lokal) |
 | 11 iOS-Feinschliff | `paket-11-ios` | fertig | alle 18 Testdateien grün (lokal) |
 | 12 PDF-Vorschau für iOS, Zufallstest, Dokumentation | `paket-13-pdfvorschau` | fertig, PDF-Vorschau im Simulator bestätigt | alle 21 Testdateien grün (lokal) |
+| 13 Dauerhafter Speicher | `paket-14-speicher` | fertig | Tests grün (lokal) |
 
 ## Paket 2: was du entscheiden oder eintragen musst
 - In `legal.js` steht oben `LEGAL` mit `[Name der verantwortlichen Person]`, `[Kontakt-E-Mail]` und `[Ort]`. Bitte ausfüllen. Solange die Werte mit `[` beginnen, erscheinen sie in der App grün markiert.

@@ -33,6 +33,10 @@ async def main():
             nh = await page.evaluate("document.querySelector('.nudge-card').getBoundingClientRect().height")
             check(f'{w} px: Sicherungs-Erinnerung höchstens 130 px hoch', nh <= 130, f'{nh:.0f}')
             if w == 390:
+                await page.evaluate("() => { state.storagePersisted = false; state.view = 'settings-backup'; render(); }"); await page.wait_for_timeout(200)
+                check('Browser ohne dauerhaften Speicher: Hinweis auf der Sicherungsseite', 'nicht als dauerhaft' in await page.evaluate("document.body.innerText"))
+                await page.evaluate("() => { state.storagePersisted = true; render(); }"); await page.wait_for_timeout(200)
+                check('Mit dauerhaftem Speicher: kein Hinweis', 'nicht als dauerhaft' not in await page.evaluate("document.body.innerText"))
                 await page.evaluate("() => { state.view='settings-sync'; render(); }"); await page.wait_for_timeout(200)
                 t = await page.evaluate("document.querySelector('.settings-page, main').innerText")
                 check('Sync-Text ohne holprige Doppelung', 'gleich und sind' not in t and 'sofort da' in t)

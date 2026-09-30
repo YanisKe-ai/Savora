@@ -133,6 +133,12 @@ document.addEventListener('focusin', (e) => {
 // Breitenwechsel (z.B. iPad drehen): die Rezeptseite ordnet die Zutaten neu an
 if (window.matchMedia) matchMedia('(min-width: 900px)').addEventListener('change', () => { if (state.view === 'detail') render(); });
 
+/* Speicher als "dauerhaft" anfragen: Browser und iOS raeumen ihn dann nicht bei knappem Speicherplatz.
+   Kein Dialog, die Antwort ist nur ein Hinweis (der Browser darf ablehnen). */
+if (navigator.storage && typeof navigator.storage.persist === 'function') {
+  navigator.storage.persist().then((granted) => { state.storagePersisted = !!granted; }).catch(() => {});
+}
+
 (async function init() {
   try {
     setupVisualViewportKeyboardHandling();
