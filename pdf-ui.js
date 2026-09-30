@@ -59,7 +59,9 @@ function pdfExportPreviewStage() {
       <button class="icon-btn pdf-preview-close" data-action="pdf-export-back" aria-label="Vorschau schliessen, zurück zu den Optionen">${ICONS.back}</button>
     </div>
     <div class="pdf-preview-frame-wrap">
-      <iframe class="pdf-preview-frame" src="${m.previewUrl}" title="PDF-Vorschau: ${escapeHtml(m.filename || 'Savora-PDF')}"></iframe>
+      ${pdfPreviewUsesCanvas()
+        ? `<div class="pdf-pages" id="pdfPages" tabindex="0" aria-label="PDF-Vorschau: ${escapeHtml(m.filename || 'Savora-PDF')}"></div>`
+        : `<iframe class="pdf-preview-frame" src="${m.previewUrl}" title="PDF-Vorschau: ${escapeHtml(m.filename || 'Savora-PDF')}"></iframe>`}
     </div>
     <div class="form-actions pdf-preview-actions">
       ${canShare ? `<button class="primary-btn" data-action="pdf-export-share" aria-label="PDF teilen">${ICONS.share} Teilen</button>

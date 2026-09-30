@@ -4,6 +4,7 @@
 const SavoraNative = (() => {
   const cap = (typeof window !== 'undefined') ? window.Capacitor : null;
   const isNative = !!(cap && typeof cap.isNativePlatform === 'function' && cap.isNativePlatform());
+  if (isNative && document.documentElement) document.documentElement.classList.add('is-native');   // Stil-Haken fuer die iOS-App
   const plugin = (name) => (isNative && cap.Plugins && cap.Plugins[name]) || null;
 
   function blobToBase64(blob) {
@@ -49,13 +50,20 @@ const SavoraNative = (() => {
     return (Math.abs(h) % 2000000000) + 1;
   }
   const scheduled = new Set();
+  // Mitteilungen sind ausgeschaltet: einmal pro Sitzung erklaeren, warum sich der Timer nicht meldet
+  let deniedShown = false;
+  function deniedHint() {
+    if (deniedShown) return;
+    deniedShown = true;
+    if (typeof showToast === 'function') showToast('Mitteilungen sind aus. Schalte sie in den iOS-Einstellungen ein, damit sich Timer bei gesperrtem Telefon melden.', 'info');
+  }
   async function scheduleTimer(id, endTimeMs, recipeTitle) {
     const LN = plugin('LocalNotifications');
     if (!LN || !(endTimeMs > Date.now())) return;
     try {
       let perm = await LN.checkPermissions();
       if (perm.display === 'prompt' || perm.display === 'prompt-with-rationale') perm = await LN.requestPermissions();
-      if (perm.display !== 'granted') return;
+      if (perm.display !== 'granted') { deniedHint(); return; }
       const nid = notifId(id);
       await LN.schedule({ notifications: [{
         id: nid, title: 'Timer fertig', body: recipeTitle ? `${recipeTitle}: Der Timer ist abgelaufen.` : 'Der Timer ist abgelaufen.',
@@ -96,5 +104,31 @@ const SavoraNative = (() => {
     } catch (e) {}
   }
 
-  return { isNative, isCancel, shareFile, shareText, keepAwake, scheduleTimer, cancelTimer, cancelAllTimers, setStatusBarDark, haptic };
+  /* Foto -> Text (Apple Vision, auf dem Geraet). Das Foto wird vorher auf max. 2400 px verkleinert. */
+  function canRecognizeText() { return !!plugin('TextRecognition'); }
+  function fileToJpegBase64(file, maxDim) {
+    return new Promise((resolve, reject) => {
+      const url = URL.createObjectURL(file);
+      const img = new Image();
+      img.onload = () => {
+        try {
+          const scale = Math.min(1, (maxDim || 2400) / Math.max(img.naturalWidth, img.naturalHeight));
+          const c = document.createElement('canvas');
+          c.width = Math.max(1, Math.round(img.naturalWidth * scale)); c.height = Math.max(1, Math.round(img.naturalHeight * scale));
+          c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);   // WebKit dreht das Foto dabei nach seiner Ausrichtung
+          resolve(c.toDataURL('image/jpeg', 0.92).split(',')[1]);
+        } catch (e) { reject(e); } finally { URL.revokeObjectURL(url); }
+      };
+      img.onerror = () => { URL.revokeObjectURL(url); reject(new Error('image-load-failed')); };
+      img.src = url;
+    });
+  }
+  async function recognizeText(file) {
+    const TR = plugin('TextRecognition');
+    if (!TR) throw new Error('native-plugin-missing');
+    const res = await TR.recognize({ image: await fileToJpegBase64(file, 2400) });
+    return String((res && res.text) || '').trim();
+  }
+
+  return { isNative, isCancel, shareFile, shareText, keepAwake, scheduleTimer, cancelTimer, cancelAllTimers, setStatusBarDark, haptic, canRecognizeText, recognizeText };
 })();

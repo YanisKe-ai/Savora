@@ -131,6 +131,7 @@ async function handleActionV2(action, id, el, e) {
       if (!newPanel) { state.detailTab = id; render(); return true; }
       const prevH = oldPanel ? oldPanel.offsetHeight : 0;
       state.detailTab = id;
+      const dm = document.querySelector('.detail-main'); if (dm) dm.dataset.tab = id;   // breites Layout richtet sich danach
       document.querySelectorAll('.tab-panel').forEach(p => { p.hidden = p !== newPanel; });
       document.querySelectorAll('.tab-v2[role="tab"]').forEach(t => {
         const on = t.dataset.id === id;
@@ -310,6 +311,11 @@ async function handleActionV2(action, id, el, e) {
       saveCookProgress();
       render();
       speakCurrentStepIfEnabled();
+      return true;
+    case 'set-sort':
+      state.sortBy = el.dataset.id;
+      try { localStorage.setItem(SORT_KEY, state.sortBy); } catch (err) {}
+      render();
       return true;
     case 'backup-nudge-dismiss':
       try { localStorage.setItem(BACKUP_NUDGE_KEY, String(Date.now() + 7 * 86400000)); } catch (err) {}

@@ -1,6 +1,6 @@
 {
   "name": "savora",
-  "version": "0.32.0",
+  "version": "0.43.0",
   "private": true,
   "description": "Savora, digitales Kochbuch (PWA + iOS-App via Capacitor)",
   "scripts": {
@@ -16,11 +16,13 @@
     "@capacitor/ios": "^8.5.2",
     "@capacitor/local-notifications": "^8.3.1",
     "@capacitor/share": "^8.0.2",
-    "@capacitor/status-bar": "^8.0.3"
+    "@capacitor/status-bar": "^8.0.3",
+    "savora-text-recognition": "file:native-plugins/text-recognition"
   },
   "devDependencies": {
     "@capacitor/assets": "^3.0.5",
     "@capacitor/cli": "^8.5.2",
-    "axe-core": "^4.13.0"
+    "axe-core": "^4.13.0",
+    "pdfjs-dist": "^6.3.289"
   }
 }

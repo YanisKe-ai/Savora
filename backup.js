@@ -68,6 +68,12 @@ function slugifyTitle(title) {
    Optionen->Erstellen->Vorschau-Ablauf wie "Als PDF exportieren" (siehe ui.js 'share-recipe'),
    Teilen passiert von dort aus ueber denselben bereits erzeugten Blob (pdf-export-share). */
 
+/* Inhaltlicher Fingerabdruck eines Rezepts: zwei Rezepte mit gleichem Fingerabdruck sind fuer die
+   Wiederherstellung dasselbe Rezept (Zeitstempel, Fotos und Zaehler zaehlen nicht). */
+function backupRecipeFingerprint(r) {
+  return JSON.stringify([r.title || '', r.servings, r.servingMode || '', r.timeMinutes || 0, r.difficulty || '', r.ingredients || [], r.steps || [], r.notes || '', r.tags || [], r.diet || [], r.categoryTags || []]);
+}
+
 async function restoreBackupFromFile(file) {
   try {
     const text = await file.text();
@@ -92,13 +98,20 @@ async function restoreBackupFromFile(file) {
     }
 
     if (!data || !Array.isArray(data.recipes)) throw new Error('Diese Datei sieht nicht wie eine Savora-Sicherung oder ein geteiltes Rezept aus');
-    let added = 0;
+    let added = 0, skipped = 0;
+    const skippedIds = new Set();   // schon vorhandene, identische Rezepte: ihre lokalen Nährwert-Ergebnisse bleiben
     const recipeIdMap = {}; // alte Rezept-ID (aus der Sicherung) -> neue ID (siehe unten, wichtig fuer nutritionResults)
     for (const r of data.recipes) {
       const clone = JSON.parse(JSON.stringify(r));
       const oldId = clone.id;
       // Original-ID behalten, wenn sie auf diesem Geraet frei ist (z.B. Wiederherstellung auf
       // neuem Geraet). Nur bei Kollision entsteht eine neue ID, damit nichts ueberschrieben wird.
+      // Ist dasselbe Rezept (gleiche ID, gleicher Inhalt) schon da, wird es uebersprungen statt verdoppelt.
+      // Ist es inhaltlich anders, bleibt es als zusaetzliche Kopie erhalten: es wird nie etwas ueberschrieben.
+      const fp = backupRecipeFingerprint(clone);
+      const existingSame = state.recipes.find(x => x.id === oldId && backupRecipeFingerprint(x) === fp)
+        || state.recipes.find(x => backupRecipeFingerprint(x) === fp);   // auch eine frueher angelegte Kopie zaehlt: mehrfaches Einspielen verdoppelt nichts
+      if (existingSame) { if (oldId) { recipeIdMap[oldId] = existingSame.id; skippedIds.add(oldId); } skipped++; continue; }
       const idTaken = !oldId || state.recipes.some(x => x.id === oldId) || Object.values(recipeIdMap).includes(oldId);
       if (idTaken) clone.id = uid();
       clone.updatedAt = Date.now();
@@ -108,6 +121,7 @@ async function restoreBackupFromFile(file) {
     }
     let addedItems = 0;
     for (const s of (data.shopping || [])) {
+      if (state.shopping.some(x => x.name === s.name && x.amount === s.amount && (x.unit || '') === (s.unit || ''))) continue;   // schon in der Einkaufsliste
       const clone = JSON.parse(JSON.stringify(s));
       clone.id = uid();
       await dbPutShopping(clone);
@@ -131,7 +145,7 @@ async function restoreBackupFromFile(file) {
     for (const res of (data.nutritionResults || [])) {
       const clone = JSON.parse(JSON.stringify(res));
       const newRecipeId = recipeIdMap[clone.recipeId];
-      if (!newRecipeId) continue; // Rezept aus der Sicherung ist nicht (mehr) dabei -> Ergebnis waere verwaist
+      if (!newRecipeId || skippedIds.has(clone.recipeId)) continue; // Rezept aus der Sicherung ist nicht (mehr) dabei -> Ergebnis waere verwaist
       clone.recipeId = newRecipeId;
       await dbPutNutritionResult(clone);
       addedResults++;
@@ -146,10 +160,11 @@ async function restoreBackupFromFile(file) {
       // Sicherungen vor der Datumskorrektur (ohne keyVersion) auf den gemeinten Tag abbilden.
       const dayKey = day.keyVersion ? day.date : legacyUtcKeyToLocal(day.date);
       const incoming = Array.isArray(day.entries) ? day.entries : (day.recipeIds || []).map(rid => ({ recipeId: rid, meal: '', servings: null }));
-      const mapped = incoming.map(en => ({ ...en, id: uid(), recipeId: recipeIdMap[en.recipeId] })).filter(en => en.recipeId);
-      if (!mapped.length) continue;
+      let mapped = incoming.map(en => ({ ...en, id: uid(), recipeId: recipeIdMap[en.recipeId] })).filter(en => en.recipeId);
       await loadMealplan();
       const existing = planEntriesFor(dayKey);
+      mapped = mapped.filter(en => !existing.some(x => x.recipeId === en.recipeId && (x.meal || '') === (en.meal || '') && (x.servings || null) === (en.servings || null)));   // gleicher Eintrag schon da
+      if (!mapped.length) continue;
       await savePlanEntries(dayKey, existing.concat(mapped));
       addedPlan += mapped.length;
     }
@@ -172,7 +187,7 @@ async function restoreBackupFromFile(file) {
     if (addedPlan) extras.push(`${addedPlan} Wochenplan-Eintr${addedPlan === 1 ? 'ag' : 'äge'}`);
     if (addedFoods) extras.push(`${addedFoods} eigene${addedFoods === 1 ? 's' : ''} Lebensmittel`);
     if (addedMatches) extras.push(`${addedMatches} gelernte Zuordnung${addedMatches === 1 ? '' : 'en'}`);
-    const msg = `${added} Rezept${added === 1 ? '' : 'e'}${addedItems ? `, ${addedItems} Einkaufslisten-Eintrag(e)` : ''}${extras.length ? ' und ' + extras.join(', ') : ''} wiederhergestellt.`;
+    const msg = `${added} Rezept${added === 1 ? '' : 'e'}${addedItems ? `, ${addedItems} Einkaufslisten-Eintrag(e)` : ''}${extras.length ? ' und ' + extras.join(', ') : ''} wiederhergestellt.${skipped ? ` ${skipped} Rezept${skipped === 1 ? ' war' : 'e waren'} schon vorhanden und ${skipped === 1 ? 'wurde' : 'wurden'} nicht doppelt angelegt.` : ''}`;
     render();
     const freshStatusEl = document.getElementById('backupStatus');
     if (freshStatusEl) freshStatusEl.innerHTML = `<div class="import-status ok">${escapeHtml(msg)}</div>`;

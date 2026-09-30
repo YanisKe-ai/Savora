@@ -1,0 +1,57 @@
+"""Paket 19: Korrekturen aus der unabhaengigen Pruefung (Parser, Bereiche, Tausenderzahlen, Bruchzeiten, breite Rezeptseite, Foto scannen)."""
+import asyncio, sys
+import os as _os; sys.path.insert(0, _os.path.dirname(_os.path.abspath(__file__)))
+from common import *
+FAIL = []
+def check(name, cond, info=''):
+    print(('OK   ' if cond else 'FEHL ') + name, info)
+    if not cond: FAIL.append(name)
+async def main():
+    async with async_playwright() as p:
+        b, c = await open_ctx(p, 390, 844); page = await c.new_page(); errs = []
+        page.on('pageerror', lambda e: errs.append(str(e)))
+        await goto(page)
+        ev = page.evaluate
+        r = await ev("parseFreeTextRecipe('Brot\\nZutaten\\n500 g Mehl\\nZubereitung\\n1. Teig kneten\\n2. Im Ofen backen, das dauert ca. 30 Min.\\n3. Abkühlen')")
+        check('Schritt mit "dauert" bleibt erhalten', len(r['steps']) == 3, str([s.get('text', s) if isinstance(s, dict) else s for s in r['steps']]))
+        r = await ev("parseFreeTextRecipe('Kuchen\\nZutaten\\n2 Portionen Hefe\\n200 g Mehl\\nZubereitung\\n1. Mischen')")
+        check('Zutat "2 Portionen Hefe" wird nicht verschluckt oder zur Portionszahl', len(r['ingredients']) >= 2, str(r['ingredients']))
+        d = await ev("[parseDurations('1/2 Stunde')[0].seconds, parseDurations('3/4 Std')[0].seconds, parseDurations('1 1/2 Stunden')[0].seconds, parseDurations('2 1/2 Std')[0].seconds]")
+        check('Bruchzeiten: 1/2, 3/4, 1 1/2, 2 1/2 Std', d == [1800, 2700, 5400, 9000], str(d))
+        r = await ev("parseFreeTextRecipe('Pancakes\\n1. Alles mischen\\n2. Ausbacken\\nZutaten:\\n200 g Mehl\\n2 Eier')")
+        check('Zutaten nach den Schritten gehen nicht verloren', len(r['ingredients']) == 2 and len(r['steps']) == 2, str(r['ingredients']) + str(r['steps']))
+        r = await ev("parseFreeTextRecipe('Pancakes\\n200 g Mehl\\nSalz\\nPfeffer\\n1. Mischen\\n2. Backen')")
+        check('Zutaten ohne Menge vor nummerierten Schritten bleiben erhalten', len(r['ingredients']) == 3 and len(r['steps']) == 2, str(r['ingredients']))
+        r = await ev("parseFreeTextRecipe('Kuchen\\nZutaten\\n200 g Mehl\\nFrische Kräuter (Petersilie, Schnittlauch, Dill, Basilikum, Kerbel nach Belieben)\\n100 g Butter\\n2 Eier\\nMischen und backen.')")
+        check('Zeilen mit Menge nach einem Satz bleiben Zutaten', any(i['name'] == 'Butter' for i in r['ingredients']) and any(i['name'] == 'Eier' for i in r['ingredients']), str(r['ingredients']))
+        a = await ev("['1.000 g Zucker', \"1'000 g Reis\", '7-Kräuter-Mix', '2-3 Zwiebeln', '⅛ TL Muskat'].map(ingPasteParseLine)")
+        check('1.000 g und 1\'000 g werden 1000', a[0]['amount'] == '1000' and a[1]['amount'] == '1000' and a[1]['name'] == 'Reis', str(a[:2]))
+        check('7-Kräuter-Mix bleibt ein Name, 2-3 bleibt Bereich', a[2]['amount'] == '' and a[2]['name'] == '7-Kräuter-Mix' and a[3]['amount'] == '2-3', str(a[2:4]))
+        s = await ev("[scaledAmountText({amount:'2-3',unit:''},1), scaledAmountText({amount:'2-3',unit:''},2), scaledAmountText({amount:'4',unit:''},2)]")
+        check('Bereiche werden ganz skaliert', s == ['2-3', '4-6', '8'], str(s))
+        check('Kleine Werte im Rechner werden nicht 0', await ev("[ucFmt(0.001), ucFmt(0.004), ucFmt(0), ucFmt(0.5)]") == ['0.001', '0.004', '0', '0.5'])
+        check('"fl. oz" wird als Einheit erkannt', await ev("normalizeUnit('fl. oz')") == 'floz')
+        check('.5 l Wasser bleibt 0.5-Schreibweise nicht zerstoert', (await ev("stripBullet('.5 l Wasser')")).startswith('.5'))
+        await b.close()
+        # Breite Ansicht: Zutaten-Reiter gibt es nicht, Tabs sind bedienbar
+        b, c = await open_ctx(p, 1280, 800); page = await c.new_page()
+        await goto(page); await page.evaluate(open(SEED_PATH).read()); await page.wait_for_timeout(300)
+        await page.evaluate("() => { const r = state.recipes[0]; state.activeRecipeId = r.id; state.view = 'detail'; render(); }"); await page.wait_for_timeout(300)
+        info = await page.evaluate("({ tabs: Array.from(document.querySelectorAll('[role=tab]')).map(t => t.id + ':' + t.getAttribute('aria-selected') + ':' + t.tabIndex), ing: !!document.querySelector('.detail-aside-ing li, .detail-aside-ing .ing-row, .detail-aside-ing *') })")
+        check('Breit: kein versteckter Zutaten-Reiter, erster Reiter aktiv', not any(t.startswith('tab-ingredients') for t in info['tabs']) and info['tabs'][0].endswith('true:0'), str(info))
+        ov = await page.evaluate("document.documentElement.scrollWidth - innerWidth")
+        check('Breit: kein horizontales Scrollen', ov <= 0, str(ov))
+        await b.close()
+        # Foto scannen mit View Transition (nicht reduzierte Bewegung)
+        browser = await p.chromium.launch()
+        ctx = await browser.new_context(viewport={'width': 390, 'height': 844}, reduced_motion='no-preference', timezone_id='UTC')
+        await ctx.add_init_script("window.__clicks = 0; window.Capacitor = { isNativePlatform: () => true, Plugins: { TextRecognition: { recognize: () => Promise.resolve({ text: 'x' }) } } }; try { localStorage.setItem('savora-splash-seen', '1') } catch (e) {} document.addEventListener('click', e => { if (e.target && e.target.id === 'ocrInput') window.__clicks++; }, true);")
+        page = await ctx.new_page(); await goto(page)
+        await page.evaluate("() => { state.view = 'home'; state.modal = { type: 'add-menu' }; render(); }"); await page.wait_for_timeout(200)
+        await page.evaluate("document.querySelector('[data-action=\"open-photo-scan\"]').click()"); await page.wait_for_timeout(1200)
+        check('Foto scannen öffnet die Fotoauswahl auch mit Übergangsanimation', await page.evaluate("window.__clicks") >= 1)
+        await browser.close()
+        check('Keine Seitenfehler', not errs, str(errs[:3]))
+    print('\nFEHLGESCHLAGEN:', FAIL or 'keine')
+asyncio.run(main())
+sys.exit(1 if FAIL else 0)

@@ -184,6 +184,14 @@ function bindEvents() {
 
   if (typeof ucBindInputs === 'function') ucBindInputs();   // Masseinheiten-Rechner (unit-converter.js)
   if (typeof ingPasteBind === 'function') ingPasteBind();   // Zutaten einfuegen (ingredient-paste.js)
+  if (typeof bindPhotoScan === 'function') bindPhotoScan();   // Foto scannen (nur iOS-App)
+  if (typeof bindPdfPreview === 'function') bindPdfPreview();   // PDF-Vorschau mit PDF.js (pdf-preview.js)
+  const stepper = document.querySelector('.form-stepper');
+  const stepAct = stepper && stepper.querySelector('.is-active');
+  if (stepper && stepAct) {   // aktiver Schritt sichtbar machen (auf sehr schmalen Handys scrollt die Leiste)
+    stepper.scrollLeft += (stepAct.getBoundingClientRect().left - stepper.getBoundingClientRect().left) - (stepper.clientWidth - stepAct.offsetWidth) / 2;
+  }
+
   const tagNew = document.getElementById('f-tag-new');
   if (tagNew) {
     tagNew.addEventListener('keydown', (e) => {
@@ -280,6 +288,19 @@ async function dispatchAction(action, id, el, e) {
       state.view = 'paste-import';
       render();
       break;
+    case 'open-photo-scan': {   // Import-Bildschirm oeffnen und gleich die Fotoauswahl zeigen
+      state.modal = null;
+      state.view = 'paste-import';
+      render();
+      let scanTries = 0;   // render() kann per View Transition verzoegert sein: kurz warten, bis das Feld da ist
+      const openScan = () => {
+        const scanInput = document.getElementById('ocrInput');
+        if (scanInput) scanInput.click();
+        else if (++scanTries < 20) setTimeout(openScan, 50);
+      };
+      openScan();
+      break;
+    }
     case 'edit-recipe':
       state.editingRecipe = JSON.parse(JSON.stringify(state.recipes.find(r => r.id === id)));
       state.view = 'form';

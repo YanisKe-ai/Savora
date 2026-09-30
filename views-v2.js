@@ -69,21 +69,14 @@ function pageTitle(title, actions) {
 /* ---------- Filter ---------- */
 function applyAllFilters(recipes) {
   let list = recipesInCollection(state.activeCollection, recipes);
-  if (state.query.trim()) {
-    const q = state.query.trim().toLowerCase();
-    list = list.filter(r =>
-      (r.title || '').toLowerCase().includes(q) ||
-      (r.ingredients || []).some(i => (i.name || '').toLowerCase().includes(q)) ||
-      (r.tags || []).some(t => t.toLowerCase().includes(q))
-    );
-  }
+  if (state.query.trim()) list = list.filter(r => recipeMatchesQuery(r, state.query));
   if (state.activeTag) list = list.filter(r => (r.tags || []).includes(state.activeTag));
   if (state.favOnly) list = list.filter(r => r.favorite);
   const { dietary, category, time } = state.activeFilters;
   if (dietary.size) list = list.filter(r => { const bad = new Set(dietConflicts(r).map(c => c.label)); return (r.diet || []).some(d => dietary.has(d) && !bad.has(d)); });
   if (category.size) list = list.filter(r => (r.categoryTags || []).some(c => category.has(c)));
   if (time.size) list = list.filter(r => timeBucketsFor(r.timeMinutes).some(b => time.has(b)));
-  return list;
+  return sortRecipes(list, state.sortBy);
 }
 
 function collectionChips() {
@@ -104,6 +97,12 @@ function filterSheetModal() {
     <div class="modal-sheet filter-sheet" role="dialog" aria-modal="true" aria-labelledby="filter-sheet-title" tabindex="-1" onclick="event.stopPropagation()">
       <div class="sheet-handle" aria-hidden="true"></div>
       <h3 class="modal-title" id="filter-sheet-title">Filter</h3>
+      <div class="filter-group">
+        <h3 class="filter-group-title" id="filter-group-sort">Sortierung</h3>
+        <div class="sort-row" role="radiogroup" aria-labelledby="filter-group-sort">
+          ${SORT_OPTIONS.map(o => `<button type="button" class="sort-chip ${state.sortBy === o.id ? 'is-active' : ''}" role="radio" aria-checked="${state.sortBy === o.id}" data-action="set-sort" data-id="${o.id}">${o.label}</button>`).join('')}
+        </div>
+      </div>
       ${filterCheckboxGroup('Ernährung', 'dietary', dietaryOptions, dietary, o => o.id, o => o.label)}
       ${filterCheckboxGroup('Mahlzeit', 'category', MEAL_TYPE_OPTIONS, category, o => o.id, o => o.label)}
       ${filterCheckboxGroup('Gericht', 'category', DISH_TYPE_OPTIONS, category, o => o.id, o => o.label)}
@@ -220,7 +219,7 @@ function homeView() {
       ${recent ? `<section class="home-section" aria-labelledby="recent-h"><h2 class="section-title" id="recent-h">Zuletzt bearbeitet</h2>${recentCard(recent)}</section>` : ''}
       <section class="home-section" aria-labelledby="all-h">
         <div class="section-title-row">
-          <h2 class="section-title" id="all-h">${isFiltered ? `${list.length} Treffer` : 'Alle Rezepte'}</h2>
+          <h2 class="section-title" id="all-h">${isFiltered ? `${list.length} Treffer` : 'Alle Rezepte'}${state.sortBy !== 'updated' ? `<span class="sort-note"> · ${escapeHtml((SORT_OPTIONS.find(o => o.id === state.sortBy) || {}).label || '')}</span>` : ''}</h2>
           <div class="layout-toggle" role="group" aria-label="Darstellung">
             <button type="button" class="icon-toggle ${state.homeLayout !== 'list' ? 'is-active' : ''}" data-action="set-home-layout" data-id="grid" aria-pressed="${state.homeLayout !== 'list'}" aria-label="Rasteransicht">${ICONS.grid}</button>
             <button type="button" class="icon-toggle ${state.homeLayout === 'list' ? 'is-active' : ''}" data-action="set-home-layout" data-id="list" aria-pressed="${state.homeLayout === 'list'}" aria-label="Listenansicht">${ICONS.list}</button>
@@ -336,15 +335,18 @@ function detailView() {
   if (!r) { state.view = 'home'; return homeView(); }
   const servings = currentServings(r);
   const hasNotes = !!(r.notes || (r.cookLog || []).length);
+  const wide = !!(window.matchMedia && matchMedia('(min-width: 900px)').matches);   // breit: Zutaten stehen links (Seitenspalte) statt im Reiter, nie doppelt im DOM
   const tabs = [
     { id: 'ingredients', label: 'Zutaten' },
     { id: 'steps', label: 'Zubereitung' },
   ];
+  if (wide) tabs.shift();   // kein versteckter Reiter, den die Tastatur nicht erreicht
   if (state.showNutrition) tabs.push({ id: 'nutrition', label: 'Nährwerte' });
   if (hasNotes) tabs.push({ id: 'notes', label: 'Notizen' });
-  const tab = tabs.some(t => t.id === state.detailTab) ? state.detailTab : 'ingredients';
+  const tab = tabs.some(t => t.id === state.detailTab) ? state.detailTab : tabs[0].id;
   // Alle Panels liegen im DOM, der Tabwechsel blendet nur um (kein Neuaufbau, kein Scrollsprung).
-  const panelHtml = { ingredients: ingredientsPanel(r), steps: stepsPanel(r), nutrition: state.showNutrition ? nutritionPanel(r) : '', notes: hasNotes ? notesPanel(r) : '' };
+  const ingHtml = ingredientsPanel(r);
+  const panelHtml = { ingredients: wide ? '' : ingHtml, steps: stepsPanel(r), nutrition: state.showNutrition ? nutritionPanel(r) : '', notes: hasNotes ? notesPanel(r) : '' };
   const hero = r.image
     ? `<img class="hero-img" src="${r.image}" alt="${escapeHtml(r.title || '')}" style="view-transition-name: recipe-hero-img;">`
     : r.imageId
@@ -368,8 +370,9 @@ function detailView() {
     </div>` : '';
   return `
     ${topbar(r.title || 'Rezept', { back: true, cls: 'topbar--detail', actions: `<button class="icon-btn" data-action="open-detail-menu" data-id="${r.id}" aria-label="Weitere Aktionen" aria-haspopup="dialog">${ICONS.more}</button>` })}
-    <main class="has-tabbar detail-main">
+    <main class="has-tabbar detail-main" data-tab="${tab}">
       <div class="hero">${hero}</div>
+      <div class="detail-cols"><div class="detail-col detail-col--info">
       <div class="detail-head">
         <div class="detail-title-row">
           <h2 class="detail-title-v2">${escapeHtml(r.title || 'Ohne Titel')}</h2>
@@ -383,10 +386,13 @@ function detailView() {
       </div>
       ${source}
       ${conflictBox}
+      <div class="detail-aside-ing" role="region" aria-label="Zutaten">${wide ? ingHtml : ''}</div>
+      </div><div class="detail-col detail-col--content">
       <div class="tabbar-v2" role="tablist" aria-label="Rezeptinhalt">
         ${tabs.map(t => `<button role="tab" id="tab-${t.id}" class="tab-v2 ${tab === t.id ? 'is-active' : ''}" aria-selected="${tab === t.id}" aria-controls="panel-${t.id}" tabindex="${tab === t.id ? '0' : '-1'}" data-action="set-detail-tab" data-id="${t.id}">${t.label}</button>`).join('')}
       </div>
       ${tabs.map(t => `<div class="tab-panel" id="panel-${t.id}" role="tabpanel" aria-labelledby="tab-${t.id}" ${tab === t.id ? '' : 'hidden'}>${panelHtml[t.id]}</div>`).join('')}
+      </div></div>
     </main>
     <div class="cook-bar"><button class="primary-btn primary-btn--block" data-action="start-cook" data-id="${r.id}">${ICONS.play} Kochmodus starten</button></div>
     ${bottomNav()}

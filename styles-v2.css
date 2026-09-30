@@ -753,7 +753,9 @@ body.keyboard-open .cook-bar { display: none; }
 .uc-dim-label { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: .08em; color: var(--text-soft); margin: 10px 2px 8px; }
 .uc-result-list { display: flex; flex-direction: column; gap: 8px; }
 .uc-result-row { display: grid; grid-template-columns: auto 1fr auto; align-items: baseline; column-gap: 10px; row-gap: 2px; width: 100%; min-height: 60px; padding: 10px 14px; text-align: left; background: var(--card-bg); border: 1px solid var(--border); border-radius: 14px; color: var(--text); }
-.uc-result-row--static { opacity: .7; }
+.uc-result-row--static { opacity: 1; }
+.uc-result-row--static .uc-result-label, .uc-result-row--static small { font-weight: 500; }
+.cook-timer-go:focus-visible, .cook-timer-plus:focus-visible, .cook-mode :focus-visible { outline-color: var(--lime); }
 .uc-result-value { grid-row: 1; font-family: var(--font-display); font-weight: 800; font-size: 28px; line-height: 1.1; font-variant-numeric: tabular-nums; letter-spacing: 0; }
 .uc-result-unit { grid-row: 1; font-size: 14px; font-weight: 700; color: var(--text-soft); }
 .uc-result-note { grid-column: 1 / -1; grid-row: 2; font-size: 13px; color: var(--text-soft); }
@@ -814,3 +816,79 @@ body.keyboard-open .cook-bar { display: none; }
 .empty-steps li { position: relative; padding: 12px 14px 12px 52px; background: var(--card-bg); border: 1px solid var(--border); border-radius: 14px; font-size: 14.5px; color: var(--text-soft); counter-increment: es; }
 .empty-steps li::before { content: counter(es); position: absolute; left: 14px; top: 50%; transform: translateY(-50%); width: 28px; height: 28px; border-radius: 50%; background: var(--lime); color: var(--lime-ink); font-weight: 800; display: flex; align-items: center; justify-content: center; font-size: 14px; }
 .empty-steps b { color: var(--text); }
+
+/* ---------- Paket 7: breite Bildschirme (iPad quer, Desktop) ---------- */
+.detail-cols, .detail-col { display: block; }
+.detail-aside-ing { display: none; }
+@media (min-width: 900px) {
+  body { padding-left: 232px; }
+  /* Seitenleiste statt unterer Leiste */
+  .bottom-nav { top: 0; right: auto; bottom: 0; width: 232px; flex-direction: column; justify-content: flex-start; gap: 6px; padding: calc(28px + env(safe-area-inset-top, 0px)) 12px 24px; border-top: none; border-right: 1px solid var(--border); background: var(--card-bg); -webkit-backdrop-filter: none; backdrop-filter: none; }
+  .bottom-nav button { flex: none; flex-direction: row; justify-content: flex-start; align-items: center; gap: 14px; min-height: 52px; padding: 0 16px; border-radius: 14px; font-size: 16px; font-weight: 700; text-align: left; }
+  .bottom-nav button.active { background: var(--surface-selected); color: var(--text); }
+  .bottom-nav button.active::after { display: none; }
+  .bottom-nav .nav-icon svg { width: 22px; height: 22px; }
+  .bottom-nav .nav-badge { top: -7px; right: -11px; }
+  main.has-tabbar { padding-bottom: 56px; }
+  .topbar { padding-left: max(32px, calc((100vw - 232px - 1180px) / 2 + 32px)); padding-right: max(32px, calc((100vw - 232px - 1180px) / 2 + 32px)); }
+  .cook-bar { left: 232px; bottom: 16px; padding-bottom: 0; background: none; }
+  .detail-main { max-width: 1140px; padding-bottom: 96px; }
+  /* Rezeptseite zweispaltig: links Kopf und Zutaten, rechts Zubereitung */
+  .detail-cols { display: grid; grid-template-columns: minmax(300px, 360px) minmax(0, 1fr); column-gap: 32px; align-items: start; }
+  .detail-col--info { position: sticky; top: calc(76px + env(safe-area-inset-top, 0px)); max-height: calc(100dvh - 96px); overflow-y: auto; padding-bottom: 8px; }
+  .detail-aside-ing { display: block; margin-top: 18px; padding-top: 6px; border-top: 1px solid var(--border); }
+  .detail-col--content .tabbar-v2 { top: calc(64px + env(safe-area-inset-top, 0px)); margin-top: 14px; }
+  #tab-ingredients, #panel-ingredients { display: none !important; }
+  .detail-main[data-tab="ingredients"] #panel-steps { display: block; }
+  .detail-main[data-tab="ingredients"] #tab-steps { color: var(--text); }
+  .detail-main[data-tab="ingredients"] #tab-steps::after { content: ''; position: absolute; left: 10px; right: 10px; bottom: -1px; height: 3px; border-radius: 3px; background: var(--lime); }
+  .hero-img { max-height: 34dvh; }
+}
+@media (min-width: 1240px) { .rgrid { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+
+/* ---------- Paket 8: Feinschliff ---------- */
+/* Formular-Schritte: auf dem Handy sind alle 5 sichtbar, nur der aktive zeigt seinen Namen */
+@media (max-width: 520px) {
+  .form-stepper { gap: 6px; }
+  .form-step-btn { position: relative; padding: 0 6px; flex: 0 0 auto; }   /* relative: der versteckte Name bleibt innerhalb der scrollbaren Leiste */
+  .form-step-btn:not(.is-active) { min-width: 44px; justify-content: center; }
+  .form-step-btn:not(.is-active) .form-step-label { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }   /* bleibt fuer Screenreader */
+  .form-step-btn.is-active { padding-right: 14px; }
+}
+/* Knoepfe im Dialog-Fuss brechen nicht mehr um */
+.form-actions .primary-btn { flex: 1.4; white-space: nowrap; }
+.form-actions .ghost-btn { white-space: nowrap; min-width: 0; }
+/* Sicherungs-Erinnerung kompakter */
+.nudge-card { padding: 10px 12px; gap: 6px 12px; }
+.nudge-text { min-width: 0; flex: 1 1 100%; font-size: 14px; }
+@media (max-width: 559px) { .nudge-card { flex-wrap: nowrap; align-items: center; } .nudge-text { flex: 1 1 auto; } .nudge-actions { flex: 0 0 auto; flex-direction: column; align-items: stretch; gap: 0; } .nudge-actions .text-btn { text-align: center; } }
+@media (min-width: 560px) { .nudge-text { flex: 1 1 260px; } .nudge-actions { flex: 0 0 auto; } }
+
+/* ---------- Paket 9: Suche und Sortierung ---------- */
+.sort-row { display: flex; flex-wrap: wrap; gap: 8px; }
+.sort-chip { min-height: 44px; padding: 0 16px; border-radius: 999px; border: 1px solid var(--border); background: var(--surface-soft); color: var(--text); font-weight: 700; font-size: 15px; }
+.sort-chip.is-active { background: var(--lime); border-color: var(--lime); color: var(--lime-ink); }
+.sort-note { font-family: var(--font-sans); font-size: 14px; font-weight: 500; color: var(--text-soft); letter-spacing: 0; }
+
+/* ---------- Paket 11: iOS-App ---------- */
+/* Dunkel/Schwarz: kein Gummiband-Effekt, sonst blitzt am Rand der helle Hintergrund der Web-Ansicht auf */
+html.is-native[data-theme="dark"], html.is-native[data-theme="amoled"] { overscroll-behavior-y: none; }
+html.is-native { -webkit-touch-callout: none; }
+
+/* ---------- Paket 13: PDF-Vorschau mit PDF.js (iOS) ---------- */
+.pdf-pages { height: 100%; min-height: 240px; overflow-y: auto; overflow-x: hidden; -webkit-overflow-scrolling: touch; display: flex; flex-direction: column; gap: 10px; padding: 10px; background: #5b5b66; }
+.pdf-page-slot { flex: 0 0 auto; width: 100%; background: #fff; box-shadow: 0 2px 10px rgba(0,0,0,.35); position: relative; }
+.pdf-page-slot canvas { display: block; }
+.pdf-pages-status { margin: auto; padding: 20px; color: #fff; text-align: center; font-size: 15px; }
+.pdf-preview-frame-wrap:has(.pdf-pages) { height: 60vh; height: 60dvh; }
+.pdf-preview-fullscreen .pdf-preview-frame-wrap:has(.pdf-pages) { height: auto; min-height: 0; }
+.pdf-preview-fullscreen .pdf-pages { height: 100%; }
+.settings-hint--warn { color: var(--warning-text); background: var(--warning-bg); border: 1px solid var(--warning-border); border-radius: 12px; padding: 10px 12px; }
+
+/* ---------- Paket 17: Foto scannen ---------- */
+.ocr-box { display: flex; flex-direction: column; gap: 8px; margin: 4px 0 14px; padding-bottom: 14px; border-bottom: 1px solid var(--border); }
+.ocr-btn { align-self: flex-start; cursor: pointer; }
+.ocr-input { position: absolute; width: 1px; height: 1px; opacity: 0; overflow: hidden; }   /* bleibt fuer Tastatur und Screenreader erreichbar */
+.ocr-input:focus-visible + .hint-line { outline: none; }
+.ocr-status { font-size: 14px; color: var(--text-soft); min-height: 1.2em; }
+.ocr-box:focus-within .ocr-btn { outline: 3px solid var(--accent); outline-offset: 2px; }

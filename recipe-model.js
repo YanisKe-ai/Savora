@@ -98,6 +98,11 @@ function kitchenAmount(value, unit) {
   return fmtAmount(value);
 }
 function scaledAmountText(i, factor) {
+  const range = /^\s*([\d.,\/½¼¾⅓⅔ ]+?)\s*[-–]\s*([\d.,\/½¼¾⅓⅔ ]+?)\s*$/.exec(String(i.amount == null ? '' : i.amount));
+  if (range) {   // Bereich "2-3": beide Grenzen skalieren, nie nur die untere
+    const lo = parseAmount(range[1]), hi = parseAmount(range[2]);
+    if (lo !== null && hi !== null) return kitchenAmount(lo * factor, i.unit) + '-' + kitchenAmount(hi * factor, i.unit);
+  }
   const pa = parseAmount(i.amount);
   if (pa === null) return String(i.amount || '').trim(); // freie Angaben ("etwas") nie erfinden
   return kitchenAmount(pa * factor, i.unit);
@@ -445,6 +450,7 @@ function cookbookWarnings(cfg) {
   const warnings = [];
   const byId = Object.fromEntries(state.recipes.map(r => [r.id, r]));
   if (!cfg.items.length) warnings.push({ level: 'error', text: 'Es ist noch kein Rezept ausgewählt.' });
+  if (cfg.items.length > 40) warnings.push({ level: 'warn', text: `Ein Kochbuch mit ${cfg.items.length} Rezepten braucht beim Erstellen einige Minuten und viel Speicher. Teile es bei Bedarf in mehrere Bücher auf.` });
   cfg.items.forEach(it => {
     const r = byId[it.recipeId]; if (!r) return;
     const t = r.title || 'Ohne Titel';

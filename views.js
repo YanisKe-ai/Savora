@@ -73,6 +73,13 @@ function addMenuModal() {
             <span>Bildunterschrift, Nachricht oder kopierter Text</span>
           </span>
         </button>
+        ${SavoraNative.canRecognizeText() ? `<button type="button" class="add-menu-option" data-action="open-photo-scan">
+          <span class="add-menu-option-icon">${ICONS.camera}</span>
+          <span class="add-menu-option-text">
+            <strong>Foto scannen</strong>
+            <span>Buchseite oder Zettel fotografieren</span>
+          </span>
+        </button>` : ''}
       </div>
     </div>
   </div>`;
@@ -324,6 +331,7 @@ function settingsBackupView() {
         <p class="settings-hint">${typeof cloudSignedIn === 'function' && cloudSignedIn()
           ? 'Deine Daten liegen auf diesem Gerät und werden zusätzlich über die Synchronisation mit deinen anderen Geräten abgeglichen. Der Abgleich ist keine Sicherung: löschst du etwas, verschwindet es überall. Eine Sicherungsdatei hält einen festen Stand fest, zu dem du zurückkehren kannst.'
           : 'Deine Daten liegen nur auf diesem Gerät. Erstelle regelmässig eine Sicherung, damit bei einem Gerätewechsel oder gelöschten Browserdaten nichts verloren geht. Unter „Synchronisation“ kannst du zusätzlich einen Abgleich mit deinen anderen Geräten einrichten.'}</p>
+        ${(!SavoraNative.isNative && state.storagePersisted === false) ? '<p class="settings-hint settings-hint--warn">Dein Browser hat den Speicher nicht als dauerhaft freigegeben und kann ihn bei Platzmangel räumen. Erstelle deshalb regelmässig eine Sicherung.</p>' : ''}
         <button class="primary-btn" data-action="export-backup">${ICONS.download} Sicherung erstellen</button>
         <p class="settings-hint settings-hint--top">Letzte Sicherung: ${escapeHtml(lastBackupLabel)}</p>
       </div>
@@ -365,6 +373,12 @@ function pasteImportView() {
     <div class="settings-group">
       <div class="settings-group-card settings-group-card--padded">
         <p class="settings-hint">Bildunterschrift eines Instagram-/TikTok-Posts, eine WhatsApp-Nachricht, kopierter Rezepttext einer Webseite oder eine eigene Notiz einfügen. Savora erkennt Titel, Zutaten und Schritte automatisch, du prüfst den Entwurf danach kurz, bevor du speicherst.</p>
+        ${SavoraNative.canRecognizeText() ? `<div class="ocr-box">
+          <label class="ghost-btn ocr-btn" for="ocrInput">${ICONS.camera} Foto scannen</label>
+          <input type="file" id="ocrInput" class="ocr-input" accept="image/*" aria-label="Foto von einem Rezept aufnehmen oder auswählen">
+          <p class="hint-line">Buchseite, Zettel oder Bildschirm fotografieren. Die Texterkennung läuft auf deinem Gerät, das Foto wird nicht gespeichert.</p>
+          <div id="ocrStatus" class="ocr-status" role="status" aria-live="polite"></div>
+        </div>` : ''}
         <div class="field field--tight">
           <textarea id="pasteText" class="paste-import-textarea" placeholder="Rezepttext hier einfügen …"></textarea>
         </div>

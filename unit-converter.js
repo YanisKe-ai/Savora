@@ -36,6 +36,7 @@ function ucDefsKey() { let v = 'metric'; try { v = localStorage.getItem(UC_KEY) 
 function ucVolumeTable() { const d = UC_DEFS[ucDefsKey()]; return { ml: 1, dl: 100, l: 1000, tsp: d.tsp, tbsp: d.tbsp, cup: d.cup, floz: 29.5735 }; }
 function ucFmt(v) {
   if (!isFinite(v)) return '–';
+  if (v !== 0 && Math.abs(v) < 0.005) return String(Number(v.toPrecision(2)));   // kleine Werte nicht zu 0 runden
   const r = v >= 100 ? Math.round(v) : v >= 10 ? Math.round(v * 10) / 10 : Math.round(v * 100) / 100;
   return String(r);
 }

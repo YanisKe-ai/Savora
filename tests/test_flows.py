@@ -178,7 +178,8 @@ async def main():
         await page.set_input_files('#restoreFileInput', OUT + '/old-backup.json')
         await page.wait_for_timeout(1500)
         n1 = await page.evaluate("state.recipes.length")
-        check('13 Altes Backup importierbar', n1 == n0 + 3, f"{n0} -> {n1}")
+        # Unveraenderte Rezepte werden nicht doppelt angelegt; das in diesem Test bearbeitete Rezept (Gruppen) bleibt als Kopie erhalten.
+        check('13 Altes Backup importierbar (unveränderte Rezepte übersprungen, bearbeitetes bleibt als Kopie)', n1 == n0 + 1, f"{n0} -> {n1}")
 
         # 14 Neues Backup in frischer Instanz
         async with page.expect_download() as dl:

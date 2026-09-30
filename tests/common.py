@@ -13,7 +13,7 @@ SEED_PATH = os.path.join(TESTS, 'seed.js')
 # Optionale, private Sicherung fuer die Pruefbericht-Tests (nicht im Repo, siehe tests/README.md)
 PRUEF_BACKUP = os.path.join(TESTS, 'private', '07_Sicherung_waehrend_Pruefung.json')
 OLD_COMMIT = '5320c04'   # v20-quality-update: letzter Stand vor dem Redesign ("alter Stand" fuer den Datenerhalt-Test)
-PORT = 8795
+PORT = int(os.environ.get('SAVORA_TEST_PORT', '8795'))   # per Umgebungsvariable aenderbar, falls der Port belegt ist
 URL = f"http://localhost:{PORT}/index.html"
 
 
@@ -27,8 +27,15 @@ class _Handler(SimpleHTTPRequestHandler):
     def log_message(self, *a): pass
 
 def _start_server():
+    import time
     ThreadingHTTPServer.allow_reuse_address = True
-    srv = ThreadingHTTPServer(('127.0.0.1', PORT), _Handler)
+    ThreadingHTTPServer.request_queue_size = 256   # Standard ist 5: bei ~45 gleichzeitigen Anfragen und Last brechen sonst Verbindungen ab (ERR_CONNECTION_RESET)
+    for attempt in range(10):   # der Port ist direkt nach dem vorigen Test manchmal noch kurz belegt
+        try:
+            srv = ThreadingHTTPServer(('127.0.0.1', PORT), _Handler); break
+        except OSError:
+            if attempt == 9: raise
+            time.sleep(0.5)
     threading.Thread(target=srv.serve_forever, daemon=True).start()
 _start_server()
 
@@ -47,7 +54,7 @@ async def open_ctx(p, w=390, h=844, motion="reduce"):
     return browser, ctx
 async def goto(page):
     await page.goto(URL)
-    await page.wait_for_function("typeof state !== 'undefined' && document.getElementById('app').children.length > 0", timeout=15000)
+    await page.wait_for_function("typeof state !== 'undefined' && document.getElementById('app').children.length > 0", timeout=30000)   # grosszuegig: der Mac hat zwischendurch Lastspitzen
     await page.wait_for_timeout(700)
 
 async def show(page, js, selector):

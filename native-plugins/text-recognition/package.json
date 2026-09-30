@@ -1,0 +1,10 @@
+{
+  "name": "savora-text-recognition",
+  "version": "1.0.0",
+  "description": "Texterkennung (Apple Vision) fuer Savora: liest Text aus einem Foto",
+  "private": true,
+  "main": "index.js",
+  "files": ["ios/Sources", "Package.swift", "index.js"],
+  "capacitor": { "ios": { "src": "ios" } },
+  "peerDependencies": { "@capacitor/core": ">=8.0.0" }
+}

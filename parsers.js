@@ -23,6 +23,10 @@ function parseTimeNumberToken(tok) {
   if (tok == null) return null;
   const t = tok.trim();
   if (/^½$/.test(t)) return 0.5;
+  const mixedFrac = /^(\d+)\s+(\d+)\/(\d+)$/.exec(t);
+  if (mixedFrac && +mixedFrac[3] > 0) return +mixedFrac[1] + mixedFrac[2] / mixedFrac[3];
+  const plainFrac = /^(\d+)\/(\d+)$/.exec(t);
+  if (plainFrac && +plainFrac[2] > 0) return plainFrac[1] / plainFrac[2];
   const halfMatch = /^(\d+)\s*½$/.exec(t);
   if (halfMatch) return parseInt(halfMatch[1], 10) + 0.5;
   const wordMatch = new RegExp(`^(${TIME_NUMBER_WORD_PATTERN})$`, 'i').exec(t);
@@ -49,7 +53,7 @@ function parseDurations(text) {
   // 2) Allgemeines Muster: Ziffer, Dezimalzahl, Zahlwort, ½ oder "1½" [bis/– weitere Zahl] Einheit.
   //    Die Einheit muss unmittelbar folgen — nur so werden "180 Grad", "2 Portionen" oder
   //    "5 Eier" zuverlaessig NICHT als Zeitangabe erkannt (kein False Positive).
-  const numTok = `(?:\\d+(?:[.,]\\d+)?\\s*½?|½|${TIME_NUMBER_WORD_PATTERN})`;
+  const numTok = `(?:\\d+\\s+\\d+\/\\d+|\\d+\/\\d+|\\d+(?:[.,]\\d+)?\\s*½?|½|${TIME_NUMBER_WORD_PATTERN})`;
   const re = new RegExp(`(${numTok})\\s*(?:(?:bis|-|–|—)\\s*(${numTok})\\s*)?(Stunden?|Std\\.?|Minuten?|Min\\.?|Sekunden?|Sek\\.?|h)\\b`, 'gi');
   let m;
   while ((m = re.exec(text)) !== null) {
@@ -66,10 +70,33 @@ function parseDurations(text) {
       seconds: maxSeconds, // bei Zeitspannen wird der obere Wert vorgeschlagen
       minSeconds, maxSeconds,
       confidence: n2 != null ? 'range' : 'exact',
+      unitSeconds: mult,
     });
   }
 
+  // 3) Zeitwoerter: "eine halbe Stunde", "Viertelstunde", "Dreiviertelstunde"
+  const wordRe = /\b(?:(?:eine|1)\s+)?(halbe|halbstunde|viertelstunde|dreiviertelstunde|dreiviertel\s+stunde|viertel\s+stunde)(?:\s+(?:stunde|std\.?))?(?![a-zäöüß])/gi;
+  let w;
+  while ((w = wordRe.exec(text)) !== null) {
+    if (/^halbe$/i.test(w[1]) && !/(stunde|std)/i.test(w[0])) continue;   // "halbe" allein ist keine Zeitangabe
+    if (results.some(r => w.index < r.index + r.length && w.index + w[0].length > r.index)) continue;
+    const key = w[1].toLowerCase().replace(/\s+/g, '');
+    const secs = key.startsWith('dreiviertel') ? 2700 : key.startsWith('viertel') ? 900 : 1800;
+    results.push({ raw: w[0], index: w.index, length: w[0].length, seconds: secs, minSeconds: secs, maxSeconds: secs, confidence: 'exact', unitSeconds: 3600 });
+  }
+
   results.sort((a, b) => a.index - b.index);
+
+  // 4) "1 Std. 30 Min." ist EIN Timer (90 Minuten), nicht zwei
+  for (let i = 0; i < results.length - 1; i++) {
+    const a = results[i], b = results[i + 1];
+    if (a.unitSeconds === 3600 && b.unitSeconds === 60 && a.confidence === 'exact' && b.confidence === 'exact' &&
+        /^\.?\s*(?:und\s+)?$/i.test(text.slice(a.index + a.length, b.index))) {
+      const end = b.index + b.length;
+      const total = a.seconds + b.seconds;
+      results.splice(i, 2, { raw: text.slice(a.index, end), index: a.index, length: end - a.index, seconds: total, minSeconds: total, maxSeconds: total, confidence: 'exact', unitSeconds: 60 });
+    }
+  }
   return results;
 }
 
@@ -121,6 +148,11 @@ function parseDurationText(s) {
 }
 
 function parseIngredientLine(line) {
+  // Bevorzugt der gemeinsame Zeilen-Parser (Brueche wie "1 1/2 dl" und "½ TL", Bereiche, bekannte Einheiten)
+  if (typeof ingPasteParseLine === 'function') {
+    const p = ingPasteParseLine(String(line));
+    if (p) return p;
+  }
   const m = /^([\d.,\/]+)\s*([a-zA-ZäöüÄÖÜ.]*)\s+(.*)$/.exec(line.trim());
   if (m) return { amount: m[1].replace(',', '.'), unit: m[2], name: m[3] };
   return { amount: '', unit: '', name: line };
@@ -130,7 +162,7 @@ function parseIngredientLine(line) {
 function stripBullet(line) {
   // Deckt per Unicode-Kategorie (Symbol/Interpunktion) praktisch jedes gaengige Bullet-Zeichen ab
   // (-, *, •, ‣, ▪, ◦, ·, ∙, ●, ➤, ✦ ...), nicht nur eine feste Liste.
-  return line.replace(/^[\s]*[\p{P}\p{S}]+\s*/u, '').replace(/^[\p{Emoji_Presentation}\p{Extended_Pictographic}]\s*/u, '').trim();
+  return line.replace(/^[\s]*(?![.,]\d)(?!\()[\p{P}\p{S}]+\s*/u, '').replace(/^[\p{Emoji_Presentation}\p{Extended_Pictographic}]\s*/u, '').trim();
 }
 
 function stripStepNumber(line) {
@@ -143,7 +175,7 @@ function looksLikeIngredient(line) {
   if (STEP_NUM_RE.test(line)) return false;
   const s = stripBullet(line);
   if (!s) return false;
-  return /^[\d½¼¾⅓⅔]/.test(s) || /^\s*[\p{P}\p{S}]/u.test(line) || /^[\p{Emoji_Presentation}\p{Extended_Pictographic}]/u.test(line);
+  return /^[\d½¼¾⅓⅔⅕⅖⅗⅘⅛⅜⅝⅞]/.test(s) || /^\s*[\p{P}\p{S}]/u.test(line) || /^[\p{Emoji_Presentation}\p{Extended_Pictographic}]/u.test(line);
 }
 
 /* ---------- Automatische Notiz-Erkennung beim Textimport (Master-Prompt Teil D, Punkt 49-58) ----------
@@ -182,19 +214,59 @@ function extractNotesSection(lines) {
   return { contentLines: lines.slice(0, startIdx), notes: noteLines.join('\n').trim() };
 }
 
+/* ---------- Import-Hilfen (Emoji, Kopfzeilen, Saetze) ---------- */
+function importStripEmoji(s) {
+  return String(s || '').replace(/[\p{Extended_Pictographic}\p{Emoji_Presentation}\uFE0F\u200D\u20E3]/gu, '').replace(/\s+/g, ' ').trim();
+}
+function importHeadKey(l) { return importStripEmoji(l).replace(/^[\s\p{P}\p{S}]+/u, '').replace(/[:：]\s*$/, '').trim(); }
+function importIsIngHeader(l) {
+  const k = importHeadKey(l);
+  return k.length <= 60 && /^(zutaten|ingredients?)(\s+(für|fuer|for)\s+.+|\s*[(\[].*[)\]])?$/i.test(k);
+}
+function importIsStepHeader(l) {
+  const k = importHeadKey(l);
+  return k.length <= 40 && /^(zubereitung|zubereitungsschritte|anleitung|schritte|steps?|instructions?|method|so geht'?s|so gehts|so wird'?s gemacht|und so geht'?s|und so gehts)$/i.test(k);
+}
+// Zeile beginnt (nach Emoji und Aufzaehlungszeichen) mit einer Mengenangabe
+function importStartsWithAmount(l) {
+  return /^[\d½¼¾⅓⅔⅛]/.test(importStripEmoji(stripBullet(String(l))).replace(/^[\s\p{P}\p{S}]+/u, ''));
+}
+// Ganzer Satz statt Zutatenzeile: mind. 5 Woerter und Satzzeichen am Ende oder lang
+function importIsSentence(l) {
+  const s = importStripEmoji(stripBullet(String(l))).trim();
+  const words = s.split(/\s+/).filter(Boolean).length;
+  return (words >= 3 && /[.!?]$/.test(s) && !/^\d/.test(s)) || (words >= 5 && s.length >= 70);
+}
+const IMPORT_ABBREV = /(?:^|\s)(?:min|std|sek|ca|pck|pkg|stk|z\.b|bzw|ggf|evtl|nr|el|tl|msp|dl|cl|ml|kg|g)\.$/i;
+function importSplitSentences(text) {
+  const t = String(text || '').trim();
+  if (t.length < 130) return [t];
+  const out = []; let cur = '';
+  t.split(/(?<=[.!?])\s+(?=[A-ZÄÖÜ])/).forEach(part => {
+    if (cur && IMPORT_ABBREV.test(cur)) { cur += ' ' + part; return; }   // "20 Min. Kochen" nicht trennen
+    if (cur) out.push(cur);
+    cur = part;
+  });
+  if (cur) out.push(cur);
+  // Zu kurze Bruchstuecke an den Vorgaenger haengen
+  return out.reduce((acc, s) => { if (acc.length && s.length < 25) acc[acc.length - 1] += ' ' + s; else acc.push(s); return acc; }, []);
+}
+
 function parseFreeTextRecipe(raw) {
-  const rawLines = raw.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
+  const rawLines = raw.split(/\r?\n/).map(l => l.replace(/([0-9])\uFE0F?\u20E3\s*/g, '$1. ').replace(/[’‘]/g, "'").trim()).filter(Boolean);
   const { contentLines: lines, notes: detectedNotes } = extractNotesSection(rawLines);
   const r = emptyRecipe();
   r.source = null;
 
-  const ingHeaderRe = /^(zutaten|ingredients?)\s*:?\s*$/i;
-  const stepHeaderRe = /^(zubereitung|anleitung|schritte|steps?|instructions?)\s*:?\s*$/i;
-  const metaLineRe = /portionen|personen|servings|dauert|zubereitungszeit|gesamtzeit|kochzeit/i;
+  const ingHeaderRe = { test: (l) => importIsIngHeader(l) };
+  const stepHeaderRe = { test: (l) => importIsStepHeader(l) };
+  const metaLineWords = /portionen|personen|servings|dauert|zubereitungszeit|gesamtzeit|kochzeit|arbeitszeit|backzeit|ruhezeit|zeitaufwand|schwierigkeit|zutaten\s*(?:für|fuer)\s+\d+|^[\p{Extended_Pictographic}\uFE0F\s]*(?:für|fuer)\s+\d+\s*(?:stück|stk|port|pers)|[⏱⏲🕒🕐🕑🕓🕔🕕]/iu;
+  // Meta-Zeilen sind kurz ("Portionen: 4", "Dauer 30 Min."); ein Satz, der nur ein solches Wort enthaelt, bleibt Schritt oder Zutat
+  const metaLineRe = { test: (l) => metaLineWords.test(l) && !/^\s*\d+(?:[.,]\d+)?\s+(?:portionen?|personen?)\s+\p{L}/iu.test(l) && (/[⏱⏲🕒🕐🕑🕓🕔🕕]/u.test(l) || (l.length <= 50 && l.trim().split(/\s+/).length <= 5)) };
   const isHashtagOnly = (l) => !l.replace(/#[\wäöüÄÖÜß-]+/g, '').trim();
 
   let tagWords = [];
-  lines.forEach(l => {
+  rawLines.forEach(l => {
     const tags = l.match(/#[\wäöüÄÖÜß-]+/g);
     if (tags) tagWords.push(...tags.map(t => t.replace('#', '')));
   });
@@ -215,7 +287,8 @@ function parseFreeTextRecipe(raw) {
   if (numberedSteps.length) {
     const byPosition = [...numberedSteps].sort((a, b) => a.idx - b.idx);
     byPosition.forEach((step, i) => {
-      const nextIdx = i + 1 < byPosition.length ? byPosition[i + 1].idx : lines.length;
+      let nextIdx = i + 1 < byPosition.length ? byPosition[i + 1].idx : lines.length;
+      if (ingStart > step.idx && ingStart < nextIdx) nextIdx = ingStart;   // Zutaten-Block NACH den Schritten gehoert nicht zum letzten Schritt
       const continuation = lines.slice(step.idx + 1, nextIdx)
         .filter(l => !ingHeaderRe.test(l) && !stepHeaderRe.test(l) && !metaLineRe.test(l) && !isHashtagOnly(l));
       if (continuation.length) {
@@ -228,7 +301,8 @@ function parseFreeTextRecipe(raw) {
 
   const titleLine = lines.find(l =>
     !isHashtagOnly(l) && !ingHeaderRe.test(l) && !stepHeaderRe.test(l) &&
-    !metaLineRe.test(l) && !STEP_NUM_RE.test(l) && !looksLikeIngredient(l)
+    !metaLineRe.test(l) && !STEP_NUM_RE.test(l) && !importStartsWithAmount(l) && !isGroupHeadingLine(l) &&
+    importStripEmoji(stripBullet(l)).length > 1
   ) || lines.find(l => !l.startsWith('#')) || null;
 
   let ingLines = [], stepLines = [];
@@ -237,33 +311,55 @@ function parseFreeTextRecipe(raw) {
     stepLines = numberedSteps.sort((a, b) => a.num - b.num).map(s => s.text);
     const firstStepIdx = Math.min(...numberedSteps.map(s => s.idx));
     if (ingStart !== -1) {
-      const end = (stepStart !== -1 && stepStart > ingStart) ? stepStart : firstStepIdx;
-      ingLines = lines.slice(ingStart + 1, Math.max(end, ingStart + 1)).filter(l => !STEP_NUM_RE.test(l));
+      if (ingStart > firstStepIdx) {   // Zutaten stehen hinter den nummerierten Schritten
+        const after = lines.slice(ingStart + 1);
+        const stop = after.findIndex(l => stepHeaderRe.test(l));
+        ingLines = (stop === -1 ? after : after.slice(0, stop)).filter(l => !STEP_NUM_RE.test(l));
+      } else {
+        const end = (stepStart !== -1 && stepStart > ingStart) ? stepStart : firstStepIdx;
+        ingLines = lines.slice(ingStart + 1, Math.max(end, ingStart + 1)).filter(l => !STEP_NUM_RE.test(l));
+      }
     } else {
-      ingLines = lines.slice(0, firstStepIdx).filter(l => l !== titleLine && !isDurationOnlyLine(l) && (looksLikeIngredient(l) || isGroupHeadingLine(l)));
+      ingLines = lines.slice(0, firstStepIdx).filter(l => l !== titleLine && !isDurationOnlyLine(l) && (looksLikeIngredient(l) || isGroupHeadingLine(l) || (!importIsSentence(l) && !STEP_NUM_RE.test(l) && l.trim().split(/\s+/).length <= 5)));
     }
   } else if (ingStart !== -1 || stepStart !== -1) {
     const firstSectionIdx = [ingStart, stepStart].filter(i => i !== -1).sort((a, b) => a - b)[0];
     if (ingStart !== -1) {
       const end = stepStart !== -1 && stepStart > ingStart ? stepStart : lines.length;
       ingLines = lines.slice(ingStart + 1, end);
+      // Ohne eigene Zubereitungs-Ueberschrift beginnt die Zubereitung mit dem ersten ganzen Satz
+      if (stepStart === -1) {
+        const cut = ingLines.findIndex(l => importIsSentence(l) && !importStartsWithAmount(l));
+        if (cut !== -1) {
+          const tail = ingLines.slice(cut); ingLines = ingLines.slice(0, cut);
+          // Zeilen mit Menge bleiben auch nach dem ersten Satz Zutaten
+          tail.forEach(l => ((importStartsWithAmount(l) && l.length < 120 && !/[.!?]$/.test(l)) ? ingLines : stepLines).push(l));
+        }
+      }
     }
     if (stepStart !== -1) {
       const end = ingStart !== -1 && ingStart > stepStart ? ingStart : lines.length;
       stepLines = lines.slice(stepStart + 1, end).filter(l => !ingHeaderRe.test(l));
     }
   } else {
+    // Ohne Kopfzeilen: am Anfang stehen die Zutaten (kurze Zeilen), ab dem ersten ganzen Satz beginnt
+    // die Zubereitung. Zeilen mit Mengenangabe bleiben auch danach Zutaten.
+    let inIngredients = true;
     for (const l of lines) {
-      if (l === titleLine || l.startsWith('#')) continue;
-      if (looksLikeIngredient(l) && l.length < 60) ingLines.push(l);
-      else stepLines.push(l);
+      if (l === titleLine || l.startsWith('#') || metaLineRe.test(l)) continue;
+      const strictIng = importStartsWithAmount(l) && l.length < 120 && !/[.!?]$/.test(l);
+      if (strictIng) { ingLines.push(l); continue; }
+      if (inIngredients && !importIsSentence(l)) { ingLines.push(l); continue; }
+      inIngredients = false;
+      stepLines.push(l);
     }
   }
 
   ingLines = ingLines.filter(l => !metaLineRe.test(l) && !isHashtagOnly(l));
   stepLines = stepLines.filter(l => !metaLineRe.test(l) && !isHashtagOnly(l));
+  if (!numberedSteps.length) stepLines = stepLines.flatMap(l => importSplitSentences(l));
 
-  r.title = titleLine ? stripBullet(titleLine).slice(0, 80) : 'Importiertes Rezept';
+  r.title = (titleLine && importStripEmoji(stripBullet(titleLine))) ? importStripEmoji(stripBullet(titleLine)).slice(0, 80) : (titleLine ? stripBullet(titleLine).slice(0, 80) : 'Importiertes Rezept');
   ingLines = ingLines.filter(l => !isDurationOnlyLine(l));
   r.ingredients = ingLines.map(l => parseIngredientLine(stripBullet(l))).filter(i => i.name);
   r.ingredients = r.ingredients.map(i => autoConvertIngredient(i));
@@ -284,7 +380,10 @@ function parseFreeTextRecipe(raw) {
   // einzelnen Zwischenschritts (z.B. "~8 Min" beim Karamellisieren) faelschlich als Gesamtzeit
   // uebernommen. Ohne klare Meta-Zeile bleibt der Standardwert stehen und wird im Import-Hinweis
   // ehrlich als "nicht erkannt" markiert, statt eine moeglicherweise falsche Zahl zu zeigen.
-  const metaText = lines.filter(l => metaLineRe.test(l)).join(' ');
+  const metaLines = lines.filter(l => metaLineRe.test(l));
+  // Gibt es eine "Gesamtzeit", zaehlt nur sie (sonst wuerden Arbeits-, Koch- und Gesamtzeit doppelt addiert)
+  const totalLine = metaLines.find(l => /gesamt|dauert/i.test(l));
+  const metaText = (totalLine ? [totalLine].concat(metaLines.filter(l => !/(zeit|dauer|⏱|⏲|🕒|min|std)/i.test(l))) : metaLines).join(' ');
   // F08: Zeit aus Meta-Zeilen ODER aus einer Zeile, die nur aus einer Dauer besteht ("20 Minuten",
   // "1 Std. 30 Min.", "ca. 45 min"). Dauern mitten in Zubereitungsschritten zaehlen weiterhin nicht,
   // und einzelne Timer werden nicht aufsummiert.
@@ -296,8 +395,8 @@ function parseFreeTextRecipe(raw) {
   const timeMatch = timeMinutes !== null && timeMinutes > 0;
   // Unbekannte Zeit bleibt leer (0) statt eines Standardwerts, der wie ein echter Wert aussieht.
   r.timeMinutes = timeMatch ? timeMinutes : 0;
-  const servMatch = metaText ? metaText.match(/(\d+)\s*(portionen|personen|servings)/i) : null;
-  if (servMatch) r.servings = parseInt(servMatch[1]);
+  const servMatch = metaLines.join(' ').match(/(\d+)\s*(portionen|personen|servings|stück|stueck|stk)/i);
+  if (servMatch) { r.servings = parseInt(servMatch[1]); if (/^st(ü|ue)ck|^stk/i.test(servMatch[2])) r.servingMode = 'pieces'; }
 
   const dietMap = { vegan: 'vegan', vegetarisch: 'vegetarisch', vegetarian: 'vegetarisch', glutenfrei: 'glutenfrei', laktosefrei: 'laktosefrei', nussfrei: 'nussfrei' };
   const NEGATION_WORDS = ['nicht', 'kein', 'keine', 'keinen', 'keinem', 'ohne'];
