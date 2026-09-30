@@ -108,8 +108,10 @@ async function restoreBackupFromFile(file) {
       // neuem Geraet). Nur bei Kollision entsteht eine neue ID, damit nichts ueberschrieben wird.
       // Ist dasselbe Rezept (gleiche ID, gleicher Inhalt) schon da, wird es uebersprungen statt verdoppelt.
       // Ist es inhaltlich anders, bleibt es als zusaetzliche Kopie erhalten: es wird nie etwas ueberschrieben.
-      const existingSame = oldId && state.recipes.find(x => x.id === oldId);
-      if (existingSame && backupRecipeFingerprint(existingSame) === backupRecipeFingerprint(clone)) { recipeIdMap[oldId] = oldId; skippedIds.add(oldId); skipped++; continue; }
+      const fp = backupRecipeFingerprint(clone);
+      const existingSame = state.recipes.find(x => x.id === oldId && backupRecipeFingerprint(x) === fp)
+        || state.recipes.find(x => backupRecipeFingerprint(x) === fp);   // auch eine frueher angelegte Kopie zaehlt: mehrfaches Einspielen verdoppelt nichts
+      if (existingSame) { if (oldId) { recipeIdMap[oldId] = existingSame.id; skippedIds.add(oldId); } skipped++; continue; }
       const idTaken = !oldId || state.recipes.some(x => x.id === oldId) || Object.values(recipeIdMap).includes(oldId);
       if (idTaken) clone.id = uid();
       clone.updatedAt = Date.now();

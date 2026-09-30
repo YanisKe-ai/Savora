@@ -287,7 +287,8 @@ function parseFreeTextRecipe(raw) {
   if (numberedSteps.length) {
     const byPosition = [...numberedSteps].sort((a, b) => a.idx - b.idx);
     byPosition.forEach((step, i) => {
-      const nextIdx = i + 1 < byPosition.length ? byPosition[i + 1].idx : lines.length;
+      let nextIdx = i + 1 < byPosition.length ? byPosition[i + 1].idx : lines.length;
+      if (ingStart > step.idx && ingStart < nextIdx) nextIdx = ingStart;   // Zutaten-Block NACH den Schritten gehoert nicht zum letzten Schritt
       const continuation = lines.slice(step.idx + 1, nextIdx)
         .filter(l => !ingHeaderRe.test(l) && !stepHeaderRe.test(l) && !metaLineRe.test(l) && !isHashtagOnly(l));
       if (continuation.length) {
@@ -310,10 +311,16 @@ function parseFreeTextRecipe(raw) {
     stepLines = numberedSteps.sort((a, b) => a.num - b.num).map(s => s.text);
     const firstStepIdx = Math.min(...numberedSteps.map(s => s.idx));
     if (ingStart !== -1) {
-      const end = (stepStart !== -1 && stepStart > ingStart) ? stepStart : firstStepIdx;
-      ingLines = lines.slice(ingStart + 1, Math.max(end, ingStart + 1)).filter(l => !STEP_NUM_RE.test(l));
+      if (ingStart > firstStepIdx) {   // Zutaten stehen hinter den nummerierten Schritten
+        const after = lines.slice(ingStart + 1);
+        const stop = after.findIndex(l => stepHeaderRe.test(l));
+        ingLines = (stop === -1 ? after : after.slice(0, stop)).filter(l => !STEP_NUM_RE.test(l));
+      } else {
+        const end = (stepStart !== -1 && stepStart > ingStart) ? stepStart : firstStepIdx;
+        ingLines = lines.slice(ingStart + 1, Math.max(end, ingStart + 1)).filter(l => !STEP_NUM_RE.test(l));
+      }
     } else {
-      ingLines = lines.slice(0, firstStepIdx).filter(l => l !== titleLine && !isDurationOnlyLine(l) && (looksLikeIngredient(l) || isGroupHeadingLine(l)));
+      ingLines = lines.slice(0, firstStepIdx).filter(l => l !== titleLine && !isDurationOnlyLine(l) && (looksLikeIngredient(l) || isGroupHeadingLine(l) || (!importIsSentence(l) && !STEP_NUM_RE.test(l) && l.trim().split(/\s+/).length <= 5)));
     }
   } else if (ingStart !== -1 || stepStart !== -1) {
     const firstSectionIdx = [ingStart, stepStart].filter(i => i !== -1).sort((a, b) => a - b)[0];
@@ -323,7 +330,11 @@ function parseFreeTextRecipe(raw) {
       // Ohne eigene Zubereitungs-Ueberschrift beginnt die Zubereitung mit dem ersten ganzen Satz
       if (stepStart === -1) {
         const cut = ingLines.findIndex(l => importIsSentence(l) && !importStartsWithAmount(l));
-        if (cut !== -1) { stepLines = ingLines.slice(cut); ingLines = ingLines.slice(0, cut); }
+        if (cut !== -1) {
+          const tail = ingLines.slice(cut); ingLines = ingLines.slice(0, cut);
+          // Zeilen mit Menge bleiben auch nach dem ersten Satz Zutaten
+          tail.forEach(l => ((importStartsWithAmount(l) && l.length < 120 && !/[.!?]$/.test(l)) ? ingLines : stepLines).push(l));
+        }
       }
     }
     if (stepStart !== -1) {
@@ -336,7 +347,7 @@ function parseFreeTextRecipe(raw) {
     let inIngredients = true;
     for (const l of lines) {
       if (l === titleLine || l.startsWith('#') || metaLineRe.test(l)) continue;
-      const strictIng = importStartsWithAmount(l) && l.length < 60 && !/[.!?]$/.test(l);
+      const strictIng = importStartsWithAmount(l) && l.length < 120 && !/[.!?]$/.test(l);
       if (strictIng) { ingLines.push(l); continue; }
       if (inIngredients && !importIsSentence(l)) { ingLines.push(l); continue; }
       inIngredients = false;
