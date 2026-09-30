@@ -15,6 +15,7 @@ const rec = (n, ret) => (a) => { window.__calls.push([n, a]); return Promise.res
 window.Capacitor = { isNativePlatform: () => true, Plugins: {
   Filesystem: { writeFile: rec('fs.write', { uri: 'file:///cache/test' }) },
   Share: { share: rec('share', {}) },
+  StatusBar: { setStyle: rec('statusbar.style') },
   KeepAwake: { keepAwake: rec('keepAwake'), allowSleep: rec('allowSleep') },
   LocalNotifications: { checkPermissions: rec('perm.check', { display: 'granted' }), requestPermissions: rec('perm.req', { display: 'granted' }),
                         schedule: rec('notif.schedule'), cancel: rec('notif.cancel') },
@@ -74,6 +75,12 @@ async def main():
         await click(page, '[data-action="exit-cook"]')
         await page.wait_for_timeout(400)
         check('Kochmodus verlassen: Benachrichtigung storniert, Bildschirm darf ausgehen', len(await calls(page, 'notif.cancel')) >= 1 and len(await calls(page, 'allowSleep')) >= 1)
+
+        # Statusleiste folgt dem gewaehlten Modus
+        await page.evaluate("() => { state.theme = 'dark'; applyTheme(); state.theme = 'light'; applyTheme(); state.theme = 'amoled'; applyTheme(); }")
+        styles = [c[1]['style'] for c in await calls(page, 'statusbar.style')]
+        check('iOS-Statusleiste: Dunkel/Schwarz = DARK (heller Text), Hell = LIGHT', styles[-3:] == ['DARK', 'LIGHT', 'DARK'], str(styles))
+        await page.evaluate("() => { state.theme = 'auto'; applyTheme(); }")
 
         # Einkaufsliste teilen
         await page.evaluate("dbPutShopping({ id: 's_n1', name: 'Butter', amount: 1, unit: 'Stk', checked: false, recipeId: null, createdAt: Date.now() }).then(() => loadShopping())")

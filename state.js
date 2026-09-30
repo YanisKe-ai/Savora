@@ -59,6 +59,15 @@ function applyTheme() {
   } else {
     root.setAttribute('data-theme', state.theme);
   }
+  syncThemeChrome(root.getAttribute('data-theme'));
+}
+/* Browserleiste (theme-color) und iOS-Statusleiste passen sich dem gewaehlten Modus an, nicht dem des Systems:
+   Wer in der App "Dunkel" waehlt, waehrend das Telefon hell ist, soll keine dunkle Uhr auf dunklem Grund sehen. */
+const THEME_CHROME = { light: '#F8F7FC', dark: '#140A22', amoled: '#000000' };
+function syncThemeChrome(theme) {
+  const meta = document.querySelector('meta[name="theme-color"]');
+  if (meta) meta.setAttribute('content', THEME_CHROME[theme] || THEME_CHROME.light);
+  if (typeof SavoraNative !== 'undefined') SavoraNative.setStatusBarDark(theme === 'dark' || theme === 'amoled');
 }
 
 applyTheme();

@@ -142,9 +142,9 @@ function unitConverterView() {
         <p class="settings-hint settings-hint--top">${escapeHtml(UC_DEFS[defs].desc)}. Rezepte aus den USA meinen meist die US-Werte.</p></div>`
     : '';
   const tempTable = tab.id === 'temp'
-    ? `<div class="uc-defs"><div class="uc-dim-label">Gängige Backofen-Stufen</div><div class="uc-table" role="table" aria-label="Backofen-Stufen">
-        <div class="uc-table-head" role="row"><span role="columnheader">Gas</span><span role="columnheader">°C</span><span role="columnheader">°F</span><span role="columnheader">Heissluft</span></div>
-        ${UC_GAS.map(g => `<button type="button" class="uc-table-row" role="row" data-action="uc-temp-row" data-c="${g[1]}"><span role="cell">${g[0]}</span><span role="cell">${g[1]}</span><span role="cell">${Math.round(g[1] * 9 / 5 + 32)}</span><span role="cell">${g[1] - 20}</span></button>`).join('')}
+    ? `<div class="uc-defs"><div class="uc-dim-label">Gängige Backofen-Stufen</div><div class="uc-table" role="group" aria-label="Backofen-Stufen, antippen zum Übernehmen">
+        <div class="uc-table-head" aria-hidden="true"><span>Gas</span><span>°C</span><span>°F</span><span>Heissluft</span></div>
+        ${UC_GAS.map(g => `<button type="button" class="uc-table-row" data-action="uc-temp-row" data-c="${g[1]}" aria-label="Gasstufe ${g[0]}, ${g[1]} Grad Celsius, ${Math.round(g[1] * 9 / 5 + 32)} Grad Fahrenheit, Heissluft ${g[1] - 20} Grad"><span>${g[0]}</span><span>${g[1]}</span><span>${Math.round(g[1] * 9 / 5 + 32)}</span><span>${g[1] - 20}</span></button>`).join('')}
       </div></div>`
     : '';
   return `

@@ -473,7 +473,7 @@ function cookModeView() {
   const steps = cookSteps(r);
   const checked = checkedSetFor(r.id);
   if (state.cookFinished) {
-    return `<div class="cookmode-overlay cook-v2">
+    return `<div class="cookmode-overlay cook-v2" role="main" aria-label="Kochmodus">
       <div class="cookmode-top"><button class="icon-btn" data-action="exit-cook" aria-label="Kochmodus verlassen">${ICONS.x}</button><span></span><span class="cook-top-spacer"></span></div>
       <div class="cookmode-body cook-finish-v2">
         ${ICONS.sparkle}
@@ -512,7 +512,7 @@ function cookModeView() {
         ${ingChips ? `<div class="cook-ing-list">${ingChips}</div>` : ''}
       </div>`;
   const refModal = state.modal && state.modal.type === 'step-ings' ? stepIngredientsModal(r, state.modal.stepIndex) : '';
-  return `${refModal}<div class="cookmode-overlay cook-v2">
+  return `${refModal}<div class="cookmode-overlay cook-v2" role="main" aria-label="Kochmodus">
     <div class="cookmode-top">
       <button class="icon-btn" data-action="exit-cook" aria-label="Kochmodus verlassen">${ICONS.x}</button>
       <span class="cookmode-progress" aria-live="polite">Schritt ${idx + 1} von ${total}</span>
