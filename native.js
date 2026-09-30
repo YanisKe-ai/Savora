@@ -50,13 +50,20 @@ const SavoraNative = (() => {
     return (Math.abs(h) % 2000000000) + 1;
   }
   const scheduled = new Set();
+  // Mitteilungen sind ausgeschaltet: einmal pro Sitzung erklaeren, warum sich der Timer nicht meldet
+  let deniedShown = false;
+  function deniedHint() {
+    if (deniedShown) return;
+    deniedShown = true;
+    if (typeof showToast === 'function') showToast('Mitteilungen sind aus. Schalte sie in den iOS-Einstellungen ein, damit sich Timer bei gesperrtem Telefon melden.', 'info');
+  }
   async function scheduleTimer(id, endTimeMs, recipeTitle) {
     const LN = plugin('LocalNotifications');
     if (!LN || !(endTimeMs > Date.now())) return;
     try {
       let perm = await LN.checkPermissions();
       if (perm.display === 'prompt' || perm.display === 'prompt-with-rationale') perm = await LN.requestPermissions();
-      if (perm.display !== 'granted') return;
+      if (perm.display !== 'granted') { deniedHint(); return; }
       const nid = notifId(id);
       await LN.schedule({ notifications: [{
         id: nid, title: 'Timer fertig', body: recipeTitle ? `${recipeTitle}: Der Timer ist abgelaufen.` : 'Der Timer ist abgelaufen.',

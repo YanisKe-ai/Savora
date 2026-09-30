@@ -81,6 +81,15 @@ async def main():
 
         check('Haptik: Timer-Start und Timer-Ende rufen das Haptik-Plugin', len(await calls(page, 'haptic.impact')) >= 1)
 
+        # Mitteilungen verweigert: Timer laeuft, Hinweis erscheint genau einmal
+        await page.evaluate("() => { window.Capacitor.Plugins.LocalNotifications.checkPermissions = () => Promise.resolve({ display: 'denied' }); }")
+        await page.evaluate("() => { state.timers = {}; state.view = 'cookmode'; render(); }")
+        before = len(await calls(page, 'notif.schedule'))
+        await page.evaluate("() => { startTimer('r_legacy_1-1-seg0', 30); startTimer('r_legacy_1-1-seg1', 30); }"); await page.wait_for_timeout(500)
+        toasts = await page.evaluate("Array.from(document.querySelectorAll('.toast')).filter(t => t.textContent.includes('Mitteilungen sind aus')).length")
+        check('Mitteilungen verweigert: keine Planung, Hinweis genau einmal', len(await calls(page, 'notif.schedule')) == before and toasts == 1, f'Toasts={toasts}')
+        await page.evaluate("() => { Object.values(state.timers).forEach(t => clearInterval(t.intervalId)); state.timers = {}; state.view = 'home'; render(); }")
+
         # Statusleiste folgt dem gewaehlten Modus
         await page.evaluate("() => { state.theme = 'dark'; applyTheme(); state.theme = 'light'; applyTheme(); state.theme = 'amoled'; applyTheme(); }")
         styles = [c[1]['style'] for c in await calls(page, 'statusbar.style')]
