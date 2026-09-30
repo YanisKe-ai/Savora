@@ -689,3 +689,84 @@ body { font-size: 16px; }
 .step-list-v2 p { font-size: 17px; }
 .source-row .source-line { font-size: 15px; }
 @media (min-width: 720px) { .recent-card { max-width: 640px; } }
+
+/* ---------- Paket 1 (30.09.2026): Rezeptseite kompakter, Platzhalter, Tippflaechen ---------- */
+/* Foto flacher (2:1), damit die Zutaten schon ohne Scrollen sichtbar sind. Der grosse Titel bleibt (Vorlage). */
+.hero-img { aspect-ratio: 2 / 1; max-height: 30dvh; }
+.detail-head { padding-top: 10px; }
+.topbar--detail .topbar-title { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }   /* Titel bleibt fuer Screenreader, steht sichtbar gross darunter */
+.detail-tools { display: flex; gap: 8px; margin: 8px 0 2px; }
+.detail-tools .outline-btn { flex: 0 1 auto; min-height: 44px; padding-inline: 16px; }
+/* Kochmodus-Leiste fest ueber der unteren Navigation */
+.cook-bar { position: fixed; left: 0; right: 0; bottom: calc(73px + env(safe-area-inset-bottom, 0px)); z-index: var(--z-sticky, 20); padding: 10px clamp(16px, 4vw, 32px) 8px; background: linear-gradient(to bottom, transparent, var(--bg) 40%); pointer-events: none; }
+.cook-bar .primary-btn { pointer-events: auto; margin: 0; max-width: 820px; margin-inline: auto; box-shadow: 0 6px 18px rgba(42, 17, 72, .18); }
+.detail-main { padding-bottom: calc(160px + env(safe-area-inset-bottom, 0px)); }
+body.keyboard-open .cook-bar { display: none; }
+/* Platzhalter ohne Foto: Anfangsbuchstabe auf Farbverlauf (stabile Farbe je Rezept) */
+.placeholder[class*="ph-"] { --pa: #E4D5F5; --pb: #CDB4EC; background: linear-gradient(135deg, var(--pa), var(--pb)); color: #2A1148; }
+.placeholder.ph-1 { --pa: #F8E4D2; --pb: #F0C9A8; }
+.placeholder.ph-2 { --pa: #E0EDD6; --pb: #C3DCB3; }
+.placeholder.ph-3 { --pa: #F7DCE1; --pb: #EDB6C2; }
+.placeholder.ph-4 { --pa: #D9EAF0; --pb: #B4D4E2; }
+.placeholder.ph-5 { --pa: #F0EBC6; --pb: #E1D88F; }
+[data-theme="dark"] .placeholder[class*="ph-"], [data-theme="amoled"] .placeholder[class*="ph-"] { background: linear-gradient(135deg, color-mix(in srgb, var(--pa) 30%, #1F1232), color-mix(in srgb, var(--pb) 22%, #1F1232)); color: var(--pa); }
+.ph-letter { font-family: var(--font-display); font-weight: 800; line-height: 1; font-size: 40px; letter-spacing: 0; }
+.rrow-img .ph-letter, .plan-thumb .ph-letter, .picker-thumb .ph-letter { font-size: 24px; }
+.hero-img .ph-letter { font-size: 84px; }
+/* Tippflaechen mindestens 44 x 44 px */
+.icon-toggle { width: 48px; min-height: 44px; height: 44px; }
+.icon-btn--small { width: 44px; height: 44px; min-width: 44px; }
+.day-select input { width: 22px; height: 22px; }
+.day-select { padding-inline: 6px; }
+
+/* ---------- Paket 2: rechtliche und allgemeine Texte ---------- */
+.legal-card p { margin: 0 0 10px; font-size: 15px; line-height: 1.55; color: var(--text); }
+.legal-card p:last-child { margin-bottom: 0; }
+.legal-stand { margin: 0 0 12px; font-size: 13.5px; color: var(--text-soft); }
+.legal-list { margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 8px; font-size: 15px; line-height: 1.5; }
+.legal-placeholder { background: var(--lime); color: var(--lime-ink); border-radius: 6px; padding: 1px 6px; font-weight: 700; }
+.legal-card .legal-about-name { font-family: var(--font-display); font-weight: 800; font-size: 40px; line-height: 1; letter-spacing: 0; }
+.faq { border-top: 1px solid var(--border); padding: 4px 0; }
+.faq:first-child { border-top: none; }
+.faq summary { cursor: pointer; min-height: 44px; display: flex; align-items: center; font-weight: 700; font-size: 15.5px; list-style: none; }
+.faq summary::-webkit-details-marker { display: none; }
+.faq summary::after { content: '+'; margin-left: auto; padding-left: 12px; font-size: 22px; color: var(--accent); }
+.faq[open] summary::after { content: '\2212'; }
+.faq p { margin: 0 0 10px; }
+
+/* ---------- Paket 3: Masseinheiten-Rechner ---------- */
+.uc-page { display: flex; flex-direction: column; gap: 14px; max-width: 640px; }
+.uc-tabs { display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; padding: 4px; background: var(--surface-soft); border-radius: var(--radius-l, 18px); }
+.uc-tab { min-height: 44px; border: none; background: none; border-radius: 14px; font-weight: 700; font-size: 14px; color: var(--text-soft); padding: 0 4px; }
+.uc-tab.is-active { background: var(--card-bg); color: var(--text); box-shadow: 0 1px 4px rgba(42, 17, 72, .12); }
+.uc-card { background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius-l, 18px); padding: 16px; display: flex; flex-direction: column; gap: 12px; }
+.uc-input-row { display: grid; grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr); gap: 12px; }
+.uc-field { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.uc-field label { font-size: 12.5px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; color: var(--text-soft); }
+.uc-input, .uc-select { width: 100%; min-height: 56px; border: 1.5px solid var(--border); border-radius: 14px; background: var(--bg); color: var(--text); padding: 0 14px; font: inherit; font-size: 17px; }
+.uc-input { font-family: var(--font-display); font-weight: 800; font-size: 30px; font-variant-numeric: tabular-nums; letter-spacing: 0; }
+.uc-select { -webkit-appearance: none; appearance: none; font-weight: 700; padding-right: 38px; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%237a43b6' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 12px center; }
+.uc-input:focus-visible, .uc-select:focus-visible { outline: 3px solid var(--accent); outline-offset: 1px; border-color: var(--accent); }
+.uc-quick { display: flex; flex-wrap: wrap; gap: 8px; }
+.uc-chip { min-height: 44px; min-width: 52px; padding: 0 14px; border-radius: 999px; border: 1px solid var(--border); background: var(--surface-soft); color: var(--text); font-weight: 700; font-size: 15px; font-variant-numeric: tabular-nums; }
+.uc-chip:active { background: var(--lime); color: var(--lime-ink); }
+.uc-dim-label { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: .08em; color: var(--text-soft); margin: 10px 2px 8px; }
+.uc-result-list { display: flex; flex-direction: column; gap: 8px; }
+.uc-result-row { display: grid; grid-template-columns: auto 1fr auto; align-items: baseline; column-gap: 10px; row-gap: 2px; width: 100%; min-height: 60px; padding: 10px 14px; text-align: left; background: var(--card-bg); border: 1px solid var(--border); border-radius: 14px; color: var(--text); }
+.uc-result-row--static { opacity: .7; }
+.uc-result-value { grid-row: 1; font-family: var(--font-display); font-weight: 800; font-size: 28px; line-height: 1.1; font-variant-numeric: tabular-nums; letter-spacing: 0; }
+.uc-result-unit { grid-row: 1; font-size: 14px; font-weight: 700; color: var(--text-soft); }
+.uc-result-note { grid-column: 1 / -1; grid-row: 2; font-size: 13px; color: var(--text-soft); }
+.uc-result-copy { grid-row: 1; grid-column: 3; align-self: center; color: var(--accent); display: inline-flex; }
+.uc-result-copy svg { width: 18px; height: 18px; }
+.uc-result-row:active { background: var(--surface-soft); }
+.uc-error { color: var(--danger); font-size: 15px; margin: 8px 0; }
+.uc-defs { display: flex; flex-direction: column; }
+.uc-table { display: flex; flex-direction: column; border: 1px solid var(--border); border-radius: 14px; overflow: hidden; background: var(--card-bg); }
+.uc-table-head, .uc-table-row { display: grid; grid-template-columns: repeat(4, 1fr); text-align: center; align-items: center; min-height: 44px; font-variant-numeric: tabular-nums; }
+.uc-table-head { background: var(--surface-soft); font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: var(--text-soft); }
+.uc-table-row { border: none; border-top: 1px solid var(--border); background: none; color: var(--text); font-size: 16px; font-weight: 600; width: 100%; }
+.uc-table-row:active { background: var(--lime); color: var(--lime-ink); }
+.uc-input-row .uc-input, .uc-input-row .uc-select { width: 100%; flex: none; }
+.uc-result-unit { text-transform: none; letter-spacing: 0; }
+@media (max-width: 359px) { .uc-tab { font-size: 12.5px; } .uc-input { font-size: 26px; } }

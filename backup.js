@@ -82,7 +82,7 @@ async function restoreBackupFromFile(file) {
       clone.sharedBy = data.sharedBy || null;
       await dbPut(clone);
       await loadRecipes();
-      const msg = `„${clone.title}"${clone.sharedBy ? ` von ${clone.sharedBy}` : ''} wurde zu deinem Kochbuch hinzugefügt.`;
+      const msg = `„${clone.title}“${clone.sharedBy ? ` von ${clone.sharedBy}` : ''} wurde zu deinem Kochbuch hinzugefügt.`;
       render(); // Ansicht zuerst neu aufbauen, DANACH den Status-Text setzen —
                 // sonst wuerde ein nachfolgender render() die gerade gesetzte Meldung sofort wieder loeschen.
       const freshStatusEl = document.getElementById('backupStatus');

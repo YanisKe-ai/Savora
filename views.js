@@ -15,6 +15,7 @@ function viewFor(view) {
     case 'settings-terms': return settingsTermsView();
     case 'settings-sources': return settingsSourcesView();
     case 'settings-about': return settingsAboutView();
+    case 'settings-licenses': return settingsLicensesView();
     case 'paste-import': return pasteImportView();
     case 'shopping': return shoppingView();
     case 'mealplan': return mealplanView();
@@ -114,7 +115,7 @@ function deleteModal(r) {
   return `<div class="modal-backdrop" data-action="close-modal">
     <div class="modal-sheet" role="dialog" aria-modal="true" aria-labelledby="delete-modal-title" tabindex="-1" onclick="event.stopPropagation()">
       <h3 class="modal-title" id="delete-modal-title">Rezept löschen?</h3>
-      <p style="font-size:14px;color:var(--text-muted);">„${escapeHtml(r.title)}" wird endgültig aus deinem Kochbuch entfernt.</p>
+      <p style="font-size:14px;color:var(--text-muted);">„${escapeHtml(r.title)}“ wird endgültig aus deinem Kochbuch entfernt.</p>
       <div class="form-actions">
         <button class="ghost-btn" data-action="close-modal">Abbrechen</button>
         <button class="primary-btn" style="background:var(--danger);color:#fff;flex:1;justify-content:center;" data-action="delete-recipe" data-id="${r.id}">Löschen</button>
@@ -179,50 +180,6 @@ function renderStepWithTimers(text, stepIdx) {
 
 
 
-function unitConverterUnitOptions(selected) {
-  const groups = [
-    { label: 'Gewicht', units: ['g', 'kg', 'oz', 'lb'] },
-    { label: 'Volumen', units: ['ml', 'l', 'tsp', 'tbsp', 'cup', 'floz'] },
-  ];
-  return groups.map(g => `<optgroup label="${g.label}">${g.units.map(u => `<option value="${u}" ${u === selected ? 'selected' : ''}>${UNIT_LABELS[u]}</option>`).join('')}</optgroup>`).join('');
-}
-
-function unitConverterResultsHtml() {
-  // F04: zentraler Parser, "0,5" und "0.5" ergeben dasselbe; Ungueltiges wird sichtbar abgelehnt.
-  const parsed = parseQuantityInput(state.ucAmount);
-  const unit = state.ucUnit;
-  const dim = unitDimension(unit);
-  if (parsed.error) return `<p class="uc-error" role="alert">${escapeHtml(parsed.error)}</p>`;
-  if (parsed.value < 0 || parsed.value > 1e6) return `<p class="uc-error" role="alert">Bitte eine Menge zwischen 0 und 1'000'000 eingeben.</p>`;
-  if (!dim) return `<p class="settings-hint">Diese Einheit lässt sich nicht umrechnen.</p>`;
-  const amount = parsed.value;
-  const table = dim === 'weight' ? WEIGHT_TABLE : VOLUME_TABLE;
-  const others = Object.keys(table).filter(u => u !== unit);
-  return `<div class="uc-result-list">${others.map(u => {
-    const val = convertAmountExplicit(amount, unit, u);
-    return `<div class="uc-result-row"><span class="uc-result-value">${val}</span><span class="uc-result-unit">${UNIT_LABELS[u]}</span></div>`;
-  }).join('')}</div>`;
-}
-
-function unitConverterView() {
-  if (state.ucAmount === undefined) state.ucAmount = '100';
-  if (state.ucUnit === undefined) state.ucUnit = 'g';
-  return `
-    ${topbar('Masseinheiten-Rechner', { back: true })}
-    <main class="has-tabbar">
-      <div class="uc-input-row">
-        <label for="ucAmount" class="sr-only">Menge</label>
-        <input type="text" inputmode="decimal" id="ucAmount" value="${escapeHtml(state.ucAmount)}" aria-describedby="ucResults" autocomplete="off">
-        <label for="ucUnit" class="sr-only">Einheit</label>
-        <select id="ucUnit">${unitConverterUnitOptions(state.ucUnit)}</select>
-      </div>
-      <p class="settings-hint">Komma oder Punkt, auch Brüche wie 1/2 oder ½.</p>
-      <div id="ucResults" aria-live="polite">${unitConverterResultsHtml()}</div>
-    </main>
-    ${bottomNav()}
-  `;
-}
-
 /* ---------- "Mehr" (frueher "Einstellungen") — Redesign, Teil A ----------
    Ersetzt die Accordion-Wand durch klar gruppierte Zeilen (Settings Rows). Einstellungen,
    Aktionen und Informationen stehen in eigenen Gruppen, nicht mehr gleichrangig nebeneinander.
@@ -270,7 +227,7 @@ function settingsView() {
       ].join(''))}
       ${settingsGroup('Daten &amp; Export', [
         settingsRow({ icon: ICONS.cloud, title: 'Synchronisation', summary: cloudSettingsSummary(), view: 'settings-sync' }),
-        settingsRow({ icon: ICONS.download, title: 'Backup &amp; Wiederherstellung', view: 'settings-backup' }),
+        settingsRow({ icon: ICONS.download, title: 'Sicherung &amp; Wiederherstellung', view: 'settings-backup' }),
         settingsRow({ icon: ICONS.pdf, title: 'Kochbuch gestalten und als PDF', action: 'goto-view', view: 'cookbook' }),
       ].join(''))}
       ${settingsGroup('Werkzeuge', settingsRow({ icon: ICONS.scale, title: 'Masseinheiten-Rechner', action: 'open-unitconverter' }))}
@@ -326,12 +283,12 @@ function settingsProfileView() {
         <p class="settings-hint">Der Kochbuch-Titel erscheint unter dem Logo auf der Startseite und auf dem Deckblatt beim PDF-Export.</p>
         <div class="field" style="margin-bottom:14px;">
           <label for="f-cookbook-title">Kochbuch-Titel</label>
-          <input type="text" id="f-cookbook-title" placeholder="z.B. Yanis' Küche" value="${escapeHtml(state.cookbookTitle)}">
+          <input type="text" id="f-cookbook-title" placeholder="z.B. Küche von Familie Muster" value="${escapeHtml(state.cookbookTitle)}">
         </div>
         <p class="settings-hint">Dein Name wird angehängt, wenn du ein Rezept mit jemandem teilst, damit der Empfänger sieht, von wem es kommt.</p>
         <div class="field" style="margin-bottom:14px;">
           <label for="f-sender-name">Dein Name</label>
-          <input type="text" id="f-sender-name" placeholder="z.B. Yanis" value="${escapeHtml(state.senderName)}">
+          <input type="text" id="f-sender-name" placeholder="z.B. Anna" value="${escapeHtml(state.senderName)}">
         </div>
         <button class="primary-btn" data-action="save-profile-fields">${ICONS.check} Speichern</button>
       </div>
@@ -345,95 +302,45 @@ function settingsBackupView() {
     : 'Noch keine Sicherung erstellt';
   const body = `
     <div class="settings-group">
-      <div class="settings-group-title">Backup</div>
+      <div class="settings-group-title">Sicherung</div>
       <div class="settings-group-card settings-group-card--padded">
         <p class="settings-hint">${typeof cloudSignedIn === 'function' && cloudSignedIn()
           ? 'Deine Daten liegen auf diesem Gerät und werden zusätzlich über die Synchronisation mit deinen anderen Geräten abgeglichen. Der Abgleich ist keine Sicherung: löschst du etwas, verschwindet es überall. Eine Sicherungsdatei hält einen festen Stand fest, zu dem du zurückkehren kannst.'
           : 'Deine Daten liegen nur auf diesem Gerät. Erstelle regelmässig eine Sicherung, damit bei einem Gerätewechsel oder gelöschten Browserdaten nichts verloren geht. Unter „Synchronisation“ kannst du zusätzlich einen Abgleich mit deinen anderen Geräten einrichten.'}</p>
-        <button class="primary-btn" data-action="export-backup">${ICONS.download} Backup erstellen</button>
-        <p class="settings-hint settings-hint--top">Letztes Backup: ${escapeHtml(lastBackupLabel)}</p>
+        <button class="primary-btn" data-action="export-backup">${ICONS.download} Sicherung erstellen</button>
+        <p class="settings-hint settings-hint--top">Letzte Sicherung: ${escapeHtml(lastBackupLabel)}</p>
       </div>
     </div>
     <div class="settings-group">
       <div class="settings-group-title">Wiederherstellen</div>
       <div class="settings-group-card settings-group-card--padded">
-        <button class="ghost-btn" data-action="trigger-restore">${ICONS.upload} Backup importieren</button>
+        <button class="ghost-btn" data-action="trigger-restore">${ICONS.upload} Sicherung importieren</button>
         <input type="file" id="restoreFileInput" accept="application/json" style="display:none;">
-        <p class="settings-hint settings-hint--top">„Backup importieren" ist für deine eigenen Sicherungen gedacht. Ein von dir geteiltes Rezept kommt bei anderen als fertige PDF-Datei an: die lässt sich ansehen, ausdrucken oder weiterschicken, aber nicht zurück in Savora einspielen.</p>
+        <p class="settings-hint settings-hint--top">„Sicherung importieren“ ist für deine eigenen Sicherungen gedacht. Ein von dir geteiltes Rezept kommt bei anderen als fertige PDF-Datei an: die lässt sich ansehen, ausdrucken oder weiterschicken, aber nicht zurück in Savora einspielen.</p>
         <div id="backupStatus"></div>
       </div>
     </div>`;
-  return settingsDetailShell('Backup & Wiederherstellung', body);
+  return settingsDetailShell('Sicherung & Wiederherstellung', body);
 }
 
 function settingsHelpView() {
-  const body = `<div class="settings-group"><div class="settings-group-card settings-group-card--padded">
-    <p class="settings-hint settings-hint--none">Fragen oder Feedback zu Savora kannst du direkt an die Person richten, von der du die App erhalten hast.</p>
-  </div></div>`;
-  return settingsDetailShell('Hilfe & Feedback', body);
+  return settingsDetailShell('Hilfe & Feedback', legalHelpHtml());
 }
-
 function settingsPrivacyView() {
-  const body = `<div class="settings-group">
-    <div class="settings-group-card settings-group-card--padded">
-      <p class="settings-hint">Deine Rezepte, Fotos und Notizen bleiben ausschliesslich lokal auf diesem Gerät (IndexedDB). Ohne Anmeldung verlassen sie das Gerät nie.</p>
-      <p class="settings-hint">Nur wenn du dich unter „Synchronisation“ anmeldest, werden Rezepte, Fotos, Wochenplan, Einkaufsliste, Sammlungen und Kochbuch-Auswahl verschlüsselt übertragen und in deinem privaten Bereich bei Supabase in Zürich gespeichert, damit sie auf deinen anderen Geräten erscheinen. Nur dein Konto hat Zugriff. Du kannst Konto und Cloud-Daten jederzeit in der App löschen.</p>
-      <p class="settings-hint">Eine Ausnahme: Wenn du ein Produkt per Barcode suchst und die Schweizer Nährwertdatenbank keinen Treffer hat, fragt Savora Open Food Facts online ab. Dabei werden nur die dafür nötigen Such-/Barcode-Daten an diesen Dienst übertragen, keine anderen Rezeptdaten.</p>
-      <p class="settings-hint settings-hint--none">Exportierst oder teilst du ein Rezept selbst, verlässt genau diese Datei dein Gerät, sonst nichts. Diese Seite wird für die Beta-Version noch ausführlicher vorbereitet.</p>
-    </div>
-  </div>`;
-  return settingsDetailShell('Datenschutz', body);
+  return settingsDetailShell('Datenschutz', legalPrivacyHtml());
 }
-
 function settingsTermsView() {
-  const body = `<div class="settings-group"><div class="settings-group-card settings-group-card--padded">
-    <p class="settings-hint settings-hint--none">Diese Seite wird für die Beta-Version vorbereitet.</p>
-  </div></div>`;
-  return settingsDetailShell('Nutzungsbedingungen', body);
+  return settingsDetailShell('Nutzungsbedingungen', legalTermsHtml());
 }
-
 function settingsSourcesView() {
-  const body = `<div class="settings-group">
-    <div class="settings-group-title">Schweizer Nährwertdatenbank</div>
-    <div class="settings-group-card settings-group-card--padded">
-      <p class="settings-hint settings-hint--none">Primärquelle für die meisten Zutaten, herausgegeben vom Bundesamt für Lebensmittelsicherheit und Veterinärwesen (BLV). Lokal in Savora eingebettet, funktioniert offline.</p>
-    </div>
-  </div>
-  <div class="settings-group">
-    <div class="settings-group-title">Open Food Facts</div>
-    <div class="settings-group-card settings-group-card--padded">
-      <p class="settings-hint settings-hint--none">Wird nur genutzt, wenn du ein Produkt per Barcode scannst und es in der Schweizer Datenbank nicht vorkommt. Ein offenes, community-gepflegtes Projekt: Angaben stammen von Herstellern und Nutzer_innen und können lückenhaft oder ungenau sein. Benötigt eine Internetverbindung.</p>
-    </div>
-  </div>
-  <div class="settings-group">
-    <div class="settings-group-title">USDA (FoodData Central)</div>
-    <div class="settings-group-card settings-group-card--padded">
-      <p class="settings-hint settings-hint--none">Als zusätzliche Quelle vorbereitet, aber deaktiviert: eine sichere Anbindung würde einen eigenen Server erfordern, der API-Schlüssel schützt, statt sie im Browser offenzulegen. Wird erst aktiviert, wenn ein solches Backend existiert.</p>
-    </div>
-  </div>
-  <div class="settings-group">
-    <div class="settings-group-title">Eigene Angaben</div>
-    <div class="settings-group-card settings-group-card--padded">
-      <p class="settings-hint settings-hint--none">Selbst erfasste Custom Foods und von dir bestätigte Zuordnungen haben Vorrang vor automatischen Treffern aus den Datenbanken oben.</p>
-    </div>
-  </div>
-  <div class="settings-group">
-    <div class="settings-group-card settings-group-card--padded">
-      <p class="settings-hint settings-hint--none">Alle Werte sind Schätzungen ohne medizinische Zusicherung. Ein fehlender Wert wird als "–" angezeigt, nie als 0: das würde fälschlich "gemessen und tatsächlich null" statt "keine Daten vorhanden" bedeuten.</p>
-    </div>
-  </div>`;
-  return settingsDetailShell('Datenquellen', body);
+  return settingsDetailShell('Datenquellen', legalSourcesHtml());
 }
-
+function settingsLicensesView() {
+  return settingsDetailShell('Lizenzen', legalLicensesHtml());
+}
 function settingsAboutView() {
-  const body = `<div class="settings-group"><div class="settings-group-card settings-group-card--padded" style="text-align:center;">
-    <img src="logo-mark.png" alt="" style="width:56px;height:56px;margin:4px auto 12px;">
-    <h2 style="font-family:var(--font-display);margin:0 0 4px;">Savora</h2>
-    <p class="settings-hint settings-hint--none">Dein persönliches digitales Kochbuch.</p>
-  </div></div>`;
-  return settingsDetailShell('Über Savora', body);
+  return settingsDetailShell('Über Savora', legalAboutHtml());
 }
-
 /* Punkt 12/13: eigener, dedizierter Screen statt Accordion-Textarea in den Settings. Wird ueber
    die FAB (addMenuModal) erreicht, nicht ueber "Mehr". */
 function pasteImportView() {
