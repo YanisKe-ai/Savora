@@ -85,7 +85,24 @@ function addMenuModal() {
   </div>`;
 }
 
+function activeFilterCount() {
+  const f = state.activeFilters || {};
+  return ((f.dietary && f.dietary.size) || 0) + ((f.category && f.category.size) || 0) + ((f.time && f.time.size) || 0) + (state.favOnly ? 1 : 0) + (state.activeTag ? 1 : 0) + (state.activeCollection && state.activeCollection !== 'all' ? 1 : 0);
+}
 function emptyFilterState() {
+  const q = (state.query || '').trim();
+  const hasFilters = typeof activeFilterCount === 'function' ? activeFilterCount() > 0 : true;
+  if (q) {
+    return `<div class="empty-state">
+    ${ICONS.search}
+    <h2>Keine Treffer für „${escapeHtml(q.length > 40 ? q.slice(0, 40) + '…' : q)}“</h2>
+    <p>Prüfe die Schreibweise oder suche nach einer Zutat oder einem Stichwort.${hasFilters ? ' Aktive Filter schränken die Suche zusätzlich ein.' : ''}</p>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:center;">
+      ${hasFilters ? `<button class="ghost-btn" data-action="open-filter-sheet">${ICONS.filter} Filter ändern</button>` : ''}
+      <button class="primary-btn" data-action="clear-search">Suche löschen</button>
+    </div>
+  </div>`;
+  }
   return `<div class="empty-state">
     ${ICONS.filter}
     <h2>Keine Rezepte passen zu diesen Filtern</h2>
@@ -228,7 +245,7 @@ function settingsView() {
   return `
     ${topbar('Mehr')}
     <main class="has-tabbar settings-page">
-      <h1 class="sr-only">Mehr</h1>
+      ${pageTitle('Mehr')}
       ${settingsGroup('Mein Kochbuch', settingsRow({ icon: ICONS.book, title: 'Kochbuch & Profil', summary: cookbookSummary, view: 'settings-profile' }))}
       ${settingsGroup('App', [
         settingsRow({ icon: ICONS.moon, title: 'Darstellung', summary: themeLabel, view: 'settings-display' }),
@@ -382,7 +399,7 @@ function pasteImportView() {
         <div class="field field--tight">
           <textarea id="pasteText" class="paste-import-textarea" placeholder="Rezepttext hier einfügen …"></textarea>
         </div>
-        <button class="primary-btn" data-action="do-paste-import">${ICONS.sparkle} Rezept-Entwurf erstellen</button>
+        <button class="primary-btn" data-action="do-paste-import">${ICONS.fileText} Rezept-Entwurf erstellen</button>
       </div>
     </div>`;
   return `

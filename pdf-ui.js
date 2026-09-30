@@ -60,10 +60,10 @@ function pdfExportPreviewStage() {
   const canShare = SavoraNative.isNative || (typeof navigator !== 'undefined' && !!navigator.share);
   return `
     <div class="pdf-preview-header">
+      <button class="ghost-btn pdf-preview-close" data-action="pdf-export-back" aria-label="Vorschau schliessen, zurück zu den Optionen">${ICONS.back} Zurück</button>
       <h3 class="modal-title" id="pdf-export-title">Vorschau</h3>
-      <span class="pdf-preview-meta" aria-live="polite">${m.pageCount ? m.pageCount + (m.pageCount === 1 ? ' Seite' : ' Seiten') : ''}${m.template ? ' · Vorlage ' + m.template : ''}</span>
+      <span class="pdf-preview-meta" aria-live="polite">${m.pageCount ? m.pageCount + (m.pageCount === 1 ? ' Seite' : ' Seiten') : ''}${m.template ? ' · ' + m.template : ''}</span>
       ${pdfPreviewUsesCanvas() ? `<span class="pdf-zoom"><button class="icon-btn" data-action="pdf-zoom" data-id="out" aria-label="Verkleinern" ${(m.zoom || 1) <= 1 ? 'disabled' : ''}>−</button><button class="icon-btn" data-action="pdf-zoom" data-id="in" aria-label="Vergrössern" ${(m.zoom || 1) >= 3 ? 'disabled' : ''}>+</button></span>` : ''}
-      <button class="icon-btn pdf-preview-close" data-action="pdf-export-back" aria-label="Vorschau schliessen, zurück zu den Optionen">${ICONS.back}</button>
     </div>
     <div class="pdf-preview-frame-wrap">
       ${pdfPreviewUsesCanvas()

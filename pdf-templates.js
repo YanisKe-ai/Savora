@@ -156,7 +156,7 @@ function pvNutritionBox(result, detailLevel, pieces) {
   const per = result.nutrientsPerPortion;
   const cell = (key, label) => {
     const def = NUTRIENT_KEYS[key]; const v = per[key];
-    return v === null || v === undefined ? '' : `<span><b>${pvEsc(String(v))}</b> ${pvEsc(def.unit)} ${pvEsc(label || def.label)}</span>`;
+    return v === null || v === undefined ? '' : `<span><b>${pvEsc(String(v).replace('.', ','))}</b> ${pvEsc(def.unit)} ${pvEsc(label || def.label)}</span>`;
   };
   const rows = [cell('energyKcal', 'Energie'), cell('protein', 'Protein'), cell('carbohydrates', 'Kohlenhydrate'), cell('fat', 'Fett'), cell('fiber', 'Ballaststoffe')];
   if (detailLevel === 'full') rows.push(cell('sugars', 'Zucker'), cell('saturatedFat', 'ges. Fett'), cell('salt', 'Salz'));

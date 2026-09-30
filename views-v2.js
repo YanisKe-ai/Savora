@@ -40,6 +40,7 @@ function bottomNav() {
   ];
   const openCount = state.shopping.filter(i => !i.checked && !i.have).length;
   return `<nav class="bottom-nav" aria-label="Hauptnavigation">
+    <div class="nav-brand" aria-hidden="true"><img src="icon-96.png" alt="" width="34" height="34"><span>savora</span></div>
     ${tabs.map(t => {
       const active = t.view === 'settings' ? isMoreSectionView(state.view) : (t.view === 'home' ? ['home', 'detail'].includes(state.view) : state.view === t.view);
       const badge = t.view === 'shopping' && openCount ? `<span class="nav-badge" aria-hidden="true">${openCount > 99 ? '99+' : openCount}</span>` : '';
@@ -609,7 +610,7 @@ function shoppingView() {
         <input type="text" id="shoppingAddInput" placeholder="Eigene Zutat, z.B. 2 l Milch" enterkeyhint="done" autocomplete="off">
         <button class="round-btn round-btn--accent" data-action="add-shopping-item-manual" aria-label="Hinzufügen">${ICONS.plus}</button>
       </div>
-      <div class="shop-quick"><button class="outline-btn" data-action="open-shop-from-recipes">${ICONS.book} Aus Rezepten</button><button class="outline-btn" data-action="nav-tab" data-view="mealplan">${ICONS.calendar} Aus dem Wochenplan</button></div>
+      <div class="shop-quick"><button class="outline-btn" data-action="open-shop-from-recipes">${ICONS.book} Aus Rezepten</button><button class="outline-btn" data-action="nav-tab" data-view="mealplan">${ICONS.calendar} Aus Wochenplan</button></div>
       ${!items.length ? `<div class="empty-state">${ICONS.cart}<h2>Deine Einkaufsliste ist leer</h2><p>Übernimm Zutaten aus einem Rezept oder dem Wochenplan, oder tippe oben eine eigene Zutat ein.</p></div>` : `
         ${open.length ? sections : `<p class="shopping-all-checked">${ICONS.sparkle} Alles erledigt</p>`}
         ${have.length ? `<section class="shop-section shop-section--have"><h2 class="shop-section-title">Bereits vorhanden</h2>${have.map(shoppingItemRow).join('')}</section>` : ''}
@@ -913,10 +914,12 @@ function formView() {
               <li class="${realCount ? 'ok' : 'warn'}">${realCount} Zutat${realCount === 1 ? '' : 'en'}${missingAmounts ? `, davon ${missingAmounts} ohne Mengenangabe` : ''}</li>
               <li class="${stepCount ? 'ok' : 'warn'}">${stepCount} Zubereitungsschritt${stepCount === 1 ? '' : 'e'}</li>
             </ul>
+            ${(() => { const iss = typeof recipeQualityIssues === 'function' ? recipeQualityIssues(r) : []; return iss.length ? `<h3 class="sub-title">Hinweise</h3><ul class="review-list">${iss.map(i => `<li class="warn">${escapeHtml(i.text)}</li>`).join('')}</ul><p class="hint-line">Nichts wird automatisch geändert. Nach dem Speichern kannst du Vorschläge auf der Rezeptseite einzeln übernehmen.</p>` : ''; })()}
           </div>
+          ${!isNew ? `<button type="button" class="text-btn danger-link" data-action="confirm-delete" data-id="${r.id}">${ICONS.trash} Rezept löschen</button>` : ''}
         </section>
         <div class="form-actions form-actions--sticky">
-          ${step > 0 ? `<button class="ghost-btn" data-action="form-goto-step" data-idx="${step - 1}">Zurück</button>` : (!isNew ? `<button class="ghost-btn danger-btn" data-action="confirm-delete" data-id="${r.id}">Löschen</button>` : '')}
+          ${step > 0 ? `<button class="ghost-btn" data-action="form-goto-step" data-idx="${step - 1}">Zurück</button>` : `<button class="ghost-btn" data-action="back">Abbrechen</button>`}
           ${step < FORM_STEPS.length - 1 ? `<button class="primary-btn" data-action="form-goto-step" data-idx="${step + 1}">Weiter</button>` : `<button class="primary-btn" data-action="save-recipe">Rezept speichern</button>`}
         </div>
       </div>
