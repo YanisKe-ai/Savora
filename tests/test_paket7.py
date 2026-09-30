@@ -43,8 +43,8 @@ async def main():
         check('Reiter "Zutaten" entfällt, Zutaten sind links sichtbar', tab_ing['disp'] == 'none' if tab_ing else True)
         vis = await page.evaluate("(() => { const e = document.querySelector('.detail-aside-ing .ing-check'); const b = e.getBoundingClientRect(); return b.top >= 0 && b.bottom <= innerHeight })()")
         check('Erste Zutat ohne Scrollen sichtbar (800 px hoch)', vis)
-        cook = await r('.cook-bar .primary-btn')
-        check('Kochmodus-Leiste sitzt unten im Inhaltsbereich (nicht unter der Seitenleiste)', cook['l'] >= 232 and cook['b'] <= 800, str(cook))
+        cook = await r('.cook-start-inline')
+        check('Kochmodus-Knopf liegt im Inhaltsbereich (nicht unter der Seitenleiste)', cook['l'] >= 232 and cook['b'] <= 800, str(cook))
         # Abhaken links wirkt
         await page.evaluate("document.querySelector('.detail-aside-ing .ing-check').click()"); await page.wait_for_timeout(200)
         checked = await page.evaluate("document.querySelectorAll('.detail-aside-ing .ing-check.is-checked').length")

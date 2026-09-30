@@ -161,7 +161,7 @@ function pvNutritionBox(result, detailLevel, pieces) {
   const rows = [cell('energyKcal', 'Energie'), cell('protein', 'Protein'), cell('carbohydrates', 'Kohlenhydrate'), cell('fat', 'Fett'), cell('fiber', 'Ballaststoffe')];
   if (detailLevel === 'full') rows.push(cell('sugars', 'Zucker'), cell('saturatedFat', 'ges. Fett'), cell('salt', 'Salz'));
   return `<div class="pv-nutri"><div class="pv-label">Nährwerte ${pieces ? 'pro Stück' : 'pro Portion'}, geschätzt</div><div class="pv-nutri-row">${rows.filter(Boolean).join('')}</div>
-    <div class="pv-small">${pvEsc(nutritionSourceLabel(result.sourceDataVersions))}. Schätzwerte, keine medizinische Aussage.</div></div>`;
+    <div class="pv-small">${pvEsc(nutritionSourceLabel(result.sourceDataVersions))}. Schätzwerte, keine medizinische Aussage.${(result.approximations || []).length ? ' Angenähert: ' + pvEsc(result.approximations.map((a) => a.name).join(', ')) + '.' : ''}${(result.unquantified || []).length ? ' Ohne Mengenangabe nicht eingerechnet: ' + pvEsc(result.unquantified.join(', ')) + '.' : ''}</div></div>`;
 }
 
 function pvExtrasHtml(m, nutritionDetail) {

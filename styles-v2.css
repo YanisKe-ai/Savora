@@ -698,10 +698,7 @@ body { font-size: 16px; }
 .detail-tools { display: flex; gap: 8px; margin: 8px 0 2px; }
 .detail-tools .outline-btn { flex: 0 1 auto; min-height: 44px; padding-inline: 16px; }
 /* Kochmodus-Leiste fest ueber der unteren Navigation */
-.cook-bar { position: fixed; left: 0; right: 0; bottom: calc(73px + env(safe-area-inset-bottom, 0px)); z-index: var(--z-sticky, 20); padding: 10px clamp(16px, 4vw, 32px) 8px; background: linear-gradient(to bottom, transparent, var(--bg) 40%); pointer-events: none; }
-.cook-bar .primary-btn { pointer-events: auto; margin: 0; max-width: 820px; margin-inline: auto; box-shadow: 0 6px 18px rgba(42, 17, 72, .18); }
-.detail-main { padding-bottom: calc(160px + env(safe-area-inset-bottom, 0px)); }
-body.keyboard-open .cook-bar { display: none; }
+.detail-main { padding-bottom: calc(96px + env(safe-area-inset-bottom, 0px)); }
 /* Platzhalter ohne Foto: Anfangsbuchstabe auf Farbverlauf (stabile Farbe je Rezept) */
 .placeholder[class*="ph-"] { --pa: #E4D5F5; --pb: #CDB4EC; background: linear-gradient(135deg, var(--pa), var(--pb)); color: #2A1148; }
 .placeholder.ph-1 { --pa: #F8E4D2; --pb: #F0C9A8; }
@@ -831,8 +828,7 @@ body.keyboard-open .cook-bar { display: none; }
   .bottom-nav .nav-badge { top: -7px; right: -11px; }
   main.has-tabbar { padding-bottom: 56px; }
   .topbar { padding-left: max(32px, calc((100vw - 232px - 1180px) / 2 + 32px)); padding-right: max(32px, calc((100vw - 232px - 1180px) / 2 + 32px)); }
-  .cook-bar { left: 232px; bottom: 16px; padding-bottom: 0; background: none; }
-  .detail-main { max-width: 1140px; padding-bottom: 96px; }
+  .detail-main { max-width: 1140px; padding-bottom: 48px; }
   /* Rezeptseite zweispaltig: links Kopf und Zutaten, rechts Zubereitung */
   .detail-cols { display: grid; grid-template-columns: minmax(300px, 360px) minmax(0, 1fr); column-gap: 32px; align-items: start; }
   .detail-col--info { position: sticky; top: calc(76px + env(safe-area-inset-top, 0px)); max-height: calc(100dvh - 96px); overflow-y: auto; padding-bottom: 8px; }
@@ -1033,9 +1029,6 @@ input[type="checkbox"], input[type="radio"] { accent-color: #6E45A2; }
   .nav-brand img { border-radius: 9px; box-shadow: 0 2px 6px rgba(50,22,79,.25); }
   .nav-brand span { font-family: var(--font-logo, var(--font-display)); font-weight: 900; font-stretch: 80%; font-size: 26px; color: #28133E; line-height: 1; }
   [data-theme="dark"] .nav-brand span, [data-theme="amoled"] .nav-brand span { color: #F2EFFA; }
-  /* feste Leiste deckt die letzten Zeilen nicht mehr ab */
-  .detail-main { padding-bottom: 140px; }
-  .detail-col--info { padding-bottom: 96px; }
 }
 /* Vorschau-Kopf: Zurueck links, dann Titel und Angaben */
 .pdf-preview-header { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
@@ -1045,8 +1038,9 @@ input[type="checkbox"], input[type="radio"] { accent-color: #6E45A2; }
 @media (max-width: 360px), (max-height: 640px) {
   .hero-img { aspect-ratio: 16 / 7; max-height: 28vh; max-height: 28dvh; }
   .tab-v2 { padding-left: 8px; padding-right: 8px; font-size: 14px; }
-  .cook-bar { padding-top: 6px; }
-  .cook-bar .primary-btn { min-height: 46px; }
   .detail-title-v2 { font-size: clamp(26px, 8vw, 32px); }
 }
 .pdf-preview-meta { white-space: nowrap; }
+
+/* "Kochmodus starten" steht jetzt im Kopfbereich der Rezeptseite und schwebt nicht mehr ueber dem Text */
+.cook-start-inline { margin: 12px 0 4px; min-height: 52px; }

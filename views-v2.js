@@ -391,6 +391,7 @@ function detailView() {
         <button class="outline-btn outline-btn--small" data-action="add-to-shopping" data-id="${r.id}">${ICONS.cart} Einkauf</button>
         <button class="outline-btn outline-btn--small" data-action="share-recipe" data-id="${r.id}">${ICONS.share} Teilen</button>
       </div>
+      <button class="primary-btn primary-btn--block cook-start-inline" data-action="start-cook" data-id="${r.id}">${ICONS.play} Kochmodus starten</button>
       ${source}
       ${conflictBox}
       ${recipeCheckHtml(r)}
@@ -402,7 +403,6 @@ function detailView() {
       ${tabs.map(t => `<div class="tab-panel" id="panel-${t.id}" role="tabpanel" aria-labelledby="tab-${t.id}" ${tab === t.id ? '' : 'hidden'}>${panelHtml[t.id]}</div>`).join('')}
       </div></div>
     </main>
-    <div class="cook-bar"><button class="primary-btn primary-btn--block" data-action="start-cook" data-id="${r.id}">${ICONS.play} Kochmodus starten</button></div>
     ${bottomNav()}
     ${state.modal && state.modal.type === 'delete' ? deleteModal(r) : ''}
     ${state.modal && state.modal.type === 'detail-menu' ? detailMenuModal(r) : ''}

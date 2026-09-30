@@ -33,6 +33,8 @@ function nutritionIngredientStatus(recipe, result) {
       ${unclear.length ? `<span class="nutri-pill nutri-pill--warn">${unclear.length} unklar</span>` : ''}
       ${missing.length ? `<span class="nutri-pill nutri-pill--warn">${missing.length} ohne Menge</span>` : ''}
     </div>
+    ${(result.approximations || []).length ? `<p class="nutrition-hint-text">Ähnliches Lebensmittel verwendet: ${(result.approximations || []).map(a => escapeHtml(a.name) + ' (wie ' + escapeHtml(a.food.split(',')[0]) + ')').join(', ')}</p>` : ''}
+    ${(result.unquantified || []).length ? `<p class="nutrition-hint-text">Ohne Mengenangabe nicht eingerechnet: ${(result.unquantified || []).map(escapeHtml).join(', ')}</p>` : ''}
     ${list.length ? `<details class="nutri-status-details"><summary>Nicht eingerechnet (${list.length})</summary><ul>${list.map(u => `<li><strong>${escapeHtml(u.name)}</strong>: ${reasonText(u)}</li>`).join('')}</ul>
       <button class="text-btn" data-action="nutrition-open-match" data-id="${recipe.id}">Zuordnung korrigieren</button></details>` : ''}
   </div>`;
@@ -95,7 +97,11 @@ async function hydrateNutritionCards() {
     const recipe = state.recipes.find((r) => r.id === recipeId);
     if (!recipe) continue;
     try {
-      const st = await nutritionStatusFor(recipe);
+      let st = await nutritionStatusFor(recipe);
+      // Nichts berechnet oder veraltet: automatisch neu rechnen (lokal, dauert Millisekunden), damit man keinen Zwischenschritt braucht
+      if (st.status === 'not-calculated' || st.status === 'stale') {
+        try { await recalculateAndStoreNutrition(recipe); st = await nutritionStatusFor(recipe); } catch (e) { console.warn('Automatische Berechnung fehlgeschlagen', e); }
+      }
       node.classList.remove('nutrition-card-loading');
       if (st.status === 'not-calculated') node.innerHTML = nutritionCompactInner(recipe, null);
       else if (st.status === 'stale') node.innerHTML = `

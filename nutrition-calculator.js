@@ -68,6 +68,8 @@ async function calculateRecipeNutrition(recipe) {
   let estimatedCount = 0;
   let unresolvedCount = 0;
   let skippedCount = 0;
+  const unquantified = [];
+  const approximations = [];
   let relevantCount = 0;
   const unresolvedIngredients = [];
   const sourcesUsed = new Set();
@@ -80,7 +82,7 @@ async function calculateRecipeNutrition(recipe) {
     // Punkt 42: optionale Zutaten ("nach Belieben", "wer mag", ...) NICHT automatisch in die
     // Naehrwerte einrechnen, solange unklar ist, ob sie tatsaechlich verwendet wurden — genauso
     // bewusst ausgeschlossen wie eine vage Mengenangabe, kein Fehler/Confidence-Abzug.
-    if (ingredientInfo.optional) continue;
+    if (ingredientInfo.optional || /^\s*(optional|evtl\.?|eventuell|wer mag)\b/i.test(ing.name)) continue;
 
     let match = await matchIngredient(ing.name, recipe.steps);
     if (match.skipped) {
@@ -89,6 +91,9 @@ async function calculateRecipeNutrition(recipe) {
       if (match.skipped === 'negligible' && !isNegligibleAmount(ing)) match = await matchIngredient(ing.name, recipe.steps, { ignoreNegligible: true });
       else { skippedCount++; continue; }
     }
+    // Ohne Mengenangabe laesst sich nichts berechnen: transparent auflisten statt das ganze Ergebnis zu blockieren
+    const amountNum = parseAmount(ing.amount);
+    if (amountNum === null || isNaN(amountNum)) { unquantified.push(ing.name); continue; }
     relevantCount++;
     if (match.status === 'unmatched' || !match.food) {
       unresolvedCount++;
@@ -110,6 +115,7 @@ async function calculateRecipeNutrition(recipe) {
     }
 
     matchedCount++;
+    if (match.approx && match.food) approximations.push({ name: ing.name, food: match.food.name });
     if (grams.estimated) estimatedCount++;
     totalWeightGrams += grams.grams;
     addNutrientContribution(totals, known, match.food, grams.grams);
@@ -141,11 +147,14 @@ async function calculateRecipeNutrition(recipe) {
   if (unresolvedCount > 0) confidence = (relevantCount > 0 && unresolvedCount / relevantCount <= 0.25) ? 'medium' : 'low';   // eine einzelne Lücke macht die Zahl nicht wertlos
   else if (estimatedCount > 0 || per100Estimated) confidence = 'medium';
 
+  if ((unquantified.length || approximations.length) && confidence === 'high') confidence = 'medium';
   const confidenceDetail = relevantCount === 0
     ? 'Keine berechenbaren Zutaten gefunden.'
     : `${matchedCount}/${relevantCount} Zutaten eindeutig erkannt` +
       (estimatedCount > 0 ? `, bei ${estimatedCount} die Menge geschätzt (Stück, Löffel oder Packung)` : '') +
       (skippedCount > 0 ? `, ${skippedCount} nicht mitgerechnet (Wasser, Gewürze)` : '') +
+      (approximations.length > 0 ? `, ${approximations.length} mit ähnlichem Lebensmittel angenähert` : '') +
+      (unquantified.length > 0 ? `, ${unquantified.length} ohne Mengenangabe nicht eingerechnet` : '') +
       (unresolvedCount > 0 ? `, ${unresolvedCount} ungeklärt` : '') +
       (per100Estimated ? ', Fertiggewicht geschätzt' : ', Fertiggewicht bekannt');
 
@@ -170,6 +179,8 @@ async function calculateRecipeNutrition(recipe) {
     unresolvedCount,
     relevantCount,
     unresolvedIngredients,
+    unquantified,
+    approximations,
     complete: unresolvedCount === 0 && relevantCount > 0,
     nutrientsTotal,
     nutrientsPerPortion,
