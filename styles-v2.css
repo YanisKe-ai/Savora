@@ -1044,3 +1044,8 @@ input[type="checkbox"], input[type="radio"] { accent-color: #6E45A2; }
 
 /* "Kochmodus starten" steht jetzt im Kopfbereich der Rezeptseite und schwebt nicht mehr ueber dem Text */
 .cook-start-inline { margin: 12px 0 4px; min-height: 52px; }
+
+/* Nährwert-Zuordnung: Vorschläge mit einem Tipp übernehmen */
+.nutrition-suggest-row { display: flex; flex-wrap: wrap; gap: 6px; padding: 6px 12px 10px 44px; }
+.nutrition-suggest { min-height: 40px; padding: 0 12px; border-radius: 999px; border: 1px solid var(--border); background: var(--card-bg); color: var(--text); font-size: 13px; font-weight: 600; }
+.nutrition-accept-all { width: 100%; margin: 4px 0 12px; }

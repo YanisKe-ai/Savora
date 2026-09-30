@@ -142,6 +142,8 @@ function nutritionMatchRow(item) {
     </li>`;
   }
   const statusText = item.status === 'uncertain' ? (foodName ? 'Vielleicht: ' + foodName : 'Unsicher') : 'Nicht erkannt';
+  const alts = (item.candidates || []).filter((f) => f && f.id).slice(0, 3);
+  const chips = alts.length ? `<div class="nutrition-suggest-row" role="group" aria-label="Vorschläge für ${name}">${alts.map((f) => `<button type="button" class="nutrition-suggest" data-action="nutrition-confirm-match" data-name="${name}" data-food-id="${escapeHtml(f.id)}">${escapeHtml(f.name.length > 34 ? f.name.slice(0, 33) + '…' : f.name)}</button>`).join('')}</div>` : '';
   return `<li>
     <button type="button" class="nutrition-match-item nutrition-match-item-action" data-action="nutrition-select-ingredient" data-name="${name}" aria-label="${name}, ${statusText} — antippen um Lebensmittel zuzuordnen">
       ${nutritionStatusIcon(item.status)}
@@ -152,6 +154,7 @@ function nutritionMatchRow(item) {
       </div>
       ${ICONS.chevronRight}
     </button>
+    ${chips}
   </li>`;
 }
 
@@ -162,6 +165,7 @@ function nutritionMatchStage(recipe) {
   return `
     <h3 class="modal-title" id="nutrition-modal-title">Nährwerte vorbereiten</h3>
     <p class="nutrition-modal-subtitle">${sureCount} von ${items.length} Zutaten erkannt</p>
+    ${reviewItems.some((i) => i.status === 'uncertain' && i.food) ? `<button type="button" class="outline-btn nutrition-accept-all" data-action="nutrition-accept-suggestions">Alle Vorschläge übernehmen</button>` : ''}
     ${reviewItems.length ? `<ul class="nutrition-match-list">${reviewItems.map(nutritionMatchRow).join('')}</ul>` : ''}
     ${sureCount ? `<details class="nutrition-sure-details">
       <summary>${sureCount} sicher erkannte Zutat${sureCount === 1 ? '' : 'en'} anzeigen</summary>
