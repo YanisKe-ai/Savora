@@ -41,7 +41,7 @@ function legalPrivacyHtml() {
       <p><b>Auf deinem Gerät.</b> Rezepte mit Fotos, Notizen, Wochenplan, Einkaufsliste, Sammlungen, Kochfortschritt, Timer und Einstellungen liegen im Speicher des Browsers oder der App. Sie verlassen das Gerät nicht, solange du nicht angemeldet bist und keine Datei teilst.</p>
       <p><b>Mit Konto (Synchronisation).</b> Für die Anmeldung wird deine E-Mail-Adresse gespeichert, das Passwort nur in geschützter Form. Dazu kommen Rezepte, Fotos, Wochenplan, Einkaufsliste, Sammlungen, die Kochbuch-Auswahl und der Zeitpunkt der letzten Änderung. Nur dein Konto kann diese Daten lesen.</p>
       <p><b>Barcode-Suche.</b> Suchst du ein Produkt per Barcode und die Schweizer Nährwertdatenbank hat keinen Treffer, wird die Nummer des Barcodes an Open Food Facts gesendet. Andere Rezeptdaten werden nicht übertragen. Der Dienst sieht dabei technisch bedingt deine IP-Adresse.</p>
-      <p><b>Kamera.</b> Die Kamera wird nur zum Scannen eines Barcodes genutzt. Die Erkennung läuft auf deinem Gerät, Bilder werden weder gespeichert noch übertragen.</p>
+      <p><b>Kamera und Fotos.</b> Die Kamera wird nur zum Scannen eines Barcodes und für „Foto scannen“ genutzt. Bei „Foto scannen“ liest die Texterkennung von iOS den Text aus dem Bild. Das läuft auf deinem Gerät, Bilder werden weder gespeichert noch übertragen. Es entsteht nur der erkannte Text, den du prüfst.</p>
       <p><b>Mitteilungen (iOS-App).</b> Die Timer-Meldungen werden auf deinem Gerät geplant. Es gibt keinen Push-Server.</p>
       <p><b>Teilen und Sicherung.</b> Erstellst du ein PDF oder eine Sicherungsdatei und gibst sie weiter, verlässt genau diese Datei dein Gerät.</p>`)}
     ${legalSection('Wo der Dienst betrieben wird', `

@@ -67,7 +67,7 @@
 	<key>UIViewControllerBasedStatusBarAppearance</key>
 	<true/>
 	<key>NSCameraUsageDescription</key>
-	<string>Savora nutzt die Kamera, um Barcodes von Lebensmitteln zu scannen. Die Bilder werden nicht gespeichert.</string>
+	<string>Savora nutzt die Kamera, um Barcodes zu scannen und Rezepte abzufotografieren. Die Bilder werden nicht gespeichert.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>Savora braucht Zugriff auf deine Fotos, damit du Bilder zu deinen Rezepten hinzufügen kannst.</string>
 	<key>ITSAppUsesNonExemptEncryption</key>
