@@ -31,6 +31,16 @@ async def main():
           { amount: '200', unit: 'g', name: 'Spaghetti' }, { amount: '1', unit: 'TL', name: 'Salz' }, { amount: '1', unit: 'TL', name: 'Pfeffer' }, { amount: '100', unit: 'ml', name: 'Wasser' }, { amount: '1', unit: 'EL', name: 'Miso' } ] };
           const res = await calculateRecipeNutrition(r); return { kcal: res.nutrientsPerPortion.energyKcal, matched: res.matchedCount, relevant: res.relevantCount, unresolved: res.unresolvedIngredients.map(u => u.name + ':' + u.reason), detail: res.confidenceDetail }; }""")
         check('Beispielrezept: Kalorien berechnet, nur "Miso" bleibt ungeklärt', calc['kcal'] and calc['kcal'] > 200 and calc['unresolved'] == ['Miso:not-found'], str(calc))
+        # Grosse Liste (227 Zeilen) und die vier echten Rezepte des Nutzers (nur die Zutatenzeilen)
+        big = [l.strip() for l in open(_os.path.join(TESTS, 'data', 'nutrition_big_lines.txt'), encoding='utf-8') if l.strip()]
+        bres = await ev("""async (lines) => { const out = []; for (const line of lines) { const it = ingPasteParseLine(line); const m = await matchIngredient(it.name, []); const g = m.food ? resolveIngredientGrams(it, m.food) : { grams: null }; out.push({ ok: m.status === 'matched' && (g.grams !== null || !!m.skipped), line, food: m.food ? m.food.name : (m.skipped || null) }); } return out; }""", big)
+        okc = sum(1 for r in bres if r['ok'])
+        check('Grosse Zutatenliste: mindestens 98 % berechenbar', okc / len(bres) >= 0.98, f'{okc} von {len(bres)}; offen: {[r["line"] for r in bres if not r["ok"]][:4]}')
+        wrong = [(r['line'], r['food']) for r in bres if (('Geschnetzeltes' in r['line'] and 'Currysauce' in (r['food'] or '')) or ('Chips' in r['line'] and 'Brot' in (r['food'] or '')))]
+        check('Keine Fehlzuordnung zu Fertiggerichten (Geschnetzeltes, Chips)', not wrong, str(wrong))
+        real = json.load(open(_os.path.join(TESTS, 'data', 'real_recipes_lines.json'), encoding='utf-8'))
+        rr = await ev("""async (data) => { const out = {}; for (const [t, lines] of Object.entries(data)) { const r = await calculateRecipeNutrition({ id: 'x', servings: 4, steps: [], ingredients: lines.map(l => ingPasteParseLine(l)) }); out[t] = { unresolved: r.unresolvedIngredients.map(u => u.name), kcal: r.nutrientsPerPortion.energyKcal, complete: r.complete }; } return out; }""", real)
+        check('Die vier echten Rezepte (Sloppy Joe, Manti, Carbonara, Cookies) sind vollständig berechenbar', all(v['complete'] and v['kcal'] > 100 for v in rr.values()), str({k: v['unresolved'] for k, v in rr.items() if v['unresolved']}))
         check('Keine Seitenfehler', not errs, str(errs[:3]))
         await b.close()
     print('\nFEHLGESCHLAGEN:', FAIL or 'keine')

@@ -36,7 +36,7 @@ const NUTRITION_UNIT_ALIASES = {
   splash: ['schuss', 'spritzer'],
   bunch: ['bund', 'bd', 'bündel'],
   cube: ['würfel', 'würfeli'],
-  pack: ['päckchen', 'paeckchen', 'pck', 'pk', 'pkg', 'packung', 'packungen', 'beutel'],
+  pack: ['päckchen', 'päckli', 'paeckli', 'paeckchen', 'pck', 'pk', 'pkg', 'packung', 'packungen', 'beutel'],
   container: ['dose', 'dosen', 'glas', 'gläser', 'flasche', 'flaschen', 'becher', 'tube'],
 };
 
@@ -55,6 +55,39 @@ function normalizeNutritionUnit(raw) {
    Key = Substring, der im normalisierten Zutatennamen gesucht wird (erste Übereinstimmung
    gewinnt, daher spezifischere Begriffe vor allgemeinen einsortiert). */
 const PIECE_WEIGHT_TABLE = [
+  { match: 'süsskartoffel', grams: 250, unit: 'piece' },
+  { match: 'lammkotelett', grams: 120, unit: 'piece' },
+  { match: 'schweinskotelett', grams: 180, unit: 'piece' },
+  { match: 'schweinekotelett', grams: 180, unit: 'piece' },
+  { match: 'kotelett', grams: 170, unit: 'piece' },
+  { match: 'entenbrust', grams: 250, unit: 'piece' },
+  { match: 'entenbrü', grams: 250, unit: 'piece' },
+  { match: 'rippli', grams: 200, unit: 'piece' },
+  { match: 'tintenfisch', grams: 300, unit: 'piece' },
+  { match: 'ganzes poulet', grams: 1200, unit: 'piece' },
+  { match: 'poulet ganz', grams: 1200, unit: 'piece' },
+  { match: 'brathähnchen', grams: 1200, unit: 'piece' },
+  { match: 'mandarine', grams: 70, unit: 'piece' },
+  { match: 'clementine', grams: 70, unit: 'piece' },
+  { match: 'aprikose', grams: 45, unit: 'piece' },
+  { match: 'zwetschge', grams: 40, unit: 'piece' },
+  { match: 'pflaume', grams: 40, unit: 'piece' },
+  { match: 'melone', grams: 1000, unit: 'piece' },
+  { match: 'kopfsalat', grams: 250, unit: 'piece' },
+  { match: 'blätterteig', grams: 275, unit: 'piece' },
+  { match: 'pizzateig', grams: 250, unit: 'piece' },
+  { match: 'mürbeteig', grams: 230, unit: 'piece' },
+  { match: 'bier', grams: 330, unit: 'piece' },
+  { match: 'maiskolben', grams: 200, unit: 'piece' },
+  { match: 'kirsche', grams: 8, unit: 'piece' },
+  { match: 'traube', grams: 6, unit: 'piece' },
+  { match: 'nektarine', grams: 140, unit: 'piece' },
+  { match: 'pfirsich', grams: 150, unit: 'piece' },
+  { match: 'wassermelone', grams: 3000, unit: 'piece' },
+  { match: 'tofu', grams: 200, unit: 'piece' },
+  { match: 'feige', grams: 50, unit: 'piece' },
+  { match: 'sardelle', grams: 4, unit: 'piece' },
+  { match: 'tortilla', grams: 40, unit: 'piece' },
   { match: 'frühlingszwiebel', grams: 15, unit: 'piece' },
   { match: 'lauchzwiebel', grams: 15, unit: 'piece' },
   { match: 'knoblauchzehe', grams: 5, unit: 'piece' },
@@ -146,7 +179,7 @@ function lookupPieceWeight(normalizedName, unitKind) {
 
 /* Gebinde-/Bundgewichte (geschaetzt, gaengige Packungsgroessen). Key = Teil des Zutatennamens. */
 const PACK_WEIGHT_TABLE = {
-  container: [['tomate', 400], ['mais', 285], ['bohne', 240], ['kichererbse', 240], ['linse', 240], ['erbse', 250], ['thon', 112], ['thunfisch', 112], ['kokos', 400], ['champignon', 230], ['ananas', 340], ['mandarine', 175], ['sardine', 90], ['maroni', 200]],
+  container: [['bouillon', 200], ['fond', 400], ['tomate', 400], ['mais', 285], ['bohne', 240], ['kichererbse', 240], ['linse', 240], ['erbse', 250], ['thon', 112], ['thunfisch', 112], ['kokos', 400], ['champignon', 230], ['ananas', 340], ['mandarine', 175], ['sardine', 90], ['maroni', 200]],
   pack: [['backpulver', 15], ['vanillezucker', 8], ['vanillin', 1], ['trockenhefe', 7], ['hefe', 7], ['puddingpulver', 40], ['gelatine', 10], ['butter', 250], ['mozzarella', 125], ['blätterteig', 250], ['pizzateig', 250], ['mürbeteig', 250], ['teig', 250], ['mascarpone', 250], ['quark', 250], ['frischkäse', 200], ['speck', 150], ['tofu', 200], ['spinat', 450], ['rahm', 200], ['sahne', 200], ['sauerrahm', 180]],
   bunch: [['petersilie', 50], ['schnittlauch', 25], ['basilikum', 30], ['koriander', 30], ['dill', 30], ['minze', 30], ['rucola', 100], ['radieschen', 150], ['frühlingszwiebel', 120], ['lauchzwiebel', 120], ['rüebli', 400], ['karotte', 400], ['spargel', 500], ['mangold', 400], ['thymian', 15], ['rosmarin', 15]],
   cube: [['hefe', 42], ['bouillon', 10], ['brühe', 10], ['fond', 10]],
@@ -172,7 +205,7 @@ const DENSITY_HINTS = [
   [/mayonnaise/, 0.95], [/erdnussbutter|hummus|konfitüre|senf/, 1.1],
   [/butter|margarine|schmalz|kokosfett/, 0.95],
   [/öl\b|öl,|^öl/, 0.92],
-  [/rahm|sahne|mascarpone|frischkäse|quark|joghurt|milch|kefir|buttermilch|saft|bouillon|wein|bier|essig|wasser|sauce|suppe/, 1.03],
+  [/rahm|sahne|mascarpone|frischkäse|quark|joghurt|milch|kefir|buttermilch|saft|bouillon|wein|bier|essig|wasser|sauce|suppe|branntwein|likör|rum|kaffee|tee/, 1.03],
 ];
 function estimateDensity(food, normalizedName) {
   const hay = ((food && food.name ? food.name.toLowerCase() : '') + ' | ' + (normalizedName || '')).toLowerCase();

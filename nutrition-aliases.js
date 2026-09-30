@@ -26,7 +26,8 @@ const NUTRITION_ALIAS_TABLE = [
   [['teilentrahmte milch', 'halbfettmilch', 'milch teilentrahmt', 'drinkmilch'], 'Teilentrahmte Milch, pasteurisiert'],
   [['rahm', 'vollrahm', 'sahne', 'schlagsahne', 'schlagrahm', 'rahm sahne', 'flüssiger rahm', 'rahm flüssig', 'kochrahm', 'schlagobers', 'rahm 35'], 'Vollrahm, pasteurisiert'],
   [['halbrahm', 'kaffeerahm', 'halbrahm 25'], 'Halbrahm, pasteurisiert'],
-  [['sauerrahm', 'saurer rahm', 'saurer halbrahm', 'crème fraîche', 'creme fraiche', 'crème fraiche'], 'Sauerrahm'],
+  [['sauerrahm', 'saurer rahm', 'saurer halbrahm'], 'Sauerrahm'],
+  [['crème fraîche', 'creme fraiche', 'crème fraiche', 'schmand', 'saure sahne'], 'Sauerrahm', 'ca'],
   [['joghurt', 'jogurt', 'joghurt nature', 'naturjoghurt', 'naturejoghurt', 'natur joghurt', 'joghurt natur', 'griechischer joghurt'], 'Joghurt, nature'],
   [['quark', 'speisequark', 'quark halbfett'], 'Quark, nature, halbfett'],
   [['magerquark', 'quark mager'], 'Quark, nature, mager'],
@@ -170,6 +171,54 @@ const NUTRITION_ALIAS_TABLE = [
   [['crevetten', 'garnelen', 'shrimps', 'scampi', 'riesencrevetten', 'crevette'], 'Garnele, geschält, roh (frisch oder tiefgekuhlt)'],
   [['datteln', 'dattel', 'medjool datteln', 'medjool'], 'Dattel, getrocknet'],
   [['apfelmus', 'apfelmark'], 'Apfelmus, ungezuckert (Konserve)'],
+  [['kalbsgeschnetzeltes', 'kalbsgeschnetzelt', 'geschnetzeltes vom kalb', 'kalbsgeschnetzeltes roh'], 'Kalb, Geschnetzeltes, roh'],
+  [['pouletgeschnetzeltes', 'pouletgeschnetzelt', 'hähnchengeschnetzeltes', 'poulet geschnetzeltes', 'pouletstreifen', 'hähnchenstreifen', 'pouletbrustschnitzel', 'pouletschnitzel'], 'Poulet, Brust, ohne Haut, roh'],
+  [['trutenbrust', 'truthahnbrust', 'putenbrust', 'putenschnitzel', 'trutenschnitzel', 'truthahnschnitzel', 'putengeschnetzeltes'], 'Truthahn, Brust, Schnitzel oder Geschnetzeltes, roh'],
+  [['tortilla chips', 'nachos', 'maischips', 'tortillachips', 'nacho chips'], 'Mais-Chips (Apérogebäck)'],
+  [['kartoffelchips', 'chips', 'pommes chips', 'paprikachips'], 'Pommes Chips'],
+  [['tortilla', 'tortillas', 'wrap', 'wraps', 'weizentortilla', 'fladenbrot', 'pita', 'pitabrot', 'taco shells', 'maistortilla'], 'Brot (Durchschnitt)', 'ca'],
+  [['schweinsgeschnetzeltes', 'schweinegeschnetzeltes', 'schweinsgeschnetzelt', 'schweinegeschnetzelt', 'geschnetzeltes', 'geschnetzeltes vom schwein'], 'Geschnetzeltes (Durchschnitt aus Rind, Kalb, Schwein, Geflügel), roh', 'ca'],
+  [['schweinskotelett', 'schweinskoteletts', 'schweinekotelett', 'schweinekoteletts', 'schweinsplätzli', 'schweineschnitzel', 'schweinsschnitzel', 'schweinssteak', 'schweinesteak', 'nierstück schwein'], 'Schwein, Kotelett, roh'],
+  [['kalbsschnitzel', 'kalbsplätzli', 'kalbsplätzchen', 'kalbsfleisch', 'kalbsragout', 'kalbsbraten', 'kalbskotelett'], 'Kalbfleisch (Durchschnitt exkl. Innereien, Kotelett), roh'],
+  [['lammgigot', 'gigot', 'lammkeule'], 'Lamm, Gigot, roh (Schweiz, Neuseeland)'],
+  [['lammkotelett', 'lammkoteletts', 'lammkarree', 'lammracks'], 'Lamm, Kotelett, roh (Schweiz)'],
+  [['lammfleisch', 'lammragout', 'lammschulter', 'lamm'], 'Lamm/Schaf (Durchschnitt exkl. Innereien, Kotelett), roh'],
+  [['ente', 'entenbrust', 'entenbrüste', 'entenschenkel', 'gans'], 'Poulet, Brust, mit Haut, roh', 'ca'],
+  [['ganzes poulet', 'poulet ganz', 'poulet', 'ganzes hähnchen', 'brathähnchen', 'grillpoulet', 'ganzes huhn', 'suppenhuhn'], 'Poulet, ganz, mit Haut, roh'],
+  [['forelle', 'forellenfilet', 'forellenfilets', 'lachsforelle'], 'Forelle, roh'],
+  [['sardellen', 'sardellenfilet', 'sardellenfilets', 'anchovis', 'sardelle'], 'Sardelle im Öl, abgetropft'],
+  [['muscheln', 'miesmuscheln', 'miesmuschel', 'muschel'], 'Miesmuschel, roh'],
+  [['tintenfisch', 'kalmar', 'calamari', 'kalmare', 'tintenfischringe', 'sepia'], 'Kalmar, roh', 'ca'],
+  [['halloumi', 'grillkäse', 'bratkäse'], 'Hart- und Halbhartkäse, vollfett (Durchschnitt)', 'ca'],
+  [['ricotta', 'ricotta salata'], 'Quark, nature, Rahm', 'ca'],
+  [['kokosöl', 'kokosfett', 'palmin', 'kokosnussöl'], 'Kokosfett'],
+  [['nutella', 'haselnusscreme', 'nussnougatcreme', 'schokoladenaufstrich', 'schokocreme', 'nusspli'], 'Haselnuss-Schokolade-Brotaufstrich'],
+  [['rum', 'brauner rum', 'weisser rum'], 'Branntwein aus Zuckerrohr (z.B. Rum)'],
+  [['cognac', 'weinbrand', 'brandy', 'armagnac', 'grappa', 'obstbrand'], 'Branntwein aus Wein (z.B.Cognac, Brandy)'],
+  [['whisky', 'wodka', 'vodka', 'gin', 'likör', 'amaretto', 'schnaps'], 'Branntwein aus Getreide, 40 vol% (z.B. Whisky)', 'ca'],
+  [['bier', 'lagerbier', 'helles bier', 'dunkles bier'], 'Bier, Lager'],
+  [['limette', 'limetten', 'limettensaft'], 'Zitrone, roh', 'ca'],
+  [['feige', 'feigen', 'frische feigen'], 'Feige, roh'],
+  [['getrocknete feigen', 'dörrfeigen'], 'Feige, getrocknet'],
+  [['mandarine', 'mandarinen', 'clementine', 'clementinen', 'satsuma'], 'Mandarine, roh'],
+  [['aprikose', 'aprikosen', 'marille', 'marillen'], 'Aprikose, roh'],
+  [['zwetschge', 'zwetschgen', 'pflaume', 'pflaumen', 'zwetschke'], 'Pflaume, roh'],
+  [['melone', 'zuckermelone', 'honigmelone', 'cantaloupe'], 'Zuckermelone (Honigmelone), roh'],
+  [['wassermelone'], 'Wassermelone, roh'],
+  [['pfirsich', 'pfirsiche', 'nektarine', 'nektarinen'], 'Pfirsich, gelb, roh'],
+  [['kirsche', 'kirschen'], 'Kirsche, roh'],
+  [['trauben', 'traube', 'weintrauben'], 'Traube, weiss, roh'],
+  [['ananas', 'frische ananas'], 'Ananas, roh'],
+  [['kiwi', 'kiwis'], 'Kiwi, roh'],
+  [['maiskolben', 'maiskolben gekocht'], 'Mais, roh'],
+  [['kopfsalat', 'kopfsalate', 'lollo rosso', 'eichblattsalat', 'romanasalat', 'endivie', 'endiviensalat', 'chicorée', 'zuckerhut', 'radicchio'], 'Blattsalat (Durchschnitt), roh'],
+  [['bulgur', 'bulgur gekocht'], 'Hartweizengriess, trocken', 'ca'],
+  [['puddingpulver', 'vanillepuddingpulver', 'saucenbinder', 'tortenguss', 'kartoffelmehl'], 'Maisstärke', 'ca'],
+  [['pancetta', 'guanciale', 'bauchspeck', 'bacon', 'schweinebauch geräuchert', 'pancetta am stück', 'speckwürfeli'], 'Rohessspeck'],
+  [['pecorino', 'pecorino romano', 'pecorino käse', 'romano'], 'Sbrinz'],
+  [['schokoladewürfeli', 'schokoladenwürfeli', 'schokoladenstückchen', 'schokotropfen', 'schokoladentropfen', 'schokostückchen', 'chocolate chips', 'zartbitterschokolade gehackt'], 'Schokolade, dunkel (bitter)'],
+  [['trockenhefe', 'trockenhefe päckchen', 'backhefe', 'hefe trocken', 'instanthefe'], 'Bierhefe, getrocknet'],
+  [['käsescheiben', 'käsescheibe', 'cheddar', 'cheddar käse', 'schmelzkäse', 'toastkäse', 'burgerkäse', 'hartkäse', 'halbhartkäse', 'bergkäse', 'tilsiter', 'raclette'], 'Hart- und Halbhartkäse, vollfett (Durchschnitt)'],
   [['würstchen', 'wienerli', 'wienerlis', 'wiener würstchen', 'wiener'], 'Wienerli'],
   [['bratwurst', 'schweinsbratwurst', 'bratwürste'], 'Schweinsbratwurst'],
   [['cervelat', 'servelat'], 'Cervelat'],
@@ -184,35 +233,45 @@ const NUTRITION_ALIAS_TABLE = [
 ];
 
 /* Zutaten ohne Naehrwert-Beitrag: werden nicht mitgerechnet und zaehlen nicht als Fehler. */
-const NUTRITION_NON_CALORIC_TERMS = ['wasser', 'leitungswasser', 'mineralwasser', 'kaltes wasser', 'warmes wasser', 'heisses wasser', 'lauwarmes wasser', 'eiswürfel', 'eis', 'kochwasser', 'nudelwasser', 'sprudelwasser', 'wasser lauwarm', 'wasser kalt', 'wasser warm', 'wasser heiss', 'salzwasser', 'tafelwasser', 'eiswasser'];
+const NUTRITION_NON_CALORIC_TERMS = ['kaffee', 'espresso', 'schwarzer kaffee', 'tee', 'teebeutel', 'beutel tee', 'grüner tee', 'schwarzer tee', 'kräutertee', 'tasse kaffee', 'wasser', 'leitungswasser', 'mineralwasser', 'kaltes wasser', 'warmes wasser', 'heisses wasser', 'lauwarmes wasser', 'eiswürfel', 'eis', 'kochwasser', 'nudelwasser', 'sprudelwasser', 'wasser lauwarm', 'wasser kalt', 'wasser warm', 'wasser heiss', 'salzwasser', 'tafelwasser', 'eiswasser'];
 
 /* Gewuerze/Triebmittel: bei Kleinstmengen (Prise, Msp, TL, bis 10 g) vernachlaessigbar. */
-const NUTRITION_NEGLIGIBLE_TERMS = ['pfeffer', 'schwarzer pfeffer', 'pfeffer aus der mühle', 'gemahlener pfeffer', 'weisser pfeffer', 'pfefferkörner', 'backpulver', 'natron', 'backnatron', 'weinsteinbackpulver', 'muskat', 'muskatnuss', 'muskatnuss gerieben', 'curry', 'currypulver', 'kurkuma', 'gelbwurz', 'oregano', 'thymian', 'rosmarin', 'majoran', 'lorbeer', 'lorbeerblatt', 'lorbeerblätter', 'chili', 'chilipulver', 'chiliflocken', 'cayenne', 'cayennepfeffer', 'kreuzkümmel', 'kümmel', 'kardamom', 'gewürznelken', 'nelken', 'vanille', 'vanilleschote', 'vanilleextrakt', 'vanillearoma', 'vanillepaste', 'gewürz', 'gewürze', 'gewürzmischung', 'kräuter', 'kräuter der provence', 'italienische kräuter', 'salbei', 'estragon', 'koriander gemahlen', 'safran', 'zitronenschale', 'orangenschale', 'zitronenabrieb', 'zitronenzeste', 'garam masala', 'ras el hanout', 'paprika edelsüss ', 'salz und pfeffer', 'pfeffer und salz', 'sternanis', 'anis', 'fenchelsamen', 'sumach', 'wacholderbeeren', 'liebstöckel', 'bohnenkraut', 'dill', 'kerbel', 'minze', 'pfefferminze', 'zitronenmelisse', 'weinstein', 'aroma', 'lebensmittelfarbe', 'backaroma', 'bittermandelaroma', 'rumaroma', 'zitronenaroma'];
+const NUTRITION_NEGLIGIBLE_TERMS = ['tabasco', 'chilischote', 'chilischoten', 'peperoncino', 'peperoncini', 'chilis', 'rote chili', 'grüne chili', 'gelatine', 'gelatineblatt', 'gelatineblätter', 'bouillonwürfel', 'brühwürfel', 'gemüsebrühwürfel', 'gemüsebouillonwürfel', 'fleischbouillonwürfel', 'hühnerbouillonwürfel', 'fondor', 'aromat', 'streuwürze', 'maggi', 'sojasosse würze', 'knoblauchpulver', 'zwiebelpulver', 'paprikaflocken', 'pul biber', 'pulbiber', 'chili flocken', 'sumach', 'kurkumapulver', 'ingwerpulver', 'zimtstange', 'zitronengras', 'currypaste', 'harissa', 'sambal oelek', 'senfkörner', 'koriandersamen', 'gewürzmischung', 'rauchsalz', 'kräutersalz', 'selleriesalz', 'pfeffer', 'schwarzer pfeffer', 'pfeffer aus der mühle', 'gemahlener pfeffer', 'weisser pfeffer', 'pfefferkörner', 'backpulver', 'natron', 'backnatron', 'weinsteinbackpulver', 'muskat', 'muskatnuss', 'muskatnuss gerieben', 'curry', 'currypulver', 'kurkuma', 'gelbwurz', 'oregano', 'thymian', 'rosmarin', 'majoran', 'lorbeer', 'lorbeerblatt', 'lorbeerblätter', 'chili', 'chilipulver', 'chiliflocken', 'cayenne', 'cayennepfeffer', 'kreuzkümmel', 'kümmel', 'kardamom', 'gewürznelken', 'nelken', 'vanille', 'vanilleschote', 'vanilleextrakt', 'vanillearoma', 'vanillepaste', 'gewürz', 'gewürze', 'gewürzmischung', 'kräuter', 'kräuter der provence', 'italienische kräuter', 'salbei', 'estragon', 'koriander gemahlen', 'safran', 'zitronenschale', 'orangenschale', 'zitronenabrieb', 'zitronenzeste', 'garam masala', 'ras el hanout', 'paprika edelsüss ', 'salz und pfeffer', 'pfeffer und salz', 'sternanis', 'anis', 'fenchelsamen', 'sumach', 'wacholderbeeren', 'liebstöckel', 'bohnenkraut', 'dill', 'kerbel', 'minze', 'pfefferminze', 'zitronenmelisse', 'weinstein', 'aroma', 'lebensmittelfarbe', 'backaroma', 'bittermandelaroma', 'rumaroma', 'zitronenaroma'];
 
 const NUTRITION_NEGLIGIBLE_MAX_GRAMS = 10;
 
 /* Bereinigt einen Zutatennamen fuer den Alias-Abgleich: Kleinbuchstaben, ohne Klammern und
    Zusaetze nach dem Komma, ohne Groessen-/Zustandswoerter. Liefert mehrere Varianten
    (von genau bis grob), die der Reihe nach geprueft werden. */
-const NUTRITION_ALIAS_DROP_WORDS = new Set(['frische', 'frischer', 'frisches', 'frischen', 'frisch', 'grosse', 'grosser', 'grosses', 'grossen', 'kleine', 'kleiner', 'kleines', 'kleinen', 'mittelgrosse', 'mittelgrosser', 'mittelgrosses', 'mittlere', 'reife', 'reifer', 'reifes', 'reifen', 'junge', 'junger', 'weiche', 'weicher', 'weiches', 'weichen', 'geriebene', 'geriebener', 'geriebenes', 'geriebenen', 'gehackte', 'gehackter', 'gehacktes', 'gehackten', 'gewürfelte', 'gewürfelter', 'gewürfelten', 'geschnittene', 'geschnittener', 'geschnittenen', 'gemahlene', 'gemahlener', 'gemahlenes', 'gemahlenen', 'feine', 'feiner', 'feines', 'feinen', 'grobe', 'grober', 'groben', 'ganze', 'ganzer', 'ganzes', 'ganzen', 'halbe', 'halber', 'halbes', 'halben', 'bio', 'lauwarme', 'lauwarmer', 'lauwarmes', 'lauwarmen', 'kalte', 'kalter', 'kaltes', 'kalten', 'warme', 'warmer', 'warmes', 'warmen', 'flüssige', 'flüssiger', 'flüssiges', 'flüssigen', 'geschmolzene', 'geschmolzener', 'geschmolzenes', 'zimmerwarme', 'zimmerwarmer', 'zimmerwarmes', 'gute', 'guter', 'gutes', 'guten', 'qualität', 'nach', 'belieben', 'geschmack', 'etwas', 'ca', 'circa', 'etwa', 'evtl', 'eventuell', 'optional', 'zum', 'zur', 'für', 'fuer', 'und', 'oder', 'aus', 'der', 'dem', 'die', 'das', 'den', 'vom', 'von', 'mit', 'ohne', 'in', 'im', 'ein', 'eine', 'einen', 'einer', 'eines', 'gross', 'klein', 'mittelgross', 'reif', 'jung', 'weich', 'fein', 'grob', 'ganz', 'halb', 'gestrichen', 'gestrichene', 'gehäuft', 'gehäufte', 'gehäufter', 'gestrichener', 'gestrichenes', 'stück', 'stücke', 'stk', 'scheibe', 'scheiben', 'würfel', 'würfeli', 'streifen', 'stängel', 'stiel', 'stiele', 'zweig', 'zweige', 'blätter', 'blatt', 'zerdrückt', 'zerdrückte', 'zerdrückter', 'gepresst', 'gepresste', 'geschält', 'geschälte', 'geschälter', 'geschälten', 'entkernt', 'entkernte', 'entkernten', 'gewaschen', 'gewaschene', 'gewaschenen', 'gerüstet', 'gerüstete', 'gerüsteten', 'geraspelt', 'geraspelte', 'geraspelter', 'gerieben', 'gehackt', 'gewürfelt', 'geschnitten', 'gemahlen', 'zerkleinert', 'zerkleinerte', 'abgetropft', 'abgetropfte', 'abgetropften', 'gekocht', 'gekochte', 'gekochten', 'roh', 'rohe', 'rohen', 'natur', 'naturell', 'weiss', 'weisse', 'weisser', 'weissen', 'hell', 'helle', 'heller', 'hellen', 'gelb', 'gelbe', 'gelber', 'gelben', 'orangen', 'gross', 'kleingehackt', 'kleingehackte', 'fein gehackt', 'fein gehackte']);
+const NUTRITION_ALIAS_DROP_WORDS = new Set(['frische', 'frischer', 'frisches', 'frischen', 'frisch', 'grosse', 'grosser', 'grosses', 'grossen', 'kleine', 'kleiner', 'kleines', 'kleinen', 'mittelgrosse', 'mittelgrosser', 'mittelgrosses', 'mittlere', 'reife', 'reifer', 'reifes', 'reifen', 'junge', 'junger', 'weiche', 'weicher', 'weiches', 'weichen', 'geriebene', 'geriebener', 'geriebenes', 'geriebenen', 'gehackte', 'gehackter', 'gehacktes', 'gehackten', 'gewürfelte', 'gewürfelter', 'gewürfelten', 'geschnittene', 'geschnittener', 'geschnittenen', 'gemahlene', 'gemahlener', 'gemahlenes', 'gemahlenen', 'feine', 'feiner', 'feines', 'feinen', 'grobe', 'grober', 'groben', 'ganze', 'ganzer', 'ganzes', 'ganzen', 'halbe', 'halber', 'halbes', 'halben', 'bio', 'lauwarme', 'lauwarmer', 'lauwarmes', 'lauwarmen', 'kalte', 'kalter', 'kaltes', 'kalten', 'warme', 'warmer', 'warmes', 'warmen', 'flüssige', 'flüssiger', 'flüssiges', 'flüssigen', 'geschmolzene', 'geschmolzener', 'geschmolzenes', 'zimmerwarme', 'zimmerwarmer', 'zimmerwarmes', 'gute', 'guter', 'gutes', 'guten', 'qualität', 'nach', 'belieben', 'geschmack', 'etwas', 'ca', 'circa', 'etwa', 'evtl', 'eventuell', 'optional', 'zum', 'zur', 'für', 'fuer', 'und', 'oder', 'aus', 'der', 'dem', 'die', 'das', 'mühle', 'muehle', 'stück', 'am', 'den', 'vom', 'von', 'mit', 'ohne', 'in', 'im', 'ein', 'eine', 'einen', 'einer', 'eines', 'gross', 'klein', 'mittelgross', 'reif', 'jung', 'weich', 'fein', 'grob', 'ganz', 'halb', 'gestrichen', 'gestrichene', 'gehäuft', 'gehäufte', 'gehäufter', 'gestrichener', 'gestrichenes', 'stück', 'stücke', 'stk', 'scheibe', 'scheiben', 'würfel', 'würfeli', 'streifen', 'stängel', 'stiel', 'stiele', 'zweig', 'zweige', 'blätter', 'blatt', 'zerdrückt', 'zerdrückte', 'zerdrückter', 'gepresst', 'gepresste', 'geschält', 'geschälte', 'geschälter', 'geschälten', 'entkernt', 'entkernte', 'entkernten', 'gewaschen', 'gewaschene', 'gewaschenen', 'gerüstet', 'gerüstete', 'gerüsteten', 'geraspelt', 'geraspelte', 'geraspelter', 'gerieben', 'gehackt', 'gewürfelt', 'geschnitten', 'gemahlen', 'zerkleinert', 'zerkleinerte', 'abgetropft', 'abgetropfte', 'abgetropften', 'gekocht', 'gekochte', 'gekochten', 'roh', 'rohe', 'rohen', 'natur', 'naturell', 'weiss', 'weisse', 'weisser', 'weissen', 'hell', 'helle', 'heller', 'hellen', 'gelb', 'gelbe', 'gelber', 'gelben', 'orangen', 'gross', 'kleingehackt', 'kleingehackte', 'fein gehackt', 'fein gehackte']);
 
 function nutAliasKeys(rawName) {
   let s = String(rawName || '').toLowerCase().normalize('NFC');
-  s = s.replace(/\([^)]*\)/g, ' ');            // Klammern weg
-  s = s.replace(/[*!?"':;]/g, ' ');
-  const beforeComma = s.split(',')[0];
-  const flat = beforeComma.replace(/[.\/]/g, ' ').replace(/\d+([.,]\d+)?\s*(%|g|kg|ml|dl|l)?\b/g, ' ').replace(/\s+/g, ' ').trim();
   const keys = [];
   const push = (k) => { k = (k || '').trim(); if (k && !keys.includes(k)) keys.push(k); };
-  push(flat);
-  const tokens = flat.split(' ').filter(Boolean);
-  const kept = tokens.filter((t) => !NUTRITION_ALIAS_DROP_WORDS.has(t));
-  push(kept.join(' '));
-  // ohne Farb-Adjektive (rote/rot/grüne...), falls der genaue Begriff nicht bekannt ist
-  const noColor = kept.filter((t) => !/^(rot|rote|roter|rotes|roten|grün|grüne|grüner|grünes|grünen)$/.test(t));
-  push(noColor.join(' '));
-  // letztes Wort (Kernwort) und erstes Wort als grobe Rueckfaelle
-  if (kept.length > 1) { push(kept[kept.length - 1]); push(kept[0]); }
+  const clean = (t) => t.replace(/[*!?"':;]/g, ' ').replace(/[.\/]/g, ' ').replace(/\d+([.,]\d+)?\s*(%|g|kg|ml|dl|l)?\b/g, ' ').replace(/\s+/g, ' ').trim();
+  const forParts = (text) => {
+    // Alternativen ("Pancetta oder Guanciale") einzeln pruefen, die erste zuerst
+    const parts = text.split(/\s+(?:oder|bzw\.?|beziehungsweise|sowie|und\/oder)\s+|\s+\/\s+/);
+    parts.forEach((p) => {
+      const flat = clean(p);
+      push(flat);
+      const tokens = flat.split(' ').filter(Boolean);
+      const kept = tokens.filter((t) => !NUTRITION_ALIAS_DROP_WORDS.has(t));
+      push(kept.join(' '));
+      push(kept.filter((t) => !/^(rot|rote|roter|rotes|roten|grün|grüne|grüner|grünes|grünen)$/.test(t)).join(' '));
+      if (kept.length > 1) { push(kept[kept.length - 1]); push(kept[0]); }
+    });
+  };
+  // 1) Inhalt der Klammer als Zusatz zum Hauptwort: "Hackfleisch (Rind)" -> "hackfleisch rind"
+  const paren = /\(([^)]*)\)/.exec(s);
+  const noParen = s.replace(/\([^)]*\)/g, ' ');
+  if (paren) {
+    const inner = clean(paren[1]);
+    const head = clean(noParen.split(',')[0]);
+    if (inner && inner.split(' ').length <= 2 && head) push((head + ' ' + inner).trim());
+  }
+  forParts(noParen.split(',')[0]);
   return keys;
 }
 function nutSingularVariants(k) {
@@ -226,7 +285,7 @@ let _nutAliasIndex = null;
 function nutAliasIndex() {
   if (_nutAliasIndex) return _nutAliasIndex;
   const idx = { food: new Map(), nonCaloric: new Set(NUTRITION_NON_CALORIC_TERMS), negligible: new Set(NUTRITION_NEGLIGIBLE_TERMS.map((t) => t.trim())) };
-  for (const [terms, target] of NUTRITION_ALIAS_TABLE) for (const t of terms) if (!idx.food.has(t)) idx.food.set(t, target);
+  for (const [terms, target, approx] of NUTRITION_ALIAS_TABLE) for (const t of terms) if (!idx.food.has(t)) idx.food.set(t, { target, approx: approx === 'ca' });
   _nutAliasIndex = idx;
   return idx;
 }
@@ -238,7 +297,7 @@ function lookupNutritionAlias(rawName) {
   const keys = nutAliasKeys(rawName);
   for (const key of keys) {
     for (const v of nutSingularVariants(key)) {
-      if (idx.food.has(v)) return { kind: 'food', target: idx.food.get(v), key: v };
+      if (idx.food.has(v)) { const e = idx.food.get(v); return { kind: 'food', target: e.target, approx: e.approx, key: v }; }
       if (idx.nonCaloric.has(v)) return { kind: 'nonCaloric', key: v };
       if (idx.negligible.has(v)) return { kind: 'negligible', key: v };
     }
@@ -256,7 +315,9 @@ async function findSwissFoodByExactName(target) {
 async function resolveNutritionAlias(rawName) {
   const hit = lookupNutritionAlias(rawName);
   if (!hit) return null;
+  // Salz im Koch-/Nudelwasser gelangt praktisch nicht ins Essen: nicht mitrechnen
+  if (hit.kind === 'food' && /\bsalz\b/.test(hit.key || '') && /(nudel|koch|salz)wasser|zum kochen/i.test(rawName)) return { kind: 'nonCaloric', key: hit.key };
   if (hit.kind !== 'food') return hit;
   const food = await findSwissFoodByExactName(hit.target);
-  return food ? { kind: 'food', food, key: hit.key } : null;
+  return food ? { kind: 'food', food, key: hit.key, approx: !!hit.approx } : null;
 }

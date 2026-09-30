@@ -102,7 +102,7 @@ async function matchIngredient(rawName, steps, opts) {
   //     Datenbank-Eintrag; Wasser und Gewuerze in Kleinstmengen werden nicht mitgerechnet.
   const alias = await resolveNutritionAlias(rawName);
   if (alias) {
-    if (alias.kind === 'food') return { normalized, status: 'matched', food: alias.food, candidates: [alias.food], confirmed: false, preparation, ingredientInfo, viaAlias: true };
+    if (alias.kind === 'food') return { normalized, status: 'matched', food: alias.food, candidates: [alias.food], confirmed: false, preparation, ingredientInfo, viaAlias: true, approx: !!alias.approx };
     if (alias.kind === 'nonCaloric' || !(opts && opts.ignoreNegligible)) {
       return { normalized, status: 'matched', food: null, skipped: alias.kind, candidates: [], confirmed: false, preparation, ingredientInfo };
     }

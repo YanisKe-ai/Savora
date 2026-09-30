@@ -28,16 +28,16 @@ async def main():
         await page.wait_for_timeout(600)
         m = await page.evaluate("""() => { const r = s => { const e = document.querySelector(s); return e ? e.getBoundingClientRect() : null };
           const t = document.querySelector('.topbar-title'); const tb = t.getBoundingClientRect();
-          return { hero: r('.hero-img').height, ing: r('.ing-check').top, ingBottom: r('.ing-check').bottom, bar: r('.cook-bar .primary-btn'), nav: r('.bottom-nav').top,
+          return { hero: r('.hero-img').height, ing: r('.ing-check').top, ingBottom: r('.ing-check').bottom, bar: r('.cook-start-inline'), nav: r('.bottom-nav').top,
                    titleW: tb.width, text: document.body.innerText } }""")
         check('Foto hoechstens 30 % der Bildschirmhoehe', m['hero'] <= 844 * 0.30 + 1, f"{m['hero']:.0f}px")
-        check('Erste Zutat ohne Scrollen sichtbar', m['ing'] > 0 and m['ingBottom'] < m['bar']['top'], f"Zutat {m['ing']:.0f}..{m['ingBottom']:.0f}, Leiste ab {m['bar']['top']:.0f}")
-        check('Kochmodus-Leiste sitzt ueber der Navigation', m['bar']['bottom'] <= m['nav'] + 1, f"{m['bar']['bottom']:.0f} <= {m['nav']:.0f}")
+        check('Erste Zutat ohne Scrollen sichtbar', m['ing'] > 0 and m['ingBottom'] < m['nav'], f"Zutat {m['ing']:.0f}..{m['ingBottom']:.0f}, Navigation ab {m['nav']:.0f}")
+        check('Kochmodus-Knopf steht im Kopfbereich und schwebt nicht über dem Text', m['bar']['bottom'] <= m['ing'], f"Knopf bis {m['bar']['bottom']:.0f}, erste Zutat ab {m['ing']:.0f}")
         check('Titel nur einmal sichtbar (Kopfzeile ausgeblendet)', m['titleW'] <= 2)
         check('Keine Zeile "Aus deinem eigenen Kochbuch"', 'Aus deinem eigenen Kochbuch' not in m['text'])
-        await page.evaluate("document.querySelector('.cook-bar .primary-btn').click()")
+        await page.evaluate("document.querySelector('.cook-start-inline').click()")
         await page.wait_for_selector('.cook-v2', timeout=5000)
-        check('Kochmodus startet ueber die feste Leiste', True)
+        check('Kochmodus startet ueber den Knopf', True)
         await page.evaluate("() => { state.view='detail'; state.activeRecipeId='r_legacy_1'; render(); }")
 
         # Startseite: erst ab 4 Rezepten "Zuletzt bearbeitet"
