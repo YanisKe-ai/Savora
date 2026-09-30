@@ -4,11 +4,13 @@
    Bildposition/-groesse und Spaltenaufteilung unterscheiden sich zwischen den Layouts. */
 
 function pdfMetaLine(recipe) {
+  const fact = (value, label) => `<span class="pdf-fact"><b>${value}</b><i>${label}</i></span>`;
   const parts = [];
-  if (recipe.timeMinutes) parts.push(recipe.timeMinutes + ' Min.');
-  parts.push((recipe.servings || 1) + ' Portionen');
-  if (recipe.difficulty) parts.push(escapeHtml(recipe.difficulty));
-  return `<div class="pdf-meta">${parts.join(' · ')}</div>`;
+  if (recipe.timeMinutes) parts.push(fact(recipe.timeMinutes, 'Minuten'));
+  const sv = recipe.servings || 1;
+  parts.push(fact(sv, sv === 1 ? 'Portion' : 'Portionen'));
+  if (recipe.difficulty) parts.push(fact(escapeHtml(recipe.difficulty), 'Aufwand'));
+  return `<div class="pdf-meta">${parts.join('')}</div>`;
 }
 
 function pdfIngredientsList(recipe, factor) {
@@ -185,11 +187,23 @@ function pdfIngredientItemsHtml(recipe, factor) {
   return out;
 }
 
+/* Nummern-Kreis als eingebettetes SVG: html2canvas setzt Text in Flex-/Zeilenhoehen-Kreisen zu tief,
+   SVG-Text mit text-anchor/dominant-baseline sitzt dagegen exakt in der Mitte. */
+function pdfStepBadge(n) {
+  const size = String(n).length > 1 ? 9 : 10.5;
+  return `<svg class="pdf-step-no" viewBox="0 0 20 20" width="20" height="20" xmlns="http://www.w3.org/2000/svg"><circle cx="10" cy="10" r="10" fill="#32164F"/><text x="10" y="10" text-anchor="middle" dominant-baseline="central" font-family="Helvetica, Arial, sans-serif" font-weight="700" font-size="${size}" fill="#E9FFA6">${n}</text></svg>`;
+}
+
 // Zwischentitel alter Rezepte ("Speck vorbereiten:") ohne Nummer und als Titel darstellen (F11).
 function pdfStepItemsHtml(recipe) {
-  return stepEntries(recipe).map((e) => e.heading
-    ? `<li class="pdf-step-heading">${escapeHtml(String(e.text).trim().replace(/:$/, ''))}</li>`
-    : `<li>${escapeHtml(e.text)}</li>`);
+  // Nummer als echtes Element (nicht per ::before/counter): html2canvas setzt Zahlen in Pseudo-Elementen
+  // nicht zuverlaessig in die Mitte des Kreises.
+  let n = 0;
+  return stepEntries(recipe).map((e) => {
+    if (e.heading) return `<li class="pdf-step-heading">${escapeHtml(String(e.text).trim().replace(/:$/, ''))}</li>`;
+    n++;
+    return `<li>${pdfStepBadge(n)}${escapeHtml(e.text)}</li>`;
+  });
 }
 
 /* Baut EINE Long-Recipe-Seite aus einer bereits vorbereiteten Liste von Bloecken (siehe

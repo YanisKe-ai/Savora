@@ -892,3 +892,97 @@ html.is-native { -webkit-touch-callout: none; }
 .ocr-input:focus-visible + .hint-line { outline: none; }
 .ocr-status { font-size: 14px; color: var(--text-soft); min-height: 1.2em; }
 .ocr-box:focus-within .ocr-btn { outline: 3px solid var(--accent); outline-offset: 2px; }
+
+/* ===== Paket 20: Kochbuch-Design fuers PDF (kleinere Schrift, Fakten-Leiste, Zutaten-Kasten, zentrierte Nummern) ===== */
+.pdf-page-recipe:not(.pdf-layout-hero):not(.pdf-layout-split):not(.pdf-layout-full-statement):not(.pdf-layout-typography):not(.pdf-layout-continuation) { padding: 16mm 15mm 14mm; }
+.pdf-layout-continuation { padding: 18mm 15mm 14mm; }
+.pdf-header { display: flex; align-items: center; gap: 2.5mm; font-size: 8pt; letter-spacing: .2em; margin-bottom: 4mm; }
+.pdf-header::before { content: ''; display: block; width: 9mm; height: 1.6mm; border-radius: 1mm; background: #C6F24E; }
+.pdf-title { font-size: 25pt; font-weight: 800; letter-spacing: -.005em; line-height: 1.05; margin: 0 0 4mm; }
+.pdf-meta { display: flex; margin: 0 0 6mm; padding: 2.4mm 0; border-top: .6pt solid #C9BBE0; border-bottom: .6pt solid #C9BBE0; font-family: var(--font-sans); }
+.pdf-fact { display: block; padding: 0 5mm; border-left: .6pt solid #C9BBE0; line-height: 1.15; }
+.pdf-fact:first-child { padding-left: 0; border-left: none; }
+.pdf-fact b { display: block; font-family: var(--font-display); font-size: 13pt; font-weight: 800; color: #32164F; }
+.pdf-fact i { display: block; font-style: normal; font-size: 6.8pt; letter-spacing: .14em; text-transform: uppercase; color: #765F8C; }
+.pdf-cols { grid-template-columns: 62mm 1fr; gap: 8mm; }
+.pdf-cols > div:first-child, .pdf-floating-ing, .pdf-split-body > .pdf-ing-title { }
+.pdf-cols > div:first-child { background: #ECE6F7; border-radius: 3mm; padding: 5mm 5mm 3mm; }
+.pdf-ing-title, .pdf-steps-title { font-size: 8pt; margin: 0 0 3mm; padding-bottom: 2mm; border-bottom: 1pt solid #6E45A2; }
+.pdf-cols > div:first-child .pdf-ing-title { border-bottom-color: #B79FE0; }
+.pdf-ing-list { font-size: 9pt; line-height: 1.3; margin-bottom: 3mm; }
+.pdf-ing-list li { padding: 1.6mm 0; border-bottom: .5pt dotted #B79FE0; }
+.pdf-ing-list li strong { color: #32164F; font-weight: 700; }
+.pdf-ing-group { font-family: var(--font-display); font-size: 10.5pt; margin-top: 2.5mm !important; border-bottom: none !important; color: #6E45A2 !important; }
+.pdf-step-list li { font-size: 9.3pt; line-height: 1.45; margin-bottom: 3.4mm; padding-left: 8.5mm; }
+.pdf-step-list li::before { content: none; }
+.pdf-step-no { position: absolute; left: 0; top: .1mm; width: 5.6mm; height: 5.6mm; display: block; }
+.pdf-step-list li.pdf-step-heading { font-size: 10.5pt; margin: 4mm 0 2mm; padding-left: 0; }
+.pdf-notes p { font-size: 8.8pt; }
+.pdf-nutrition-box { margin-top: 5mm; padding: 3mm 4mm; background: #ECE6F7; border: none; border-radius: 3mm; }
+.pdf-nutrition-row { font-size: 8.5pt; gap: 5mm; }
+.pdf-footer { font-size: 7pt; color: #9A8BB0; margin-top: 8mm; }
+.pdf-layout-typography { padding: 18mm 15mm 14mm; }
+.pdf-layout-typography .pdf-title-typography { font-size: 30pt; }
+.pdf-layout-typography .pdf-typo-rule { display: none; }
+.pdf-layout-hero .pdf-hero-photo { height: 100mm; }
+.pdf-layout-hero .pdf-hero-body { padding: 10mm 15mm 12mm; }
+.pdf-layout-split .pdf-split-photo { width: 80mm; }
+.pdf-layout-split .pdf-split-body { padding: 16mm 14mm; }
+.pdf-layout-split .pdf-title-split { font-size: 21pt; }
+.pdf-layout-floating .pdf-floating-photo { border-radius: 3mm; }
+.pdf-layout-full-statement .pdf-statement-photo { height: 135mm; }
+.pdf-layout-full-statement .pdf-statement-body { padding: 10mm 15mm 12mm; }
+.pdf-layout-full-statement .pdf-statement-overlay .pdf-meta { border-color: rgba(255,255,255,.4); }
+.pdf-layout-full-statement .pdf-statement-overlay .pdf-fact { border-color: rgba(255,255,255,.4); }
+.pdf-layout-full-statement .pdf-statement-overlay .pdf-fact b { color: #fff; }
+.pdf-layout-full-statement .pdf-statement-overlay .pdf-fact i { color: #E6DAF5; }
+.pdf-layout-full-statement .pdf-title-statement { font-size: 27pt; }
+.pdf-long-photo { height: 78mm; margin: -16mm -15mm 6mm; width: calc(100% + 30mm); }
+.pdf-continuation-tag { font-size: 8pt; margin-bottom: 8mm; }
+.pdf-layout-long .pdf-ing-list li { break-inside: avoid; }
+/* Inhaltsverzeichnis: nichts abschneiden */
+.print-toc-row { padding: 3mm 0; font-size: 10pt; line-height: 1.5; }
+.print-toc-row .toc-title { overflow: visible; text-overflow: clip; white-space: normal; max-width: 78%; }
+.print-toc-row .toc-page { font-family: var(--font-display); font-size: 11pt; }
+.pdf-page-toc h2 { font-size: 28pt; font-weight: 800; border-bottom: 1.5pt solid #C6F24E; padding-bottom: 3mm; }
+/* Deckblatt und Kapitelseiten mit neuem Logo */
+.pdf-cover-badge { width: 40mm; height: 40mm; border-radius: 9mm; background: none; overflow: hidden; box-shadow: none; }
+.pdf-cover-badge img { width: 100%; height: 100%; object-fit: cover; }
+.pdf-page-cover h1 { font-size: 46pt; font-weight: 800; line-height: 1.02; }
+.pdf-cover-rule { background: #C6F24E; height: 3pt; width: 30mm; }
+.pdf-page-recipe { position: relative; }
+.pdf-page-recipe .pdf-footer { position: absolute; left: 0; right: 0; bottom: 8.5mm; margin: 0; }
+.pdf-page-recipe:not(.pdf-layout-hero):not(.pdf-layout-split):not(.pdf-layout-full-statement):not(.pdf-layout-typography):not(.pdf-layout-continuation) { padding-bottom: 20mm; }
+.pdf-layout-typography, .pdf-layout-continuation { padding-bottom: 20mm; }
+.pdf-layout-hero .pdf-hero-body, .pdf-layout-full-statement .pdf-statement-body { padding-bottom: 20mm; }
+.pdf-layout-split .pdf-footer-split { left: 96mm; right: 14mm; bottom: 8.5mm; }
+.pdf-layout-split-right .pdf-footer-split { left: 14mm; right: 96mm; }
+.pdf-layout-full-statement .pdf-title-statement { margin-bottom: 4mm; }
+.pdf-layout-full-statement .pdf-statement-overlay { background: linear-gradient(to top, rgba(50,22,79,.92) 0%, rgba(50,22,79,.7) 45%, rgba(50,22,79,0) 100%); }
+
+/* ===== Paket 20: Kopfzeile klar vom Seitentitel getrennt ===== */
+.topbar--home, .topbar:not(.topbar--sub) { min-height: 60px; padding-bottom: 10px; border-bottom: 1px solid var(--border); }
+.topbar .brand-v2 { gap: 9px; align-items: center; }
+.brand-icon { width: 34px; height: 34px; border-radius: 9px; display: block; box-shadow: 0 2px 6px rgba(50, 22, 79, .25); flex: none; }
+.topbar .brand-word { font-size: 27px; letter-spacing: .005em; line-height: 1; }
+.page-title { font-size: clamp(32px, 9vw, 42px); }
+.page-title-row { margin: 20px 0 14px; }
+main > .page-eyebrow:first-child { margin-top: 18px; }
+main > .page-eyebrow:first-child + .page-title-row { margin-top: 2px; }
+@media (min-width: 900px) { .page-title-row { margin-top: 26px; } }
+
+/* ===== Paket 20: Timer und runde Kaesten sauber zentriert ===== */
+.cook-timer-item { align-items: center; }
+.cook-timer-go { align-items: center; justify-content: center; gap: 10px; padding: 0 16px; line-height: 1; }
+.cook-timer-step { font-size: 12px; line-height: 1; letter-spacing: .02em; opacity: .85; }
+.cook-timer-go b { line-height: 1; font-size: 20px; }
+.cook-timer-plus { display: flex; align-items: center; justify-content: center; line-height: 1; padding: 0 16px; }
+.timer-chip { display: inline-flex; align-items: center; justify-content: center; gap: 6px; line-height: 1; vertical-align: middle; }
+.timer-chip svg { flex: none; display: block; }
+.timer-chip span { display: block; line-height: 1; font-variant-numeric: tabular-nums; padding-top: 1px; }
+.round-btn, .icon-btn, .nav-badge, .chip-count, .icon-toggle { display: inline-flex; align-items: center; justify-content: center; line-height: 1; }
+.nav-badge, .chip-count { padding-top: 0; font-variant-numeric: tabular-nums; }
+.cook-ings-head { flex-wrap: wrap; row-gap: 6px; }
+.cook-ings-actions { margin-left: auto; white-space: nowrap; display: flex; gap: 14px; align-items: center; }
+.cook-ings-actions .text-btn { white-space: nowrap; }
+.cook-font-btn { font-weight: 800; }

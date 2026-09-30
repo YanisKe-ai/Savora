@@ -1,0 +1,40 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#3B1A6E"/><stop offset=".55" stop-color="#6B2FB3"/><stop offset="1" stop-color="#B04AD0"/>
+    </linearGradient>
+    <radialGradient id="glow" cx=".5" cy=".38" r=".5">
+      <stop offset="0" stop-color="#E9C8FF" stop-opacity=".55"/><stop offset=".55" stop-color="#E9C8FF" stop-opacity=".12"/><stop offset="1" stop-color="#E9C8FF" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="steam" x1="0" y1="1" x2="0" y2="0">
+      <stop offset="0" stop-color="#C6F24E"/><stop offset="1" stop-color="#F4FFC9"/>
+    </linearGradient>
+    <linearGradient id="page" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#FFFFFF"/><stop offset="1" stop-color="#E4D6F7"/>
+    </linearGradient>
+    <linearGradient id="cover" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#C6F24E"/><stop offset="1" stop-color="#9BE12F"/>
+    </linearGradient>
+    <filter id="sh" x="-20%" y="-20%" width="140%" height="150%"><feDropShadow dx="0" dy="14" stdDeviation="14" flood-color="#1A0838" flood-opacity=".45"/></filter>
+  </defs>
+  <clipPath id="rr"><rect width="1024" height="1024" rx="230"/></clipPath><g clip-path="url(#rr)"><rect width="1024" height="1024" fill="url(#bg)"/>
+  <rect width="1024" height="1024" fill="url(#glow)"/>
+  <!-- Dampf: drei spitz auslaufende Fahnen -->
+  <g fill="url(#steam)" filter="url(#sh)">
+    <path d="M462 590 C 372 526, 590 462, 518 380 C 462 316, 528 236, 586 148 C 604 236, 578 296, 610 352 C 668 452, 484 500, 566 590 C 540 606, 486 608, 462 590 Z"/>
+    <path d="M350 548 C 300 506, 410 470, 376 424 C 350 388, 386 344, 414 296 C 424 350, 410 380, 430 416 C 462 476, 384 500, 404 548 C 384 562, 364 562, 350 548 Z" opacity=".9"/>
+    <path d="M700 548 C 744 508, 642 476, 670 432 C 692 398, 662 356, 638 312 C 626 362, 640 388, 622 424 C 592 480, 664 504, 646 548 C 664 562, 686 562, 700 548 Z" opacity=".9"/>
+  </g>
+  <!-- Buch -->
+  <g filter="url(#sh)">
+    <path d="M512 700 C 430 640, 300 618, 180 640 L 214 792 C 320 772, 430 790, 512 846 Z" fill="url(#cover)"/>
+    <path d="M512 700 C 594 640, 724 618, 844 640 L 810 792 C 704 772, 594 790, 512 846 Z" fill="#B7EA3F"/>
+    <path d="M512 668 C 440 600, 310 580, 196 604 C 208 690, 224 730, 240 758 C 330 738, 440 756, 512 812 Z" fill="url(#page)"/>
+    <path d="M512 668 C 584 600, 714 580, 828 604 C 816 690, 800 730, 784 758 C 694 738, 584 756, 512 812 Z" fill="#F3EAFD"/>
+    <path d="M512 668 L 512 812" stroke="#8E5BD0" stroke-width="6" opacity=".55"/>
+    <g stroke="#B49AE0" stroke-width="7" stroke-linecap="round" opacity=".7" fill="none">
+      <path d="M270 660 C 340 648, 410 660, 468 700"/><path d="M280 696 C 345 686, 405 698, 460 736"/>
+      <path d="M754 660 C 684 648, 614 660, 556 700"/><path d="M744 696 C 679 686, 619 698, 564 736"/>
+    </g>
+  </g>
+</g></svg>
