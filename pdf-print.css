@@ -132,3 +132,8 @@
 
 .pv-head-text .pv-facts { margin: 5mm 0 0; }
 .pv-tpl-c .pv-head .pv-title { margin-bottom: 0; }
+.pdf-preview-meta { flex: 1; margin-left: 10px; color: var(--text-soft, #765F8C); font-size: 13.5px; }
+.pdf-zoom { display: inline-flex; gap: 6px; margin-right: 6px; }
+.pdf-zoom .icon-btn { min-width: 44px; min-height: 44px; font-size: 22px; font-weight: 700; }
+.pdf-pages { overflow-x: auto; }
+.pdf-pages .pdf-page-slot { width: calc(100% * var(--pdf-zoom, 1)); max-width: none; }

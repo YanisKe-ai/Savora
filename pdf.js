@@ -253,7 +253,9 @@ async function renderSectionsToPdf() {
     }
   } catch (e) { /* Lesezeichen sind ein Zusatz */ }
   pdf.setProperties({ title: (PDF_CTX && PDF_CTX.bookTitle) || 'Savora', creator: 'Savora' });
-  return pdf.output('blob');
+  const out = pdf.output('blob');
+  try { out.pageCount = pdf.getNumberOfPages(); } catch (e) {}
+  return out;
 }
 
 /* Startet den eigentlichen Dateidownload — getrennt von renderSectionsToPdf(), damit dazwischen

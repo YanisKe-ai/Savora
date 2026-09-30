@@ -105,6 +105,7 @@ function cookSteps(r) {
   const out = [];
   stepEntries(r).forEach(e => {
     if (e.heading) { section = String(e.text).trim().replace(/:$/, ''); return; }
+    if (typeof pdfClassifyStepText === 'function' && pdfClassifyStepText(e.text) === 'source') return;   // Quellenangabe ist kein Kochschritt (Rezepttext bleibt unveraendert)
     out.push(Object.assign({}, e.step, { _section: section, _sourceIndex: e.sourceIndex }));
     section = '';
   });

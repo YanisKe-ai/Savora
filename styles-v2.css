@@ -986,3 +986,15 @@ main > .page-eyebrow:first-child + .page-title-row { margin-top: 2px; }
 .cook-ings-actions { margin-left: auto; white-space: nowrap; display: flex; gap: 14px; align-items: center; }
 .cook-ings-actions .text-btn { white-space: nowrap; }
 .cook-font-btn { font-weight: 800; }
+
+/* ===== Paket 22: Rezept-Hinweise und optionale Zeitangaben ===== */
+.recipe-check { margin: 12px 0; border: 1px solid var(--border); border-radius: 12px; background: var(--bg-elevated, var(--card-bg)); }
+.recipe-check > summary { min-height: 44px; display: flex; align-items: center; padding: 0 14px; font-weight: 700; cursor: pointer; }
+.recipe-check .hint-line { margin: 0 14px 8px; }
+.recipe-check-list { list-style: none; margin: 0; padding: 0 14px 12px; display: grid; gap: 10px; }
+.recipe-check-list li { display: grid; gap: 6px; padding-top: 10px; border-top: 1px solid var(--border); font-size: 14px; }
+.recipe-check-list li:first-child { border-top: none; padding-top: 0; }
+.recipe-check-list .rc-warn span::before { content: 'Prüfen: '; font-weight: 700; }
+.field-more { margin: 4px 0 12px; } .field-more > summary { min-height: 44px; display: flex; align-items: center; font-weight: 600; cursor: pointer; }
+.field-row--3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+@media (max-width: 420px) { .field-row--3 { grid-template-columns: 1fr; } }

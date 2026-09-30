@@ -50,6 +50,13 @@ function collectFormData() {
   r.servings = parseInt(document.getElementById('f-servings').value) || 1;
   r.timeMinutes = parseInt(document.getElementById('f-time').value) || 0;
   r.difficulty = document.getElementById('f-difficulty').value;
+  // Weitere Zeitangaben sind optional und additiv: leer = unbekannt (Feld wird entfernt, nichts erfunden)
+  [['f-prep', 'prepMinutes'], ['f-rest', 'restMinutes'], ['f-cook', 'cookMinutes']].forEach(([elId, key]) => {
+    const el = document.getElementById(elId);
+    if (!el) return;
+    const v = parseInt(el.value, 10);
+    if (v > 0) r[key] = v; else delete r[key];
+  });
   r.notes = document.getElementById('f-notes').value;
   // Zutaten in DOM-Reihenfolge lesen: Gruppenzeilen setzen das group-Feld der folgenden Zutaten.
   // Unbekannte Zusatzfelder einer bestehenden Zutat (z.B. note, optional) bleiben erhalten.
@@ -250,7 +257,7 @@ function renderKeepFocus(id) {
 const ASYNC_GUARDED_ACTIONS = new Set([
   'save-recipe', 'export-backup', 'pdf-export-build', 'pdf-export-download', 'pdf-export-share',
   'nutrition-confirm-match', 'nutrition-save-custom', 'nutrition-barcode-lookup',
-  'duplicate-recipe', 'confirm-shop-select', 'cook-complete', 'save-note',
+  'duplicate-recipe', 'rc-apply', 'confirm-shop-select', 'cook-complete', 'save-note',
 ]);
 const busyActions = new Set();
 
@@ -871,6 +878,20 @@ async function dispatchAction(action, id, el, e) {
     /* ---------- PDF-Export-Vorschau (Punkt 59, 65) ---------- */
     case 'noop':
       break;
+    case 'rc-apply': {
+      const ok = await applyRecipeFix(id, el.dataset.issue);
+      showToast(ok ? 'Vorschlag übernommen' : 'Der Vorschlag passt nicht mehr');
+      render();
+      break;
+    }
+    case 'pdf-zoom': {   // Vorschau (Canvas-Modus) vergroessern/verkleinern
+      const m = state.modal; if (!m) break;
+      const z = Math.max(1, Math.min(3, (m.zoom || 1) + (id === 'in' ? 0.5 : -0.5)));
+      m.zoom = z;
+      const box = document.getElementById('pdfPages');
+      if (box) { box.style.setProperty('--pdf-zoom', String(z)); box.querySelectorAll('canvas').forEach((c) => { c.width = 0; c.height = 0; c.remove(); }); renderPdfPreview(m.previewBlob, box); }
+      break;
+    }
     case 'pdf-export-set-template':
       state.modal.template = id;
       pdfRememberTemplate(id);
@@ -903,6 +924,8 @@ async function dispatchAction(action, id, el, e) {
         break;
       }
       m.previewBlob = result.blob;
+      m.pageCount = result.blob.pageCount || 0;
+      m.zoom = 1;
       m.filename = result.filename;
       m.previewUrl = URL.createObjectURL(result.blob);
       m.stage = 'preview';

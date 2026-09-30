@@ -61,11 +61,13 @@ function pdfExportPreviewStage() {
   return `
     <div class="pdf-preview-header">
       <h3 class="modal-title" id="pdf-export-title">Vorschau</h3>
+      <span class="pdf-preview-meta" aria-live="polite">${m.pageCount ? m.pageCount + (m.pageCount === 1 ? ' Seite' : ' Seiten') : ''}${m.template ? ' · Vorlage ' + m.template : ''}</span>
+      ${pdfPreviewUsesCanvas() ? `<span class="pdf-zoom"><button class="icon-btn" data-action="pdf-zoom" data-id="out" aria-label="Verkleinern" ${(m.zoom || 1) <= 1 ? 'disabled' : ''}>−</button><button class="icon-btn" data-action="pdf-zoom" data-id="in" aria-label="Vergrössern" ${(m.zoom || 1) >= 3 ? 'disabled' : ''}>+</button></span>` : ''}
       <button class="icon-btn pdf-preview-close" data-action="pdf-export-back" aria-label="Vorschau schliessen, zurück zu den Optionen">${ICONS.back}</button>
     </div>
     <div class="pdf-preview-frame-wrap">
       ${pdfPreviewUsesCanvas()
-        ? `<div class="pdf-pages" id="pdfPages" tabindex="0" aria-label="PDF-Vorschau: ${escapeHtml(m.filename || 'Savora-PDF')}"></div>`
+        ? `<div class="pdf-pages" id="pdfPages" style="--pdf-zoom:${m.zoom || 1}" tabindex="0" aria-label="PDF-Vorschau: ${escapeHtml(m.filename || 'Savora-PDF')}"></div>`
         : `<iframe class="pdf-preview-frame" src="${m.previewUrl}" title="PDF-Vorschau: ${escapeHtml(m.filename || 'Savora-PDF')}"></iframe>`}
     </div>
     <div class="form-actions pdf-preview-actions">

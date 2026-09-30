@@ -5,7 +5,7 @@
    - Kontrollierter Update-Flow: kein automatisches skipWaiting. Ein neuer Worker wartet, bis
      die Seite per postMessage({type:'SKIP_WAITING'}) explizit zustimmt.
 */
-const SW_VERSION = 'v47-paket22';
+const SW_VERSION = 'v47-paket22b';
 const CACHE_SHELL = 'savora-shell-' + SW_VERSION;
 const CACHE_RUNTIME = 'savora-runtime-' + SW_VERSION;
 // Statische Referenzdaten (z.B. Schweizer Naehrwertdatenbank): aendert sich nur bei
@@ -55,6 +55,7 @@ const SHELL_ASSETS = [
   './shopping.js',
   './state.js',
   './recipe-model.js',
+  './recipe-check.js',
   './parsers.js',
   './ingredient-paste.js',
   './views.js',

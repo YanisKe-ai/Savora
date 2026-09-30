@@ -357,7 +357,8 @@ function detailView() {
     : r.imageId
       ? `<div class="hero-img placeholder" data-lazy-img="full" data-image-id="${r.imageId}" data-img-class="hero-img" data-img-alt="${escapeHtml(r.title || '')}" style="view-transition-name: recipe-hero-img;">${placeholderInner(r)}</div>`
       : `<div class="hero-img placeholder ${placeholderClass(r)}" style="view-transition-name: recipe-hero-img;">${placeholderInner(r)}</div>`;
-  const meta = [r.timeMinutes ? `${r.timeMinutes} Min.` : '', servingMode(r) === 'pieces' ? `${servings} Stück` : servingLabel(r, servings), r.difficulty || ''].filter(Boolean);
+  const extraTimes = [r.prepMinutes ? `aktiv ${r.prepMinutes} Min.` : '', r.restMinutes ? `Ruhen ${r.restMinutes} Min.` : '', r.cookMinutes ? `Garen/Backen ${r.cookMinutes} Min.` : ''].filter(Boolean);
+  const meta = [r.timeMinutes ? `${r.timeMinutes} Min.` : '', ...(extraTimes.length ? [`(${extraTimes.join(', ')})`] : []), servingMode(r) === 'pieces' ? `${servings} Stück` : servingLabel(r, servings), r.difficulty || ''].filter(Boolean);
   const sourceText = r.sharedBy
     ? `${ICONS.sparkle}<span>Geteilt von ${escapeHtml(r.sharedBy)}</span>`
     : r.source ? `${ICONS.link}<span>Quelle: <a href="${escapeHtml(r.source)}" target="_blank" rel="noopener">${escapeHtml(domainFromUrl(r.source))}</a></span>`
@@ -391,6 +392,7 @@ function detailView() {
       </div>
       ${source}
       ${conflictBox}
+      ${recipeCheckHtml(r)}
       <div class="detail-aside-ing" role="region" aria-label="Zutaten">${wide ? ingHtml : ''}</div>
       </div><div class="detail-col detail-col--content">
       <div class="tabbar-v2" role="tablist" aria-label="Rezeptinhalt">
@@ -870,8 +872,16 @@ function formView() {
           </div>
           <div class="field-row field-row--2">
             <div class="field"><label for="f-time">Zeit (Min.)</label><input type="number" id="f-time" min="0" value="${r.timeMinutes}"></div>
-            <div class="field"><label for="f-difficulty">Schwierigkeit</label><select id="f-difficulty">${['Einfach', 'Mittel', 'Anspruchsvoll'].map(d => `<option ${r.difficulty === d ? 'selected' : ''}>${d}</option>`).join('')}</select></div>
+            <div class="field"><label for="f-difficulty">Schwierigkeit</label><select id="f-difficulty">${['', 'Einfach', 'Mittel', 'Anspruchsvoll'].map(d => `<option value="${d}" ${(r.difficulty || '') === d ? 'selected' : ''}>${d || 'Keine Angabe'}</option>`).join('')}</select></div>
           </div>
+          <details class="field-more"${(r.prepMinutes || r.restMinutes || r.cookMinutes) ? ' open' : ''}><summary>Weitere Zeitangaben (optional)</summary>
+            <div class="field-row field-row--3">
+              <div class="field"><label for="f-prep">Aktiv (Min.)</label><input type="number" id="f-prep" min="0" value="${r.prepMinutes || ''}"></div>
+              <div class="field"><label for="f-rest">Ruhen (Min.)</label><input type="number" id="f-rest" min="0" value="${r.restMinutes || ''}"></div>
+              <div class="field"><label for="f-cook">Garen/Backen (Min.)</label><input type="number" id="f-cook" min="0" value="${r.cookMinutes || ''}"></div>
+            </div>
+            <p class="hint-line">Nur ausfüllen, was du sicher weisst. Leere Felder bleiben unbekannt und werden nicht erfunden.</p>
+          </details>
         </section>
         <section class="form-step ${step === 1 ? 'is-active' : ''}" data-form-step="1" aria-label="Kategorien">
           ${chipSet('Ernährungsform', 'diet-group-label', DIET_OPTIONS.filter(d => d.tone === 'diet'), d => d.key, d => d.label, 'toggle-diet', 'diet', r.diet)}
