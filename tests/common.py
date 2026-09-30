@@ -13,7 +13,7 @@ SEED_PATH = os.path.join(TESTS, 'seed.js')
 # Optionale, private Sicherung fuer die Pruefbericht-Tests (nicht im Repo, siehe tests/README.md)
 PRUEF_BACKUP = os.path.join(TESTS, 'private', '07_Sicherung_waehrend_Pruefung.json')
 OLD_COMMIT = '5320c04'   # v20-quality-update: letzter Stand vor dem Redesign ("alter Stand" fuer den Datenerhalt-Test)
-PORT = 8795
+PORT = int(os.environ.get('SAVORA_TEST_PORT', '8795'))   # per Umgebungsvariable aenderbar, falls der Port belegt ist
 URL = f"http://localhost:{PORT}/index.html"
 
 
@@ -27,8 +27,14 @@ class _Handler(SimpleHTTPRequestHandler):
     def log_message(self, *a): pass
 
 def _start_server():
+    import time
     ThreadingHTTPServer.allow_reuse_address = True
-    srv = ThreadingHTTPServer(('127.0.0.1', PORT), _Handler)
+    for attempt in range(10):   # der Port ist direkt nach dem vorigen Test manchmal noch kurz belegt
+        try:
+            srv = ThreadingHTTPServer(('127.0.0.1', PORT), _Handler); break
+        except OSError:
+            if attempt == 9: raise
+            time.sleep(0.5)
     threading.Thread(target=srv.serve_forever, daemon=True).start()
 _start_server()
 

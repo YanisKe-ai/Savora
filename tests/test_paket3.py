@@ -10,7 +10,7 @@ def check(name, cond, info=''):
 async def main():
     async with async_playwright() as p:
         browser, ctx = await open_ctx(p, 390, 844)
-        await ctx.grant_permissions(['clipboard-read', 'clipboard-write'], origin='http://localhost:8795')
+        await ctx.grant_permissions(['clipboard-read', 'clipboard-write'], origin=f'http://localhost:{PORT}')
         page = await ctx.new_page(); errs = []
         page.on('pageerror', lambda e: errs.append(str(e)))
         await goto(page)

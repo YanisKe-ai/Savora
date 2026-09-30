@@ -1,6 +1,6 @@
 {
   "name": "savora",
-  "version": "0.37.0",
+  "version": "0.38.0",
   "private": true,
   "description": "Savora, digitales Kochbuch (PWA + iOS-App via Capacitor)",
   "scripts": {
@@ -21,6 +21,7 @@
   "devDependencies": {
     "@capacitor/assets": "^3.0.5",
     "@capacitor/cli": "^8.5.2",
-    "axe-core": "^4.13.0"
+    "axe-core": "^4.13.0",
+    "pdfjs-dist": "^6.3.289"
   }
 }

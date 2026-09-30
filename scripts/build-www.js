@@ -16,4 +16,6 @@ for (const f of fs.readdirSync(root)) {
   fs.copyFileSync(full, path.join(out, f));
   n++;
 }
-console.log(`www/ gefuellt: ${n} Dateien`);
+// Ordner mit gebuendelten Fremdbibliotheken (PDF.js fuer die PDF-Vorschau) mitnehmen
+if (fs.existsSync(path.join(root, 'vendor'))) { fs.cpSync(path.join(root, 'vendor'), path.join(out, 'vendor'), { recursive: true }); n++; }
+console.log(`www/ gefuellt: ${n} Eintraege`);

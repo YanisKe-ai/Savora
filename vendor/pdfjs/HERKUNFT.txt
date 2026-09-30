@@ -1,0 +1,1 @@
+PDF.js 6.3.289, Legacy-Build (Mozilla), Apache License 2.0. Unveraendert aus dem npm-Paket pdfjs-dist (legacy/build) kopiert, nur die Endung .mjs zu .js (MIME-Typ).

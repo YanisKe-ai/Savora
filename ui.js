@@ -184,6 +184,7 @@ function bindEvents() {
 
   if (typeof ucBindInputs === 'function') ucBindInputs();   // Masseinheiten-Rechner (unit-converter.js)
   if (typeof ingPasteBind === 'function') ingPasteBind();   // Zutaten einfuegen (ingredient-paste.js)
+  if (typeof bindPdfPreview === 'function') bindPdfPreview();   // PDF-Vorschau mit PDF.js (pdf-preview.js)
   const stepper = document.querySelector('.form-stepper');
   const stepAct = stepper && stepper.querySelector('.is-active');
   if (stepper && stepAct) {   // aktiver Schritt sichtbar machen (auf sehr schmalen Handys scrollt die Leiste)

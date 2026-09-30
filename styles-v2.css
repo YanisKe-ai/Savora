@@ -872,3 +872,12 @@ body.keyboard-open .cook-bar { display: none; }
 /* Dunkel/Schwarz: kein Gummiband-Effekt, sonst blitzt am Rand der helle Hintergrund der Web-Ansicht auf */
 html.is-native[data-theme="dark"], html.is-native[data-theme="amoled"] { overscroll-behavior-y: none; }
 html.is-native { -webkit-touch-callout: none; }
+
+/* ---------- Paket 13: PDF-Vorschau mit PDF.js (iOS) ---------- */
+.pdf-pages { height: 100%; min-height: 240px; overflow-y: auto; overflow-x: hidden; -webkit-overflow-scrolling: touch; display: flex; flex-direction: column; gap: 10px; padding: 10px; background: #5b5b66; }
+.pdf-page-slot { flex: 0 0 auto; width: 100%; background: #fff; box-shadow: 0 2px 10px rgba(0,0,0,.35); position: relative; }
+.pdf-page-slot canvas { display: block; }
+.pdf-pages-status { margin: auto; padding: 20px; color: #fff; text-align: center; font-size: 15px; }
+.pdf-preview-frame-wrap:has(.pdf-pages) { height: 60vh; height: 60dvh; }
+.pdf-preview-fullscreen .pdf-preview-frame-wrap:has(.pdf-pages) { height: auto; min-height: 0; }
+.pdf-preview-fullscreen .pdf-pages { height: 100%; }
