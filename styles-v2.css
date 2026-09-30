@@ -790,3 +790,27 @@ body.keyboard-open .cook-bar { display: none; }
 /* Systemelemente (Haekchenfelder, Auswahllisten, Scrollbalken) folgen dem gewaehlten Modus */
 [data-theme="light"] { color-scheme: light; }
 [data-theme="dark"], [data-theme="amoled"] { color-scheme: dark; }
+
+/* ---------- Paket 6: Kochmodus, Erinnerung, Einstieg ---------- */
+.cook-v2.cook-scale-1 .cookmode-steptext { font-size: clamp(26px, 6.4vw, 36px); }
+.cook-v2.cook-scale-2 .cookmode-steptext { font-size: clamp(31px, 7.8vw, 44px); }
+.cook-font-btn span { font-family: var(--font-display); font-weight: 800; font-size: 20px; letter-spacing: 0; line-height: 1; }
+.cook-timerbar { display: flex; gap: 8px; overflow-x: auto; padding: 8px 16px 4px; scrollbar-width: none; }
+.cook-timerbar[hidden] { display: none; }
+.cook-timerbar::-webkit-scrollbar { display: none; }
+.cook-timer-item { display: flex; align-items: stretch; flex: 0 0 auto; border: 1px solid rgba(255,255,255,.24); border-radius: 999px; background: rgba(255,255,255,.08); overflow: hidden; }
+.cook-timer-go { min-height: 46px; padding: 0 14px; display: flex; gap: 8px; align-items: baseline; background: none; border: none; color: #fff; }
+.cook-timer-step { font-size: 13px; opacity: .85; }
+.cook-timer-go b { font-variant-numeric: tabular-nums; font-size: 19px; letter-spacing: 0; }
+.cook-timer-plus { min-height: 46px; padding: 0 14px; border: none; border-left: 1px solid rgba(255,255,255,.24); background: none; color: var(--lime); font-weight: 800; font-size: 14px; }
+.cook-timer-item.is-done { border-color: var(--lime); background: var(--lime); }
+.cook-timer-item.is-done .cook-timer-go, .cook-timer-item.is-done .cook-timer-plus { color: var(--lime-ink); }
+.cook-timer-item.is-done .cook-timer-plus { border-left-color: rgba(40,19,62,.25); }
+.nudge-card { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px 14px; background: var(--surface-soft); border: 1px solid var(--border); border-radius: 16px; padding: 12px 14px; margin: 4px 0 14px; }
+.nudge-text { display: flex; flex-direction: column; gap: 2px; min-width: 200px; flex: 1 1 220px; font-size: 14.5px; color: var(--text-soft); }
+.nudge-text b { color: var(--text); font-size: 15.5px; }
+.nudge-actions { display: flex; align-items: center; gap: 4px; }
+.empty-steps { list-style: none; margin: 22px auto 0; padding: 0; max-width: 420px; display: flex; flex-direction: column; gap: 10px; text-align: left; counter-reset: es; }
+.empty-steps li { position: relative; padding: 12px 14px 12px 52px; background: var(--card-bg); border: 1px solid var(--border); border-radius: 14px; font-size: 14.5px; color: var(--text-soft); counter-increment: es; }
+.empty-steps li::before { content: counter(es); position: absolute; left: 14px; top: 50%; transform: translateY(-50%); width: 28px; height: 28px; border-radius: 50%; background: var(--lime); color: var(--lime-ink); font-weight: 800; display: flex; align-items: center; justify-content: center; font-size: 14px; }
+.empty-steps b { color: var(--text); }

@@ -4,6 +4,7 @@
    auf den Export-Button die Datei zu erzeugen und direkt herunterzuladen. */
 
 async function defaultPdfNutritionDetail(target, recipeId) {
+  if (!state.showNutrition) return 'off';
   try {
     if (target === 'single') {
       const result = await dbGetNutritionResult(recipeId);
@@ -26,12 +27,12 @@ function pdfExportOptionsStage() {
   const title = m.target === 'cookbook' ? 'Kochbuch als PDF exportieren' : 'Als PDF exportieren';
   return `
     <h3 class="modal-title" id="pdf-export-title">${title}</h3>
-    <p class="nutrition-modal-subtitle">Nährwerte im PDF</p>
+    ${state.showNutrition ? `    <p class="nutrition-modal-subtitle">Nährwerte im PDF</p>
     <div class="nutrition-segmented" role="radiogroup" aria-label="Nährwerte-Detailgrad">
       <button role="radio" aria-checked="${level === 'off'}" class="${level === 'off' ? 'active' : ''}" data-action="pdf-export-set-detail" data-level="off">Aus</button>
       <button role="radio" aria-checked="${level === 'compact'}" class="${level === 'compact' ? 'active' : ''}" data-action="pdf-export-set-detail" data-level="compact">Kompakt</button>
       <button role="radio" aria-checked="${level === 'full'}" class="${level === 'full' ? 'active' : ''}" data-action="pdf-export-set-detail" data-level="full">Erweitert</button>
-    </div>
+    </div>` : ''}
     <div class="form-actions">
       <button class="ghost-btn" data-action="close-modal">Abbrechen</button>
       <button class="primary-btn" data-action="pdf-export-build">${ICONS.pdf} PDF erstellen</button>

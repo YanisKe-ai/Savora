@@ -13,11 +13,13 @@ function startTimer(id, totalSeconds) {
   };
   state.timers[id] = t;
   t.intervalId = setInterval(() => tickTimer(id), 1000);
+  SavoraNative.haptic('medium');
   if (SavoraNative.isNative) {   // Benachrichtigung, falls das Telefon gesperrt ist
     const rec = (state.recipes || []).find((x) => x.id === state.activeRecipeId);
     SavoraNative.scheduleTimer(id, t.endTime, rec && rec.title);
   }
   updateTimerChipDOM(id);
+  refreshCookTimerBar();
 }
 
 function tickTimer(id) {
@@ -32,6 +34,8 @@ function tickTimer(id) {
     t.intervalId = null;
     finishTimerFeedback();
     SavoraNative.cancelTimer(id);   // App ist im Vordergrund: die App meldet selbst, keine doppelte Meldung
+    SavoraNative.haptic('success');
+    refreshCookTimerBar();
   }
   updateTimerChipDOM(id);
 }
@@ -45,8 +49,7 @@ function resyncRunningTimers() {
 function updateTimerChipDOM(id) {
   const t = state.timers[id];
   if (!t) return;
-  const labelEl = document.querySelector(`[data-timer-label="${id}"]`);
-  if (labelEl) labelEl.textContent = fmtClock(t.remaining);
+  document.querySelectorAll(`[data-timer-label="${id}"]`).forEach(el => { el.textContent = fmtClock(t.remaining); });   // Chip im Text und Eintrag in der Timer-Leiste
   const chipEl = document.querySelector(`[data-timer-id="${id}"]`);
   if (chipEl) {
     chipEl.classList.toggle('running', t.running);
@@ -150,4 +153,52 @@ function bindCookSwipe() {
     if (Math.abs(dx) < 55 || Math.abs(dx) < Math.abs(dy) * 1.4) return;
     if (dx < 0) cookGoNext(); else cookGoPrev();
   }, { passive: true });
+}
+
+/* ---------- Kochmodus: Timer-Leiste (alle laufenden Timer, auch von anderen Schritten) ---------- */
+function cookTimerEntries(r) {
+  const prefix = r.id + '-';
+  return Object.keys(state.timers).filter(id => id.indexOf(prefix) === 0 && (state.timers[id].running || state.timers[id].done)).map(id => {
+    const step = parseInt(id.slice(prefix.length), 10);
+    return { id, step: isNaN(step) ? 0 : step, t: state.timers[id] };
+  }).sort((a, b) => a.step - b.step);
+}
+function cookTimerBarHtml(r) {
+  const items = cookTimerEntries(r);
+  if (!items.length) return '';
+  return items.map(({ id, step, t }) => `<div class="cook-timer-item ${t.done ? 'is-done' : ''}" data-timer-bar="${escapeHtml(id)}">
+      <button type="button" class="cook-timer-go" data-action="cook-goto-timer" data-idx="${step}" aria-label="Zu Schritt ${step + 1} springen">
+        <span class="cook-timer-step">Schritt ${step + 1}</span><b data-timer-label="${escapeHtml(id)}">${fmtClock(t.remaining)}</b></button>
+      <button type="button" class="cook-timer-plus" data-action="timer-plus" data-timer="${escapeHtml(id)}" aria-label="Eine Minute dazugeben">+1 Min.</button>
+    </div>`).join('');
+}
+function refreshCookTimerBar() {
+  const box = document.getElementById('cookTimerBar');
+  if (!box) return;
+  const r = state.recipes.find(x => x.id === state.activeRecipeId);
+  if (!r) return;
+  box.innerHTML = cookTimerBarHtml(r);
+  box.hidden = !box.innerHTML.trim();
+  box.querySelectorAll('[data-action]').forEach(b => b.addEventListener('click', onAction));
+}
+/* Eine Minute dazugeben: laeuft der Timer, verlaengert er sich, ist er abgelaufen, startet er neu */
+function timerPlusMinute(id) {
+  const t = state.timers[id];
+  if (!t) return;
+  if (t.done || !t.running) {
+    t.done = false; t.running = true; t.remaining = 60; t.total = Math.max(t.total || 0, 60); t.endTime = Date.now() + 60000;
+    if (t.intervalId) clearInterval(t.intervalId);
+    t.intervalId = setInterval(() => tickTimer(id), 1000);
+  } else {
+    t.endTime += 60000; t.remaining += 60; t.total = (t.total || 0) + 60;
+  }
+  if (SavoraNative.isNative) {
+    SavoraNative.cancelTimer(id);
+    const rec = (state.recipes || []).find((x) => x.id === state.activeRecipeId);
+    SavoraNative.scheduleTimer(id, t.endTime, rec && rec.title);
+  }
+  SavoraNative.haptic('light');
+  updateTimerChipDOM(id);
+  refreshCookTimerBar();
+  setTimeout(saveCookProgress, 0);
 }

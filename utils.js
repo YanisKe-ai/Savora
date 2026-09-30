@@ -112,4 +112,19 @@ const UNIT_KEY = 'savora-unit-system'; // 'metric' | 'imperial'
 
 const COOKBOOK_TITLE_KEY = 'savora-cookbook-title'; // frei waehlbarer Titel unter dem Logo / auf dem PDF-Deckblatt
 const SENDER_NAME_KEY = 'savora-sender-name'; // eigener Name, wird beim Teilen eines Rezepts angehaengt
+const BACKUP_NUDGE_KEY = 'savora-backup-nudge-until'; // Zeitstempel: bis dahin keine Sicherungs-Erinnerung
 const LAST_BACKUP_KEY = 'savora-last-backup-at'; // ISO-Zeitstempel der letzten erfolgreichen Sicherung, fuer "Mehr > Backup"
+
+/* Sicherungs-Erinnerung: erst ab 3 Rezepten, wenn noch nie oder seit 14 Tagen nicht gesichert wurde;
+   "Spaeter" schaltet sie 7 Tage aus. */
+function backupNudgeInfo() {
+  try {
+    if ((state.recipes || []).length < 3) return null;
+    const until = parseInt(localStorage.getItem(BACKUP_NUDGE_KEY) || '0', 10) || 0;
+    if (until > Date.now()) return null;
+    const last = state.lastBackupAt ? new Date(state.lastBackupAt).getTime() : 0;
+    if (!last) return { never: true, days: null };
+    const days = Math.floor((Date.now() - last) / 86400000);
+    return days >= 14 ? { never: false, days } : null;
+  } catch (e) { return null; }
+}

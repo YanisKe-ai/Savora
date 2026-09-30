@@ -16,6 +16,7 @@ function viewFor(view) {
     case 'settings-sources': return settingsSourcesView();
     case 'settings-about': return settingsAboutView();
     case 'settings-licenses': return settingsLicensesView();
+    case 'settings-nutrition': return settingsNutritionView();
     case 'paste-import': return pasteImportView();
     case 'shopping': return shoppingView();
     case 'mealplan': return mealplanView();
@@ -225,6 +226,7 @@ function settingsView() {
       ${settingsGroup('App', [
         settingsRow({ icon: ICONS.moon, title: 'Darstellung', summary: themeLabel, view: 'settings-display' }),
         settingsRow({ icon: ICONS.ruler, title: 'Masseinheiten', summary: unitLabel, view: 'settings-units' }),
+        settingsRow({ icon: ICONS.info, title: 'Nährwerte', summary: state.showNutrition ? 'An' : 'Aus', view: 'settings-nutrition' }),
       ].join(''))}
       ${settingsGroup('Daten &amp; Export', [
         settingsRow({ icon: ICONS.cloud, title: 'Synchronisation', summary: cloudSettingsSummary(), view: 'settings-sync' }),
@@ -275,6 +277,20 @@ function settingsUnitsView() {
       </div>
     </div>`;
   return settingsDetailShell('Masseinheiten', body);
+}
+
+function settingsNutritionView() {
+  const body = `
+    <div class="settings-group">
+      <div class="settings-group-card settings-group-card--padded">
+        <p class="settings-hint">Savora schätzt Nährwerte aus den Zutaten. Wenn du sie nicht brauchst, blendest du Reiter und PDF-Option aus. Berechnete Werte bleiben gespeichert und erscheinen wieder, sobald du sie einschaltest.</p>
+        <div class="theme-switch" role="radiogroup" aria-label="Nährwerte anzeigen">
+          <button class="theme-opt ${state.showNutrition ? 'active' : ''}" data-action="set-show-nutrition" data-value="1" role="radio" aria-checked="${state.showNutrition}">Anzeigen</button>
+          <button class="theme-opt ${!state.showNutrition ? 'active' : ''}" data-action="set-show-nutrition" data-value="0" role="radio" aria-checked="${!state.showNutrition}">Ausblenden</button>
+        </div>
+      </div>
+    </div>`;
+  return settingsDetailShell('Nährwerte', body);
 }
 
 function settingsProfileView() {

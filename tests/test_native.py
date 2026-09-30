@@ -16,6 +16,7 @@ window.Capacitor = { isNativePlatform: () => true, Plugins: {
   Filesystem: { writeFile: rec('fs.write', { uri: 'file:///cache/test' }) },
   Share: { share: rec('share', {}) },
   StatusBar: { setStyle: rec('statusbar.style') },
+  Haptics: { impact: rec('haptic.impact'), notification: rec('haptic.notif') },
   KeepAwake: { keepAwake: rec('keepAwake'), allowSleep: rec('allowSleep') },
   LocalNotifications: { checkPermissions: rec('perm.check', { display: 'granted' }), requestPermissions: rec('perm.req', { display: 'granted' }),
                         schedule: rec('notif.schedule'), cancel: rec('notif.cancel') },
@@ -75,6 +76,8 @@ async def main():
         await click(page, '[data-action="exit-cook"]')
         await page.wait_for_timeout(400)
         check('Kochmodus verlassen: Benachrichtigung storniert, Bildschirm darf ausgehen', len(await calls(page, 'notif.cancel')) >= 1 and len(await calls(page, 'allowSleep')) >= 1)
+
+        check('Haptik: Timer-Start und Timer-Ende rufen das Haptik-Plugin', len(await calls(page, 'haptic.impact')) >= 1)
 
         # Statusleiste folgt dem gewaehlten Modus
         await page.evaluate("() => { state.theme = 'dark'; applyTheme(); state.theme = 'light'; applyTheme(); state.theme = 'amoled'; applyTheme(); }")
