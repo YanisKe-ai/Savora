@@ -40,7 +40,7 @@ function bottomNav() {
   ];
   const openCount = state.shopping.filter(i => !i.checked && !i.have).length;
   return `<nav class="bottom-nav" aria-label="Hauptnavigation">
-    <div class="nav-brand" aria-hidden="true"><img src="icon-96.png" alt="" width="34" height="34"><span>savora</span></div>
+    <div class="nav-brand" aria-hidden="true"><span class="brand-mark2" aria-hidden="true"><span class="bm-steam"></span><span class="bm-book"></span></span><span>savora</span></div>
     ${tabs.map(t => {
       const active = t.view === 'settings' ? isMoreSectionView(state.view) : (t.view === 'home' ? ['home', 'detail'].includes(state.view) : state.view === t.view);
       const badge = t.view === 'shopping' && openCount ? `<span class="nav-badge" aria-hidden="true">${openCount > 99 ? '99+' : openCount}</span>` : '';
@@ -55,7 +55,7 @@ function bottomNav() {
 // Einstellungsseiten in views.js verwendet, deshalb gleiche Signatur wie bisher.
 /* Kopfzeile: kleines Logo + Wortmarke, klar getrennt vom Seitentitel darunter */
 function brandLockup() {
-  return `<div class="brand-v2"><img class="brand-icon" src="icon-96.png" alt="" width="34" height="34"><span class="brand-word">savora</span></div>`;
+  return `<div class="brand-v2"><span class="brand-mark2" aria-hidden="true"><span class="bm-steam"></span><span class="bm-book"></span></span><span class="brand-word">savora</span></div>`;
 }
 
 function topbar(title, opts = {}) {
