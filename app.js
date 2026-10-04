@@ -85,8 +85,8 @@ function runSplashSequence() {
     requestAnimationFrame(() => { if (wordEl) wordEl.classList.add('show'); });
     setTimeout(() => {
       splash.classList.add('hide');
-      setTimeout(() => splash.remove(), 1150);
-    }, 900);
+      setTimeout(() => splash.remove(), 480);
+    }, 380);
     return;
   }
   // Wiederholter Start: Daten sind schon da, also nur eine kurze, spuerbare aber nicht

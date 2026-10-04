@@ -14,7 +14,7 @@ async def main():
         ev = page.evaluate
         head = await ev("""() => { const t = document.querySelector('.topbar'); const i = document.querySelector('.brand-icon'); const h = document.querySelector('.page-title'); const tr = t.getBoundingClientRect(), hr = h.getBoundingClientRect();
           return { icon: !!i, border: getComputedStyle(t).borderBottomWidth, gap: Math.round(hr.top - tr.bottom), wm: parseFloat(getComputedStyle(document.querySelector('.brand-word')).fontSize), pt: parseFloat(getComputedStyle(h).fontSize) }; }""")
-        check('Kopfzeile: Logo, Trennlinie, Abstand zum Seitentitel', head['icon'] and head['border'] == '1px' and head['gap'] >= 14, str(head))
+        check('Kopfzeile: Logo, keine harte Linie, Abstand zum Seitentitel', head['icon'] and head['border'] == '0px' and head['gap'] >= 14, str(head))
         check('Wortmarke deutlich kleiner als der Seitentitel', head['wm'] < head['pt'], str(head))
         res = await ev("""async () => { const r = state.recipes.find(x => x.id === 'r_legacy_1'); const out = await buildSinglePdf(r.id, 'off'); return { size: out && out.blob.size, name: out && out.filename }; }""")
         check('Einzelrezept-PDF wird erzeugt', res['size'] and res['size'] > 5000, str(res))

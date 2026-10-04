@@ -152,6 +152,7 @@ function bindEvents() {
     el.addEventListener('click', onAction);
   });
   if (state.view === 'cookmode') bindCookSwipe();
+  if (typeof bindSheetDrag === 'function') bindSheetDrag();
   hydrateLazyImages();
   hydrateNutritionCards();
   bindNutritionSearchInput();

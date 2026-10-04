@@ -139,21 +139,8 @@ function speakCurrentStepIfEnabled() {
 }
 
 function bindCookSwipe() {
-  const overlay = document.querySelector('.cookmode-overlay');
-  if (!overlay) return;
-  let startX = null, startY = null;
-  overlay.addEventListener('touchstart', (e) => {
-    if (!e.touches || !e.touches[0]) return;
-    startX = e.touches[0].clientX; startY = e.touches[0].clientY;
-  }, { passive: true });
-  overlay.addEventListener('touchend', (e) => {
-    if (startX === null || !e.changedTouches || !e.changedTouches[0]) return;
-    const dx = e.changedTouches[0].clientX - startX;
-    const dy = e.changedTouches[0].clientY - startY;
-    startX = null;
-    if (Math.abs(dx) < 55 || Math.abs(dx) < Math.abs(dy) * 1.4) return;
-    if (dx < 0) cookGoNext(); else cookGoPrev();
-  }, { passive: true });
+  // Wischen folgt dem Finger 1:1 und rollt mit Schwung aus (siehe motion.js)
+  if (typeof bindCookSwipeMotion === 'function') bindCookSwipeMotion();
 }
 
 /* ---------- Kochmodus: Timer-Leiste (alle laufenden Timer, auch von anderen Schritten) ---------- */

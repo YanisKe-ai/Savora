@@ -243,9 +243,9 @@ function settingsView() {
   const cookbookSummary = state.cookbookTitle || 'Nicht festgelegt';
 
   return `
-    ${topbar('Mehr')}
+    ${topbar('Einstellungen')}
     <main class="has-tabbar settings-page">
-      ${pageTitle('Mehr')}
+      ${pageTitle('Einstellungen')}
       ${settingsGroup('Mein Kochbuch', settingsRow({ icon: ICONS.book, title: 'Kochbuch & Profil', summary: cookbookSummary, view: 'settings-profile' }))}
       ${settingsGroup('App', [
         settingsRow({ icon: ICONS.moon, title: 'Darstellung', summary: themeLabel, view: 'settings-display' }),
