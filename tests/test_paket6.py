@@ -64,16 +64,22 @@ async def main():
         await click('[data-action="cook-font"]')
         check('Dritter Tipp: wieder Normal', await js("localStorage.getItem('savora-cook-scale')") == '0')
         # Wischen: zum Schritt mit Timer
-        async def swipe(dx):
-            await page.evaluate("""(dx) => { const el = document.querySelector('.cook-v2 .cookmode-body'); const mk = (x, y, target) => new Touch({ identifier: 1, target, clientX: x, clientY: y });
-              const t0 = mk(200, 400, el); el.dispatchEvent(new TouchEvent('touchstart', { bubbles: true, changedTouches: [t0], touches: [t0] }));
-              const t1 = mk(200 + dx, 405, el); el.dispatchEvent(new TouchEvent('touchend', { bubbles: true, changedTouches: [t1], touches: [] })); }""", dx)
-            await page.wait_for_timeout(250)
+        async def swipe(dx, duration_ms=None):
+            # Finger-Geste mit Pointer Events: runter, in Schritten bewegen, loslassen (wie auf dem Telefon)
+            steps = 6
+            dur = duration_ms if duration_ms is not None else 120
+            ev = "(a) => { const el = document.querySelector('.cook-v2 .cookmode-body'); el.dispatchEvent(new PointerEvent(a[0], { bubbles: true, pointerId: 1, pointerType: 'touch', isPrimary: true, button: 0, clientX: a[1], clientY: a[2] })); }"
+            await page.evaluate(ev, ['pointerdown', 200, 400])
+            for i in range(1, steps + 1):
+                await page.wait_for_timeout(dur // steps)
+                await page.evaluate(ev, ['pointermove', 200 + dx * i / steps, 401])
+            await page.evaluate(ev, ['pointerup', 200 + dx, 401])
+            await page.wait_for_timeout(450)
         s0 = await js("state.cookStepIndex")
         await swipe(-140); s1 = await js("state.cookStepIndex")
         await swipe(140); s2 = await js("state.cookStepIndex")
         check('Wischen nach links = weiter, nach rechts = zurück', (s0, s1, s2) == (0, 1, 0), str((s0, s1, s2)))
-        await swipe(-30); check('Kurzes Wischen tut nichts', await js("state.cookStepIndex") == 0)
+        await swipe(-30, 600); check('Kurzes, langsames Wischen tut nichts', await js("state.cookStepIndex") == 0)
         # Timer-Leiste: Timer im Schritt 2 starten, Schritt wechseln, Leiste bleibt
         await swipe(-140)
         check('Ohne Timer ist die Leiste leer', await js("document.getElementById('cookTimerBar').hidden") is True)

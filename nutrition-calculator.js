@@ -74,8 +74,9 @@ async function calculateRecipeNutrition(recipe) {
   const unresolvedIngredients = [];
   const sourcesUsed = new Set();
 
-  for (const ing of ingredients) {
-    if (!ing || !ing.name || !ing.name.trim()) continue;
+  for (const rawIng of ingredients) {
+    if (!rawIng || !rawIng.name || !rawIng.name.trim()) continue;
+    const ing = Object.assign({}, rawIng, nutPrepareIngredient(rawIng));   // Import-Formen zusammenfassen (Saft von 1/2 Zitrone, Becher (200 ml) ...)
     if (isQualitativeIngredient(ing)) continue; // bewusst ausgeschlossen, kein Fehler
 
     const ingredientInfo = normalizeIngredientPhrase(ing.name);
@@ -93,7 +94,11 @@ async function calculateRecipeNutrition(recipe) {
     }
     // Ohne Mengenangabe laesst sich nichts berechnen: transparent auflisten statt das ganze Ergebnis zu blockieren
     const amountNum = parseAmount(ing.amount);
-    if (amountNum === null || isNaN(amountNum)) { unquantified.push(ing.name); continue; }
+    if (amountNum === null || isNaN(amountNum)) {
+      // Nur echte, erkannte Zutaten auflisten; Fliesstext-Zeilen ("Alles mischen") und Gewuerze ohne Menge werden still uebergangen
+      if (match.food && (match.viaAlias || match.confirmed || String(ing.name).trim().split(/\s+/).length <= 3) && !/\b(salz|pfeffer|muskat|gewürz\w*|kräuter\w*|zimt|curry\w*|paprikapulver)\b/i.test(ing.name)) unquantified.push(ing.name);
+      continue;
+    }
     relevantCount++;
     if (match.status === 'unmatched' || !match.food) {
       unresolvedCount++;

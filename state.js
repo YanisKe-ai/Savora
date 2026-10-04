@@ -221,6 +221,8 @@ function render(skipHistoryPush) {
   const update = () => {
     App.innerHTML = viewFor(state.view);
     bindEvents();
+    // Fenster faehrt nur beim Oeffnen ein (nicht bei jedem Neuzeichnen, waehrend es offen ist)
+    if (hasModal && !hadModal) { const sh = document.querySelector('.modal-sheet'); if (sh) sh.classList.add('sheet-enter'); }
     // Erst entsperren (stellt die gemerkte Position wieder her), DANN die normale
     // Scroll-Entscheidung anwenden — sonst wuerde applyScroll auf der noch gesperrten,
     // nicht scrollbaren Seite operieren.
@@ -228,7 +230,7 @@ function render(skipHistoryPush) {
     applyScroll();
     // Faengt ein natives Browser-Verhalten ab, das NACH einem Klick auf ein gerade per
     // innerHTML entferntes/ersetztes Element eigenstaendig noch einmal scrollt.
-    requestAnimationFrame(applyScroll);
+    requestAnimationFrame(() => { applyScroll(); if (typeof updateScrollEdge === 'function') updateScrollEdge(); });
     if (hasModal && !hadModal) lockBodyScroll();
     if (preservedModalScrollTop !== null) {
       const newModalSheet = document.querySelector('.modal-sheet');
@@ -257,6 +259,12 @@ function render(skipHistoryPush) {
   // Formular und Kochmodus ohne View-Transition: der DOM-Tausch muss dort sofort und synchron
   // abgeschlossen sein (Entwurfs-/Dirty-Schnappschuss, Fortschritts-Wiederherstellung).
   const NO_TRANSITION_VIEWS = new Set(['form', 'cookmode']);
+  // Richtung des Seitenwechsels: tiefer hinein = von rechts, zurueck = nach rechts hinaus, Reiter = Ueberblendung
+  if (viewChanged) {
+    const depth = (v) => (['home', 'mealplan', 'shopping', 'settings'].includes(v) ? 0 : v === 'cookmode' ? 2 : 1);
+    const a = depth(prevView || 'home'), b = depth(state.view);
+    document.documentElement.dataset.navDir = b > a ? 'forward' : b < a ? 'back' : 'fade';
+  }
   if (viewChanged && document.startViewTransition && !prefersReducedMotion() && !NO_TRANSITION_VIEWS.has(state.view)) {
     document.startViewTransition(update);
   } else {

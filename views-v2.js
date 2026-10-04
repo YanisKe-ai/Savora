@@ -36,7 +36,7 @@ function bottomNav() {
     { view: 'home', icon: ICONS.home, iconActive: ICONS.homeFilled, label: 'Rezepte' },
     { view: 'mealplan', icon: ICONS.calendar, label: 'Wochenplan' },
     { view: 'shopping', icon: ICONS.cart, label: 'Einkauf' },
-    { view: 'settings', icon: ICONS.moreH, label: 'Mehr' },
+    { view: 'settings', icon: ICONS.settings || ICONS.moreH, label: 'Einstellungen' },
   ];
   const openCount = state.shopping.filter(i => !i.checked && !i.have).length;
   return `<nav class="bottom-nav" aria-label="Hauptnavigation">
@@ -394,13 +394,13 @@ function detailView() {
       <button class="primary-btn primary-btn--block cook-start-inline" data-action="start-cook" data-id="${r.id}">${ICONS.play} Kochmodus starten</button>
       ${source}
       ${conflictBox}
-      ${recipeCheckHtml(r)}
       <div class="detail-aside-ing" role="region" aria-label="Zutaten">${wide ? ingHtml : ''}</div>
       </div><div class="detail-col detail-col--content">
       <div class="tabbar-v2" role="tablist" aria-label="Rezeptinhalt">
         ${tabs.map(t => `<button role="tab" id="tab-${t.id}" class="tab-v2 ${tab === t.id ? 'is-active' : ''}" aria-selected="${tab === t.id}" aria-controls="panel-${t.id}" tabindex="${tab === t.id ? '0' : '-1'}" data-action="set-detail-tab" data-id="${t.id}">${t.label}</button>`).join('')}
       </div>
       ${tabs.map(t => `<div class="tab-panel" id="panel-${t.id}" role="tabpanel" aria-labelledby="tab-${t.id}" ${tab === t.id ? '' : 'hidden'}>${panelHtml[t.id]}</div>`).join('')}
+      ${recipeCheckHtml(r)}
       </div></div>
     </main>
     ${bottomNav()}

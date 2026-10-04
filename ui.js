@@ -152,6 +152,7 @@ function bindEvents() {
     el.addEventListener('click', onAction);
   });
   if (state.view === 'cookmode') bindCookSwipe();
+  if (typeof bindSheetDrag === 'function') bindSheetDrag();
   hydrateLazyImages();
   hydrateNutritionCards();
   bindNutritionSearchInput();
@@ -256,7 +257,7 @@ function renderKeepFocus(id) {
    kann (ein Editor, ein PDF-Export-Modal, ein Backup-Vorgang). */
 const ASYNC_GUARDED_ACTIONS = new Set([
   'save-recipe', 'export-backup', 'pdf-export-build', 'pdf-export-download', 'pdf-export-share',
-  'nutrition-confirm-match', 'nutrition-save-custom', 'nutrition-barcode-lookup',
+  'nutrition-confirm-match', 'nutrition-accept-suggestions', 'nutrition-save-custom', 'nutrition-barcode-lookup',
   'duplicate-recipe', 'rc-apply', 'confirm-shop-select', 'cook-complete', 'save-note',
 ]);
 const busyActions = new Set();
@@ -772,6 +773,15 @@ async function dispatchAction(action, id, el, e) {
       state.modal.stage = 'match';
       render();
       break;
+    case 'nutrition-accept-suggestions': {
+      const rr = state.recipes.find(x => x.id === state.modal.recipeId);
+      for (const it of state.nutritionMatchItems) if (it.status === 'uncertain' && it.food && it.food.id) await confirmIngredientMatch(it.ingredient.name, it.food.id);
+      state.nutritionMatchItems = await matchIngredients(state.nutritionMatchItems.map(it => it.ingredient), rr && rr.steps);
+      state.modal.stage = 'match';
+      render();
+      showToast('Vorschläge übernommen');
+      break;
+    }
     case 'nutrition-confirm-match': {
       const name = el.dataset.name, foodId = el.dataset.foodId;
       await confirmIngredientMatch(name, foodId);

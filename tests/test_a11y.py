@@ -9,7 +9,7 @@ VIEWS = [
  ('Rezeptseite Zubereitung', "state.activeRecipeId='r_legacy_1'; state.view='detail'; state.detailTab='steps'"),
  ('Rezeptseite Naehrwerte', "state.activeRecipeId='r_legacy_1'; state.view='detail'; state.detailTab='nutrition'"),
  ('Kochmodus', "state.activeRecipeId='r_legacy_1'; state.view='cookmode'"), ('Wochenplan', "state.view='mealplan'"), ('Einkauf', "state.view='shopping'"),
- ('Mehr', "state.view='settings'"), ('Darstellung', "state.view='settings-display'"), ('Sicherung', "state.view='settings-backup'"),
+ ('Einstellungen', "state.view='settings'"), ('Darstellung', "state.view='settings-display'"), ('Sicherung', "state.view='settings-backup'"),
  ('Synchronisation', "state.view='settings-sync'"), ('Datenschutz', "state.view='settings-privacy'"), ('Bedingungen', "state.view='settings-terms'"),
  ('Quellen', "state.view='settings-sources'"), ('Lizenzen', "state.view='settings-licenses'"), ('Ueber', "state.view='settings-about'"), ('Hilfe', "state.view='settings-help'"),
  ('Rechner Gewicht', "state.view='unitconverter'; state.ucTab=undefined; state.ucUnit=undefined; state.ucAmount=undefined"), ('Rechner Temperatur', "state.view='unitconverter'; ucSwitchTab('temp')"),

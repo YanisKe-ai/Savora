@@ -30,7 +30,7 @@ async def main():
         cols = await page.evaluate("getComputedStyle(document.querySelector('.rgrid')).gridTemplateColumns.split(' ').length")
         check('1280 px: Rezeptraster mit 4 Spalten', cols == 4, str(cols))
         labels = await page.evaluate("Array.from(document.querySelectorAll('.bottom-nav button')).map(b => b.querySelector('.nav-label').textContent)")
-        check('Seitenleiste: vier Einträge mit Text', labels == ['Rezepte', 'Wochenplan', 'Einkauf', 'Mehr'], str(labels))
+        check('Seitenleiste: vier Einträge mit Text', labels == ['Rezepte', 'Wochenplan', 'Einkauf', 'Einstellungen'], str(labels))
         bad = await page.evaluate("Array.from(document.querySelectorAll('.bottom-nav button')).filter(b => b.getBoundingClientRect().height < 43.5).length")
         check('Seitenleiste: Tippflächen mind. 44 px', bad == 0)
         await page.evaluate("document.querySelector('.bottom-nav [data-view=\"shopping\"]').click()"); await page.wait_for_timeout(300)

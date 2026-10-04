@@ -28,7 +28,7 @@ async def main():
         f5 = await ev("() => { state.formStep = 4; render(); return document.querySelector('[data-form-step=\"4\"]').innerText; }")
         check('Kontrolle-Schritt enthält "Rezept löschen" abseits der Hauptknöpfe', 'Rezept löschen' in f5)
         more = await ev("() => { state.view = 'settings'; render(); return document.querySelector('.page-title') && document.querySelector('.page-title').innerText; }")
-        check('Seite "Mehr" hat einen sichtbaren Titel', more == 'Mehr', str(more))
+        check('Seite "Einstellungen" hat einen sichtbaren Titel', more == 'Einstellungen', str(more))
         chip = await ev("""() => { state.activeRecipeId = 'r_legacy_1'; state.view = 'cookmode'; state.cookStepIndex = 1; render(); const c = document.querySelector('.timer-chip'); const s = getComputedStyle(c, '::before'); return parseFloat(s.top) * -1 + parseFloat(s.bottom) * -1 + c.getBoundingClientRect().height; }""")
         check('Timer-Knopf hat eine Tippfläche von mindestens 44 px', chip >= 44, str(chip))
         nut = await ev("() => { state.view = 'detail'; state.activeRecipeId = 'r_legacy_2'; state.detailTab = 'nutrition'; render(); return document.querySelector('#panel-nutrition').innerHTML; }")
