@@ -1295,3 +1295,14 @@ input[type="text"], input[type="search"], input[type="number"], input[type="emai
 .nudge-card button, [data-action="backup-nudge-dismiss"], [data-action="goto-view"] { min-height: 2.75rem; }
 .cook-v2 .cookmode-nav button { box-shadow: none; }
 .outline-btn--small, .text-btn, .ghost-btn--small, .add-to-shopping, [data-action="share-recipe"], [data-action="add-to-shopping"] { min-height: 2.75rem !important; }
+
+/* ===== Paket 31: Rebranding Phase 1, siehe docs/DESIGN-SYSTEM.md ===== */
+/* Keine verschachtelten Karten: die Gruppe ist nur Ueberschrift plus eine Karte */
+.settings-group { border: none !important; box-shadow: none !important; background: transparent !important; border-radius: 0; padding: 0; }
+.settings-group-title { margin: 1.5rem 0 0.5rem 0.25rem; color: var(--text-soft); }
+/* Symbole in der Liste ruhig (Tinte), Rot bleibt Handlungen und Zustaenden vorbehalten */
+.settings-row-icon, .settings-row-icon svg { color: var(--text-soft); }
+.shop-section { border: none !important; box-shadow: none !important; background: transparent !important; border-radius: 0; margin-top: 1.5rem; }
+.shop-section-title { margin: 0 0 0.5rem 0.25rem; }
+.shop-row { border-bottom: 1px solid var(--hairline); }
+.shop-row:last-child { border-bottom: none; }
