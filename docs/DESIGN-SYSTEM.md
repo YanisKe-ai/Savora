@@ -1,6 +1,6 @@
 # Savora Designsystem (Rebranding Phase 1)
 
-Stand: Version 0.54.0. Diese Regeln gelten für alle Ansichten, Hell, Dunkel und AMOLED. Neue Oberflächen folgen ihnen, ohne neue Farben, Schriften oder Rundungen einzuführen.
+Stand: Version 0.55.0. Diese Regeln gelten für alle Ansichten, Hell, Dunkel und AMOLED. Neue Oberflächen folgen ihnen, ohne neue Farben, Schriften oder Rundungen einzuführen.
 
 ## 1. Produkt und Richtung
 
@@ -90,6 +90,13 @@ Regeln:
 - Nur transform und opacity. Bei "Bewegung reduzieren" keine Bewegungsanimationen.
 - Seitenwechsel mit Richtung (vorwärts von rechts, zurück nach rechts).
 
-## 9. Prüfung
+## 9. Zustände
+
+- **Leer:** jede Hauptansicht erklärt, was fehlt, und bietet die nächste Handlung als Knopf (Rezepte, Wochenplan, Einkauf).
+- **Pflichtfelder:** Fehler direkt am Feld (Text mit `role=alert`, roter Rahmen, `aria-invalid`), Fokus springt zum Feld, nichts wird gespeichert. Beim Tippen verschwindet der Fehler.
+- **Mehrfachaktionen:** Speichern ist gegen Mehrfachklick geschützt.
+- **Erfolg:** kurze Meldung (Toast), Rückmeldung nie nur über Farbe.
+
+## 10. Prüfung
 
 `python tests/run_all.py` (inkl. `test_paket27.py` Abstände, `test_a11y.py` Kontrast und Tippflächen, `test_paket30.py` extreme Inhalte). Neue Ansichten müssen bei 320, 390 und 1280 px ohne seitliches Scrollen laufen.
