@@ -20,14 +20,14 @@ async def main():
         async def snap(theme):
             await page.evaluate(f"() => {{ state.theme = '{theme}'; applyTheme(); }}")
             return await page.evaluate("({t: document.documentElement.getAttribute('data-theme'), m: document.querySelector('meta[name=theme-color]').content, cs: getComputedStyle(document.documentElement).colorScheme})")
-        for theme, exp in [('light', ('light', '#F8F7FC', 'light')), ('dark', ('dark', '#140A22', 'dark')), ('amoled', ('amoled', '#000000', 'dark'))]:
+        for theme, exp in [('light', ('light', '#FAFAF8', 'light')), ('dark', ('dark', '#121214', 'dark')), ('amoled', ('amoled', '#000000', 'dark'))]:
             s = await snap(theme)
             check(f'{theme}: Modus, Browserleiste und Systemelemente passen', (s['t'], s['m'], s['cs']) == exp, str(s))
         s = await snap('auto')
-        check('System (Telefon dunkel): App wird dunkel', s['t'] == 'dark' and s['m'] == '#140A22', str(s))
+        check('System (Telefon dunkel): App wird dunkel', s['t'] == 'dark' and s['m'] == '#121214', str(s))
         await page.emulate_media(color_scheme='light'); await page.wait_for_timeout(200)
         s = await page.evaluate("({t: document.documentElement.getAttribute('data-theme'), m: document.querySelector('meta[name=theme-color]').content})")
-        check('System: Wechsel des Telefons auf hell wirkt sofort', s['t'] == 'light' and s['m'] == '#F8F7FC', str(s))
+        check('System: Wechsel des Telefons auf hell wirkt sofort', s['t'] == 'light' and s['m'] == '#FAFAF8', str(s))
         # gewaehlter Modus bleibt, auch wenn das System wechselt
         await snap('dark'); await page.emulate_media(color_scheme='light'); await page.wait_for_timeout(150)
         check('Manuelle Wahl "Dunkel" bleibt trotz hellem System', await page.evaluate("document.documentElement.getAttribute('data-theme')") == 'dark')
