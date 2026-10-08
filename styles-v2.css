@@ -282,7 +282,7 @@ button { -webkit-tap-highlight-color: transparent; }
 
 /* ---------- Wochenplan ---------- */
 .day-card { background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius-m); padding: 0.75rem 1rem; margin-bottom: 0.75rem; box-shadow: none; }
-.day-card.is-today { border-color: var(--violet); box-shadow: inset 3px 0 0 var(--violet); }
+.day-card.is-today { border-color: var(--violet);  }
 .day-card-head { display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; margin-bottom: 0.5rem; }
 .day-card-title { font-family: var(--font-display); font-size: 1.0625rem; font-weight: 800; margin: 0; }
 .day-card-date { font-size: 0.8438rem; font-weight: 600; color: var(--text-soft); margin-left: 0.25rem; }
@@ -1306,3 +1306,10 @@ input[type="text"], input[type="search"], input[type="number"], input[type="emai
 .shop-section-title { margin: 0 0 0.5rem 0.25rem; }
 .shop-row { border-bottom: 1px solid var(--hairline); }
 .shop-row:last-child { border-bottom: none; }
+/* Pflichtfeld-Fehler: Text und Rahmen (nicht nur Farbe), direkt unter dem Feld */
+.field-error { color: var(--tomato-press); font-size: 0.875rem; font-weight: 600; margin-top: 0.25rem; }
+[data-theme="dark"] .field-error, [data-theme="amoled"] .field-error { color: var(--tomato); }
+input[aria-invalid="true"], textarea[aria-invalid="true"] { border-color: var(--tomato) !important; box-shadow: 0 0 0 2px var(--tomato); }
+/* Aufraeumen nach der Design-Pruefung: keine Seitenstreifen, kein farbiges Leuchten */
+.day-card.is-today { box-shadow: var(--lift-1), 0 0 0 3px color-mix(in srgb, var(--tomato) 18%, transparent); }
+.cook-start-inline { box-shadow: 0 1px 2px rgba(28, 28, 33, .18), 0 8px 14px -10px rgba(28, 28, 33, .5); }

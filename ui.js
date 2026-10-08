@@ -315,6 +315,22 @@ async function dispatchAction(action, id, el, e) {
       render();
       break;
     case 'save-recipe': {
+      if (state.savingRecipe) break;   // Mehrfachklick: nur ein Speichern
+      const titleEl = document.getElementById('f-title');
+      if (titleEl && !titleEl.value.trim()) {
+        // Pflichtfeld: nicht still "Ohne Titel" speichern, sondern am Feld erklaeren
+        if (state.formStep > 0) { const b0 = document.querySelector('[data-action="form-goto-step"][data-idx="0"]'); if (b0) b0.click(); }
+        const t = document.getElementById('f-title');
+        if (t) {
+          t.setAttribute('aria-invalid', 'true'); t.setAttribute('aria-describedby', 'f-title-err');
+          if (!document.getElementById('f-title-err')) t.insertAdjacentHTML('afterend', '<div class="field-error" id="f-title-err" role="alert">Gib dem Rezept einen Titel.</div>');
+          t.addEventListener('input', () => { t.removeAttribute('aria-invalid'); const e = document.getElementById('f-title-err'); if (e) e.remove(); }, { once: true });
+          t.focus();
+        }
+        break;
+      }
+      state.savingRecipe = true;
+      try {
       const r = collectFormData();
       r.ingredients = r.ingredients.filter(i => i.name);
       r.steps = r.steps.filter(s => s.text);
@@ -327,6 +343,7 @@ async function dispatchAction(action, id, el, e) {
       state.view = 'detail';
       render();
       showToast('Rezept gespeichert');
+      } finally { state.savingRecipe = false; }
       break;
     }
     case 'open-recipe': {
