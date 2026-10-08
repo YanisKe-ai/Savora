@@ -19,7 +19,7 @@ function showToast(msg, type = 'success', assertive = false) {
   announceLive(msg, assertive || type === 'error');
   clearTimeout(toastTimer);
   const duration = type === 'error' ? 5500 : type === 'info' ? 4000 : 2500;
-  toastTimer = setTimeout(() => el.remove(), duration);
+  toastTimer = setTimeout(() => { el.classList.add('is-leaving'); setTimeout(() => el.remove(), 160); }, duration);   // Ausgang kurz und gleichgerichtet zum Eingang
 }
 
 let undoState = null; // { timer, el, onExpire }
