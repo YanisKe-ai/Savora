@@ -1,6 +1,6 @@
 # Savora Designsystem (Rebranding Phase 1)
 
-Stand: Version 0.55.0. Diese Regeln gelten für alle Ansichten, Hell, Dunkel und AMOLED. Neue Oberflächen folgen ihnen, ohne neue Farben, Schriften oder Rundungen einzuführen.
+Stand: Version 0.56.0. Diese Regeln gelten für alle Ansichten, Hell, Dunkel und AMOLED. Neue Oberflächen folgen ihnen, ohne neue Farben, Schriften oder Rundungen einzuführen.
 
 ## 1. Produkt und Richtung
 
@@ -88,6 +88,7 @@ Regeln:
 
 - Häufige Aktionen sofort (Antippen: 100 bis 140 ms). Eingänge mit `--ease-out` (cubic-bezier(0.23, 1, 0.32, 1)), Fenster mit `--ease-drawer`.
 - Nur transform und opacity. Bei "Bewegung reduzieren" keine Bewegungsanimationen.
+- Toast: Eingang 220 ms, Ausgang 160 ms in dieselbe Richtung. Häkchen: Zustandswechsel 120 ms, kein Sprung. Fokus ohne Übergang.
 - Seitenwechsel mit Richtung (vorwärts von rechts, zurück nach rechts).
 
 ## 9. Zustände

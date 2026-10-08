@@ -1313,3 +1313,26 @@ input[aria-invalid="true"], textarea[aria-invalid="true"] { border-color: var(--
 /* Aufraeumen nach der Design-Pruefung: keine Seitenstreifen, kein farbiges Leuchten */
 .day-card.is-today { box-shadow: var(--lift-1), 0 0 0 3px color-mix(in srgb, var(--tomato) 18%, transparent); }
 .cook-start-inline { box-shadow: 0 1px 2px rgba(28, 28, 33, .18), 0 8px 14px -10px rgba(28, 28, 33, .5); }
+
+/* ===== Paket 33: Interaktionen (Rueckmeldung sofort, Zustaende klar, Uebergaenge unterbrechbar) ===== */
+/* Toast: Ausgang schneller als Eingang (220 ms rein, 160 ms raus), selbe Richtung */
+@keyframes toastOut { from { opacity: 1; transform: translate(-50%, 0) scale(1); } to { opacity: 0; transform: translate(-50%, 0.5rem) scale(0.98); } }
+.toast.is-leaving { animation: toastOut 160ms var(--ease-out) forwards; pointer-events: none; }
+/* Haekchen (Einkauf, Zutaten, Plan): Zustandswechsel als Uebergang, nicht als Sprung; Haken blendet mit kleinem Einrasten ein */
+.check-box { transition: background-color 120ms var(--ease-out), border-color 120ms var(--ease-out), transform 100ms var(--ease-out); }
+.check-box svg { transition: opacity 120ms var(--ease-out), transform 160ms var(--ease-out); transform: scale(0.7); }
+.ing-check.is-checked .check-box svg, .cook-ing.is-checked .check-box svg, .shop-row.is-checked .check-box svg, .check-box.is-on svg { transform: scale(1); }
+.ing-check:active .check-box, .shop-check:active .check-box { transform: scale(0.9); }
+/* Merken (Lesezeichen) und Mengenknoepfe: Druck sichtbar */
+.rcard-fav:active, .fav-btn:active, .qty-btn:active, .stepper button:active { transform: scale(0.9); }
+.rcard-fav, .fav-btn, .qty-btn, .stepper button { transition: transform 100ms var(--ease-out), background-color 140ms var(--ease-out); }
+/* Reiter und Umschalter: Farbwechsel weich, Unterstreichung ohne Verzoegerung */
+.tab-v2, .theme-opt, .sort-chip, .chip { transition: color 140ms var(--ease-out), background-color 140ms var(--ease-out), border-color 140ms var(--ease-out), transform 100ms var(--ease-out); }
+/* Tastatur: Fokus erscheint sofort, ohne Animation */
+:focus-visible { transition: none; }
+/* Reduzierte Bewegung: nur Ueberblenden, keine Bewegung */
+@media (prefers-reduced-motion: reduce) {
+  .toast.is-leaving { animation: none; opacity: 0; }
+  .check-box svg { transform: none; transition: opacity 120ms linear; }
+  .check-box, .rcard-fav, .fav-btn, .qty-btn, .stepper button, .chip, .tab-v2 { transition-property: color, background-color, border-color, opacity; }
+}
