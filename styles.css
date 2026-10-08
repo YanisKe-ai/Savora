@@ -343,7 +343,7 @@
     font-size: 0.8125rem;
     color: var(--text-muted);
     white-space: nowrap;
-    transition: all 0.15s ease;
+    transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
   }
   .tag-chip.active { background: var(--brand); border-color: var(--brand); color: var(--brand-ink); }
 
