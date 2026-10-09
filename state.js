@@ -230,7 +230,7 @@ function render(skipHistoryPush) {
     applyScroll();
     // Faengt ein natives Browser-Verhalten ab, das NACH einem Klick auf ein gerade per
     // innerHTML entferntes/ersetztes Element eigenstaendig noch einmal scrollt.
-    requestAnimationFrame(() => { applyScroll(); if (typeof updateScrollEdge === 'function') updateScrollEdge(); });
+    requestAnimationFrame(() => { applyScroll(); if (typeof updateScrollEdge === 'function') updateScrollEdge(); if (typeof coverFitPreviews === 'function') coverFitPreviews(); });
     if (hasModal && !hadModal) lockBodyScroll();
     if (preservedModalScrollTop !== null) {
       const newModalSheet = document.querySelector('.modal-sheet');

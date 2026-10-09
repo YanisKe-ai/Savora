@@ -1362,3 +1362,29 @@ input[aria-invalid="true"], textarea[aria-invalid="true"] { border-color: var(--
 .amount-row--unknown { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem 0.75rem; }
 @media (max-width: 479px) { .import-row { grid-template-columns: 6.5rem 1fr; } .import-row .import-label { grid-column: 2; } .import-row .import-text { grid-column: 2; } }
 .step-list-v2 p, .note-card p { white-space: pre-line; }
+
+/* ===== Paket 35: neues Savora-Symbol (Buch, Loeffel, rotes Lesezeichen) und zehn Kochbuch-Titelblaetter ===== */
+.brand-symbol { display: block; flex: none; width: 2.5rem; height: auto; color: var(--text); margin-top: -0.125rem; }
+.nav-brand .brand-symbol { width: 2.25rem; }
+.brand-symbol * { transition: none; }   /* Theme-Wechsel ohne Zwischenzustand */
+.cover-picker { display: grid; gap: 1rem; margin: 0 0 1rem; }
+.cover-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(5.75rem, 1fr)); gap: 0.75rem; }
+.cover-opt { display: grid; gap: 0.25rem; justify-items: center; padding: 0.5rem; border-radius: var(--r-ctl); border: 2px solid transparent; background: transparent; color: var(--text); text-align: center; }
+.cover-opt img { width: 100%; height: auto; aspect-ratio: 1055 / 1491; object-fit: cover; border-radius: 0.375rem; box-shadow: var(--lift-1); }
+.cover-opt-name { font-size: 0.8125rem; font-weight: 700; }
+.cover-opt.is-active { border-color: var(--tomato); background: var(--surface-soft); }
+.cover-opt:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 2px; }
+.cover-preview { --cv-scale: 0.4; position: relative; width: min(100%, 20rem); aspect-ratio: 794 / 1123; margin: 0 auto; overflow: hidden; border-radius: 0.375rem; box-shadow: var(--lift-2); background: #fff; }
+
+/* Titelblatt-Seite (gleiche Regeln in Vorschau und PDF) */
+.pv-cover2 { position: relative; display: block !important; padding: 0 !important; overflow: hidden; background: #fff; }
+.pv-cover2 .cv-bg { position: absolute; display: block; max-width: none; }
+.pv-cover2 .cv-logo { position: absolute; line-height: 0; }
+.pv-cover2 .cv-logo svg { display: block; width: 100%; height: auto; }
+.pv-cover2 .cv-block { position: absolute; margin: 0; font-kerning: normal; }
+.pv-cover2 .cv-line { white-space: nowrap; }
+.pv-cover2 .cv-date { position: absolute; white-space: nowrap; letter-spacing: 0.02em; }
+
+.cover-preview canvas.cv-canvas { position: absolute; left: 0; top: 0; width: 100%; height: 100%; display: block; }
+.pv-cover2 .cv-textlayer { position: absolute; inset: 0; color: transparent; }
+.pv-cover2 .cv-textlayer .cv-block, .pv-cover2 .cv-textlayer .cv-date { color: transparent; }

@@ -422,12 +422,15 @@ function shoppingSelectionFor(recipe, servings) {
 function getCookbookConfig() {
   const cfg = readJsonKey(COOKBOOK_CONFIG_KEY, null);
   const ids = new Set(state.recipes.map(r => r.id));
-  if (!cfg) {
-    // Ohne gespeicherte Auswahl verhaelt sich der Export wie bisher: alle Rezepte.
-    return { title: state.cookbookTitle || '', subtitle: '', coverRecipeId: '', chapters: [], items: state.recipes.map(r => ({ recipeId: r.id, chapterId: '' })), isDefault: true };
+  const cover = (typeof coverSanitizeConfig === 'function') ? coverSanitizeConfig(cfg && cfg.cover, false) : undefined;
+  if (!cfg || !Array.isArray(cfg.items)) {
+    // Ohne gespeicherte Auswahl verhaelt sich der Export wie bisher: alle Rezepte (auch ein Stub mit nur Titelblatt-Daten).
+    const stub = cfg || {};
+    return { title: stub.title || state.cookbookTitle || '', subtitle: stub.subtitle || '', author: stub.author || '', coverRecipeId: stub.coverRecipeId || '', chapters: stub.chapters || [], items: state.recipes.map(r => ({ recipeId: r.id, chapterId: '' })), isDefault: true, ...(stub.showLogo === false ? { showLogo: false } : {}), cover };
   }
   cfg.items = (cfg.items || []).filter(it => ids.has(it.recipeId));
   cfg.chapters = cfg.chapters || [];
+  cfg.cover = cover;
   return cfg;
 }
 function saveCookbookConfig(cfg) {
@@ -446,6 +449,9 @@ function cookbookWarnings(cfg) {
   const warnings = [];
   const byId = Object.fromEntries(state.recipes.map(r => [r.id, r]));
   if (!cfg.items.length) warnings.push({ level: 'error', text: 'Es ist noch kein Rezept ausgewählt.' });
+  if (typeof coverLayout === 'function' && cfg.cover) {
+    coverLayout({ templateId: cfg.cover.templateId, title: cfg.title, name: cfg.author, slogan: cfg.subtitle, date: cfg.cover.date, showDate: cfg.cover.showDate, logo: cfg.showLogo !== false }).warnings.forEach(w => warnings.push({ level: 'error', text: 'Titelblatt: ' + w.message }));
+  }
   if (cfg.items.length > 40) warnings.push({ level: 'warn', text: `Ein Kochbuch mit ${cfg.items.length} Rezepten braucht beim Erstellen einige Minuten und viel Speicher. Teile es bei Bedarf in mehrere Bücher auf.` });
   cfg.items.forEach(it => {
     const r = byId[it.recipeId]; if (!r) return;

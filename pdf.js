@@ -451,12 +451,16 @@ async function buildCookbookPdf(nutritionDetail, opts) {
   if (tocCount !== 1) built = build(2 + tocCount);
   const tocHtml = pvTocPages(built.rows).join('');
 
-  let coverImg = '';
-  if (cfg.coverRecipeId) {
-    const cr = state.recipes.find(x => x.id === cfg.coverRecipeId);
-    if (cr) { const url = await resolveRecipeImageDataUrl(cr); if (url) coverImg = url; }
-  }
-  const cover = pvCoverPage(title, author, coverImg, cfg.subtitle || '');
+  // Titelblatt: eine Layoutdefinition fuer Vorschau und Export; zu lange Texte brechen den Export mit konkretem Hinweis ab
+  coverEnsureConfig();
+  const cfgNow = getCookbookConfig();
+  await coverEnsureFonts();
+  const layout = coverLayout({ templateId: cfgNow.cover.templateId, title: cfgNow.title, name: cfgNow.author, slogan: cfgNow.subtitle, date: cfgNow.cover.date, showDate: cfgNow.cover.showDate, logo: cfgNow.showLogo !== false });
+  if (layout.warnings.length) throw coverError(layout.warnings.map(w => w.message).join(' '));
+  const coverBg = await coverBackgroundDataUrl(layout.templateId);
+  // Gleiche Zeichenfunktion wie die Vorschau; Hintergrund in Originalaufloesung (1055 x 1491 px), Seite doppelt so fein fuer scharfe Schrift
+  const coverCanvas = await coverRenderCanvas(layout, 2, coverBg);
+  const cover = coverHtml(layout, coverCanvas.toDataURL('image/png'));
   document.getElementById('printRoot').innerHTML = cover + tocHtml + built.body.join('');
   cleanupPdfMeasureProbe();
   const stamp = new Date().toISOString().slice(0, 10);

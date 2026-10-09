@@ -138,3 +138,4 @@
 .pdf-pages { overflow-x: auto; }
 .pdf-pages .pdf-page-slot { width: calc(100% * var(--pdf-zoom, 1)); max-width: none; }
 .pv-step-text { white-space: pre-line; }
+#printRoot .pv-cover2 { position: relative; display: block; padding: 0; overflow: hidden; height: 297mm; }

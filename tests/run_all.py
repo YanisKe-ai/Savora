@@ -4,7 +4,7 @@ Aufruf:  python3 tests/run_all.py            (alle)
 import os, subprocess, sys, time
 HERE = os.path.dirname(os.path.abspath(__file__))
 # Reihenfolge ist wichtig: test_migration erzeugt old-backup.json, das test_flows importiert.
-ALL = ['migration', 'flows', 'sync', 'pruefung', 'visual', 'offline', 'native', 'paket1', 'paket2', 'paket3', 'paket4', 'a11y', 'theme', 'paket6', 'paket7', 'paket8', 'paket9', 'import', 'monkey', 'pdfpreview', 'units', 'shell', 'photoscan', 'restore', 'paket19', 'paket20', 'nutrition', 'export', 'recipecheck', 'paket24', 'nutrition_import', 'paket27', 'paket30', 'paket31', 'paket33', 'nutrition_range', 'recipe_json', 'paket34']
+ALL = ['migration', 'flows', 'sync', 'pruefung', 'visual', 'offline', 'native', 'paket1', 'paket2', 'paket3', 'paket4', 'a11y', 'theme', 'paket6', 'paket7', 'paket8', 'paket9', 'import', 'monkey', 'pdfpreview', 'units', 'shell', 'photoscan', 'restore', 'paket19', 'paket20', 'nutrition', 'export', 'recipecheck', 'paket24', 'nutrition_import', 'paket27', 'paket30', 'paket31', 'paket33', 'nutrition_range', 'recipe_json', 'paket34', 'paket35']
 wanted = sys.argv[1:] or ALL
 results = []
 for name in wanted:

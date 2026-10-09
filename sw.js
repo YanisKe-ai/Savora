@@ -5,7 +5,7 @@
    - Kontrollierter Update-Flow: kein automatisches skipWaiting. Ein neuer Worker wartet, bis
      die Seite per postMessage({type:'SKIP_WAITING'}) explizit zustimmt.
 */
-const SW_VERSION = 'v58-paket34';
+const SW_VERSION = 'v59-paket35';
 const CACHE_SHELL = 'savora-shell-' + SW_VERSION;
 const CACHE_RUNTIME = 'savora-runtime-' + SW_VERSION;
 // Statische Referenzdaten (z.B. Schweizer Naehrwertdatenbank): aendert sich nur bei
@@ -14,7 +14,17 @@ const CACHE_RUNTIME = 'savora-runtime-' + SW_VERSION;
 const CACHE_DATA = 'savora-data-' + SW_VERSION;
 const STATIC_DATA_ASSETS = [
   './swiss-fcd-data.json',
-];
+  './assets/covers/01-pop.png',
+  './assets/covers/02-lieblingsbuch.png',
+  './assets/covers/03-tomate.png',
+  './assets/covers/04-salbei.png',
+  './assets/covers/05-nachtkueche.png',
+  './assets/covers/06-citrus.png',
+  './assets/covers/07-bistro.png',
+  './assets/covers/08-garten.png',
+  './assets/covers/09-sonnenkueche.png',
+  './assets/covers/10-ofenglueck.png',
+];   // grosse, unveraenderliche Dateien: beim ersten Gebrauch laden, danach aus dem Cache (Offline-Export)
 const SHELL_ASSETS = [
   './',
   './index.html',
@@ -50,6 +60,17 @@ const SHELL_ASSETS = [
   './nutrition-calculator.js',
   './images.js',
   './quantity.js',
+  './cover.js',
+  './assets/covers/thumbs/01-pop.jpg',
+  './assets/covers/thumbs/02-lieblingsbuch.jpg',
+  './assets/covers/thumbs/03-tomate.jpg',
+  './assets/covers/thumbs/04-salbei.jpg',
+  './assets/covers/thumbs/05-nachtkueche.jpg',
+  './assets/covers/thumbs/06-citrus.jpg',
+  './assets/covers/thumbs/07-bistro.jpg',
+  './assets/covers/thumbs/08-garten.jpg',
+  './assets/covers/thumbs/09-sonnenkueche.jpg',
+  './assets/covers/thumbs/10-ofenglueck.jpg',
   './utils.js',
   './legal.js',
   './native.js',

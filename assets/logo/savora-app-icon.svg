@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Savora"><rect width="512" height="512" fill="#000000"/><g fill="none" stroke="#FFFFFF" stroke-width="19" stroke-linejoin="round">
+<path d="M233 141 C186 103 119 92 64 101 L64 365 C130 362 192 384 229 421"/>
+<path d="M279 141 C326 103 393 92 448 101 L448 365 C382 362 320 384 283 421"/>
+</g>
+<path fill="#E64B35" d="M383 105 L422 105 L422 172 L402.5 160 L383 172 Z"/>
+<path fill="#FFFFFF" d="M256 151 C232 151 218 184 218 212 C218 237 228 251 240 264 C245 270 246 276 246 284 L246 418 Q246 425 253 425 L259 425 Q266 425 266 418 L266 284 C266 276 267 270 272 264 C284 251 294 237 294 212 C294 184 280 151 256 151 Z"/></svg>
