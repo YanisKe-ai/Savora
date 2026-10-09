@@ -1336,3 +1336,29 @@ input[aria-invalid="true"], textarea[aria-invalid="true"] { border-color: var(--
   .check-box svg { transform: none; transition: opacity 120ms linear; }
   .check-box, .rcard-fav, .fav-btn, .qty-btn, .stepper button, .chip, .tab-v2 { transition-property: color, background-color, border-color, opacity; }
 }
+
+/* ===== Paket 34: Importvorschau, Schritte mit Zeilenumbruechen ===== */
+.step-text, .cookmode-steptext, .cook-step-card, .notes-text { white-space: pre-line; }
+.import-summary { background: var(--surface-soft); border-radius: var(--r-card); padding: 1rem; margin: 0 0 1rem; display: grid; gap: 0.75rem; }
+.import-summary-title { font-size: 1.125rem; margin: 0; display: flex; align-items: center; gap: 0.5rem; }
+.import-rows, .import-issues { list-style: none; margin: 0; padding: 0; display: grid; gap: 0.5rem; }
+.import-row, .import-issue { display: grid; grid-template-columns: 6.5rem 1fr; gap: 0.25rem 0.75rem; align-items: baseline; }
+.import-row .import-label { font-weight: 700; grid-column: 2; }
+.import-row { grid-template-columns: 6.5rem 5rem 1fr; }
+.import-row .import-label { grid-column: auto; }
+.import-state { font-size: 0.8125rem; font-weight: 700; padding: 0.125rem 0.5rem; border-radius: 999px; text-align: center; justify-self: start; white-space: nowrap; }
+.import-state--ok { background: var(--surface-selected); color: var(--text); }
+.import-state--check { background: var(--lime); color: var(--lime-ink); }
+.import-state--missing { background: transparent; color: var(--tomato-press); border: 1px solid currentColor; }
+[data-theme="dark"] .import-state--missing, [data-theme="amoled"] .import-state--missing { color: var(--tomato); }
+.import-orig { display: block; font-style: normal; color: var(--text-soft); background: var(--card-bg); border-radius: var(--r-ctl); padding: 0.25rem 0.5rem; margin-top: 0.25rem; overflow-wrap: anywhere; quotes: "„" "“"; }
+.import-unassigned { margin: 0.25rem 0 0; padding-left: 1rem; color: var(--text-soft); grid-column: 1 / -1; }
+.import-actions { grid-column: 1 / -1; display: flex; gap: 0.5rem; flex-wrap: wrap; }
+.import-issue > .text-btn { grid-column: 2; justify-self: start; }
+.import-raw summary { cursor: pointer; font-weight: 700; min-height: 2.75rem; display: flex; align-items: center; }
+.import-raw pre { white-space: pre-wrap; overflow-wrap: anywhere; background: var(--card-bg); border-radius: var(--r-ctl); padding: 0.75rem; max-height: 16rem; overflow: auto; font-size: 0.875rem; }
+.import-error { background: var(--card-bg); border: 2px solid var(--tomato); border-radius: var(--r-ctl); padding: 0.75rem 1rem; margin: 0 0 0.75rem; }
+.import-error ul { margin: 0.25rem 0 0; padding-left: 1.25rem; }
+.amount-row--unknown { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem 0.75rem; }
+@media (max-width: 479px) { .import-row { grid-template-columns: 6.5rem 1fr; } .import-row .import-label { grid-column: 2; } .import-row .import-text { grid-column: 2; } }
+.step-list-v2 p, .note-card p { white-space: pre-line; }

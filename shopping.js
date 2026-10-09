@@ -13,44 +13,47 @@ function ingredientNamesMatch(nameA, nameB) {
   return isSimpleGermanPluralPair(a, b);
 }
 
+/* Gemeinsamer Kern: nimmt eine Menge (exakt oder Bereich) in die Einkaufsliste auf. Bereiche werden mit
+   beiden Grenzen gefuehrt und beim Zusammenfuehren Grenze fuer Grenze addiert. */
+function shoppingFindMatch(name, unit) {
+  const canonical = normalizeUnit(unit);
+  return state.shopping.find(x => {
+    if (x.checked || x.have || !qtyIsNumeric(shopQty(x))) return false;
+    if (!ingredientNamesMatch(x.name, name)) return false;
+    const xc = normalizeUnit(x.unit);
+    if (canonical && xc) return unitDimension(canonical) === unitDimension(xc);
+    if (!canonical && !xc) return (x.unit || '').trim().toLowerCase() === (unit || '').trim().toLowerCase();
+    return false;
+  }) || null;
+}
+// Menge in die Einheit des Zielartikels bringen (beide Grenzen); null = nicht umrechenbar
+function shoppingConvertQty(q, fromUnit, toUnit) {
+  const fc = normalizeUnit(fromUnit), tc = normalizeUnit(toUnit);
+  if (!fc || !tc || fc === tc) return q;
+  const lo = convertAmountExplicit(q.min, fc, tc), hi = convertAmountExplicit(q.max, fc, tc);
+  return (lo === null || hi === null) ? null : { kind: lo === hi ? 'exact' : 'range', min: lo, max: hi };
+}
+function shoppingApplyQty(item, q) {
+  const f = shopFieldsFromQty(q);
+  item.amount = f.amount;
+  if (f.amountMax !== undefined) item.amountMax = f.amountMax; else delete item.amountMax;
+}
+
 async function addRecipeIngredientsToShopping(r, servings) {
-  const factor = servings / (r.servings || 1);
+  const factor = servingsFactor(r, servings);
   for (const ing of (r.ingredients || [])) {
     if (!ing.name) continue;
-    const parsedAmt = parseAmount(ing.amount);
-    const scaledAmount = parsedAmt !== null ? Math.round(parsedAmt * factor * 100) / 100 : '';
-    const canonicalUnit = normalizeUnit(ing.unit);
-    // Zusammenfuehrbar: gleicher (per Pluralabgleich erkannter) Zutatenname UND entweder
-    // dieselbe erkannte Masseinheit, dieselbe physikalische Dimension (g/kg, ml/l, EL/TL
-    // werden dabei nie gemischt) oder — falls keine Einheit erkennbar ist (z.B. "Prise") —
-    // exakt dieselbe Roh-Schreibweise. Bei Unsicherheit lieber eine eigene Zeile anlegen,
-    // statt womoeglich verschiedene Zutaten zu vermischen.
-    const match = (typeof scaledAmount === 'number') ? state.shopping.find(s => {
-      if (s.checked || typeof s.amount !== 'number') return false;
-      if (!ingredientNamesMatch(s.name, ing.name)) return false;
-      const sCanonical = normalizeUnit(s.unit);
-      if (canonicalUnit && sCanonical) return unitDimension(canonicalUnit) === unitDimension(sCanonical);
-      if (!canonicalUnit && !sCanonical) return (s.unit || '') === (ing.unit || '');
-      return false;
-    }) : null;
-
+    const q0 = qtyFromIngredient(ing);
+    const q = qtyIsNumeric(q0) ? qtyScale(q0, factor) : null;
+    const newItem = () => { const it = { id: uid(), name: ing.name, amount: '', unit: ing.unit || '', checked: false, recipeId: r.id, createdAt: Date.now() }; if (q) shoppingApplyQty(it, q); return it; };
+    const match = q ? shoppingFindMatch(ing.name, ing.unit) : null;
     if (match) {
-      const matchCanonical = normalizeUnit(match.unit);
-      let addAmount = scaledAmount;
-      if (canonicalUnit && matchCanonical && canonicalUnit !== matchCanonical) {
-        const converted = convertAmountExplicit(scaledAmount, canonicalUnit, matchCanonical);
-        if (converted === null) {
-          const item = { id: uid(), name: ing.name, amount: scaledAmount, unit: ing.unit || '', checked: false, recipeId: r.id, createdAt: Date.now() };
-          await dbPutShopping(item);
-          state.shopping.push(item);
-          continue;
-        }
-        addAmount = converted;
-      }
-      match.amount = Math.round((match.amount + addAmount) * 100) / 100;
+      const conv = shoppingConvertQty(q, ing.unit, match.unit);
+      if (!conv) { const item = newItem(); await dbPutShopping(item); state.shopping.push(item); continue; }
+      shoppingApplyQty(match, qtyAdd(shopQty(match), conv));
       await dbPutShopping(match);
     } else {
-      const item = { id: uid(), name: ing.name, amount: scaledAmount, unit: ing.unit || '', checked: false, recipeId: r.id, createdAt: Date.now() };
+      const item = newItem();
       await dbPutShopping(item);
       state.shopping.push(item);
     }

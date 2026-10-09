@@ -235,7 +235,18 @@ function nutMlPerUnit(kind) {
    Gibt NIE einen erfundenen Wert zurueck — wenn keine verlaessliche Umrechnung moeglich ist,
    kommt grams:null + needsConfirmation:true zurueck (siehe Punkt 74 "wichtige Fehlerfaelle"). */
 function resolveIngredientGrams(ing, food) {
-  const amt = parseAmount(ing.amount);
+  const q = qtyFromIngredient(ing);
+  if (q.kind === 'range') {
+    // Bereich: beide Grenzen getrennt aufloesen, nichts mitteln. grams bleibt null, damit alte Aufrufer keinen Exaktwert lesen.
+    const lo = resolveIngredientGramsAt(ing, food, q.min), hi = resolveIngredientGramsAt(ing, food, q.max);
+    if (lo.grams === null || hi.grams === null) return Object.assign({}, lo.grams === null ? lo : hi, { range: true, gramsMin: null, gramsMax: null });
+    return { grams: null, gramsMin: lo.grams, gramsMax: hi.grams, range: true, estimated: lo.estimated || hi.estimated, needsConfirmation: false, reason: lo.reason || hi.reason };
+  }
+  const amt = q.kind === 'exact' ? q.min : null;
+  return resolveIngredientGramsAt(ing, food, amt);
+}
+
+function resolveIngredientGramsAt(ing, food, amt) {
   if (amt === null || isNaN(amt)) {
     return { grams: null, estimated: false, needsConfirmation: true, reason: 'no-amount' };
   }

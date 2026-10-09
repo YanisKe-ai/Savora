@@ -19,21 +19,13 @@ function ingPasteAmount(raw) {
   return s.replace(/(\d),(\d)/g, '$1.$2').replace(/\s*[-–]\s*/, '-');
 }
 function ingPasteParseLine(line) {
-  let s = stripBullet(line).replace(/\s+/g, ' ').trim();
+  const s = stripBullet(line).replace(/\s+/g, ' ').trim();
   if (!s) return null;
-  const m = ING_PASTE_AMOUNT_RE.exec(s);
-  if (!m) return { amount: '', unit: '', name: s };
-  if (/^[-–]/.test(m[2])) return { amount: '', unit: '', name: s };   // z.B. "7-Kräuter-Mix": Zahl gehört zum Namen
-  const amount = ingPasteAmount(m[1]);
-  let rest = m[2].trim();
-  let unit = '';
-  const um = /^([A-Za-zÄÖÜäöüß.]+)\.?\s+(.*)$/.exec(rest) || /^([A-Za-zÄÖÜäöüß.]+)\.?$/.exec(rest);
-  if (um && ING_PASTE_UNITS.includes(um[1].toLowerCase().replace(/\.$/, ''))) {
-    unit = um[1].replace(/\.$/, '');
-    rest = (um[2] || '').trim();
-  }
-  if (!rest) return { amount: '', unit: '', name: s };   // z.B. nur "2": nichts erfinden
-  return { amount, unit, name: rest };
+  const p = qtyParseLine(s);   // gemeinsame Mengenlogik: Bereiche, Brueche, Tausender, qualitative Angaben
+  if (!p) return null;
+  const out = { amount: p.amount, unit: p.unit, name: p.name };
+  if (p.flags && p.flags.length) Object.defineProperty(out, '_flags', { value: p.flags, enumerable: false });
+  return out;
 }
 /* Liefert { items: [Zutat], groups: Anzahl Gruppen } aus einem Textblock */
 function ingPasteParse(text) {

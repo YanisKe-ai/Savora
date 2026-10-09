@@ -1,6 +1,6 @@
 /* ---------- Nutrition: Berechnungsengine (Implementierungsauftrag Punkt 16-23) ---------- */
 
-const NUTRITION_CALC_VERSION = 2;   // 2: Zuordnung ueber Alias-Tabelle, Richtdichten; Ergebnisse aus Version 1 gelten als veraltet
+const NUTRITION_CALC_VERSION = 3;   // 2: Zuordnung ueber Alias-Tabelle, Richtdichten; 3: Mengenbereiche als Spanne, keine stille Portion 1; aeltere Ergebnisse gelten als veraltet
 
 /* Zeilen, die erkennbar keine berechenbare Menge tragen ("Salz nach Geschmack", "etwas
    Butter", "eine Handvoll Nüsse", ...) fliessen NICHT als Fehler, sondern als bewusst
@@ -11,8 +11,9 @@ const QUALITATIVE_AMOUNT_PATTERN = /nach\s+geschmack|nach\s+belieben|ein(e)?\s+s
 
 /* Kleinstmenge eines Gewuerzes/Triebmittels? (Prise, Messerspitze, bis 1 EL/3 TL, bis 10 g, ohne Menge) */
 function isNegligibleAmount(ing) {
-  const amt = parseAmount(ing.amount);
-  if (amt === null || isNaN(amt)) return true;
+  const q = qtyFromIngredient(ing);
+  if (!qtyIsNumeric(q)) return true;
+  const amt = q.max;   // bei einem Bereich zaehlt die Obergrenze: nur vernachlaessigbar, wenn auch sie es ist
   const kind = normalizeNutritionUnit(ing.unit);
   if (kind === 'g') return amt <= NUTRITION_NEGLIGIBLE_MAX_GRAMS;
   if (kind === 'tsp') return amt <= 3;
@@ -23,8 +24,7 @@ function isNegligibleAmount(ing) {
 }
 
 function isQualitativeIngredient(ing) {
-  const amt = parseAmount(ing.amount);
-  if (amt !== null && !isNaN(amt)) return false; // hat eine konkrete Zahl -> nicht qualitativ
+  if (qtyIsNumeric(qtyFromIngredient(ing))) return false; // hat eine konkrete Zahl oder einen Bereich -> nicht qualitativ
   return QUALITATIVE_AMOUNT_PATTERN.test(ing.name || '') || QUALITATIVE_AMOUNT_PATTERN.test(ing.amount || '');
 }
 
@@ -50,6 +50,7 @@ function addNutrientContribution(totals, known, food, grams) {
     known[key] = true;
   }
 }
+const nutRound = (v) => roundNutrientForDisplay(v);
 
 /* Berechnet die Naehrwerte eines Rezepts. `recipe` braucht mindestens { ingredients, servings }.
    Optional: recipe.nutritionFinishedWeight (Gramm, Punkt 18) fuer ein exaktes "pro 100g".
@@ -59,11 +60,15 @@ function addNutrientContribution(totals, known, food, grams) {
 async function calculateRecipeNutrition(recipe) {
   // Gruppentitel wie "Teig:" sind keine Zutaten und duerfen nicht als "ungeklaert" zaehlen.
   const ingredients = (recipe.ingredients || []).filter(i => !(typeof isIngredientHeaderRow === 'function' && isIngredientHeaderRow(i)));
-  const servings = Number(recipe.servings) > 0 ? Number(recipe.servings) : 1;
+  const needsServings = !(Number(recipe.servings) > 0);   // unbekannte Ausbeute: keine stille 1, keine Pro-Portion-Werte
+  const servings = needsServings ? 1 : Number(recipe.servings);   // nur fuer den Hash (stabil zu frueher); wird nie als Teiler benutzt, wenn needsServings
 
-  const totals = {};
+  const totals = {};      // Untergrenze (= exakter Wert, solange kein Bereich im Spiel ist)
+  const totalsMax = {};   // Obergrenze
   const known = {};
   let totalWeightGrams = 0;
+  let totalWeightMax = 0;
+  let rangeCount = 0;
   let matchedCount = 0;
   let estimatedCount = 0;
   let unresolvedCount = 0;
@@ -93,8 +98,7 @@ async function calculateRecipeNutrition(recipe) {
       else { skippedCount++; continue; }
     }
     // Ohne Mengenangabe laesst sich nichts berechnen: transparent auflisten statt das ganze Ergebnis zu blockieren
-    const amountNum = parseAmount(ing.amount);
-    if (amountNum === null || isNaN(amountNum)) {
+    if (!qtyIsNumeric(qtyFromIngredient(ing))) {
       // Nur echte, erkannte Zutaten auflisten; Fliesstext-Zeilen ("Alles mischen") und Gewuerze ohne Menge werden still uebergangen
       if (match.food && (match.viaAlias || match.confirmed || String(ing.name).trim().split(/\s+/).length <= 3) && !/\b(salz|pfeffer|muskat|gewürz\w*|kräuter\w*|zimt|curry\w*|paprikapulver)\b/i.test(ing.name)) unquantified.push(ing.name);
       continue;
@@ -107,7 +111,9 @@ async function calculateRecipeNutrition(recipe) {
     }
 
     const grams = resolveIngredientGrams(ing, match.food);
-    if (grams.grams === null) {
+    const gMin = grams.range ? grams.gramsMin : grams.grams;
+    const gMax = grams.range ? grams.gramsMax : grams.grams;
+    if (gMin === null || gMin === undefined || gMax === null || gMax === undefined) {
       unresolvedCount++;
       unresolvedIngredients.push({ name: ing.name, reason: grams.reason });
       continue;
@@ -122,35 +128,54 @@ async function calculateRecipeNutrition(recipe) {
     matchedCount++;
     if (match.approx && match.food) approximations.push({ name: ing.name, food: match.food.name });
     if (grams.estimated) estimatedCount++;
-    totalWeightGrams += grams.grams;
-    addNutrientContribution(totals, known, match.food, grams.grams);
+    if (grams.range) rangeCount++;
+    totalWeightGrams += gMin;
+    totalWeightMax += gMax;
+    addNutrientContribution(totals, known, match.food, gMin);
+    addNutrientContribution(totalsMax, {}, match.food, gMax);
     sourcesUsed.add(match.food.source);
   }
 
   // Fehlende Naehrwerte bleiben null statt 0 (Punkt 5/26), auch in der Summe.
-  const nutrientsTotal = {};
-  for (const key of Object.keys(NUTRIENT_KEYS)) {
-    nutrientsTotal[key] = known[key] ? totals[key] : null;
-  }
-
+  const rangeUsed = rangeCount > 0;
   const finishedWeight = typeof recipe.nutritionFinishedWeight === 'number' && recipe.nutritionFinishedWeight > 0
     ? recipe.nutritionFinishedWeight
     : null;
-  const per100Base = finishedWeight || (totalWeightGrams > 0 ? totalWeightGrams : null);
   const per100Estimated = !finishedWeight;
+  const wMin = finishedWeight || (totalWeightGrams > 0 ? totalWeightGrams : null);
+  const wMax = finishedWeight || (totalWeightMax > 0 ? totalWeightMax : null);
 
-  const nutrientsPerPortion = {};
-  const nutrientsPer100g = {};
+  const nutrientsTotal = {}, nutrientsPerPortion = {}, nutrientsPer100g = {};
+  const nutrientsTotalRange = {}, nutrientsPerPortionRange = {}, nutrientsPer100gRange = {};
+  // Spanne nur, wenn sie nach dem Runden tatsaechlich eine ist; sonst ist der Wert exakt.
+  const span = (lo, hi) => {
+    if (lo === null || hi === null || lo === undefined || hi === undefined) return { exact: null, range: null };
+    const a = nutRound(lo), b = nutRound(hi);
+    if (!rangeUsed || a === b) return { exact: a, range: rangeUsed ? { min: a, max: a } : null };
+    return { exact: null, range: { min: Math.min(a, b), max: Math.max(a, b) } };
+  };
   for (const key of Object.keys(NUTRIENT_KEYS)) {
-    const total = nutrientsTotal[key];
-    nutrientsPerPortion[key] = total === null ? null : roundNutrientForDisplay(total / servings);
-    nutrientsPer100g[key] = (total === null || !per100Base) ? null : roundNutrientForDisplay((total / per100Base) * 100);
+    const lo = known[key] ? totals[key] : null;
+    const hi = known[key] ? totalsMax[key] : null;
+    const t = span(lo, hi);
+    nutrientsTotal[key] = lo === null ? null : (rangeUsed ? t.exact : lo);   // bei echter Spanne null, kein Pseudo-Exaktwert
+    nutrientsTotalRange[key] = t.range;
+    const p = needsServings ? { exact: null, range: null } : span(lo === null ? null : lo / servings, hi === null ? null : hi / servings);
+    nutrientsPerPortion[key] = p.exact;
+    nutrientsPerPortionRange[key] = p.range;
+    // pro 100 g: konservative Einhuellende (Untergrenze durch groesstes Gewicht, Obergrenze durch kleinstes)
+    const h = (lo === null || !wMin || !wMax) ? { exact: null, range: null } : span((lo / wMax) * 100, (hi / wMin) * 100);
+    nutrientsPer100g[key] = h.exact;
+    nutrientsPer100gRange[key] = h.range;
+  }
+  if (!rangeUsed) {
+    for (const key of Object.keys(NUTRIENT_KEYS)) { nutrientsTotalRange[key] = null; nutrientsPerPortionRange[key] = null; nutrientsPer100gRange[key] = null; }
   }
 
   // Confidence (Punkt 22): nur Farbe reicht nicht — konkrete Begruendung mitliefern.
   let confidence = 'high';
   if (unresolvedCount > 0) confidence = (relevantCount > 0 && unresolvedCount / relevantCount <= 0.25) ? 'medium' : 'low';   // eine einzelne Lücke macht die Zahl nicht wertlos
-  else if (estimatedCount > 0 || per100Estimated) confidence = 'medium';
+  else if (estimatedCount > 0 || per100Estimated || rangeUsed) confidence = 'medium';
 
   if ((unquantified.length || approximations.length) && confidence === 'high') confidence = 'medium';
   const confidenceDetail = relevantCount === 0
@@ -161,6 +186,8 @@ async function calculateRecipeNutrition(recipe) {
       (approximations.length > 0 ? `, ${approximations.length} mit ähnlichem Lebensmittel angenähert` : '') +
       (unquantified.length > 0 ? `, ${unquantified.length} ohne Mengenangabe nicht eingerechnet` : '') +
       (unresolvedCount > 0 ? `, ${unresolvedCount} ungeklärt` : '') +
+      (rangeCount > 0 ? `, bei ${rangeCount} Zutat${rangeCount === 1 ? '' : 'en'} Mengenbereich: Ergebnis als Spanne` : '') +
+      (needsServings ? ', Ausbeute unbekannt: keine Pro-Portion-Werte' : '') +
       (per100Estimated ? ', Fertiggewicht geschätzt' : ', Fertiggewicht bekannt');
 
   return {
@@ -173,8 +200,11 @@ async function calculateRecipeNutrition(recipe) {
     // Durchschnittswerte" statt der tatsaechlich verwendeten Quelle.
     sourceDataVersions: buildSourceDataVersions(sourcesUsed),
     calculatedAt: Date.now(),
-    servings,
+    servings: needsServings ? null : servings,
+    needsServings,
+    rangeUsed,
     totalWeight: totalWeightGrams > 0 ? roundNutrientForDisplay(totalWeightGrams) : null,
+    totalWeightMax: rangeUsed && totalWeightMax > 0 ? roundNutrientForDisplay(totalWeightMax) : null,
     finishedWeight,
     per100Estimated,
     confidence,
@@ -190,6 +220,9 @@ async function calculateRecipeNutrition(recipe) {
     nutrientsTotal,
     nutrientsPerPortion,
     nutrientsPer100g,
+    nutrientsTotalRange: rangeUsed ? nutrientsTotalRange : {},
+    nutrientsPerPortionRange: rangeUsed ? nutrientsPerPortionRange : {},
+    nutrientsPer100gRange: rangeUsed ? nutrientsPer100gRange : {},
   };
 }
 

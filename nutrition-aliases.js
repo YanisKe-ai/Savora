@@ -407,11 +407,22 @@ function nutPrepareIngredient(ing) {
   if (sz) {
     const v = parseFloat(sz[1].replace(',', '.')), u = sz[2].toLowerCase();
     const containerish = /^(dose|dosen|glas|gläser|becher|packung|packungen|pack|pck|pkg|päckchen|päckli|beutel|flasche|flaschen|tube|can|cans|jar|jars|package|tetra|karton)$/i.test(unit);
-    const amt = typeof amount === 'number' ? amount : parseAmount(amount);
+    const q = qtyFromIngredient({ amount, unit });
     if (noAmount() && !unit) { amount = v; unit = u; }
-    else if (containerish && amt !== null && !isNaN(amt)) { amount = amt * v; unit = u; }
+    else if (containerish && q.kind === 'exact') { amount = q.min * v; unit = u; }
+    else if (containerish && q.kind === 'range') { amount = qtyToStored({ kind: 'range', min: q.min * v, max: q.max * v }); unit = u; }   // Bereich x Packungsinhalt: beide Grenzen, nur einmal multipliziert
     name = name.replace(sz[0], ' ').replace(/\s+/g, ' ').trim();
   }
+  // "2 Dosen Tomaten à 400 g" / "Dose (à 400 g)": Packungsinhalt nur einmal mit der Anzahl multiplizieren
+  { const am = /\(?\s*(?:à|je)\s+(?:ca\.?\s*)?(\d+(?:[.,]\d+)?)\s*(g|kg|ml|l|dl|cl)\.?\s*\)?/i.exec(name);
+    const containerish = /^(dose|dosen|glas|gläser|becher|packung|packungen|pack|pck|pkg|päckchen|päckli|beutel|flasche|flaschen|tube|can|cans|jar|jars|package|tetra|karton)$/i.test(unit);
+    const q = qtyFromIngredient({ amount, unit });
+    if (am && containerish && (q.kind === 'exact' || q.kind === 'range')) {
+      const v = parseFloat(am[1].replace(',', '.'));
+      amount = q.kind === 'exact' ? q.min * v : qtyToStored({ kind: 'range', min: q.min * v, max: q.max * v });
+      unit = am[2].toLowerCase();
+      name = name.replace(am[0], ' ').replace(/\s+/g, ' ').replace(/\s*,\s*$/, '').trim();
+    } }
   { const en = nutTranslateEn(name.split(',')[0]); if (en) name = en; }   // englische Zeile: Berechnung arbeitet mit dem deutschen Begriff
   return { amount, unit, name };
 }

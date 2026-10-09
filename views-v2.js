@@ -285,19 +285,24 @@ function dietChipsHtml(r) {
 }
 function ingredientsPanel(r) {
   const servings = currentServings(r);
-  const factor = servings / (r.servings || 1);
+  const factor = servingsFactor(r, servings);
+  const unknownYield = !yieldKnown(r);
   const checked = checkedSetFor(r.id);
   const groups = getIngredientGroups(r);
   const showTitles = groups.length > 1 || (groups[0] && groups[0].title !== 'Zutaten');
-  return `<div class="amount-row">
+  return `${unknownYield ? `<div class="amount-row amount-row--unknown">
+      <span class="amount-row-label">Menge</span>
+      <span class="hint-line">Ausbeute unbekannt, es gelten die Originalmengen.</span>
+      <button class="outline-btn outline-btn--small" data-action="edit-recipe" data-id="${r.id}">Ausbeute festlegen</button>
+    </div>` : `<div class="amount-row">
       <span class="amount-row-label">Menge</span>
       <div class="stepper" role="group" aria-label="Menge anpassen">
         <button data-action="serv-dec" data-id="${r.id}" aria-label="Weniger">${ICONS.minus}</button>
         <span class="stepper-value" aria-live="polite">${escapeHtml(servingLabel(r, servings))}</span>
         <button data-action="serv-inc" data-id="${r.id}" aria-label="Mehr">${ICONS.plus}</button>
       </div>
-    </div>
-    ${servings !== (r.servings || 1) ? `<p class="hint-line">Original: ${escapeHtml(servingLabel(r, r.servings || 1))}. Mengen werden immer vom Original berechnet.</p>` : ''}
+    </div>`}
+    ${!unknownYield && servings !== (r.servings || 1) ? `<p class="hint-line">Original: ${escapeHtml(servingLabel(r, r.servings || 1))}. Mengen werden immer vom Original berechnet.</p>` : ''}
     ${groups.length ? groups.map(g => `<section class="ing-group">
       ${showTitles ? `<h3 class="ing-group-title">${escapeHtml(g.title)}</h3>` : ''}
       <ul class="ing-list">
@@ -359,7 +364,7 @@ function detailView() {
       ? `<div class="hero-img placeholder" data-lazy-img="full" data-image-id="${r.imageId}" data-img-class="hero-img" data-img-alt="${escapeHtml(r.title || '')}" style="view-transition-name: recipe-hero-img;">${placeholderInner(r)}</div>`
       : `<div class="hero-img placeholder ${placeholderClass(r)}" style="view-transition-name: recipe-hero-img;">${placeholderInner(r)}</div>`;
   const extraTimes = [r.prepMinutes ? `aktiv ${r.prepMinutes} Min.` : '', r.restMinutes ? `Ruhen ${r.restMinutes} Min.` : '', r.cookMinutes ? `Garen/Backen ${r.cookMinutes} Min.` : ''].filter(Boolean);
-  const meta = [r.timeMinutes ? `${r.timeMinutes} Min.` : '', ...(extraTimes.length ? [`(${extraTimes.join(', ')})`] : []), servingMode(r) === 'pieces' ? `${servings} Stück` : servingLabel(r, servings), r.difficulty || ''].filter(Boolean);
+  const meta = [r.timeMinutes ? `${r.timeMinutes} Min.` : '', ...(extraTimes.length ? [`(${extraTimes.join(', ')})`] : []), yieldKnown(r) ? servingLabel(r, servings) : 'Ausbeute offen', r.difficulty || ''].filter(Boolean);
   const sourceText = r.sharedBy
     ? `${ICONS.sparkle}<span>Geteilt von ${escapeHtml(r.sharedBy)}</span>`
     : r.source ? `${ICONS.link}<span>Quelle: <a href="${escapeHtml(r.source)}" target="_blank" rel="noopener">${escapeHtml(domainFromUrl(r.source))}</a></span>`
@@ -481,7 +486,7 @@ function shopSelectModal() {
       ${Object.entries(byRecipe).map(([rid, list]) => `
         ${multi ? `<h4 class="shop-select-recipe">${escapeHtml(list[0].title)}</h4>` : ''}
         ${list.map(it => `<label class="shop-select-row"><input type="checkbox" data-shop-key="${escapeHtml(it.key)}" ${it.selected ? 'checked' : ''}>
-          <span class="ing-amount">${it.amount !== '' ? escapeHtml(kitchenAmount(it.amount, it.unit)) + (it.unit ? ' ' + escapeHtml(it.unit) : '') : escapeHtml(it.unit || '')}</span>
+          <span class="ing-amount">${it.amount !== '' ? escapeHtml(shopAmountText(it)) + (it.unit ? ' ' + escapeHtml(it.unit) : '') : escapeHtml(it.unit || '')}</span>
           <span class="ing-name">${escapeHtml(it.name)}</span></label>`).join('')}
       `).join('')}
     </div>
@@ -519,7 +524,7 @@ function cookModeView() {
   const groupsById = new Map(); getIngredientGroups(r).forEach(g => g.ingredients.forEach(i => groupsById.set(i._index, g.title)));
   const shownIngs = state.cookShowAllIngredients ? realIngredients(r).map(i => { const idx = r.ingredients.indexOf(i); return { ...i, _index: idx, _group: groupsById.get(idx) }; }) : stepIngs;
   const showGroups = hasNamedGroups(r);
-  const factor = currentServings(r) / (r.servings || 1);
+  const factor = servingsFactor(r, currentServings(r));
   const ingChips = shownIngs.map(i => `<button type="button" class="cook-ing ${checked.has(i._index) ? 'is-checked' : ''} ${i._ambiguous ? 'is-ambiguous' : ''}" data-action="toggle-ingredient-check" data-id="${r.id}" data-idx="${i._index}" role="checkbox" aria-checked="${checked.has(i._index)}"><span class="check-box" aria-hidden="true">${ICONS.check}</span>${escapeHtml(scaledAmountText(i, factor))}${i.unit ? ' ' + escapeHtml(i.unit) : ''} ${escapeHtml(i.name)}${showGroups && i._group && (i._ambiguous || state.cookShowAllIngredients) ? `<span class="cook-ing-group">${escapeHtml(i._group)}</span>` : ''}</button>`).join('');
   const matchNote = state.cookShowAllIngredients ? '' : match.fixed ? 'Von dir festgelegt' : match.ambiguous ? 'Vorschlag, nicht eindeutig' : (stepIngs.length ? 'Vorschlag' : '');
   const body = state.cookAllSteps
@@ -582,7 +587,7 @@ function stepIngredientsModal(r, stepIndex) {
 /* ---------- Einkauf ---------- */
 function shoppingItemRow(i) {
   const recipeTitles = Array.from(new Set((i.sources || []).map(s => s.title || (state.recipes.find(r => r.id === s.recipeId) || {}).title).filter(Boolean)));
-  const amount = i.amount !== '' && i.amount !== undefined && i.amount !== null ? `${escapeHtml(typeof i.amount === 'number' ? kitchenAmount(i.amount, i.unit) : String(i.amount))}${i.unit ? ' ' + escapeHtml(i.unit) : ''}` : (i.unit ? escapeHtml(i.unit) : '');
+  const amount = i.amount !== '' && i.amount !== undefined && i.amount !== null ? `${escapeHtml(shopAmountText(i))}${i.unit ? ' ' + escapeHtml(i.unit) : ''}` : (i.unit ? escapeHtml(i.unit) : '');
   return `<div class="shop-row ${i.checked ? 'is-checked' : ''}">
     <button class="shop-check" data-action="toggle-shopping-item" data-id="${i.id}" role="checkbox" aria-checked="${!!i.checked}" aria-label="${escapeHtml(i.name)}"><span class="check-box" aria-hidden="true">${ICONS.check}</span></button>
     <div class="shop-text">
@@ -627,12 +632,12 @@ function shopItemModal(i) {
   const canSplit = Array.isArray(i.sources) && i.sources.length > 1;
   return sheet('shop-item-title', i.name, `
     <div class="field-row field-row--3">
-      <div class="field"><label for="shopEditAmount">Menge</label><input type="text" id="shopEditAmount" inputmode="decimal" value="${escapeHtml(i.amount === '' || i.amount == null ? '' : String(typeof i.amount === 'number' ? fmtAmount(i.amount) : i.amount))}"></div>
+      <div class="field"><label for="shopEditAmount">Menge</label><input type="text" id="shopEditAmount" inputmode="decimal" value="${escapeHtml(i.amount === '' || i.amount == null ? '' : qtyToStored(shopQty(i)) || String(i.amount))}"></div>
       <div class="field"><label for="shopEditUnit">Einheit</label><input type="text" id="shopEditUnit" value="${escapeHtml(i.unit || '')}"></div>
       <div class="field"><label for="shopEditSection">Bereich</label><select id="shopEditSection">${SHOP_SECTIONS.map(s => `<option ${shopSectionFor(i) === s ? 'selected' : ''}>${s}</option>`).join('')}</select></div>
     </div>
     <div class="field"><label for="shopEditName">Bezeichnung</label><input type="text" id="shopEditName" value="${escapeHtml(i.name)}"></div>
-    ${canSplit ? `<p class="hint-line">Zusammengeführt aus ${i.sources.length} Einträgen: ${escapeHtml(i.sources.map(s => `${s.amount !== '' ? fmtAmount(s.amount) : ''} ${s.unit || ''} ${s.title ? '(' + s.title + ')' : ''}`.trim()).join(', '))}</p>` : ''}
+    ${canSplit ? `<p class="hint-line">Zusammengeführt aus ${i.sources.length} Einträgen: ${escapeHtml(i.sources.map(s => `${s.amount !== '' ? shopAmountText(s) : ''} ${s.unit || ''} ${s.title ? '(' + s.title + ')' : ''}`.trim()).join(', '))}</p>` : ''}
     <div class="menu-list">
       <button class="menu-item" data-action="toggle-shop-have" data-id="${i.id}">${ICONS.box}<span>${i.have ? 'Doch noch einkaufen' : 'Bereits vorhanden'}</span></button>
       ${canSplit ? `<button class="menu-item" data-action="split-shop-item" data-id="${i.id}">${ICONS.split}<span>Zusammenführung trennen</span></button>` : ''}
@@ -676,7 +681,7 @@ function mealplanView() {
       </div>
       ${sorted.map(e => {
         const r = state.recipes.find(x => x.id === e.recipeId);
-        const servings = e.servings || r.servings || 1;
+        const servings = e.servings || r.servings || 0;
         return `<div class="plan-entry">
           <button class="plan-entry-main" data-action="open-recipe" data-id="${r.id}">
             ${recipeImageHtml(r, 'plan-thumb', 'thumb')}
@@ -729,12 +734,12 @@ function planEntryModal() {
   const e = planEntriesFor(m.date).find(x => x.id === m.entryId);
   if (!e) return '';
   const r = state.recipes.find(x => x.id === e.recipeId) || { title: '', servings: 1 };
-  const servings = e.servings || r.servings || 1;
+  const servings = e.servings || r.servings || 0;
   const days = Array.from({ length: 7 }, (_, i) => addDays(state.weekStart, i));
   return sheet('plan-entry-title', r.title || 'Eintrag', `
-    <div class="amount-row"><span class="amount-row-label">Menge für diesen Termin</span>
+    ${yieldKnown(r) || e.servings > 0 ? `<div class="amount-row"><span class="amount-row-label">Menge für diesen Termin</span>
       <div class="stepper"><button data-action="plan-entry-servings" data-delta="-1" aria-label="Weniger">${ICONS.minus}</button><span class="stepper-value">${escapeHtml(servingLabel(r, servings))}</span><button data-action="plan-entry-servings" data-delta="1" aria-label="Mehr">${ICONS.plus}</button></div></div>
-    <p class="hint-line">Das Rezept selbst bleibt bei ${escapeHtml(servingLabel(r, r.servings || 1))}.</p>
+    <p class="hint-line">Das Rezept selbst bleibt bei ${escapeHtml(servingLabel(r, r.servings || 0))}.</p>` : `<p class="hint-line">Die Ausbeute dieses Rezepts ist unbekannt. Für diesen Termin gelten die Originalmengen. Trage die Ausbeute im Rezept ein, um zu skalieren.</p>`}
     ${mealSlotChooser(e.meal || '')}
     <div class="field"><label for="planMoveDay">Verschieben auf</label><select id="planMoveDay">${days.map((d, i) => { const k = fmtDateKey(d); return `<option value="${k}" ${k === m.date ? 'selected' : ''}>${WEEKDAY_LABELS[i]}, ${d.getDate()}. ${MONTH_LABELS[d.getMonth()]}</option>`; }).join('')}</select></div>
     <div class="form-actions">
@@ -856,7 +861,7 @@ function formView() {
       <div class="form-page" id="recipeForm">
         ${showDraft ? `<div class="draft-banner" role="status"><span>Es gibt einen ungespeicherten Entwurf vom ${new Date(draft.savedAt).toLocaleString('de-CH', { day: 'numeric', month: 'numeric', hour: '2-digit', minute: '2-digit' })}.</span>
           <span class="draft-actions"><button class="text-btn" data-action="discard-draft">Verwerfen</button><button class="outline-btn outline-btn--small" data-action="restore-draft">Wiederherstellen</button></span></div>` : ''}
-        ${importSummaryBanner(r._importSummary)}
+        ${importSummaryBanner(r._importSummary, r)}
         <nav class="form-stepper" aria-label="Erfassungsschritte">
           ${FORM_STEPS.map((s, n) => `<button type="button" class="form-step-btn ${n === step ? 'is-active' : ''} ${n < step ? 'is-done' : ''}" data-action="form-goto-step" data-idx="${n}" aria-current="${n === step ? 'step' : 'false'}"><span class="form-step-no">${n + 1}</span><span class="form-step-label">${s}</span></button>`).join('')}
         </nav>
@@ -868,11 +873,11 @@ function formView() {
               <input type="file" accept="image/*" id="f-image" aria-label="Foto auswählen">
             </div></div>
           <div class="field-row field-row--2">
-            <div class="field"><label for="f-servings">Menge</label><input type="number" id="f-servings" min="1" value="${r.servings}"></div>
+            <div class="field"><label for="f-servings">Menge</label><input type="number" id="f-servings" min="1" value="${Number(r.servings) > 0 ? r.servings : ''}" placeholder="${Number(r.servings) > 0 ? '' : 'unbekannt'}"></div>
             <div class="field"><label for="f-serving-mode">Einheit</label><select id="f-serving-mode"><option value="portions" ${servingMode(r) === 'portions' ? 'selected' : ''}>Portionen</option><option value="pieces" ${servingMode(r) === 'pieces' ? 'selected' : ''}>Stück</option></select></div>
           </div>
           <div class="field-row field-row--2">
-            <div class="field"><label for="f-time">Zeit (Min.)</label><input type="number" id="f-time" min="0" value="${r.timeMinutes}"></div>
+            <div class="field"><label for="f-time">Zeit (Min.)</label><input type="number" id="f-time" min="0" value="${r.timeMinutes > 0 ? r.timeMinutes : ''}" placeholder="${r.timeMinutes > 0 ? '' : 'unbekannt'}"></div>
             <div class="field"><label for="f-difficulty">Schwierigkeit</label><select id="f-difficulty">${['', 'Einfach', 'Mittel', 'Anspruchsvoll'].map(d => `<option value="${d}" ${(r.difficulty || '') === d ? 'selected' : ''}>${d || 'Keine Angabe'}</option>`).join('')}</select></div>
           </div>
           <details class="field-more"${(r.prepMinutes || r.restMinutes || r.cookMinutes) ? ' open' : ''}><summary>Weitere Zeitangaben (optional)</summary>

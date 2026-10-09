@@ -47,7 +47,7 @@ function showUndoToast(msg, onUndo, onExpire) {
 function collectFormData() {
   const r = state.editingRecipe;
   r.title = document.getElementById('f-title').value.trim() || 'Ohne Titel';
-  r.servings = parseInt(document.getElementById('f-servings').value) || 1;
+  r.servings = parseInt(document.getElementById('f-servings').value) || 0;   // leer = Ausbeute unbekannt (nie still 1)
   r.timeMinutes = parseInt(document.getElementById('f-time').value) || 0;
   r.difficulty = document.getElementById('f-difficulty').value;
   // Weitere Zeitangaben sind optional und additiv: leer = unbekannt (Feld wird entfernt, nichts erfunden)
@@ -76,6 +76,7 @@ function collectFormData() {
   });
   const modeEl = document.getElementById('f-serving-mode');
   if (modeEl) r.servingMode = modeEl.value === 'pieces' ? 'pieces' : 'portions';
+  if (r.servingMode !== 'pieces') delete r.yieldLabel;   // Bezeichnung (z. B. Schälchen) gilt nur fuer Stueck
   r.steps = Array.from(document.querySelectorAll('#stepRows [data-step-row]')).map(row => ({
     text: row.querySelector('.step-text-input').value.trim(),
   }));
@@ -336,7 +337,7 @@ async function dispatchAction(action, id, el, e) {
       r.steps = r.steps.filter(s => s.text);
       if (!r.ingredients.length) r.ingredients = [{ amount: '', unit: '', name: '' }];
       if (!r.steps.length) r.steps = [{ text: '' }];
-      delete r._importSummary; // nur eine Anzeigehilfe, gehoert nicht in die Datenbank
+      delete r._importSummary; delete r._import; // nur Anzeigehilfen, gehoeren nicht in die Datenbank
       await dbPut(r);
       await loadRecipes();
       state.activeRecipeId = r.id;
@@ -759,11 +760,70 @@ async function dispatchAction(action, id, el, e) {
     }
     case 'do-paste-import': {
       const text = document.getElementById('pasteText').value.trim();
-      if (!text) { showToast('Bitte zuerst Text einfügen'); break; }
+      const errBox = document.getElementById('pasteError');
+      const showErr = (html) => { if (errBox) { errBox.innerHTML = html; errBox.hidden = false; errBox.focus(); } };
+      if (errBox) { errBox.hidden = true; errBox.innerHTML = ''; }
+      if (!text) { showErr('<p>Bitte zuerst Text einfügen.</p>'); break; }
+      // Strukturiertes Rezept-JSON (Version 1) wird erkannt und durch dieselbe Validierung und Vorschau geführt wie Freitext
+      if (typeof looksLikeRecipeJson === 'function' && looksLikeRecipeJson(text)) {
+        const res = parseRecipeJson(text);
+        if (!res.ok) { showErr(`<p><strong>Das Rezept-JSON konnte nicht übernommen werden.</strong></p><ul>${res.errors.map(e => `<li>${escapeHtml(e.message)}</li>`).join('')}</ul>`); break; }
+        state.editingRecipe = res.recipe;
+        state.formStep = 0;
+        state.view = 'form';
+        render();
+        showToast('Entwurf aus JSON erstellt, bitte prüfen');
+        break;
+      }
       state.editingRecipe = parseFreeTextRecipe(text);
+      state.formStep = 0;
       state.view = 'form';
       render();
-      showToast('Entwurf erstellt — bitte prüfen');
+      showToast('Entwurf erstellt, bitte prüfen');
+      break;
+    }
+    /* ---------- Importvorschau: gezielte Korrekturen (aendern nur den Entwurf, speichern nichts) ---------- */
+    case 'import-split-ing': case 'import-ing-remove': case 'import-ing-to-step': {
+      const idx = parseInt(el.dataset.idx, 10);
+      const r = collectFormData();
+      const ing = r.ingredients[idx];
+      if (!ing) break;
+      if (action === 'import-split-ing') {
+        const full = [ing.amount, ing.unit, ing.name].map(x => String(x == null ? '' : x).trim()).filter(Boolean).join(' ');
+        const rows = importSplitIngredientLine(full).map(t => parseIngredientLine(t)).filter(p => p && String(p.name || '').trim()).map(p => ({ amount: p.amount, unit: p.unit, name: p.name, ...(ing.group ? { group: ing.group } : {}) }));
+        if (rows.length > 1) r.ingredients.splice(idx, 1, ...rows);
+      } else if (action === 'import-ing-remove') {
+        r.ingredients.splice(idx, 1);
+      } else {
+        r.ingredients.splice(idx, 1);
+        const last = r.steps.length ? r.steps[r.steps.length - 1] : null;
+        if (last && !String(last.text || '').trim()) last.text = ing.name; else r.steps.push({ text: ing.name });
+      }
+      if (!r.ingredients.length) r.ingredients = [{ amount: '', unit: '', name: '' }];
+      state.editingRecipe = importRefresh(r);
+      render();
+      break;
+    }
+    case 'import-unassigned-note': case 'import-unassigned-step': {
+      const r = collectFormData();
+      const lines = (r._import && r._import.unassigned) || [];
+      if (lines.length) {
+        if (action === 'import-unassigned-note') r.notes = [String(r.notes || '').trim(), lines.join('\n')].filter(Boolean).join('\n\n');
+        else { const last = r.steps.length ? r.steps[r.steps.length - 1] : null; lines.forEach(l => { if (last && !String(last.text || '').trim() && lines.indexOf(l) === 0) last.text = l; else r.steps.push({ text: l }); }); }
+        r._import.unassigned = [];
+      }
+      state.editingRecipe = importRefresh(r);
+      render();
+      break;
+    }
+    case 'import-next-recipe': {
+      const r = state.editingRecipe;
+      const rest = r && r._import ? r._import.otherRecipeText : '';
+      if (!rest) break;
+      state.editingRecipe = parseFreeTextRecipe(rest);
+      state.formStep = 0;
+      render();
+      showToast('Zweites Rezept als Entwurf geöffnet. Das erste ist nicht gespeichert.');
       break;
     }
 
