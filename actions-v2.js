@@ -43,6 +43,13 @@ document.addEventListener('input', (e) => {
   }, 700);
 });
 
+document.addEventListener('input', (e) => {
+  const t = e.target;
+  if (state.view !== 'cookbook' || !t.matches || !t.matches('[data-cb-field="title"], [data-cb-field="subtitle"], [data-cb-field="author"]')) return;
+  const cfg = getCookbookConfig(); cfg[t.dataset.cbField] = t.value; saveCookbookConfig(cfg);
+  coverRefresh();   // Vorschau sofort, ohne die Seite neu zu zeichnen
+});
+
 /* Einmalig registrierte, delegierte change-Listener (kein erneutes Binden pro Render). */
 document.addEventListener('change', (e) => {
   const t = e.target;
@@ -55,6 +62,15 @@ document.addEventListener('change', (e) => {
   }
   if (state.view === 'cookbook' && t.matches) {
     const cfg = getCookbookConfig();
+    // Titelblatt: Vorschau aktualisiert sich direkt, ohne die ganze Seite neu zu zeichnen (Fokus und Scrollposition bleiben)
+    if (t.matches('[data-cb-cover-date]')) {
+      const d = coverNormalizeDate(t.value);
+      if (d) cfg.cover = { ...cfg.cover, date: d }; else t.value = cfg.cover.date;   // leer oder ungueltig: bisheriges Datum bleibt
+      saveCookbookConfig(cfg); coverRefresh(); return;
+    }
+    if (t.matches('[data-cb-cover-flag]')) { cfg.cover = { ...cfg.cover, [t.dataset.cbCoverFlag]: !!t.checked }; saveCookbookConfig(cfg); coverRefresh(); return; }
+    if (t.matches('[data-cb-field="title"], [data-cb-field="subtitle"], [data-cb-field="author"]')) { cfg[t.dataset.cbField] = t.value.trim(); saveCookbookConfig(cfg); coverRefresh(); return; }
+    if (t.matches('[data-cb-flag="showLogo"]')) { cfg.showLogo = !!t.checked; saveCookbookConfig(cfg); coverRefresh(); return; }
     if (t.matches('[data-cb-flag]')) cfg[t.dataset.cbFlag] = !!t.checked;
     else if (t.matches('[data-cb-field]')) cfg[t.dataset.cbField] = t.value.trim();
     else if (t.matches('[data-cb-chapter]')) { const c = cfg.chapters.find(x => x.id === t.dataset.cbChapter); if (c) c.name = t.value.trim() || c.name; }
@@ -84,6 +100,13 @@ function parseShoppingInput(text) {
 async function handleActionV2(action, id, el, e) {
   switch (action) {
     /* ----- Navigation mit Schutz vor Datenverlust ----- */
+    case 'cb-cover-template': {
+      const cfg = getCookbookConfig();
+      cfg.cover = { ...cfg.cover, templateId: coverValidTemplateId(id) };
+      saveCookbookConfig(cfg);
+      coverRefresh(cfg.cover.templateId);
+      return true;
+    }
     case 'back':
     case 'nav-tab':
       if (state.view === 'form') {

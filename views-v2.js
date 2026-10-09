@@ -40,7 +40,7 @@ function bottomNav() {
   ];
   const openCount = state.shopping.filter(i => !i.checked && !i.have).length;
   return `<nav class="bottom-nav" aria-label="Hauptnavigation">
-    <div class="nav-brand" aria-hidden="true"><span class="brand-mark2" aria-hidden="true"><span class="bm-steam"></span><span class="bm-book"></span></span><span>savora</span></div>
+    <div class="nav-brand" aria-hidden="true">${coverSymbolSvg('currentColor', 'brand-symbol')}<span>savora</span></div>
     ${tabs.map(t => {
       const active = t.view === 'settings' ? isMoreSectionView(state.view) : (t.view === 'home' ? ['home', 'detail'].includes(state.view) : state.view === t.view);
       const badge = t.view === 'shopping' && openCount ? `<span class="nav-badge" aria-hidden="true">${openCount > 99 ? '99+' : openCount}</span>` : '';
@@ -55,7 +55,7 @@ function bottomNav() {
 // Einstellungsseiten in views.js verwendet, deshalb gleiche Signatur wie bisher.
 /* Kopfzeile: kleines Logo + Wortmarke, klar getrennt vom Seitentitel darunter */
 function brandLockup() {
-  return `<div class="brand-v2"><span class="brand-mark2" aria-hidden="true"><span class="bm-steam"></span><span class="bm-book"></span></span><span class="brand-word">savora</span></div>`;
+  return `<div class="brand-v2">${coverSymbolSvg('currentColor', 'brand-symbol')}<span class="brand-word">savora</span></div>`;
 }
 
 function topbar(title, opts = {}) {
@@ -756,8 +756,23 @@ function planRecipeModal() {
     <div class="menu-list">${days.map((d, i) => `<button class="menu-item" data-action="assign-mealplan-recipe" data-date="${fmtDateKey(d)}" data-id="${m.recipeId}">${ICONS.calendar}<span>${WEEKDAY_LABELS[i]}, ${d.getDate()}. ${MONTH_LABELS[d.getMonth()]}</span></button>`).join('')}</div>`);
 }
 
+/* Vorlagenwaehler (Radiogruppe, Tastatur und Touch) und Vorschau aus derselben Layoutdefinition wie der Export */
+function coverPickerHtml(cfg) {
+  const cv = cfg.cover || coverSanitizeConfig(null, true);
+  const layout = coverLayout({ templateId: cv.templateId, title: cfg.title, name: cfg.author, slogan: cfg.subtitle, date: cv.date, showDate: cv.showDate, logo: cfg.showLogo !== false });
+  const warn = layout.warnings.length ? `<ul class="cb-warnings" role="alert">${layout.warnings.map(w => `<li class="cb-warn cb-warn--error">${escapeHtml(w.message)}</li>`).join('')}</ul>` : '';
+  const sig = JSON.stringify([cfg.title, cfg.subtitle, cfg.author, cv, cfg.showLogo]);
+  return `<div class="cover-picker" data-sig="${escapeHtml(sig)}">
+    <div class="cover-grid" role="radiogroup" aria-label="Titelblatt wählen">${COVER_TEMPLATES.map(t => `<button type="button" class="cover-opt ${t.id === layout.templateId ? 'is-active' : ''}" role="radio" aria-checked="${t.id === layout.templateId}" data-action="cb-cover-template" data-id="${t.id}" aria-label="${escapeHtml(t.name)}"><img src="${coverThumbUrl(t.id)}" alt="" loading="lazy" width="130" height="185"><span class="cover-opt-name">${escapeHtml(t.name)}</span></button>`).join('')}</div>
+    <div class="cover-preview" aria-label="Vorschau des Titelblatts">${coverPreviewHtml(layout)}</div>
+    ${warn}
+  </div>`;
+}
+function coverPreviewHtml(layout) { return `<canvas class="cv-canvas" width="794" height="1123" role="img" aria-label="Vorschau des Titelblatts" data-layout="${escapeHtml(JSON.stringify(layout))}"></canvas>`; }
+
 /* ---------- Kochbuch-Designer ---------- */
 function cookbookDesignerView() {
+  coverEnsureConfig();   // legt Titelblatt-Daten (inkl. heutigem Datum) einmalig an
   const cfg = getCookbookConfig();
   const byId = Object.fromEntries(state.recipes.map(r => [r.id, r]));
   const inBook = new Set(cfg.items.map(it => it.recipeId));
@@ -768,13 +783,18 @@ function cookbookDesignerView() {
     ${topbar('Kochbuch gestalten', { back: true })}
     <main class="has-tabbar cookbook-main">
       <section class="panel">
-        <h2 class="section-title">1. Titel und Cover</h2>
-        <div class="field"><label for="cbTitle">Titel</label><input type="text" id="cbTitle" data-cb-field="title" value="${escapeHtml(cfg.title || '')}" placeholder="${escapeHtml(state.cookbookTitle || 'Mein persönliches Kochbuch')}"></div>
-        <div class="field"><label for="cbSubtitle">Untertitel</label><input type="text" id="cbSubtitle" data-cb-field="subtitle" value="${escapeHtml(cfg.subtitle || '')}" placeholder="z.B. Lieblingsrezepte 2026"></div>
-        <div class="field"><label for="cbAuthor">Autor oder Autorin (Deckblatt und Fusszeile)</label><input type="text" id="cbAuthor" data-cb-field="author" value="${escapeHtml(cfg.author || '')}" placeholder="optional"></div>
-        <div class="field"><label for="cbTemplate">Vorlage</label><select id="cbTemplate" data-cb-field="pdfTemplate">${Object.values(PDF_TEMPLATES).map(t => `<option value="${t.id}" ${(cfg.pdfTemplate || pdfDefaultTemplateId()) === t.id ? 'selected' : ''}>${t.id} · ${t.name}</option>`).join('')}</select></div>
-        <label class="check-row"><input type="checkbox" data-cb-flag="showLogo" ${cfg.showLogo === false ? '' : 'checked'}> <span>Kleines Savora-Logo auf dem Deckblatt</span></label>
-        <div class="field"><label for="cbCover">Titelbild</label><select id="cbCover" data-cb-field="coverRecipeId"><option value="">Ohne Bild</option>${withImage.map(r => `<option value="${r.id}" ${cfg.coverRecipeId === r.id ? 'selected' : ''}>${escapeHtml(r.title || 'Ohne Titel')}</option>`).join('')}</select></div>
+        <h2 class="section-title">1. Titelblatt</h2>
+        ${coverPickerHtml(cfg)}
+        <div class="field"><label for="cbTitle">Name des Kochbuchs</label><input type="text" id="cbTitle" data-cb-field="title" value="${escapeHtml(cfg.title || '')}" autocomplete="off"></div>
+        <div class="field"><label for="cbSubtitle">Untertitel oder Slogan</label><input type="text" id="cbSubtitle" data-cb-field="subtitle" value="${escapeHtml(cfg.subtitle || '')}" autocomplete="off"></div>
+        <div class="field"><label for="cbAuthor">Name (Herausgeber:in), auch in der Fusszeile</label><input type="text" id="cbAuthor" data-cb-field="author" value="${escapeHtml(cfg.author || '')}" autocomplete="off"></div>
+        <p class="hint-line">Alle drei Felder sind freiwillig. Leere Felder werden auf dem Titelblatt nicht gedruckt.</p>
+        <div class="field-row field-row--2">
+          <div class="field"><label for="cbDate">Veröffentlichungsdatum</label><input type="date" id="cbDate" data-cb-cover-date value="${escapeHtml((cfg.cover && cfg.cover.date) || '')}"></div>
+          <label class="check-row"><input type="checkbox" data-cb-cover-flag="showDate" ${cfg.cover && cfg.cover.showDate === false ? '' : 'checked'}> <span>Datum auf dem Titelblatt zeigen</span></label>
+        </div>
+        <label class="check-row"><input type="checkbox" data-cb-flag="showLogo" ${cfg.showLogo === false ? '' : 'checked'}> <span>Savora-Symbol auf dem Titelblatt</span></label>
+        <div class="field"><label for="cbTemplate">Seitengestaltung der Rezepte</label><select id="cbTemplate" data-cb-field="pdfTemplate">${Object.values(PDF_TEMPLATES).map(t => `<option value="${t.id}" ${(cfg.pdfTemplate || pdfDefaultTemplateId()) === t.id ? 'selected' : ''}>${t.id} · ${t.name}</option>`).join('')}</select></div>
       </section>
       <section class="panel">
         <h2 class="section-title">2. Kapitel</h2>

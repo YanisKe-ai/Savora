@@ -12,7 +12,7 @@ async def main():
         page.on('pageerror', lambda e: errs.append(str(e)))
         await goto(page); await page.evaluate(open(SEED_PATH).read()); await page.wait_for_timeout(400)
         ev = page.evaluate
-        head = await ev("""() => { const t = document.querySelector('.topbar'); const i = document.querySelector('.brand-mark2'); const h = document.querySelector('.page-title'); const tr = t.getBoundingClientRect(), hr = h.getBoundingClientRect();
+        head = await ev("""() => { const t = document.querySelector('.topbar'); const i = document.querySelector('.brand-symbol'); const h = document.querySelector('.page-title'); const tr = t.getBoundingClientRect(), hr = h.getBoundingClientRect();
           return { icon: !!i, border: getComputedStyle(t).borderBottomWidth, gap: Math.round(hr.top - tr.bottom), wm: parseFloat(getComputedStyle(document.querySelector('.brand-word')).fontSize), pt: parseFloat(getComputedStyle(h).fontSize) }; }""")
         check('Kopfzeile: Logo, keine harte Linie, Abstand zum Seitentitel', head['icon'] and head['border'] == '0px' and head['gap'] >= 14, str(head))
         check('Wortmarke deutlich kleiner als der Seitentitel', head['wm'] < head['pt'], str(head))

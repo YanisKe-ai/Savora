@@ -1001,11 +1001,12 @@ async function dispatchAction(action, id, el, e) {
       } catch (err) {
         console.warn('PDF-Erstellung fehlgeschlagen', err);
         result = null;
+        m.errorText = err && err.userMessage ? err.userMessage : '';
       }
       // waehrend des Builds kann das Modal geschlossen/gewechselt worden sein: Ergebnis dann verwerfen
       if (state.modal !== m) return;
       if (!result) {
-        showToast('PDF konnte nicht erstellt werden. Deine Rezepte sind unverändert.', 'error');
+        showToast(m.errorText ? m.errorText : 'PDF konnte nicht erstellt werden. Deine Rezepte sind unverändert.', 'error');
         m.stage = 'options';
         render();
         break;
