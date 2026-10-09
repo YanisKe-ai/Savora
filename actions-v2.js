@@ -4,7 +4,7 @@
 
 /* ---------- Dirty-Guard und Entwurf ---------- */
 function formDirtySnapshot(recipe) {
-  const copy = { ...recipe }; delete copy.updatedAt; delete copy._importSummary;
+  const copy = { ...recipe }; delete copy.updatedAt; delete copy._importSummary; delete copy._import;
   return JSON.stringify(copy);
 }
 function isFormDirty() {
@@ -73,14 +73,12 @@ function readPlanMeal() {
 function currentWeekDays() { return Array.from({ length: 7 }, (_, i) => fmtDateKey(addDays(state.weekStart, i))); }
 function replaceModal(modal) { state.modal = modal; render(); }
 function parseShoppingInput(text) {
-  const m = text.match(/^\s*([\d.,/½¼¾⅓⅔]+)\s*([A-Za-zäöüÄÖÜ.]+)?\s+(.+)$/);
-  if (!m) return { name: text.trim(), amount: '', unit: '' };
-  const amount = parseAmount(m[1]);
-  if (amount === null) return { name: text.trim(), amount: '', unit: '' };
-  const unitCandidate = m[2] || '';
-  const knownUnit = unitCandidate && (normalizeUnit(unitCandidate) || /^(stk|stück|prise|bund|pkg|pack|dose|el|tl|becher|zehe|zehen)\.?$/i.test(unitCandidate));
-  if (knownUnit) return { name: m[3].trim(), amount, unit: unitCandidate };
-  return { name: ((unitCandidate ? unitCandidate + ' ' : '') + m[3]).trim(), amount, unit: '' };
+  // Gleicher Zeilen-Parser wie beim Import: "2 l Milch", "200-300 g Hack", "½ Bund Petersilie"
+  const p = typeof qtyParseLine === 'function' ? qtyParseLine(text) : null;
+  if (!p || (p.kind !== 'exact' && p.kind !== 'range')) return { name: text.trim(), amount: '', unit: '' };
+  const q = parseQuantity(p.amount, p.unit);
+  const f = shopFieldsFromQty(q);
+  return { name: p.name, amount: f.amount, ...(f.amountMax !== undefined ? { amountMax: f.amountMax } : {}), unit: p.unit };
 }
 
 async function handleActionV2(action, id, el, e) {
@@ -457,7 +455,7 @@ async function handleActionV2(action, id, el, e) {
       const text = input ? input.value.trim() : '';
       if (!text) return true;
       const parsed = parseShoppingInput(text);
-      const item = { id: uid(), name: parsed.name, amount: parsed.amount, unit: parsed.unit, checked: false, recipeId: null, createdAt: Date.now(), sources: [] };
+      const item = { id: uid(), name: parsed.name, amount: parsed.amount, ...(parsed.amountMax !== undefined ? { amountMax: parsed.amountMax } : {}), unit: parsed.unit, checked: false, recipeId: null, createdAt: Date.now(), sources: [] };
       await dbPutShopping(item);
       state.shopping.push(item);
       render();
@@ -472,8 +470,12 @@ async function handleActionV2(action, id, el, e) {
       const item = state.shopping.find(x => x.id === id);
       if (!item) { closeModal(); return true; }
       const rawAmount = document.getElementById('shopEditAmount').value.trim();
-      const pa = parseAmount(rawAmount);
-      item.amount = rawAmount === '' ? '' : (pa !== null ? pa : rawAmount);
+      const eq = parseQuantity(rawAmount, document.getElementById('shopEditUnit').value.trim());
+      delete item.amountMax;
+      if (rawAmount === '') item.amount = '';
+      else if (eq.kind === 'exact') item.amount = eq.min;
+      else if (eq.kind === 'range') { item.amount = eq.min; item.amountMax = eq.max; }
+      else item.amount = rawAmount;   // Text oder Mehrdeutiges bleibt wie eingegeben
       item.unit = document.getElementById('shopEditUnit').value.trim();
       item.name = document.getElementById('shopEditName').value.trim() || item.name;
       item.section = document.getElementById('shopEditSection').value;
@@ -492,7 +494,7 @@ async function handleActionV2(action, id, el, e) {
       const item = state.shopping.find(x => x.id === id);
       if (!item || !Array.isArray(item.sources) || item.sources.length < 2) return true;
       for (const s of item.sources) {
-        const part = { id: uid(), name: item.name, amount: s.amount, unit: s.unit || '', checked: false, recipeId: s.recipeId || null, createdAt: Date.now(), sources: [s], separate: true };
+        const part = { id: uid(), name: item.name, amount: s.amount, ...(s.amountMax ? { amountMax: s.amountMax } : {}), unit: s.unit || '', checked: false, recipeId: s.recipeId || null, createdAt: Date.now(), sources: [s], separate: true };
         if (item.section) part.section = item.section;
         await dbPutShopping(part);
       }
@@ -514,7 +516,7 @@ async function handleActionV2(action, id, el, e) {
       const lines = [];
       SHOP_SECTIONS.filter(s => bySection[s]).forEach(s => {
         lines.push(s);
-        bySection[s].forEach(i => lines.push(`- ${i.amount !== '' && i.amount != null ? (typeof i.amount === 'number' ? kitchenAmount(i.amount, i.unit) : i.amount) + (i.unit ? ' ' + i.unit : '') + ' ' : ''}${i.name}`));
+        bySection[s].forEach(i => lines.push(`- ${i.amount !== '' && i.amount != null ? shopAmountText(i) + (i.unit ? ' ' + i.unit : '') + ' ' : ''}${i.name}`));
         lines.push('');
       });
       const text = lines.join('\n').trim() || 'Einkaufsliste ist leer';

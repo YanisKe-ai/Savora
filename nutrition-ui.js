@@ -11,6 +11,23 @@
 /* Zahlen mit Dezimalkomma (Schweizer/deutsche Schreibweise) */
 function nutFmt(v) { return String(v).replace('.', ','); }
 
+/* Wert oder Spanne als Text ("120–170"), ohne Einheit; null wenn nichts bekannt.
+   mode: 'portion' | '100g' | 'total'. Bei einer Spanne gibt es bewusst keinen Exaktwert. */
+function nutValueText(result, mode, key) {
+  const exactSrc = mode === '100g' ? result.nutrientsPer100g : mode === 'total' ? result.nutrientsTotal : result.nutrientsPerPortion;
+  const rangeSrc = mode === '100g' ? result.nutrientsPer100gRange : mode === 'total' ? result.nutrientsTotalRange : result.nutrientsPerPortionRange;
+  const v = roundNutrientForDisplay(exactSrc ? exactSrc[key] : null);
+  if (v !== null) return nutFmt(v);
+  const r = rangeSrc ? rangeSrc[key] : null;
+  if (result.rangeUsed && r && r.min !== r.max) return nutFmt(roundNutrientForDisplay(r.min)) + '–' + nutFmt(roundNutrientForDisplay(r.max));
+  return null;
+}
+const NUT_RANGE_HINT = 'Menge als Bereich angegeben, Ergebnis als Spanne.';
+const NUT_SERVINGS_HINT = 'Ausbeute unbekannt: Pro-Portion-Werte erst nach Klärung.';
+function nutritionResultHints(result) {
+  return (result.rangeUsed ? `<p class="nutrition-hint-text">${NUT_RANGE_HINT}</p>` : '') + (result.needsServings ? `<p class="nutrition-hint-text">${NUT_SERVINGS_HINT}</p>` : '');
+}
+
 /* ---------- Kompakte Karte (Punkt 24) — Platzhalter + Nachladen ---------- */
 function nutritionCardSection(recipeId) {
   return `<div class="nutrition-section">
@@ -62,11 +79,12 @@ function nutritionCompactInner(recipe, result) {
       <button class="primary-btn" data-action="nutrition-open-match" data-id="${recipe.id}">Nährwerte berechnen</button>
     `;
   }
+  const cmode = result.needsServings ? 'total' : 'portion';   // Ausbeute unbekannt: Gesamtwerte statt Pro-Portion
   const rows = NUTRITION_COMPACT_KEYS.map((key) => {
     const def = NUTRIENT_KEYS[key];
-    const val = roundNutrientForDisplay(result.nutrientsPerPortion[key]);
+    const val = nutValueText(result, cmode, key);
     return `<div class="nutrition-compact-stat">
-      <span class="nutrition-compact-value">${val === null ? '–' : nutFmt(val)}${val === null ? '' : ' ' + def.unit}</span>
+      <span class="nutrition-compact-value">${val === null ? '–' : val}${val === null ? '' : ' ' + def.unit}</span>
       <span class="nutrition-compact-label">${def.label}</span>
     </div>`;
   }).join('');
@@ -76,8 +94,9 @@ function nutritionCompactInner(recipe, result) {
       <span class="nutrition-confidence-badge tone-${confidenceBadgeClass(result.confidence)}">${conf.label}</span>
       ${result.unresolvedCount > 0 ? `<button class="nutrition-review-link" data-action="nutrition-open-match" data-id="${recipe.id}">${result.unresolvedCount} Zutat${result.unresolvedCount === 1 ? '' : 'en'} prüfen</button>` : ''}
     </div>
-    <p class="nutrition-basis">Werte pro ${typeof servingMode === 'function' && servingMode(recipe) === 'pieces' ? 'Stück' : 'Portion'}, geschätzt</p>
+    <p class="nutrition-basis">${cmode === 'total' ? 'Gesamtwerte des Rezepts' : 'Werte pro ' + (typeof servingMode === 'function' && servingMode(recipe) === 'pieces' ? 'Stück' : 'Portion')}, geschätzt</p>
     <div class="nutrition-compact-grid">${rows}</div>
+    ${nutritionResultHints(result)}
     ${nutritionIngredientStatus(recipe, result)}
     <div class="nutrition-compact-actions">
       <button class="nutrition-detail-link" data-action="nutrition-open-detail" data-id="${recipe.id}">Alle Nährwerte ${ICONS.chevronRight}</button>
@@ -357,9 +376,7 @@ const NUTRITION_GROUP_ORDER = [
 ];
 
 function nutritionValueFor(result, key) {
-  const mode = state.nutritionDetailMode;
-  const src = mode === '100g' ? result.nutrientsPer100g : mode === 'total' ? result.nutrientsTotal : result.nutrientsPerPortion;
-  return src[key];
+  return nutValueText(result, state.nutritionDetailMode, key);
 }
 
 function nutritionDetailGroup(group, result) {
@@ -367,10 +384,10 @@ function nutritionDetailGroup(group, result) {
   const rows = keys.map((key) => {
     const def = NUTRIENT_KEYS[key];
     // F07: alle Ansichten gleich runden (Gesamt zeigte sonst Gleitkomma-Reste wie 22.648500000000006).
-    const val = roundNutrientForDisplay(nutritionValueFor(result, key));
+    const val = nutritionValueFor(result, key);
     return `<div class="nutrition-nutrient-row">
       <span>${def.label}</span>
-      <span>${val === null ? '–' : nutFmt(val) + ' ' + def.unit}</span>
+      <span>${val === null ? '–' : val + ' ' + def.unit}</span>
     </div>`;
   }).join('');
   return `<div class="nutrition-group">
@@ -406,6 +423,7 @@ function nutritionDetailModal(recipe, result) {
         <span class="nutrition-confidence-badge tone-${confidenceBadgeClass(result.confidence)}">${conf.label}</span>
         <span class="nutrition-confidence-detail">${escapeHtml(result.confidenceDetail)}</span>
       </div>
+      ${nutritionResultHints(result)}
       ${mode === '100g' && result.per100Estimated ? `<p class="nutrition-hint-text">Fertiggewicht nicht bekannt — Werte pro 100 g sind geschätzt (aus Zutatengewicht).</p>` : ''}
       <div class="field" style="margin:14px 0;">
         <label for="nutritionFinishedWeight">Fertiggewicht (g, optional — für genauere „Pro 100 g“-Werte)</label>

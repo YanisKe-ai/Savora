@@ -30,14 +30,12 @@ let PDF_CTX = { tpl: PDF_TEMPLATES.A, bookTitle: '', author: '', logo: true };
 /* ---------- Darstellungsmodell (abgeleitet, aendert nichts am Rezept) ---------- */
 
 function pdfAmountText(i) {
-  // Originalwortlaut: nur das Zahlenformat vereinheitlichen (1/2 -> ½), niemals runden oder umrechnen.
+  // Originalwortlaut: nur das Zahlenformat vereinheitlichen (1/2 -> ½, Bereich mit Gedankenstrich), niemals runden oder umrechnen.
   const raw = String(i.amount == null ? '' : i.amount).trim();
   if (!raw) return '';
-  const range = /^([\d.,\/½¼¾⅓⅔ ]+?)\s*[-–]\s*([\d.,\/½¼¾⅓⅔ ]+?)$/.exec(raw);
-  const one = (s) => { const n = parseAmount(s); return n === null ? s : fmtAmount(n); };
-  if (range) return one(range[1]) + '–' + one(range[2]);
-  if (/^[\d.,\/½¼¾⅓⅔⅛ ]+$/.test(raw)) { const n = parseAmount(raw); return n === null ? raw : fmtAmount(n); }
-  return raw;
+  const q = qtyFromIngredient(i);
+  if (qtyIsNumeric(q)) return qtyFormat(q, i.unit, fmtAmount);   // exakt oder Bereich, beide Grenzen
+  return raw;                                                    // "etwas", mehrdeutige oder freie Angaben unveraendert
 }
 
 /* Hinweise/Quellen, die als Schritt gespeichert wurden, gehoeren nicht in die nummerierte Anleitung.
@@ -92,7 +90,7 @@ function pdfBuildModel(recipe, nutritionResult) {
   const facts = [];
   const sv = Number(recipe.servings) || 0;
   const pieces = servingMode(recipe) === 'pieces';
-  if (sv) facts.push({ label: pieces ? 'Ergibt' : (sv === 1 ? 'Portion' : 'Portionen'), value: pieces ? sv + ' Stück' : String(sv) });
+  if (sv) facts.push({ label: pieces ? 'Ergibt' : (sv === 1 ? 'Portion' : 'Portionen'), value: pieces ? sv + '\u00a0' + (recipe.yieldLabel || 'Stück') : String(sv) });
   if (recipe.timeMinutes) facts.push({ label: 'Zeit', value: pdfFormatMinutes(recipe.timeMinutes) });
   if (recipe.prepMinutes) facts.push({ label: 'Aktiv', value: pdfFormatMinutes(recipe.prepMinutes) });
   if (recipe.restMinutes) facts.push({ label: 'Ruhen', value: pdfFormatMinutes(recipe.restMinutes) });
@@ -153,15 +151,16 @@ function pvStepUnits(steps) {
 
 function pvNutritionBox(result, detailLevel, pieces) {
   if (!result) return '';
-  const per = result.nutrientsPerPortion;
+  const total = !!result.needsServings;   // Ausbeute unbekannt: Gesamtwerte statt Pro-Portion
   const cell = (key, label) => {
-    const def = NUTRIENT_KEYS[key]; const v = per[key];
-    return v === null || v === undefined ? '' : `<span><b>${pvEsc(String(v).replace('.', ','))}</b> ${pvEsc(def.unit)} ${pvEsc(label || def.label)}</span>`;
+    const def = NUTRIENT_KEYS[key];
+    const v = typeof nutValueText === 'function' ? nutValueText(result, total ? 'total' : 'portion', key) : (result.nutrientsPerPortion[key] === null ? null : String(result.nutrientsPerPortion[key]).replace('.', ','));
+    return v === null || v === undefined ? '' : `<span><b>${pvEsc(v)}</b> ${pvEsc(def.unit)} ${pvEsc(label || def.label)}</span>`;
   };
   const rows = [cell('energyKcal', 'Energie'), cell('protein', 'Protein'), cell('carbohydrates', 'Kohlenhydrate'), cell('fat', 'Fett'), cell('fiber', 'Ballaststoffe')];
   if (detailLevel === 'full') rows.push(cell('sugars', 'Zucker'), cell('saturatedFat', 'ges. Fett'), cell('salt', 'Salz'));
-  return `<div class="pv-nutri"><div class="pv-label">Nährwerte ${pieces ? 'pro Stück' : 'pro Portion'}, geschätzt</div><div class="pv-nutri-row">${rows.filter(Boolean).join('')}</div>
-    <div class="pv-small">${pvEsc(nutritionSourceLabel(result.sourceDataVersions))}. Schätzwerte, keine medizinische Aussage.${(result.approximations || []).length ? ' Angenähert: ' + pvEsc(result.approximations.map((a) => a.name).join(', ')) + '.' : ''}${(result.unquantified || []).length ? ' Ohne Mengenangabe nicht eingerechnet: ' + pvEsc(result.unquantified.join(', ')) + '.' : ''}</div></div>`;
+  return `<div class="pv-nutri"><div class="pv-label">Nährwerte ${total ? 'gesamt' : pieces ? 'pro Stück' : 'pro Portion'}, geschätzt</div><div class="pv-nutri-row">${rows.filter(Boolean).join('')}</div>
+    <div class="pv-small">${pvEsc(nutritionSourceLabel(result.sourceDataVersions))}. Schätzwerte, keine medizinische Aussage.${result.rangeUsed ? ' Menge als Bereich angegeben, Ergebnis als Spanne.' : ''}${result.needsServings ? ' Ausbeute unbekannt: Pro-Portion-Werte erst nach Klärung.' : ''}${(result.approximations || []).length ? ' Angenähert: ' + pvEsc(result.approximations.map((a) => a.name).join(', ')) + '.' : ''}${(result.unquantified || []).length ? ' Ohne Mengenangabe nicht eingerechnet: ' + pvEsc(result.unquantified.join(', ')) + '.' : ''}</div></div>`;
 }
 
 function pvExtrasHtml(m, nutritionDetail) {

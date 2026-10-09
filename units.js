@@ -72,10 +72,14 @@ function convertAmountExplicit(amount, fromCanonical, toCanonical) {
 }
 
 function autoConvertIngredient(ing) {
-  const amt = parseAmount(ing.amount);
+  const q = qtyFromIngredient(ing);
   const canonical = normalizeUnit(ing.unit);
-  if (amt === null || isNaN(amt) || !canonical) return ing;
-  const result = convertToSystem(amt, canonical, state.unitSystem);
+  if (!qtyIsNumeric(q) || !canonical) return ing;   // Bereiche werden mit BEIDEN Grenzen umgerechnet, Mehrdeutiges bleibt unveraendert
+  const result = convertToSystem(q.max, canonical, state.unitSystem);
   if (!result) return ing;
-  return { ...ing, amount: result.amount, unit: UNIT_LABELS[result.unit] };
+  const target = result.unit;
+  const conv = (v) => (canonical === target ? v : convertAmountExplicit(v, canonical, target));
+  const out = q.kind === 'range' ? qtyMap(q, conv) : { kind: 'exact', min: result.amount, max: result.amount };
+  if (q.kind === 'range' && (out.min === null || out.max === null)) return ing;
+  return { ...ing, amount: qtyToStored(out), unit: UNIT_LABELS[target] };
 }

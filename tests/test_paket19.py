@@ -28,7 +28,7 @@ async def main():
         check('1.000 g und 1\'000 g werden 1000', a[0]['amount'] == '1000' and a[1]['amount'] == '1000' and a[1]['name'] == 'Reis', str(a[:2]))
         check('7-Kräuter-Mix bleibt ein Name, 2-3 bleibt Bereich', a[2]['amount'] == '' and a[2]['name'] == '7-Kräuter-Mix' and a[3]['amount'] == '2-3', str(a[2:4]))
         s = await ev("[scaledAmountText({amount:'2-3',unit:''},1), scaledAmountText({amount:'2-3',unit:''},2), scaledAmountText({amount:'4',unit:''},2)]")
-        check('Bereiche werden ganz skaliert', s == ['2-3', '4-6', '8'], str(s))
+        check('Bereiche werden ganz skaliert', s == ['2–3', '4–6', '8'], str(s))
         check('Kleine Werte im Rechner werden nicht 0', await ev("[ucFmt(0.001), ucFmt(0.004), ucFmt(0), ucFmt(0.5)]") == ['0.001', '0.004', '0', '0.5'])
         check('"fl. oz" wird als Einheit erkannt', await ev("normalizeUnit('fl. oz')") == 'floz')
         check('.5 l Wasser bleibt 0.5-Schreibweise nicht zerstoert', (await ev("stripBullet('.5 l Wasser')")).startswith('.5'))

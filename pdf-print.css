@@ -137,3 +137,4 @@
 .pdf-zoom .icon-btn { min-width: 44px; min-height: 44px; font-size: 22px; font-weight: 700; }
 .pdf-pages { overflow-x: auto; }
 .pdf-pages .pdf-page-slot { width: calc(100% * var(--pdf-zoom, 1)); max-width: none; }
+.pv-step-text { white-space: pre-line; }

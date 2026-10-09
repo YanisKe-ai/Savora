@@ -28,20 +28,13 @@ function parseFractionPart(s) {
   return null;
 }
 
-function parseAmount(raw) {
-  if (raw === null || raw === undefined || raw === '') return null;
+/* Liefert nur dann eine Zahl, wenn die Angabe EINE eindeutige Zahl ist. Bereiche ("200-300"), Texte ("etwas")
+   und mehrdeutige Zahlen ("1.000" ohne Kontext) ergeben null, nie die erste Zahl per parseFloat.
+   Fuer Bereiche und Kontext siehe quantity.js (parseQuantity). unit liefert den Kontext fuer "1.000 g". */
+function parseAmount(raw, unit) {
   if (typeof raw === 'number') return isNaN(raw) ? null : raw;
-  const s = String(raw).trim();
-  if (!s) return null;
-  const mixed = /^(\d+)\s+(\d+\/\d+|[¼½¾⅓⅔⅕⅖⅗⅘⅛⅜⅝⅞])$/.exec(s);
-  if (mixed) {
-    const frac = parseFractionPart(mixed[2]);
-    return frac === null ? null : parseInt(mixed[1], 10) + frac;
-  }
-  const fracOnly = parseFractionPart(s);
-  if (fracOnly !== null) return fracOnly;
-  const num = parseFloat(s.replace(',', '.'));
-  return isNaN(num) ? null : num;
+  const q = parseQuantity(raw, unit);
+  return q.kind === 'exact' ? q.min : null;
 }
 
 function fileToDataUrl(file) {

@@ -149,21 +149,38 @@ function deleteModal(r) {
   </div>`;
 }
 
-function importSummaryBanner(s) {
+function importSummaryBanner(s, r) {
   if (!s) return '';
-  const row = (ok, label) => `<div class="import-summary-row ${ok ? 'ok' : 'warn'}">${ok ? ICONS.check : ICONS.x}<span>${label}</span></div>`;
-  return `<div class="import-summary">
-    <div class="import-summary-title">${ICONS.sparkle} Automatisch erkannt — bitte kurz prüfen</div>
-    ${row(s.titleFound, s.titleFound ? 'Titel erkannt' : 'Titel nicht erkannt — bitte eintragen')}
-    ${row(s.ingredientCount > 0, s.ingredientCount + ' Zutat' + (s.ingredientCount === 1 ? '' : 'en') + (s.groupCount ? ` in ${s.groupCount} Gruppe${s.groupCount === 1 ? '' : 'n'}` : '') + ' erkannt')}
-    ${row(s.stepCount > 0, s.stepCount + ' Zubereitungsschritt' + (s.stepCount === 1 ? '' : 'e') + ' erkannt')}
-    ${row(s.servingsFound, s.servingsFound ? 'Portionen erkannt' : 'Portionen nicht erkannt — Standardwert eingetragen')}
-    ${row(s.timeFound, s.timeFound ? 'Zeit erkannt' : 'Zeit nicht erkannt. Bitte selbst eintragen, sie bleibt bis dahin leer.')}
-    ${s.dietFound ? row(true, 'Ernährungsform automatisch erkannt — bitte gegenprüfen') : ''}
-    ${s.notesFound ? row(true, 'Notizen/Tipps automatisch erkannt und abgetrennt') : ''}
-    ${s.categoryFound ? row(true, 'Mahlzeit/Gerichtstyp automatisch erkannt — bitte gegenprüfen') : ''}
-    ${(s.lowConfidenceHints || []).length ? `<div class="import-summary-row warn">${ICONS.x}<span>Unsicher: ${s.lowConfidenceHints.map(h => categoryLabelFor(h.id)).join(', ')} — bitte manuell prüfen</span></div>` : ''}
-  </div>`;
+  const STATE = { ok: 'Erkannt', check: 'Bitte prüfen', missing: 'Fehlt' };
+  const row = (st, label, text) => `<li class="import-row import-row--${st}"><span class="import-state import-state--${st}">${STATE[st]}</span><span class="import-label">${label}</span><span class="import-text">${text}</span></li>`;
+  const issues = s.issues || [];
+  const has = (field, levels) => issues.some(x => x.field === field && (!levels || levels.includes(x.level)));
+  const yieldText = r && yieldKnown(r) ? servingLabel(r, r.servings) : '';
+  const rows = [
+    row(s.titleFound ? 'ok' : 'missing', 'Titel', s.titleFound ? escapeHtml(r ? r.title : '') : 'Bitte eintragen.'),
+    row(s.ingredientCount === 0 ? 'missing' : (has('ingredients') ? 'check' : 'ok'), 'Zutaten', `${s.ingredientCount} erkannt${s.groupCount ? `, ${s.groupCount} Gruppe${s.groupCount === 1 ? '' : 'n'}` : ''}${(s.noAmount || []).length ? `. Ohne Menge: ${escapeHtml(s.noAmount.join(', '))}` : ''}`),
+    row(s.stepCount === 0 ? 'missing' : (has('steps') ? 'check' : 'ok'), 'Schritte', `${s.stepCount} erkannt${s.methodSteps ? `, davon ${s.methodSteps} mit alternativen Garmethoden` : ''}`),
+    row(s.servingsFound ? (has('servings') ? 'check' : 'ok') : 'missing', 'Ausbeute', s.servingsFound ? escapeHtml(yieldText) : 'Unbekannt. Originalmengen, kein Skalieren.'),
+    row(s.timeFound ? 'ok' : 'missing', 'Zeit', s.timeFound ? `${r ? r.timeMinutes : ''} Min.` : 'Nicht angegeben, bleibt leer.'),
+    s.notesFound ? row('ok', 'Notizen', 'Hinweise und Utensilien stehen in den Notizen, nicht in den Zutaten.') : '',
+    s.dietFound ? row('check', 'Ernährung', 'Als Vorschlag erkannt, bitte gegenprüfen.') : '',
+    s.categoryFound ? row('check', 'Gerichtstyp', 'Als Vorschlag erkannt, bitte gegenprüfen.') : '',
+    (s.lowConfidenceHints || []).length ? row('check', 'Unsicher', `${s.lowConfidenceHints.map(h => escapeHtml(categoryLabelFor(h.id))).join(', ')}: bitte manuell prüfen`) : '',
+  ].filter(Boolean).join('');
+  const ACTIONS = { 'import-split-ing': 'Aufteilen', 'import-ing-remove': 'Zeile entfernen', 'import-ing-to-step': 'Als Schritt übernehmen', 'import-next-recipe': 'Weiteres Rezept bearbeiten' };
+  const issueHtml = issues.filter(x => !['yield', 'time'].includes(x.id)).map(x => {
+    const uns = x.id === 'unassigned' && r && r._import ? `<ul class="import-unassigned">${r._import.unassigned.map(l => `<li>${escapeHtml(l)}</li>`).join('')}</ul><span class="import-actions"><button type="button" class="text-btn" data-action="import-unassigned-note">Als Notiz übernehmen</button><button type="button" class="text-btn" data-action="import-unassigned-step">Als Schritt übernehmen</button></span>` : '';
+    const act = x.action ? `<button type="button" class="text-btn" data-action="${x.action}" data-idx="${x.index == null ? '' : x.index}">${ACTIONS[x.action] || 'Anwenden'}</button>` : '';
+    return `<li class="import-issue"><span class="import-state import-state--${x.level}">${x.level === 'missing' ? 'Fehlt' : 'Bitte prüfen'}</span><span class="import-text">${escapeHtml(x.text)}${x.original ? ` <q class="import-orig">${escapeHtml(x.original)}</q>` : ''}</span>${act}${uns}</li>`;
+  }).join('');
+  const raw = r && r._import && r._import.raw ? `<details class="import-raw"><summary>Originaltext anzeigen</summary><pre>${escapeHtml(r._import.raw)}</pre></details>` : '';
+  return `<section class="import-summary" aria-labelledby="import-sum-title">
+    <h2 class="import-summary-title" id="import-sum-title">${ICONS.sparkle} Entwurf erkannt: bitte kurz prüfen</h2>
+    <ul class="import-rows">${rows}</ul>
+    ${issueHtml ? `<ul class="import-issues" aria-label="Zu prüfen">${issueHtml}</ul>` : ''}
+    ${raw}
+    <p class="hint-line">Gespeichert wird erst, wenn du auf „Speichern“ tippst.</p>
+  </section>`;
 }
 
 /* Findet die deutsche Beschriftung zu einer Kategorie-ID ueber alle Options-Listen hinweg
@@ -399,6 +416,7 @@ function pasteImportView() {
         <div class="field field--tight">
           <textarea id="pasteText" class="paste-import-textarea" placeholder="Rezepttext hier einfügen …"></textarea>
         </div>
+        <div id="pasteError" class="import-error" role="alert" tabindex="-1" hidden></div>
         <button class="primary-btn" data-action="do-paste-import">${ICONS.fileText} Rezept-Entwurf erstellen</button>
       </div>
     </div>`;

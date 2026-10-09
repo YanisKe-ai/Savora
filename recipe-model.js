@@ -75,15 +75,25 @@ function hasNamedGroups(r) {
 
 /* ---------- Portionen / Stueck ---------- */
 function servingMode(r) { return r && r.servingMode === 'pieces' ? 'pieces' : 'portions'; }
+// Ausbeute bekannt? Unbekannt (0, null, fehlend) wird nie stillschweigend zu 1 oder 4: Mengen bleiben im Original.
+function yieldKnown(r) { return !!r && Number(r.servings) > 0; }
 function currentServings(r) {
-  return state.servingsOverride[r.id] || r.lastServings || r.servings || 1;
+  if (!yieldKnown(r)) return 0;
+  return state.servingsOverride[r.id] || r.lastServings || r.servings;
+}
+// Faktor fuer Anzeige und Einkauf: ohne bekannte Ausbeute immer 1 (Originalmengen)
+function servingsFactor(r, servings) {
+  if (!yieldKnown(r)) return 1;
+  return (servings || r.servings) / r.servings;
 }
 function servingLabel(r, n) {
-  if (servingMode(r) === 'pieces') return `${n} Stück`;
+  if (!yieldKnown(r) && !(n > 0)) return 'Ausbeute offen';
+  if (servingMode(r) === 'pieces') return `${n} ${r.yieldLabel || 'Stück'}`;
   return `${n} ${n === 1 ? 'Portion' : 'Portionen'}`;
 }
 function servingShort(r, n) {
-  return servingMode(r) === 'pieces' ? `${n} Stück` : `${n} Port.`;
+  if (servingMode(r) === 'pieces') return `${n} ${r.yieldLabel || 'Stück'}`;
+  return `${n} Port.`;
 }
 // Kuechenrundung: Grossmengen in g/ml auf sinnvolle Schritte, sonst Brueche via fmtAmount.
 // Rechnet immer vom Originalwert, nie von einem bereits skalierten Wert.
@@ -98,14 +108,9 @@ function kitchenAmount(value, unit) {
   return fmtAmount(value);
 }
 function scaledAmountText(i, factor) {
-  const range = /^\s*([\d.,\/½¼¾⅓⅔ ]+?)\s*[-–]\s*([\d.,\/½¼¾⅓⅔ ]+?)\s*$/.exec(String(i.amount == null ? '' : i.amount));
-  if (range) {   // Bereich "2-3": beide Grenzen skalieren, nie nur die untere
-    const lo = parseAmount(range[1]), hi = parseAmount(range[2]);
-    if (lo !== null && hi !== null) return kitchenAmount(lo * factor, i.unit) + '-' + kitchenAmount(hi * factor, i.unit);
-  }
-  const pa = parseAmount(i.amount);
-  if (pa === null) return String(i.amount || '').trim(); // freie Angaben ("etwas") nie erfinden
-  return kitchenAmount(pa * factor, i.unit);
+  const q = qtyFromIngredient(i);
+  if (qtyIsNumeric(q)) return qtyFormat(qtyScale(q, factor), i.unit);   // Bereich: beide Grenzen, nie nur die untere
+  return String(i.amount == null ? '' : i.amount).trim();               // freie oder mehrdeutige Angaben nie erfinden oder raten
 }
 
 /* ---------- Sammlungen ---------- */
@@ -320,7 +325,7 @@ function parseQuantityInput(raw) {
 function loadRecipeDraft() { return readJsonKey(RECIPE_DRAFT_KEY, null); }
 function saveRecipeDraft(recipe, isNew) {
   const copy = JSON.parse(JSON.stringify(recipe));
-  delete copy._importSummary;
+  delete copy._importSummary; delete copy._import;
   writeJsonKey(RECIPE_DRAFT_KEY, { recipe: copy, isNew: !!isNew, formStep: state.formStep || 0, savedAt: Date.now() });
 }
 function clearRecipeDraft() { try { localStorage.removeItem(RECIPE_DRAFT_KEY); } catch (e) {} }
@@ -371,52 +376,43 @@ async function addSelectionToShopping(selection) {
   let added = 0, merged = 0;
   for (const s of selection) {
     if (!s.name || isIngredientHeaderRow(s)) continue;
-    const amount = typeof s.amount === 'number' ? s.amount : '';
-    const canonical = normalizeUnit(s.unit);
-    const source = { recipeId: s.recipeId || null, title: s.title || '', amount, unit: s.unit || '' };
-    const match = typeof amount === 'number' ? state.shopping.find(x => {
-      if (x.checked || x.have || typeof x.amount !== 'number') return false;
-      if (!ingredientNamesMatch(x.name, s.name)) return false;
-      const xc = normalizeUnit(x.unit);
-      if (canonical && xc) return unitDimension(canonical) === unitDimension(xc);
-      if (!canonical && !xc) return (x.unit || '').trim().toLowerCase() === (s.unit || '').trim().toLowerCase();
-      return false;
-    }) : null;
+    const sq = shopQty(s);
+    const numeric = qtyIsNumeric(sq);
+    const source = { recipeId: s.recipeId || null, title: s.title || '', amount: numeric ? sq.min : '', unit: s.unit || '' };
+    if (numeric && sq.max > sq.min) source.amountMax = sq.max;
+    const match = numeric ? shoppingFindMatch(s.name, s.unit) : null;
     if (match) {
-      let add = amount;
-      const mc = normalizeUnit(match.unit);
-      if (canonical && mc && canonical !== mc) {
-        const conv = convertAmountExplicit(amount, canonical, mc);
-        if (conv === null) { await pushNewShoppingItem(s, amount, source); added++; continue; }
-        add = conv;
-      }
+      const conv = shoppingConvertQty(sq, s.unit, match.unit);
+      if (!conv) { await pushNewShoppingItem(s, numeric ? sq : null, source); added++; continue; }
       if (!Array.isArray(match.sources)) {
-        match.sources = [{ recipeId: match.recipeId || null, title: '', amount: match.amount, unit: match.unit || '' }];
+        match.sources = [{ recipeId: match.recipeId || null, title: '', amount: match.amount, unit: match.unit || '', ...(match.amountMax ? { amountMax: match.amountMax } : {}) }];
       }
-      match.amount = Math.round((match.amount + add) * 100) / 100;
+      shoppingApplyQty(match, qtyAdd(shopQty(match), conv));
       match.sources.push(source);
       await dbPutShopping(match);
       merged++;
     } else {
-      await pushNewShoppingItem(s, amount, source);
+      await pushNewShoppingItem(s, numeric ? sq : null, source);
       added++;
     }
   }
   return { added, merged };
 }
-async function pushNewShoppingItem(s, amount, source) {
-  const item = { id: uid(), name: s.name, amount, unit: s.unit || '', checked: false, recipeId: s.recipeId || null, createdAt: Date.now(), sources: [source] };
+async function pushNewShoppingItem(s, q, source) {
+  const item = { id: uid(), name: s.name, amount: '', unit: s.unit || '', checked: false, recipeId: s.recipeId || null, createdAt: Date.now(), sources: [source] };
+  if (q) shoppingApplyQty(item, q);
   await dbPutShopping(item);
   state.shopping.push(item);
 }
 // Baut die Vorschau-Liste fuer das Auswahl-Sheet (ein Rezept, mehrere oder Wochenplan).
 function shoppingSelectionFor(recipe, servings) {
-  const factor = (servings || recipe.servings || 1) / (recipe.servings || 1);
+  const factor = servingsFactor(recipe, servings);
   return realIngredients(recipe).map((i, n) => {
-    const pa = parseAmount(i.amount);
+    const q = qtyFromIngredient(i);
+    const f = qtyIsNumeric(q) ? shopFieldsFromQty(qtyScale(q, factor)) : { amount: '' };
     return {
       key: `${recipe.id}-${n}`, recipeId: recipe.id, title: recipe.title || '', name: i.name.trim(),
-      amount: pa !== null ? Math.round(pa * factor * 100) / 100 : '', unit: i.unit || '',
+      amount: typeof f.amount === 'number' ? f.amount : '', amountMax: f.amountMax, unit: i.unit || '',
       group: i.group || '', selected: true,
     };
   });

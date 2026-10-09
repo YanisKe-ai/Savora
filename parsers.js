@@ -166,10 +166,10 @@ function stripBullet(line) {
 }
 
 function stripStepNumber(line) {
-  return line.replace(/^\s*(schritt\s*)?\d+[\.\):]\s*/i, '').trim();
+  return line.replace(/^\s*(?:schritt\s*)?\d+\s*(?:[-–—]\s+(?=\D))/i, '').replace(/^\s*(?:schritt\s*)?\d+[.):]\s*/i, '').trim();
 }
 
-const STEP_NUM_RE = /^\s*(?:schritt\s*)?(\d+)[\.\):]\s+(.+)$/i;
+const STEP_NUM_RE = /^\s*(?:schritt\s*)?(\d+)\s*(?:[.):]\s+|[-–—]\s+(?=\D))(.+)$/i;
 
 function looksLikeIngredient(line) {
   if (STEP_NUM_RE.test(line)) return false;
@@ -186,7 +186,7 @@ function looksLikeIngredient(line) {
 
 // A) Eigenstaendige Ueberschriftszeile (Punkt 50) — die ganze Zeile besteht nur aus dem
 // Ueberschriftswort (+ optionalem Doppelpunkt), der eigentliche Inhalt folgt in Zeilen danach.
-const NOTE_HEADER_RE = /^(tipps?|hinweise?|gut zu wissen|notiz(en)?|anmerkungen?|serviertipps?|servieren|zum servieren|dazu passt|dazu passen|varianten?|alternativen?|vorbereiten|vorbereitung|lässt sich( gut)? vorbereiten|haltbarkeit|aufbewahrung|lagerung|resteverwertung)\s*:?\s*$/i;
+const NOTE_HEADER_RE = /^(tipps?|hinweise?|gut zu wissen|notiz(en)?|anmerkungen?|serviertipps?|servieren|zum servieren|dazu passt|dazu passen|varianten?|alternativen?|lässt sich( gut)? vorbereiten|haltbarkeit|aufbewahrung|lagerung|resteverwertung)\s*:?\s*$/i;
 
 // B) Satzstarter (Punkt 51) — Ueberschrift UND Inhalt in derselben Zeile, durch Doppelpunkt
 // getrennt. Bewusst nur die im Auftrag explizit gelisteten Formulierungen, damit z.B. "Mit
@@ -252,7 +252,60 @@ function importSplitSentences(text) {
   return out.reduce((acc, s) => { if (acc.length && s.length < 25) acc[acc.length - 1] += ' ' + s; else acc.push(s); return acc; }, []);
 }
 
-function parseFreeTextRecipe(raw) {
+/* Gemeinsamer Abschluss fuer Legacy- und Strukturpfad: Ernaehrung, Klassifikation, Tags, Notizen, Importuebersicht */
+function importEnrichRecipe(r, raw, tagWords, detectedNotes, f) {
+  const { titleLine, servMatch, timeMatch } = f;
+  const dietMap = { vegan: 'vegan', vegetarisch: 'vegetarisch', vegetarian: 'vegetarisch', glutenfrei: 'glutenfrei', laktosefrei: 'laktosefrei', nussfrei: 'nussfrei' };
+  const NEGATION_WORDS = ['nicht', 'kein', 'keine', 'keinen', 'keinem', 'ohne'];
+  const lowerAll = (raw + ' ' + tagWords.join(' ')).toLowerCase();
+  const detectedDiet = [];
+  for (const [kw, val] of Object.entries(dietMap)) {
+    let searchFrom = 0, idx;
+    let anyPositive = false;
+    // Alle Fundstellen pruefen, nicht nur die erste — falls "vegan" mehrfach vorkommt
+    // (z.B. einmal negiert, einmal nicht), zaehlt ein einziger echter Treffer.
+    while ((idx = lowerAll.indexOf(kw, searchFrom)) !== -1) {
+      const before = lowerAll.slice(Math.max(0, idx - 15), idx);
+      const negated = NEGATION_WORDS.some(w => before.includes(w));
+      if (!negated) { anyPositive = true; break; }
+      searchFrom = idx + kw.length;
+    }
+    if (anyPositive) detectedDiet.push(val);
+  }
+  r.diet = Array.from(new Set(detectedDiet));
+
+  // Zusaetzlich zur reinen Text-/Hashtag-Erkennung oben: zutatenbasierte Klassifikation
+  // (Master-Prompt Teil I) — zuverlaessiger als blosse Schluesselwoerter im Fliesstext, siehe
+  // classification.js. Ergaenzt r.diet nur additiv (nimmt nichts weg) und setzt zusaetzlich
+  // recipe.categoryTags (Mahlzeit/Gerichtstyp). Niedrige Sicherheit wird bewusst NICHT
+  // automatisch gesetzt (Punkt 101), sondern nur im Importhinweis vorgeschlagen (Punkt 114).
+  const autoClassification = classifyRecipe(r);
+  applyClassification(r, autoClassification, { minConfidence: 'medium' });
+  const lowConfidenceHints = lowConfidenceSuggestions(autoClassification);
+  r.tags = Array.from(new Set(tagWords.filter(t => !dietMap[t.toLowerCase()]))).slice(0, 6);
+  r.notes = detectedNotes || '';
+  // Klar widerspruechliche Ernaehrungsvorschlaege (z.B. "vegan" bei Speck oder Parmesan) bei neuen
+  // Importen gar nicht erst setzen. Bestehende Rezepte werden davon nicht beruehrt.
+  if (typeof dietConflicts === 'function') {
+    const conflicting = new Set(dietConflicts(r).map(c => c.label));
+    if (conflicting.size) r.diet = r.diet.filter(d => !conflicting.has(d));
+  }
+  r._importSummary = {
+    titleFound: !!titleLine,
+    ingredientCount: typeof realIngredients === 'function' ? realIngredients(r).length : r.ingredients.filter(i => i.name).length,
+    groupCount: typeof getIngredientGroups === 'function' ? getIngredientGroups(r).filter(g => g.title !== 'Zutaten').length : 0,
+    stepCount: r.steps.filter(s => s.text).length,
+    servingsFound: !!servMatch,
+    timeFound: !!timeMatch,
+    dietFound: r.diet.length > 0,
+    notesFound: !!detectedNotes,
+    categoryFound: r.categoryTags.length > 0,
+    lowConfidenceHints,
+  };
+  return r;
+}
+
+function parseFreeTextRecipeLegacy(raw) {
   const rawLines = raw.split(/\r?\n/).map(l => l.replace(/([0-9])\uFE0F?\u20E3\s*/g, '$1. ').replace(/[’‘]/g, "'").trim()).filter(Boolean);
   const { contentLines: lines, notes: detectedNotes } = extractNotesSection(rawLines);
   const r = emptyRecipe();
@@ -398,52 +451,5 @@ function parseFreeTextRecipe(raw) {
   const servMatch = metaLines.join(' ').match(/(\d+)\s*(portionen|personen|servings|stück|stueck|stk)/i);
   if (servMatch) { r.servings = parseInt(servMatch[1]); if (/^st(ü|ue)ck|^stk/i.test(servMatch[2])) r.servingMode = 'pieces'; }
 
-  const dietMap = { vegan: 'vegan', vegetarisch: 'vegetarisch', vegetarian: 'vegetarisch', glutenfrei: 'glutenfrei', laktosefrei: 'laktosefrei', nussfrei: 'nussfrei' };
-  const NEGATION_WORDS = ['nicht', 'kein', 'keine', 'keinen', 'keinem', 'ohne'];
-  const lowerAll = (raw + ' ' + tagWords.join(' ')).toLowerCase();
-  const detectedDiet = [];
-  for (const [kw, val] of Object.entries(dietMap)) {
-    let searchFrom = 0, idx;
-    let anyPositive = false;
-    // Alle Fundstellen pruefen, nicht nur die erste — falls "vegan" mehrfach vorkommt
-    // (z.B. einmal negiert, einmal nicht), zaehlt ein einziger echter Treffer.
-    while ((idx = lowerAll.indexOf(kw, searchFrom)) !== -1) {
-      const before = lowerAll.slice(Math.max(0, idx - 15), idx);
-      const negated = NEGATION_WORDS.some(w => before.includes(w));
-      if (!negated) { anyPositive = true; break; }
-      searchFrom = idx + kw.length;
-    }
-    if (anyPositive) detectedDiet.push(val);
-  }
-  r.diet = Array.from(new Set(detectedDiet));
-
-  // Zusaetzlich zur reinen Text-/Hashtag-Erkennung oben: zutatenbasierte Klassifikation
-  // (Master-Prompt Teil I) — zuverlaessiger als blosse Schluesselwoerter im Fliesstext, siehe
-  // classification.js. Ergaenzt r.diet nur additiv (nimmt nichts weg) und setzt zusaetzlich
-  // recipe.categoryTags (Mahlzeit/Gerichtstyp). Niedrige Sicherheit wird bewusst NICHT
-  // automatisch gesetzt (Punkt 101), sondern nur im Importhinweis vorgeschlagen (Punkt 114).
-  const autoClassification = classifyRecipe(r);
-  applyClassification(r, autoClassification, { minConfidence: 'medium' });
-  const lowConfidenceHints = lowConfidenceSuggestions(autoClassification);
-  r.tags = Array.from(new Set(tagWords.filter(t => !dietMap[t.toLowerCase()]))).slice(0, 6);
-  r.notes = detectedNotes || '';
-  // Klar widerspruechliche Ernaehrungsvorschlaege (z.B. "vegan" bei Speck oder Parmesan) bei neuen
-  // Importen gar nicht erst setzen. Bestehende Rezepte werden davon nicht beruehrt.
-  if (typeof dietConflicts === 'function') {
-    const conflicting = new Set(dietConflicts(r).map(c => c.label));
-    if (conflicting.size) r.diet = r.diet.filter(d => !conflicting.has(d));
-  }
-  r._importSummary = {
-    titleFound: !!titleLine,
-    ingredientCount: typeof realIngredients === 'function' ? realIngredients(r).length : r.ingredients.filter(i => i.name).length,
-    groupCount: typeof getIngredientGroups === 'function' ? getIngredientGroups(r).filter(g => g.title !== 'Zutaten').length : 0,
-    stepCount: r.steps.filter(s => s.text).length,
-    servingsFound: !!servMatch,
-    timeFound: !!timeMatch,
-    dietFound: r.diet.length > 0,
-    notesFound: !!detectedNotes,
-    categoryFound: r.categoryTags.length > 0,
-    lowConfidenceHints,
-  };
-  return r;
+  return importEnrichRecipe(r, raw, tagWords, detectedNotes, { titleLine, servMatch, timeMatch });
 }
