@@ -23,6 +23,8 @@ function viewFor(view) {
     case 'unitconverter': return unitConverterView();
     case 'cookbook': return cookbookDesignerView();
     case 'settings-sync': return settingsSyncView();
+    case 'settings-share': return settingsShareView();
+    case 'settings-share-preview': return settingsSharePreviewView();
     default: return homeView();
   }
 }
@@ -274,6 +276,7 @@ function settingsView() {
         settingsRow({ icon: ICONS.download, title: 'Sicherung &amp; Wiederherstellung', view: 'settings-backup' }),
         settingsRow({ icon: ICONS.pdf, title: 'Kochbuch gestalten und als PDF', action: 'goto-view', view: 'cookbook' }),
       ].join(''))}
+      ${settingsGroup('Freunde', settingsRow({ icon: ICONS.share, title: 'Freunde &amp; Rezepte senden', summary: shareSettingsSummary(), view: 'settings-share' }))}
       ${settingsGroup('Werkzeuge', settingsRow({ icon: ICONS.scale, title: 'Masseinheiten-Rechner', action: 'open-unitconverter' }))}
       ${settingsGroup('Hilfe &amp; Informationen', [
         settingsRow({ icon: ICONS.lifeBuoy, title: 'Hilfe &amp; Feedback', view: 'settings-help' }),
@@ -363,9 +366,9 @@ function settingsBackupView() {
       <div class="settings-group-title">Sicherung</div>
       <div class="settings-group-card settings-group-card--padded">
         <p class="settings-hint">${typeof cloudSignedIn === 'function' && cloudSignedIn()
-          ? 'Deine Daten liegen auf diesem Gerät und werden zusätzlich über die Synchronisation mit deinen anderen Geräten abgeglichen. Der Abgleich ist keine Sicherung: löschst du etwas, verschwindet es überall. Eine Sicherungsdatei hält einen festen Stand fest, zu dem du zurückkehren kannst.'
+          ? 'Du bist mit einem Konto angemeldet: Deine Rezepte liegen in deinem Profil und sind auf jedem Gerät da, auch nach einer Neuinstallation. Du musst keine Sicherung erstellen. Eine Sicherungsdatei ist nur optional, wenn du einen festen Stand aufbewahren möchtest. Der Abgleich ersetzt das nicht ganz: löschst du ein Rezept, verschwindet es überall.'
           : 'Deine Daten liegen nur auf diesem Gerät. Erstelle regelmässig eine Sicherung, damit bei einem Gerätewechsel oder gelöschten Browserdaten nichts verloren geht. Unter „Synchronisation“ kannst du zusätzlich einen Abgleich mit deinen anderen Geräten einrichten.'}</p>
-        ${(!SavoraNative.isNative && state.storagePersisted === false) ? '<p class="settings-hint settings-hint--warn">Dein Browser hat den Speicher nicht als dauerhaft freigegeben und kann ihn bei Platzmangel räumen. Erstelle deshalb regelmässig eine Sicherung.</p>' : ''}
+        ${(!SavoraNative.isNative && state.storagePersisted === false && !(typeof cloudSignedIn === 'function' && cloudSignedIn())) ? '<p class="settings-hint settings-hint--warn">Dein Browser hat den Speicher nicht als dauerhaft freigegeben und kann ihn bei Platzmangel räumen. Erstelle deshalb regelmässig eine Sicherung.</p>' : ''}
         <button class="primary-btn" data-action="export-backup">${ICONS.download} Sicherung erstellen</button>
         <p class="settings-hint settings-hint--top">Letzte Sicherung: ${escapeHtml(lastBackupLabel)}</p>
       </div>

@@ -259,7 +259,7 @@ function renderKeepFocus(id) {
 const ASYNC_GUARDED_ACTIONS = new Set([
   'save-recipe', 'export-backup', 'pdf-export-build', 'pdf-export-download', 'pdf-export-share',
   'nutrition-confirm-match', 'nutrition-accept-suggestions', 'nutrition-save-custom', 'nutrition-barcode-lookup',
-  'duplicate-recipe', 'rc-apply', 'confirm-shop-select', 'cook-complete', 'save-note',
+  'duplicate-recipe', 'share-send', 'share-accept', 'share-connect', 'rc-apply', 'confirm-shop-select', 'cook-complete', 'save-note',
 ]);
 const busyActions = new Set();
 

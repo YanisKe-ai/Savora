@@ -13,6 +13,9 @@ REFRESH = {}    # refresh_token -> user_id
 RECORDS = {}    # (user_id, kind, id) -> row
 OBJECTS = {}    # path -> (bytes, content_type)
 LOG = []
+PROFILES = {}   # user_id -> {handle, display_name, invite_code}
+CONNS = {}      # (requester, addressee) -> status
+SHARES = {}     # id -> row
 SIGNUP_DISABLED = [False]
 LOCK = threading.Lock()
 CLOCK = [datetime(2026, 1, 1, tzinfo=timezone.utc)]
@@ -101,7 +104,12 @@ class H(BaseHTTPRequestHandler):
                 rows.sort(key=lambda r: r['server_updated_at'])
                 lim = int(q.get('limit', ['1000'])[0])
                 return self.reply(200, rows[:lim])
+            if p.startswith('/rest/v1/rpc/savora_') and method == 'POST' and p != '/rest/v1/rpc/savora_delete_account':
+                return self.rpc(p.rsplit('/', 1)[1], uid, json.loads(self.body() or b'{}'))
             if p == '/rest/v1/rpc/savora_delete_account' and method == 'POST':
+                PROFILES.pop(uid, None)
+                for k in [k for k in CONNS if uid in k]: del CONNS[k]
+                for k in [k for k, v in SHARES.items() if uid in (v['sender'], v['recipient'])]: del SHARES[k]
                 for k in [k for k in RECORDS if k[0] == uid]: del RECORDS[k]
                 for e in [e for e, x in USERS.items() if x['id'] == uid]: del USERS[e]
                 return self.reply(204)
@@ -124,6 +132,101 @@ class H(BaseHTTPRequestHandler):
                 OBJECTS[path] = (self.body(), self.headers.get('Content-Type', 'application/octet-stream'))
                 return self.reply(200, {'Key': 'savora-images/' + path})
             return self.reply(404, {'message': 'not found ' + p})
+    def rpc(self, name, me, a):
+        """Nachbau der SQL-Funktionen aus supabase/paket36-teilen.sql (gleiche Regeln, gleiche Meldungen)."""
+        import re, random
+        def err(msg): return self.reply(400, {'code': 'P0001', 'message': msg})
+        by_handle = lambda h: next((u for u, p in PROFILES.items() if p['handle'] == str(h or '').strip().strip('@').lower()), None)
+        connected = lambda x, y: CONNS.get((x, y)) == 'accepted' or CONNS.get((y, x)) == 'accepted'
+        if name == 'savora_profile_get':
+            p = PROFILES.get(me); return self.reply(200, p if p else None)
+        if name == 'savora_profile_set':
+            h = str(a.get('p_handle') or '').strip().strip('@').lower(); n = str(a.get('p_name') or '').strip()
+            if not re.fullmatch(r'[a-z0-9_]{3,24}', h): return err('Der Profilname braucht 3 bis 24 Zeichen: Kleinbuchstaben, Zahlen oder _.')
+            if len(n) > 40: return err('Der Anzeigename ist zu lang (höchstens 40 Zeichen).')
+            if any(u != me and p['handle'] == h for u, p in PROFILES.items()): return err('Dieser Profilname ist schon vergeben.')
+            old = PROFILES.get(me)
+            code = old['invite_code'] if old else 'SAV-%s-%s' % tuple(''.join(random.choice('ABCDEFGHJKLMNPQRSTUVWXYZ23456789') for _ in range(4)) for _ in range(2))
+            PROFILES[me] = {'handle': h, 'display_name': n, 'invite_code': code}
+            return self.reply(200, PROFILES[me])
+        if name == 'savora_invite_reset':
+            if me not in PROFILES: return err('Lege zuerst dein Profil an.')
+            PROFILES[me]['invite_code'] = 'SAV-%s-%s' % tuple(''.join(random.choice('ABCDEFGHJKLMNPQRSTUVWXYZ23456789') for _ in range(4)) for _ in range(2))
+            return self.reply(200, PROFILES[me])
+        if name == 'savora_connect':
+            if me not in PROFILES: return err('Lege zuerst dein Profil an.')
+            t = str(a.get('p_target') or '').strip().strip('@')
+            if not t: return err('Bitte einen Profilnamen oder Einladungscode eingeben.')
+            other = next((u for u, p in PROFILES.items() if p['invite_code'] == t.upper()), None) if t.upper().startswith('SAV-') else by_handle(t)
+            if not other: return err('Profil nicht gefunden.')
+            if other == me: return err('Das bist du selbst.')
+            r_in, r_out = CONNS.get((other, me)), CONNS.get((me, other))
+            if r_in == 'blocked': return err('Profil nicht gefunden.')
+            if 'accepted' in (r_in, r_out): st = 'connected'
+            elif r_in == 'pending': CONNS[(other, me)] = 'accepted'; st = 'connected'
+            elif r_out == 'pending': st = 'outgoing'
+            else:
+                CONNS.pop((me, other), None)
+                if sum(1 for (x, y), v in CONNS.items() if x == me and v == 'pending') >= 30: return err('Du hast schon viele offene Anfragen. Bitte warte, bis einige beantwortet sind.')
+                CONNS[(me, other)] = 'pending'; st = 'outgoing'
+            return self.reply(200, {'state': st, 'handle': PROFILES[other]['handle'], 'display_name': PROFILES[other]['display_name']})
+        if name == 'savora_connections_list':
+            out = []
+            for (x, y), st in CONNS.items():
+                if me not in (x, y) or (st == 'blocked' and y == me): continue
+                o = y if x == me else x
+                state = 'connected' if st == 'accepted' else ('incoming' if st == 'pending' and y == me else 'outgoing' if st == 'pending' else 'blocked')
+                out.append({'handle': PROFILES[o]['handle'], 'display_name': PROFILES[o]['display_name'], 'state': state})
+            return self.reply(200, sorted(out, key=lambda r: r['handle']))
+        if name == 'savora_respond':
+            o = by_handle(a.get('p_handle'))
+            if not o: return err('Profil nicht gefunden.')
+            act = a.get('p_action')
+            if act == 'accept':
+                if CONNS.get((o, me)) != 'pending': return err('Die Anfrage gibt es nicht mehr.')
+                CONNS[(o, me)] = 'accepted'
+            elif act == 'decline':
+                if CONNS.get((o, me)) == 'pending': del CONNS[(o, me)]
+            elif act == 'block':
+                CONNS.pop((o, me), None); CONNS.pop((me, o), None); CONNS[(me, o)] = 'blocked'
+                for k in [k for k, v in SHARES.items() if {v['sender'], v['recipient']} == {me, o}]: del SHARES[k]
+            else: return err('Unbekannte Aktion.')
+            return self.reply(200)
+        if name == 'savora_remove':
+            o = by_handle(a.get('p_handle'))
+            if o:
+                CONNS.pop((me, o), None)
+                if CONNS.get((o, me)) != 'blocked': CONNS.pop((o, me), None)
+                for k in [k for k, v in SHARES.items() if {v['sender'], v['recipient']} == {me, o}]: del SHARES[k]
+            return self.reply(200)
+        if name == 'savora_send':
+            o = by_handle(a.get('p_handle'))
+            if not o or not connected(me, o): return err('Du bist mit diesem Profil nicht verbunden.')
+            rec = a.get('p_recipe')
+            if not isinstance(rec, dict): return err('Ungültiges Rezept.')
+            if not str(rec.get('title') or '').strip(): return err('Das Rezept braucht einen Titel.')
+            msg = (a.get('p_message') or '').strip() or None
+            if msg and len(msg) > 200: return err('Die Nachricht ist zu lang (höchstens 200 Zeichen).')
+            img = a.get('p_image')
+            if img is not None and not re.fullmatch(r'data:image/(jpeg|png|webp);base64,[A-Za-z0-9+/=]+', img): return err('Ungültiges Bild.')
+            if sum(1 for v in SHARES.values() if v['sender'] == me and v['recipient'] == o) >= 20: return err('Es liegen schon 20 ungeöffnete Rezepte bei diesem Profil. Bitte warte, bis sie angesehen wurden.')
+            sid = str(uuid.uuid4())
+            SHARES[sid] = {'id': sid, 'sender': me, 'recipient': o, 'title': str(rec['title']).strip()[:200], 'recipe': rec, 'image': img, 'message': msg, 'created_at': now_ts()}
+            return self.reply(200, sid)
+        if name == 'savora_inbox':
+            out = [{'id': v['id'], 'from_handle': PROFILES[v['sender']]['handle'], 'from_name': PROFILES[v['sender']]['display_name'], 'title': v['title'], 'message': v['message'], 'created_at': v['created_at'], 'has_image': v['image'] is not None, 'recipe': v['recipe']}
+                   for v in SHARES.values() if v['recipient'] == me and connected(me, v['sender'])]
+            return self.reply(200, sorted(out, key=lambda r: r['created_at']))
+        if name == 'savora_inbox_count':
+            n = sum(1 for v in SHARES.values() if v['recipient'] == me and connected(me, v['sender'])) + sum(1 for (x, y), st in CONNS.items() if y == me and st == 'pending')
+            return self.reply(200, n)
+        if name == 'savora_share_image':
+            v = SHARES.get(a.get('p_id')); return self.reply(200, v['image'] if v and v['recipient'] == me else None)
+        if name == 'savora_share_done':
+            v = SHARES.get(a.get('p_id'))
+            if v and v['recipient'] == me: del SHARES[a.get('p_id')]
+            return self.reply(200)
+        return self.reply(404, {'message': 'unbekannte Funktion ' + name})
     def do_GET(self): self.handle_any('GET')
     def do_POST(self): self.handle_any('POST')
     def do_PUT(self): self.handle_any('PUT')

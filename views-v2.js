@@ -418,6 +418,7 @@ function detailView() {
     ${nutritionModal(r)}
     ${nutritionDetailModal(r, state._nutritionDetailResult)}
     ${pdfExportModal()}
+    ${shareSendModal()}
   `;
 }
 // Eine im Rezepttext vermerkte Quelle ("Quelle: kookmutsjes.com") wird angezeigt statt der
@@ -443,6 +444,7 @@ function detailMenuModal(r) {
     ${item('duplicate-recipe', ICONS.copy, 'Duplizieren')}
     ${item('export-pdf', ICONS.pdf, 'Als PDF exportieren')}
     ${item('share-recipe', ICONS.share, 'Teilen')}
+    ${item('share-open-send', ICONS.link, 'An Freund in Savora senden')}
     ${item('add-to-cookbook', ICONS.bookOpen, 'Zum Kochbuch hinzufügen')}
     ${item('open-collections-modal', ICONS.folder, 'Zu Sammlung hinzufügen')}
     ${item('open-plan-recipe', ICONS.calendar, 'In den Wochenplan')}

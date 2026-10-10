@@ -151,6 +151,7 @@ if (navigator.storage && typeof navigator.storage.persist === 'function') {
     }
     runSplashSequence();
     if (typeof cloudStartup === 'function') cloudStartup();
+    if (typeof shareStartup === 'function') shareStartup();
     // Schweizer Naehrwertdatenbank im Hintergrund einspielen (einmalig, danach nur
     // noch aus IndexedDB) — blockiert bewusst nicht den ersten Render.
     ensureSwissDataSeeded().catch((err) => {

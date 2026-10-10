@@ -111,6 +111,7 @@ async function cloudAuthUpdatePassword(password) {
 async function cloudAuthSignOut() {
   try { await cloudFetch('/auth/v1/logout', { method: 'POST' }); } catch (e) { /* offline abmelden geht trotzdem */ }
   cloudSetSession(null);
+  if (typeof shareReset === 'function') shareReset();
   // Beim naechsten Anmelden wird neu zusammengefuehrt; lokale Daten bleiben auf dem Geraet.
   [CLOUD_QUEUE_KEY, CLOUD_META_KEY, CLOUD_CURSOR_KEY, CLOUD_LAST_KEY].forEach(k => { try { localStorage.removeItem(k); } catch (e) {} });
 }
@@ -519,6 +520,6 @@ async function handleCloudAction(action, id, el) {
       catch (e) { showToast(e.message, 'error'); }
       return true;
     }
-    default: return false;
+    default: return typeof handleShareAction === 'function' ? handleShareAction(action, id, el) : false;
   }
 }
