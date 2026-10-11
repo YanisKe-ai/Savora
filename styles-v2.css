@@ -2146,7 +2146,7 @@ html.is-scrolled .home-head { box-shadow: 0 1px 0 rgba(37, 39, 32, .05), 0 8px 1
   }
 }
 .icon-toggle { position: relative; }
-.icon-toggle.is-active::after { content: ''; position: absolute; left: 50%; bottom: 3px; width: 6px; height: 6px; margin-left: -3px; border-radius: 50%; background: currentColor; }
+.icon-toggle.is-active::after { content: ''; position: absolute; left: calc(50% - 0.1875rem); bottom: 3px; width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
 @media (forced-colors: active) {
   .chip--active:not(.chip--icon)::before, .theme-opt.active::before, .seg-btn[aria-pressed="true"]::before, .sort-chip.is-active::before,
   .nutrition-segmented button.active::before, .uc-tab.is-active::before { border-color: CanvasText; }
@@ -2155,8 +2155,7 @@ html.is-scrolled .home-head { box-shadow: 0 1px 0 rgba(37, 39, 32, .05), 0 8px 1
 /* Längere Seitentitel (z.B. «Darstellung und Einheiten», «Rezepte mit anderen teilen») dürfen auf zwei Zeilen umbrechen, statt mit «…» abgeschnitten zu werden */
 .topbar--sub .topbar-title { -webkit-line-clamp: 2; line-height: 1.15; overflow-wrap: anywhere; }
 
-/* ===================================================================
-   Startseite als Rezeptliste (Handy, unter 768 px) und Navigation mit fünf Punkten
+/* ============================================================   Startseite als Rezeptliste (Handy, unter 768 px) und Navigation mit fünf Punkten
    Unter 900 px: untere Leiste mit Rezepte, Wochenplan, Einkauf, Kochbücher, Mehr. Ab 900 px: Seitenleiste, letzter Punkt «Einstellungen».
    Tablet und Desktop behalten ihre bisherige Startseite; die Handy-Anordnung gilt nur unter 768 px (siehe isPhoneLayout in views-v2.js).
    ========================================================================== */
@@ -2235,3 +2234,4 @@ body.keyboard-open .home-add-bar { display: none; }
   .settings-page--home .settings-row-title { flex: 1 1 8rem; overflow-wrap: break-word; }
   .settings-page--home .settings-row-summary { order: 4; flex: 1 0 100%; max-width: none; min-width: 0; text-align: left; padding-left: 2.25rem; padding-bottom: 0.25rem; }
 }
+=======
