@@ -1827,7 +1827,7 @@ html.is-scrolled .home-head { box-shadow: 0 1px 0 rgba(37, 39, 32, .05), 0 8px 1
 .settings-row-title { min-width: 0; flex: 1 1 7rem; overflow-wrap: anywhere; }
 .settings-row-summary { min-width: 0; max-width: 55%; flex: 0 1 auto; }
 
-/* ==========================================================================
+/* ===================================================================
    Wochenplan (Paket 41)
    Handy: eine ruhige Liste, ein Abschnitt pro Tag, keine Karten und keine Schatten.
    Heute: sanfte Salbeifläche. Ab 640 px ruhige Tageskacheln: 2 Spalten, ab 900 px 4 plus 3,
@@ -1912,3 +1912,16 @@ html.is-scrolled .home-head { box-shadow: 0 1px 0 rgba(37, 39, 32, .05), 0 8px 1
   .plan-entry:not(.has-thumb) .plan-entry-text > :last-child { padding-right: 2.5rem; }
   .plan-entry:not(.has-thumb) .icon-btn { top: auto; bottom: 0; }
 }
+=======
+/* ===== Paket 43: Savora-Wortmarke (Pfad-SVG, nur Schrift) statt Buch-Löffel-Zeichen ===== */
+/* Farbe folgt der App-Einstellung (data-theme am Wurzelelement), nicht dem System; ohne data-theme gilt das System (Startbild vor dem Laden). */
+.wordmark { display: block; flex: none; height: auto; aspect-ratio: 3 / 1; color: #B93B2C; }
+[data-theme="dark"] .wordmark, [data-theme="amoled"] .wordmark { color: #F7F4EE; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme]) .wordmark { color: #F7F4EE; } }
+.wordmark * { transition: none; }
+.top-wordmark { width: clamp(112px, 36vw, 136px); margin: -0.25rem 0 -0.25rem -0.25rem; }
+.nav-brand { padding: 0.25rem 0.5rem 1.25rem; }
+.nav-brand .nav-wordmark { width: 152px; height: auto; margin-left: -0.25rem; }
+#splash { background: var(--bg, #F7F4EE); }
+#splash .wordmark, #splashLogo { width: min(60vw, 240px); height: auto; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme]) #splash { background: #1B1A17; } }
