@@ -2247,3 +2247,171 @@ body.keyboard-open .home-add-bar { display: none; }
 .home-add-btn { transition: transform 120ms cubic-bezier(0.23, 1, 0.32, 1), background-color 120ms ease-out; }
 .home-add-btn:active { transform: scale(0.97); }
 @media (prefers-reduced-motion: reduce) { .home-add-btn { transition: none; } .home-add-btn:active { transform: none; } }
+
+/* ==========================================================================
+   Laptop: Platz und Abstände
+   Nur ab 1024 px (Handy und Tablet bleiben unberührt). Ein Abstandssystem für alle Hauptseiten:
+   - Seitenrand: --lp-gutter = clamp(2rem, 3.4vw, 4rem), also 32 px bei 1024, 44 px bei 1280, 49 px bei 1440, 64 px bei 1920.
+   - Inhaltsbreite: --lp-max = 1680 px, auf allen Seiten gleich (Raster, Listen, Wochenplan, Einstellungen, Detail, Editor).
+     Lesetexte (Zubereitung, Notizen, Hilfetexte) bleiben auf 70 bis 76 Zeichen begrenzt.
+   - Vertikaler Takt (rem-Skala): 0.5 / 1 / 1.5 / 2 / 3 / 4 rem. Kopfzeile 4 rem, Titel 2.5 rem, Abstand davor 1.5 rem, danach 1.75 rem.
+   Der Selektor-Präfix html:not(#lp) hebt die Spezifität über die älteren Breiten-Regeln aus Paket 7, 41 und 42,
+   damit sie gezielt überschrieben statt dupliziert werden.
+   ========================================================================== */
+@media (min-width: 1024px) {
+  :root {
+    --lp-gutter: clamp(2rem, 3.4vw, 4rem);
+    --lp-max: 1680px;
+    --lp-w: calc(var(--lp-max) + 2 * var(--lp-gutter));
+    --lp-bar: 4rem;
+    --lp-title: 2.5rem;
+    --lp-gap-title-top: 1.5rem;
+    --lp-gap-title-bottom: 1.75rem;
+    --lp-col-gap: 3rem;
+    --lp-card-gap: 1.5rem;
+    --lp-ease: cubic-bezier(0.23, 1, 0.32, 1);
+  }
+
+  /* --- Hülle: gleiche Ränder und gleiche Breite für jede Seite --- */
+  html:not(#lp) body main {
+    box-sizing: border-box; width: 100%; max-width: var(--lp-w);
+    margin-left: auto; margin-right: auto;
+    padding-left: var(--lp-gutter); padding-right: var(--lp-gutter);
+    padding-top: 0; padding-bottom: 4rem;
+  }
+  html:not(#lp) body .topbar {
+    padding-left: max(var(--lp-gutter), calc((100vw - var(--p42-nav, 14.5rem) - var(--lp-w)) / 2 + var(--lp-gutter)));
+    padding-right: max(var(--lp-gutter), calc((100vw - var(--p42-nav, 14.5rem) - var(--lp-w)) / 2 + var(--lp-gutter)));
+  }
+  /* Kopfzeile aller Hauptseiten gleich hoch (Titelhöhe auf allen Seiten gleich) */
+  html:not(#lp) body .topbar:not(.topbar--sub):not(.topbar--detail) { box-sizing: border-box; height: var(--lp-bar); min-height: var(--lp-bar); padding-top: 0; padding-bottom: 0; align-items: center; }
+  html:not(#lp) body .home-head .topbar { padding-top: 0; padding-bottom: 0; min-height: var(--lp-bar); }
+  /* Unterseiten (Titel in der Kopfzeile): ruhiger Abstand zum Inhalt */
+  html:not(#lp) body:has(.topbar--sub) main { padding-top: 2rem; }
+
+  /* --- Seitentitel: gleiche Grösse, gleicher Abstand oben und unten --- */
+  html:not(#lp) body .page-title { font-size: var(--lp-title); line-height: 1.1; letter-spacing: -0.02em; }
+  html:not(#lp) body .page-title-row, html:not(#lp) body .home-head .page-title-row { margin: var(--lp-gap-title-top) 0 var(--lp-gap-title-bottom); padding: 0; min-height: 2.75rem; }
+  html:not(#lp) body .detail-title-v2 { font-size: clamp(2rem, 1.2rem + 1.4vw, 2.5rem); }
+
+  /* --- Startseite: Kopf mit Suche und Filter in einer Zeile, Raster mit mehr Spalten --- */
+  html:not(#lp) body .home-head-body {
+    box-sizing: border-box; max-width: var(--lp-w); padding: 0 var(--lp-gutter) 1rem;
+    display: grid; grid-template-columns: minmax(0, 1fr) max-content; column-gap: 1rem; align-items: center;
+  }
+  html:not(#lp) body .home-head-body > .page-title-row { grid-column: 1 / -1; }
+  html:not(#lp) body .home-head-body > .search-field { grid-column: 1; margin: 0; }
+  html:not(#lp) body .home-head-body > .filter-bar { grid-column: 2; flex-wrap: nowrap; margin: 0; }
+  html:not(#lp) body .home-head-body > .filter-bar .seg { flex: none; width: 15rem; }
+  html:not(#lp) body .home-head-body > .filter-bar .filter-btn { flex: none; }
+  html:not(#lp) body .home-head-body > .filter-summary { grid-column: 1 / -1; margin: 0.75rem 0 0; }
+  html:not(#lp) body .home-head-body > .search-field:last-child { grid-column: 1 / -1; }
+  html:not(#lp) body .home-main { padding-top: 1rem; }
+  html:not(#lp) body .home-main > .today-planned { margin: 0 0 1rem; }
+  html:not(#lp) body .home-main > .nudge-card { margin: 0 0 1.5rem; }
+  html:not(#lp) body .home-main .result-row { margin: 0 0 1.25rem; }
+  html:not(#lp) body .home-main { max-width: var(--lp-w); }
+  html:not(#lp) body .rgrid { grid-template-columns: repeat(auto-fill, minmax(13rem, 1fr)); gap: 2rem var(--lp-card-gap); }
+  html:not(#lp) body .rlist { column-gap: 3rem; }
+
+  /* --- Wochenplan: vier Spalten (grosse Tageskacheln), sieben erst auf sehr breiten Fenstern --- */
+  html:not(#lp) body .week-nav { margin: 0 0 var(--lp-gap-title-bottom); max-width: 28rem; }
+  html:not(#lp) body .plan-week { gap: var(--lp-card-gap); margin-top: 0; margin-bottom: 2rem; }
+  html:not(#lp) body .plan-day, html:not(#lp) body .plan-day.is-empty, html:not(#lp) body .plan-day.is-today { padding: 1.25rem; }
+  html:not(#lp) body .plan-main .primary-btn--block { margin-top: 0.5rem; }
+}
+@media (min-width: 1400px) and (max-width: 1899px) {
+  html:not(#lp) body .plan-week { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--lp-card-gap); }
+  html:not(#lp) body .plan-day-title { font-size: 1.125rem; }
+  html:not(#lp) body .plan-entry:not(.has-thumb) .plan-entry-text > :first-child { padding-right: 2.5rem; }
+  html:not(#lp) body .plan-entry:not(.has-thumb) .plan-entry-text > :last-child { padding-right: 0; }
+  html:not(#lp) body .plan-entry:not(.has-thumb) .icon-btn { top: 0.25rem; bottom: auto; }
+}
+@media (min-width: 1900px) {
+  html:not(#lp) body .plan-week { gap: 1rem; }
+}
+
+@media (min-width: 1024px) {
+  /* --- Einkauf: Eingabe und Schnellwahl nebeneinander, Abschnitte in zwei Spalten --- */
+  html:not(#lp) body .shop-add { margin-bottom: 0; }
+  html:not(#lp) body .shop-quick { margin-bottom: 0; }
+  html:not(#lp) body .shop-section { margin-top: 2rem; }
+}
+@media (min-width: 1180px) {
+  html:not(#lp) body main.shop-main { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: var(--lp-col-gap); row-gap: 1rem; align-content: start; align-items: start; }
+  html:not(#lp) body main.shop-main > .page-title-row, html:not(#lp) body main.shop-main > .empty-state, html:not(#lp) body main.shop-main > .ghost-btn, html:not(#lp) body main.shop-main > .shop-toolbar { grid-column: 1 / -1; }
+  html:not(#lp) body main.shop-main > .page-title-row { margin-bottom: 0.75rem; }
+  html:not(#lp) body main.shop-main > .ghost-btn { justify-self: start; margin: 0; }
+  html:not(#lp) body main.shop-main > .shop-section { margin-top: 0.5rem; }
+}
+
+@media (min-width: 1024px) {
+  /* --- Kochbücher: Liste als Raster aus Karten --- */
+  html:not(#lp) body .cbk-list { margin: 0; grid-template-columns: repeat(auto-fill, minmax(min(100%, 30rem), 1fr)); gap: var(--lp-card-gap); }
+  html:not(#lp) body .cbk-card { padding: 1.25rem; gap: 1.25rem; }
+  html:not(#lp) body .cbk-actions .text-btn:not(.ghost-btn):not(.primary-btn) { padding-left: 0.375rem; padding-right: 0.375rem; }
+  html:not(#lp) body .cookbooks-main > .hint-line, html:not(#lp) body .cookbooks-main > .empty-state { margin-top: 1.5rem; }
+
+  /* --- Kochbuch bearbeiten: Schrittleiste oben, Bereiche nebeneinander, Lesebreite begrenzt --- */
+  html:not(#lp) body .cookbook-main { max-width: var(--lp-w); }
+  html:not(#lp) body .cookbook-main > .cb-steps { max-width: 56rem; margin-bottom: 1.5rem; }
+  html:not(#lp) body .cookbook-main > .panel { margin-bottom: 0; padding: 1.5rem; }
+  html:not(#lp) body .cookbook-main > .panel + .panel { margin-top: 1.5rem; }
+  html:not(#lp) body .cookbook-main[data-cb-step="3"] > .panel, html:not(#lp) body .cookbook-main[data-cb-step="3"] > .cb-step-footer { max-width: 56rem; }
+  html:not(#lp) body .cookbook-main .cb-step-footer { margin-top: 1.5rem; }
+}
+@media (min-width: 1280px) {
+  html:not(#lp) body .cookbook-main[data-cb-step="1"], html:not(#lp) body .cookbook-main[data-cb-step="2"] { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); column-gap: var(--lp-col-gap); align-items: start; }
+  html:not(#lp) body .cookbook-main[data-cb-step="1"] > .cb-steps, html:not(#lp) body .cookbook-main[data-cb-step="2"] > .cb-steps,
+  html:not(#lp) body .cookbook-main[data-cb-step="1"] > .cb-step-footer, html:not(#lp) body .cookbook-main[data-cb-step="2"] > .cb-step-footer { grid-column: 1 / -1; }
+  html:not(#lp) body .cookbook-main[data-cb-step="1"] > .panel + .panel, html:not(#lp) body .cookbook-main[data-cb-step="2"] > .panel + .panel { margin-top: 0; }
+}
+
+@media (min-width: 1024px) {
+  /* --- Einstellungen: Hauptliste und Unterseiten --- */
+  html:not(#lp) body .settings-page--home, html:not(#lp) body .settings-page--cols { column-gap: var(--lp-col-gap); }
+  html:not(#lp) body .settings-page--home > .settings-group { margin-bottom: 1rem; }
+  html:not(#lp) body .settings-section-head { margin-top: 2.5rem; }
+  html:not(#lp) body .settings-page--cols > .settings-section-head { padding-top: 0; }
+  html:not(#lp) body .settings-page--cols > .settings-section-head:first-child { margin-top: 0; padding-top: 0; }
+
+  /* --- Rezeptdetail: zwei Spalten mit Luft, Lesetext auf angenehme Zeilenlänge --- */
+  html:not(#lp) body .detail-main { padding-bottom: 4rem; }
+  html:not(#lp) body .detail-main.has-hero, html:not(#lp) body .detail-cols { grid-template-columns: clamp(24rem, 34%, 34rem) minmax(0, 1fr); column-gap: var(--lp-col-gap); }
+  html:not(#lp) body .detail-main.has-hero .hero { margin-top: 1rem; }
+  html:not(#lp) body .detail-col--content .step-text, html:not(#lp) body .detail-col--content .notes-text { max-width: 76ch; }
+  html:not(#lp) body .detail-col--content { padding-right: 1rem; }
+
+  /* --- Editor und Import: Hauptspalte plus Seitenspalte --- */
+  html:not(#lp) body .form-main { grid-template-columns: minmax(0, 1fr) clamp(19rem, 24vw, 26rem); column-gap: var(--lp-col-gap); }
+  html:not(#lp) body .form-main .form-stepper { margin-bottom: 1.5rem; }
+  html:not(#lp) body .form-aside { margin-top: 4.25rem; }
+  html:not(#lp) body .import-layout { grid-template-columns: minmax(0, 1fr) clamp(19rem, 24vw, 26rem); column-gap: var(--lp-col-gap); }
+  html:not(#lp) body .import-help { margin-top: 0; }
+  html:not(#lp) body .import-help-list, html:not(#lp) body .import-help-note { max-width: 60ch; }
+
+  /* --- Leerzustände: linksbündig, Hinweise mit Luft --- */
+  html:not(#lp) body .home-main .empty-state, html:not(#lp) body .shop-main .empty-state { padding: 2rem 0 1rem; }
+  html:not(#lp) body .home-main .empty-steps { gap: var(--lp-card-gap); margin-top: 2.5rem; }
+}
+
+/* --- Bedienung auf dem Laptop: Hover nur mit Maus, ruhiger Druckzustand, sichtbarer Fokus --- */
+@media (min-width: 1024px) {
+  .primary-btn:active, .ghost-btn:active, .outline-btn:active, .filter-btn:active, .seg-btn:active, .bottom-nav button:active { transform: scale(0.97); }
+  .primary-btn, .ghost-btn, .outline-btn, .bottom-nav button { transition: transform 140ms var(--lp-ease); }
+  .bottom-nav button:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: -2px; border-radius: 14px; }
+  .rcard:focus-visible, .rrow:focus-visible, .cbk-card :focus-visible { outline-offset: 3px; }
+}
+@media (min-width: 1024px) and (hover: hover) and (pointer: fine) {
+  .bottom-nav button:not(.active):hover { background: var(--surface-soft); color: var(--text); }
+  .rcard { transition: transform 200ms var(--lp-ease); }
+  .rcard:hover { transform: translateY(-2px); }
+  .rrow:hover { background: color-mix(in srgb, var(--surface-soft) 60%, transparent) !important; }
+  .plan-day, .cbk-card { transition: transform 200ms var(--lp-ease); }
+  .plan-day:hover, .cbk-card:hover { transform: translateY(-2px); }
+  .settings-row:hover { background: var(--surface-soft); }
+}
+@media (min-width: 1024px) and (prefers-reduced-motion: reduce) {
+  .rcard, .plan-day, .cbk-card, .primary-btn, .ghost-btn, .outline-btn, .bottom-nav button { transition: none; }
+  .rcard:hover, .plan-day:hover, .cbk-card:hover, .primary-btn:active, .ghost-btn:active, .outline-btn:active, .filter-btn:active, .seg-btn:active, .bottom-nav button:active, .rcard:active { transform: none; }
+}
