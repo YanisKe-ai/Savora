@@ -147,6 +147,7 @@ function focusWithoutScroll(el, opts) {
 function openModal(modal, triggerSelector) {
   modalTriggerSelector = triggerSelector || null;
   state.modal = modal;
+  if (modal && modal.type === 'pdf-export' && typeof pdfWarmUp === 'function') pdfWarmUp();   // PDF-Bibliotheken schon beim Oeffnen anfordern
   render();
 }
 function closeModal() {
@@ -615,6 +616,9 @@ async function dispatchAction(action, id, el, e) {
       break;
     case 'export-backup':
       downloadBackup();
+      break;
+    case 'offline-prepare':
+      offlinePrepare();
       break;
     case 'trigger-restore':
       // Erst erklären, was passiert (Text steht auch auf der Seite), dann die Datei wählen lassen.

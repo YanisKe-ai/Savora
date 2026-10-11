@@ -377,7 +377,7 @@ function settingsBackupSectionHtml() {
         <p class="settings-hint">Gedacht für Dateien, die du hier unter „Sicherung speichern“ gespeichert hast. Rezepte von Freunden kommen direkt in Savora an (unter „Freunde &amp; Rezepte senden“). Ein als PDF weitergegebenes Rezept lässt sich nicht in Savora einspielen.</p>
         <div id="backupStatus"></div>
       </div>
-    </div>`;
+    </div>${typeof offlineSectionHtml === 'function' ? offlineSectionHtml() : ''}`;
 }
 
 /* Eine Seite «Konto und Sicherung». 'settings-sync' (Konto zuerst) und 'settings-backup'

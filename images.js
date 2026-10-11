@@ -40,34 +40,88 @@ function blobToDataUrl(blob) {
   });
 }
 
-/* Registry fuer aktive object: URLs, damit sie beim naechsten Render sauber freigegeben werden
-   (sonst haeufen sich pro Render neue Blob-URLs im Speicher an). */
-let activeImageObjectUrls = [];
+/* ---------- Lazy-Bilder aus IndexedDB ----------
+   Platzhalter mit data-lazy-img werden erst geladen, wenn sie in die Naehe des sichtbaren Bereichs
+   kommen (IntersectionObserver, 300 px Vorlauf). Das Hero-Bild der Detailseite startet sofort.
+   - Hoechstens LAZY_IMG_PARALLEL IndexedDB-Lesevorgaenge gleichzeitig.
+   - Jeder Aufruf von hydrateLazyImages() startet eine neue Generation: Ergebnisse einer aelteren
+     Generation (veraltete Ansicht) oder fuer nicht mehr verbundene Knoten werden verworfen.
+   - Object-URLs gehoeren zum erzeugten <img>; sie werden freigegeben, sobald das Bild nicht mehr im
+     Dokument steht (beim naechsten Aufruf bzw. nach jedem geladenen Bild) oder beim Fehler. */
+const LAZY_IMG_PARALLEL = 3;
+const LAZY_IMG_MARGIN = '300px';
+const lazyImgUrls = new Map();   // <img> -> object: URL
+let lazyImgGeneration = 0;
+let lazyImgObserver = null;
+let lazyImgQueue = [];
+let lazyImgActive = 0;
 
+function releaseDetachedImageObjectUrls() {
+  for (const [img, url] of lazyImgUrls) {
+    if (!img.isConnected) { URL.revokeObjectURL(url); lazyImgUrls.delete(img); }
+  }
+}
+/* Gibt ALLE gemerkten URLs frei (z.B. fuer Tests). Bilder im Dokument verlieren dabei ihre Quelle. */
 function revokeActiveImageObjectUrls() {
-  activeImageObjectUrls.forEach((u) => URL.revokeObjectURL(u));
-  activeImageObjectUrls = [];
+  for (const url of lazyImgUrls.values()) URL.revokeObjectURL(url);
+  lazyImgUrls.clear();
 }
 
-async function hydrateLazyImages() {
+async function loadLazyImageNode(node, gen) {
+  if (gen !== lazyImgGeneration || !node.isConnected) return;
+  const imageId = node.dataset.imageId;
+  const kind = node.dataset.lazyImg; // 'thumb' | 'full'
+  try {
+    const record = await dbGetImage(imageId);
+    if (gen !== lazyImgGeneration || !node.isConnected || !record) return;   // veraltet: nichts in eine neue Ansicht schreiben
+    const blob = kind === 'thumb' && record.thumbBlob ? record.thumbBlob : record.blob;
+    const url = URL.createObjectURL(blob);
+    const img = document.createElement('img');
+    img.alt = node.dataset.imgAlt || '';
+    img.className = node.dataset.imgClass || '';
+    if (node.style.cssText) img.style.cssText = node.style.cssText;
+    img.addEventListener('error', () => { URL.revokeObjectURL(url); lazyImgUrls.delete(img); }, { once: true });
+    lazyImgUrls.set(img, url);
+    img.src = url;
+    node.replaceWith(img);
+  } catch (e) { /* Bild bleibt Platzhalter, kein Absturz */ }
+}
+
+function pumpLazyImageQueue() {
+  while (lazyImgActive < LAZY_IMG_PARALLEL && lazyImgQueue.length) {
+    const job = lazyImgQueue.shift();
+    if (job.gen !== lazyImgGeneration) continue;
+    lazyImgActive++;
+    loadLazyImageNode(job.node, job.gen).finally(() => {
+      lazyImgActive--;
+      releaseDetachedImageObjectUrls();
+      pumpLazyImageQueue();
+    });
+  }
+}
+
+function hydrateLazyImages() {
+  const gen = ++lazyImgGeneration;   // macht alle laufenden und wartenden Auftraege der alten Ansicht ungueltig
+  if (lazyImgObserver) { lazyImgObserver.disconnect(); lazyImgObserver = null; }
+  lazyImgQueue = [];
+  releaseDetachedImageObjectUrls();
   const nodes = document.querySelectorAll('[data-lazy-img]');
   if (!nodes.length) return;
-  revokeActiveImageObjectUrls();
+  const enqueue = (node, front) => {
+    const job = { node, gen };
+    if (front) lazyImgQueue.unshift(job); else lazyImgQueue.push(job);
+    pumpLazyImageQueue();
+  };
+  if (typeof IntersectionObserver === 'undefined') { nodes.forEach((n) => enqueue(n)); return; }
+  lazyImgObserver = new IntersectionObserver((entries) => {
+    for (const e of entries) {
+      if (!e.isIntersecting) continue;
+      lazyImgObserver.unobserve(e.target);
+      enqueue(e.target);
+    }
+  }, { rootMargin: LAZY_IMG_MARGIN });
   for (const node of nodes) {
-    const imageId = node.dataset.imageId;
-    const kind = node.dataset.lazyImg; // 'thumb' | 'full'
-    try {
-      const record = await dbGetImage(imageId);
-      if (!record) continue;
-      const blob = kind === 'thumb' && record.thumbBlob ? record.thumbBlob : record.blob;
-      const url = URL.createObjectURL(blob);
-      activeImageObjectUrls.push(url);
-      const img = document.createElement('img');
-      img.src = url;
-      img.alt = node.dataset.imgAlt || '';
-      img.className = node.dataset.imgClass || '';
-      if (node.style.cssText) img.style.cssText = node.style.cssText;
-      node.replaceWith(img);
-    } catch (e) { /* Bild bleibt Platzhalter, kein Absturz */ }
+    if ((node.dataset.imgClass || '') === 'hero-img') enqueue(node, true);   // Hero-Bild: sofort, nicht erst nach Beobachtung
+    else lazyImgObserver.observe(node);
   }
 }

@@ -58,6 +58,63 @@ async function ensureFontsReadyForPdf() {
   } catch (e) { /* Font-API-Eigenheiten je Browser — document.fonts.ready ist die harte Garantie */ }
 }
 
+/* ---------- PDF-Bibliotheken bei Bedarf laden ----------
+   jsPDF und html2canvas stehen nicht mehr als Script-Tags in index.html (rund 560 KB weniger beim
+   Start). Sie werden beim ersten Export (oder beim Oeffnen des Export-Fensters) ueber EINE gemeinsame
+   Promise geladen, in fester Reihenfolge: zuerst jsPDF, dann html2canvas (beide setzen nur ein
+   globales Objekt, hängen aber nicht voneinander ab). Beide Dateien gehoeren zur App-Shell und sind
+   deshalb nach der Installation auch offline im Cache. Fehler setzen die Promise zurueck, ein neuer
+   Versuch ("Erneut versuchen") laedt dann frisch. */
+const PDF_LIB_FILES = ['jspdf.umd.min.js', 'html2canvas.min.js'];
+const PDF_LIB_TIMEOUT_MS = 20000;
+let pdfLibsPromise = null;
+let pdfLibLoadCount = 0;   // fuer Tests: wie oft wurde wirklich geladen
+
+function pdfLibsReady() { return !!(window.jspdf && window.jspdf.jsPDF && typeof window.html2canvas === 'function'); }
+
+function pdfLoadScript(src) {
+  return new Promise((resolve, reject) => {
+    const el = document.createElement('script');
+    let done = false;
+    const finish = (err) => {
+      if (done) return; done = true; clearTimeout(timer);
+      el.onload = el.onerror = null;
+      if (err) { el.remove(); reject(err); } else resolve();
+    };
+    const timer = setTimeout(() => finish(new Error('timeout')), PDF_LIB_TIMEOUT_MS);
+    el.onload = () => finish();
+    el.onerror = () => finish(new Error('load'));
+    el.src = src;
+    document.head.appendChild(el);
+  });
+}
+
+function pdfLibError(cause) {
+  const offline = typeof navigator !== 'undefined' && navigator.onLine === false;
+  const msg = offline
+    ? 'Für den PDF-Export fehlen Dateien und du bist offline. Verbinde dich einmal mit dem Internet und versuche es erneut.'
+    : (cause && cause.message === 'timeout'
+      ? 'Das Laden der PDF-Werkzeuge dauert zu lange. Prüfe deine Verbindung und versuche es erneut.'
+      : 'Die PDF-Werkzeuge konnten nicht geladen werden. Prüfe deine Verbindung und versuche es erneut.');
+  return Object.assign(new Error('pdf-libs'), { userMessage: msg });
+}
+
+function ensurePdfLibs() {
+  if (pdfLibsReady()) return Promise.resolve();
+  if (pdfLibsPromise) return pdfLibsPromise;
+  pdfLibLoadCount++;
+  pdfLibsPromise = (async () => {
+    for (const f of PDF_LIB_FILES) {
+      if (f.startsWith('jspdf') ? (window.jspdf && window.jspdf.jsPDF) : typeof window.html2canvas === 'function') continue;
+      await pdfLoadScript(f);
+    }
+    if (!pdfLibsReady()) throw new Error('load');
+  })().catch((err) => { pdfLibsPromise = null; throw pdfLibError(err); });
+  return pdfLibsPromise;
+}
+/* Beim Oeffnen des Export-Fensters im Hintergrund anstossen; Fehler zeigt erst der eigentliche Export. */
+function pdfWarmUp() { ensurePdfLibs().catch(() => {}); }
+
 /* Rendert jedes direkte Kind von #printRoot als eigene PDF-Seite — randlos, echtes A4. Durch die
    Pagination VOR dem Rendern (buildRecipePdfPage/buildLongRecipePages) passt jede Section bereits
    auf eine Seite; die Slice-Schleife greift nur noch als Sicherheitsnetz, falls eine Section
@@ -157,6 +214,7 @@ async function renderSectionsToPdf() {
   const container = document.getElementById('printRoot');
   const sections = Array.from(container.children);
   if (!sections.length) return null;
+  await ensurePdfLibs();
   await ensureFontsReadyForPdf();
 
   const { jsPDF } = window.jspdf;
@@ -397,6 +455,7 @@ async function buildSinglePdf(id, nutritionDetail, opts) {
   if (!r) return null;
   const templateId = (opts && opts.template) || pdfDefaultTemplateId();
   pdfSetContext(templateId, '', '', false);
+  await ensurePdfLibs();   // Fehler (offline/Timeout) frueh und mit verstaendlicher Meldung
   await ensureFontsReadyForPdf();
   const { htmlPages } = await buildRecipePdfPage(r, null, nutritionDetail);
   document.getElementById('printRoot').innerHTML = htmlPages.map((h, i) => (i === 0 ? pdfWrapTitle(h, r, '') : h)).join('');
@@ -414,6 +473,7 @@ async function buildCookbookPdf(nutritionDetail, opts) {
   const sections = cookbookOrderedSections(cfg);
   const recipes = sections.flatMap(s => s.recipes);
   if (!recipes.length) return null;
+  await ensurePdfLibs();   // Fehler (offline/Timeout) frueh und mit verstaendlicher Meldung
   const templateId = (opts && opts.template) || cfg.pdfTemplate || pdfDefaultTemplateId();
   const title = cfg.title || '';   // leer = nichts drucken (kein unsichtbarer Standardtitel)
   const author = cfg.author || '';
