@@ -37,7 +37,7 @@ NAV_JS = """() => { const nav = document.querySelector('.bottom-nav'); const bs 
     clipped: bs.filter(b => { const l = b.querySelector('.nav-label'); return l.scrollWidth > l.clientWidth + 0.5; }).length,
     labelRects: bs.map(b => { const l = b.querySelector('.nav-label'); const r = document.createRange(); r.selectNodeContents(l); const q = r.getBoundingClientRect(); return { l: q.left, r: q.right }; }),
     names: bs.map(b => b.innerText.replace(/\\s+/g, ' ').trim()), W: document.documentElement.clientWidth, H: innerHeight }; }"""
-BRAND_JS = """() => { const s = document.querySelector('.topbar .top-wordmark'); if (!s) return null; const r = s.getBoundingClientRect(); const W = document.documentElement.clientWidth;
+BRAND_JS = """() => { const s = document.querySelector('.topbar .top-wordmark'); if (!s) return null; const r = s.getBoundingClientRect(); const tb = document.querySelector('.topbar').getBoundingClientRect(); const W = tb.width + 2 * tb.left;
   const hd = document.querySelector('.topbar'); const kids = Array.from(hd.querySelectorAll('button, [data-action]')).filter(e => { const q = e.getBoundingClientRect(); return q.width > 0 && q.height > 0; }).map(e => e.getAttribute('data-action') + '|' + (e.getAttribute('aria-label') || ''));
   return { mid: r.left + r.width / 2, W, w: Math.round(r.width), h: Math.round(r.height), d: (s.querySelector('path') || {}).getAttribute ? s.querySelector('path').getAttribute('d') : null, wm: typeof WORDMARK_PATH !== 'undefined' ? WORDMARK_PATH : null, kids, color: getComputedStyle(s).color, top: r.top }; }"""
 STATE_RESET = "() => { resetExtraFilters(); state.query = ''; state.favOnly = false; state.modal = null; state.view = 'home'; state.sortBy = 'updated'; render(); window.scrollTo(0, 0); }"
@@ -60,6 +60,8 @@ async def theme(page, t):
 async def new_phone(p, w, h, seed=True):
     b, ctx = await open_ctx(p, w, h, 'reduce'); page = await ctx.new_page(); errs = []
     page.on('pageerror', lambda e: errs.append(str(e)))
+    # Handys haben Overlay-Scrollbalken. Chromium unter Linux (GitHub) zieht sonst 15 px Breite ab und verschiebt jede Messung zur Mitte; deshalb Balken ausblenden.
+    await page.add_init_script("document.addEventListener('DOMContentLoaded', () => { const s = document.createElement('style'); s.textContent = 'html { scrollbar-width: none } html::-webkit-scrollbar { display: none }'; document.head.appendChild(s); });")
     await goto(page)
     if seed: await page.evaluate(open(SEED_PATH).read()); await page.wait_for_timeout(400)
     return b, ctx, page, errs
