@@ -390,16 +390,23 @@ function nutPrepareIngredient(ing) {
   let amount = ing.amount, unit = String(ing.unit || '').trim(), name = String(ing.name || '').trim();
   const noAmount = () => (amount === '' || amount === null || amount === undefined);
   let m;
+  let bracketText = '';
+  /* Altbestand: bei "1/2 Zwiebel (fein geraspelt)" stand das Zutatenwort frueher in der Einheit und nur die Klammer
+     im Namen. Ist der Name ohne Klammern leer und die Einheit weder Mass noch Stueckwort, ist die "Einheit" der Name
+     und die Zahl die Stueckzahl. Gespeichert wird nichts, das gilt nur fuer die Berechnung. */
+  { const c0 = nutCleanIngredientName(name);
+    bracketText = c0.bracketText;
+    if (!c0.name && unit && !normalizeNutritionUnit(unit) && !(typeof qtyIsUnitWord === 'function' && qtyIsUnitWord(unit))) { name = unit; unit = ''; } }
   // Saft von N Zitrone/Limette/Orange
   if ((m = /^saft\s+(?:von|einer?|eines?|einem)\s*([\d.,\/]+|halben?|einer?|eine)?\s*(zitrone|limette|orange)n?\b/i.exec(name)) || (m = /^saft\s+(?:von\s+)?([\d.,\/]+)\s*(zitrone|limette|orange)n?\b/i.exec(name))) {
     const count = nutParseFraction(m[1]) || 1;
     const fruit = m[2].toLowerCase();
     if (noAmount()) { amount = count * (fruit === 'orange' ? 80 : 40); unit = 'ml'; }
     name = fruit === 'orange' ? 'Orangensaft' : 'Zitronensaft';
-    return { amount, unit, name };
+    return { amount, unit, name, bracketText };
   }
   if (/^sellerie$/i.test(name) && /^(stängel|stangen?|stiel|stiele|stalks?)$/i.test(unit)) name = 'Stangensellerie';
-  if (/^(abrieb|schale|zeste|zesten|abgeriebene\s+schale)\b/i.test(name)) return { amount: '', unit: '', name: 'Zitronenschale' };
+  if (/^(abrieb|schale|zeste|zesten|abgeriebene\s+schale)\b/i.test(name)) return { amount: '', unit: '', name: 'Zitronenschale', bracketText };
   // ein Schuss / eine Prise / eine Handvoll / ein Bund
   if ((m = /^(?:ein(?:en|e|er)?|einige|etwas)\s+(schuss|spritzer|prise|handvoll|bund|stück|scheibe|zweig|stängel)\s+(.*)$/i.exec(name)) && noAmount()) { amount = 1; unit = m[1]; name = m[2]; }
   // Mengenangabe in Klammern: "(200 ml)", "(ca. 600 g)"
@@ -423,6 +430,8 @@ function nutPrepareIngredient(ing) {
       unit = am[2].toLowerCase();
       name = name.replace(am[0], ' ').replace(/\s+/g, ' ').replace(/\s*,\s*$/, '').trim();
     } }
+  { const c1 = nutCleanIngredientName(name);   // Klammern (auch eckige) gehoeren nicht zum Namen: "Ei (verquirlen)" -> "Ei"
+    name = c1.name; if (c1.bracketText) bracketText = (bracketText ? bracketText + ' ' : '') + c1.bracketText; }
   { const en = nutTranslateEn(name.split(',')[0]); if (en) name = en; }   // englische Zeile: Berechnung arbeitet mit dem deutschen Begriff
-  return { amount, unit, name };
+  return { amount, unit, name, bracketText };
 }

@@ -195,6 +195,9 @@ function qtyParseLine(line) {
   if (!unit) unit = takeUnit();
   rest = rest.replace(/^\s*/, '').trim();
   if (!rest) return none();   // nur "2": nichts erfinden
+  // Ein Stueckwort ("Zehe", "Bund", "Handvoll") gilt nur dann als Einheit, wenn danach noch ein Name folgt. Steht danach nur eine
+  // Klammer ("1 Zehe (fein geraspelt)"), bleibt das Wort der Name und die Klammer ein Zusatz daran. Masseinheiten (g, ml, EL ...) bleiben Einheiten.
+  if (unit && !(typeof normalizeUnit === 'function' && normalizeUnit(unit)) && !/[A-Za-zäöüÄÖÜ]/.test(rest.replace(/\([^)]*\)|\[[^\]]*\]/g, ''))) { rest = unit + ' ' + rest; unit = ''; }
   const first = qtyParseNumber(nm[0], unit);
   const second = secondTok ? qtyParseNumber(secondTok, unit) : null;
   if (!first || (secondTok && !second)) return none();
