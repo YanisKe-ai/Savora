@@ -48,8 +48,8 @@ function recipeQualityIssues(r) {
       const m = RC_YIELD_WORDS.exec(String((s && s.text) || ''));
       if (m && !/portionen/i.test(m[2])) {
         const n = parseInt(m[1], 10);
-        issues.push({ id: 'yield-pieces', level: 'info', field: 'servings', text: `In der Anleitung steht „${m[0]}“, die Ausbeute ist aber mit ${r.servings} ${r.servings === 1 ? 'Portion' : 'Portionen'} angegeben.`,
-          fix: { label: `Ausbeute auf ${n} Stück setzen`, apply: (rr) => { rr.servingMode = 'pieces'; rr.servings = n; return rr; } } });
+        issues.push({ id: 'yield-pieces', level: 'info', field: 'servings', text: `In der Anleitung steht „${m[0]}“, die Angabe ist aber mit ${r.servings} ${r.servings === 1 ? 'Portion' : 'Portionen'} angegeben.`,
+          fix: { label: `Ergibt ${n} Stück setzen`, apply: (rr) => { rr.servingMode = 'pieces'; rr.servings = n; return rr; } } });
         break;
       }
     }

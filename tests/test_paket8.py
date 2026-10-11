@@ -22,7 +22,7 @@ async def main():
                   const inside = innerWidth >= 360 ? btns.every(b => { const r = b.getBoundingClientRect(); return r.left >= -0.5 && r.right <= innerWidth + 0.5 }) : activeIn;
                   const act = st.querySelector('.is-active .form-step-label'); const names = btns.map(b => b.textContent.replace(/\\s+/g, ' ').trim());
                   return { inside, activeVisible: !!act && act.getBoundingClientRect().width > 20, small: btns.filter(b => b.getBoundingClientRect().width < 43.5 || b.getBoundingClientRect().height < 43.5).length, names, ov: document.documentElement.scrollWidth - innerWidth } }""")
-                check(f'{w} px, Schritt {step + 1}: alle 5 Schritte sichtbar (320 px: aktiver sichtbar), aktiver mit Namen, Tippflächen mind. 44 px', g['inside'] and g['activeVisible'] and g['small'] == 0 and g['ov'] <= 0, str(g))
+                check(f'{w} px, Schritt {step + 1}: alle 5 Schritte sichtbar (320 px: aktiver sichtbar), aktiver mit Namen, Tippflächen mind. 44 px', g['inside'] and g['activeVisible'] and g['small'] == 0 and g['ov'] <= 0, str(g) + ('' if (g['inside'] and g['ov'] <= 0) else ' ' + str(await overflow_info(page))))
             check(f'{w} px: Screenreader kennen alle Schrittnamen', [n.replace(' ', '') for n in g['names']] == ['1Basis', '2Kategorien', '3Zutaten', '4Zubereitung', '5Kontrolle'], str(g['names']))
             btn = await page.evaluate("(() => { const b = document.querySelector('.form-actions .primary-btn'); const r = b.getBoundingClientRect(); return { h: r.height, text: b.textContent.trim() } })()")
             check(f'{w} px: "Rezept speichern" bleibt einzeilig', btn['h'] < 64 and btn['text'] == 'Rezept speichern', str(btn))

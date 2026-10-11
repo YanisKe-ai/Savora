@@ -25,59 +25,67 @@ Regeln:
 - Jede Ansicht hat genau eine erkennbare Hauptaktion (rot gefüllt oder die erste Zeile).
 - Nach Aufgaben gruppieren, nicht nach Technik: Einstellungen in "Mein Kochbuch", "App", "Daten und Export", "Werkzeuge", "Hilfe".
 - Selten benutzte Dinge (Sicherung, Synchronisation, PDF-Gestaltung) liegen in Einstellungen, nicht auf der Startseite. Die Startseite zeigt nur dann einen Hinweis, wenn eine Handlung nötig ist (z. B. noch keine Sicherung), und dieser Hinweis ist leise.
-- Das Rezeptdetail führt zum Kochen: Titel, Zeit und Portionen, danach "Kochmodus starten", danach die Reiter Zutaten, Zubereitung, Nährwerte, Notizen.
+- Das Rezeptdetail führt zum Kochen: Titel, Zeit und Menge ("Ergibt"), danach "Kochen starten", danach vier ruhige Zweitaktionen, danach die Reiter Zutaten, Zubereitung, Nährwerte und (nur wenn vorhanden) Notizen. "Notiz hinzufügen" bleibt im Menü.
 
-## 3. Farben (Variablen in `styles.css` und `styles-v2.css`)
+## 3. Farben (Variablen in `styles.css`, `styles-v2.css` ergänzt nur)
 
-| Rolle | Hell | Dunkel |
-| --- | --- | --- |
-| Seite `--bg` | #FAFAF8 | #121214 |
-| Fläche `--card-bg` | #FFFFFF | #1B1B1F |
-| Weiche Fläche `--surface-soft` | #F1F0EE | #242429 |
-| Tinte `--text` | #1C1C21 | helles Grau |
-| Zweittext `--text-soft` | #6B6B73 | #B4B4BC |
-| Akzent `--tomato` | #C93D26 (weisser Text) | #FF9B80 (dunkler Text) |
-| Akzent als Text/Symbol `--violet` | #B93822 | #FF9B80 |
-| Akzent-Fläche (aktiver Chip, Navigation) `--lime` | #FFDACE | #FFDACE mit Tinte |
+Warme Flächen, ruhiges Salbei, Tomatenrot nur für Handlung. Alle Werte stehen zentral in `styles.css` (`:root`, `[data-theme="dark"]`, `[data-theme="amoled"]`). "Wie dein Gerät" setzt automatisch Hell oder Dunkel.
 
-(Die Variablennamen `--violet` und `--lime` sind historisch und bleiben aus Kompatibilitätsgründen.)
+| Rolle | Hell | Dunkel | Schwarz (AMOLED) |
+| --- | --- | --- | --- |
+| Seite `--bg` | #F7F4EE | #1B1A17 | #000000 |
+| Fläche `--card-bg` | #FFFDF8 | #24231F | #121110 |
+| Ruhige Salbeifläche `--surface-soft` | #E1E7DC | #2C2F28 | #1A1C17 |
+| Gewählt `--surface-selected` | #D1D9CA | #3A3E35 | #2A2D25 |
+| Tinte `--text` | #252720 | #F1EDE4 | #F1EDE4 |
+| Zweittext `--text-soft` | #5B5E52 | #BDB9AC | #BDB9AC |
+| Hauptknopf `--tomato` (Text `--on-tomato`) | #B93B2C (weiss) | #FF9B80 (#1B1A17) | #FF9B80 (#1B1A17) |
+| Rot als Text/Symbol `--violet` | #A93324 | #FF9B80 | #FF9B80 |
+| Aktiver Chip, aktive Fläche `--lime` (Text `--lime-ink`) | #F2D8CE (#252720) | #4D2C24 (#FFD9CC) | #43261F (#FFD9CC) |
+| Haarlinie `--hairline` | 10 % Tinte | 12 % Tinte | 12 % Tinte |
+
+(Die Variablennamen `--violet` und `--lime` sind historisch und bleiben aus Kompatibilitätsgründen; `--lime` ist jetzt die zarte Tomatenfläche.)
+
+Gemessene Kontraste (Test `test_paket37_visual.py` misst sie in allen drei Darstellungen): Text auf Seite und Salbei mindestens 4.5:1 (Tinte auf Seite 13.8:1), Hauptknopf weiss auf #B93B2C 5.6:1 (Dunkel: #1B1A17 auf #FF9B80 8.5:1), grosse Schrift mindestens 3:1.
 
 Regeln:
-- **Ein Akzent.** Rot steht für Handlung (Hauptknopf, Zähler, aktiver Reiter, Merken). Alles andere ist neutral.
-- Text mindestens 4.5:1 Kontrast, grosse Schrift und Symbole 3:1. Weisser Text nur auf `--tomato`.
-- Kein reines Schwarz, kein reines Weiss als Fläche ausser Karten.
-- Gold bleibt dem Logo (Dampf) vorbehalten.
-- PDF-Vorlagen haben eigene Farben (Vorlage B violett/limette) und sind bewusst getrennt.
+- **Ein Akzent.** Rot steht für Handlung (Hauptknopf "Kochen starten", Zähler, aktiver Reiter, Merken, Häkchen). Alles andere ist neutral.
+- Text mindestens 4.5:1 Kontrast, grosse Schrift und Symbole 3:1, Hauptknopf mindestens 5.5:1.
+- Kein reines Schwarz ausser dem Hintergrund im Schwarzmodus, kein reines Weiss.
+- Gold bleibt dem Logo (Dampf) vorbehalten. Das rote Lesezeichen im Zeichen bleibt immer rot (#E64B35), das Zeichen selbst ist hell auf dunkel und dunkel auf hell, nie automatisch invertiert; das App-Symbol bleibt schwarz.
+- PDF-Vorlagen haben eigene Farben und Schriften (`--font-pdf-display`, `--font-pdf-sans`) und sind bewusst getrennt.
 
 ## 4. Typografie
 
-- Titel: Sofia Sans Extra Condensed 800 (schmal, kräftig). Text: Roboto. Schriftzug: Archivo.
-- Skala (rem, folgt der iOS-Textgrösse): Seitentitel 36 bis 60 px fluid, Abschnitt 1.5, Zutatengruppe 1.5, Unterabschnitt 1.25, Text 1, Meta 0.8.
-- Zeilenabstand Lesetext 1.55, Messlänge höchstens 65 Zeichen.
-- Zahlen in Tabellen und Meta tabular.
-- Keine Grossbuchstaben-Zeilen als Dekoration. Gruppenüberschriften in Listen (kleine Kapitälchen) sind erlaubt, weil sie echte Gruppen benennen.
+- **DM Sans** (variabel, 100 bis 1000) für Navigation, Formulare, Zutaten, Einstellungen, Schaltflächen, Fliesstext sowie Seitentitel und Abschnitte (600/700). Variable `--font-sans` und `--font-display`.
+- **Fraunces** (variabel, 100 bis 900) zurückhaltend und nur für Rezepttitel (Rezeptansicht, Karten, Listen) und Buchtitel. Variable `--font-serif`. Nie für Bedienung.
+- Schriftzug "savora": Archivo (Logo), unverändert. Sofia Sans Extra Condensed und Roboto bleiben nur für PDF-Vorlagen geladen.
+- Beide Schriften liegen lokal (`dm-sans.woff2`, `fraunces.woff2`, nur lateinische Zeichen), stehen in den Preloads von `index.html` und in `SHELL_ASSETS` von `sw.js`. Lizenz: SIL Open Font License 1.1 (DM Sans: Copyright The DM Sans Project Authors; Fraunces: Copyright The Fraunces Project Authors). Der Lizenzhinweis gehört auch in die Lizenzseite der App.
+- Skala (rem, folgt der Systemschrift): Seitentitel 1.75 bis 2.25, Rezepttitel in der Ansicht 2 bis 3.25, Abschnitt 1.25, Zutatengruppe 1.125, Lesetext 1.0625 (17 px), Hilfstext und Meta 0.875 bis 0.9375, **nichts unter 0.875 (14 px)** ausser Zähler-Badges (12 px, fett). Kochmodus: Schritt `clamp(1.75rem, 1.4rem + 1.6vw, 2.25rem)`, Zutaten-Chips 1.125.
+- Zeilenabstand Lesetext 1.55 bis 1.65, Messlänge höchstens 65 Zeichen. Lange Titel brechen um (`overflow-wrap: anywhere`), nichts läuft bei grosser Systemschrift über.
+- Zahlen in Tabellen und Meta tabular. Keine Grossbuchstaben-Zeilen als Dekoration.
 
 ## 5. Layout und Abstände
 
 - Abstandsskala 4 px (in rem), ausser 0, 1 und 2 px. Der Test `test_paket27.py` prüft das.
 - Seitenrand 16 px, Inhalt höchstens 1180 px, Detail ab 900 px zweispaltig (Zutaten links, Zubereitung rechts).
-- Rundungen (eine Regel): Karten 20 px (`--r-card`), Bedienelemente 14 px (`--r-ctl`), Chips und Hauptknöpfe Pille, runde Knöpfe und Häkchen rund, Fenster oben 28 px.
+- Rundungen (eine Regel): Karten und Fotos 20 px (`--r-card`), Eingaben 14 px (`--r-ctl`), Chips, Knöpfe und Umschalter Pille, runde Knöpfe und Häkchen rund, Fenster oben 28 px.
 - Tiefe: `--lift-1` und `--lift-2` (leichter, getönter Schatten), dazu Haarlinie `--hairline`. Keine Leuchtränder, keine Block-Schatten.
-- **Keine verschachtelten Karten.** Eine Gruppe ist Überschrift plus eine Karte.
+- **Keine verschachtelten Karten.** Foto-Karten und Listen haben keinen Rahmen: Foto mit Titel darunter, Listen flach mit feinen Trennlinien. Eine Gruppe in den Einstellungen ist Überschrift plus eine Karte.
 - Tippflächen mindestens 44 px.
 
 ## 6. Bildsprache
 
-- Rezeptfotos sind der Hauptinhalt: nie verzerren (zuschneiden), Seitenverhältnis je Kontext fest (Karte 4:3, Detail Band).
-- Ohne Foto: Verlauf in neutralem Ton mit Anfangsbuchstaben, keine erfundenen Fotos, keine Illustrationen als Füllung.
+- Rezeptfotos sind der Hauptinhalt: nie verzerren (`object-fit: cover`), Karte 5:4, Ansicht 16:10.
+- **Ohne Foto gibt es keinen Buchstaben-Platzhalter und keine leere Bildfläche.** Raster: kompakte typografische Karte (Salbeifläche, Titel in Fraunces, Meta darunter), gleich hoch wie eine Foto-Karte. Liste: Zeile ohne Vorschaubild. Rezeptansicht: typografischer Kopf (Titel gross in Fraunces, Zeit und Menge), kein Bildband. Während ein gespeichertes Foto lädt, steht kurz eine ruhige leere Salbeifläche.
 - Symbole: eine Strichstärke, eine Familie (die vorhandenen Linien-Icons), Farbe Tinte oder Zweittext, Rot nur für aktive Zustände.
-- App-Symbol: tomatenroter Verlauf, Buch weiss, Dampf hell. Quellen in `assets/logo-src/`.
+- App-Symbol: schwarz mit weissem Zeichen und rotem Detail (`assets/logo/`). Quellen in `assets/logo-src/`.
 
 ## 7. Komponenten
 
-- **Hauptknopf:** `--tomato`, Pille, 52 px hoch, ein Mal pro Ansicht.
-- **Nebenknopf (`outline-btn`):** weiche Fläche, ohne Rahmen, 44 px.
-- **Chip:** weiche Fläche, aktiv `--lime` mit Tinte.
+- **Hauptknopf:** `--tomato`, Pille, 52 bis 56 px hoch, ein Mal pro Ansicht (Rezeptansicht: "Kochen starten").
+- **Nebenknopf (`outline-btn`):** Salbeifläche, Pille, ohne Rahmen, 44 px. **Zweitaktionen** der Rezeptansicht (Einkaufen, Planen, Bearbeiten, Teilen, `tool-action`) ohne Fläche, Symbol über Beschriftung, mindestens 56 px.
+- **Chip:** Salbeifläche, aktiv `--lime` mit Tinte und rotem Innenring. Filterstreifen: Chips scrollen waagrecht mit Ausblendrand rechts, daneben Filterknopf und Raster/Liste.
 - **Karte (`rcard`, `rrow`, `panel`):** Haarlinie plus `--lift-1`, 20 px.
 - **Häkchen:** rund, bei "an" rot gefüllt.
 - **Fenster (Sheet):** von unten, 28 px Ecken, Ziehleiste, ab 640 px mittig.

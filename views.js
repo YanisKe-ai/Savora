@@ -22,7 +22,10 @@ function viewFor(view) {
     case 'mealplan': return mealplanView();
     case 'unitconverter': return unitConverterView();
     case 'cookbook': return cookbookDesignerView();
+    case 'cookbooks': return cookbooksView();
     case 'settings-sync': return settingsSyncView();
+    case 'settings-share': return settingsShareView();
+    case 'settings-share-preview': return settingsSharePreviewView();
     default: return homeView();
   }
 }
@@ -155,13 +158,16 @@ function importSummaryBanner(s, r) {
   const row = (st, label, text) => `<li class="import-row import-row--${st}"><span class="import-state import-state--${st}">${STATE[st]}</span><span class="import-label">${label}</span><span class="import-text">${text}</span></li>`;
   const issues = s.issues || [];
   const has = (field, levels) => issues.some(x => x.field === field && (!levels || levels.includes(x.level)));
+  // Teilzeiten bleiben getrennt stehen (nie addiert); gleiche Bezeichnungen wie in der Rezeptansicht
+  const partTimes = r ? [r.prepMinutes ? `Vorbereitungszeit ${r.prepMinutes} Min.` : '', r.restMinutes ? `Ruhen ${r.restMinutes} Min.` : '', r.cookMinutes ? `Garen/Backen ${r.cookMinutes} Min.` : ''].filter(Boolean) : [];
   const yieldText = r && yieldKnown(r) ? servingLabel(r, r.servings) : '';
   const rows = [
     row(s.titleFound ? 'ok' : 'missing', 'Titel', s.titleFound ? escapeHtml(r ? r.title : '') : 'Bitte eintragen.'),
     row(s.ingredientCount === 0 ? 'missing' : (has('ingredients') ? 'check' : 'ok'), 'Zutaten', `${s.ingredientCount} erkannt${s.groupCount ? `, ${s.groupCount} Gruppe${s.groupCount === 1 ? '' : 'n'}` : ''}${(s.noAmount || []).length ? `. Ohne Menge: ${escapeHtml(s.noAmount.join(', '))}` : ''}`),
     row(s.stepCount === 0 ? 'missing' : (has('steps') ? 'check' : 'ok'), 'Schritte', `${s.stepCount} erkannt${s.methodSteps ? `, davon ${s.methodSteps} mit alternativen Garmethoden` : ''}`),
-    row(s.servingsFound ? (has('servings') ? 'check' : 'ok') : 'missing', 'Ausbeute', s.servingsFound ? escapeHtml(yieldText) : 'Unbekannt. Originalmengen, kein Skalieren.'),
-    row(s.timeFound ? 'ok' : 'missing', 'Zeit', s.timeFound ? `${r ? r.timeMinutes : ''} Min.` : 'Nicht angegeben, bleibt leer.'),
+    row(s.servingsFound ? (has('servings') ? 'check' : 'ok') : 'missing', 'Ergibt', s.servingsFound ? escapeHtml(yieldText) : 'Nicht angegeben. Die Mengen bleiben wie im Original.'),
+    row(s.timeFound || partTimes.length ? 'ok' : 'missing', 'Zeit', s.timeFound ? `${r ? r.timeMinutes : ''} Min.${partTimes.length ? ` (${partTimes.join(', ')})` : ''}` : partTimes.length ? `${partTimes.join(', ')}. Keine Gesamtzeit angegeben, es wird nichts zusammengerechnet.` : 'Nicht angegeben, bleibt leer.'),
+    r && r.source ? row('ok', 'Quelle', escapeHtml(String(r.source))) : '',
     s.notesFound ? row('ok', 'Notizen', 'Hinweise und Utensilien stehen in den Notizen, nicht in den Zutaten.') : '',
     s.dietFound ? row('check', 'Ernährung', 'Als Vorschlag erkannt, bitte gegenprüfen.') : '',
     s.categoryFound ? row('check', 'Gerichtstyp', 'Als Vorschlag erkannt, bitte gegenprüfen.') : '',
@@ -175,7 +181,7 @@ function importSummaryBanner(s, r) {
   }).join('');
   const raw = r && r._import && r._import.raw ? `<details class="import-raw"><summary>Originaltext anzeigen</summary><pre>${escapeHtml(r._import.raw)}</pre></details>` : '';
   return `<section class="import-summary" aria-labelledby="import-sum-title">
-    <h2 class="import-summary-title" id="import-sum-title">${ICONS.sparkle} Entwurf erkannt: bitte kurz prüfen</h2>
+    <h2 class="import-summary-title" id="import-sum-title">${ICONS.sparkle} Rezept prüfen</h2>
     <ul class="import-rows">${rows}</ul>
     ${issueHtml ? `<ul class="import-issues" aria-label="Zu prüfen">${issueHtml}</ul>` : ''}
     ${raw}
@@ -255,32 +261,29 @@ function settingsDetailShell(title, bodyHtml) {
 
 function settingsView() {
   const t = state.theme;
-  const themeLabel = t === 'light' ? 'Hell' : t === 'dark' ? 'Dunkel' : t === 'amoled' ? 'Schwarz' : 'System';
-  const unitLabel = state.unitSystem === 'metric' ? 'Metrisch' : 'Imperial';
-  const cookbookSummary = state.cookbookTitle || 'Nicht festgelegt';
+  const themeLabel = t === 'light' ? 'Hell' : t === 'dark' ? 'Dunkel' : t === 'amoled' ? 'Schwarz' : 'Wie dein Gerät';
+  const unitLabel = state.unitSystem === 'metric' ? 'Gramm und Milliliter' : 'US-Masse (Cups, Unzen)';
 
   return `
     ${topbar('Einstellungen')}
     <main class="has-tabbar settings-page">
       ${pageTitle('Einstellungen')}
-      ${settingsGroup('Mein Kochbuch', settingsRow({ icon: ICONS.book, title: 'Kochbuch & Profil', summary: cookbookSummary, view: 'settings-profile' }))}
-      ${settingsGroup('App', [
-        settingsRow({ icon: ICONS.moon, title: 'Darstellung', summary: themeLabel, view: 'settings-display' }),
-        settingsRow({ icon: ICONS.ruler, title: 'Masseinheiten', summary: unitLabel, view: 'settings-units' }),
-        settingsRow({ icon: ICONS.info, title: 'Nährwerte', summary: state.showNutrition ? 'An' : 'Aus', view: 'settings-nutrition' }),
+      ${settingsGroup('Deine Daten', [
+        settingsRow({ icon: ICONS.cloud, title: 'Auf mehreren Geräten', summary: cloudSettingsSummary(), view: 'settings-sync' }),
+        settingsRow({ icon: ICONS.download, title: 'Sicherungskopie', view: 'settings-backup' }),
+        settingsRow({ icon: ICONS.share, title: 'Freunde &amp; Rezepte senden', summary: shareSettingsSummary(), view: 'settings-share' }),
       ].join(''))}
-      ${settingsGroup('Daten &amp; Export', [
-        settingsRow({ icon: ICONS.cloud, title: 'Synchronisation', summary: cloudSettingsSummary(), view: 'settings-sync' }),
-        settingsRow({ icon: ICONS.download, title: 'Sicherung &amp; Wiederherstellung', view: 'settings-backup' }),
-        settingsRow({ icon: ICONS.pdf, title: 'Kochbuch gestalten und als PDF', action: 'goto-view', view: 'cookbook' }),
+      ${settingsGroup('Anzeige &amp; Einheiten', [
+        settingsRow({ icon: ICONS.moon, title: 'Helles oder dunkles Design', summary: themeLabel, view: 'settings-display' }),
+        settingsRow({ icon: ICONS.ruler, title: 'Mengenangaben', summary: unitLabel, view: 'settings-units' }),
+        settingsRow({ icon: ICONS.info, title: 'Nährwerte anzeigen', summary: state.showNutrition ? 'An' : 'Aus', view: 'settings-nutrition' }),
+        settingsRow({ icon: ICONS.scale, title: 'Masseinheiten-Rechner', action: 'open-unitconverter' }),
       ].join(''))}
-      ${settingsGroup('Werkzeuge', settingsRow({ icon: ICONS.scale, title: 'Masseinheiten-Rechner', action: 'open-unitconverter' }))}
-      ${settingsGroup('Hilfe &amp; Informationen', [
-        settingsRow({ icon: ICONS.lifeBuoy, title: 'Hilfe &amp; Feedback', view: 'settings-help' }),
+      ${settingsGroup('Hilfe &amp; Infos', [
+        settingsRow({ icon: ICONS.lifeBuoy, title: 'Hilfe erhalten', view: 'settings-help' }),
+        settingsRow({ icon: ICONS.info, title: 'Über Savora', view: 'settings-about' }),
         settingsRow({ icon: ICONS.shield, title: 'Datenschutz', view: 'settings-privacy' }),
         settingsRow({ icon: ICONS.fileText, title: 'Nutzungsbedingungen', view: 'settings-terms' }),
-        settingsRow({ icon: ICONS.database, title: 'Datenquellen', view: 'settings-sources' }),
-        settingsRow({ icon: ICONS.info, title: 'Über Savora', view: 'settings-about' }),
       ].join(''))}
     </main>
     ${bottomNav()}
@@ -294,96 +297,103 @@ function settingsDisplayView() {
     <div class="settings-group">
       <div class="settings-group-card settings-group-card--padded">
         <p class="settings-hint">Dunkel eignet sich besonders gut zum Kochen am Abend.</p>
-        <div class="theme-switch theme-switch--grid" role="radiogroup" aria-label="Darstellung">
+        <div class="theme-switch theme-switch--grid" role="radiogroup" aria-label="Helles oder dunkles Design">
           <button class="theme-opt ${t === 'light' ? 'active' : ''}" data-action="set-theme" data-theme="light" role="radio" aria-checked="${t === 'light'}">${ICONS.sun} Hell</button>
           <button class="theme-opt ${t === 'dark' ? 'active' : ''}" data-action="set-theme" data-theme="dark" role="radio" aria-checked="${t === 'dark'}">${ICONS.moon} Dunkel</button>
           <button class="theme-opt ${t === 'amoled' ? 'active' : ''}" data-action="set-theme" data-theme="amoled" role="radio" aria-checked="${t === 'amoled'}">${ICONS.moon} Schwarz</button>
-          <button class="theme-opt ${t === 'auto' ? 'active' : ''}" data-action="set-theme" data-theme="auto" role="radio" aria-checked="${t === 'auto'}">${ICONS.auto} System</button>
+          <button class="theme-opt ${t === 'auto' ? 'active' : ''}" data-action="set-theme" data-theme="auto" role="radio" aria-checked="${t === 'auto'}">${ICONS.auto} Wie dein Gerät</button>
         </div>
         <p class="settings-hint settings-hint--top">Schwarz: vollständig schwarzer Hintergrund für OLED-Displays.</p>
       </div>
     </div>`;
-  return settingsDetailShell('Darstellung', body);
+  return settingsDetailShell('Helles oder dunkles Design', body);
 }
 
 function settingsUnitsView() {
   const body = `
     <div class="settings-group">
       <div class="settings-group-card settings-group-card--padded">
-        <p class="settings-hint">Beim Importieren von Rezepten aus Text werden Mengen automatisch in dein bevorzugtes System umgerechnet. Du kannst jede Menge danach trotzdem frei anpassen.</p>
-        <div class="theme-switch" role="radiogroup" aria-label="Masseinheiten">
-          <button class="theme-opt ${state.unitSystem === 'metric' ? 'active' : ''}" data-action="set-unit-system" data-system="metric" role="radio" aria-checked="${state.unitSystem === 'metric'}">Metrisch (g, ml)</button>
-          <button class="theme-opt ${state.unitSystem === 'imperial' ? 'active' : ''}" data-action="set-unit-system" data-system="imperial" role="radio" aria-checked="${state.unitSystem === 'imperial'}">Imperial (oz, cup)</button>
+        <p class="settings-hint">Beim Import aus Text rechnet Savora die Mengen in diese Einheiten um. Du kannst jede Menge danach selbst ändern.</p>
+        <div class="theme-switch" role="radiogroup" aria-label="Mengenangaben">
+          <button class="theme-opt ${state.unitSystem === 'metric' ? 'active' : ''}" data-action="set-unit-system" data-system="metric" role="radio" aria-checked="${state.unitSystem === 'metric'}">Gramm und Milliliter</button>
+          <button class="theme-opt ${state.unitSystem === 'imperial' ? 'active' : ''}" data-action="set-unit-system" data-system="imperial" role="radio" aria-checked="${state.unitSystem === 'imperial'}">US-Masse (Cups, Unzen)</button>
         </div>
       </div>
     </div>`;
-  return settingsDetailShell('Masseinheiten', body);
+  return settingsDetailShell('Mengenangaben', body);
 }
 
 function settingsNutritionView() {
   const body = `
     <div class="settings-group">
       <div class="settings-group-card settings-group-card--padded">
-        <p class="settings-hint">Savora schätzt Nährwerte aus den Zutaten. Wenn du sie nicht brauchst, blendest du Reiter und PDF-Option aus. Berechnete Werte bleiben gespeichert und erscheinen wieder, sobald du sie einschaltest.</p>
+        <p class="settings-hint">Geschätzte Werte. Je nach Zutaten und Mengen können sie abweichen.</p>
+        <p class="settings-hint">Wenn du sie nicht brauchst, blendest du Reiter und PDF-Option aus. Berechnete Werte bleiben gespeichert und erscheinen wieder, sobald du sie einschaltest.</p>
         <div class="theme-switch" role="radiogroup" aria-label="Nährwerte anzeigen">
           <button class="theme-opt ${state.showNutrition ? 'active' : ''}" data-action="set-show-nutrition" data-value="1" role="radio" aria-checked="${state.showNutrition}">Anzeigen</button>
           <button class="theme-opt ${!state.showNutrition ? 'active' : ''}" data-action="set-show-nutrition" data-value="0" role="radio" aria-checked="${!state.showNutrition}">Ausblenden</button>
         </div>
       </div>
     </div>`;
-  return settingsDetailShell('Nährwerte', body);
+  return settingsDetailShell('Nährwerte anzeigen', body);
+}
+
+/* Absendername: freiwillig, wird heute nirgends automatisch ausgegeben (weder PDF noch Teilen).
+   Der Abschnitt steht in «Freunde & Rezepte senden» und ist auch als eigene Seite erreichbar. */
+function senderNameSectionHtml() {
+  return `<div class="settings-group">
+    <div class="settings-group-title">Name beim Teilen (freiwillig)</div>
+    <div class="settings-group-card settings-group-card--padded">
+      <p class="settings-hint settings-hint--none">Wird nur gedruckt, wenn du ihn selbst im Kochbuch oder beim Teilen einschaltest.</p>
+      <div class="field" style="margin-bottom:14px;">
+        <label for="f-sender-name">Dein Name</label>
+        <input type="text" id="f-sender-name" placeholder="z.B. Anna" value="${escapeHtml(state.senderName)}">
+      </div>
+      <button class="primary-btn" data-action="save-profile-fields">${ICONS.check} Speichern</button>
+    </div>
+  </div>`;
 }
 
 function settingsProfileView() {
-  const body = `
-    <div class="settings-group">
-      <div class="settings-group-card settings-group-card--padded">
-        <p class="settings-hint">Der Kochbuch-Titel erscheint unter dem Logo auf der Startseite und auf dem Deckblatt beim PDF-Export.</p>
-        <div class="field" style="margin-bottom:14px;">
-          <label for="f-cookbook-title">Kochbuch-Titel</label>
-          <input type="text" id="f-cookbook-title" placeholder="z.B. Küche von Familie Muster" value="${escapeHtml(state.cookbookTitle)}">
-        </div>
-        <p class="settings-hint">Dein Name wird angehängt, wenn du ein Rezept mit jemandem teilst, damit der Empfänger sieht, von wem es kommt.</p>
-        <div class="field" style="margin-bottom:14px;">
-          <label for="f-sender-name">Dein Name</label>
-          <input type="text" id="f-sender-name" placeholder="z.B. Anna" value="${escapeHtml(state.senderName)}">
-        </div>
-        <button class="primary-btn" data-action="save-profile-fields">${ICONS.check} Speichern</button>
-      </div>
-    </div>`;
-  return settingsDetailShell('Kochbuch & Profil', body);
+  return settingsDetailShell('Name beim Teilen', senderNameSectionHtml());
 }
+
+/* Verhalten laut restoreBackupFromFile (backup.js): Es wird nur ergänzt. Vorhandene Rezepte bleiben
+   unverändert, inhaltlich gleiche Rezepte werden nicht doppelt angelegt, nichts wird gelöscht. */
+const RESTORE_EXPLAIN = 'Die Rezepte aus der Datei werden zu deinen vorhandenen Rezepten hinzugefügt. Was du schon hast, bleibt unverändert und wird nicht ersetzt. Rezepte, die genau so schon da sind, werden nicht doppelt angelegt. Einkaufsliste und Wochenplan werden ebenfalls ergänzt.';
 
 function settingsBackupView() {
   const lastBackupLabel = state.lastBackupAt
     ? new Date(state.lastBackupAt).toLocaleDateString('de-CH', { day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' })
-    : 'Noch keine Sicherung erstellt';
+    : 'Noch keine Sicherung gespeichert';
   const body = `
     <div class="settings-group">
       <div class="settings-group-title">Sicherung</div>
       <div class="settings-group-card settings-group-card--padded">
+        <p class="settings-hint settings-hint--none">Speichere eine Kopie deiner Rezepte als Datei.</p>
         <p class="settings-hint">${typeof cloudSignedIn === 'function' && cloudSignedIn()
-          ? 'Deine Daten liegen auf diesem Gerät und werden zusätzlich über die Synchronisation mit deinen anderen Geräten abgeglichen. Der Abgleich ist keine Sicherung: löschst du etwas, verschwindet es überall. Eine Sicherungsdatei hält einen festen Stand fest, zu dem du zurückkehren kannst.'
-          : 'Deine Daten liegen nur auf diesem Gerät. Erstelle regelmässig eine Sicherung, damit bei einem Gerätewechsel oder gelöschten Browserdaten nichts verloren geht. Unter „Synchronisation“ kannst du zusätzlich einen Abgleich mit deinen anderen Geräten einrichten.'}</p>
-        ${(!SavoraNative.isNative && state.storagePersisted === false) ? '<p class="settings-hint settings-hint--warn">Dein Browser hat den Speicher nicht als dauerhaft freigegeben und kann ihn bei Platzmangel räumen. Erstelle deshalb regelmässig eine Sicherung.</p>' : ''}
-        <button class="primary-btn" data-action="export-backup">${ICONS.download} Sicherung erstellen</button>
+          ? 'Du bist mit einem Konto angemeldet: Deine Rezepte liegen in deinem Profil und sind auf jedem Gerät da, auch nach einer Neuinstallation. Du musst keine Sicherung erstellen. Eine Sicherungsdatei ist nur optional, wenn du einen festen Stand aufbewahren möchtest. Der Abgleich ersetzt das nicht ganz: löschst du ein Rezept, verschwindet es überall.'
+          : 'Deine Daten liegen nur auf diesem Gerät. Speichere regelmässig eine Sicherung, damit bei einem Gerätewechsel oder gelöschten Browserdaten nichts verloren geht. Unter „Auf mehreren Geräten“ kannst du zusätzlich einen Abgleich mit deinen anderen Geräten einrichten. Der Abgleich ersetzt keine Sicherung.'}</p>
+        ${(!SavoraNative.isNative && state.storagePersisted === false && !(typeof cloudSignedIn === 'function' && cloudSignedIn())) ? '<p class="settings-hint settings-hint--warn">Dein Browser hat den Speicher nicht als dauerhaft freigegeben und kann ihn bei Platzmangel räumen. Speichere deshalb regelmässig eine Sicherung.</p>' : ''}
+        <button class="primary-btn" data-action="export-backup">${ICONS.download} Sicherung speichern</button>
         <p class="settings-hint settings-hint--top">Letzte Sicherung: ${escapeHtml(lastBackupLabel)}</p>
       </div>
     </div>
     <div class="settings-group">
       <div class="settings-group-title">Wiederherstellen</div>
       <div class="settings-group-card settings-group-card--padded">
-        <button class="ghost-btn" data-action="trigger-restore">${ICONS.upload} Sicherung importieren</button>
+        <button class="ghost-btn" data-action="trigger-restore">${ICONS.upload} Aus Sicherung wiederherstellen</button>
         <input type="file" id="restoreFileInput" accept="application/json" style="display:none;">
-        <p class="settings-hint settings-hint--top">„Sicherung importieren“ ist für deine eigenen Sicherungen gedacht. Ein von dir geteiltes Rezept kommt bei anderen als fertige PDF-Datei an: die lässt sich ansehen, ausdrucken oder weiterschicken, aber nicht zurück in Savora einspielen.</p>
+        <p class="settings-hint settings-hint--top">${RESTORE_EXPLAIN}</p>
+        <p class="settings-hint">Gedacht für Dateien, die du hier unter „Sicherung speichern“ gespeichert hast. Rezepte von Freunden kommen direkt in Savora an (unter „Freunde &amp; Rezepte senden“). Ein als PDF weitergegebenes Rezept lässt sich nicht in Savora einspielen.</p>
         <div id="backupStatus"></div>
       </div>
     </div>`;
-  return settingsDetailShell('Sicherung', body);
+  return settingsDetailShell('Sicherungskopie', body);
 }
 
 function settingsHelpView() {
-  return settingsDetailShell('Hilfe & Feedback', legalHelpHtml());
+  return settingsDetailShell('Hilfe erhalten', legalHelpHtml());
 }
 function settingsPrivacyView() {
   return settingsDetailShell('Datenschutz', legalPrivacyHtml());
@@ -406,7 +416,7 @@ function pasteImportView() {
   const body = `
     <div class="settings-group">
       <div class="settings-group-card settings-group-card--padded">
-        <p class="settings-hint">Bildunterschrift eines Instagram-/TikTok-Posts, eine WhatsApp-Nachricht, kopierter Rezepttext einer Webseite oder eine eigene Notiz einfügen. Savora erkennt Titel, Zutaten und Schritte automatisch, du prüfst den Entwurf danach kurz, bevor du speicherst.</p>
+        <p class="settings-hint">Füge einen Rezepttext ein, zum Beispiel eine Bildunterschrift, eine Nachricht oder Text von einer Webseite. Savora erkennt Titel, Zutaten und Schritte. Du prüfst das Rezept, bevor es gespeichert wird.</p>
         ${SavoraNative.canRecognizeText() ? `<div class="ocr-box">
           <label class="ghost-btn ocr-btn" for="ocrInput">${ICONS.camera} Foto scannen</label>
           <input type="file" id="ocrInput" class="ocr-input" accept="image/*" aria-label="Foto von einem Rezept aufnehmen oder auswählen">

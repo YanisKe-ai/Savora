@@ -73,6 +73,7 @@ function openDB() {
     req.onerror = () => reject(req.error || new Error('IndexedDB konnte nicht geöffnet werden.'));
     req.onblocked = () => reject(new Error('Datenbank-Update blockiert — bitte alle anderen Savora-Tabs/-Fenster schliessen und neu laden.'));
   });
+  dbPromise.catch(() => { dbPromise = null; });   // fehlgeschlagenes Öffnen nicht dauerhaft merken: der nächste Versuch darf neu öffnen
   return dbPromise;
 }
 
@@ -92,7 +93,7 @@ async function dbPutMealplanDay(entry) {
     const tx = db.transaction('mealplan', 'readwrite');
     tx.objectStore('mealplan').put(entry);
     tx.oncomplete = () => resolve(entry);
-    tx.onerror = () => reject(tx.error);
+    tx.onerror = tx.onabort = () => reject(tx.error || new Error('Speichern fehlgeschlagen.'));   // bei vollem Speicher bricht die Transaktion ab (onabort), ohne dass onerror kommt
   });
 }
 
@@ -112,7 +113,7 @@ async function dbPutShopping(item) {
     const tx = db.transaction('shopping', 'readwrite');
     tx.objectStore('shopping').put(item);
     tx.oncomplete = () => resolve(item);
-    tx.onerror = () => reject(tx.error);
+    tx.onerror = tx.onabort = () => reject(tx.error || new Error('Speichern fehlgeschlagen.'));   // bei vollem Speicher bricht die Transaktion ab (onabort), ohne dass onerror kommt
   });
 }
 
@@ -122,7 +123,7 @@ async function dbDeleteShopping(id) {
     const tx = db.transaction('shopping', 'readwrite');
     tx.objectStore('shopping').delete(id);
     tx.oncomplete = () => resolve();
-    tx.onerror = () => reject(tx.error);
+    tx.onerror = tx.onabort = () => reject(tx.error || new Error('Speichern fehlgeschlagen.'));   // bei vollem Speicher bricht die Transaktion ab (onabort), ohne dass onerror kommt
   });
 }
 
@@ -133,7 +134,7 @@ async function dbPutImage(record) {
     const tx = db.transaction('images', 'readwrite');
     tx.objectStore('images').put(record);
     tx.oncomplete = () => resolve(record);
-    tx.onerror = () => reject(tx.error);
+    tx.onerror = tx.onabort = () => reject(tx.error || new Error('Speichern fehlgeschlagen.'));   // bei vollem Speicher bricht die Transaktion ab (onabort), ohne dass onerror kommt
   });
 }
 
@@ -153,7 +154,7 @@ async function dbDeleteImage(id) {
     const tx = db.transaction('images', 'readwrite');
     tx.objectStore('images').delete(id);
     tx.oncomplete = () => resolve();
-    tx.onerror = () => reject(tx.error);
+    tx.onerror = tx.onabort = () => reject(tx.error || new Error('Speichern fehlgeschlagen.'));   // bei vollem Speicher bricht die Transaktion ab (onabort), ohne dass onerror kommt
   });
 }
 
@@ -173,7 +174,7 @@ async function dbPut(recipe) {
     const tx = db.transaction('recipes', 'readwrite');
     tx.objectStore('recipes').put(recipe);
     tx.oncomplete = () => resolve(recipe);
-    tx.onerror = () => reject(tx.error);
+    tx.onerror = tx.onabort = () => reject(tx.error || new Error('Speichern fehlgeschlagen.'));   // bei vollem Speicher bricht die Transaktion ab (onabort), ohne dass onerror kommt
   });
 }
 
@@ -183,7 +184,7 @@ async function dbDelete(id) {
     const tx = db.transaction('recipes', 'readwrite');
     tx.objectStore('recipes').delete(id);
     tx.oncomplete = () => resolve();
-    tx.onerror = () => reject(tx.error);
+    tx.onerror = tx.onabort = () => reject(tx.error || new Error('Speichern fehlgeschlagen.'));   // bei vollem Speicher bricht die Transaktion ab (onabort), ohne dass onerror kommt
   });
 }
 
@@ -227,7 +228,7 @@ async function dbPutNutritionFoodsBulk(foods) {
     const store = tx.objectStore('nutritionFoods');
     for (const food of foods) store.put(food);
     tx.oncomplete = () => resolve(foods.length);
-    tx.onerror = () => reject(tx.error);
+    tx.onerror = tx.onabort = () => reject(tx.error || new Error('Speichern fehlgeschlagen.'));   // bei vollem Speicher bricht die Transaktion ab (onabort), ohne dass onerror kommt
   });
 }
 
@@ -243,7 +244,7 @@ async function dbDeleteNutritionFoodsBySource(source) {
       if (cursor) { cursor.delete(); cursor.continue(); }
     };
     tx.oncomplete = () => resolve();
-    tx.onerror = () => reject(tx.error);
+    tx.onerror = tx.onabort = () => reject(tx.error || new Error('Speichern fehlgeschlagen.'));   // bei vollem Speicher bricht die Transaktion ab (onabort), ohne dass onerror kommt
   });
 }
 
@@ -274,7 +275,7 @@ async function dbPutNutritionMatch(match) {
     const tx = db.transaction('nutritionMatches', 'readwrite');
     tx.objectStore('nutritionMatches').put(match);
     tx.oncomplete = () => resolve(match);
-    tx.onerror = () => reject(tx.error);
+    tx.onerror = tx.onabort = () => reject(tx.error || new Error('Speichern fehlgeschlagen.'));   // bei vollem Speicher bricht die Transaktion ab (onabort), ohne dass onerror kommt
   });
 }
 
@@ -284,7 +285,7 @@ async function dbDeleteNutritionMatch(normalizedIngredient) {
     const tx = db.transaction('nutritionMatches', 'readwrite');
     tx.objectStore('nutritionMatches').delete(normalizedIngredient);
     tx.oncomplete = () => resolve();
-    tx.onerror = () => reject(tx.error);
+    tx.onerror = tx.onabort = () => reject(tx.error || new Error('Speichern fehlgeschlagen.'));   // bei vollem Speicher bricht die Transaktion ab (onabort), ohne dass onerror kommt
   });
 }
 
@@ -315,7 +316,7 @@ async function dbPutNutritionResult(result) {
     const tx = db.transaction('nutritionResults', 'readwrite');
     tx.objectStore('nutritionResults').put(result);
     tx.oncomplete = () => resolve(result);
-    tx.onerror = () => reject(tx.error);
+    tx.onerror = tx.onabort = () => reject(tx.error || new Error('Speichern fehlgeschlagen.'));   // bei vollem Speicher bricht die Transaktion ab (onabort), ohne dass onerror kommt
   });
 }
 
@@ -325,7 +326,7 @@ async function dbDeleteNutritionResult(recipeId) {
     const tx = db.transaction('nutritionResults', 'readwrite');
     tx.objectStore('nutritionResults').delete(recipeId);
     tx.oncomplete = () => resolve();
-    tx.onerror = () => reject(tx.error);
+    tx.onerror = tx.onabort = () => reject(tx.error || new Error('Speichern fehlgeschlagen.'));   // bei vollem Speicher bricht die Transaktion ab (onabort), ohne dass onerror kommt
   });
 }
 
@@ -346,7 +347,7 @@ async function dbPutCustomFood(food) {
     const tx = db.transaction('customFoods', 'readwrite');
     tx.objectStore('customFoods').put(food);
     tx.oncomplete = () => resolve(food);
-    tx.onerror = () => reject(tx.error);
+    tx.onerror = tx.onabort = () => reject(tx.error || new Error('Speichern fehlgeschlagen.'));   // bei vollem Speicher bricht die Transaktion ab (onabort), ohne dass onerror kommt
   });
 }
 
@@ -356,7 +357,7 @@ async function dbDeleteCustomFood(id) {
     const tx = db.transaction('customFoods', 'readwrite');
     tx.objectStore('customFoods').delete(id);
     tx.oncomplete = () => resolve();
-    tx.onerror = () => reject(tx.error);
+    tx.onerror = tx.onabort = () => reject(tx.error || new Error('Speichern fehlgeschlagen.'));   // bei vollem Speicher bricht die Transaktion ab (onabort), ohne dass onerror kommt
   });
 }
 
@@ -377,6 +378,6 @@ async function dbPutNutritionMeta(key, value) {
     const tx = db.transaction('nutritionMeta', 'readwrite');
     tx.objectStore('nutritionMeta').put({ key, value });
     tx.oncomplete = () => resolve(value);
-    tx.onerror = () => reject(tx.error);
+    tx.onerror = tx.onabort = () => reject(tx.error || new Error('Speichern fehlgeschlagen.'));   // bei vollem Speicher bricht die Transaktion ab (onabort), ohne dass onerror kommt
   });
 }

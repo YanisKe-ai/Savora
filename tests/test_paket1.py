@@ -40,29 +40,26 @@ async def main():
         check('Kochmodus startet ueber den Knopf', True)
         await page.evaluate("() => { state.view='detail'; state.activeRecipeId='r_legacy_1'; render(); }")
 
-        # Startseite: erst ab 4 Rezepten "Zuletzt bearbeitet"
+        # Startseite (Paket 37): kein "Zuletzt bearbeitet" mehr, Rezepte ohne Foto sind typografische Karten (kein Buchstabe, keine Bildflaeche)
         await show(page, "() => { state.view='home'; render(); }", '.home-main')
-        n_recent = await page.evaluate("document.querySelectorAll('.recent-card').length")
-        check('Startseite mit 3 Rezepten: kein doppeltes "Zuletzt bearbeitet"', n_recent == 0)
+        check('Startseite mit 3 Rezepten: kein doppeltes "Zuletzt bearbeitet"', await page.evaluate("document.querySelectorAll('.recent-card').length") == 0)
         await page.evaluate("""async () => { const r = emptyRecipe(); r.id = 'r_p1_four'; r.title = 'Vierter Test'; r.ingredients=[{amount:'1',unit:'',name:'Ei'}]; r.steps=[{text:'Kochen.'}]; await dbPut(r); await loadRecipes(); state.view='home'; render(); }""")
         await page.wait_for_timeout(400)
-        check('Startseite mit 4 Rezepten: "Zuletzt bearbeitet" erscheint', await page.evaluate("document.querySelectorAll('.recent-card').length") == 1)
+        check('Startseite mit 4 Rezepten: Rezepte sofort, kein "Zuletzt bearbeitet"', await page.evaluate("document.querySelectorAll('.recent-card').length") == 0 and await page.evaluate("document.querySelectorAll('.rcard').length") == 4)
 
-        # Platzhalter
-        cls1 = await page.evaluate("Array.from(document.querySelectorAll('.rcard-img.placeholder')).map(e => e.className.match(/ph-\\d/)[0] + ':' + e.textContent.trim())")
-        await page.evaluate("() => { state.view='detail'; render(); state.view='home'; render(); }"); await page.wait_for_timeout(300)
-        cls2 = await page.evaluate("Array.from(document.querySelectorAll('.rcard-img.placeholder')).map(e => e.className.match(/ph-\\d/)[0] + ':' + e.textContent.trim())")
-        check('Rezepte ohne Foto: Anfangsbuchstabe mit stabiler Farbe', len(cls1) >= 2 and cls1 == cls2 and any(c.endswith(':V') for c in cls1) and any(c.endswith(':G') for c in cls1), str(cls1))
+        # Rezepte ohne Foto: typografische Karte statt Buchstaben-Platzhalter
+        txt = await page.evaluate("Array.from(document.querySelectorAll('.rcard--text')).map(e => (e.querySelector('.rcard-img, .placeholder, .ph-letter') ? 'bild' : 'ok') + ':' + e.querySelector('.rcard-title').textContent.trim())")
+        check('Rezepte ohne Foto: typografische Karte ohne Bildflaeche und Buchstaben', len(txt) >= 2 and all(t.startswith('ok:') for t in txt) and any(t.endswith(':Gemüse-Curry') for t in txt), str(txt))
 
         # Tippflaechen
         for name, js in [('Startseite', "state.view='home'"), ('Wochenplan', "state.view='mealplan'"), ('Einkauf', "state.view='shopping'"), ('Rezeptseite', "state.activeRecipeId='r_legacy_1'; state.view='detail'")]:
             await page.evaluate("() => {" + js + "; render(); }"); await page.wait_for_timeout(500)
             bad = await page.evaluate(TAP)
             check(f'Tippflaechen mind. 44 px: {name}', not bad, str(bad[:4]))
-        # Dunkelmodus: Platzhalter lesbar (Buchstabe heller als Hintergrund)
+        # Dunkelmodus: Titel in der typografischen Karte lesbar (heller als die Flaeche)
         await page.evaluate("() => { document.documentElement.setAttribute('data-theme','dark'); state.view='home'; render(); }"); await page.wait_for_timeout(400)
-        lum = await page.evaluate("""() => { const e = document.querySelector('.rcard-img.placeholder'); const cs = getComputedStyle(e); const c = cs.color.match(/\\d+/g).map(Number); return c[0]*0.3 + c[1]*0.59 + c[2]*0.11 }""")
-        check('Dunkelmodus: Platzhalter-Buchstabe hell genug', lum > 150, f'{lum:.0f}')
+        lum = await page.evaluate("""() => { const e = document.querySelector('.rcard--text .rcard-title'); const c = getComputedStyle(e).color.match(/\\d+/g).map(Number); return c[0]*0.3 + c[1]*0.59 + c[2]*0.11 }""")
+        check('Dunkelmodus: Titel der typografischen Karte hell genug', lum > 150, f'{lum:.0f}')
         check('Keine Seitenfehler', not errs, str(errs[:3]))
         await browser.close()
     print('\nFEHLGESCHLAGEN:', FAIL or 'keine')

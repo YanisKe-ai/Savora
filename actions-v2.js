@@ -50,6 +50,13 @@ document.addEventListener('input', (e) => {
   coverRefresh();   // Vorschau sofort, ohne die Seite neu zu zeichnen
 });
 
+/* Enter im Namensfeld speichert (Kochbuch anlegen oder umbenennen) */
+document.addEventListener('keydown', (e) => {
+  if (e.key !== 'Enter' || !e.target || e.target.id !== 'cbNameInput' || e.isComposing) return;
+  e.preventDefault();
+  const b = document.querySelector('[data-action="cb-name-save"]'); if (b) b.click();
+});
+
 /* Einmalig registrierte, delegierte change-Listener (kein erneutes Binden pro Render). */
 document.addEventListener('change', (e) => {
   const t = e.target;
@@ -86,6 +93,49 @@ function readPlanMeal() {
   const v = custom ? custom.value.trim() : '';
   return v || (state.modal && state.modal.meal) || '';
 }
+/* Rueckgaengig fuer Einkaufsaktionen: Zustand vorher sichern, im Toast exakt wiederherstellen */
+function shopUndoOpts(snap) {
+  return { actionLabel: 'Rückgängig', duration: 8000, onAction: async () => {
+    await shoppingRestore(snap);
+    state.shopStay = new Set();
+    if (state.view === 'shopping') render();
+    showToast('Wiederhergestellt');
+  } };
+}
+// Markiert Auswahlzeilen, die dieselbe Quelle (Rezept bzw. Wochenplan-Eintrag) schon auf der Liste haben: sie sind vorab abgewaehlt.
+function markShoppingDuplicates(items) {
+  const keys = shoppingSourceKeys();
+  items.forEach(it => { if (it.ref && keys.has(shoppingSourceKey(it.ref, it.name))) { it.dup = true; it.selected = false; } });
+  return items.filter(it => it.dup).length;
+}
+/* Abhaken: sofort, ohne Neuaufbau der Liste. Die Zeile bleibt an ihrer Stelle (state.shopStay), bis die Ansicht neu
+   betreten oder «Erledigte nach unten» getippt wird. */
+async function toggleShoppingItem(id) {
+  const item = state.shopping.find(x => x.id === id);
+  if (!item) return true;
+  const wasChecked = !!item.checked;
+  item.checked = !wasChecked;
+  state.shopStay = state.shopStay || new Set();
+  state.shopStay.add(id);
+  const row = document.querySelector(`.shop-row[data-id="${id}"]`);
+  if (row) {   // unmittelbare Rueckmeldung am Element, ohne Neuaufbau (kein Springen, Fokus bleibt)
+    row.classList.toggle('is-checked', item.checked);
+    const cb = row.querySelector('.shop-check'); if (cb) cb.setAttribute('aria-checked', String(item.checked));
+    updateShopCounts();
+  } else render();
+  await dbPutShopping(item);
+  showToast(`„${item.name}“ ${item.checked ? 'abgehakt' : 'wieder offen'}`, 'success', false, { actionLabel: 'Rückgängig', duration: 6000, onAction: async () => {
+    item.checked = wasChecked; await dbPutShopping(item);
+    if (state.view === 'shopping') { const r2 = document.querySelector(`.shop-row[data-id="${id}"]`); if (r2) { r2.classList.toggle('is-checked', item.checked); const c2 = r2.querySelector('.shop-check'); if (c2) c2.setAttribute('aria-checked', String(item.checked)); updateShopCounts(); } else render(); }
+  } });
+  return true;
+}
+function updateShopCounts() {
+  const open = state.shopping.filter(i => !i.checked && !i.have).length;
+  const b = document.querySelector('.nav-badge'); if (b) { b.textContent = open > 99 ? '99+' : String(open); b.hidden = !open; }
+  const stayChecked = state.shopping.filter(i => i.checked && (state.shopStay || new Set()).has(i.id)).length;
+  const btn = document.querySelector('[data-action="sort-checked-down"]'); if (btn) btn.disabled = !stayChecked;
+}
 function currentWeekDays() { return Array.from({ length: 7 }, (_, i) => fmtDateKey(addDays(state.weekStart, i))); }
 function replaceModal(modal) { state.modal = modal; render(); }
 function parseShoppingInput(text) {
@@ -109,6 +159,7 @@ async function handleActionV2(action, id, el, e) {
     }
     case 'back':
     case 'nav-tab':
+      state.shopStay = new Set();   // Einkauf neu betreten: Abgehaktes wandert nach unten
       if (state.view === 'form') {
         if (!confirmDiscardIfDirty()) return true;
         clearRecipeDraft();
@@ -435,6 +486,7 @@ async function handleActionV2(action, id, el, e) {
       if (!r) return true;
       const items = shoppingSelectionFor(r, currentServings(r));
       if (!items.length) { showToast('Dieses Rezept hat noch keine Zutaten'); return true; }
+      markShoppingDuplicates(items);
       openModal({ type: 'shop-select', items }, `[data-action="add-to-shopping"][data-id="${id}"]`);
       return true;
     }
@@ -445,6 +497,7 @@ async function handleActionV2(action, id, el, e) {
       const ids = Array.from(document.querySelectorAll('[data-pick-recipe]:checked')).map(x => x.dataset.pickRecipe);
       if (!ids.length) { showToast('Bitte mindestens ein Rezept wählen'); return true; }
       const items = ids.flatMap(rid => { const r = state.recipes.find(x => x.id === rid); return r ? shoppingSelectionFor(r, r.servings || 1) : []; });
+      markShoppingDuplicates(items);
       replaceModal({ type: 'shop-select', items });
       return true;
     }
@@ -454,11 +507,13 @@ async function handleActionV2(action, id, el, e) {
       const days = chosen.length ? chosen : week;
       const items = [];
       days.forEach(k => planEntriesFor(k).forEach((entry, n) => {
+        if (isNoteEntry(entry) || !entry.recipeId) return;   // Notizen (Reste, Auswaerts ...) haben keine Zutaten
         const r = state.recipes.find(x => x.id === entry.recipeId);
         if (!r) return;
-        shoppingSelectionFor(r, entry.servings || r.servings || 1).forEach(it => items.push({ ...it, key: `${k}-${n}-${it.key}` }));
+        shoppingSelectionFor(r, entry.servings || r.servings || 1, `${k}:${entry.id}`).forEach(it => items.push({ ...it, key: `${k}-${n}-${it.key}` }));
       }));
       if (!items.length) { showToast('Keine geplanten Rezepte mit Zutaten'); return true; }
+      markShoppingDuplicates(items);
       openModal({ type: 'shop-select', items }, '[data-action="mealplan-to-shopping"]');
       return true;
     }
@@ -467,10 +522,17 @@ async function handleActionV2(action, id, el, e) {
       if (!m || m.type !== 'shop-select') return true;
       const on = new Set(Array.from(document.querySelectorAll('[data-shop-key]:checked')).map(x => x.dataset.shopKey));
       const selection = m.items.filter(it => on.has(it.key));
+      if (!selection.length) {
+        closeModal();
+        showToast(m.items.length && m.items.every(it => it.dup) ? 'Nichts Neues hinzugefügt, alles war schon auf der Liste' : 'Nichts ausgewählt');
+        return true;
+      }
+      const snap = shoppingSnapshot();
       const { added, merged } = await addSelectionToShopping(selection);
       state.shopping.sort((a, b) => a.name.localeCompare(b.name, 'de'));
       closeModal();
-      showToast(selection.length ? `${added} neu, ${merged} zusammengeführt` : 'Nichts ausgewählt');
+      const n = added + merged;
+      showToast(`${n} Zutat${n === 1 ? '' : 'en'} hinzugefügt${merged ? ` (${merged} zusammengeführt)` : ''}`, 'success', false, shopUndoOpts(snap));
       return true;
     }
     case 'add-shopping-item-manual': {
@@ -478,7 +540,7 @@ async function handleActionV2(action, id, el, e) {
       const text = input ? input.value.trim() : '';
       if (!text) return true;
       const parsed = parseShoppingInput(text);
-      const item = { id: uid(), name: parsed.name, amount: parsed.amount, ...(parsed.amountMax !== undefined ? { amountMax: parsed.amountMax } : {}), unit: parsed.unit, checked: false, recipeId: null, createdAt: Date.now(), sources: [] };
+      const item = { id: uid(), name: parsed.name, amount: parsed.amount, ...(parsed.amountMax !== undefined ? { amountMax: parsed.amountMax } : {}), unit: parsed.unit, checked: false, recipeId: null, createdAt: Date.now(), sources: [], manual: true };
       await dbPutShopping(item);
       state.shopping.push(item);
       render();
@@ -494,6 +556,7 @@ async function handleActionV2(action, id, el, e) {
       if (!item) { closeModal(); return true; }
       const rawAmount = document.getElementById('shopEditAmount').value.trim();
       const eq = parseQuantity(rawAmount, document.getElementById('shopEditUnit').value.trim());
+      const before = [item.amount, item.amountMax, item.unit, item.name].join('|');
       delete item.amountMax;
       if (rawAmount === '') item.amount = '';
       else if (eq.kind === 'exact') item.amount = eq.min;
@@ -502,6 +565,7 @@ async function handleActionV2(action, id, el, e) {
       item.unit = document.getElementById('shopEditUnit').value.trim();
       item.name = document.getElementById('shopEditName').value.trim() || item.name;
       item.section = document.getElementById('shopEditSection').value;
+      if ([item.amount, item.amountMax, item.unit, item.name].join('|') !== before) item.edited = true;   // von Hand geaendert: wird beim Zusammenfuehren nie ueberschrieben
       await dbPutShopping(item);
       closeModal();
       return true;
@@ -527,10 +591,40 @@ async function handleActionV2(action, id, el, e) {
       showToast('Zusammenführung getrennt');
       return true;
     }
-    case 'delete-shopping-item':
+    case 'delete-shopping-item': {
+      const snap = shoppingSnapshot();
+      const gone = state.shopping.find(x => x.id === id);
       await dbDeleteShopping(id);
       await loadShopping();
       if (state.modal) closeModal(); else render();
+      showToast(`„${gone ? gone.name : 'Zutat'}“ entfernt`, 'success', false, shopUndoOpts(snap));
+      return true;
+    }
+    case 'toggle-shopping-item': return toggleShoppingItem(id);
+    case 'clear-checked-shopping': {
+      const n = state.shopping.filter(s => s.checked).length;
+      if (!n) return true;
+      const snap = shoppingSnapshot();
+      for (const i of state.shopping.filter(s => s.checked)) await dbDeleteShopping(i.id);
+      await loadShopping();
+      state.shopStay = new Set();
+      render();
+      showToast(n === 1 ? '1 erledigte Zutat entfernt' : `${n} erledigte Zutaten entfernt`, 'success', false, shopUndoOpts(snap));
+      return true;
+    }
+    case 'clear-all-shopping': {
+      if (!state.shopping.length) return true;
+      const snap = shoppingSnapshot();
+      for (const i of state.shopping) await dbDeleteShopping(i.id);
+      await loadShopping();
+      state.shopStay = new Set();
+      render();
+      showToast('Liste geleert', 'success', false, shopUndoOpts(snap));
+      return true;
+    }
+    case 'sort-checked-down':
+      state.shopStay = new Set();
+      render();
       return true;
     case 'share-shopping': {
       const open = state.shopping.filter(i => !i.checked && !i.have);
@@ -539,7 +633,7 @@ async function handleActionV2(action, id, el, e) {
       const lines = [];
       SHOP_SECTIONS.filter(s => bySection[s]).forEach(s => {
         lines.push(s);
-        bySection[s].forEach(i => lines.push(`- ${i.amount !== '' && i.amount != null ? shopAmountText(i) + (i.unit ? ' ' + i.unit : '') + ' ' : ''}${i.name}`));
+        bySection[s].forEach(i => lines.push(`- ${i.amount !== '' && i.amount != null ? shopAmountLine(i) + ' ' : ''}${i.name}`));
         lines.push('');
       });
       const text = lines.join('\n').trim() || 'Einkaufsliste ist leer';
@@ -557,7 +651,7 @@ async function handleActionV2(action, id, el, e) {
       openModal({ type: 'pick-recipe', date: el.dataset.date, meal: '' }, `[data-action="open-day-picker"][data-date="${el.dataset.date}"]`);
       return true;
     case 'set-plan-meal':
-      if (state.modal) { state.modal.meal = state.modal.meal === id ? '' : id; const c = document.getElementById('planMealCustom'); if (c) c.value = ''; render(); }
+      if (state.modal) { const ni = document.getElementById('planNoteInput'); if (ni) state.modal.noteDraft = ni.value; state.modal.meal = state.modal.meal === id ? '' : id; const c = document.getElementById('planMealCustom'); if (c) c.value = ''; render(); }
       return true;
     case 'assign-mealplan-recipe': {
       const date = el.dataset.date;
@@ -569,6 +663,22 @@ async function handleActionV2(action, id, el, e) {
       if (fromDetail) showToast('Im Wochenplan eingetragen');
       return true;
     }
+    case 'add-plan-note': {   // Eintrag ohne Rezept: «Reste», «Auswaerts» oder eigene Kurznotiz (max. 60 Zeichen)
+      const m = state.modal;
+      if (!m || m.type !== 'pick-recipe') return true;
+      const quick = el.dataset.note;
+      const input = document.getElementById('planNoteInput');
+      const text = String(quick || (input ? input.value : '')).replace(/\s+/g, ' ').trim().slice(0, PLAN_NOTE_MAX);
+      if (!text) { showToast('Bitte eine kurze Notiz eingeben'); if (input) focusWithoutScroll(input); return true; }
+      const date = m.date;
+      const entries = planEntriesFor(date).slice();
+      const meal = readPlanMeal();
+      entries.push({ id: uid(), type: 'note', text, ...(meal ? { meal } : {}) });
+      await savePlanEntries(date, entries);
+      closeModal();
+      showToast(`„${text}“ eingetragen`);
+      return true;
+    }
     case 'open-plan-entry':
       openModal({ type: 'plan-entry', date: el.dataset.date, entryId: id, meal: (planEntriesFor(el.dataset.date).find(x => x.id === id) || {}).meal || '' }, `[data-action="open-plan-entry"][data-id="${id}"]`);
       return true;
@@ -576,6 +686,7 @@ async function handleActionV2(action, id, el, e) {
       const m = state.modal;
       const entries = planEntriesFor(m.date).map(x => ({ ...x }));
       const entry = entries.find(x => x.id === m.entryId);
+      if (!entry || isNoteEntry(entry)) return true;
       const r = state.recipes.find(x => x.id === entry.recipeId) || { servings: 1 };
       entry.servings = Math.max(1, (entry.servings || r.servings || 1) + parseInt(el.dataset.delta, 10));
       await savePlanEntries(m.date, entries);
@@ -589,7 +700,14 @@ async function handleActionV2(action, id, el, e) {
       let entries = planEntriesFor(m.date).map(x => ({ ...x }));
       const entry = entries.find(x => x.id === m.entryId);
       if (!entry) { closeModal(); return true; }
+      const prevSource = planEntriesFor(m.date).map(x => ({ ...x })), prevTarget = planEntriesFor(target).map(x => ({ ...x }));
       entry.meal = meal;
+      if (isNoteEntry(entry)) {
+        const ne = document.getElementById('planNoteEdit');
+        const t = ne ? ne.value.replace(/\s+/g, ' ').trim().slice(0, PLAN_NOTE_MAX) : entry.text;
+        if (t) entry.text = t;
+        if (!meal) delete entry.meal;
+      }
       if (target !== m.date) {
         entries = entries.filter(x => x.id !== entry.id);
         await savePlanEntries(m.date, entries);
@@ -600,12 +718,19 @@ async function handleActionV2(action, id, el, e) {
         await savePlanEntries(m.date, entries);
       }
       closeModal();
+      if (target !== m.date) showToast('Eintrag verschoben', 'success', false, { actionLabel: 'Rückgängig', duration: 8000, onAction: async () => {
+        await savePlanEntries(m.date, prevSource); if (target !== m.date) await savePlanEntries(target, prevTarget); if (state.view === 'mealplan') render(); } });
       return true;
     }
     case 'remove-plan-entry': {
       const m = state.modal;
-      await savePlanEntries(m.date, planEntriesFor(m.date).filter(x => x.id !== m.entryId));
+      const prev = planEntriesFor(m.date).map(x => ({ ...x }));
+      const gone = prev.find(x => x.id === m.entryId);
+      await savePlanEntries(m.date, prev.filter(x => x.id !== m.entryId));
       closeModal();
+      const r = gone && !isNoteEntry(gone) ? state.recipes.find(x => x.id === gone.recipeId) : null;
+      showToast(`„${gone ? (isNoteEntry(gone) ? gone.text : (r ? r.title : 'Eintrag')) : 'Eintrag'}“ entfernt`, 'success', false, { actionLabel: 'Rückgängig', duration: 8000, onAction: async () => {
+        await savePlanEntries(m.date, prev); if (state.view === 'mealplan') render(); } });
       return true;
     }
 
@@ -651,6 +776,76 @@ async function handleActionV2(action, id, el, e) {
       saveCookbookConfig(cfg); render();
       return true;
     }
+    case 'cb-clear-all': {   // nimmt nur die Auswahl zurueck; Rezepte bleiben unveraendert erhalten
+      const cfg = getCookbookConfig();
+      cfg.items = [];
+      saveCookbookConfig(cfg); render();
+      return true;
+    }
+    case 'cb-page-style': {
+      if (!PDF_TEMPLATES[id]) return true;
+      const cfg = getCookbookConfig();
+      cfg.pdfTemplate = id;
+      saveCookbookConfig(cfg); pdfRememberTemplate(id); render();
+      const again = document.querySelector(`[data-action="cb-page-style"][data-id="${id}"]`); if (again) focusWithoutScroll(again);
+      return true;
+    }
+    case 'cb-step': {
+      const n = Math.min(3, Math.max(1, parseInt(id, 10) || 1));
+      state.cookbookStep = n;
+      render();
+      window.scrollTo(0, 0);
+      const h = document.getElementById('cbStepTitle'); if (h) focusWithoutScroll(h);
+      return true;
+    }
+
+    /* ----- Kochbuch-Projekte (Ansicht «Kochbücher») ----- */
+    case 'cb-new':
+      openModal({ type: 'cb-name', mode: 'new', value: '' }, '[data-action="cb-new"]');
+      setTimeout(() => { const i = document.getElementById('cbNameInput'); if (i) { i.setAttribute('placeholder', cookbookDefaultNewName()); i.focus(); } }, 30);
+      return true;
+    case 'cb-rename': {
+      const b = cookbookById(id); if (!b) return true;
+      openModal({ type: 'cb-name', mode: 'rename', id, value: b.name }, `[data-action="cb-rename"][data-id="${id}"]`);
+      setTimeout(() => { const i = document.getElementById('cbNameInput'); if (i) { i.focus(); i.select(); } }, 30);
+      return true;
+    }
+    case 'cb-name-save': {
+      const m = state.modal; if (!m || m.type !== 'cb-name') return true;
+      const input = document.getElementById('cbNameInput');
+      const value = input ? input.value : '';
+      if (m.mode === 'rename') {
+        if (!cookbookCleanName(value)) { m.value = value; m.error = 'Bitte gib dem Kochbuch einen Namen.'; render(); setTimeout(() => { const i = document.getElementById('cbNameInput'); if (i) i.focus(); }, 30); return true; }
+        cookbookRename(m.id, value);
+        closeModal();
+        showToast('Kochbuch umbenannt');
+        return true;
+      }
+      cookbookCreate(value);   // leerer Name: «Kochbuch 2», «Kochbuch 3» ...; Titel, Untertitel und Name bleiben leer
+      state.modal = null; state.cookbookStep = 1; state.view = 'cookbook';
+      render();
+      return true;
+    }
+    case 'cb-open':
+      if (!cookbookSetActive(id)) return true;
+      state.cookbookStep = 1; state.view = 'cookbook';
+      render();
+      return true;
+    case 'cb-duplicate': {
+      const copy = cookbookDuplicate(id); if (!copy) return true;
+      render();
+      showToast('Kochbuch dupliziert');
+      const again = document.querySelector(`[data-action="cb-open"][data-id="${copy.id}"]`); if (again) focusWithoutScroll(again);
+      return true;
+    }
+    case 'cb-delete':
+      if (cookbookBooks().length <= 1) { showToast('Mindestens ein Kochbuch bleibt bestehen'); return true; }
+      openModal({ type: 'cb-delete', id }, `[data-action="cb-delete"][data-id="${id}"]`);
+      return true;
+    case 'cb-delete-confirm':
+      if (cookbookDelete(id)) { closeModal(); showToast('Kochbuch gelöscht. Deine Rezepte sind unverändert.'); }
+      else showToast('Mindestens ein Kochbuch bleibt bestehen');
+      return true;
 
     /* ----- Gefuehrte Erfassung ----- */
     case 'form-goto-step': {
@@ -713,7 +908,7 @@ async function handleActionV2(action, id, el, e) {
       render();
       return true;
     case 'save-recipe':
-      clearRecipeDraft();
+      // Der Entwurf wird erst nach erfolgreichem Speichern gelöscht (siehe ui.js), damit bei einem Speicherfehler nichts verloren geht
       state.editingRecipeSnapshot = null;
       return false;
     case 'do-paste-import':
@@ -738,4 +933,24 @@ document.addEventListener('keydown', (e) => {
   e.preventDefault();
   tabs[i].click();
   focusWithoutScroll(tabs[i]);
+});
+
+
+/* Paket 37: Pfeiltasten in Auswahlgruppen (role="radiogroup", z. B. Titelblatt-Vorlagen, Sortierung, Mahlzeit, Design).
+   Pfeile bewegen den Fokus und waehlen; Enter und Leertaste waehlen das fokussierte Element (native Buttons). */
+document.addEventListener('keydown', (e) => {
+  const k = e.key;
+  if (!['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'Home', 'End'].includes(k) || e.altKey || e.ctrlKey || e.metaKey) return;
+  const radio = e.target && e.target.closest ? e.target.closest('[role="radio"]') : null;
+  const group = radio && radio.closest('[role="radiogroup"]');
+  if (!group) return;
+  const items = Array.from(group.querySelectorAll('[role="radio"]')).filter(x => !x.disabled && x.offsetParent !== null);
+  let i = items.indexOf(radio);
+  if (i < 0) return;
+  if (k === 'ArrowLeft' || k === 'ArrowUp') i = (i - 1 + items.length) % items.length;
+  else if (k === 'ArrowRight' || k === 'ArrowDown') i = (i + 1) % items.length;
+  else if (k === 'Home') i = 0; else i = items.length - 1;
+  e.preventDefault();
+  focusWithoutScroll(items[i]);
+  items[i].click();   // render() stellt den Fokus am neuen Element wieder her
 });

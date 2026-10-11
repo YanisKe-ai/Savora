@@ -187,7 +187,7 @@ async function calculateRecipeNutrition(recipe) {
       (unquantified.length > 0 ? `, ${unquantified.length} ohne Mengenangabe nicht eingerechnet` : '') +
       (unresolvedCount > 0 ? `, ${unresolvedCount} ungeklärt` : '') +
       (rangeCount > 0 ? `, bei ${rangeCount} Zutat${rangeCount === 1 ? '' : 'en'} Mengenbereich: Ergebnis als Spanne` : '') +
-      (needsServings ? ', Ausbeute unbekannt: keine Pro-Portion-Werte' : '') +
+      (needsServings ? ', Angabe zum Ergibt fehlt: keine Pro-Portion-Werte' : '') +
       (per100Estimated ? ', Fertiggewicht geschätzt' : ', Fertiggewicht bekannt');
 
   return {

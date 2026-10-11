@@ -18,7 +18,7 @@ function ingredientNamesMatch(nameA, nameB) {
 function shoppingFindMatch(name, unit) {
   const canonical = normalizeUnit(unit);
   return state.shopping.find(x => {
-    if (x.checked || x.have || !qtyIsNumeric(shopQty(x))) return false;
+    if (x.checked || x.have || x.manual || x.edited || !qtyIsNumeric(shopQty(x))) return false;   // von Hand eingetragene oder geaenderte Zeilen werden nie ueberschrieben
     if (!ingredientNamesMatch(x.name, name)) return false;
     const xc = normalizeUnit(x.unit);
     if (canonical && xc) return unitDimension(canonical) === unitDimension(xc);
@@ -81,4 +81,21 @@ function categorizeIngredient(name) {
     if (keywords && keywords.some(k => s.includes(k))) return cat;
   }
   return 'Sonstiges';
+}
+
+/* ---------- Paket 37: Sicherung und Wiederherstellung der Einkaufsliste (fuer «Rueckgaengig») ---------- */
+function shoppingSnapshot() { return JSON.parse(JSON.stringify(state.shopping)); }
+// Stellt die Liste exakt wieder her: fehlende Zeilen zurueckschreiben, neu entstandene entfernen, geaenderte ersetzen.
+async function shoppingRestore(snapshot) {
+  const keep = new Set(snapshot.map(i => i.id));
+  for (const cur of state.shopping.slice()) if (!keep.has(cur.id)) await dbDeleteShopping(cur.id);
+  for (const item of snapshot) await dbPutShopping(item);
+  await loadShopping();
+}
+// Bereits uebernommen? Quelle = Rezept (+ Wochenplan-Eintrag) und Zutatenname; abgehakte Zeilen zaehlen nicht mehr (schon gekauft).
+function shoppingSourceKey(ref, name) { return String(ref || '') + '|' + String(name || '').trim().toLowerCase(); }
+function shoppingSourceKeys() {
+  const keys = new Set();
+  state.shopping.forEach(i => { if (i.checked) return; (i.sources || []).forEach(s => { if (s && s.ref) keys.add(shoppingSourceKey(s.ref, s.ing)); }); });
+  return keys;
 }

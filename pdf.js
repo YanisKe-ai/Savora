@@ -415,7 +415,7 @@ async function buildCookbookPdf(nutritionDetail, opts) {
   const recipes = sections.flatMap(s => s.recipes);
   if (!recipes.length) return null;
   const templateId = (opts && opts.template) || cfg.pdfTemplate || pdfDefaultTemplateId();
-  const title = (cfg.title || state.cookbookTitle || 'Mein persönliches Kochbuch');
+  const title = cfg.title || '';   // leer = nichts drucken (kein unsichtbarer Standardtitel)
   const author = cfg.author || '';
   pdfSetContext(templateId, title, author, cfg.showLogo !== false);
   await ensureFontsReadyForPdf();

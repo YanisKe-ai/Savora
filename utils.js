@@ -109,9 +109,10 @@ const BACKUP_NUDGE_KEY = 'savora-backup-nudge-until'; // Zeitstempel: bis dahin 
 const LAST_BACKUP_KEY = 'savora-last-backup-at'; // ISO-Zeitstempel der letzten erfolgreichen Sicherung, fuer "Mehr > Backup"
 
 /* Sicherungs-Erinnerung: erst ab 3 Rezepten, wenn noch nie oder seit 14 Tagen nicht gesichert wurde;
-   "Spaeter" schaltet sie 7 Tage aus. */
+   "Spaeter" schaltet sie 7 Tage aus. Mit Konto laufen die Rezepte ueber die Cloud: keine Erinnerung. */
 function backupNudgeInfo() {
   try {
+    if (typeof cloudSignedIn === 'function' && cloudSignedIn()) return null;
     if ((state.recipes || []).length < 3) return null;
     const until = parseInt(localStorage.getItem(BACKUP_NUDGE_KEY) || '0', 10) || 0;
     if (until > Date.now()) return null;

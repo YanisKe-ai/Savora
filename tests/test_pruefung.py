@@ -28,7 +28,7 @@ async def tz_tests(p):
         problems = []
         for monday in ['2026-09-28', '2026-10-19', '2026-12-28', '2027-03-22']:
             await show(page, f"() => {{ state.weekStart = parseDateKey('{monday}'); state.view = 'mealplan'; render(); }}", '.week-nav')
-            cards = await page.evaluate("""() => Array.from(document.querySelectorAll('.day-card')).map(c => ({ key: c.querySelector('[data-action="open-day-picker"]').dataset.date, label: c.querySelector('.day-card-date').textContent.trim() }))""")
+            cards = await page.evaluate("""() => Array.from(document.querySelectorAll('.plan-day')).map(c => ({ key: c.querySelector('.plan-day-title').id.slice(4), label: c.querySelector('.plan-day-date').textContent.trim() }))""")
             for c in cards:
                 d = await page.evaluate(f"(() => {{ const d = parseDateKey('{c['key']}'); return d.getDate() + '. ' + MONTH_LABELS[d.getMonth()]; }})()")
                 if d != c['label']: problems.append(f"{tz} {c['key']} Karte={c['label']} Schluessel={d}")
@@ -44,7 +44,7 @@ async def tz_tests(p):
         # Neu laden: Eintrag erscheint auf derselben Karte
         await goto(page)
         await show(page, "() => { state.weekStart = parseDateKey('2026-12-28'); state.view = 'mealplan'; render(); }", '.week-nav')
-        on_sunday = await page.evaluate("""!!document.querySelector('.day-card:nth-of-type(7) .plan-title, .day-card:last-of-type .plan-title')""")
+        on_sunday = await page.evaluate("""!!document.querySelector('.plan-day:nth-of-type(7) .plan-title, .plan-day:last-of-type .plan-title')""")
         check(f'F01 Datum konsistent in {tz} (Karte, Dialog, Speicherung, Neuladen; Monat, Jahr, Sommerzeit)', not problems and on_sunday and not errs, '; '.join(problems[:3]))
         await browser.close()
 
@@ -56,7 +56,7 @@ async def migration_test(p):
     await page.evaluate(f"dbPutMealplanDay({{ date: '{legacy_key}', recipeIds: ['r_plan'], entries: [{{ id: 'e1', recipeId: 'r_plan', meal: 'dinner', servings: 3 }}] }})")
     await goto(page)
     await show(page, "() => { state.weekStart = parseDateKey('2026-09-28'); state.view = 'mealplan'; render(); }", '.week-nav')
-    where = await page.evaluate("""Array.from(document.querySelectorAll('.day-card')).findIndex(c => c.querySelector('.plan-title'))""")
+    where = await page.evaluate("""Array.from(document.querySelectorAll('.plan-day')).findIndex(c => c.querySelector('.plan-title'))""")
     old = await page.evaluate(f"dbGetAllMealplan().then(l => l.find(d => d.date === '{legacy_key}'))")
     new = await page.evaluate("dbGetAllMealplan().then(l => l.find(d => d.date === '2026-09-30'))")
     snap = await page.evaluate("!!localStorage.getItem('savora-mealplan-backup-v1')")
@@ -152,7 +152,7 @@ async def data_tests(p):
     # F10 Backup-Text
     await show(page, "() => { state.view = 'settings-backup'; render(); }", '#restoreFileInput')
     bt = await page.evaluate("document.querySelector('.settings-page').textContent")
-    check('F10 Backup-Text ohne Anmeldung korrekt', 'nur auf diesem Gerät' in bt and 'Synchronisation' in bt)
+    check('F10 Backup-Text ohne Anmeldung korrekt', 'nur auf diesem Gerät' in bt and 'Auf mehreren Geräten' in bt)
 
     # F11 Zwischentitel und Quelle
     await show(page, f"() => {{ state.activeRecipeId = '{carb}'; state.detailTab = 'steps'; state.view = 'detail'; render(); }}", '.detail-main')

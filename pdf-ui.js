@@ -28,10 +28,13 @@ function pdfExportOptionsStage() {
   const title = m.target === 'cookbook' ? 'Kochbuch als PDF exportieren' : 'Als PDF exportieren';
   return `
     <h3 class="modal-title" id="pdf-export-title">${title}</h3>
-    <p class="nutrition-modal-subtitle">Vorlage</p>
-    <div class="pdf-tpl-choice" role="radiogroup" aria-label="PDF-Vorlage">
-      ${Object.values(PDF_TEMPLATES).map((t) => `<button type="button" role="radio" aria-checked="${m.template === t.id}" class="pdf-tpl-opt ${m.template === t.id ? 'active' : ''}" data-action="pdf-export-set-template" data-id="${t.id}"><span class="pdf-tpl-swatch pdf-tpl-swatch-${t.id.toLowerCase()}" aria-hidden="true"></span><b>${t.id} · ${t.name}</b><small>${t.hint}</small></button>`).join('')}
-    </div>
+    ${m.target === 'cookbook'
+      ? `<p class="nutrition-modal-subtitle">Seitenstil der Rezepte</p>
+    <p class="pdf-style-fixed" id="pdfStyleFixed"><b>${escapeHtml(pdfTemplateById(m.template).name)}</b> <span class="hint-line">Den Seitenstil änderst du im Kochbuch unter «Gestalten».</span></p>`
+      : `<p class="nutrition-modal-subtitle">Seitenstil</p>
+    <div class="pdf-tpl-choice" role="radiogroup" aria-label="Seitenstil">
+      ${Object.values(PDF_TEMPLATES).map((t) => `<button type="button" role="radio" aria-checked="${m.template === t.id}" class="pdf-tpl-opt ${m.template === t.id ? 'active' : ''}" data-action="pdf-export-set-template" data-id="${t.id}"><span class="pdf-tpl-swatch pdf-tpl-swatch-${t.id.toLowerCase()}" aria-hidden="true"></span><b>${t.name}</b><small>${t.hint}</small></button>`).join('')}
+    </div>`}
     ${state.showNutrition ? `    <p class="nutrition-modal-subtitle">Nährwerte im PDF</p>
     <div class="nutrition-segmented" role="radiogroup" aria-label="Nährwerte-Detailgrad">
       <button role="radio" aria-checked="${level === 'off'}" class="${level === 'off' ? 'active' : ''}" data-action="pdf-export-set-detail" data-level="off">Aus</button>
@@ -62,7 +65,7 @@ function pdfExportPreviewStage() {
     <div class="pdf-preview-header">
       <button class="ghost-btn pdf-preview-close" data-action="pdf-export-back" aria-label="Vorschau schliessen, zurück zu den Optionen">${ICONS.back} Zurück</button>
       <h3 class="modal-title" id="pdf-export-title">Vorschau</h3>
-      <span class="pdf-preview-meta" aria-live="polite">${m.pageCount ? m.pageCount + (m.pageCount === 1 ? ' Seite' : ' Seiten') : ''}${m.template ? ' · ' + m.template : ''}</span>
+      <span class="pdf-preview-meta" aria-live="polite">${m.pageCount ? m.pageCount + (m.pageCount === 1 ? ' Seite' : ' Seiten') : ''}${m.template ? ' · ' + escapeHtml(pdfTemplateById(m.template).name) : ''}</span>
       ${pdfPreviewUsesCanvas() ? `<span class="pdf-zoom"><button class="icon-btn" data-action="pdf-zoom" data-id="out" aria-label="Verkleinern" ${(m.zoom || 1) <= 1 ? 'disabled' : ''}>−</button><button class="icon-btn" data-action="pdf-zoom" data-id="in" aria-label="Vergrössern" ${(m.zoom || 1) >= 3 ? 'disabled' : ''}>+</button></span>` : ''}
     </div>
     <div class="pdf-preview-frame-wrap">

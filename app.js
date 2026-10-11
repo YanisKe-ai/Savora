@@ -125,8 +125,14 @@ function setupVisualViewportKeyboardHandling() {
 // verlassen.
 document.addEventListener('focusin', (e) => {
   const el = e.target;
+  if (window.__restoringFocus) return;   // Fokus nach render() wiederhergestellt: nicht scrollen
   if (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.tagName === 'SELECT') {
-    setTimeout(() => { el.scrollIntoView({ block: 'center', behavior: 'smooth' }); }, 300);
+    setTimeout(() => {
+      if (!el.isConnected) return;
+      const r = el.getBoundingClientRect(), vh = (window.visualViewport && window.visualViewport.height) || window.innerHeight;
+      if (r.top >= 56 && r.bottom <= vh - 8) return;   // schon sichtbar: kein Scrollsprung
+      el.scrollIntoView({ block: 'center', behavior: prefersReducedMotion() ? 'auto' : 'smooth' });
+    }, 300);
   }
 });
 
@@ -151,6 +157,7 @@ if (navigator.storage && typeof navigator.storage.persist === 'function') {
     }
     runSplashSequence();
     if (typeof cloudStartup === 'function') cloudStartup();
+    if (typeof shareStartup === 'function') shareStartup();
     // Schweizer Naehrwertdatenbank im Hintergrund einspielen (einmalig, danach nur
     // noch aus IndexedDB) — blockiert bewusst nicht den ersten Render.
     ensureSwissDataSeeded().catch((err) => {

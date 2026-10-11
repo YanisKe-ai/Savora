@@ -1,8 +1,9 @@
 /* ---------- PDF-Vorlagen A/B/C und Seitenaufbau ----------
    Drei auswaehlbare Vorlagen mit gemeinsamer Datenbasis und gemeinsamen Bausteinen:
-     A  Warm Editorial  (Creme/Gruen, Serifentitel)  Standard fuer neue Kochbuecher
-     B  Bold Kitchen    (Violett/Limette, kraeftige Titel)
-     C  Kuechenblatt    (Weiss, sparsam, Druckvariante, kleines Bild neben dem Titel)
+     A  «Klassisch»  (Creme/Gruen, Serifentitel)  Standard fuer neue Kochbuecher
+     B  «Kraeftig»   (Violett/Limette, kraeftige Titel)
+     C  «Schlicht (zum Drucken)»  (Weiss, sparsam, kleines Bild neben dem Titel)
+   Die IDs A, B, C bleiben im Datenmodell; in der Bedienung erscheinen nur die Namen.
    Die Seiten sind reines HTML (Klassen mit Praefix pv-), das in pdf.js gemessen, paginiert und
    gerastert wird. Nichts hier veraendert Rezeptdaten: es wird nur dargestellt.
 
@@ -11,9 +12,9 @@
    Bilder nie gestreckt. */
 
 const PDF_TEMPLATES = {
-  A: { id: 'A', name: 'Warm Editorial', hint: 'Creme und Grün, Serifentitel. Standard.', cls: 'pv-tpl-a', pageNo: [36, 69, 54] },
-  B: { id: 'B', name: 'Bold Kitchen', hint: 'Violett mit Limetten-Akzent, kräftige Titel.', cls: 'pv-tpl-b', pageNo: [64, 32, 95] },
-  C: { id: 'C', name: 'Küchenblatt', hint: 'Weiss, sparsam, gut zum Drucken.', cls: 'pv-tpl-c', pageNo: [52, 60, 53] },
+  A: { id: 'A', name: 'Klassisch', hint: 'Creme und Grün, Titel in Serifenschrift. Standard.', cls: 'pv-tpl-a', pageNo: [36, 69, 54] },
+  B: { id: 'B', name: 'Kräftig', hint: 'Violetter Kopf mit Limetten-Akzent, grosse Titel.', cls: 'pv-tpl-b', pageNo: [64, 32, 95] },
+  C: { id: 'C', name: 'Schlicht (zum Drucken)', hint: 'Weiss mit feinen Linien, spart Tinte beim Ausdrucken.', cls: 'pv-tpl-c', pageNo: [52, 60, 53] },
 };
 const PDF_TEMPLATE_KEY = 'savora-pdf-template';
 
@@ -34,8 +35,16 @@ function pdfAmountText(i) {
   const raw = String(i.amount == null ? '' : i.amount).trim();
   if (!raw) return '';
   const q = qtyFromIngredient(i);
-  if (qtyIsNumeric(q)) return qtyFormat(q, i.unit, fmtAmount);   // exakt oder Bereich, beide Grenzen
+  if (qtyIsNumeric(q)) return qtyDisplay(q, i.unit, { fmt: fmtAmount }).text;   // exakt oder Bereich, beide Grenzen; kg unter 1 kg als g
   return raw;                                                    // "etwas", mehrdeutige oder freie Angaben unveraendert
+}
+// Menge samt Einheit (Anzeigeeinheit wie in Rezeptansicht und Einkauf)
+function pdfAmountLine(i) {
+  const raw = String(i.amount == null ? '' : i.amount).trim();
+  const q = qtyFromIngredient(i);
+  if (raw && qtyIsNumeric(q)) { const d = qtyDisplay(q, i.unit, { fmt: fmtAmount }); return d.text + (d.unit ? ' ' + d.unit : ''); }
+  const unit = String(i.unit || '').trim();
+  return raw ? raw + (unit ? ' ' + unit : '') : unit;
 }
 
 /* Hinweise/Quellen, die als Schritt gespeichert wurden, gehoeren nicht in die nummerierte Anleitung.
@@ -61,9 +70,7 @@ function pdfBuildModel(recipe, nutritionResult) {
   groups.forEach((g) => {
     ingredients.push({ type: 'group', title: g.title, show: showGroupTitles, size: g.ingredients.length });
     g.ingredients.forEach((i) => {
-      const amt = pdfAmountText(i);
-      const unit = String(i.unit || '').trim();
-      ingredients.push({ type: 'ing', group: g.title, amount: amt ? amt + (unit ? ' ' + unit : '') : unit, name: String(i.name || '').trim() });
+      ingredients.push({ type: 'ing', group: g.title, amount: pdfAmountLine(i), name: String(i.name || '').trim() });
     });
   });
 
@@ -85,14 +92,15 @@ function pdfBuildModel(recipe, nutritionResult) {
 
   const rs = recipe.source;
   const sourceField = rs ? (typeof rs === 'string' ? rs : (rs.title || rs.url || rs.name || '')) : '';
-  const cat = (recipe.categoryTags || [])[0] || (recipe.tags || [])[0] || '';
+  const catKey = (recipe.categoryTags || [])[0] || (recipe.tags || [])[0] || '';
+  const cat = catKey && typeof categoryLabelFor === 'function' ? categoryLabelFor(catKey) : catKey;   // interne Schluessel (baking) als deutsche Bezeichnung
   const log = (recipe.cookLog || []).filter((x) => x && String(x.text || '').trim());
   const facts = [];
   const sv = Number(recipe.servings) || 0;
   const pieces = servingMode(recipe) === 'pieces';
   if (sv) facts.push({ label: pieces ? 'Ergibt' : (sv === 1 ? 'Portion' : 'Portionen'), value: pieces ? sv + '\u00a0' + (recipe.yieldLabel || 'Stück') : String(sv) });
   if (recipe.timeMinutes) facts.push({ label: 'Zeit', value: pdfFormatMinutes(recipe.timeMinutes) });
-  if (recipe.prepMinutes) facts.push({ label: 'Aktiv', value: pdfFormatMinutes(recipe.prepMinutes) });
+  if (recipe.prepMinutes) facts.push({ label: 'Vorbereitungszeit', value: pdfFormatMinutes(recipe.prepMinutes) });
   if (recipe.restMinutes) facts.push({ label: 'Ruhen', value: pdfFormatMinutes(recipe.restMinutes) });
   if (recipe.cookMinutes) facts.push({ label: 'Garen/Backen', value: pdfFormatMinutes(recipe.cookMinutes) });
   return {
@@ -160,7 +168,7 @@ function pvNutritionBox(result, detailLevel, pieces) {
   const rows = [cell('energyKcal', 'Energie'), cell('protein', 'Protein'), cell('carbohydrates', 'Kohlenhydrate'), cell('fat', 'Fett'), cell('fiber', 'Ballaststoffe')];
   if (detailLevel === 'full') rows.push(cell('sugars', 'Zucker'), cell('saturatedFat', 'ges. Fett'), cell('salt', 'Salz'));
   return `<div class="pv-nutri"><div class="pv-label">Nährwerte ${total ? 'gesamt' : pieces ? 'pro Stück' : 'pro Portion'}, geschätzt</div><div class="pv-nutri-row">${rows.filter(Boolean).join('')}</div>
-    <div class="pv-small">${pvEsc(nutritionSourceLabel(result.sourceDataVersions))}. Schätzwerte, keine medizinische Aussage.${result.rangeUsed ? ' Menge als Bereich angegeben, Ergebnis als Spanne.' : ''}${result.needsServings ? ' Ausbeute unbekannt: Pro-Portion-Werte erst nach Klärung.' : ''}${(result.approximations || []).length ? ' Angenähert: ' + pvEsc(result.approximations.map((a) => a.name).join(', ')) + '.' : ''}${(result.unquantified || []).length ? ' Ohne Mengenangabe nicht eingerechnet: ' + pvEsc(result.unquantified.join(', ')) + '.' : ''}</div></div>`;
+    <div class="pv-small">${pvEsc(nutritionSourceLabel(result.sourceDataVersions))}. Geschätzte Werte, je nach Zutaten und Mengen können sie abweichen. Keine medizinische Aussage.${result.rangeUsed ? ' Menge als Bereich angegeben, Ergebnis als Spanne.' : ''}${result.needsServings ? ' Es fehlt die Angabe, wie viel das Rezept ergibt: Pro-Portion-Werte erst nach Klärung.' : ''}${(result.approximations || []).length ? ' Angenähert: ' + pvEsc(result.approximations.map((a) => a.name).join(', ')) + '.' : ''}${(result.unquantified || []).length ? ' Ohne Mengenangabe nicht eingerechnet: ' + pvEsc(result.unquantified.join(', ')) + '.' : ''}</div></div>`;
 }
 
 function pvExtrasHtml(m, nutritionDetail) {

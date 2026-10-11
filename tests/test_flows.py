@@ -200,7 +200,7 @@ async def main():
         check('14b Wiederherstellung behaelt Original-IDs in frischer Instanz', ids2 == sorted(r['id'] for r in data['recipes']))
         cb2 = await p2.evaluate("readJsonKey(COOKBOOK_CONFIG_KEY, null)")
         print('     Kochbuch-Auswahl uebernommen:', bool(cb2))
-        check('14 Neues Backup in frischer Instanz', data.get('schemaVersion') == 4 and n2 == len(data['recipes']) and plan2 >= 3 and imgs2 >= 2, f"rezepte={n2} plan={plan2} bilder={imgs2}")
+        check('14 Neues Backup in frischer Instanz', data.get('schemaVersion') in (4, 5) and n2 == len(data['recipes']) and plan2 >= 3 and imgs2 >= 2, f"rezepte={n2} plan={plan2} bilder={imgs2}")
         await ctx2.close()
 
         # 15/16 PDF: Einzelrezept und Kochbuch mit Kapitel

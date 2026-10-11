@@ -80,12 +80,12 @@ function validateRecipeJson(o) {
 
   // Ausbeute
   if (o.yield != null) {
-    if (!rjIsObj(o.yield)) err('yield', 'Ausbeute muss ein Objekt oder null sein, ist aber ' + rjType(o.yield) + '.');
+    if (!rjIsObj(o.yield)) err('yield', 'Ergibt (yield) muss ein Objekt oder null sein, ist aber ' + rjType(o.yield) + '.');
     else {
       const y = o.yield;
-      if (!(typeof y.count === 'number' && Number.isInteger(y.count) && y.count > 0)) err('yield.count', 'Ausbeute: "count" muss eine ganze Zahl größer 0 sein' + (y.count === undefined ? ' (fehlt).' : ', gefunden ' + JSON.stringify(y.count) + '.'));
-      if (y.kind !== 'pieces' && y.kind !== 'portions') err('yield.kind', 'Ausbeute: "kind" muss "pieces" oder "portions" sein' + (y.kind === undefined ? ' (fehlt).' : ', gefunden ' + JSON.stringify(y.kind) + '.'));
-      if (y.label != null && typeof y.label !== 'string') err('yield.label', 'Ausbeute: "label" muss Text oder null sein.');
+      if (!(typeof y.count === 'number' && Number.isInteger(y.count) && y.count > 0)) err('yield.count', 'Ergibt: "count" muss eine ganze Zahl grösser 0 sein' + (y.count === undefined ? ' (fehlt).' : ', gefunden ' + JSON.stringify(y.count) + '.'));
+      if (y.kind !== 'pieces' && y.kind !== 'portions') err('yield.kind', 'Ergibt: "kind" muss "pieces" oder "portions" sein' + (y.kind === undefined ? ' (fehlt).' : ', gefunden ' + JSON.stringify(y.kind) + '.'));
+      if (y.label != null && typeof y.label !== 'string') err('yield.label', 'Ergibt: "label" muss Text oder null sein.');
     }
   }
 
@@ -93,7 +93,7 @@ function validateRecipeJson(o) {
   const times = {};
   if (o.time != null) {
     if (!rjIsObj(o.time)) err('time', 'Zeitangaben müssen ein Objekt oder null sein, sind aber ' + rjType(o.time) + '.');
-    else [['totalMinutes', 'Gesamtzeit'], ['activeMinutes', 'Aktive Zeit'], ['restMinutes', 'Ruhezeit'], ['cookMinutes', 'Garzeit']].forEach(([k, label]) => {
+    else [['totalMinutes', 'Gesamtzeit'], ['activeMinutes', 'Vorbereitungszeit'], ['restMinutes', 'Ruhezeit'], ['cookMinutes', 'Garzeit']].forEach(([k, label]) => {
       const v = o.time[k];
       if (v == null) return;
       if (!(typeof v === 'number' && Number.isInteger(v) && v >= 0)) err('time.' + k, label + ' ("' + k + '") muss eine ganze Zahl ab 0 oder null sein, gefunden ' + JSON.stringify(v) + '.');

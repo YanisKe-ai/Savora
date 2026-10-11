@@ -111,6 +111,7 @@ async function cloudAuthUpdatePassword(password) {
 async function cloudAuthSignOut() {
   try { await cloudFetch('/auth/v1/logout', { method: 'POST' }); } catch (e) { /* offline abmelden geht trotzdem */ }
   cloudSetSession(null);
+  if (typeof shareReset === 'function') shareReset();
   // Beim naechsten Anmelden wird neu zusammengefuehrt; lokale Daten bleiben auf dem Geraet.
   [CLOUD_QUEUE_KEY, CLOUD_META_KEY, CLOUD_CURSOR_KEY, CLOUD_LAST_KEY].forEach(k => { try { localStorage.removeItem(k); } catch (e) {} });
 }
@@ -183,7 +184,7 @@ cloudWrap('dbDeleteShopping', (id) => cloudMark('shopping', id, true));
 cloudWrap('dbPutImage', (rec) => cloudMark('image', rec && rec.id, false));
 cloudWrap('dbDeleteImage', (id) => cloudMark('image', id, true));
 // Einstellungen, die geraeteuebergreifend Sinn ergeben (Darstellung bleibt pro Geraet).
-const CLOUD_SETTING_KEYS = { collections: COLLECTIONS_KEY, cookbookConfig: COOKBOOK_CONFIG_KEY, cookbookTitle: COOKBOOK_TITLE_KEY, senderName: SENDER_NAME_KEY };
+const CLOUD_SETTING_KEYS = { collections: COLLECTIONS_KEY, cookbookConfig: COOKBOOK_CONFIG_KEY, cookbookTitle: COOKBOOK_TITLE_KEY, cookbooks: COOKBOOK_PROJECTS_KEY, senderName: SENDER_NAME_KEY };
 const cloudOrigSetItem = Storage.prototype.setItem;
 Storage.prototype.setItem = function (k, v) {
   cloudOrigSetItem.call(this, k, v);
@@ -293,7 +294,9 @@ async function cloudApplyRemote(row) {
       else await cloudOrig.dbPutShopping(row.data);
     } else if (row.kind === 'setting') {
       const lsKey = CLOUD_SETTING_KEYS[row.id];
-      if (lsKey && row.data && typeof row.data.value === 'string') {
+      // Kochbuch-Projekte nur uebernehmen, wenn der Wert ein lesbares Projekt-Objekt ist (nie einen kaputten Stand einspielen)
+      const valid = row.id !== 'cookbooks' || (() => { try { return !!cookbookSanitizeStore(JSON.parse(row.data.value)); } catch (e) { return false; } })();
+      if (lsKey && valid && row.data && typeof row.data.value === 'string') {
         cloudOrigSetItem.call(localStorage, lsKey, row.data.value);
         if (row.id === 'cookbookTitle') state.cookbookTitle = row.data.value;
         if (row.id === 'senderName') state.senderName = row.data.value;
@@ -356,6 +359,8 @@ async function cloudReloadState() {
   await loadRecipes(); await loadShopping(); await loadMealplan();
   state.cookbookTitle = localStorage.getItem(COOKBOOK_TITLE_KEY) || '';
   if (state.view === 'form' || state.view === 'cookmode' || state.modal) return;
+  const ae = document.activeElement;
+  if (state.view === 'cookbook' && ae && ae.matches && ae.matches('input, textarea, select')) return;   // Texte im Kochbuch-Editor nicht unter den Fingern neu zeichnen
   render();
 }
 function cloudRefreshStatus() {
@@ -408,7 +413,7 @@ function settingsSyncView() {
         <button class="primary-btn primary-btn--block" data-action="cloud-sync-now">Jetzt abgleichen</button>
       </div></div>
       <div class="settings-group"><div class="settings-group-card settings-group-card--padded">
-        <p class="settings-hint">Deine Rezepte, Fotos, der Wochenplan, die Einkaufsliste, Sammlungen und die Kochbuch-Auswahl werden auf allen Geräten abgeglichen, auf denen du angemeldet bist. Darstellung und Masseinheiten bleiben pro Gerät.</p>
+        <p class="settings-hint">Deine Rezepte, Fotos, der Wochenplan, die Einkaufsliste, Sammlungen und die Kochbuch-Auswahl werden auf allen Geräten abgeglichen, auf denen du angemeldet bist. Design und Mengenangaben bleiben pro Gerät.</p>
         <button class="ghost-btn primary-btn--block" data-action="cloud-sign-out">Abmelden</button>
         <p class="settings-hint settings-hint--top">Beim Abmelden bleiben deine Daten auf diesem Gerät erhalten.</p>
       </div></div>
@@ -425,7 +430,7 @@ function settingsSyncView() {
   } else {
     const mode = state.cloudMode || 'signin';
     body = `<div class="settings-group"><div class="settings-group-card settings-group-card--padded">
-        <p class="settings-hint">Mit einem Konto sind deine Rezepte auf iPhone, Laptop und Tablet gleich und auch auf einem neuen Gerät sofort da. Die Synchronisation ersetzt keine Sicherung. Ohne Anmeldung bleibt alles wie bisher nur auf diesem Gerät.</p>
+        <p class="settings-hint">Mit einem Konto sind deine Rezepte auf iPhone, Laptop und Tablet gleich und auch auf einem neuen Gerät sofort da. Der Abgleich ersetzt keine Sicherung. Ohne Anmeldung bleibt alles wie bisher nur auf diesem Gerät.</p>
         <div class="field"><label for="cloudEmail">E-Mail</label><input type="email" id="cloudEmail" autocomplete="username" inputmode="email" autocapitalize="off" spellcheck="false" value="${escapeHtml(state.cloudEmail || '')}"></div>
         ${mode !== 'reset' ? `<div class="field"><label for="cloudPassword">Passwort</label><input type="password" id="cloudPassword" autocomplete="${mode === 'signup' ? 'new-password' : 'current-password'}" minlength="8"></div>` : ''}
         ${mode === 'signup' ? `<p class="settings-hint">Mindestens 8 Zeichen. Tipp: vom iPhone im iCloud-Schlüsselbund speichern lassen.</p>` : ''}
@@ -438,7 +443,7 @@ function settingsSyncView() {
       ${CLOUD_SIGNUP_OPEN ? '' : `<p class="settings-hint beta-note">${ICONS.info} Noch kein Zugang? ${escapeHtml(CLOUD_CLOSED_BETA_TEXT)}</p>`}
       <p class="settings-hint">Gespeichert wird in Zürich (Supabase). Nur du hast Zugriff auf deine Daten.</p>`;
   }
-  return settingsDetailShell('Synchronisation', body) + (state.modal && state.modal.type === 'cloud-new-password' ? cloudNewPasswordModal() : '');
+  return settingsDetailShell('Auf mehreren Geräten', body) + (state.modal && state.modal.type === 'cloud-new-password' ? cloudNewPasswordModal() : '');
 }
 function cloudNewPasswordModal() {
   return sheet('cloud-pw-title', 'Neues Passwort festlegen', `
@@ -451,7 +456,7 @@ function cloudShowError(msg) {
   if (el) el.textContent = msg; else showToast(msg, 'error');
 }
 function cloudSettingsSummary() {
-  if (!cloudSignedIn()) return 'Aus';
+  if (!cloudSignedIn()) return 'Nicht angemeldet';
   return Object.keys(cloudQueue()).length ? 'Änderungen ausstehend' : 'An';
 }
 
@@ -519,6 +524,6 @@ async function handleCloudAction(action, id, el) {
       catch (e) { showToast(e.message, 'error'); }
       return true;
     }
-    default: return false;
+    default: return typeof handleShareAction === 'function' ? handleShareAction(action, id, el) : false;
   }
 }

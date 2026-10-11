@@ -140,8 +140,12 @@ async def main():
 
         # Abmelden behaelt lokale Daten
         await show(pb, "() => { state.view = 'settings-sync'; render(); }", '[data-action="cloud-sign-out"]')
+        await sync(pb)   # erst abgleichen: sonst fragt die App wegen ausstehender Aenderungen nach (in der langsameren CI-Umgebung)
+        pend = await pb.evaluate("Object.keys(JSON.parse(localStorage.getItem('savora-sync-queue')||'{}'))")
         await click(pb, '[data-action="cloud-sign-out"]')
+        await pb.wait_for_timeout(600)
         kept = await pb.evaluate("state.recipes.length")
+        print('Abmelden: ausstehend vorher', pend, 'angemeldet danach', await pb.evaluate("cloudSignedIn()"))
         check('Abmelden behaelt Daten auf dem Geraet', kept >= 3 and not await pb.evaluate("cloudSignedIn()"))
 
         # Konto loeschen auf A

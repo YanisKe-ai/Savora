@@ -23,7 +23,7 @@ function nutValueText(result, mode, key) {
   return null;
 }
 const NUT_RANGE_HINT = 'Menge als Bereich angegeben, Ergebnis als Spanne.';
-const NUT_SERVINGS_HINT = 'Ausbeute unbekannt: Pro-Portion-Werte erst nach Klärung.';
+const NUT_SERVINGS_HINT = 'Es fehlt die Angabe, wie viel das Rezept ergibt: Pro-Portion-Werte erst nach Klärung.';
 function nutritionResultHints(result) {
   return (result.rangeUsed ? `<p class="nutrition-hint-text">${NUT_RANGE_HINT}</p>` : '') + (result.needsServings ? `<p class="nutrition-hint-text">${NUT_SERVINGS_HINT}</p>` : '');
 }
@@ -424,7 +424,7 @@ function nutritionDetailModal(recipe, result) {
         <span class="nutrition-confidence-detail">${escapeHtml(result.confidenceDetail)}</span>
       </div>
       ${nutritionResultHints(result)}
-      ${mode === '100g' && result.per100Estimated ? `<p class="nutrition-hint-text">Fertiggewicht nicht bekannt — Werte pro 100 g sind geschätzt (aus Zutatengewicht).</p>` : ''}
+      ${mode === '100g' && result.per100Estimated ? `<p class="nutrition-hint-text">Fertiggewicht nicht bekannt: Werte pro 100 g sind geschätzt (aus Zutatengewicht).</p>` : ''}
       <div class="field" style="margin:14px 0;">
         <label for="nutritionFinishedWeight">Fertiggewicht (g, optional — für genauere „Pro 100 g“-Werte)</label>
         <input type="number" min="1" id="nutritionFinishedWeight" value="${recipe.nutritionFinishedWeight || ''}" placeholder="z.B. ${result.totalWeight || ''}">
@@ -432,7 +432,7 @@ function nutritionDetailModal(recipe, result) {
       <button class="ghost-btn" data-action="nutrition-save-finished-weight" data-id="${recipe.id}" style="width:100%;margin-bottom:14px;">Fertiggewicht speichern</button>
       ${NUTRITION_GROUP_ORDER.map((g) => nutritionDetailGroup(g, result)).join('')}
       ${sourceLabel ? `<p class="nutrition-source-line">${ICONS.book} ${escapeHtml(sourceLabel)}</p>` : ''}
-      <p class="nutrition-disclaimer">Berechnete Nährwerte sind Durchschnitts- bzw. Schätzwerte und können je nach Produkt, Zubereitung und tatsächlicher Menge abweichen. Keine medizinische Aussage und keine Grundlage für Entscheidungen bei Allergien oder Unverträglichkeiten.</p>
+      <p class="nutrition-disclaimer">Geschätzte Werte. Je nach Zutaten und Mengen können sie abweichen. Keine medizinische Aussage und keine Grundlage für Entscheidungen bei Allergien oder Unverträglichkeiten.</p>
       <div class="form-actions">
         <button class="ghost-btn" data-action="nutrition-open-match" data-id="${recipe.id}">Zuordnung bearbeiten</button>
         <button class="primary-btn" data-action="close-modal">Schliessen</button>

@@ -51,6 +51,9 @@ async def open_ctx(p, w=390, h=844, motion="reduce"):
     browser = await p.chromium.launch()
     ctx = await browser.new_context(viewport={"width": w, "height": h}, accept_downloads=True, reduced_motion=motion, timezone_id="UTC")   # feste Zeitzone: Tests sind ueberall gleich reproduzierbar
     await ctx.add_init_script(NO_SW + " try{localStorage.setItem('savora-splash-seen','1')}catch(e){}")
+    if os.environ.get('SAVORA_TEST_CLASSIC_SCROLLBARS'):
+        # Stellt die Linux-Umgebung von GitHub nach: dort haben Seiten klassische 15-px-Scrollbalken, auf dem Mac liegen sie ueber dem Inhalt.
+        await ctx.add_init_script("document.addEventListener('DOMContentLoaded', () => { const s = document.createElement('style'); s.textContent = '::-webkit-scrollbar{width:15px;height:15px;background:#ddd} ::-webkit-scrollbar-thumb{background:#999}'; document.head.appendChild(s); });")
     return browser, ctx
 async def goto(page):
     await page.goto(URL)
@@ -61,3 +64,12 @@ async def show(page, js, selector):
     await page.evaluate(js)
     await page.wait_for_selector(selector, timeout=8000, state='attached')
     await page.wait_for_timeout(250)
+
+
+OVERFLOW_JS = """() => { const W = document.documentElement.clientWidth; const out = [];
+  document.querySelectorAll('body *').forEach(e => { const r = e.getBoundingClientRect(); if (r.width > 0 && r.right > W + 0.5 && getComputedStyle(e).position !== 'fixed') out.push((e.tagName + '.' + String(e.className).replace(/\\s+/g, '.') + ' right=' + Math.round(r.right) + ' w=' + Math.round(r.width) + ' cw=' + W)); });
+  return out.slice(0, 6); }"""
+async def overflow_info(page):
+    """Nennt die Elemente, die rechts ueber den Bildschirm ragen (Diagnose fuer Fehler, die nur in der CI-Umgebung auftreten)."""
+    try: return await page.evaluate(OVERFLOW_JS)
+    except Exception as e: return [str(e)]

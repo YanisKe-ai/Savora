@@ -12,6 +12,9 @@
    - recipe.cookLog            [{ id, date, text }] datierte Kochnotizen
    - recipe.collections        [collectionId] eigene Sammlungen
    - mealplan-Record.entries   [{ id, recipeId, meal, servings }] (recipeIds bleibt synchron)
+   - mealplan-Eintrag ohne Rezept (Paket 37, additiv): { id, type:'note', text, meal? } z. B. «Reste», «Auswaerts»; recipeIds enthaelt nur Rezept-Eintraege
+   - shopping-Item.manual/edited  von Hand eingetragen bzw. geaendert: wird beim Zusammenfuehren nie ueberschrieben
+   - shopping-Item.sources[].ref/ing  Quelle (Rezept-ID oder Rezept@Datum:Eintrag) und Zutatenname gegen stilles Doppel-Uebernehmen
    - shopping-Item.have        "Bereits vorhanden"
    - shopping-Item.sources     [{ recipeId, title, amount, unit }] Quellbezug fuer Trennen
    - shopping-Item.section     manuell gesetzter Einkaufsbereich
@@ -21,7 +24,8 @@ const COLLECTIONS_KEY = 'savora-collections';
 const COOK_PROGRESS_KEY = 'savora-cook-progress';
 const RECIPE_DRAFT_KEY = 'savora-recipe-draft';
 const HOME_LAYOUT_KEY = 'savora-home-layout';
-const COOKBOOK_CONFIG_KEY = 'savora-cookbook-config';
+const COOKBOOK_CONFIG_KEY = 'savora-cookbook-config';   // alte Einzelkonfiguration: bleibt als Sicherung unveraendert (siehe cookbooks.js)
+const COOKBOOK_PROJECTS_KEY = 'savora-cookbook-projects';   // Kochbuch-Projekte { v, activeId, books[] }
 
 function readJsonKey(key, fallback) {
   try { const raw = localStorage.getItem(key); return raw ? JSON.parse(raw) : fallback; } catch (e) { return fallback; }
@@ -87,7 +91,7 @@ function servingsFactor(r, servings) {
   return (servings || r.servings) / r.servings;
 }
 function servingLabel(r, n) {
-  if (!yieldKnown(r) && !(n > 0)) return 'Ausbeute offen';
+  if (!yieldKnown(r) && !(n > 0)) return 'Ergibt: offen';
   if (servingMode(r) === 'pieces') return `${n} ${r.yieldLabel || 'Stück'}`;
   return `${n} ${n === 1 ? 'Portion' : 'Portionen'}`;
 }
@@ -108,10 +112,15 @@ function kitchenAmount(value, unit) {
   return fmtAmount(value);
 }
 function scaledAmountText(i, factor) {
-  const q = qtyFromIngredient(i);
-  if (qtyIsNumeric(q)) return qtyFormat(qtyScale(q, factor), i.unit);   // Bereich: beide Grenzen, nie nur die untere
-  return String(i.amount == null ? '' : i.amount).trim();               // freie oder mehrdeutige Angaben nie erfinden oder raten
+  return scaledAmountDisplay(i, factor).text;
 }
+// { text, unit }: skalierte Menge in der Anzeigeeinheit (0.125 kg wird zu 125 g), beide Grenzen eines Bereichs
+function scaledAmountDisplay(i, factor) {
+  const q = qtyFromIngredient(i);
+  if (qtyIsNumeric(q)) return qtyDisplay(qtyScale(q, factor), i.unit);
+  return { text: String(i.amount == null ? '' : i.amount).trim(), unit: String(i.unit || '').trim() };   // freie oder mehrdeutige Angaben nie erfinden oder raten
+}
+function scaledAmountLine(i, factor) { const d = scaledAmountDisplay(i, factor); return d.text ? d.text + (d.unit ? ' ' + d.unit : '') : d.unit; }
 
 /* ---------- Sammlungen ---------- */
 function getCollections() { return readJsonKey(COLLECTIONS_KEY, []); }
@@ -340,6 +349,13 @@ function mealLabel(meal) {
   const m = MEAL_SLOTS.find(x => x.id === meal);
   return m ? m.label : (meal || 'Ohne Zuordnung');
 }
+// Notizeintrag (ohne Rezept): { id, type:'note', text, meal? }
+function isNoteEntry(e) { return !!e && e.type === 'note'; }
+const PLAN_NOTE_MAX = 60;
+// Was an einem Tag wirklich geplant ist: Rezepte (nur vorhandene) und Notizen. Fuer Startseite «Heute geplant».
+function plannedItemsFor(dateKey) {
+  return planEntriesFor(dateKey).filter(e => isNoteEntry(e) ? !!String(e.text || '').trim() : (e.recipeId && state.recipes.some(r => r.id === e.recipeId)));
+}
 // Alte Records ({date, recipeIds}) werden als Eintraege ohne Mahlzeit gelesen.
 function planEntriesFor(dateKey) {
   const rec = (state.mealplanRecords || {})[dateKey];
@@ -348,7 +364,7 @@ function planEntriesFor(dateKey) {
 }
 async function savePlanEntries(dateKey, entries) {
   const existing = (state.mealplanRecords || {})[dateKey] || {};
-  const record = { ...existing, date: dateKey, entries, recipeIds: entries.map(e => e.recipeId), keyVersion: 2 };
+  const record = { ...existing, date: dateKey, entries, recipeIds: entries.filter(e => e && e.recipeId).map(e => e.recipeId), keyVersion: 2 };
   state.mealplanRecords = state.mealplanRecords || {};
   state.mealplanRecords[dateKey] = record;
   state.mealplan[dateKey] = record.recipeIds;
@@ -379,6 +395,7 @@ async function addSelectionToShopping(selection) {
     const sq = shopQty(s);
     const numeric = qtyIsNumeric(sq);
     const source = { recipeId: s.recipeId || null, title: s.title || '', amount: numeric ? sq.min : '', unit: s.unit || '' };
+    if (s.ref) { source.ref = s.ref; source.ing = String(s.name).trim().toLowerCase(); }   // Quelle merken: gegen stilles Doppel-Uebernehmen
     if (numeric && sq.max > sq.min) source.amountMax = sq.max;
     const match = numeric ? shoppingFindMatch(s.name, s.unit) : null;
     if (match) {
@@ -405,13 +422,14 @@ async function pushNewShoppingItem(s, q, source) {
   state.shopping.push(item);
 }
 // Baut die Vorschau-Liste fuer das Auswahl-Sheet (ein Rezept, mehrere oder Wochenplan).
-function shoppingSelectionFor(recipe, servings) {
+function shoppingSelectionFor(recipe, servings, planRef) {
+  const ref = planRef ? `${recipe.id}@${planRef}` : recipe.id;   // Rezept-ID (+ Datum:Eintrag beim Wochenplan)
   const factor = servingsFactor(recipe, servings);
   return realIngredients(recipe).map((i, n) => {
     const q = qtyFromIngredient(i);
     const f = qtyIsNumeric(q) ? shopFieldsFromQty(qtyScale(q, factor)) : { amount: '' };
     return {
-      key: `${recipe.id}-${n}`, recipeId: recipe.id, title: recipe.title || '', name: i.name.trim(),
+      key: `${recipe.id}-${n}`, recipeId: recipe.id, ref, title: recipe.title || '', name: i.name.trim(),
       amount: typeof f.amount === 'number' ? f.amount : '', amountMax: f.amountMax, unit: i.unit || '',
       group: i.group || '', selected: true,
     };
@@ -420,7 +438,7 @@ function shoppingSelectionFor(recipe, servings) {
 
 /* ---------- Kochbuch-Konfiguration ---------- */
 function getCookbookConfig() {
-  const cfg = readJsonKey(COOKBOOK_CONFIG_KEY, null);
+  const cfg = cookbookGetRaw();   // Konfiguration des aktiven Kochbuch-Projekts (cookbooks.js)
   const ids = new Set(state.recipes.map(r => r.id));
   const cover = (typeof coverSanitizeConfig === 'function') ? coverSanitizeConfig(cfg && cfg.cover, false) : undefined;
   if (!cfg || !Array.isArray(cfg.items)) {
@@ -435,7 +453,7 @@ function getCookbookConfig() {
 }
 function saveCookbookConfig(cfg) {
   const copy = { ...cfg }; delete copy.isDefault;
-  writeJsonKey(COOKBOOK_CONFIG_KEY, copy);
+  cookbookSetRaw(copy);   // schreibt ins aktive Projekt; die alte Einzelkonfiguration bleibt unberuehrt
 }
 // Reihenfolge fuer den Export: Kapitel in ihrer Reihenfolge, Rezepte ohne Kapitel am Ende.
 function cookbookOrderedSections(cfg) {
