@@ -5,6 +5,7 @@ abgeschnittene Texte. Dazu: genau ein Einstellungsweg je Breite, Cover-Auswahl (
 Testdaten: tests/seed.js, erweitert per page.evaluate (nichts davon steht im Repo)."""
 import asyncio, sys, os, json
 os.environ.setdefault('SAVORA_TEST_PORT', '8852')
+QUICK = bool(os.environ.get('SAVORA_ADAPT_QUICK'))
 import os as _os; sys.path.insert(0, _os.path.dirname(_os.path.abspath(__file__)))
 from common import *
 FAIL = []
@@ -125,7 +126,8 @@ async def main():
     async with async_playwright() as p:
         b = await p.chromium.launch()
         for (w, h) in HEIGHTS.items():
-            for theme in ('light', 'dark', 'amoled', 'auto-light', 'auto-dark'):
+            if QUICK and w not in (360, 390, 1280): continue   # schnelle Variante fuer die Entwicklung (SAVORA_ADAPT_QUICK=1); GitHub prueft immer alles
+            for theme in (('light', 'dark') if QUICK else ('light', 'dark', 'amoled', 'auto-light', 'auto-dark')):
                 ctx, page, errs = await setup(b, w, h, theme)
                 expect = {'auto-light': 'light', 'auto-dark': 'dark'}.get(theme, theme)
                 check(f'[{w} {theme}] «Wie dein Gerät»/Darstellung ergibt data-theme={expect}', await page.evaluate("document.documentElement.getAttribute('data-theme')") == expect)
@@ -156,7 +158,7 @@ async def main():
                 check(f'[{w} {theme}] Keine Seitenfehler', not errs, str(errs[:3]))
                 await ctx.close()
             # grosse Systemschrift (24 px) in Hell und Schwarz
-            for theme in ('light', 'amoled'):
+            for theme in (('light',) if QUICK else ('light', 'amoled')):
                 ctx, page, errs = await setup(b, w, h, theme, big=True)
                 for name, js in VIEWS + [('import', None)]:
                     if name == 'import': await show_import(page)
