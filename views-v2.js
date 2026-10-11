@@ -896,6 +896,7 @@ function mealplanView() {
   }
   const days = Array.from({ length: 7 }, (_, i) => addDays(state.weekStart, i));
   const todayKey = fmtDateKey(new Date());
+  const isCurrentWeek = days.some(d => fmtDateKey(d) === todayKey);
   const weekEnd = days[6];
   const label = state.weekStart.getMonth() === weekEnd.getMonth()
     ? `${state.weekStart.getDate()}. – ${weekEnd.getDate()}. ${MONTH_LABELS[weekEnd.getMonth()]} ${weekEnd.getFullYear()}`
@@ -948,7 +949,10 @@ function mealplanView() {
       ${pageTitle('Wochenplan')}
       <div class="week-nav">
         <button data-action="week-prev" aria-label="Vorherige Woche">${ICONS.chevronLeft}</button>
-        <span class="week-nav-label">${label}</span>
+        <div class="week-nav-mid">
+          <span class="week-nav-label" id="weekNavLabel" tabindex="-1">${label}</span>
+          <button type="button" class="week-today" data-action="week-today" aria-label="Zur aktuellen Woche, heute" ${isCurrentWeek ? 'disabled' : ''}>Heute</button>
+        </div>
         <button data-action="week-next" aria-label="Nächste Woche">${ICONS.chevronRight}</button>
       </div>
       <div class="plan-week">${dayCards}</div>

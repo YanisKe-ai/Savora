@@ -224,7 +224,7 @@ button { -webkit-tap-highlight-color: transparent; }
 .step-list-v2 li { display: grid; grid-template-columns: 32px 1fr; gap: 0.75rem; align-items: start; }
 .step-list-v2 p { margin: 0.25rem 0 0; font-size: 1rem; line-height: 1.6; }
 .step-no { width: 30px; height: 30px; border-radius: 50%; background: var(--forest-900); color: #fff; font-weight: 800; font-size: 0.875rem; display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; }
-[data-theme="dark"] .step-no, [data-theme="amoled"] .step-no { background: var(--surface-selected); }
+[data-theme="dark"] .step-no { background: var(--surface-selected); }
 
 .note-card { background: var(--surface-soft); border-radius: var(--radius-m); padding: 0.75rem 1rem; margin-bottom: 0.75rem; }
 .note-card p { margin: 0; white-space: pre-wrap; line-height: 1.55; }
@@ -330,7 +330,6 @@ input[type="text"], input[type="number"], input[type="search"], input:not([type]
 
 /* ---------- Kochmodus ---------- */
 .cook-v2 { background: #16161A; color: #FAFAF8; }
-[data-theme="amoled"] .cook-v2 { background: #000; }
 .cook-v2 .icon-btn { color: #FAFAF8; border: none; }
 .cook-v2 .icon-btn.is-active { background: rgba(255,176,154,0.18); color: var(--lime); }
 .cook-top-actions { display: flex; gap: 0.25rem; }
@@ -371,10 +370,10 @@ input[type="text"], input[type="number"], input[type="search"], input:not([type]
 .bottom-nav button { color: var(--text-soft); font-size: 0.875rem; font-weight: 700; min-height: 60px; position: relative; }
 .bottom-nav button.active { color: var(--text); }
 .bottom-nav button.active::after { content: ''; position: absolute; bottom: 6px; left: 50%; width: 28px; height: 4px; margin-left: -1rem; border-radius: 4px; background: var(--tomato); }
-[data-theme="dark"] .bottom-nav button.active::after, [data-theme="amoled"] .bottom-nav button.active::after { background: var(--lime); }
+[data-theme="dark"] .bottom-nav button.active::after { background: var(--lime); }
 .nav-icon { position: relative; display: inline-flex; }
 .nav-badge { position: absolute; top: -6px; right: -10px; min-width: 20px; height: 20px; padding: 0 0.25rem; border-radius: 10px; background: var(--forest-900); color: #fff; font-size: 0.75rem; font-weight: 800; display: inline-flex; align-items: center; justify-content: center; }
-[data-theme="dark"] .nav-badge, [data-theme="amoled"] .nav-badge { background: var(--lime); color: var(--lime-ink); }
+[data-theme="dark"] .nav-badge { background: var(--lime); color: var(--lime-ink); }
 
 /* ---------- Einstellungen (nur farbliche Integration) ---------- */
 .settings-group-card { border: 1px solid var(--border); box-shadow: none; }
@@ -460,7 +459,7 @@ h1, h2, h3, .modal-title { font-family: var(--font-display); font-weight: 800; l
 .topbar { min-height: 64px; }
 .topbar--home { border-bottom: none; padding-top: calc(14px + env(safe-area-inset-top, 0px)); }
 .brand-word { font-family: var(--font-logo); font-weight: 900; font-stretch: 80%; font-size: 2.5rem; letter-spacing: -0.01em; color: var(--text); line-height: 1; }
-[data-theme="dark"] .brand-word, [data-theme="amoled"] .brand-word { color: var(--text); }
+[data-theme="dark"] .brand-word { color: var(--text); }
 .round-btn { width: 48px; height: 48px; background: var(--surface-soft); color: var(--text); }
 .round-btn svg { width: 22px; height: 22px; stroke-width: 2.2; }
 .round-btn--accent { background: var(--lime); }
@@ -469,15 +468,15 @@ h1, h2, h3, .modal-title { font-family: var(--font-display); font-weight: 800; l
 /* Seitentitel */
 .page-title { font-family: var(--font-display); font-weight: 800; font-size: clamp(44px, 13.6vw, 60px); letter-spacing: 0; line-height: 0.98; color: var(--text); }
 .page-title-row { margin: 0.25rem 0 1rem; }
-[data-theme="dark"] .page-title, [data-theme="amoled"] .page-title { color: var(--text); }
+[data-theme="dark"] .page-title { color: var(--text); }
 
 /* Suche */
 .search-field { min-height: 54px; border-radius: 16px; padding: 0 1rem; gap: 0.75rem; background: var(--surface-soft); margin-bottom: 1rem; }
 .search-field svg { width: 22px; height: 22px; color: var(--text); }
 .search-field .search-input { font-size: 1.125rem; font-family: var(--font-sans); color: var(--text); }
 .search-field .search-input::placeholder { color: var(--text-soft); }
-[data-theme="dark"] .search-field, [data-theme="amoled"] .search-field { background: var(--surface-soft); }
-[data-theme="dark"] .search-field svg, [data-theme="amoled"] .search-field svg { color: var(--text); }
+[data-theme="dark"] .search-field { background: var(--surface-soft); }
+[data-theme="dark"] .search-field svg { color: var(--text); }
 
 /* Chips */
 .chip-row { gap: 0.75rem; margin-bottom: 1rem; }
@@ -486,12 +485,12 @@ h1, h2, h3, .modal-title { font-family: var(--font-display); font-weight: 800; l
 .chip--icon { width: 46px; padding: 0; justify-content: center; color: var(--text); }
 .chip--icon svg { width: 22px; height: 22px; }
 .chip--icon .chip-count { position: absolute; top: -4px; right: -4px; }
-[data-theme="dark"] .chip, [data-theme="amoled"] .chip { background: var(--surface-soft); color: var(--text-soft); }
-[data-theme="dark"] .chip--active, [data-theme="amoled"] .chip--active { background: var(--lime); color: var(--lime-ink); }
+[data-theme="dark"] .chip { background: var(--surface-soft); color: var(--text-soft); }
+[data-theme="dark"] .chip--active { background: var(--lime); color: var(--lime-ink); }
 
 /* Abschnitte */
 .section-title { font-family: var(--font-display); font-weight: 800; font-size: 1.875rem; letter-spacing: 0; margin: 0.5rem 0 0.75rem; color: var(--text); }
-[data-theme="dark"] .section-title, [data-theme="amoled"] .section-title { color: var(--text); }
+[data-theme="dark"] .section-title { color: var(--text); }
 .home-section { margin-top: 1rem; }
 .icon-toggle { width: 48px; height: 42px; border: none; background: var(--surface-soft); color: var(--text); border-radius: 10px; }
 .icon-toggle svg { width: 20px; height: 20px; }
@@ -502,8 +501,8 @@ h1, h2, h3, .modal-title { font-family: var(--font-display); font-weight: 800; l
 .fav-toggle { color: var(--text); }
 .fav-toggle svg { width: 22px; height: 22px; }
 .fav-toggle.is-active { color: var(--violet); }
-[data-theme="dark"] .fav-toggle, [data-theme="amoled"] .fav-toggle { color: var(--text); }
-[data-theme="dark"] .fav-toggle.is-active, [data-theme="amoled"] .fav-toggle.is-active { color: var(--lime); }
+[data-theme="dark"] .fav-toggle { color: var(--text); }
+[data-theme="dark"] .fav-toggle.is-active { color: var(--lime); }
 
 /* Zuletzt bearbeitet */
 .recent-card { border-color: var(--border); border-radius: 16px; }
@@ -512,7 +511,7 @@ h1, h2, h3, .modal-title { font-family: var(--font-display); font-weight: 800; l
 .recent-title { font-family: var(--font-display); font-weight: 800; font-size: 1.875rem; letter-spacing: 0; line-height: 1.1; color: var(--text); }
 .recent-meta, .rcard-meta, .rrow-meta { font-size: 1rem; color: var(--text-soft); }
 .recent-fav { top: 2px; right: 2px; }
-[data-theme="dark"] .recent-title, [data-theme="amoled"] .recent-title { color: var(--text); }
+[data-theme="dark"] .recent-title { color: var(--text); }
 
 /* Rasterkarten */
 .rgrid { gap: 1rem; }
@@ -522,20 +521,20 @@ h1, h2, h3, .modal-title { font-family: var(--font-display); font-weight: 800; l
 .rcard-title { font-family: var(--font-display); font-weight: 800; font-size: 1.625rem; letter-spacing: 0; line-height: 1.12; color: var(--text); -webkit-line-clamp: 2; }
 .rcard .rcard-fav { position: absolute; right: 0; bottom: 4px; top: auto; }
 .rrow-title { font-family: var(--font-display); font-weight: 800; font-size: 1.4375rem; letter-spacing: 0; color: var(--text); }
-[data-theme="dark"] .rcard-title, [data-theme="amoled"] .rcard-title, [data-theme="dark"] .rrow-title, [data-theme="amoled"] .rrow-title { color: var(--text); }
+[data-theme="dark"] .rcard-title, [data-theme="dark"] .rrow-title { color: var(--text); }
 
 /* Untere Navigation */
 .bottom-nav { background: var(--card-bg); border-top: 1px solid var(--hairline); }
-[data-theme="dark"] .bottom-nav, [data-theme="amoled"] .bottom-nav { background: var(--card-bg); border-top-color: var(--border); }
+[data-theme="dark"] .bottom-nav { background: var(--card-bg); border-top-color: var(--border); }
 .bottom-nav button { min-height: 72px; padding-top: 0.75rem; gap: 0.25rem; color: var(--text-soft); font-size: 0.9375rem; font-weight: 400; font-family: var(--font-sans); }
 .bottom-nav svg { width: 26px; height: 26px; }
 .bottom-nav button.active { color: var(--text); font-weight: 700; }
 .bottom-nav button.active::after { bottom: 7px; width: 36px; height: 5px; margin-left: -1.25rem; border-radius: 5px; background: var(--tomato); }
-[data-theme="dark"] .bottom-nav button.active, [data-theme="amoled"] .bottom-nav button.active { color: var(--text); }
+[data-theme="dark"] .bottom-nav button.active { color: var(--text); }
 
 /* Detail: Kopfzeile */
 .topbar--sub { background: var(--bg); border-bottom: none; }
-[data-theme="dark"] .topbar--sub, [data-theme="amoled"] .topbar--sub { background: var(--bg); }
+[data-theme="dark"] .topbar--sub { background: var(--bg); }
 .topbar--sub .topbar-left { flex: 1; min-width: 0; }
 .topbar--sub .topbar-title { font-family: var(--font-display); font-weight: 800; font-size: 1.625rem; letter-spacing: 0; text-align: center; flex: 1; }
 .topbar--sub .icon-btn svg { width: 26px; height: 26px; }
@@ -545,7 +544,7 @@ h1, h2, h3, .modal-title { font-family: var(--font-display); font-weight: 800; l
 .hero-img { aspect-ratio: 3 / 2; max-height: 60vh; max-height: 60dvh; }
 .detail-head { padding-top: 1rem; }
 .detail-title-v2 { font-family: var(--font-display); font-weight: 800; font-size: clamp(46px, 13.8vw, 64px); letter-spacing: 0; line-height: 0.98; color: var(--text); }
-[data-theme="dark"] .detail-title-v2, [data-theme="amoled"] .detail-title-v2 { color: var(--text); }
+[data-theme="dark"] .detail-title-v2 { color: var(--text); }
 .detail-fav svg { width: 28px; height: 28px; }
 .detail-meta-v2 { font-size: 1.125rem; color: var(--text-soft); margin: 0.5rem 0 1rem; }
 .meta-sep { display: inline-block; margin: 0 0.75rem; font-size: 0.875rem; vertical-align: 2px; }
@@ -557,8 +556,8 @@ h1, h2, h3, .modal-title { font-family: var(--font-display); font-weight: 800; l
 .secondary-actions { gap: 1rem; margin: 1rem 0 0; }
 .outline-btn { border-radius: 12px; min-height: 52px; font-family: var(--font-sans); font-weight: 400; font-size: 1.125rem; color: var(--text); border-color: var(--border); gap: 0.75rem; }
 .outline-btn svg { width: 22px; height: 22px; }
-[data-theme="dark"] .outline-btn, [data-theme="amoled"] .outline-btn, [data-theme="dark"] .primary-btn, [data-theme="amoled"] .primary-btn { color: var(--text); }
-[data-theme="dark"] .primary-btn, [data-theme="amoled"] .primary-btn { color: var(--on-tomato); }
+[data-theme="dark"] .outline-btn, [data-theme="dark"] .primary-btn { color: var(--text); }
+[data-theme="dark"] .primary-btn { color: var(--on-tomato); }
 
 /* Detail: Quelle */
 .source-row { display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; margin: 1rem 0 0; padding: 0.75rem 0; border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); }
@@ -566,16 +565,16 @@ h1, h2, h3, .modal-title { font-family: var(--font-display); font-weight: 800; l
 .source-row .source-line svg { width: 20px; height: 20px; color: var(--text); flex-shrink: 0; }
 .source-chips { display: flex; gap: 0.5rem; flex-shrink: 0; }
 .source-chip { background: var(--surface-soft); color: var(--text-soft); border-radius: 10px; padding: 0.5rem 0.75rem; font-size: 0.9375rem; }
-[data-theme="dark"] .source-row, [data-theme="amoled"] .source-row { border-color: var(--border); }
-[data-theme="dark"] .source-chip, [data-theme="amoled"] .source-chip { background: var(--surface-soft); color: var(--text-soft); }
+[data-theme="dark"] .source-row { border-color: var(--border); }
+[data-theme="dark"] .source-chip { background: var(--surface-soft); color: var(--text-soft); }
 
 /* Detail: Tabs */
 .tabbar-v2 { margin: 0; gap: 0; background: var(--bg); }
 .tab-v2 { flex: 1 1 0; font-family: var(--font-sans); font-size: 1.125rem; font-weight: 400; color: var(--text-soft); min-height: 56px; padding: 0 0.5rem; }
 .tab-v2.is-active { color: var(--text); font-weight: 700; }
 .tab-v2.is-active::after { left: 0; right: 0; height: 4px; border-radius: 4px 4px 0 0; background: var(--tomato); }
-[data-theme="dark"] .tab-v2.is-active, [data-theme="amoled"] .tab-v2.is-active { color: var(--text); }
-[data-theme="dark"] .tab-v2.is-active::after, [data-theme="amoled"] .tab-v2.is-active::after { background: var(--lime); }
+[data-theme="dark"] .tab-v2.is-active { color: var(--text); }
+[data-theme="dark"] .tab-v2.is-active::after { background: var(--lime); }
 
 /* Detail: Menge */
 .amount-row { padding: 1rem 0; }
@@ -584,21 +583,21 @@ h1, h2, h3, .modal-title { font-family: var(--font-display); font-weight: 800; l
 .stepper button { width: 52px; height: 48px; color: var(--text); }
 .stepper button svg { width: 20px; height: 20px; }
 .stepper-value { font-weight: 400; font-size: 1.125rem; color: var(--text-soft); min-width: 96px; }
-[data-theme="dark"] .stepper, [data-theme="amoled"] .stepper { background: var(--surface-soft); border-color: var(--border); }
-[data-theme="dark"] .stepper button, [data-theme="amoled"] .stepper button { color: var(--text); }
+[data-theme="dark"] .stepper { background: var(--surface-soft); border-color: var(--border); }
+[data-theme="dark"] .stepper button { color: var(--text); }
 
 /* Detail: Zutaten */
 .ing-group { margin-top: 1.25rem; }
 .ing-group-title { font-family: var(--font-display); font-weight: 800; font-size: 2rem; letter-spacing: 0; margin: 0 0 0.5rem; color: var(--text); }
-[data-theme="dark"] .ing-group-title, [data-theme="amoled"] .ing-group-title { color: var(--text); }
+[data-theme="dark"] .ing-group-title { color: var(--text); }
 .ing-check { grid-template-columns: 26px minmax(76px, 34%) 1fr; column-gap: 1rem; min-height: 52px; border-bottom: none; font-size: 1.125rem; padding: 0; }
 .ing-list li { position: relative; }
 .ing-list li::after { content: ''; position: absolute; left: 42px; right: 0; bottom: 0; height: 1px; background: var(--border); }
-[data-theme="dark"] .ing-list li::after, [data-theme="amoled"] .ing-list li::after { background: var(--border); }
+[data-theme="dark"] .ing-list li::after { background: var(--border); }
 .ing-amount { font-weight: 700; color: var(--text); font-variant-numeric: normal; }
 .ing-name { color: var(--text-soft); }
 .check-box { width: 24px; height: 24px; border-radius: 5px; border: 1.8px solid var(--text-faint); }
-[data-theme="dark"] .ing-amount, [data-theme="amoled"] .ing-amount { color: var(--text); }
+[data-theme="dark"] .ing-amount { color: var(--text); }
 
 /* Zubereitung */
 .step-list-v2 p { font-size: 1.125rem; }
@@ -691,7 +690,7 @@ body { font-size: 1rem; }
 .placeholder.ph-3 { --pa: #F7DCE1; --pb: #EDB6C2; }
 .placeholder.ph-4 { --pa: #E6E4E3; --pb: #CECBC8; }
 .placeholder.ph-5 { --pa: #F0EBC6; --pb: #E1D88F; }
-[data-theme="dark"] .placeholder[class*="ph-"], [data-theme="amoled"] .placeholder[class*="ph-"] { background: linear-gradient(135deg, color-mix(in srgb, var(--pa) 30%, #242220), color-mix(in srgb, var(--pb) 22%, #242220)); color: var(--pa); }
+[data-theme="dark"] .placeholder[class*="ph-"] { background: linear-gradient(135deg, color-mix(in srgb, var(--pa) 30%, #242220), color-mix(in srgb, var(--pb) 22%, #242220)); color: var(--pa); }
 .ph-letter { font-family: var(--font-display); font-weight: 800; line-height: 1; font-size: 2.5rem; letter-spacing: 0; }
 .rrow-img .ph-letter, .plan-thumb .ph-letter, .picker-thumb .ph-letter { font-size: 1.5rem; }
 .hero-img .ph-letter { font-size: 5.25rem; }
@@ -773,7 +772,7 @@ body { font-size: 1rem; }
 /* ---------- Paket 5: Darstellung ---------- */
 /* Systemelemente (Haekchenfelder, Auswahllisten, Scrollbalken) folgen dem gewaehlten Modus */
 [data-theme="light"] { color-scheme: light; }
-[data-theme="dark"], [data-theme="amoled"] { color-scheme: dark; }
+[data-theme="dark"] { color-scheme: dark; }
 
 /* ---------- Paket 6: Kochmodus, Erinnerung, Einstieg ---------- */
 .cook-v2.cook-scale-1 .cookmode-steptext { font-size: clamp(26px, 6.4vw, 36px); }
@@ -853,7 +852,7 @@ body { font-size: 1rem; }
 
 /* ---------- Paket 11: iOS-App ---------- */
 /* Dunkel/Schwarz: kein Gummiband-Effekt, sonst blitzt am Rand der helle Hintergrund der Web-Ansicht auf */
-html.is-native[data-theme="dark"], html.is-native[data-theme="amoled"] { overscroll-behavior-y: none; }
+html.is-native[data-theme="dark"] { overscroll-behavior-y: none; }
 html.is-native { -webkit-touch-callout: none; }
 
 /* ---------- Paket 13: PDF-Vorschau mit PDF.js (iOS) ---------- */
@@ -989,7 +988,7 @@ main > .page-eyebrow:first-child + .page-title-row { margin-top: 0.125rem; }
 input[type="checkbox"], input[type="radio"] { accent-color: var(--tomato); }
 /* Umschalter (z. B. Naehrwerte im PDF) auch im Dunkelmodus klar erkennbar */
 .nutrition-segmented { background: rgba(185, 59, 44, .12); }
-[data-theme="dark"] .nutrition-segmented, [data-theme="amoled"] .nutrition-segmented { background: rgba(255, 255, 255, .08); }
+[data-theme="dark"] .nutrition-segmented { background: rgba(255, 255, 255, .08); }
 .nutrition-segmented button.active { background: var(--lime); color: var(--lime-ink, #1A1918); box-shadow: none; }
 @media (prefers-color-scheme: dark) { html:not([data-theme="light"]) .nutrition-segmented { background: rgba(255, 255, 255, .08); } }
 
@@ -1013,7 +1012,7 @@ input[type="checkbox"], input[type="radio"] { accent-color: var(--tomato); }
   .nav-brand { display: flex; align-items: center; gap: 0.75rem; padding: 0.5rem 0.75rem 1.25rem; }
   .nav-brand img { border-radius: 9px; box-shadow: 0 2px 6px rgba(37,39,32,.25); }
   .nav-brand span { font-family: var(--font-logo, var(--font-display)); font-weight: 900; font-stretch: 80%; font-size: 1.625rem; color: var(--text); line-height: 1; }
-  [data-theme="dark"] .nav-brand span, [data-theme="amoled"] .nav-brand span { color: var(--text); }
+  [data-theme="dark"] .nav-brand span { color: var(--text); }
 }
 /* Vorschau-Kopf: Zurueck links, dann Titel und Angaben */
 .pdf-preview-header { display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap; }
@@ -1058,7 +1057,7 @@ html { -webkit-tap-highlight-color: transparent; }
 .topbar--sub, .topbar--home, .topbar:not(.topbar--sub) { border-bottom: none !important; }
 .topbar { transition: box-shadow 200ms ease-out; }
 html.is-scrolled .topbar { box-shadow: 0 1px 0 rgba(37, 39, 32, .05), 0 8px 14px -10px rgba(37, 39, 32, .28); }
-[data-theme="dark"].is-scrolled .topbar, [data-theme="amoled"].is-scrolled .topbar { box-shadow: 0 1px 0 rgba(255, 255, 255, .05), 0 8px 14px -10px rgba(0, 0, 0, .7); }
+[data-theme="dark"].is-scrolled .topbar { box-shadow: 0 1px 0 rgba(255, 255, 255, .05), 0 8px 14px -10px rgba(0, 0, 0, .7); }
 
 /* Regel 14: reduzierte Transparenz und erhoehter Kontrast */
 @media (prefers-reduced-transparency: reduce) {
@@ -1112,14 +1111,14 @@ html[data-nav-dir="back"]::view-transition-new(root) { animation: svInFromLeft 3
 /* Dampf in warmem Gold, Buch in der Farbe des Schriftzugs (wie im App-Symbol) */
 .brand-mark2 .bm-steam { background: linear-gradient(180deg, #F0C879 0%, #D9A24A 100%); clip-path: polygon(0 0, 100% 0, 100% 53%, 54% 53%, 54% 63%, 40% 63%, 40% 53%, 0 53%); }
 .brand-mark2 .bm-book { background: var(--text); clip-path: polygon(0 53%, 40% 53%, 40% 63%, 54% 63%, 54% 53%, 100% 53%, 100% 100%, 0 100%); }
-[data-theme="dark"] .brand-mark2 .bm-book, [data-theme="amoled"] .brand-mark2 .bm-book { background: var(--surface-soft); }
+[data-theme="dark"] .brand-mark2 .bm-book { background: var(--surface-soft); }
 @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .brand-mark2 .bm-book { background: var(--surface-soft); } }
 .topbar .brand-v2 { gap: 0.25rem; }
 .nav-brand .brand-mark2 { width: 2.1rem; height: 2rem; }
 
 /* ===== Paket 29: Hochwertigerer Gesamteindruck (Ruhe, weiche Flaechen, feine Linien, klare Hierarchie) ===== */
 :root { --hairline: rgba(37, 39, 32, .08); --lift-1: 0 1px 2px rgba(37, 39, 32, .05), 0 6px 18px -10px rgba(37, 39, 32, .22); --lift-2: 0 2px 4px rgba(37, 39, 32, .06), 0 14px 32px -16px rgba(37, 39, 32, .32); --r-card: 1.25rem; --r-ctl: 0.875rem; }
-[data-theme="dark"], [data-theme="amoled"] { --hairline: rgba(255, 255, 255, .08); --lift-1: 0 1px 2px rgba(0, 0, 0, .35), 0 8px 20px -10px rgba(0, 0, 0, .6); --lift-2: 0 2px 4px rgba(0, 0, 0, .4), 0 16px 34px -16px rgba(0, 0, 0, .75); }
+[data-theme="dark"] { --hairline: rgba(255, 255, 255, .08); --lift-1: 0 1px 2px rgba(0, 0, 0, .35), 0 8px 20px -10px rgba(0, 0, 0, .6); --lift-2: 0 2px 4px rgba(0, 0, 0, .4), 0 16px 34px -16px rgba(0, 0, 0, .75); }
 @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --hairline: rgba(255, 255, 255, .08); --lift-1: 0 1px 2px rgba(0, 0, 0, .35), 0 8px 20px -10px rgba(0, 0, 0, .6); --lift-2: 0 2px 4px rgba(0, 0, 0, .4), 0 16px 34px -16px rgba(0, 0, 0, .75); } }
 
 /* Karten: keine harten Rahmen, sondern weiche Tiefe */
@@ -1168,7 +1167,7 @@ html[data-nav-dir="back"]::view-transition-new(root) { animation: svInFromLeft 3
 .bottom-nav button.active::after { display: none; }
 .bottom-nav .nav-icon { padding: 0.25rem 1rem; border-radius: 999px; transition: background-color 160ms ease-out, transform 100ms ease-out; display: inline-flex; position: relative; }
 .bottom-nav button.active .nav-icon { background: color-mix(in srgb, var(--lime) 55%, transparent); }
-[data-theme="dark"] .bottom-nav button.active .nav-icon, [data-theme="amoled"] .bottom-nav button.active .nav-icon { background: color-mix(in srgb, var(--lime) 22%, transparent); }
+[data-theme="dark"] .bottom-nav button.active .nav-icon { background: color-mix(in srgb, var(--lime) 22%, transparent); }
 .bottom-nav button { gap: 0.125rem; }
 .bottom-nav { border-top: none !important; box-shadow: 0 -1px 0 var(--hairline); }
 .nav-badge { top: -0.125rem; right: 0.375rem; }
@@ -1262,7 +1261,7 @@ input[type="text"], input[type="search"], input[type="number"], input[type="emai
 
 /* ===== Paket 30b: Tomatenrot als einziger Akzent (warm, appetitlich, wie bei den bekannten Rezept-Apps) auf Hellgrau und Anthrazit ===== */
 :root { --tomato: #B93B2C; --tomato-press: #9C2F22; --on-tomato: #FFFFFF; }
-[data-theme="dark"], [data-theme="amoled"] { --tomato: #FF9B80; --tomato-press: #FF8461; --on-tomato: #1B1A17; }
+[data-theme="dark"] { --tomato: #FF9B80; --tomato-press: #FF8461; --on-tomato: #1B1A17; }
 .primary-btn, .cook-start-inline, .round-btn--accent { background: var(--tomato); color: var(--on-tomato); }
 .primary-btn svg, .cook-start-inline svg, .round-btn--accent svg { color: var(--on-tomato); }
 @media (hover: hover) and (pointer: fine) { .primary-btn:hover, .cook-start-inline:hover, .round-btn--accent:hover { background: var(--tomato-press); } }
@@ -1288,7 +1287,7 @@ input[type="text"], input[type="search"], input[type="number"], input[type="emai
 .shop-row:last-child { border-bottom: none; }
 /* Pflichtfeld-Fehler: Text und Rahmen (nicht nur Farbe), direkt unter dem Feld */
 .field-error { color: var(--tomato-press); font-size: 0.875rem; font-weight: 600; margin-top: 0.25rem; }
-[data-theme="dark"] .field-error, [data-theme="amoled"] .field-error { color: var(--tomato); }
+[data-theme="dark"] .field-error { color: var(--tomato); }
 input[aria-invalid="true"], textarea[aria-invalid="true"] { border-color: var(--tomato) !important; box-shadow: 0 0 0 2px var(--tomato); }
 /* Aufraeumen nach der Design-Pruefung: keine Seitenstreifen, kein farbiges Leuchten */
 .cook-start-inline { box-shadow: 0 1px 2px rgba(37, 39, 32, .18), 0 8px 14px -10px rgba(37, 39, 32, .5); }
@@ -1329,7 +1328,7 @@ input[aria-invalid="true"], textarea[aria-invalid="true"] { border-color: var(--
 .import-state--ok { background: var(--surface-selected); color: var(--text); }
 .import-state--check { background: var(--lime); color: var(--lime-ink); }
 .import-state--missing { background: transparent; color: var(--tomato-press); border: 1px solid currentColor; }
-[data-theme="dark"] .import-state--missing, [data-theme="amoled"] .import-state--missing { color: var(--tomato); }
+[data-theme="dark"] .import-state--missing { color: var(--tomato); }
 .import-orig { display: block; font-style: normal; color: var(--text-soft); background: var(--card-bg); border-radius: var(--r-ctl); padding: 0.25rem 0.5rem; margin-top: 0.25rem; overflow-wrap: anywhere; quotes: "„" "“"; }
 .import-unassigned { margin: 0.25rem 0 0; padding-left: 1rem; color: var(--text-soft); grid-column: 1 / -1; }
 .import-actions { grid-column: 1 / -1; display: flex; gap: 0.5rem; flex-wrap: wrap; }
@@ -1413,7 +1412,7 @@ input[aria-invalid="true"], textarea[aria-invalid="true"] { border-color: var(--
 .cbk-meta { margin: 0.25rem 0 0.5rem; color: var(--text-soft); font-size: 0.9375rem; font-variant-numeric: tabular-nums; }
 .cbk-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 0.25rem 0.5rem; }
 .text-btn--danger { color: var(--tomato-press); }
-[data-theme="dark"] .text-btn--danger, [data-theme="amoled"] .text-btn--danger { color: var(--tomato); }
+[data-theme="dark"] .text-btn--danger { color: var(--tomato); }
 .text-btn[disabled] { opacity: 0.4; cursor: not-allowed; }
 @media (max-width: 420px) { .cbk-card { gap: 0.75rem; padding: 0.75rem; } .cbk-thumb { width: 3.5rem; } }
 
@@ -1483,10 +1482,10 @@ input[aria-invalid="true"], textarea[aria-invalid="true"] { border-color: var(--
    Paket 37: neue visuelle Sprache (persoenliches Kochbuch)
    Warme Flaechen, klare Typografie, ruhige Hierarchie, Tomatenrot nur fuer die Hauptaktion und aktive Zustaende.
    Schriften: Public Sans fuer alles Bedienbare und Seiten-/Abschnittstitel, Lilita One nur fuer Rezept- und Buchtitel.
-   Farben stehen zentral in styles.css (:root, dark, amoled). Hier keine Farbwerte ausser Tinte/Weiss im Kochmodus.
+   Farben stehen zentral in styles.css (:root, dark). Hier keine Farbwerte ausser Tinte/Weiss im Kochmodus.
    ========================================================================== */
 :root { --hairline: rgba(37, 39, 32, .10); --r-card: 1.25rem; --r-ctl: 0.875rem; --measure: 65ch; }
-[data-theme="dark"], [data-theme="amoled"] { --hairline: rgba(241, 237, 228, .12); }
+[data-theme="dark"] { --hairline: rgba(241, 237, 228, .12); }
 body { font-family: var(--font-sans); font-size: 1.0625rem; line-height: 1.5; font-optical-sizing: auto; -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility; }
 h1, h2, h3, h4, .modal-title { font-family: var(--font-display); font-weight: 700; letter-spacing: -0.01em; }
 ::selection { background: color-mix(in srgb, var(--tomato) 26%, transparent); color: inherit; }
@@ -1571,7 +1570,7 @@ html { scrollbar-color: var(--border) transparent; }
 .placeholder, .rcard-img.placeholder, .rrow-img.placeholder, .plan-thumb.placeholder, .picker-thumb.placeholder, .hero-img.placeholder { background: var(--surface-soft); color: transparent; }
 .fav-toggle { color: var(--text-soft); }
 .fav-toggle.is-active { color: var(--tomato-ink, var(--violet)); }
-[data-theme="dark"] .fav-toggle.is-active, [data-theme="amoled"] .fav-toggle.is-active { color: var(--tomato); }
+[data-theme="dark"] .fav-toggle.is-active { color: var(--tomato); }
 
 /* ----- Rezeptansicht ----- */
 .detail-main { max-width: 820px; padding-top: 0; }
@@ -1652,7 +1651,6 @@ html { scrollbar-color: var(--border) transparent; }
 
 /* ----- Kochmodus: immer dunkel, Schritt gross, Zutaten in Reichweite ----- */
 .cook-v2 { --tomato: #FF9B80; --tomato-press: #FF8461; --on-tomato: #1B1A17; --lime: #FFB09A; --lime-ink: #1B1A17; --lime-hover: #FF9B80; background: #1B1A17; color: #F7F4EE; font-family: var(--font-sans); }
-[data-theme="amoled"] .cook-v2 { background: #000; }
 .cook-v2 .cookmode-progress { color: #D8D3C6; font-size: 1rem; font-weight: 600; }
 .cook-v2 .cook-title-line { color: #D8D3C6; font-size: 1rem; font-weight: 600; }
 .cook-v2 .cookmode-body:has(.cook-step-card) { justify-content: flex-start; gap: 1.5rem; padding-top: 1rem; }
@@ -1708,11 +1706,11 @@ html { scrollbar-color: var(--border) transparent; }
   .no-hero .detail-col--info .detail-title-v2 { font-size: 2.5rem; }
 }
 /* Dunkel und Schwarz: --lime ist hier eine dunkle Tomatenfläche, Linien und Zähler brauchen das helle Tomatenrot */
-[data-theme="dark"] .tab-v2.is-active::after, [data-theme="amoled"] .tab-v2.is-active::after,
-[data-theme="dark"] .bottom-nav button.active::after, [data-theme="amoled"] .bottom-nav button.active::after,
+[data-theme="dark"] .tab-v2.is-active::after,
+[data-theme="dark"] .bottom-nav button.active::after,
 .detail-main[data-tab="ingredients"] #tab-steps::after { background: var(--tomato); }
-[data-theme="dark"] .nav-badge, [data-theme="amoled"] .nav-badge { background: var(--tomato); color: var(--on-tomato); }
-[data-theme="dark"] .bottom-nav button.active .nav-icon, [data-theme="amoled"] .bottom-nav button.active .nav-icon { background: var(--lime); }
+[data-theme="dark"] .nav-badge { background: var(--tomato); color: var(--on-tomato); }
+[data-theme="dark"] .bottom-nav button.active .nav-icon { background: var(--lime); }
 
 /* Feinschliff (Paket 37): Luft zwischen Kopfzeile und Seitentitel */
 .page-title-row { padding-top: 0.75rem; }
@@ -1812,7 +1810,7 @@ html:has(.home-head) { scroll-padding-top: 15rem; }
 .home-head .chip-row--active { margin: 0 0 0.25rem; }
 .home-main { padding-top: 0.5rem; }
 html.is-scrolled .home-head { box-shadow: 0 1px 0 rgba(37, 39, 32, .05), 0 8px 14px -10px rgba(37, 39, 32, .28); }
-[data-theme="dark"].is-scrolled .home-head, [data-theme="amoled"].is-scrolled .home-head { box-shadow: 0 1px 0 rgba(255, 255, 255, .05), 0 8px 14px -10px rgba(0, 0, 0, .7); }
+[data-theme="dark"].is-scrolled .home-head { box-shadow: 0 1px 0 rgba(255, 255, 255, .05), 0 8px 14px -10px rgba(0, 0, 0, .7); }
 @media (prefers-color-scheme: dark) { :root:not([data-theme]).is-scrolled .home-head { box-shadow: 0 1px 0 rgba(255, 255, 255, .05), 0 8px 14px -10px rgba(0, 0, 0, .7); } }
 @media (prefers-reduced-motion: reduce) { .home-head { transition: none; } }
 @media (prefers-contrast: more) { html.is-scrolled .home-head { box-shadow: 0 1px 0 var(--text); } }
@@ -1914,7 +1912,7 @@ html.is-scrolled .home-head { box-shadow: 0 1px 0 rgba(37, 39, 32, .05), 0 8px 1
 /* ===== Paket 43: Savora-Wortmarke (Pfad-SVG, nur Schrift) statt Buch-Löffel-Zeichen ===== */
 /* Farbe folgt der App-Einstellung (data-theme am Wurzelelement), nicht dem System; ohne data-theme gilt das System (Startbild vor dem Laden). */
 .wordmark { display: block; flex: none; height: auto; aspect-ratio: 3 / 1; color: #B93B2C; }
-[data-theme="dark"] .wordmark, [data-theme="amoled"] .wordmark { color: #F7F4EE; }
+[data-theme="dark"] .wordmark { color: #F7F4EE; }
 @media (prefers-color-scheme: dark) { :root:not([data-theme]) .wordmark { color: #F7F4EE; } }
 .wordmark * { transition: none; }
 .top-wordmark { width: clamp(112px, 36vw, 136px); margin: -0.25rem 0 -0.25rem -0.25rem; }
@@ -2137,7 +2135,7 @@ html.is-scrolled .home-head { box-shadow: 0 1px 0 rgba(37, 39, 32, .05), 0 8px 1
   background-repeat: no-repeat; background-position: center; background-size: 0.9rem;
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23fff' stroke-width='3.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 12.5l4.5 4.5L19 7.5'/%3E%3C/svg%3E");
 }
-[data-theme="dark"] .pdf-tpl-opt.active::after, [data-theme="amoled"] .pdf-tpl-opt.active::after {
+[data-theme="dark"] .pdf-tpl-opt.active::after {
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%231B1A17' stroke-width='3.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 12.5l4.5 4.5L19 7.5'/%3E%3C/svg%3E");
 }
 @media (prefers-color-scheme: dark) {
@@ -2171,7 +2169,7 @@ html.is-scrolled .home-head { box-shadow: 0 1px 0 rgba(37, 39, 32, .05), 0 8px 1
   .bottom-nav .nav-icon { padding: 0.25rem clamp(0.5rem, 4vw, 1rem); }
   .bottom-nav .nav-icon svg { width: 1.5rem; height: 1.5rem; }
   .bottom-nav button.active .nav-icon { background: color-mix(in srgb, var(--tomato) 16%, transparent); }
-  [data-theme="dark"] .bottom-nav button.active .nav-icon, [data-theme="amoled"] .bottom-nav button.active .nav-icon { background: color-mix(in srgb, var(--tomato) 24%, transparent); }
+  [data-theme="dark"] .bottom-nav button.active .nav-icon { background: color-mix(in srgb, var(--tomato) 24%, transparent); }
   .bottom-nav .nav-badge { top: -2px; right: 0; }
   main.has-tabbar { padding-bottom: calc(var(--nav-h) + 1.5rem + env(safe-area-inset-bottom, 0px)); }
 }
@@ -2706,6 +2704,23 @@ mark.hl {
 html.is-scrolled .home-head::before, html.is-scrolled .home-head::after,
 html.is-scrolled .topbar:not(.topbar--home)::before, html.is-scrolled .topbar:not(.topbar--home)::after,
 html.fs-more-below .bottom-nav::before, html.fs-more-below .home-add-bar::before { visibility: visible; }
+
+/* ============================================================   Heute-Schalter 0.71
+   Wochenplan: «Heute» unter der Wochenanzeige (Platz bleibt immer reserviert, in der aktuellen Woche unsichtbar, kein Sprung).
+   Mehr: Schnellschalter «Erscheinungsbild». */
+.week-nav { align-items: center; }
+.week-nav .week-nav-mid { flex: 1; min-width: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+.week-nav .week-nav-mid .week-nav-label { flex: none; outline: none; }
+.week-nav .week-today { flex: none; width: auto; min-width: 2.75rem; height: 2.75rem; margin: 0.25rem 0 0; padding: 0 1rem; border-radius: 1.375rem; background: none; border: 1px solid var(--border); color: var(--text); font-family: var(--font-sans); font-size: 0.9375rem; font-weight: 600; }
+.week-nav .week-today:hover { background: var(--surface-soft); }
+.week-nav .week-today:disabled { visibility: hidden; }
+.week-nav .week-today:focus-visible { outline: 3px solid var(--text); outline-offset: 2px; }
+.plan-day.is-today { scroll-margin-top: 6rem; scroll-margin-bottom: 6rem; }
+.theme-quick { padding: 1rem; border-bottom: 1px solid var(--hairline); }
+.theme-quick-label { display: block; margin: 0 0 0.5rem; font-size: 0.9375rem; font-weight: 600; color: var(--text-soft); }
+.theme-quick-switch { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0.5rem; }
+.theme-opt--quick { min-width: 0; min-height: 2.75rem; padding: 0.5rem 0.25rem; overflow-wrap: anywhere; text-align: center; }
+@media (prefers-reduced-motion: reduce) { .week-nav .week-today { transition: none; } }
 
 /* ==========================================================================
    Rezepte-Zeile 0.71

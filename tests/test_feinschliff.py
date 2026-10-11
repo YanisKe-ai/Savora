@@ -83,7 +83,7 @@ async def main():
         check('highlightHtml: leere Suche und null ohne Markierung', h['f'] == 'abc' and h['g'] == '', str(h))
         # Kontrast der Markierung
         await search(page, 'zucchini')
-        for th in ['light', 'dark', 'amoled']:
+        for th in ['light', 'dark']:  # seit 0.70.2 ohne Schwarz
             await set_theme(page, th)
             c = await ev("""(rgbfn) => { const m = document.querySelector('mark.hl'); const f = eval(rgbfn); const cs = getComputedStyle(m); const bgimg = cs.backgroundImage; return { fg: f(cs.color), bg: f(getComputedStyle(document.documentElement).getPropertyValue('--lime').trim()), page: f(getComputedStyle(document.body).backgroundColor) }; }""", RGB)
             check(f'Kontrast Markierung ({th}): Text auf Marker mindestens 4,5 zu 1', contrast(c['fg'], c['bg']) >= 4.5, f"{contrast(c['fg'], c['bg']):.2f}")
@@ -154,9 +154,9 @@ async def main():
         r = await ev("""() => ({ th: document.documentElement.getAttribute('data-theme'), saved: localStorage.getItem('savora-theme'), cls: document.documentElement.classList.contains('theme-transitioning'),
           checked: Array.from(document.querySelectorAll('[data-action=set-theme]')).filter(b => b.getAttribute('aria-checked') === 'true').map(b => b.dataset.theme), active: Array.from(document.querySelectorAll('[data-action=set-theme].active')).map(b => b.dataset.theme) })""")
         check('Theme-Wisch: Dunkel gesetzt, gespeichert, Klasse entfernt, Haken nur bei Dunkel', r['th'] == 'dark' and r['saved'] == 'dark' and not r['cls'] and r['checked'] == ['dark'] and r['active'] == ['dark'], str(r))
-        await page.focus('[data-action="set-theme"][data-theme="amoled"]'); await page.keyboard.press('Enter'); await page.wait_for_timeout(800)
+        await page.focus('[data-action="set-theme"][data-theme="light"]'); await page.keyboard.press('Enter'); await page.wait_for_timeout(800)
         r = await ev("() => [document.documentElement.getAttribute('data-theme'), localStorage.getItem('savora-theme')]")
-        check('Theme-Wisch: per Tastatur (Enter) ebenfalls, Schwarz gespeichert', r == ['amoled', 'amoled'], str(r))
+        check('Theme-Wisch: per Tastatur (Enter) ebenfalls, Hell gespeichert (seit 0.70.2 statt Schwarz)', r == ['light', 'light'], str(r))
         await page.click('[data-action="set-theme"][data-theme="auto"]'); await page.wait_for_timeout(800)
         r = await ev("() => [localStorage.getItem('savora-theme'), state.theme, document.querySelector('[data-action=set-theme].active').dataset.theme]")
         check('Theme-Wisch: «Wie dein Gerät» gespeichert, Haken bleibt', r == ['auto', 'auto', 'auto'], str(r))
@@ -172,9 +172,9 @@ async def main():
         await ctx.close(); await b.close()
         b, ctx, page, errs = await theme_page(390, 844, 'no-preference', no_vt=True); ev = page.evaluate
         has = await ev("() => typeof document.startViewTransition")
-        await page.click('[data-action="set-theme"][data-theme="amoled"]')
+        await page.click('[data-action="set-theme"][data-theme="light"]')
         r = await ev("() => [document.documentElement.getAttribute('data-theme'), localStorage.getItem('savora-theme'), document.documentElement.classList.contains('theme-transitioning')]")
-        check('Theme-Wisch: ohne View-Transitions-API sofortiger Wechsel', has == 'undefined' and r == ['amoled', 'amoled', False], f'{has} {r}')
+        check('Theme-Wisch: ohne View-Transitions-API sofortiger Wechsel', has == 'undefined' and r == ['light', 'light', False], f'{has} {r}')
         await ctx.close(); await b.close()
 
         # ---------- D. Progressive Blur ----------
@@ -221,7 +221,7 @@ async def main():
         check('Avatar: eine Person heisst «Freund», Initialen aus Vor- und Nachname', r['l2'] == '1 Freund: Zoë Müller' and r['t2'] == 'ZM', str(r['l2']) + r['t2'])
         check('Avatar: leere Liste ergibt nichts, Namen mit HTML werden maskiert', r['empty'] == '' and r['none'] == '' and r['imgs'] == 0 and r['n'] == 4, str(r))
         check('Avatar: Farbe aus dem Namen ist stabil (Gross/Klein und Leerzeichen egal)', r['c1'] == r['c2'], str((r['c1'], r['c2'])))
-        for th in ['light', 'dark', 'amoled']:
+        for th in ['light', 'dark']:  # seit 0.70.2 ohne Schwarz
             await set_theme(page, th)
             c = await ev("""(rgbfn) => { const f = eval(rgbfn); const host = document.createElement('div'); host.innerHTML = avatarCirclesHtml(['Anna','Ben','Chris','Dora','Emil','Fritz','Gina','Hugo','Ida','Jan','Kai','Lea'], 12); document.body.appendChild(host);
               const out = Array.from(host.querySelectorAll('.avc-item')).map(e => { const cs = getComputedStyle(e); return [e.className, f(cs.color), f(cs.backgroundColor)]; }); host.remove(); return out; }""", RGB)

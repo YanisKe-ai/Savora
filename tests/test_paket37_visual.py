@@ -1,5 +1,5 @@
 """Paket 37: neue visuelle Sprache (Schriften, Farben, Kontrast, Tippflaechen, Rezept ohne Foto, Startseite, Kochmodus).
-Gemessen in Hell, Dunkel und Schwarz bei 390 und 1280 px, dazu grosse Systemschrift (24 px) und reduzierte Bewegung."""
+Gemessen in Hell und Dunkel bei 390 und 1280 px, dazu grosse Systemschrift (24 px) und reduzierte Bewegung."""
 import asyncio, sys
 import os as _os; sys.path.insert(0, _os.path.dirname(_os.path.abspath(__file__)))
 from common import *
@@ -98,7 +98,7 @@ async def measure_contrast(page, pairs):
 async def main():
     async with async_playwright() as p:
         browser = await p.chromium.launch()
-        for theme in ('light', 'dark', 'amoled'):
+        for theme in ('light', 'dark'):
             for (w, h) in ((390, 844), (1280, 800)):
                 tag = f'[{theme} {w}] '
                 ctx = await browser.new_context(viewport={'width': w, 'height': h}, reduced_motion='reduce', timezone_id='UTC')
@@ -208,7 +208,7 @@ async def main():
                 check(tag + 'Kochmodus: Schritttext mindestens 28 px, Zutaten-Chips mind. 18 px', ck['step'] >= 27.99 and (ck['n'] == 0 or ck['chip'] >= 17.99), str(ck))
                 check(tag + 'Kochmodus: "Anpassen" und "Alle Zutaten" als Schaltflaechen mind. 44 px', ck['all'] and all(x >= 44 for x in ck['btn']), str(ck))
 
-                # Marke (Paket 43): nur die Wortmarke, Hell rot, Dunkel/Schwarz creme
+                # Marke (Paket 43): nur die Wortmarke, Hell rot, Dunkel creme
                 await show_view("state.view='home'")
                 lg = await page.evaluate("""() => { const w = document.querySelector('.topbar .top-wordmark'); return w ? getComputedStyle(w).color.replace(/ /g, '') : null; }""")
                 want_wm = 'rgb(185,59,44)' if theme == 'light' else 'rgb(247,244,238)'

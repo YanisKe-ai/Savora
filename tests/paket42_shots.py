@@ -37,7 +37,7 @@ EXTRA = r"""async () => {
   await loadShopping(); await loadMealplan();
   return true;
 }"""
-THEMES = {'light': ('light', 'light'), 'dark': ('dark', 'dark'), 'amoled': ('amoled', 'dark')}
+THEMES = {'light': ('light', 'light'), 'dark': ('dark', 'dark')}  # seit 0.70.2 ohne 'amoled'
 
 # (Name, JS, Wartezeit)  – JS laeuft in page.evaluate; danach render()
 def views(long_id):

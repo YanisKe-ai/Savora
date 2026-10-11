@@ -14,7 +14,7 @@ const state = {
   toastMsg: null,
   modal: null, // { type: 'delete'|'import', recipeId }
   servingsOverride: {},
-  theme: localStorage.getItem(THEME_KEY) || 'auto',
+  theme: loadStoredTheme(),
   unitSystem: localStorage.getItem(UNIT_KEY) || 'metric',
   sortBy: (() => { try { const v = localStorage.getItem('savora-sort'); return ['updated', 'az', 'cooked', 'time'].includes(v) ? v : 'updated'; } catch (e) { return 'updated'; } })(),
   showNutrition: (() => { try { return localStorage.getItem('savora-show-nutrition') !== '0'; } catch (e) { return true; } })(),
@@ -69,11 +69,11 @@ function applyTheme() {
 }
 /* Browserleiste (theme-color) und iOS-Statusleiste passen sich dem gewaehlten Modus an, nicht dem des Systems:
    Wer in der App "Dunkel" waehlt, waehrend das Telefon hell ist, soll keine dunkle Uhr auf dunklem Grund sehen. */
-const THEME_CHROME = { light: '#F7F4EE', dark: '#1B1A17', amoled: '#000000' };
+const THEME_CHROME = { light: '#F7F4EE', dark: '#1B1A17' };
 function syncThemeChrome(theme) {
   const meta = document.querySelector('meta[name="theme-color"]');
   if (meta) meta.setAttribute('content', THEME_CHROME[theme] || THEME_CHROME.light);
-  if (typeof SavoraNative !== 'undefined') SavoraNative.setStatusBarDark(theme === 'dark' || theme === 'amoled');
+  if (typeof SavoraNative !== 'undefined') SavoraNative.setStatusBarDark(theme === 'dark');
 }
 
 applyTheme();

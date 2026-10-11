@@ -13,7 +13,7 @@ Alle Tests laufen mit Playwright (Python) gegen die echte App in einem Testbrows
 | `test_audit_b.py` | Audit B: Cache-Eigentum, optionale Dateien, Offline-Anzeige, PDF-Bibliotheken bei Bedarf, Fehlerseiten nicht gecacht, Update ohne Entwurfsverlust, Lazy-Bilder |
 | `test_native.py` | iOS-App mit Plugin-Attrappen: Teilen, Bildschirm, Timer, Statusleiste, Haptik |
 | `test_paket1.py` bis `test_paket9.py` | Rezeptseite, Texte, Rechner, Formular, Kochmodus, breites Layout, Feinschliff, Suche |
-| `test_a11y.py` | Barrierefreiheit mit axe-core in Hell, Dunkel und Schwarz, 390 und 1280 px |
+| `test_a11y.py` | Barrierefreiheit mit axe-core in Hell und Dunkel, 390 und 1280 px |
 | `test_theme.py` | Darstellung: Browserleiste, Systemelemente, System-Wechsel |
 | `test_import.py` | Text-Import mit realistischen Rezepttexten, Timer-Erkennung |
 | `test_paket37_visual.py` | Neue visuelle Sprache: Schriftfamilien, kleinste Schrift, Tippflächen, Kontraste, Rezept ohne Foto, Startseite, Kochmodus, grosse Systemschrift, reduzierte Bewegung (Hell, Dunkel, Schwarz, 390 und 1280 px) |

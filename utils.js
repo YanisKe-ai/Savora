@@ -105,6 +105,18 @@ const MONTH_LABELS = ['Jan', 'Feb', 'Mär', 'Apr', 'Mai', 'Jun', 'Jul', 'Aug', '
 const ALL_TAGS_SEED = ['Frühstück', 'Hauptgang', 'Dessert', 'Vegetarisch', 'Vegan', 'Schnell', 'Backen', 'Suppe', 'Salat', 'Beilage'];
 
 const THEME_KEY = 'savora-theme'; // 'light' | 'dark' | 'auto'
+/* Seit 0.70.2 gibt es kein Schwarz mehr: ein frueher gespeichertes oder aus der Cloud kommendes 'amoled' gilt als 'dark'. */
+function normalizeTheme(v) {
+  if (v === 'amoled') return 'dark';
+  return (v === 'light' || v === 'dark' || v === 'auto') ? v : 'auto';
+}
+function loadStoredTheme() {
+  let raw = null;
+  try { raw = localStorage.getItem(THEME_KEY); } catch (e) { /* ohne Speicher: System */ }
+  const t = normalizeTheme(raw);
+  if (raw === 'amoled') { try { localStorage.setItem(THEME_KEY, 'dark'); } catch (e) { /* egal */ } }
+  return t;
+}
 
 const UNIT_KEY = 'savora-unit-system'; // 'metric' | 'imperial'
 

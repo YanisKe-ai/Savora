@@ -273,9 +273,9 @@ async def main():
             check(tag + 'Favorit am Listenende: kein Scrollsprung, Rezept bleibt geschlossen', abs(await ev("window.scrollY") - sy) < 2 and await ev("state.view") == 'home', f"{sy} -> {await ev('window.scrollY')}")
             await ctx.close(); await b.close()
 
-        # ---------- H. Hell / Dunkel / Schwarz ----------
+        # ---------- H. Hell / Dunkel (seit 0.70.2 ohne Schwarz) ----------
         b, ctx, page, errs = await new_phone(p, 390, 844); ev = page.evaluate
-        for t in ['light', 'dark', 'amoled']:
+        for t in ['light', 'dark']:
             await theme(page, t); await ev(STATE_RESET); await page.wait_for_timeout(250)
             c = await ev("""() => { const cs = (e, k) => getComputedStyle(e)[k]; const act = document.querySelector('.bottom-nav button.active'); const add = document.querySelector('.home-add-btn');
               return { wm: cs(document.querySelector('.top-wordmark'), 'color'), navBg: cs(document.querySelector('.bottom-nav'), 'backgroundColor'), act: cs(act.querySelector('.nav-label'), 'color'), inact: cs(document.querySelectorAll('.bottom-nav button')[1].querySelector('.nav-label'), 'color'), addBg: cs(add, 'backgroundColor'), addFg: cs(add, 'color'),
@@ -283,7 +283,7 @@ async def main():
             check(f'{t}: aktiver Punkt und inaktive Beschriftung lesbar (Kontrast >= 4.5)', contrast(rgb(c['act']), rgb(c['navBg'])) >= 4.5 and contrast(rgb(c['inact']), rgb(c['navBg'])) >= 4.5, f"{contrast(rgb(c['act']), rgb(c['navBg'])):.2f} {contrast(rgb(c['inact']), rgb(c['navBg'])):.2f}")
             check(f'{t}: Text auf «Rezept hinzufügen» und Titel/Zeit lesbar', contrast(rgb(c['addFg']), rgb(c['addBg'])) >= 4.5 and contrast(rgb(c['title']), rgb(c['bg'])) >= 4.5 and contrast(rgb(c['meta']), rgb(c['bg'])) >= 4.5, str(c))
             check(f'{t}: Wortmarke hell auf dunklem Grund bzw. rot auf hellem, ohne Ueberlauf', (rgb(c['wm']) == [185, 59, 44] if t == 'light' else rgb(c['wm']) == [247, 244, 238]) and c['sw'], c['wm'])
-            if t != 'amoled':
+            if True:  # seit 0.70.2 ohne Schwarz
                 await page.screenshot(path=os.path.join(OUT, f'startseite-liste-{t}.png'))
         await ctx.close(); await b.close()
 

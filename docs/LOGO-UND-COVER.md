@@ -2,7 +2,7 @@
 
 ## Marke (verbindlich seit 0.64.0)
 - App-Icon und Favicon: die «Prise» (Variante 02 Tinte). Dateien in `assets/logo/` (`savora-app-icon*.svg/png`, `savora-favicon*.svg/png`); `icon-512/192/180/96/32.png` und `icon-512/192-maskable.png` im Hauptordner sind daraus abgeleitet (gleiche Dateinamen für das Manifest). iOS: `AppIcon-512@2x.png` (1024, ohne Alpha) und die Startbilder (Creme mit roter Wortmarke, dunkel mit cremefarbener Wortmarke).
-- In der App steht nur die Wortmarke «savora» (Teigschrift, Pfad-SVG 1200 x 400, kein Text und keine Schriftdatei): Kopfzeile, Seitenleiste, Startbild. Kein Handsymbol daneben. Einbettung als Inline-SVG über `wordmarkSvg()` in `cover.js`; die Farbe steuert CSS über `data-theme` (Hell `#B93B2C`, Dunkel und Schwarz `#F7F4EE`), kein Filter, kein Flackern. Quellen: `savora-wortmarke-light.svg` und `-dark.svg`.
+- In der App steht nur die Wortmarke «savora» (Teigschrift, Pfad-SVG 1200 x 400, kein Text und keine Schriftdatei): Kopfzeile, Seitenleiste, Startbild. Kein Handsymbol daneben. Einbettung als Inline-SVG über `wordmarkSvg()` in `cover.js`; die Farbe steuert CSS über `data-theme` (Hell `#B93B2C`, Dunkel `#F7F4EE`), kein Filter, kein Flackern. Quellen: `savora-wortmarke-light.svg` und `-dark.svg`.
 - Die Symbol-SVGs (`savora-symbol-*.svg`) sind ergänzende Markenassets und werden in der App nicht angezeigt.
 - Titelblatt und PDF: oben rechts die Wortmarke (dunkle Fläche Creme `#F7F4EE`, helle Fläche Tinte `#252720`), Breite 27 % der Seite, rechter Rand bei 92 %. Die Option «Savora-Wortmarke oben rechts auf dem Titelblatt» (`showLogo`) blendet sie aus.
 - Lilita One und Public Sans sind die App-Schriften und von der Wortmarke unabhängig.
