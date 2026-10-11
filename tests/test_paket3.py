@@ -95,7 +95,7 @@ async def main():
             for t in ['weight', 'volume', 'temp', 'food']:
                 await pg.evaluate(f"() => {{ state.view = 'unitconverter'; state.ucTab = undefined; state.ucUnit = undefined; state.ucAmount = undefined; ucSwitchTab('{t}'); render(); }}"); await pg.wait_for_timeout(200)
                 ov = await pg.evaluate("document.documentElement.scrollWidth - document.documentElement.clientWidth")
-                check(f'320 px {th} {t}: kein Seitwärts-Scrollen', ov <= 0, str(ov))
+                check(f'320 px {th} {t}: kein Seitwärts-Scrollen', ov <= 0, str(ov) + (' ' + str(await overflow_info(pg)) if ov > 0 else ''))
         check('Keine Seitenfehler', not errs, str(errs[:3]))
         await b2.close()
     print('\nFEHLGESCHLAGEN:', FAIL or 'keine')
