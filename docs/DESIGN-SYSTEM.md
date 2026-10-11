@@ -1,6 +1,6 @@
 # Savora Designsystem (Rebranding Phase 1)
 
-Stand: Version 0.56.0. Diese Regeln gelten für alle Ansichten, Hell, Dunkel und AMOLED. Neue Oberflächen folgen ihnen, ohne neue Farben, Schriften oder Rundungen einzuführen.
+Stand: Version 0.61.0. Diese Regeln gelten für alle Ansichten, Hell, Dunkel und AMOLED. Neue Oberflächen folgen ihnen, ohne neue Farben, Schriften oder Rundungen einzuführen.
 
 ## 1. Produkt und Richtung
 
@@ -19,11 +19,11 @@ Vier feste Hauptbereiche, auf dem Handy als untere Leiste, ab 900 px als Seitenl
 | Rezepte | sammeln, finden, öffnen | Rezept hinzufügen (+) |
 | Wochenplan | Tage mit Rezepten belegen | Rezept planen |
 | Einkauf | Liste abarbeiten | Zutat hinzufügen |
-| Einstellungen | Darstellung, Daten, Hilfe | je Zeile |
+| Einstellungen | Daten, Anzeige, Hilfe (sechs Zeilen) | je Zeile |
 
 Regeln:
 - Jede Ansicht hat genau eine erkennbare Hauptaktion (rot gefüllt oder die erste Zeile).
-- Nach Aufgaben gruppieren, nicht nach Technik: Einstellungen in "Mein Kochbuch", "App", "Daten und Export", "Werkzeuge", "Hilfe".
+- Nach Aufgaben gruppieren, nicht nach Technik: Einstellungen in drei Gruppen mit sechs Zeilen: "Deine Daten" (Konto und Sicherung, Freunde & Rezepte senden), "Anzeige & Einheiten" (Anzeige, Masseinheiten-Rechner), "Hilfe & Infos" (Hilfe erhalten, Über Savora mit Rechtlichem). Verwandtes steht auf einer Seite mit Abschnittsüberschrift und einem Satz (Konto und Sicherung, Anzeige); Zeilen und Texte brechen um, nichts wird abgeschnitten.
 - Selten benutzte Dinge (Sicherung, Synchronisation, PDF-Gestaltung) liegen in Einstellungen, nicht auf der Startseite. Die Startseite zeigt nur dann einen Hinweis, wenn eine Handlung nötig ist (z. B. noch keine Sicherung), und dieser Hinweis ist leise.
 - Das Rezeptdetail führt zum Kochen: Titel, Zeit und Menge ("Ergibt"), danach "Kochen starten", danach vier ruhige Zweitaktionen, danach die Reiter Zutaten, Zubereitung, Nährwerte und (nur wenn vorhanden) Notizen. "Notiz hinzufügen" bleibt im Menü.
 

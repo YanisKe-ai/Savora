@@ -1,18 +1,82 @@
-"""Fuehrt alle Savora-Tests nacheinander aus und meldet am Ende eine Gesamtbilanz.
-Aufruf:  python3 tests/run_all.py            (alle)
-         python3 tests/run_all.py flows sync (nur bestimmte)"""
-import os, subprocess, sys, time
+"""Fuehrt die Savora-Tests aus und meldet am Ende eine Gesamtbilanz.
+Aufruf:  python3 tests/run_all.py                     (alle, nacheinander, wie bisher)
+         python3 tests/run_all.py flows sync          (nur bestimmte)
+         python3 tests/run_all.py --parallel          (alle, bis zu 3 gleichzeitig, deutlich schneller)
+         python3 tests/run_all.py --parallel 4        (4 gleichzeitig)
+         python3 tests/run_all.py --schnell           (parallel, und der grosse Anpassungstest nur mit den wichtigsten Breiten und Darstellungen)
+Die volle Reihe (ohne --schnell) laeuft weiterhin automatisch auf GitHub bei jedem Push.
+Reihenfolge: zuerst die Tests, die voneinander abhaengen (migration -> flows), dann die unabhaengigen parallel, zuletzt die
+zeitempfindlichen (Messungen in Millisekunden) allein, damit gleichzeitige Last sie nicht verfaelscht."""
+import concurrent.futures, os, subprocess, sys, tempfile, time
 HERE = os.path.dirname(os.path.abspath(__file__))
 # Reihenfolge ist wichtig: test_migration erzeugt old-backup.json, das test_flows importiert.
-ALL = ['migration', 'flows', 'sync', 'pruefung', 'visual', 'offline', 'native', 'paket1', 'paket2', 'paket3', 'paket4', 'a11y', 'theme', 'paket6', 'paket7', 'paket8', 'paket9', 'import', 'monkey', 'pdfpreview', 'units', 'shell', 'photoscan', 'restore', 'paket19', 'paket20', 'nutrition', 'export', 'recipecheck', 'paket24', 'nutrition_import', 'paket27', 'paket30', 'paket31', 'paket33', 'nutrition_range', 'recipe_json', 'paket34', 'paket35', 'paket36', 'paket37_data', 'paket37_import', 'paket37_settings', 'paket37_plan', 'paket37_books', 'paket37_visual', 'paket37_adapt', 'paket37_interaction', 'paket39']
-wanted = sys.argv[1:] or ALL
-results = []
-for name in wanted:
-    print(f'\n===== test_{name}.py =====', flush=True)
+ALL = ['migration', 'flows', 'sync', 'pruefung', 'visual', 'offline', 'native', 'paket1', 'paket2', 'paket3', 'paket4', 'a11y', 'theme', 'paket6', 'paket7', 'paket8', 'paket9', 'import', 'monkey', 'pdfpreview', 'units', 'shell', 'photoscan', 'restore', 'paket19', 'paket20', 'nutrition', 'export', 'recipecheck', 'paket24', 'nutrition_import', 'paket27', 'paket30', 'paket31', 'paket33', 'nutrition_range', 'recipe_json', 'paket34', 'paket35', 'paket36', 'paket37_data', 'paket37_import', 'paket37_settings', 'paket37_plan', 'paket37_books', 'paket37_visual', 'paket37_adapt','paket37_interaction', 'paket39']
+FIRST = ['migration', 'flows']                      # abhaengig: teilen sich den Ausgabeordner
+MOCK_CHAIN = ['sync', 'paket36']                    # beide nutzen den Test-Datenbank-Nachbau auf Port 8796: nie gleichzeitig
+LAST = ['monkey', 'paket37_interaction']            # zeitempfindlich (Millisekunden-Messungen): allein laufen lassen
+QUICK_ENV = {'paket37_adapt': {'SAVORA_ADAPT_QUICK': '1'}}
+BASE_PORT = 8900
+
+args = sys.argv[1:]
+parallel = 1; quick = False; names = []
+i = 0
+while i < len(args):
+    a = args[i]
+    if a == '--schnell': quick = True; parallel = max(parallel, 3)
+    elif a == '--parallel':
+        parallel = 3
+        if i + 1 < len(args) and args[i + 1].isdigit(): parallel = int(args[i + 1]); i += 1
+    else: names.append(a)
+    i += 1
+wanted = names or ALL
+RUN_ID = f'{os.getpid()}-{int(time.time())}'
+OUT_BASE = os.path.join(tempfile.gettempdir(), f'savora-tests-run-{RUN_ID}')
+
+def run_one(name, idx, shared_out=False):
+    env = dict(os.environ)
+    env['SAVORA_TEST_PORT'] = str(BASE_PORT + idx)
+    env['SAVORA_TEST_OUT'] = os.path.join(OUT_BASE, 'shared' if shared_out else name)
+    os.makedirs(env['SAVORA_TEST_OUT'], exist_ok=True)
+    if quick: env.update(QUICK_ENV.get(name, {}))
     t = time.time()
-    rc = subprocess.run([sys.executable, os.path.join(HERE, f'test_{name}.py')], timeout=600).returncode
-    results.append((name, rc, time.time() - t))
+    p = subprocess.run([sys.executable, os.path.join(HERE, f'test_{name}.py')], env=env, capture_output=True, text=True, timeout=1500)
+    return name, p.returncode, time.time() - t, p.stdout + p.stderr
+
+results = {}
+def show(res):
+    name, rc, sec, out = res
+    print(f'\n===== test_{name}.py =====', flush=True); print(out, flush=True)
+    results[name] = (rc, sec)
+
+if parallel <= 1 and not quick:
+    # wie bisher: nacheinander, Ausgabe laufend
+    for n, name in enumerate(wanted):
+        print(f'\n===== test_{name}.py =====', flush=True)
+        t = time.time()
+        env = dict(os.environ)
+        if name in QUICK_ENV and quick: env.update(QUICK_ENV[name])
+        rc = subprocess.run([sys.executable, os.path.join(HERE, f'test_{name}.py')], env=env, timeout=1500).returncode
+        results[name] = (rc, time.time() - t)
+else:
+    first = [n for n in FIRST if n in wanted]
+    chain = [n for n in MOCK_CHAIN if n in wanted]
+    last = [n for n in LAST if n in wanted]
+    middle = [n for n in wanted if n not in first + chain + last]
+    idx = {n: k for k, n in enumerate(ALL + [x for x in wanted if x not in ALL])}
+    for n in first: show(run_one(n, idx[n], shared_out=True))
+    def run_chain(c):
+        out = []
+        for n in c: out.append(run_one(n, idx[n]))
+        return out
+    tasks = [[n] for n in middle] + ([chain] if chain else [])
+    with concurrent.futures.ThreadPoolExecutor(max_workers=parallel) as ex:
+        futs = [ex.submit(run_chain, t) for t in tasks]
+        for f in concurrent.futures.as_completed(futs):
+            for res in f.result(): show(res)
+    for n in last: show(run_one(n, idx[n]))
+
 print('\n===== Bilanz =====')
-for name, rc, sec in results:
+for name in wanted:
+    rc, sec = results.get(name, (1, 0))
     print(f"{'BESTANDEN' if rc == 0 else 'FEHLGESCHLAGEN'}  test_{name}.py  ({sec:.0f}s)")
-sys.exit(1 if any(rc for _, rc, _ in results) else 0)
+sys.exit(1 if any(results.get(n, (1, 0))[0] for n in wanted) else 0)

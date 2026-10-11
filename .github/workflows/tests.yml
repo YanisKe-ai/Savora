@@ -28,4 +28,4 @@ jobs:
           pip install -r tests/requirements.txt
           playwright install --with-deps chromium
       - name: Alle Tests ausfuehren
-        run: python tests/run_all.py
+        run: python tests/run_all.py --parallel 3   # volle Reihe, bis zu 3 Tests gleichzeitig

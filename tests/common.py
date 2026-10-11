@@ -7,7 +7,7 @@ from playwright.async_api import async_playwright
 
 TESTS = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(TESTS)
-OUT = os.path.join(tempfile.gettempdir(), 'savora-tests-out')   # Screenshots, PDFs, Zwischen-Sicherungen
+OUT = os.environ.get('SAVORA_TEST_OUT') or os.path.join(tempfile.gettempdir(), 'savora-tests-out')   # Screenshots, PDFs, Zwischen-Sicherungen (run_all.py gibt bei parallelem Lauf jedem Test einen eigenen Ordner)
 os.makedirs(OUT, exist_ok=True)
 SEED_PATH = os.path.join(TESTS, 'seed.js')
 # Optionale, private Sicherung fuer die Pruefbericht-Tests (nicht im Repo, siehe tests/README.md)
