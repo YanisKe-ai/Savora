@@ -142,11 +142,16 @@ async def main():
             minW: Math.min(...days.map(d => d.getBoundingClientRect().width)), nav: !!document.querySelector('[data-action="week-prev"]') && !!document.querySelector('[data-action="week-next"]'),
             names: Array.from(document.querySelectorAll('.plan-day-name')).map(e => e.textContent).join(), titleSize: parseFloat(getComputedStyle(document.querySelector('.plan-title')).fontSize),
             clipped: Array.from(document.querySelectorAll('.plan-title')).some(e => e.scrollWidth > e.clientWidth + 1) } }""")
-        # Paket 41: Kacheln; sieben Spalten erst ab 1400 px, bei 900 bis 1399 px vier plus drei (lange Titel brechen sonst Buchstabe fuer Buchstabe)
+        # Paket 41: Kacheln; sieben Spalten erst ab 1900 px (seit 0.70.0; vorher 1400 px), darunter vier plus drei (lange Titel brechen sonst Buchstabe fuer Buchstabe)
         check('Breit (1280): sieben Tage in vier Spalten (4 + 3), volle Wochentagsnamen', w['n'] == 7 and w['cols'] == 4 and w['tracks'] == 4 and w['names'] == 'Montag,Dienstag,Mittwoch,Donnerstag,Freitag,Samstag,Sonntag', str(w))
+        # seit 0.70.0 (Laptop-Abstandssystem): vier Spalten auch bei 1400 bis 1899 px, sieben Spalten erst ab 1900 px
         await page.set_viewport_size({'width': 1440, 'height': 900}); await page.wait_for_timeout(300)
         w2 = await ev("() => ({ cols: new Set(Array.from(document.querySelectorAll('.plan-day')).map(d => Math.round(d.getBoundingClientRect().left))).size, tracks: getComputedStyle(document.querySelector('.plan-week')).gridTemplateColumns.split(' ').length })")
-        check('Sehr breit (1440): sieben Spalten Mo bis So nebeneinander', w2['cols'] == 7 and w2['tracks'] == 7, str(w2))
+        check('Laptop (1440): vier Spalten (4 + 3) seit 0.70.0, noch nicht sieben', w2['cols'] == 4 and w2['tracks'] == 4, str(w2))
+        for wd7, exp7 in ((1899, 4), (1900, 7), (1920, 7)):
+            await page.set_viewport_size({'width': wd7, 'height': 900}); await page.wait_for_timeout(300)
+            w3 = await ev("() => ({ cols: new Set(Array.from(document.querySelectorAll('.plan-day')).map(d => Math.round(d.getBoundingClientRect().left))).size, tracks: getComputedStyle(document.querySelector('.plan-week')).gridTemplateColumns.split(' ').length })")
+            check(f'Sehr breit ({wd7}): {exp7} Spalten (sieben Spalten Mo bis So erst ab 1900 px, seit 0.70.0)', w3['cols'] == exp7 and w3['tracks'] == exp7, str(w3))
         await page.set_viewport_size({'width': 1280, 'height': 900}); await page.wait_for_timeout(300)
         check('Breit: Spalten gut lesbar (Breite, Schrift), nichts abgeschnitten, Navigation Vor-/Folgewoche', w['minW'] >= 110 and w['titleSize'] >= 16 and w['nav'] and not w['clipped'], str(w))
         check('Breit: kein seitlicher Überlauf', await ev(OVERFLOW))
@@ -174,10 +179,10 @@ async def main():
           const lows = [];
           for (const e of document.querySelectorAll('.plan-day-name, .plan-day-date, .plan-empty, .plan-meal, .plan-title, .plan-servings, .plan-today, .day-select, .week-nav-label')) { const a = lum(getComputedStyle(e).color), b = lum(bg(e)); const ratio = (Math.max(a, b) + 0.05) / (Math.min(a, b) + 0.05); if (ratio < 4.5) lows.push(e.className + ' ' + ratio.toFixed(2)); }
           return { overflow: document.documentElement.scrollWidth - vw, bad, small, lows, cols: new Set(dayRects.map(r => Math.round(r.left))).size }; }"""
-        EXPECT_COLS = {320: 1, 360: 1, 390: 1, 430: 1, 768: 2, 1024: 4, 1280: 4, 1440: 7}
+        EXPECT_COLS = {320: 1, 360: 1, 390: 1, 430: 1, 768: 2, 1024: 4, 1280: 4, 1440: 4, 1900: 7, 1920: 7}  # seit 0.70.0: 1440 px = vier Spalten, sieben ab 1900 px
         bad_all = []
         for theme in ('light', 'dark', 'amoled'):
-            for wd in (320, 360, 390, 430, 768, 1024, 1280, 1440):
+            for wd in (320, 360, 390, 430, 768, 1024, 1280, 1440, 1900, 1920):
                 b, ctx, page, errs = await fresh(p, wd, 900)
                 await page.evaluate(DATA41); await page.wait_for_timeout(300)
                 await page.evaluate(f"() => {{ document.documentElement.setAttribute('data-theme', '{theme}'); }}"); await page.wait_for_timeout(250)
@@ -190,7 +195,7 @@ async def main():
                     if r2['overflow'] > 1 or any(x.startswith(('ausserhalb', 'abgeschnitten')) for x in r2['bad']):
                         bad_all.append(f"24px {wd}: {json.dumps(r2, ensure_ascii=False)[:300]}")
                 await b.close()
-        check('Wochenplan Paket 41: 320 bis 1440 px in Hell, Dunkel, Schwarz: Spaltenzahl, kein Überlauf, Tippflächen 44 px, nichts abgeschnitten, Schrift ab 14 px, Kontrast 4.5:1; 24 px Systemschrift ohne Überlauf', not bad_all, ' | '.join(bad_all[:3]))
+        check('Wochenplan Paket 41: 320 bis 1920 px in Hell, Dunkel, Schwarz: Spaltenzahl, kein Überlauf, Tippflächen 44 px, nichts abgeschnitten, Schrift ab 14 px, Kontrast 4.5:1; 24 px Systemschrift ohne Überlauf', not bad_all, ' | '.join(bad_all[:3]))
         b, ctx, page, errs = await fresh(p, 390, 900)
         await page.evaluate(DATA41); await page.wait_for_timeout(300)
         navok = await page.evaluate("() => { const m = document.querySelector('.plan-main'); const btn = m.querySelector('[data-action=\"mealplan-to-shopping\"]'); const nav = document.querySelector('.bottom-nav'); window.scrollTo(0, document.body.scrollHeight); return btn.getBoundingClientRect().bottom <= nav.getBoundingClientRect().top + 1; }")
