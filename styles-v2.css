@@ -2687,3 +2687,14 @@ mark.hl {
   html:not(#lp) body .detail-main.has-hero, html:not(#lp) body .detail-cols { grid-template-columns: min(clamp(24rem, 34%, 34rem), 45%) minmax(0, 1fr); }
   html:not(#lp) body .detail-col--content { min-width: 0; }
 }
+
+/* ==========================================================================
+   Handy-Korrekturen 0.70.0: Sortier-Auswahl bei grosser Schrift nicht zusammenquetschen (Tippflaeche mindestens 44 px),
+   Zeile «Alle Rezepte, Filter, Suche» mit etwas mehr Luft, damit sie auch mit breiteren Schriften in einer Zeile bleibt.
+   ========================================================================== */
+@media (max-width: 767px) {
+  .result-row--phone { flex-wrap: wrap; row-gap: 0.25rem; }
+  .result-row--phone .sort-inline, .result-row--phone .sort-inline .inline-pick { min-width: 2.75rem; }
+  .home-head--phone .filter-bar { gap: 0.25rem; }
+  .home-head--phone .filter-btn { padding-left: 0.75rem; padding-right: 0.75rem; }
+}
