@@ -1,6 +1,6 @@
 /* ---------- Nutrition: Berechnungsengine (Implementierungsauftrag Punkt 16-23) ---------- */
 
-const NUTRITION_CALC_VERSION = 3;   // 2: Zuordnung ueber Alias-Tabelle, Richtdichten; 3: Mengenbereiche als Spanne, keine stille Portion 1; aeltere Ergebnisse gelten als veraltet
+const NUTRITION_CALC_VERSION = 4;   // 4: Klammerzusaetze zaehlen nicht zum Zutatennamen, Altbestand "1/2 Zwiebel" mit Name "(fein geraspelt)";  2: Zuordnung ueber Alias-Tabelle, Richtdichten; 3: Mengenbereiche als Spanne, keine stille Portion 1; aeltere Ergebnisse gelten als veraltet
 
 /* Zeilen, die erkennbar keine berechenbare Menge tragen ("Salz nach Geschmack", "etwas
    Butter", "eine Handvoll Nüsse", ...) fliessen NICHT als Fehler, sondern als bewusst
@@ -25,7 +25,7 @@ function isNegligibleAmount(ing) {
 
 function isQualitativeIngredient(ing) {
   if (qtyIsNumeric(qtyFromIngredient(ing))) return false; // hat eine konkrete Zahl oder einen Bereich -> nicht qualitativ
-  return QUALITATIVE_AMOUNT_PATTERN.test(ing.name || '') || QUALITATIVE_AMOUNT_PATTERN.test(ing.amount || '');
+  return QUALITATIVE_AMOUNT_PATTERN.test(ing.name || '') || QUALITATIVE_AMOUNT_PATTERN.test(ing.bracketText || '') || QUALITATIVE_AMOUNT_PATTERN.test(ing.amount || '');
 }
 
 /* Einfacher, stabiler Hash ueber die berechnungsrelevanten Zutatendaten (fuer
@@ -88,13 +88,19 @@ async function calculateRecipeNutrition(recipe) {
     // Punkt 42: optionale Zutaten ("nach Belieben", "wer mag", ...) NICHT automatisch in die
     // Naehrwerte einrechnen, solange unklar ist, ob sie tatsaechlich verwendet wurden — genauso
     // bewusst ausgeschlossen wie eine vage Mengenangabe, kein Fehler/Confidence-Abzug.
-    if (ingredientInfo.optional || /^\s*(optional|evtl\.?|eventuell|wer mag)\b/i.test(ing.name)) continue;
+    if (ingredientInfo.optional || OPTIONAL_MARKER_PATTERNS.some((p) => p.test(ing.bracketText || '')) || /^\s*(optional|evtl\.?|eventuell|wer mag)\b/i.test(ing.name) || /^\s*(optional|evtl\.?|eventuell|wer mag)\b/i.test(ing.bracketText || '')) continue;
 
-    let match = await matchIngredient(ing.name, recipe.steps);
+    if (!String(ing.name || '').trim()) {
+      // Nach dem Entfernen der Klammern bleibt kein Zutatenname (nur ein Hinweis): mit Menge ehrlich als nicht berechenbar melden, nie still weglassen
+      if (qtyIsNumeric(qtyFromIngredient(ing))) { relevantCount++; unresolvedCount++; unresolvedIngredients.push({ name: String(rawIng.name).trim(), reason: 'no-name' }); }
+      continue;
+    }
+
+    let match = await matchIngredient(ing.name, recipe.steps, { originalName: rawIng.name });
     if (match.skipped) {
       // Wasser und Gewuerze in Kleinstmengen: nicht mitrechnen, kein Fehler. Grosse Mengen eines
       // Gewuerz-Begriffs (z.B. 100 g Kraeuter) werden dagegen normal gesucht.
-      if (match.skipped === 'negligible' && !isNegligibleAmount(ing)) match = await matchIngredient(ing.name, recipe.steps, { ignoreNegligible: true });
+      if (match.skipped === 'negligible' && !isNegligibleAmount(ing)) match = await matchIngredient(ing.name, recipe.steps, { ignoreNegligible: true, originalName: rawIng.name });
       else { skippedCount++; continue; }
     }
     // Ohne Mengenangabe laesst sich nichts berechnen: transparent auflisten statt das ganze Ergebnis zu blockieren

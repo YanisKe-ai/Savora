@@ -98,6 +98,26 @@ function normalizeIngredientText(raw) {
     .trim();
 }
 
+/* Trennt den eigentlichen Zutatennamen von Klammerzusaetzen: "Ei (verquirlen)", "Mehl (+ etwas zum Ausrollen)",
+   "(ca. 1 gestrichener TL) Salz", "Petersilie [frisch]". Zum Zuordnen und Rechnen zaehlt nur der Name ohne Klammern.
+   Der Klammertext wird zurueckgegeben (z. B. fuer "optional"), das Rezept selbst bleibt unveraendert.
+   Eine nicht geschlossene Klammer ("Mehl (+ etwas") gilt bis zum Ende als Zusatz. */
+function nutCleanIngredientName(raw) {
+  let s = String(raw == null ? '' : raw);
+  const removed = [];
+  const re = /\([^()]*\)|\[[^\[\]]*\]/;
+  for (let guard = 0; guard < 20; guard++) {
+    const m = re.exec(s);
+    if (!m) break;
+    removed.push(m[0].slice(1, -1).trim());
+    s = s.slice(0, m.index) + ' ' + s.slice(m.index + m[0].length);
+  }
+  const open = s.search(/[(\[]/);
+  if (open >= 0) { removed.push(s.slice(open + 1).trim()); s = s.slice(0, open); }
+  s = s.replace(/[)\]]/g, ' ').replace(/\s+/g, ' ').replace(/\s+([,;:])/g, '$1').replace(/^[\s,;:\-–]+|[\s,;:\-–]+$/g, '').trim();
+  return { name: s, bracketText: removed.filter(Boolean).join(' ') };
+}
+
 /* Rundet fuer die Anzeige, ohne Scheingenauigkeit vorzutaeuschen (Punkt 26). */
 function roundNutrientForDisplay(value) {
   if (value === null || value === undefined || isNaN(value)) return null;

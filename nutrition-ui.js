@@ -43,7 +43,7 @@ function nutritionIngredientStatus(recipe, result) {
   const missing = list.filter(u => u.reason && u.reason !== 'not-found' && u.reason !== 'uncertain-match');
   const unclear = list.filter(u => u.reason === 'not-found' || u.reason === 'uncertain-match');
   const matched = result.matchedCount || 0;
-  const reasonText = (u) => u.reason === 'uncertain-match' ? `unsicher${u.candidate ? ', evtl. ' + escapeHtml(u.candidate) : ''}` : u.reason === 'not-found' ? 'nicht gefunden' : 'Menge fehlt oder nicht umrechenbar';
+  const reasonText = (u) => u.reason === 'uncertain-match' ? `unsicher${u.candidate ? ', evtl. ' + escapeHtml(u.candidate) : ''}` : u.reason === 'not-found' ? 'nicht gefunden' : u.reason === 'no-name' ? 'Zutatenname fehlt (nur ein Hinweis in Klammern)' : 'Menge fehlt oder nicht umrechenbar';
   return `<div class="nutri-status">
     <div class="nutri-status-row">
       <span class="nutri-pill nutri-pill--ok">${matched} erkannt</span>
