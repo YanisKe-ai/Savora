@@ -293,10 +293,24 @@ function recipeMetaLine(r, full) {
 function favButton(r, extraCls) {
   return `<button type="button" class="fav-toggle ${extraCls || ''} ${r.favorite ? 'is-active' : ''}" data-action="toggle-fav" data-id="${escapeAttr(r.id)}" aria-pressed="${r.favorite ? 'true' : 'false'}" aria-label="${r.favorite ? 'Aus Favoriten entfernen' : 'Zu Favoriten hinzufügen'}">${r.favorite ? ICONS.bookmarkFilled : ICONS.bookmark}</button>`;
 }
-function recipeCard(r) {
+function recipeCard(r, phone) {
   const photo = hasPhoto(r);
   const title = escapeHtml(r.title || 'Ohne Titel');
   const titleHl = highlightHtml(r.title || 'Ohne Titel', state.query);
+  if (phone === true) {
+    /* Handy-Raster: Foto 4:3 (oder ruhiger Platzhalter), Titel, Zeit nur wenn bekannt, Favoritenknopf als Geschwister (kein verschachtelter Knopf) */
+    const time = r.timeMinutes > 0 ? `<span class="rcard-meta rcard-meta--time">${ICONS.clock}<span>${r.timeMinutes} Min.</span></span>` : '';
+    return `<article class="rcard rcard--phone">
+    <button type="button" class="rcard-main" data-action="open-recipe" data-id="${escapeAttr(r.id)}" aria-label="${title} öffnen">
+      ${photo ? recipeImageHtml(r, 'rcard-img', 'thumb') : `<span class="rcard-img rcard-ph" aria-hidden="true">${ICONS.bookOpen}</span>`}
+      <span class="rcard-body">
+        <span class="rcard-title">${titleHl}</span>${searchIngredientHitHtml(r, state.query)}
+        ${time}
+      </span>
+    </button>
+    ${favButton(r, 'rcard-fav')}
+  </article>`;
+  }
   return `<article class="rcard ${photo ? '' : 'rcard--text'}">
     <button type="button" class="rcard-main" data-action="open-recipe" data-id="${escapeAttr(r.id)}" aria-label="${title} öffnen">
       ${photo ? recipeImageHtml(r, 'rcard-img', 'thumb') : ''}
@@ -364,6 +378,13 @@ function todayPlannedHtml() {
   };
   return `<section class="today-planned" aria-label="Heute geplant"><span class="today-label">Heute geplant</span>${items.map(label).join('')}</section>`;
 }
+/* Ansicht Liste/Raster: gleicher Speicherort wie bisher (savora-home-layout). Handy: ohne gespeicherte Wahl bleibt es die Liste. */
+function layoutToggleHtml(layout, cls) {
+  return `<div class="layout-toggle ${cls || ''}" role="group" aria-label="Darstellung">
+            <button type="button" class="icon-toggle ${layout !== 'list' ? 'is-active' : ''}" data-action="set-home-layout" data-id="grid" aria-pressed="${layout !== 'list'}" aria-label="Rasteransicht">${ICONS.grid}</button>
+            <button type="button" class="icon-toggle ${layout === 'list' ? 'is-active' : ''}" data-action="set-home-layout" data-id="list" aria-pressed="${layout === 'list'}" aria-label="Listenansicht">${ICONS.list}</button>
+          </div>`;
+}
 function homeView() {
   const phone = isPhoneLayout();
   const list = applyAllFilters(state.recipes);
@@ -380,7 +401,9 @@ function homeView() {
   else {
     const n = list.length;
     if (phone) {
-      /* Handy: immer die Liste, kein Raster/Liste-Umschalter; «N Rezepte · Sortierung» als ruhige Zeile */
+      /* Handy: Liste ist Standard; «N Rezepte · Sortierung» als ruhige Zeile, rechts der kompakte Umschalter Liste/Raster */
+      const pl = state.homeLayoutChosen ? (state.homeLayout === 'grid' ? 'grid' : 'list') : 'list';
+      const items = pl === 'grid' ? `<div class="rgrid rgrid--phone">${list.map(r => recipeCard(r, true)).join('')}</div>` : `<div class="rlist rlist--phone">${list.map(r => recipeRow(r, true)).join('')}</div>`;
       content = `
       <section class="home-section" aria-labelledby="all-h">
         <div class="result-row result-row--phone">
@@ -390,8 +413,9 @@ function homeView() {
             <span class="inline-pick-text">${escapeHtml(sortLabel)}</span>${ICONS.arrowDown}
             <select class="inline-pick-select sort-select" id="sortSelect" aria-label="Sortierung">${sortOptions}</select>
           </div>
+          ${layoutToggleHtml(pl, 'layout-toggle--phone')}
         </div>
-        <div class="rlist rlist--phone">${list.map(r => recipeRow(r, true)).join('')}</div>
+        ${items}
       </section>`;
     } else {
       const items = state.homeLayout === 'list' ? `<div class="rlist">${list.map(r => recipeRow(r)).join('')}</div>` : `<div class="rgrid">${list.map(recipeCard).join('')}</div>`;
@@ -402,10 +426,7 @@ function homeView() {
           <label class="sort-pick"><span class="sort-pick-label">Sortierung</span>
             <select class="sort-select" id="sortSelect">${sortOptions}</select>
           </label>
-          <div class="layout-toggle" role="group" aria-label="Darstellung">
-            <button type="button" class="icon-toggle ${state.homeLayout !== 'list' ? 'is-active' : ''}" data-action="set-home-layout" data-id="grid" aria-pressed="${state.homeLayout !== 'list'}" aria-label="Rasteransicht">${ICONS.grid}</button>
-            <button type="button" class="icon-toggle ${state.homeLayout === 'list' ? 'is-active' : ''}" data-action="set-home-layout" data-id="list" aria-pressed="${state.homeLayout === 'list'}" aria-label="Listenansicht">${ICONS.list}</button>
-          </div>
+          ${layoutToggleHtml(state.homeLayout)}
         </div>
         ${items}
       </section>`;

@@ -44,6 +44,7 @@ const state = {
   activeFilters: { dietary: new Set(), category: new Set(), time: new Set(), more: new Set(), tags: new Set() },
   // Feast x Bloom Umbau: reine UI-Zustaende, nichts davon wird ungefragt gespeichert.
   activeCollection: 'all',       // 'all' | 'favorites' | 'uncooked' | 'frequent' | <Sammlungs-ID>
+  homeLayoutChosen: (function () { try { const v = localStorage.getItem('savora-home-layout'); return v === 'grid' || v === 'list'; } catch (e) { return false; } })(),
   homeLayout: (function () { try { return localStorage.getItem('savora-home-layout') || 'grid'; } catch (e) { return 'grid'; } })(),
   detailTab: 'ingredients',      // 'ingredients' | 'steps' | 'nutrition' | 'notes'
   formStep: 0,                   // gefuehrte Erfassung, 0..4
