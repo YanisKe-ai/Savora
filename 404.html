@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="de-CH">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<meta name="color-scheme" content="light dark">
+<title>Seite nicht gefunden · Savora</title>
+<!-- Eigene Fehlerseite für GitHub Pages (Projektpfad /Savora/). Sie wird mit HTTP 404 ausgeliefert, kein Redirect.
+     Alle Pfade sind absolut ab /Savora/, weil die Seite unter beliebig tiefen unbekannten Adressen erscheinen kann. -->
+<link rel="icon" type="image/svg+xml" href="/Savora/assets/logo/savora-favicon.svg" media="(prefers-color-scheme: light)">
+<link rel="icon" type="image/svg+xml" href="/Savora/assets/logo/savora-favicon-dark.svg" media="(prefers-color-scheme: dark)">
+<link rel="preload" href="/Savora/lilita-one.woff2" as="font" type="font/woff2" crossorigin>
+<style>
+@font-face{font-family:'Lilita One';src:url('/Savora/lilita-one.woff2') format('woff2');font-weight:400;font-display:swap}
+@font-face{font-family:'Public Sans';src:url('/Savora/public-sans.woff2') format('woff2');font-weight:100 900;font-display:swap}
+:root{color-scheme:light dark;--bg:#F7F4EE;--ink:#252720;--accent:#B93B2C;--on:#fff}
+@media(prefers-color-scheme:dark){:root{--bg:#1B1A17;--ink:#F1EDE4;--accent:#FF9B80;--on:#1B1A17}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:1rem/1.6 'Public Sans',system-ui,sans-serif;min-height:100vh;display:grid;place-items:center;padding:1.5rem}
+main{width:100%;max-width:36rem}
+.brand{display:block;width:min(11rem,60%);height:auto;margin:0 0 1.5rem}
+.code{margin:0 0 .25rem;font-weight:700;letter-spacing:.04em;color:var(--accent)}
+h1{margin:0 0 .75rem;font:400 clamp(1.8rem,6vw,2.8rem)/1.15 'Lilita One','Public Sans',system-ui,sans-serif;overflow-wrap:anywhere}
+p{margin:0 0 1.5rem}.code{margin:0 0 .25rem}
+a.btn{display:inline-flex;align-items:center;min-height:48px;padding:.65rem 1.4rem;color:var(--on);background:var(--accent);border-radius:999px;font-weight:700;text-decoration:none}
+a.btn:focus-visible{outline:3px solid var(--ink);outline-offset:4px}
+</style>
+</head>
+<body><main>
+<picture><source srcset="/Savora/assets/logo/savora-wortmarke-dark.svg" media="(prefers-color-scheme: dark)"><img class="brand" src="/Savora/assets/logo/savora-wortmarke-light.svg" alt="Savora" width="1200" height="400"></picture>
+<p class="code">Fehler 404</p>
+<h1>Diese Seite gibt es nicht.</h1>
+<p>Vielleicht ist der Link nicht mehr aktuell oder die Adresse wurde falsch eingegeben.</p>
+<a class="btn" href="/Savora/">Savora öffnen</a>
+</main></body>
+</html>

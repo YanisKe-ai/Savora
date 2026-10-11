@@ -74,7 +74,7 @@ function topbar(title, opts = {}) {
     ? `<button class="icon-btn" data-action="back" aria-label="Zurück">${ICONS.back}</button>`
     : brandLockup();
   return `<header class="topbar ${opts.back ? 'topbar--sub' : ''} ${opts.cls || ''}">
-    <div class="topbar-left">${left}${opts.back ? `<h1 class="topbar-title">${escapeHtml(title)}</h1>` : ''}</div>
+    <div class="topbar-left">${left}${opts.back ? (opts.plainTitle ? `<span class="topbar-title">${escapeHtml(opts.plainTitle)}</span>` : `<h1 class="topbar-title">${escapeHtml(title)}</h1>`) : ''}</div>
     <div class="topbar-actions">${opts.actions || ''}${opts.settings ? `<button class="icon-btn icon-btn--settings" data-action="goto-view" data-view="settings" aria-label="Einstellungen">${ICONS.settings}</button>` : ''}</div>
   </header>`;
 }
@@ -88,6 +88,29 @@ function filterSpec() {
   const f = state.activeFilters;
   return { dietary: f.dietary, category: f.category, time: f.time, more: f.more || (f.more = new Set()), tags: f.tags || (f.tags = new Set()) };
 }
+/* Gerichtart-Filter (D01): Mahlzeit und Gericht sind zwei fachliche Gruppen. Beide liegen weiter im
+   gemeinsamen Feld recipe.categoryTags und in einer gemeinsamen Auswahlmenge (state.activeFilters.category),
+   die Gruppe ergibt sich aus der ID. Logik: innerhalb einer Gruppe ODER (Frühstück oder Mittagessen),
+   zwischen Mahlzeit und Gericht UND (Mahlzeit Abendessen und Gericht Pasta), wie zwischen allen anderen
+   Gruppen. Nur eine der beiden Gruppen gewählt: gilt allein.
+   Migration von Altfiltern: Die Auswahl wird nicht umgeschrieben, damit nichts verloren geht. IDs, die
+   weder Mahlzeit noch Gericht sind (ältere oder importierte Werte), zählen zur Gruppe Gericht, sodass sie
+   weiterhin treffen und nie stillschweigend Treffer ausschliessen. Eine früher gemischte Auswahl
+   (Mahlzeit und Gericht zusammen, damals ODER) wird jetzt als UND gelesen; sie ist im Fenster sichtbar
+   und mit «Zurücksetzen» schnell zu ändern. Rezeptdaten bleiben unverändert. */
+const MEAL_FILTER_IDS = new Set(MEAL_TYPE_OPTIONS.map(o => o.id));
+function splitCategorySelection(set) {
+  const meal = new Set(), dish = new Set();
+  set.forEach(id => { (MEAL_FILTER_IDS.has(id) ? meal : dish).add(id); });
+  return { meal, dish };
+}
+function categoryFilterMatches(r, set) {
+  const tags = r.categoryTags || [];
+  const g = splitCategorySelection(set);
+  const ok = (grp) => !grp.size || tags.some(c => grp.has(c));
+  return ok(g.meal) && ok(g.dish);
+}
+
 /* Zentrale Filterlogik: innerhalb einer Gruppe ODER, zwischen Gruppen UND. Mit `spec` (Entwurf im Filterfenster)
    wird nur die Auswahl ersetzt; Suche, Alle/Favoriten und Sortierung kommen immer aus dem state. */
 function applyAllFilters(recipes, spec) {
@@ -98,7 +121,7 @@ function applyAllFilters(recipes, spec) {
   if (state.favOnly) list = list.filter(r => r.favorite);
   const { dietary, category, time, more, tags } = f;
   if (dietary.size) list = list.filter(r => { const bad = new Set(dietConflicts(r).map(c => c.label)); return (r.diet || []).some(d => dietary.has(d) && !bad.has(d)); });
-  if (category.size) list = list.filter(r => (r.categoryTags || []).some(c => category.has(c)));
+  if (category.size) list = list.filter(r => categoryFilterMatches(r, category));
   if (time.size) list = list.filter(r => timeBucketsFor(r.timeMinutes).some(b => time.has(b)));
   if (more && more.size) { const ids = Array.from(more); list = list.filter(r => ids.some(id => recipesInCollection(id, [r]).length)); }
   if (tags && tags.size) list = list.filter(r => (r.tags || []).some(t => tags.has(t)));
@@ -166,7 +189,6 @@ function filterSheetModal() {
   const d = filterDraft();
   const n = applyAllFilters(state.recipes, d).length;
   const dietaryOptions = DIET_OPTIONS.filter(o => o.tone === 'diet' || o.tone === 'protein');
-  const dishOptions = MEAL_TYPE_OPTIONS.concat(DISH_TYPE_OPTIONS);
   const tags = Array.from(new Set(state.recipes.flatMap(r => r.tags || []))).sort((a, b) => a.localeCompare(b, 'de'));
   const timeNone = d.time.size === 0;
   return `<div class="modal-backdrop" data-action="close-modal">
@@ -178,10 +200,11 @@ function filterSheetModal() {
       </div>
       <div class="fs-body">
         ${filterGroupHtml('dietary', 'Ernährung', dietaryOptions.map(o => filterOptionHtml('checkbox', 'dietary', o.key, o.label, d.dietary.has(o.key))).join(''))}
-        ${filterGroupHtml('category', 'Gerichtart', dishOptions.map(o => filterOptionHtml('checkbox', 'category', o.id, o.label, d.category.has(o.id))).join(''))}
+        ${filterGroupHtml('meal', 'Mahlzeit', MEAL_TYPE_OPTIONS.map(o => filterOptionHtml('checkbox', 'category', o.id, o.label, d.category.has(o.id))).join(''))}
+        ${filterGroupHtml('dish', 'Gericht', DISH_TYPE_OPTIONS.map(o => filterOptionHtml('checkbox', 'category', o.id, o.label, d.category.has(o.id))).join(''))}
         ${filterGroupHtml('time', 'Zubereitungszeit', filterOptionHtml('radio', 'time', '', 'Beliebig', timeNone) + TIME_BUCKET_OPTIONS.map(o => filterOptionHtml('radio', 'time', o.id, o.label, d.time.has(o.id))).join(''))}
         ${filterGroupHtml('more', 'Weitere Merkmale', moreFilterOptions().map(o => filterOptionHtml('checkbox', 'more', o.id, o.label, d.more.has(o.id))).join(''))}
-        ${tags.length ? filterGroupHtml('tags', 'Tags', tags.map(t => filterOptionHtml('checkbox', 'tags', t, t, d.tags.has(t))).join('')) : ''}
+        ${tags.length ? filterGroupHtml('tags', 'Eigene Schlagwörter', tags.map(t => filterOptionHtml('checkbox', 'tags', t, t, d.tags.has(t))).join('')) : ''}
       </div>
       <div class="fs-foot">
         <p class="fs-status ${n === 0 ? 'is-empty' : ''}" role="status" aria-live="polite">${filterStatusText(n)}</p>
@@ -485,13 +508,13 @@ function detailView() {
       <div class="diet-warning-actions"><button class="outline-btn outline-btn--small" data-action="fix-diet-conflict" data-id="${r.id}">Kennzeichnung entfernen</button><button class="text-btn" data-action="edit-recipe" data-id="${r.id}">Bearbeiten</button></div>
     </div>` : '';
   return `
-    ${topbar(r.title || 'Rezept', { back: true, cls: 'topbar--detail', actions: `<button class="icon-btn" data-action="open-detail-menu" data-id="${r.id}" aria-label="Weitere Aktionen" aria-haspopup="dialog">${ICONS.more}</button>` })}
+    ${topbar(r.title || 'Rezept', { back: true, plainTitle: 'Rezept', cls: 'topbar--detail', actions: `<button class="icon-btn" data-action="open-detail-menu" data-id="${r.id}" aria-label="Weitere Aktionen" aria-haspopup="dialog">${ICONS.more}</button>` })}
     <main class="has-tabbar detail-main ${hero ? 'has-hero' : 'no-hero'}" data-tab="${tab}">
       ${hero}
       <div class="detail-cols"><div class="detail-col detail-col--info">
       <div class="detail-head">
         <div class="detail-title-row">
-          <h2 class="detail-title-v2 ${(r.title || '').length > 34 ? 'is-long' : ''} ${(r.title || '').length > 70 ? 'is-xlong' : ''}">${escapeHtml(r.title || 'Ohne Titel')}</h2>
+          <h1 class="detail-title-v2 ${(r.title || '').length > 34 ? 'is-long' : ''} ${(r.title || '').length > 70 ? 'is-xlong' : ''}">${escapeHtml(r.title || 'Ohne Titel')}</h1>
           ${favButton(r, 'detail-fav')}
         </div>
         <p class="detail-meta-v2">${facts.map(f => `<span class="fact">${escapeHtml(f)}</span>`).join('')}</p>
@@ -506,12 +529,12 @@ function detailView() {
       </div>
       ${source}
       ${conflictBox}
-      <div class="detail-aside-ing" role="region" aria-label="Zutaten">${wide ? ingHtml : ''}</div>
+      <div class="detail-aside-ing" role="region" aria-label="Zutaten">${wide ? `<h2 class="sr-only">Zutaten</h2>` + ingHtml : ''}</div>
       </div><div class="detail-col detail-col--content">
       <div class="tabbar-v2" role="tablist" aria-label="Rezeptinhalt">
         ${tabs.map(t => `<button role="tab" id="tab-${t.id}" class="tab-v2 ${tab === t.id ? 'is-active' : ''}" aria-selected="${tab === t.id}" aria-controls="panel-${t.id}" tabindex="${tab === t.id ? '0' : '-1'}" data-action="set-detail-tab" data-id="${t.id}">${t.label}</button>`).join('')}
       </div>
-      ${tabs.map(t => `<div class="tab-panel" id="panel-${t.id}" role="tabpanel" aria-labelledby="tab-${t.id}" ${tab === t.id ? '' : 'hidden'}>${panelHtml[t.id]}</div>`).join('')}
+      ${tabs.map(t => `<div class="tab-panel" id="panel-${t.id}" role="tabpanel" aria-labelledby="tab-${t.id}" ${tab === t.id ? '' : 'hidden'}><h2 class="sr-only">${t.label}</h2>${panelHtml[t.id]}</div>`).join('')}
       ${recipeCheckHtml(r)}
       </div></div>
     </main>
@@ -539,7 +562,7 @@ function sheet(id, title, body) {
   return `<div class="modal-backdrop" data-action="close-modal">
     <div class="modal-sheet" role="dialog" aria-modal="true" aria-labelledby="${id}" tabindex="-1" onclick="event.stopPropagation()">
       <div class="sheet-handle" aria-hidden="true"></div>
-      <h3 class="modal-title" id="${id}">${escapeHtml(title)}</h3>
+      <h2 class="modal-title" id="${id}">${escapeHtml(title)}</h2>
       ${body}
     </div>
   </div>`;
@@ -681,7 +704,7 @@ function stepIngredientsModal(r, stepIndex) {
   return `<div class="modal-backdrop modal-backdrop--top" data-action="close-modal">
     <div class="modal-sheet" role="dialog" aria-modal="true" aria-labelledby="step-ings-title" tabindex="-1" onclick="event.stopPropagation()">
       <div class="sheet-handle" aria-hidden="true"></div>
-      <h3 class="modal-title" id="step-ings-title">Zutaten für diesen Schritt</h3>
+      <h2 class="modal-title" id="step-ings-title">Zutaten für diesen Schritt</h2>
       <p class="hint-line">„${escapeHtml(String(step.text).slice(0, 90))}${String(step.text).length > 90 ? ' …' : ''}“</p>
       <div class="shop-select-list">
         ${groups.map(g => `${showTitles ? `<h4 class="shop-select-recipe">${escapeHtml(g.title)}</h4>` : ''}${g.ingredients.map(i => `<label class="shop-select-row"><input type="checkbox" data-step-ing="${i._index}" ${current.has(i._index) ? 'checked' : ''}><span class="ing-amount">${escapeHtml(String(i.amount || ''))}${i.unit ? ' ' + escapeHtml(i.unit) : ''}</span><span class="ing-name">${escapeHtml(i.name)}</span></label>`).join('')}`).join('')}
@@ -1126,9 +1149,9 @@ function formView() {
           ${chipSet('Mahlzeit', 'meal-group-label', MEAL_TYPE_OPTIONS, m => m.id, m => m.label, 'toggle-category', 'category', r.categoryTags)}
           ${chipSet('Gericht', 'dish-group-label', DISH_TYPE_OPTIONS, d => d.id, d => d.label, 'toggle-category', 'category', r.categoryTags)}
           <button type="button" class="ghost-btn" data-action="reanalyze-categories">${ICONS.sparkle} Kategorien automatisch vorschlagen</button>
-          <div class="field field--spaced"><label for="f-tag-new">Tags</label>
-            <div class="tag-input-row" id="tagInputRow">${(r.tags || []).map(t => `<span class="tag-pill">${escapeHtml(t)}<button data-action="remove-tag" data-tag="${escapeHtml(t)}" aria-label="Tag ${escapeHtml(t)} entfernen">${ICONS.x}</button></span>`).join('')}<input type="text" id="f-tag-new" placeholder="Tag + Enter"></div>
-            <div class="field-hint">z.B. ${ALL_TAGS_SEED.slice(0, 4).join(', ')} …</div></div>
+          <div class="field field--spaced"><label for="f-tag-new">Eigene Schlagwörter</label>
+            <div class="tag-input-row" id="tagInputRow">${(r.tags || []).map(t => `<span class="tag-pill">${escapeHtml(t)}<button data-action="remove-tag" data-tag="${escapeHtml(t)}" aria-label="Schlagwort ${escapeHtml(t)} entfernen">${ICONS.x}</button></span>`).join('')}<input type="text" id="f-tag-new" placeholder="Schlagwort + Enter"></div>
+            <div class="field-hint">Eigene Stichwörter zum Wiederfinden, z.B. Familienrezept, Für Gäste, Von Oma.</div></div>
         </section>
         <section class="form-step ${step === 2 ? 'is-active' : ''}" data-form-step="2" aria-label="Zutaten">
           <p class="hint-line">Mit Gruppen teilst du Zutaten z.B. in „Teig“ und „Füllung“. Gruppentitel landen nie in der Einkaufsliste.</p>
@@ -1182,7 +1205,7 @@ function formAsideBodyHtml(r) {
       <li>${ings} Zutat${ings === 1 ? '' : 'en'}${missing ? `, davon ${missing} ohne Menge` : ''}</li>
       <li>${steps} Zubereitungsschritt${steps === 1 ? '' : 'e'}</li>
       ${labels.length ? `<li>${escapeHtml(labels.join(', '))}</li>` : ''}
-      ${tags.length ? `<li>Tags: ${escapeHtml(tags.join(', '))}</li>` : ''}
+      ${tags.length ? `<li>Schlagwörter: ${escapeHtml(tags.join(', '))}</li>` : ''}
     </ul>`;
 }
 function formAsideHtml(r) {

@@ -27,7 +27,7 @@ function pdfExportOptionsStage() {
   const level = m.nutritionDetail;
   const title = m.target === 'cookbook' ? 'Kochbuch als PDF exportieren' : 'Als PDF exportieren';
   return `
-    <h3 class="modal-title" id="pdf-export-title">${title}</h3>
+    <h2 class="modal-title" id="pdf-export-title">${title}</h2>
     ${m.target === 'cookbook'
       ? `<p class="nutrition-modal-subtitle">Seitenstil der Rezepte</p>
     <p class="pdf-style-fixed" id="pdfStyleFixed"><b>${escapeHtml(pdfTemplateById(m.template).name)}</b> <span class="hint-line">Den Seitenstil änderst du im Kochbuch unter «Gestalten».</span></p>`
@@ -50,7 +50,7 @@ function pdfExportOptionsStage() {
 
 function pdfExportBuildingStage() {
   return `
-    <h3 class="modal-title">PDF wird erstellt …</h3>
+    <h2 class="modal-title">PDF wird erstellt …</h2>
     <p class="nutrition-empty-text">Das kann bei vielen Rezepten oder grossen Fotos einen Moment dauern.</p>
   `;
 }
@@ -64,7 +64,7 @@ function pdfExportPreviewStage() {
   return `
     <div class="pdf-preview-header">
       <button class="ghost-btn pdf-preview-close" data-action="pdf-export-back" aria-label="Vorschau schliessen, zurück zu den Optionen">${ICONS.back} Zurück</button>
-      <h3 class="modal-title" id="pdf-export-title">Vorschau</h3>
+      <h2 class="modal-title" id="pdf-export-title">Vorschau</h2>
       <span class="pdf-preview-meta" aria-live="polite">${m.pageCount ? m.pageCount + (m.pageCount === 1 ? ' Seite' : ' Seiten') : ''}${m.template ? ' · ' + escapeHtml(pdfTemplateById(m.template).name) : ''}</span>
       ${pdfPreviewUsesCanvas() ? `<span class="pdf-zoom"><button class="icon-btn" data-action="pdf-zoom" data-id="out" aria-label="Verkleinern" ${(m.zoom || 1) <= 1 ? 'disabled' : ''}>−</button><button class="icon-btn" data-action="pdf-zoom" data-id="in" aria-label="Vergrössern" ${(m.zoom || 1) >= 3 ? 'disabled' : ''}>+</button></span>` : ''}
     </div>

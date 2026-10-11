@@ -182,7 +182,7 @@ function nutritionMatchStage(recipe) {
   const sureCount = items.filter((i) => i.status === 'matched').length;
   const reviewItems = items.filter((i) => i.status !== 'matched');
   return `
-    <h3 class="modal-title" id="nutrition-modal-title">Nährwerte vorbereiten</h3>
+    <h2 class="modal-title" id="nutrition-modal-title">Nährwerte vorbereiten</h2>
     <p class="nutrition-modal-subtitle">${sureCount} von ${items.length} Zutaten erkannt</p>
     ${reviewItems.some((i) => i.status === 'uncertain' && i.food) ? `<button type="button" class="outline-btn nutrition-accept-all" data-action="nutrition-accept-suggestions">Alle Vorschläge übernehmen</button>` : ''}
     ${reviewItems.length ? `<ul class="nutrition-match-list">${reviewItems.map(nutritionMatchRow).join('')}</ul>` : ''}
@@ -212,7 +212,7 @@ function nutritionSelectStage(recipe) {
   const target = state.nutritionSelectTarget;
   const results = state.nutritionSearchResults || [];
   return `
-    <h3 class="modal-title" id="nutrition-modal-title">Lebensmittel für „${escapeHtml(target)}“</h3>
+    <h2 class="modal-title" id="nutrition-modal-title">Lebensmittel für „${escapeHtml(target)}“</h2>
     <div class="field" style="margin-bottom:10px;">
       <input type="text" id="nutritionSearchInput" placeholder="Lebensmittel suchen …" value="${escapeHtml(state.nutritionSearchQuery || '')}" autocomplete="off">
     </div>
@@ -292,7 +292,7 @@ function nutritionBarcodeStage() {
     invalid: 'Das sieht nicht nach einem gültigen Barcode aus (6–14 Ziffern).',
   };
   return `
-    <h3 class="modal-title" id="nutrition-modal-title">Barcode scannen</h3>
+    <h2 class="modal-title" id="nutrition-modal-title">Barcode scannen</h2>
     ${supported ? `
       <div class="nutrition-camera-wrap">
         <video id="nutritionBarcodeVideo" playsinline muted></video>
@@ -328,7 +328,7 @@ function nutritionCustomStage() {
     <input type="text" inputmode="decimal" id="${id}" placeholder="0">
   </div>`;
   return `
-    <h3 class="modal-title" id="nutrition-modal-title">Eigenes Lebensmittel</h3>
+    <h2 class="modal-title" id="nutrition-modal-title">Eigenes Lebensmittel</h2>
     <p class="nutrition-modal-subtitle">Werte pro 100 g — unbekannte Felder leer lassen.</p>
     <div class="field"><label for="cf-name">Name</label><input type="text" id="cf-name" value="${escapeHtml(target || '')}"></div>
     <div class="field-row">
@@ -401,7 +401,7 @@ function nutritionDetailModal(recipe, result) {
   if (!result) {
     return `<div class="modal-backdrop" data-action="close-modal">
       <div class="modal-sheet" role="dialog" aria-modal="true" tabindex="-1" onclick="event.stopPropagation()">
-        <h3 class="modal-title">Nährwerte</h3>
+        <h2 class="modal-title">Nährwerte</h2>
         <p class="nutrition-empty-text">Noch nicht berechnet.</p>
         <button class="ghost-btn" data-action="close-modal" style="width:100%;">Schliessen</button>
       </div>
@@ -413,7 +413,7 @@ function nutritionDetailModal(recipe, result) {
   const sourceLabel = hasRealSource ? nutritionSourceLabel(result.sourceDataVersions) : null;
   return `<div class="modal-backdrop" data-action="close-modal">
     <div class="modal-sheet" role="dialog" aria-modal="true" aria-labelledby="nutrition-detail-title" tabindex="-1" onclick="event.stopPropagation()">
-      <h3 class="modal-title" id="nutrition-detail-title">Nährwerte</h3>
+      <h2 class="modal-title" id="nutrition-detail-title">Nährwerte</h2>
       <div class="nutrition-segmented" role="radiogroup" aria-label="Anzeigeart">
         <button role="radio" aria-checked="${mode === 'portion'}" class="${mode === 'portion' ? 'active' : ''}" data-action="nutrition-set-mode" data-mode="portion">${typeof servingMode === 'function' && servingMode(recipe) === 'pieces' ? 'Pro Stück' : 'Pro Portion'}</button>
         <button role="radio" aria-checked="${mode === '100g'}" class="${mode === '100g' ? 'active' : ''}" data-action="nutrition-set-mode" data-mode="100g">Pro 100 g</button>

@@ -78,7 +78,7 @@ async def main():
           apply: document.querySelector('.fs-apply').textContent.trim(), types: Array.from(document.querySelectorAll('.fs-input')).map(i => i.dataset.fsDim + ':' + i.type).filter((v, i, a) => a.indexOf(v) === i),
           time: Array.from(document.querySelectorAll('.fs-input[data-fs-dim=time]')).map(i => i.closest('label').textContent.trim()), locked: document.body.style.position } }""")
         check('Fenster: Dialog, modal, Überschrift «Rezepte filtern», Schliessen-Schaltfläche', sh['role'] == 'dialog' and sh['modal'] == 'true' and sh['lab'] == 'Rezepte filtern' and sh['close'], str(sh))
-        check('Gruppen aus echten Daten', sh['groups'][:4] == ['Ernährung', 'Gerichtart', 'Zubereitungszeit', 'Weitere Merkmale'], str(sh['groups']))
+        check('Gruppen aus echten Daten', sh['groups'][:5] == ['Ernährung', 'Mahlzeit', 'Gericht', 'Zubereitungszeit', 'Weitere Merkmale'], str(sh['groups']))
         check('Mehrfach = Checkbox, Zeit = Radio', 'dietary:checkbox' in sh['types'] and 'category:checkbox' in sh['types'] and 'time:radio' in sh['types'], str(sh['types']))
         check('Zeitoptionen: «Beliebig», «Bis 15/30/60 Min.»', sh['time'] == ['Beliebig', 'Bis 15 Min.', 'Bis 30 Min.', 'Bis 60 Min.'], str(sh['time']))
         check('Beschriftung Hauptaktion «8 Rezepte anzeigen»', sh['apply'] == '8 Rezepte anzeigen', sh['apply'])

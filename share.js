@@ -230,7 +230,7 @@ function settingsShareView() {
       <button class="text-btn" data-action="share-invite-reset">Neuen Einladungscode erzeugen</button>
     </div></div>`;
   }
-  return settingsDetailShell('Freunde & Rezepte senden', body + senderNameSectionHtml(), 'settings-page--cols');
+  return settingsDetailShell('Rezepte mit anderen teilen', body + senderNameSectionHtml(), 'settings-page--cols');
 }
 
 function shareFindInbox(id) { return share.inbox.find(x => x.id === id) || null; }
