@@ -836,7 +836,7 @@ async function dispatchAction(action, id, el, e) {
       render();
       break;
     case 'set-theme': {
-      const nextTheme = el.dataset.theme;
+      const nextTheme = normalizeTheme(el.dataset.theme);
       const applyThemeChange = () => {
         state.theme = nextTheme;
         localStorage.setItem(THEME_KEY, state.theme);

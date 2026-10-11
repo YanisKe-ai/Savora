@@ -1,7 +1,7 @@
 """Paket 44: Rezeptfilter ueberarbeitet (Startseite: Suche, Alle/Favoriten, Filter-Schaltflaeche, Zusammenfassung; Fenster «Rezepte filtern» mit Entwurf).
 Prueft: Zaehlerregeln, Entwurf/Uebernehmen/Abbrechen/Escape/Hintergrund/Zuruecksetzen, ODER/UND, Zeitfilter inkl. unbekannter Dauer, Beschriftung
 (Singular/Plural/0), Leerzustand, Erhalt nach Detail und Zurueck, Alle/Favoriten kombiniert, Suche kombiniert, Fokus-Rueckgabe, Scroll-Sperre ohne Sprung,
-Tippflaechen, Ueberlauf bei 320/375/430 und 24 px Schrift (Hell, Dunkel, Schwarz), Kopfhoehe, Daten unveraendert."""
+Tippflaechen, Ueberlauf bei 320/375/430 und 24 px Schrift (Hell, Dunkel), Kopfhoehe, Daten unveraendert."""
 import asyncio, sys, os
 os.environ.setdefault('SAVORA_TEST_PORT', '8895')
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -32,7 +32,7 @@ SMALL = """() => { const out = []; for (const s of ['.seg-btn', '.filter-btn', '
   document.querySelectorAll(s).forEach(e => { const r = e.getBoundingClientRect(); if (r.width && r.height && (r.height < 43.5 || r.width < 43.5)) out.push(s + ' ' + Math.round(r.width) + 'x' + Math.round(r.height)); }); } return out; }"""
 
 async def set_theme(page, theme):
-    await page.evaluate("(t) => { state.theme = t === 'schwarz' ? 'amoled' : t; applyTheme(); }", theme); await page.wait_for_timeout(120)
+    await page.evaluate("(t) => { state.theme = t; applyTheme(); }", theme); await page.wait_for_timeout(120)
 
 async def fresh(page):
     await page.evaluate("() => { resetExtraFilters(); state.query=''; state.favOnly=false; state.modal=null; state.view='home'; render(); window.scrollTo(0,0); }"); await page.wait_for_timeout(250)
@@ -249,7 +249,7 @@ async def main():
             b, ctx = await open_ctx(p, w, h, 'reduce'); page = await ctx.new_page(); ev = page.evaluate
             await goto(page); await page.evaluate(open(SEED_PATH).read()); await page.wait_for_timeout(300); await ev(EXTRA); await page.wait_for_timeout(200)
             if fs: await ev("(f) => { document.documentElement.style.fontSize = f + 'px'; }", fs)
-            for theme in ['light', 'dark', 'schwarz']:
+            for theme in ['light', 'dark']:
                 tag = f'{w}x{h}{" " + str(fs) + "px" if fs else ""} {theme}: '
                 await set_theme(page, theme); await fresh(page)
                 ov = await overflow_info(page); sm = await ev(SMALL)

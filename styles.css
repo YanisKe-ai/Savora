@@ -162,41 +162,6 @@
     --warning-text: #E8C77E;
   }
 
-  /* True-Black/AMOLED: reines Schwarz fuer Akku auf OLED-Bildschirmen, sonst wie Dark Mode */
-  [data-theme="amoled"] {
-    --bg: #000000;
-    --bg-elevated: #161619;
-    --bg-sunken: #000000;
-    --bg-level2: #1C1B1A;
-    --text: #F1EDE4;
-    --text-muted: #BDB9AC;
-    --text-soft: #BDB9AC;
-    --text-faint: #A19D90;
-    --surface-soft: #1A1C17;
-    --surface-selected: #2A2D25;
-    --danger-soft: rgba(229,138,150,0.14);
-    --brand: #F1EDE4;
-    --brand-ink: #121110;
-    --accent: #FF9B80;
-    --accent-solid: var(--lime);
-    --accent-icon: #FF9B80;
-    --on-accent: #000000;
-    --border: rgba(241,237,228,0.15);
-    --focus-ring: #FF9B80;
-    --lime: #43261F;
-    --lime-hover: #52302A;
-    --lime-ink: #FFD9CC;
-    --violet: #FF9B80;
-    --card-bg: #121110;
-    --success: var(--success-300);
-    --danger: var(--danger-300);
-    --shadow-card: none;
-    --shadow-soft: none;
-    --warning-bg: rgba(255,176,154,0.10);
-    --warning-border: rgba(255,176,154,0.35);
-    --warning-text: #E8C77E;
-  }
-
   * { box-sizing: border-box; }
   .sr-only {
     position: absolute; width: 1px; height: 1px; padding: 0; margin: -0.0625rem;
@@ -765,6 +730,7 @@
 
   .theme-switch { display: flex; gap: 0.5rem; }
   .theme-switch--grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; }
+  .theme-switch--grid .theme-opt:last-child { grid-column: 1 / -1; }
   .theme-opt { flex: 1; border: 1px solid var(--border); background: var(--card-bg); color: var(--text); border-radius: var(--radius-s); padding: 0.75rem; min-height: var(--tap-min); font-size: 0.875rem; display: flex; align-items: center; justify-content: center; gap: 0.5rem; }
   .theme-opt.active { border-color: var(--accent-solid); background: var(--bg-elevated); color: var(--accent); font-weight: 600; }
   .theme-opt svg { width: 15px; height: 15px; }

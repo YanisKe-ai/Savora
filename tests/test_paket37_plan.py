@@ -181,7 +181,7 @@ async def main():
           return { overflow: document.documentElement.scrollWidth - vw, bad, small, lows, cols: new Set(dayRects.map(r => Math.round(r.left))).size }; }"""
         EXPECT_COLS = {320: 1, 360: 1, 390: 1, 430: 1, 768: 2, 1024: 4, 1280: 4, 1440: 4, 1900: 7, 1920: 7}  # seit 0.70.0: 1440 px = vier Spalten, sieben ab 1900 px
         bad_all = []
-        for theme in ('light', 'dark', 'amoled'):
+        for theme in ('light', 'dark'):
             for wd in (320, 360, 390, 430, 768, 1024, 1280, 1440, 1900, 1920):
                 b, ctx, page, errs = await fresh(p, wd, 900)
                 await page.evaluate(DATA41); await page.wait_for_timeout(300)
@@ -195,7 +195,7 @@ async def main():
                     if r2['overflow'] > 1 or any(x.startswith(('ausserhalb', 'abgeschnitten')) for x in r2['bad']):
                         bad_all.append(f"24px {wd}: {json.dumps(r2, ensure_ascii=False)[:300]}")
                 await b.close()
-        check('Wochenplan Paket 41: 320 bis 1920 px in Hell, Dunkel, Schwarz: Spaltenzahl, kein Überlauf, Tippflächen 44 px, nichts abgeschnitten, Schrift ab 14 px, Kontrast 4.5:1; 24 px Systemschrift ohne Überlauf', not bad_all, ' | '.join(bad_all[:3]))
+        check('Wochenplan Paket 41: 320 bis 1920 px in Hell, Dunkel: Spaltenzahl, kein Überlauf, Tippflächen 44 px, nichts abgeschnitten, Schrift ab 14 px, Kontrast 4.5:1; 24 px Systemschrift ohne Überlauf', not bad_all, ' | '.join(bad_all[:3]))
         b, ctx, page, errs = await fresh(p, 390, 900)
         await page.evaluate(DATA41); await page.wait_for_timeout(300)
         navok = await page.evaluate("() => { const m = document.querySelector('.plan-main'); const btn = m.querySelector('[data-action=\"mealplan-to-shopping\"]'); const nav = document.querySelector('.bottom-nav'); window.scrollTo(0, document.body.scrollHeight); return btn.getBoundingClientRect().bottom <= nav.getBoundingClientRect().top + 1; }")

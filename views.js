@@ -248,14 +248,14 @@ function themeQuickRow(t) {
   return `<div class="theme-quick">
     <span class="theme-quick-label" id="themeQuickLabel">Erscheinungsbild</span>
     <div class="theme-switch theme-quick-switch" role="radiogroup" aria-labelledby="themeQuickLabel">
-      ${opt('light', 'Hell')}${opt('dark', 'Dunkel')}${opt('amoled', 'Schwarz')}${opt('auto', 'System')}
+      ${opt('light', 'Hell')}${opt('dark', 'Dunkel')}${opt('auto', 'System')}
     </div>
   </div>`;
 }
 
 function settingsView() {
   const t = state.theme;
-  const themeLabel = t === 'light' ? 'Hell' : t === 'dark' ? 'Dunkel' : t === 'amoled' ? 'Schwarz' : 'Wie dein Gerät';
+  const themeLabel = t === 'light' ? 'Hell' : t === 'dark' ? 'Dunkel' : 'Wie dein Gerät';
   const unitLabel = state.unitSystem === 'metric' ? 'Gramm und Milliliter' : 'US-Masse (Cups, Unzen)';
 
   return `
@@ -296,10 +296,8 @@ function settingsThemeBodyHtml() {
         <div class="theme-switch theme-switch--grid" role="radiogroup" aria-label="Helles oder dunkles Design">
           <button class="theme-opt ${t === 'light' ? 'active' : ''}" data-action="set-theme" data-theme="light" role="radio" aria-checked="${t === 'light'}">${ICONS.sun} Hell</button>
           <button class="theme-opt ${t === 'dark' ? 'active' : ''}" data-action="set-theme" data-theme="dark" role="radio" aria-checked="${t === 'dark'}">${ICONS.moon} Dunkel</button>
-          <button class="theme-opt ${t === 'amoled' ? 'active' : ''}" data-action="set-theme" data-theme="amoled" role="radio" aria-checked="${t === 'amoled'}">${ICONS.moon} Schwarz</button>
           <button class="theme-opt ${t === 'auto' ? 'active' : ''}" data-action="set-theme" data-theme="auto" role="radio" aria-checked="${t === 'auto'}">${ICONS.auto} Wie dein Gerät</button>
         </div>
-        <p class="settings-hint settings-hint--top">Schwarz: vollständig schwarzer Hintergrund für OLED-Displays.</p>
       </div>
     </div>`;
 }

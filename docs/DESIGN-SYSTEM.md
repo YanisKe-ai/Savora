@@ -29,29 +29,29 @@ Regeln:
 
 ## 3. Farben (Variablen in `styles.css`, `styles-v2.css` ergänzt nur)
 
-Warme Flächen, ruhiges Salbei, Tomatenrot nur für Handlung. Alle Werte stehen zentral in `styles.css` (`:root`, `[data-theme="dark"]`, `[data-theme="amoled"]`). "Wie dein Gerät" setzt automatisch Hell oder Dunkel.
+Warme Flächen, ruhiges Salbei, Tomatenrot nur für Handlung. Alle Werte stehen zentral in `styles.css` (`:root`, `[data-theme="dark"]`). "Wie dein Gerät" setzt automatisch Hell oder Dunkel.
 
-| Rolle | Hell | Dunkel | Schwarz (AMOLED) |
-| --- | --- | --- | --- |
-| Seite `--bg` | #F7F4EE | #1B1A17 | #000000 |
-| Fläche `--card-bg` | #FFFDF8 | #24231F | #121110 |
-| Ruhige Salbeifläche `--surface-soft` | #E1E7DC | #2C2F28 | #1A1C17 |
-| Gewählt `--surface-selected` | #D1D9CA | #3A3E35 | #2A2D25 |
-| Tinte `--text` | #252720 | #F1EDE4 | #F1EDE4 |
-| Zweittext `--text-soft` | #5B5E52 | #BDB9AC | #BDB9AC |
-| Hauptknopf `--tomato` (Text `--on-tomato`) | #B93B2C (weiss) | #FF9B80 (#1B1A17) | #FF9B80 (#1B1A17) |
-| Rot als Text/Symbol `--violet` | #A93324 | #FF9B80 | #FF9B80 |
-| Aktiver Chip, aktive Fläche `--lime` (Text `--lime-ink`) | #F2D8CE (#252720) | #4D2C24 (#FFD9CC) | #43261F (#FFD9CC) |
-| Haarlinie `--hairline` | 10 % Tinte | 12 % Tinte | 12 % Tinte |
+| Rolle | Hell | Dunkel |
+| --- | --- | --- |
+| Seite `--bg` | #F7F4EE | #1B1A17 |
+| Fläche `--card-bg` | #FFFDF8 | #24231F |
+| Ruhige Salbeifläche `--surface-soft` | #E1E7DC | #2C2F28 |
+| Gewählt `--surface-selected` | #D1D9CA | #3A3E35 |
+| Tinte `--text` | #252720 | #F1EDE4 |
+| Zweittext `--text-soft` | #5B5E52 | #BDB9AC |
+| Hauptknopf `--tomato` (Text `--on-tomato`) | #B93B2C (weiss) | #FF9B80 (#1B1A17) |
+| Rot als Text/Symbol `--violet` | #A93324 | #FF9B80 |
+| Aktiver Chip, aktive Fläche `--lime` (Text `--lime-ink`) | #F2D8CE (#252720) | #4D2C24 (#FFD9CC) |
+| Haarlinie `--hairline` | 10 % Tinte | 12 % Tinte |
 
 (Die Variablennamen `--violet` und `--lime` sind historisch und bleiben aus Kompatibilitätsgründen; `--lime` ist jetzt die zarte Tomatenfläche.)
 
-Gemessene Kontraste (Test `test_paket37_visual.py` misst sie in allen drei Darstellungen): Text auf Seite und Salbei mindestens 4.5:1 (Tinte auf Seite 13.8:1), Hauptknopf weiss auf #B93B2C 5.6:1 (Dunkel: #1B1A17 auf #FF9B80 8.5:1), grosse Schrift mindestens 3:1.
+Gemessene Kontraste (Test `test_paket37_visual.py` misst sie in Hell und Dunkel): Text auf Seite und Salbei mindestens 4.5:1 (Tinte auf Seite 13.8:1), Hauptknopf weiss auf #B93B2C 5.6:1 (Dunkel: #1B1A17 auf #FF9B80 8.5:1), grosse Schrift mindestens 3:1.
 
 Regeln:
 - **Ein Akzent.** Rot steht für Handlung (Hauptknopf "Kochen starten", Zähler, aktiver Reiter, Merken, Häkchen). Alles andere ist neutral.
 - Text mindestens 4.5:1 Kontrast, grosse Schrift und Symbole 3:1, Hauptknopf mindestens 5.5:1.
-- Kein reines Schwarz ausser dem Hintergrund im Schwarzmodus, kein reines Weiss.
+- Kein reines Schwarz, kein reines Weiss.
 - Gold bleibt dem Logo (Dampf) vorbehalten. Das rote Lesezeichen im Zeichen bleibt immer rot (#E64B35), das Zeichen selbst ist hell auf dunkel und dunkel auf hell, nie automatisch invertiert; das App-Symbol bleibt schwarz.
 - PDF-Vorlagen haben eigene Farben und Schriften (`--font-pdf-display`, `--font-pdf-sans`) und sind bewusst getrennt.
 
