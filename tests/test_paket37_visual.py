@@ -118,12 +118,13 @@ async def main():
                 # Startseite: ein Suchfeld, Hauptaktion, Zahnrad, keine Statistik
                 await show_view("state.view='home'")
                 home = await page.evaluate("""() => ({ search: document.querySelectorAll('input[type=search], [role=searchbox]').length, fields: document.querySelectorAll('.search-field').length,
-                    lupe: !!document.querySelector('.topbar [aria-label=\"Suchen\"], .topbar [data-action=\"focus-search\"]'),
+                    btn: !!document.querySelector('.filter-bar #searchBtn'), lupe: !!document.querySelector('.topbar [aria-label=\"Suchen\"], .topbar [data-action=\"focus-search\"]'),
                     gear: !!document.querySelector('.topbar [data-action=\"goto-view\"][data-view=\"settings\"][aria-label=\"Einstellungen\"]'),
                     more: (document.querySelector('.bottom-nav .nav-settings .nav-label') || {}).textContent,
                     recent: !!document.querySelector('.recent-card'), allTitle: Array.from(document.querySelectorAll('main h2')).some(h => h.textContent.trim() === 'Alle Rezepte' && getComputedStyle(h).position !== 'absolute'),
                     firstRecipe: Math.round(document.querySelector('.rcard, .rrow').getBoundingClientRect().top), stripRow: (() => { const s = document.querySelector('.filter-bar'); if (!s) return null; const kids = Array.from(s.children).map(k => Math.round(k.getBoundingClientRect().top)); return Math.max(...kids) - Math.min(...kids); })() })""")
-                check(tag + 'Startseite: genau ein Suchfeld, kein Lupen-Knopf oben', home['search'] == 1 and home['fields'] == 1 and not home['lupe'], str(home))
+                # Handy (unter 768 px): bewusst kein dauerhaftes Suchfeld mehr, sondern ein runder Suchknopf neben «Filter» (kein Knopf oben im Kopf); Tablet/Desktop: ein Suchfeld
+                check(tag + 'Startseite: genau eine Suche (Handy: runder Knopf «Suchen» neben dem Filter, sonst ein Suchfeld), kein Lupen-Knopf oben', ((home['search'] == 0 and home['fields'] == 0 and home['btn']) if w < 768 else (home['search'] == 1 and home['fields'] == 1)) and not home['lupe'], str(home))
                 check(tag + 'Startseite: kein Zahnrad mehr in der Kopfzeile, Einstellungen ueber «Mehr»/«Einstellungen» in der Navigation', not home['gear'] and home['more'] == ('Mehr' if w < 900 else 'Einstellungen'), str(home))
                 check(tag + 'Startseite: kein Zwischentitel "Alle Rezepte", kein "Zuletzt bearbeitet"', not home['allTitle'] and not home['recent'], str(home))
                 check(tag + 'Startseite: Alle/Favoriten und Filter-Schaltfläche in einer Zeile (ab 375 px; schmaler darf umbrechen)', home['stripRow'] is not None and (w < 375 or home['stripRow'] <= 6), str(home['stripRow']))
