@@ -78,17 +78,17 @@ async def main():
         await goto(pg2); await pg2.evaluate(open(SEED_PATH).read()); await pg2.wait_for_timeout(300); await ev2(EXTRA); await pg2.wait_for_timeout(200)
         await ev2("() => { resetExtraFilters(); state.query=''; state.favOnly=false; state.modal=null; state.view='home'; render(); window.scrollTo(0,0); }"); await pg2.wait_for_timeout(250)
         st2 = await ev2("""() => ({ ph: document.getElementById('searchBtn').getAttribute('aria-label'), field: !!document.querySelector('.search-field'), bw: Math.round(document.getElementById('searchBtn').getBoundingClientRect().width), fr: document.querySelector('.filter-btn').getBoundingClientRect().right, sl: document.getElementById('searchBtn').getBoundingClientRect().left,
-          sel: document.getElementById('viewSelect').value, opts: Array.from(document.querySelectorAll('#viewSelect option')).map(o => o.textContent.trim()), seg: document.querySelectorAll('.seg-btn').length, fb: document.querySelector('.filter-btn').textContent.trim(), chips: document.querySelectorAll('.chip').length,
+          sel: !!document.getElementById('viewSelect'), opts: Array.from(document.querySelectorAll('#sortSelect option')).map(o => o.textContent.trim()), seg: document.querySelectorAll('.seg-btn').length, fb: document.querySelector('.filter-btn').textContent.trim(), chips: document.querySelectorAll('.chip').length,
           rl: document.querySelector('.result-line').textContent.trim(), hh: Math.round(document.querySelector('.home-head').getBoundingClientRect().height) })""")
         # Neues bewusstes Verhalten (Handy): kein breites Suchfeld mehr, runder Suchknopf (44 px) rechts neben «Filter»; das Feld oeffnet sich erst auf Tippen und hat den Platzhalter «Rezepte suchen …»
-        check('Handy: runder Suchknopf «Suchen» rechts neben «Filter», darin «Alle Rezepte» und «Filter»', st2['ph'] == 'Suchen' and not st2['field'] and st2['bw'] == 44 and st2['sl'] >= st2['fr'] and st2['sel'] == 'all' and st2['opts'] == ['Alle Rezepte', 'Favoriten'] and st2['seg'] == 0 and st2['fb'] == 'Filter' and st2['chips'] == 0, str(st2))
+        check('Handy: runder Suchknopf «Suchen» rechts neben dem Titel «Alle Rezepte», «Filter» in der Zeile darunter', st2['ph'] == 'Suchen' and not st2['field'] and st2['bw'] == 44 and st2['sl'] > 200 and not st2['sel'] and st2['opts'][-1] == 'Nur Favoriten' and st2['seg'] == 0 and st2['fb'] == 'Filter' and st2['chips'] == 0, str(st2))
         await pg2.click('#searchBtn'); await pg2.wait_for_timeout(250)
         check('Handy: Suchfeld nach Tippen auf den Knopf mit Platzhalter «Rezepte suchen …»', await ev2("() => document.getElementById('searchInput').placeholder") == 'Rezepte suchen …')
         await pg2.keyboard.press('Escape'); await pg2.wait_for_timeout(150)
         check('Handy: Kopf belegt höchstens 40 Prozent der Höhe (390x844) und Zeile zeigt «8 Rezepte»', st2['hh'] <= 0.40 * 844 and st2['rl'] == '8 Rezepte', str(st2))
-        await pg2.select_option('#viewSelect', 'fav'); await pg2.wait_for_timeout(250)
+        await pg2.select_option('#sortSelect', '__fav'); await pg2.wait_for_timeout(250)
         check('Handy: Favoriten wählbar, zählen nicht im Filterzähler', await ev2(COUNT) == 4 and await ev2("() => document.querySelector('.filter-btn').textContent.trim()") == 'Filter')
-        await pg2.select_option('#viewSelect', 'all'); await pg2.wait_for_timeout(250)
+        await pg2.select_option('#sortSelect', 'updated'); await pg2.wait_for_timeout(250)
         check('Handy: «Alle Rezepte» zeigt die gesamte Sammlung', await ev2(COUNT) == 8)
         await b2.close()
 
