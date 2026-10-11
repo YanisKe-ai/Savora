@@ -42,9 +42,9 @@ async def main():
         check('Reduzierte Transparenz und erhöhter Kontrast werden beachtet', 'prefers-reduced-transparency' in rules and 'prefers-contrast' in rules)
         # Weiche Kante erst beim Scrollen
         await ev("() => { state.view = 'home'; render(); document.body.style.minHeight = '3000px'; }"); await page.wait_for_timeout(300)   # Paket 37: Startseite ist kuerzer (kein "Zuletzt bearbeitet"), die Seite muss fuer die Scroll-Messung hoch genug sein
-        sh0 = await ev("() => getComputedStyle(document.querySelector('.topbar')).boxShadow")
+        sh0 = await ev("() => getComputedStyle(document.querySelector('.home-head, .topbar')).boxShadow")
         await ev("() => window.scrollTo(0, 300)"); await page.wait_for_timeout(300)
-        sh1 = await ev("() => [document.documentElement.classList.contains('is-scrolled'), getComputedStyle(document.querySelector('.topbar')).boxShadow, getComputedStyle(document.querySelector('.topbar')).borderBottomWidth]")
+        sh1 = await ev("() => [document.documentElement.classList.contains('is-scrolled'), getComputedStyle(document.querySelector('.home-head, .topbar')).boxShadow, getComputedStyle(document.querySelector('.topbar')).borderBottomWidth]")
         check('Kopfleiste: oben ohne Linie, beim Scrollen weiche Kante', sh0 == 'none' and sh1[0] and sh1[1] != 'none' and sh1[2] == '0px', str([sh0] + sh1))
         await ev("() => window.scrollTo(0, 0)")
         # Seitenrichtung

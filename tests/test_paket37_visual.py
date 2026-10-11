@@ -16,7 +16,7 @@ VIEWS = [
     ('Einstellungen', "state.view='settings'"),
 ]
 BADGES = '.chip-count, .nav-badge, .filter-count-badge'
-SERIF_OK = '.rcard-title, .rrow-title, .detail-title-v2, .cb-book-title, .cookbook-title, .cbk-title'
+SERIF_OK = '.rcard-title, .rrow-title, .detail-title-v2, .cbk-name, .topbar--book .topbar-title, .cook-title-text'
 
 JS_FONTS = """(serifOk) => {
   const out = {bad: [], serifElsewhere: [], families: {}};
@@ -28,7 +28,7 @@ JS_FONTS = """(serifOk) => {
     const fam = cs.fontFamily.split(',')[0].replace(/["']/g, '').trim();
     out.families[fam] = (out.families[fam] || 0) + 1;
     if (/condensed|roboto|baloo|sofia/i.test(cs.fontFamily.split(',')[0])) out.bad.push(el.className + ':' + fam);
-    if (fam === 'Fraunces' && !el.matches(serifOk)) out.serifElsewhere.push((el.className || el.tagName) + ':' + el.textContent.trim().slice(0, 20));
+    if (fam === 'Lilita One' && !el.matches(serifOk)) out.serifElsewhere.push((el.className || el.tagName) + ':' + el.textContent.trim().slice(0, 20));
   }
   return out;
 }"""
@@ -102,15 +102,15 @@ async def main():
                     await show_view(js)
                     t = f'{tag}{name}: '
                     fo = await page.evaluate(JS_FONTS, SERIF_OK)
-                    check(t + 'DM Sans im UI, keine gestauchte Schrift, kein Roboto', not fo['bad'] and fo['families'].get('DM Sans', 0) > 5, str(fo['bad'][:3]) + str(fo['families']))
-                    check(t + 'Fraunces nur fuer Rezept- und Buchtitel', not fo['serifElsewhere'], str(fo['serifElsewhere'][:3]))
+                    check(t + 'Public Sans im UI, keine gestauchte Schrift, kein Roboto', not fo['bad'] and fo['families'].get('Public Sans', 0) > 5, str(fo['bad'][:3]) + str(fo['families']))
+                    check(t + 'Lilita One nur fuer Rezept- und Buchtitel', not fo['serifElsewhere'], str(fo['serifElsewhere'][:3]))
                     mn = await page.evaluate(JS_MINFONT, BADGES)
                     check(t + 'kleinste Schrift mindestens 14 px (ausser Zaehler)', mn[0] >= 13.99, f'{mn[0]} {mn[1]}')
                     taps = await page.evaluate(JS_TAPS)
                     check(t + 'Tippflaechen mindestens 44 px', not taps, str(taps[:4]))
                     ov = await page.evaluate("() => [document.documentElement.scrollWidth, window.innerWidth]")
                     check(t + 'kein seitlicher Ueberlauf', ov[0] <= ov[1] + 1, str(ov))
-                check(tag + 'DM Sans und Fraunces sind geladen', 'DM Sans' in fonts_loaded and 'Fraunces' in fonts_loaded, str(fonts_loaded))
+                check(tag + 'Public Sans und Lilita One sind geladen', 'Public Sans' in fonts_loaded and 'Lilita One' in fonts_loaded, str(fonts_loaded))
 
                 # Startseite: ein Suchfeld, Hauptaktion, Zahnrad, keine Statistik
                 await show_view("state.view='home'")
@@ -128,7 +128,7 @@ async def main():
                 cards = await page.evaluate("""() => { const t = Array.from(document.querySelectorAll('.rcard--text')); const ph = Array.from(document.querySelectorAll('.rcard')).filter(c => c.classList.contains('rcard--text')); const photo = Array.from(document.querySelectorAll('.rcard:not(.rcard--text)'));
                     return { text: t.length, imgInText: t.some(c => c.querySelector('img, .placeholder, .ph-letter')), letters: document.querySelectorAll('.ph-letter').length,
                       hText: t.length ? Math.round(t[0].getBoundingClientRect().height) : 0, hPhoto: photo.length ? Math.round(photo[0].getBoundingClientRect().height) : 0, fam: t.length ? getComputedStyle(t[0].querySelector('.rcard-title')).fontFamily.split(',')[0] : '' }; }""")
-                check(tag + 'Rezept ohne Foto (Raster): typografische Karte ohne Bild und ohne Buchstaben', cards['text'] >= 1 and not cards['imgInText'] and cards['letters'] == 0 and 'Fraunces' in cards['fam'], str(cards))
+                check(tag + 'Rezept ohne Foto (Raster): typografische Karte ohne Bild und ohne Buchstaben', cards['text'] >= 1 and not cards['imgInText'] and cards['letters'] == 0 and 'Lilita One' in cards['fam'], str(cards))
                 check(tag + 'Rezept ohne Foto (Raster): etwa so hoch wie eine Foto-Karte', cards['hPhoto'] > 0 and abs(cards['hText'] - cards['hPhoto']) <= 0.2 * cards['hPhoto'] + 8, str(cards))
                 await show_view("state.view='home';state.homeLayout='list'")
                 rows = await page.evaluate("() => { const t = Array.from(document.querySelectorAll('.rrow--text')); return { n: t.length, img: t.some(c => c.querySelector('img, .placeholder, .ph-letter')), h: t.length ? Math.round(t[0].getBoundingClientRect().height) : 0 }; }")
@@ -138,7 +138,7 @@ async def main():
                 nd = await page.evaluate("""() => ({ hero: !!document.querySelector('.hero, .hero-img'), letter: !!document.querySelector('.ph-letter'), fam: getComputedStyle(document.querySelector('.detail-title-v2')).fontFamily.split(',')[0], fs: parseFloat(getComputedStyle(document.querySelector('.detail-title-v2')).fontSize),
                     time: !!document.querySelector('.detail-meta-v2 .fact'), cook: (document.querySelector('.cook-start-inline') || {}).textContent, ing: Math.round(document.querySelector('.ing-check, .detail-aside-ing .ing-check').getBoundingClientRect().height),
                     tabs: Array.from(document.querySelectorAll('.tab-v2')).map(t => Math.round(t.getBoundingClientRect().height)), tools: Array.from(document.querySelectorAll('.detail-tools [data-action]')).map(b => b.dataset.action) })""")
-                check(tag + 'Rezept ohne Foto (Ansicht): kein Bildband, Titel gross in Fraunces', not nd['hero'] and not nd['letter'] and 'Fraunces' in nd['fam'] and nd['fs'] >= 32, str(nd))
+                check(tag + 'Rezept ohne Foto (Ansicht): kein Bildband, Titel gross in Lilita One', not nd['hero'] and not nd['letter'] and 'Lilita One' in nd['fam'] and nd['fs'] >= 32, str(nd))
                 check(tag + 'Rezeptansicht: "Kochen starten", Zeit/Menge, Zutatenzeile mind. 52 px, Reiter mind. 48 px', (nd['cook'] or '').strip() == 'Kochen starten' and nd['time'] and nd['ing'] >= 52 and all(x >= 48 for x in nd['tabs']), str(nd))
                 check(tag + 'Rezeptansicht: Einkaufen, Planen, Bearbeiten, Teilen erreichbar', nd['tools'] == ['add-to-shopping', 'open-plan-recipe', 'edit-recipe', 'share-recipe'], str(nd['tools']))
                 await show_view("state.view='detail';state.activeRecipeId='r_legacy_1'")
