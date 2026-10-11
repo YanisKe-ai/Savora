@@ -49,11 +49,12 @@ async def phone_compare():
     out_old, out_new = os.path.join(OUT, 'p42-vorher'), os.path.join(OUT, 'p42-nachher')
     for d in (out_old, out_new): shutil.rmtree(d, ignore_errors=True)
     sizes = PHONES[:2] if QUICK else PHONES
-    await P.capture(old, out_old, sizes, ['light', 'dark'], full=True)
-    await P.capture(ROOT, out_new, sizes, ['light', 'dark'], full=True)
+    themes42 = os.environ.get('SAVORA_P42_THEMES', 'light,dark').split(',')   # 'light' oder 'dark': Aufteilung auf zwei GitHub-Rechner; leer = beide
+    await P.capture(old, out_old, sizes, themes42, full=True)
+    await P.capture(ROOT, out_new, sizes, themes42, full=True)
     # seit 0.70.2: keine amoled-Aufnahmen mehr (der Vergleichsstand BASIS_COMMIT kennt noch Schwarz; Schwarz gibt es nicht mehr)
     files = sorted(os.listdir(out_old))
-    check('Handy: Vorher/Nachher-Bilder vollstaendig', files == sorted(os.listdir(out_new)) and len(files) >= 40, f'{len(files)} Bilder')
+    check('Handy: Vorher/Nachher-Bilder vollstaendig', files == sorted(os.listdir(out_new)) and len(files) >= 20 * len(themes42), f'{len(files)} Bilder')
     bad = []
     for f in files:
         d = same_pixels(os.path.join(out_old, f), os.path.join(out_new, f))
