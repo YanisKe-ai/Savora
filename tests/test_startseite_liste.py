@@ -94,7 +94,7 @@ async def main():
             check(tag + 'Suche: runder Knopf «Suchen» statt breitem Feld (Feld erst nach Tippen, Platzhalter «Rezepte suchen …»)', st['ph'] == 'Suchen' and st['noField'], str(st['ph']))
             await open_search(page); check(tag + 'Suche: Platzhalter «Rezepte suchen …»', await ev("document.getElementById('searchInput').placeholder") == 'Rezepte suchen …'); await ev(STATE_RESET)
             check(tag + '«Alle Rezepte»-Auswahl mit Favoriten, Filter-Knopf, Zeile «3 Rezepte» und Sortierung', st['viewText'] == 'Alle Rezepte' and st['opts'] == ['Alle Rezepte', 'Favoriten'] and st['filter'] == 'Filter' and st['count'] == '3 Rezepte' and st['sortText'] == 'Zuletzt bearbeitet' and st['sortOpts'] == 4, str(st))
-            check(tag + 'Kein Raster/Liste-Umschalter, keine Segment-Auswahl, Liste ist Standard, Seitentitel nur fuer Bildschirmleser', not st['toggle'] and not st['seg'] and not st['grid'] and st['rows'] == 3 and st['h1'] == 'Deine Rezepte' and not st['pt'], str(st))
+            check(tag + 'Raster/Liste-Umschalter in der Ergebniszeile (Ansicht Umschalter), keine Segment-Auswahl, Liste ist Standard, Seitentitel nur fuer Bildschirmleser', st['toggle'] and not st['seg'] and not st['grid'] and st['rows'] == 3 and st['h1'] == 'Deine Rezepte' and not st['pt'], str(st))
             ge = await ev("""() => { const q = (s) => { const e = document.querySelector(s); const r = e.getBoundingClientRect(); return [Math.round(r.left), Math.round(r.top), Math.round(r.right), Math.round(r.height)]; };
               return { pick: q('.view-pick'), filter: q('.filter-btn'), W: document.documentElement.clientWidth } }""")
             check(tag + 'Alle Rezepte links, Filter rechts, auf einer Zeile, je mindestens 44 px hoch', ge['pick'][0] < 40 and ge['filter'][2] > ge['W'] - 40 - 56 and abs(ge['pick'][1] - ge['filter'][1]) < 12 and ge['pick'][3] >= 44 and ge['filter'][3] >= 44, str(ge))
@@ -309,7 +309,7 @@ async def main():
         await ev(STATE_RESET); await page.set_viewport_size({'width': 820, 'height': 900}); await page.wait_for_timeout(500)
         check('Fenster 390 -> 820: Startseite baut sich als Tablet-Ansicht neu auf', await ev("!!document.querySelector('.layout-toggle')") and await ev("!document.querySelector('.rrow--phone')"))
         await page.set_viewport_size({'width': 390, 'height': 844}); await page.wait_for_timeout(500)
-        check('Fenster 820 -> 390: wieder die Handy-Liste', await ev("document.querySelectorAll('.rrow--phone').length") == 3 and await ev("!document.querySelector('.layout-toggle')"))
+        check('Fenster 820 -> 390: wieder die Handy-Liste', await ev("document.querySelectorAll('.rrow--phone').length") == 3 and await ev("!!document.querySelector('.result-row--phone .layout-toggle--phone')"))
         await ctx.close(); await b.close()
 
     print('\n' + ('ALLE OK' if not FAIL else f'{len(FAIL)} FEHLER: ' + '; '.join(FAIL[:12])))

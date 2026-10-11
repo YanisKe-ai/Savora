@@ -232,7 +232,7 @@ async function handleActionV2(action, id, el, e) {
       return true;
     }
     case 'set-home-layout':
-      state.homeLayout = id === 'list' ? 'list' : 'grid';
+      state.homeLayout = id === 'list' ? 'list' : 'grid'; state.homeLayoutChosen = true;
       try { localStorage.setItem(HOME_LAYOUT_KEY, state.homeLayout); } catch (err) {}
       render();
       return true;
