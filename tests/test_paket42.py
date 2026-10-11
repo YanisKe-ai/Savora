@@ -64,7 +64,10 @@ async def phone_compare():
     # Allowlist zuerst abtrennen: nur die unveraenderten Ansichten muessen identisch sein (und werden bei Flackern wiederholt)
     changed = [(f, d) for f, d in bad if view_of(f) in PHONE_CHANGED_VIEWS]
     bad = [(f, d) for f, d in bad if view_of(f) not in PHONE_CHANGED_VIEWS]
-    for attempt in range(3):
+    print('Handy: erste Abweichungen ausserhalb der Allowlist (vor Wiederholung):', sorted({view_of(f) for f, d in bad}), len(bad), 'Bilder', flush=True)   # Diagnose: Namen sofort im Log, falls die Wiederholungen lange dauern
+    # Viele Abweichungen sind kein Flackern, sondern ein echter Unterschied: nicht dreimal neu aufnehmen (das dauerte auf GitHub ueber 25 Minuten), sondern sofort melden.
+    retries = 3 if len(bad) <= 8 else 0
+    for attempt in range(retries):
         if not bad: break
         again = []
         for f, d in bad:

@@ -171,3 +171,95 @@ function sortRecipes(list, by) {
   if (by === 'time') return arr.sort((a, b) => ((a.timeMinutes || 1e9) - (b.timeMinutes || 1e9)) || title(a).localeCompare(title(b), 'de', { sensitivity: 'base' }));
   return arr;   // 'updated': state.recipes ist bereits danach sortiert
 }
+
+/* ---------- Feinschliff: Textmarker, Zahlenzaehler, Avatar-Kreise ---------- */
+
+/* Text Highlighter: liefert HTML, in dem die Suchtreffer als <mark class="hl"> stehen. Der Text selbst geht immer durch
+   escapeHtml, der Suchtext wird nie ins HTML geschrieben (nur Positionen daraus). Die Treffer folgen genau der Logik von searchNorm
+   (Gross/Klein, Umlaute, ss, ae/oe/ue, Satzzeichen): jedes Zeichen wird gefaltet und behaelt seine Position im Originaltext. */
+function searchFoldMap(text) {
+  const src = String(text === undefined || text === null ? '' : text);
+  const folded = [];
+  for (let i = 0; i < src.length; i++) {
+    const f = src[i].toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/ß/g, 'ss');
+    if (f === '') { if (folded.length) folded[folded.length - 1].e = i + 1; continue; }   // Kombinationszeichen gehoert zum Vorgaenger
+    for (const c of f) folded.push({ c, s: i, e: i + 1, m: false });
+  }
+  const merged = [];
+  for (const x of folded) {
+    const p = merged[merged.length - 1];
+    if (p && !p.m && x.c === 'e' && (p.c === 'a' || p.c === 'o' || p.c === 'u')) { p.e = x.e; p.m = true; } else merged.push({ c: x.c, s: x.s, e: x.e, m: false });
+  }
+  let norm = '';
+  const idx = [];
+  for (const x of merged) {
+    if (/[a-z0-9]/.test(x.c)) { norm += x.c; idx.push(x); }
+    else if (norm && norm[norm.length - 1] !== ' ') { norm += ' '; idx.push(x); }
+  }
+  return { src, norm, idx };
+}
+function highlightHtml(text, query) {
+  const raw = String(text === undefined || text === null ? '' : text);
+  const tokens = searchNorm(query).split(' ').filter(t => t.length >= 2);
+  if (!tokens.length || !raw) return escapeHtml(raw);
+  const { src, norm, idx } = searchFoldMap(raw);
+  const ranges = [];
+  tokens.forEach(t => {
+    let from = 0, at;
+    while ((at = norm.indexOf(t, from)) !== -1) {
+      ranges.push([idx[at].s, idx[at + t.length - 1].e]);
+      from = at + t.length;
+    }
+  });
+  if (!ranges.length) return escapeHtml(src);
+  ranges.sort((a, b) => a[0] - b[0] || b[1] - a[1]);
+  const merged = [];
+  ranges.forEach(r => { const l = merged[merged.length - 1]; if (l && r[0] <= l[1]) l[1] = Math.max(l[1], r[1]); else merged.push([r[0], r[1]]); });
+  let out = '', pos = 0;
+  merged.forEach(([s, e]) => { out += escapeHtml(src.slice(pos, s)) + '<mark class="hl">' + escapeHtml(src.slice(s, e)) + '</mark>'; pos = e; });
+  return out + escapeHtml(src.slice(pos));
+}
+/* Kleine Zeile unter dem Titel, wenn ein Suchwort nur in Zutaten (nicht im Titel) vorkommt. Leer, wenn keine Suche laeuft. */
+function searchIngredientHitHtml(r, query) {
+  const tokens = searchNorm(query).split(' ').filter(t => t.length >= 2);
+  if (!tokens.length) return '';
+  const title = searchNorm(r.title || '');
+  const open = tokens.filter(t => !title.includes(t));
+  if (!open.length) return '';
+  const names = (r.ingredients || []).map(i => String(i.name || '')).filter(n => n && open.some(t => searchNorm(n).includes(t)));
+  if (!names.length) return '';
+  const shown = names.slice(0, 2).map(n => highlightHtml(n, query)).join(', ');
+  return `<span class="search-hit"><span class="sr-only">Zutat: </span>${shown}${names.length > 2 ? ' …' : ''}</span>`;
+}
+
+/* Number Ticker: die Zahl steht immer als Endwert im Text (Bildschirmleser, Layout). Das Hochzaehlen zeichnet motion.js (initTickers)
+   nur optisch darueber. Nur echte Zahlen (auch mit Dezimalkomma); alles andere (Spannen, «–», «99+») bleibt Text. key: pro Ansicht nur einmal animieren. */
+function tickerHtml(value, key, scope) {
+  const text = String(value === undefined || value === null ? '' : value).trim();
+  if (!/^\d+(?:[.,]\d+)?$/.test(text) || !key) return escapeHtml(text);
+  const dec = (text.split(/[.,]/)[1] || '').length;
+  return `<span class="tick" data-tick="${parseFloat(text.replace(',', '.'))}" data-dec="${dec}" data-tick-key="${escapeHtml(key)}"${scope === 'session' ? ' data-tick-scope="session"' : ''}>${text}</span>`;
+}
+
+/* Avatar Circles: ueberlappende Kreise mit Initialen. Farbe stabil aus dem Namen (6 Savora-Toene, Klassen avc-c0 bis avc-c5), «+N» bei Ueberlauf. */
+function avatarInitials(name) {
+  const words = String(name).trim().split(/\s+/).filter(Boolean);
+  const first = (w) => Array.from(w.replace(/^[^\p{L}\p{N}]+/u, ''))[0] || '';
+  const a = first(words[0] || ''), b = words.length > 1 ? first(words[words.length - 1]) : '';
+  return (a + b).toLocaleUpperCase('de') || '?';
+}
+function avatarColorIndex(name) {
+  const s = String(name).trim().toLowerCase();
+  let h = 0;
+  for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) >>> 0;
+  return h % 6;
+}
+function avatarCirclesHtml(names, max) {
+  const list = (Array.isArray(names) ? names : []).map(n => String(n === undefined || n === null ? '' : n).trim()).filter(Boolean);
+  if (!list.length) return '';
+  const cap = Math.max(1, Math.floor(max) || 4);
+  const shown = list.length > cap ? list.slice(0, cap) : list;
+  const extra = list.length - shown.length;
+  const label = `${list.length} ${list.length === 1 ? 'Freund' : 'Freunde'}: ${list.join(', ')}`;
+  return `<span class="avc" role="img" aria-label="${escapeHtml(label)}">${shown.map(n => `<span class="avc-item avc-c${avatarColorIndex(n)}" aria-hidden="true">${escapeHtml(avatarInitials(n))}</span>`).join('')}${extra > 0 ? `<span class="avc-item avc-more" aria-hidden="true">+${extra}</span>` : ''}</span>`;
+}

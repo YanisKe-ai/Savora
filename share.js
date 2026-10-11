@@ -257,7 +257,8 @@ function settingsShareView() {
         ${blocked.map(c => row(c, `<span class="tl-name">${shareWho(c)}</span><span class="tl-sub">Blockiert</span>`, `<button class="text-btn" data-action="share-remove" data-id="${escapeAttr(c.handle)}" aria-label="${escapeHtml(shareName(c))} entsperren">Entsperren</button>`)).join('')}
       </ul>`;
     const friendsSec = shareSection('friends', 'Freunde', 0,
-      (hasFriends || outgoing.length ? friendList : firstTime)
+      (connected.length ? `<div class="tl-avatars">${avatarCirclesHtml(connected.map(c => shareName(c)), 5)}</div>` : '')
+      + (hasFriends || outgoing.length ? friendList : firstTime)
       + shareFold('add', `${SHARE_SVG.plus} Freund hinzufügen`, '', addForm, !hasFriends && !outgoing.length || !!prefill)
       + (connected.length || blocked.length ? shareFold('manage', 'Freunde verwalten', '', manageInner, false) : ''));
 

@@ -86,17 +86,18 @@ async def main():
             check(tag + 'Wortmarke: Mittelpunkt = Bildschirmmitte (+-1 px)', abs(br['mid'] - br['W'] / 2) <= 1, f"{br['mid']} vs {br['W'] / 2}")
             check(tag + 'Wortmarke: Pfad unveraendert (wordmarkSvg), Seitenverhaeltnis 3:1', br['d'] and br['d'] == br['wm'] and abs(br['w'] / br['h'] - 3) < 0.05, f"{br['w']}x{br['h']}")
             check(tag + 'Kopf: kein Plus, kein Zahnrad, kein weiteres Symbol', br['kids'] == [], str(br['kids']))
-            st = await ev("""() => ({ ph: document.getElementById('searchInput').placeholder, view: document.getElementById('viewSelect').value, viewText: document.querySelector('.view-pick .inline-pick-text').textContent.trim(),
+            st = await ev("""() => ({ ph: (document.getElementById('searchBtn') || {}).ariaLabel, noField: !document.querySelector('.search-field') && !document.getElementById('searchInput'), view: document.getElementById('viewSelect').value, viewText: document.querySelector('.view-pick .inline-pick-text').textContent.trim(),
               opts: Array.from(document.querySelectorAll('#viewSelect option')).map(o => o.textContent.trim()), filter: document.querySelector('.filter-btn').textContent.trim(),
               count: document.querySelector('.result-line').textContent.trim(), sortText: document.querySelector('.sort-inline .inline-pick-text').textContent.trim(), sortOpts: Array.from(document.querySelectorAll('#sortSelect option')).length,
               toggle: !!document.querySelector('.layout-toggle'), seg: !!document.querySelector('.seg'), grid: !!document.querySelector('.rgrid'), rows: document.querySelectorAll('.rrow--phone').length, addBar: !!document.querySelector('.home-add-btn'),
               h1: (document.querySelector('h1') || {}).textContent, pt: !!document.querySelector('.page-title') })""")
-            check(tag + 'Suche: Platzhalter «Rezepte suchen …»', st['ph'] == 'Rezepte suchen …', st['ph'])
+            check(tag + 'Suche: runder Knopf «Suchen» statt breitem Feld (Feld erst nach Tippen, Platzhalter «Rezepte suchen …»)', st['ph'] == 'Suchen' and st['noField'], str(st['ph']))
+            await open_search(page); check(tag + 'Suche: Platzhalter «Rezepte suchen …»', await ev("document.getElementById('searchInput').placeholder") == 'Rezepte suchen …'); await ev(STATE_RESET)
             check(tag + '«Alle Rezepte»-Auswahl mit Favoriten, Filter-Knopf, Zeile «3 Rezepte» und Sortierung', st['viewText'] == 'Alle Rezepte' and st['opts'] == ['Alle Rezepte', 'Favoriten'] and st['filter'] == 'Filter' and st['count'] == '3 Rezepte' and st['sortText'] == 'Zuletzt bearbeitet' and st['sortOpts'] == 4, str(st))
-            check(tag + 'Kein Raster/Liste-Umschalter, keine Segment-Auswahl, Liste ist Standard, Seitentitel nur fuer Bildschirmleser', not st['toggle'] and not st['seg'] and not st['grid'] and st['rows'] == 3 and st['h1'] == 'Deine Rezepte' and not st['pt'], str(st))
+            check(tag + 'Raster/Liste-Umschalter in der Ergebniszeile (Ansicht Umschalter), keine Segment-Auswahl, Liste ist Standard, Seitentitel nur fuer Bildschirmleser', st['toggle'] and not st['seg'] and not st['grid'] and st['rows'] == 3 and st['h1'] == 'Deine Rezepte' and not st['pt'], str(st))
             ge = await ev("""() => { const q = (s) => { const e = document.querySelector(s); const r = e.getBoundingClientRect(); return [Math.round(r.left), Math.round(r.top), Math.round(r.right), Math.round(r.height)]; };
               return { pick: q('.view-pick'), filter: q('.filter-btn'), W: document.documentElement.clientWidth } }""")
-            check(tag + 'Alle Rezepte links, Filter rechts, auf einer Zeile, je mindestens 44 px hoch', ge['pick'][0] < 40 and ge['filter'][2] > ge['W'] - 40 and abs(ge['pick'][1] - ge['filter'][1]) < 12 and ge['pick'][3] >= 44 and ge['filter'][3] >= 44, str(ge))
+            check(tag + 'Alle Rezepte links, Filter rechts, auf einer Zeile, je mindestens 44 px hoch', ge['pick'][0] < 40 and ge['filter'][2] > ge['W'] - 40 - 56 and abs(ge['pick'][1] - ge['filter'][1]) < 12 and ge['pick'][3] >= 44 and ge['filter'][3] >= 44, str(ge))
             sw = await ev("() => [document.documentElement.scrollWidth, document.documentElement.clientWidth]")
             check(tag + 'Kein horizontaler Ueberlauf (Startseite)', sw[0] <= sw[1], str(sw) + str(await overflow_info(page)))
             # Mehr
@@ -144,7 +145,7 @@ async def main():
         check('Sortierung «Kürzeste Zeit»: kuerzeste Zeit zuerst, unbekannte Zeit zuletzt', (await ev("() => Array.from(document.querySelectorAll('.rrow-title')).map(e => e.textContent)"))[0] == 'Carbonara' and (await ev("() => Array.from(document.querySelectorAll('.rrow-title')).map(e => e.textContent)"))[2] == 'Gemüse-Curry')
         await page.select_option('#sortSelect', 'updated'); await page.wait_for_timeout(250)
         # Suche
-        await page.fill('#searchInput', 'carb'); await page.wait_for_timeout(300)
+        await open_search(page); await page.fill('#searchInput', 'carb'); await page.wait_for_timeout(300)
         check('Suche filtert die Liste und die Zeile zeigt «1 Rezept»', await ev("document.querySelector('.result-line').textContent") == '1 Rezept' and await ev("document.querySelectorAll('.rrow--phone').length") == 1)
         await page.fill('#searchInput', ''); await page.wait_for_timeout(300)
         # Oeffnen und Zurueck
@@ -196,13 +197,14 @@ async def main():
         await ev("() => { clearRecipeDraft && clearRecipeDraft(); state.editingRecipe = null; state.view = 'home'; render(); }"); await page.wait_for_timeout(300)
         check('Zurueck zur Liste: Liste und Aktionsknopf wieder da', await ev("document.querySelectorAll('.rrow--phone').length") == 3 and await ev("!!document.querySelector('.home-add-btn')"))
         # Tastatur
-        await page.click('#searchInput'); await page.keyboard.type('sup'); await page.wait_for_timeout(200)
+        await open_search(page); await page.click('#searchInput'); await page.keyboard.type('sup'); await page.wait_for_timeout(200)
         await ev("() => document.body.classList.add('keyboard-open')"); await page.wait_for_timeout(100)
         kb = await ev("() => ({ add: getComputedStyle(document.querySelector('.home-add-bar')).display, nav: getComputedStyle(document.querySelector('.bottom-nav')).display, val: document.getElementById('searchInput').value, foc: document.activeElement.id })")
         check('Bildschirmtastatur: Aktionsknopf und Leiste ausgeblendet, Eingabe und Fokus bleiben', kb['add'] == 'none' and kb['nav'] == 'none' and kb['val'] == 'sup' and kb['foc'] == 'searchInput', str(kb))
         await ev("() => document.body.classList.remove('keyboard-open')"); await page.fill('#searchInput', ''); await page.wait_for_timeout(250)
         # Fokus sichtbar
-        await page.keyboard.press('Tab'); await page.wait_for_timeout(100)
+        await page.keyboard.press('Escape'); await page.wait_for_timeout(100)   # Suche zu, Fokus auf dem Suchknopf; Umschalt+Tab zweimal: Filter, dann Auswahl
+        await page.keyboard.press('Shift+Tab'); await page.keyboard.press('Shift+Tab'); await page.wait_for_timeout(100)
         check('Tastatur: Fokus ist sichtbar (Umriss) auf Auswahl «Alle Rezepte»', await ev("() => { const a = document.activeElement; return a && a.id === 'viewSelect' && getComputedStyle(a.closest('.inline-pick')).outlineStyle !== 'none'; }"))
         check('Keine Skriptfehler', not errs, str(errs[:2]))
         await ctx.close(); await b.close()
@@ -237,7 +239,7 @@ async def main():
         await ev("() => { clearRecipeDraft && clearRecipeDraft(); state.editingRecipe = null; state.view = 'home'; render(); }")
         await ctx.close(); await b.close()
         b, ctx, page, errs = await new_phone(p, 390, 844); ev = page.evaluate
-        await ev(STATE_RESET); await page.fill('#searchInput', 'zzzxqw'); await page.wait_for_timeout(350)
+        await ev(STATE_RESET); await open_search(page); await page.fill('#searchInput', 'zzzxqw'); await page.wait_for_timeout(350)
         e2 = await ev("() => ({ h: document.querySelector('.empty-state h2').textContent, btn: Array.from(document.querySelectorAll('.empty-actions button')).map(b => b.textContent.trim()), add: !!document.querySelector('.home-add-btn') })")
         check('Keine Suchtreffer: verstaendliche Meldung, «Suche löschen», Aktionsknopf bleibt', e2['h'].startswith('Keine Treffer') and e2['btn'] == ['Suche löschen'] and e2['add'], str(e2))
         await page.click('[data-action="clear-search"]'); await page.wait_for_timeout(300)
@@ -307,7 +309,7 @@ async def main():
         await ev(STATE_RESET); await page.set_viewport_size({'width': 820, 'height': 900}); await page.wait_for_timeout(500)
         check('Fenster 390 -> 820: Startseite baut sich als Tablet-Ansicht neu auf', await ev("!!document.querySelector('.layout-toggle')") and await ev("!document.querySelector('.rrow--phone')"))
         await page.set_viewport_size({'width': 390, 'height': 844}); await page.wait_for_timeout(500)
-        check('Fenster 820 -> 390: wieder die Handy-Liste', await ev("document.querySelectorAll('.rrow--phone').length") == 3 and await ev("!document.querySelector('.layout-toggle')"))
+        check('Fenster 820 -> 390: wieder die Handy-Liste', await ev("document.querySelectorAll('.rrow--phone').length") == 3 and await ev("!!document.querySelector('.result-row--phone .layout-toggle--phone')"))
         await ctx.close(); await b.close()
 
     print('\n' + ('ALLE OK' if not FAIL else f'{len(FAIL)} FEHLER: ' + '; '.join(FAIL[:12])))

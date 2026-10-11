@@ -44,7 +44,7 @@ async def main():
         y0 = await sy(page); check('Vorbedingung: Startseite ist scrollbar', y0 > 500, str(y0))
         # Umschalter Liste/Raster
         # Handy: es gibt keinen Raster/Liste-Umschalter mehr (Liste ist Standard); stattdessen die Sortierung der Liste umschalten (gleich viele Zeilen, kein Zwang zum Scrollen)
-        check('Handy: kein Raster/Liste-Umschalter', await ev("() => !document.querySelector('[data-action=\"set-home-layout\"]')"))
+        check('Handy: Umschalter Liste/Raster in der Ergebniszeile, Liste ist Standard', await ev("() => document.querySelectorAll('.result-row--phone [data-action=\"set-home-layout\"]').length === 2 && !!document.querySelector('.rrow--phone')"))
         for srt in ('az', 'updated', 'az', 'updated'):
             await page.evaluate("(v) => { const s = document.getElementById('sortSelect'); s.value = v; s.dispatchEvent(new Event('change')); }", srt); await settle(page, 250)
         check('Sortier-Umschalter der Liste: keine Scrollsprünge', abs(await sy(page) - y0) <= 2, f'{y0} -> {await sy(page)}')
@@ -75,7 +75,7 @@ async def main():
 
         # ---------- 2. Fokus über render() ----------
         await go(page, 'home')
-        await page.click('#searchInput'); await page.keyboard.type('testgericht')
+        await open_search(page); await page.click('#searchInput'); await page.keyboard.type('testgericht')
         await settle(page, 400)
         await page.keyboard.press('ArrowLeft'); await page.keyboard.press('ArrowLeft'); await page.keyboard.press('ArrowLeft')
         await page.keyboard.type('X'); await settle(page, 450)   # 'testgerXicht': Live-Filter rendert neu
@@ -134,7 +134,8 @@ async def main():
         check('Kochbücher: Position beim Zurückkehren gemerkt', abs(await sy(page) - ycb) <= 4 or ycb < 5, f'{ycb} -> {await sy(page)}')
 
         # ---------- 4. Dialoge ----------
-        await go(page, 'home')
+        # seit 0.70.0 (Handy): Solange das Suchfeld offen ist, ist die Zeile mit «Filter» inert (Suchfeld liegt darueber). Der Suchtest oben laesst es offen, also hier zuerst schliessen.
+        await go(page, 'home', "state.searchOpen = false; state.query = '';")
         await page.focus('[data-action="open-filter-sheet"]'); await page.keyboard.press('Enter'); await settle(page, 500)
         d = await ev("""() => { const s = document.querySelector('.modal-sheet'); return { role: s.getAttribute('role'), modal: s.getAttribute('aria-modal'), lab: !!document.getElementById(s.getAttribute('aria-labelledby')),
           inside: s.contains(document.activeElement) }; }""")
@@ -240,7 +241,7 @@ async def main():
         await page.keyboard.press('Tab')
         pos = await ev("() => { const r = document.activeElement.getBoundingClientRect(); return { top: Math.round(r.top), tag: document.activeElement.tagName }; }")
         check('Tab-Reihenfolge: erster Fokus liegt im oberen Bereich', pos['top'] < 300, str(pos))
-        ring = await ev("""() => { document.activeElement.blur(); document.querySelector('#searchInput').focus(); const cs = getComputedStyle(document.activeElement); return { ow: cs.outlineWidth, os: cs.outlineStyle, sh: cs.boxShadow }; }""")
+        ring = await ev("""() => { document.activeElement.blur(); (document.querySelector('#searchInput') || document.querySelector('#searchBtn')).focus(); const cs = getComputedStyle(document.activeElement); return { ow: cs.outlineWidth, os: cs.outlineStyle, sh: cs.boxShadow }; }""")
         await page.keyboard.press('Tab'); await settle(page, 200)
         ring = await ev("() => { const cs = getComputedStyle(document.activeElement); return { ow: cs.outlineWidth, os: cs.outlineStyle, sh: cs.boxShadow, m: document.activeElement.matches(':focus-visible') }; }")
         check('Sichtbarer Fokusring bei Tastaturfokus', ring['m'] and ((ring['os'] != 'none' and ring['ow'] != '0px') or ring['sh'] != 'none'), str(ring))

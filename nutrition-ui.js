@@ -84,7 +84,7 @@ function nutritionCompactInner(recipe, result) {
     const def = NUTRIENT_KEYS[key];
     const val = nutValueText(result, cmode, key);
     return `<div class="nutrition-compact-stat">
-      <span class="nutrition-compact-value">${val === null ? '–' : val}${val === null ? '' : ' ' + def.unit}</span>
+      <span class="nutrition-compact-value">${val === null ? '–' : tickerHtml(val, 'nut-' + recipe.id + '-' + key)}${val === null ? '' : ' ' + def.unit}</span>
       <span class="nutrition-compact-label">${def.label}</span>
     </div>`;
   }).join('');
@@ -130,6 +130,7 @@ async function hydrateNutritionCards() {
       else if (st.status === 'incomplete') node.innerHTML = nutritionIncompleteInner(recipe, st.result);
       else node.innerHTML = nutritionCompactInner(recipe, st.result);
       node.querySelectorAll('[data-action]').forEach((el) => el.addEventListener('click', onAction));
+      if (typeof initTickers === 'function') initTickers(node);
     } catch (err) {
       console.warn('Die Nährwert-Karte konnte nicht geladen werden.', err);
       node.classList.remove('nutrition-card-loading');

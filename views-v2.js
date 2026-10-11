@@ -58,7 +58,7 @@ function bottomNav() {
   const openCount = state.shopping.filter(i => !i.checked && !i.have).length;
   const btn = (t) => {
     const active = navTabActive(t.view);
-    const badge = t.view === 'shopping' && openCount ? `<span class="nav-badge" aria-hidden="true">${openCount > 99 ? '99+' : openCount}</span>` : '';
+    const badge = t.view === 'shopping' && openCount ? `<span class="nav-badge" aria-hidden="true">${openCount > 99 ? '99+' : tickerHtml(openCount, 'nav-badge', 'session')}</span>` : '';
     return `<button type="button" data-action="nav-tab" data-view="${t.view}" class="${t.cls || ''} ${active ? 'active' : ''}" ${active ? 'aria-current="page"' : ''}>
       <span class="nav-icon" aria-hidden="true">${t.icon}${badge}</span><span class="nav-label">${t.label}</span>
     </button>`;
@@ -293,14 +293,29 @@ function recipeMetaLine(r, full) {
 function favButton(r, extraCls) {
   return `<button type="button" class="fav-toggle ${extraCls || ''} ${r.favorite ? 'is-active' : ''}" data-action="toggle-fav" data-id="${escapeAttr(r.id)}" aria-pressed="${r.favorite ? 'true' : 'false'}" aria-label="${r.favorite ? 'Aus Favoriten entfernen' : 'Zu Favoriten hinzufügen'}">${r.favorite ? ICONS.bookmarkFilled : ICONS.bookmark}</button>`;
 }
-function recipeCard(r) {
+function recipeCard(r, phone) {
   const photo = hasPhoto(r);
   const title = escapeHtml(r.title || 'Ohne Titel');
+  const titleHl = highlightHtml(r.title || 'Ohne Titel', state.query);
+  if (phone === true) {
+    /* Handy-Raster: Foto 4:3 (oder ruhiger Platzhalter), Titel, Zeit nur wenn bekannt, Favoritenknopf als Geschwister (kein verschachtelter Knopf) */
+    const time = r.timeMinutes > 0 ? `<span class="rcard-meta rcard-meta--time">${ICONS.clock}<span>${r.timeMinutes} Min.</span></span>` : '';
+    return `<article class="rcard rcard--phone">
+    <button type="button" class="rcard-main" data-action="open-recipe" data-id="${escapeAttr(r.id)}" aria-label="${title} öffnen">
+      ${photo ? recipeImageHtml(r, 'rcard-img', 'thumb') : `<span class="rcard-img rcard-ph" aria-hidden="true">${ICONS.bookOpen}</span>`}
+      <span class="rcard-body">
+        <span class="rcard-title">${titleHl}</span>${searchIngredientHitHtml(r, state.query)}
+        ${time}
+      </span>
+    </button>
+    ${favButton(r, 'rcard-fav')}
+  </article>`;
+  }
   return `<article class="rcard ${photo ? '' : 'rcard--text'}">
     <button type="button" class="rcard-main" data-action="open-recipe" data-id="${escapeAttr(r.id)}" aria-label="${title} öffnen">
       ${photo ? recipeImageHtml(r, 'rcard-img', 'thumb') : ''}
       <span class="rcard-body">
-        <span class="rcard-title">${title}</span>
+        <span class="rcard-title">${titleHl}</span>${searchIngredientHitHtml(r, state.query)}
         <span class="rcard-meta">${escapeHtml(recipeMetaLine(r, false))}</span>
       </span>
     </button>
@@ -312,12 +327,13 @@ function recipeRow(r, phone) {
   if (phone) {
     /* Handy-Liste: quadratisches Foto (oder ruhiger Platzhalter), Titel, Zeit nur wenn bekannt, eigener Favoritenknopf als Geschwister (kein verschachtelter Knopf) */
     const title = escapeHtml(r.title || 'Ohne Titel');
+    const titleHl = highlightHtml(r.title || 'Ohne Titel', state.query);
     const time = r.timeMinutes > 0 ? `<span class="rrow-meta rrow-meta--time">${ICONS.clock}<span>${r.timeMinutes} Min.</span></span>` : '';
     return `<article class="rrow rrow--phone">
     <button type="button" class="rrow-main" data-action="open-recipe" data-id="${escapeAttr(r.id)}" aria-label="${title} öffnen">
       ${photo ? recipeImageHtml(r, 'rrow-img', 'thumb') : `<span class="rrow-img rrow-ph" aria-hidden="true">${ICONS.bookOpen}</span>`}
       <span class="rrow-body">
-        <span class="rrow-title">${title}</span>
+        <span class="rrow-title">${titleHl}</span>${searchIngredientHitHtml(r, state.query)}
         ${time}
       </span>
     </button>
@@ -328,7 +344,7 @@ function recipeRow(r, phone) {
     <button type="button" class="rrow-main" data-action="open-recipe" data-id="${escapeAttr(r.id)}" aria-label="${escapeHtml(r.title || 'Ohne Titel')} öffnen">
       ${photo ? recipeImageHtml(r, 'rrow-img', 'thumb') : ''}
       <span class="rrow-body">
-        <span class="rrow-title">${escapeHtml(r.title || 'Ohne Titel')}</span>
+        <span class="rrow-title">${highlightHtml(r.title || 'Ohne Titel', state.query)}</span>${searchIngredientHitHtml(r, state.query)}
         <span class="rrow-meta">${escapeHtml(recipeMetaLine(r, true))}${isUncooked(r) ? ' · noch nicht gekocht' : ''}</span>
       </span>
     </button>
@@ -362,6 +378,13 @@ function todayPlannedHtml() {
   };
   return `<section class="today-planned" aria-label="Heute geplant"><span class="today-label">Heute geplant</span>${items.map(label).join('')}</section>`;
 }
+/* Ansicht Liste/Raster: gleicher Speicherort wie bisher (savora-home-layout). Handy: ohne gespeicherte Wahl bleibt es die Liste. */
+function layoutToggleHtml(layout, cls) {
+  return `<div class="layout-toggle ${cls || ''}" role="group" aria-label="Darstellung">
+            <button type="button" class="icon-toggle ${layout !== 'list' ? 'is-active' : ''}" data-action="set-home-layout" data-id="grid" aria-pressed="${layout !== 'list'}" aria-label="Rasteransicht">${ICONS.grid}</button>
+            <button type="button" class="icon-toggle ${layout === 'list' ? 'is-active' : ''}" data-action="set-home-layout" data-id="list" aria-pressed="${layout === 'list'}" aria-label="Listenansicht">${ICONS.list}</button>
+          </div>`;
+}
 function homeView() {
   const phone = isPhoneLayout();
   const list = applyAllFilters(state.recipes);
@@ -378,42 +401,52 @@ function homeView() {
   else {
     const n = list.length;
     if (phone) {
-      /* Handy: immer die Liste, kein Raster/Liste-Umschalter; «N Rezepte · Sortierung» als ruhige Zeile */
+      /* Handy: Liste ist Standard; «N Rezepte · Sortierung» als ruhige Zeile, rechts der kompakte Umschalter Liste/Raster */
+      const pl = state.homeLayoutChosen ? (state.homeLayout === 'grid' ? 'grid' : 'list') : 'list';
+      const items = pl === 'grid' ? `<div class="rgrid rgrid--phone">${list.map(r => recipeCard(r, true)).join('')}</div>` : `<div class="rlist rlist--phone">${list.map(r => recipeRow(r, true)).join('')}</div>`;
       content = `
       <section class="home-section" aria-labelledby="all-h">
         <div class="result-row result-row--phone">
-          <h2 class="result-line" id="all-h">${n} Rezept${n === 1 ? '' : 'e'}</h2>
+          <h2 class="result-line" id="all-h">${tickerHtml(n, 'count')} Rezept${n === 1 ? '' : 'e'}</h2>
           <span class="result-dot" aria-hidden="true">·</span>
           <div class="inline-pick sort-inline">
             <span class="inline-pick-text">${escapeHtml(sortLabel)}</span>${ICONS.arrowDown}
             <select class="inline-pick-select sort-select" id="sortSelect" aria-label="Sortierung">${sortOptions}</select>
           </div>
+          ${layoutToggleHtml(pl, 'layout-toggle--phone')}
         </div>
-        <div class="rlist rlist--phone">${list.map(r => recipeRow(r, true)).join('')}</div>
+        ${items}
       </section>`;
     } else {
       const items = state.homeLayout === 'list' ? `<div class="rlist">${list.map(r => recipeRow(r)).join('')}</div>` : `<div class="rgrid">${list.map(recipeCard).join('')}</div>`;
       content = `
       <section class="home-section" aria-labelledby="all-h">
         <div class="result-row">
-          <h2 class="result-line" id="all-h">${n} Rezept${n === 1 ? '' : 'e'}</h2>
+          <h2 class="result-line" id="all-h">${tickerHtml(n, 'count')} Rezept${n === 1 ? '' : 'e'}</h2>
           <label class="sort-pick"><span class="sort-pick-label">Sortierung</span>
             <select class="sort-select" id="sortSelect">${sortOptions}</select>
           </label>
-          <div class="layout-toggle" role="group" aria-label="Darstellung">
-            <button type="button" class="icon-toggle ${state.homeLayout !== 'list' ? 'is-active' : ''}" data-action="set-home-layout" data-id="grid" aria-pressed="${state.homeLayout !== 'list'}" aria-label="Rasteransicht">${ICONS.grid}</button>
-            <button type="button" class="icon-toggle ${state.homeLayout === 'list' ? 'is-active' : ''}" data-action="set-home-layout" data-id="list" aria-pressed="${state.homeLayout === 'list'}" aria-label="Listenansicht">${ICONS.list}</button>
-          </div>
+          ${layoutToggleHtml(state.homeLayout)}
         </div>
         ${items}
       </section>`;
     }
   }
 
-  const filterBtn = `<button type="button" class="filter-btn ${filterCount ? 'is-active' : ''}" data-action="open-filter-sheet" aria-haspopup="dialog">${ICONS.sliders}<span class="filter-btn-text">Filter${filterCount ? ' · ' + filterCount : ''}</span></button>`;
+  const filterBtn = `<button type="button" class="filter-btn ${filterCount ? 'is-active' : ''}" ${phone && state.searchOpen ? 'inert' : ''} data-action="open-filter-sheet" aria-haspopup="dialog">${ICONS.sliders}<span class="filter-btn-text">Filter${filterCount ? ' · ' + filterCount : ''}</span></button>`;
+  /* Handy: Suche als runder Knopf neben «Filter»; geoeffnet liegt das Feld ueber der Zeile (kein Springen der Liste), die Zeile dahinter ist inert */
+  const searchOpen = !!state.searchOpen, searchEnter = !!state.searchEnter; state.searchEnter = false;
+  const hasQuery = !!state.query.trim();
+  const searchBtn = `<button type="button" class="search-btn ${hasQuery ? 'is-active' : ''}" id="searchBtn" data-action="open-search" aria-label="Suchen" aria-expanded="${searchOpen}" aria-controls="searchPop" ${searchOpen ? 'inert' : ''}>${ICONS.search}</button>`;
+  const searchPop = searchOpen ? `<div class="search-pop ${searchEnter ? 'is-entering' : ''}" id="searchPop" role="search">
+      ${ICONS.search}
+      <label for="searchInput" class="sr-only">Rezepte suchen</label>
+      <input class="search-input" id="searchInput" type="search" enterkeyhint="search" placeholder="Rezepte suchen …" value="${escapeHtml(state.query)}" autocomplete="off">
+      <button type="button" class="search-close" data-action="close-search" data-id="${hasQuery ? 'clear' : 'keep'}" aria-label="${hasQuery ? 'Suche löschen und schliessen' : 'Suche schliessen'}">${ICONS.x}</button>
+    </div>` : '';
   const filterBar = !state.recipes.length ? '' : (phone
     ? `<div class="filter-bar filter-bar--phone">
-          <div class="inline-pick view-pick">
+          <div class="inline-pick view-pick" ${searchOpen ? 'inert' : ''}>
             <span class="inline-pick-text">${favOnly ? 'Favoriten' : 'Alle Rezepte'}</span>${ICONS.arrowDown}
             <select class="inline-pick-select" id="viewSelect" aria-label="Anzeige">
               <option value="all" ${favOnly ? '' : 'selected'}>Alle Rezepte</option>
@@ -421,6 +454,8 @@ function homeView() {
             </select>
           </div>
           ${filterBtn}
+          ${searchBtn}
+          ${searchPop}
         </div>`
     : `<div class="filter-bar">
           <div class="seg" role="group" aria-label="Anzeige">
@@ -435,11 +470,11 @@ function homeView() {
       ${phone ? topbar('', { cls: 'topbar--home topbar--center' }) : topbar('', { cls: 'topbar--home', actions: `<button class="round-btn round-btn--accent" data-action="open-add-menu" aria-label="Rezept hinzufügen">${ICONS.plus}</button>` })}
       <section class="home-head-body" aria-label="Suche und Filter">
         ${phone ? '<h1 class="sr-only">Deine Rezepte</h1>' : pageTitle('Deine Rezepte')}
-        <div class="search-field">
+        ${phone ? '' : `<div class="search-field">
           ${ICONS.search}
           <label for="searchInput" class="sr-only">Rezepte suchen</label>
           <input class="search-input" id="searchInput" type="search" enterkeyhint="search" placeholder="${phone ? 'Rezepte suchen …' : 'Rezepte suchen'}" value="${escapeHtml(state.query)}" autocomplete="off">
-        </div>
+        </div>`}
         ${filterBar}
         ${filterCount ? `<div class="filter-summary">
           <p class="filter-summary-text"><span class="sr-only">Aktive Filter: </span>${escapeHtml(summary)}</p>
@@ -502,7 +537,7 @@ function ingredientsPanel(r) {
           return `<li><button type="button" class="ing-check ${isChecked ? 'is-checked' : ''}" data-action="toggle-ingredient-check" data-id="${escapeAttr(r.id)}" data-idx="${i._index}" role="checkbox" aria-checked="${isChecked}">
             <span class="check-box" aria-hidden="true">${ICONS.check}</span>
             <span class="ing-amount">${escapeHtml(amt)}</span>
-            <span class="ing-name">${escapeHtml(i.name)}</span>
+            <span class="ing-name">${highlightHtml(i.name, state.query)}</span>
           </button></li>`;
         }).join('')}
       </ul>
