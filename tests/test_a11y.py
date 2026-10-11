@@ -1,4 +1,4 @@
-"""Barrierefreiheit mit axe-core: alle Ansichten in Hell, Dunkel und Schwarz duerfen keine Verletzung haben
+"""Barrierefreiheit mit axe-core: alle Ansichten in Hell und Dunkel duerfen keine Verletzung haben
 (Kontrast, Beschriftungen, Rollen, Ueberschriften). Voraussetzung: `npm ci` (axe-core ist eine Entwicklungs-Abhaengigkeit)."""
 import asyncio, os, sys
 import os as _os; sys.path.insert(0, _os.path.dirname(_os.path.abspath(__file__)))
@@ -31,7 +31,7 @@ async def main():
         n = 0
         for width, height in [(390, 844), (1280, 800)]:
           await page.set_viewport_size({'width': width, 'height': height})
-          for th in ['light', 'dark', 'amoled']:
+          for th in ['light', 'dark']:
               await page.evaluate(f"() => document.documentElement.setAttribute('data-theme','{th}')")
               for name, js in VIEWS:
                   await page.evaluate("() => {" + js + "; render(); }"); await page.wait_for_timeout(300)
@@ -40,7 +40,7 @@ async def main():
                   n += 1
                   if v:
                       fails.append(f'{width}px {th} / {name}: {v}'); print('FEHL ', width, th, name, v)
-        print(f'{n} Ansichten geprueft (Hell, Dunkel, Schwarz, 390 und 1280 px)')
+        print(f'{n} Ansichten geprueft (Hell, Dunkel, 390 und 1280 px)')
         if errs: fails.append('Seitenfehler: ' + str(errs[:2]))
         await browser.close()
     print('\nFEHLGESCHLAGEN:', fails or 'keine')

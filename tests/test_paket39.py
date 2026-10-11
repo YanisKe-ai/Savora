@@ -1,5 +1,5 @@
 """Paket 39: Startseite mit festem Kopfbereich (nur der Rezeptbereich scrollt) und neue Schriften (Lilita One, Public Sans).
-Prüft: Kopf bleibt beim Scrollen stehen (390x844 und 1280x800; Hell, Dunkel, Schwarz), Kopf höchstens 40 Prozent der Höhe,
+Prüft: Kopf bleibt beim Scrollen stehen (390x844 und 1280x800; Hell, Dunkel), Kopf höchstens 40 Prozent der Höhe,
 «Heute geplant» und Sicherungshinweis scrollen weg, Zurück stellt die Scrollposition wieder her, Fokus im Suchfeld bleibt beim Tippen,
 Schriftfamilien (Public Sans überall, Lilita One nur Rezept- und Buchtitel), font-synthesis, Schriften geladen, Umlaute/«½»/«–» ohne Ersatzschrift,
 sehr langer Titel in Karte/Liste/Ansicht/Kochmodus ohne Überlauf, 24 px Systemschrift, Titelblatt-Schriften bleiben unverändert."""
@@ -44,7 +44,7 @@ FONTS = """(titleSel) => { const out = { bad: [], lilitaElsewhere: [], notPublic
 
 async def set_theme(page, theme):
     if theme == 'schwarz':
-        await page.evaluate("() => { state.theme = 'amoled'; applyTheme(); }")
+        await page.evaluate("() => { state.theme = 'dark'; applyTheme(); }")
     else:
         await page.evaluate(f"() => {{ state.theme = '{theme}'; applyTheme(); }}")
     await page.wait_for_timeout(150)

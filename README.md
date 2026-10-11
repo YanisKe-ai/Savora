@@ -12,7 +12,7 @@ Live: https://yaniske-ai.github.io/Savora/
 - Kochbuch als PDF mit Vorschau, PDF und Sicherung teilen
 - Masseinheiten-Rechner (Gewicht, Volumen, Temperatur, Zutaten)
 - Nährwert-Schätzung mit der Schweizer Nährwertdatenbank (abschaltbar)
-- Hell, Dunkel, Schwarz, System; Handy, iPad und Desktop
+- Hell, Dunkel, System; Handy, iPad und Desktop
 
 ## Technik
 - Vanilla JavaScript, kein Framework, kein Build-Schritt. Alle Web-Dateien liegen im Hauptordner.

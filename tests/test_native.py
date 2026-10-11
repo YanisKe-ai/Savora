@@ -91,9 +91,9 @@ async def main():
         await page.evaluate("() => { Object.values(state.timers).forEach(t => clearInterval(t.intervalId)); state.timers = {}; state.view = 'home'; render(); }")
 
         # Statusleiste folgt dem gewaehlten Modus
-        await page.evaluate("() => { state.theme = 'dark'; applyTheme(); state.theme = 'light'; applyTheme(); state.theme = 'amoled'; applyTheme(); }")
+        await page.evaluate("() => { state.theme = 'dark'; applyTheme(); state.theme = 'light'; applyTheme(); state.theme = 'dark'; applyTheme(); }")
         styles = [c[1]['style'] for c in await calls(page, 'statusbar.style')]
-        check('iOS-Statusleiste: Dunkel/Schwarz = DARK (heller Text), Hell = LIGHT', styles[-3:] == ['DARK', 'LIGHT', 'DARK'], str(styles))
+        check('iOS-Statusleiste: Dunkel = DARK (seit 0.70.2 ohne Schwarz) (heller Text), Hell = LIGHT', styles[-3:] == ['DARK', 'LIGHT', 'DARK'], str(styles))
         await page.evaluate("() => { state.theme = 'auto'; applyTheme(); }")
 
         # Einkaufsliste teilen

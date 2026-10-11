@@ -94,7 +94,7 @@ async def main():
 
         # ---------- 3. Wortmarke je App-Theme, auch gegen die Systemeinstellung ----------
         want = {('light', 'light'): RED, ('light', 'dark'): RED, ('dark', 'light'): CREAM, ('dark', 'dark'): CREAM,
-                ('amoled', 'light'): CREAM, ('amoled', 'dark'): CREAM, ('auto', 'light'): RED, ('auto', 'dark'): CREAM}
+                ('auto', 'light'): RED, ('auto', 'dark'): CREAM}
         for (theme, scheme), col in want.items():
             browser, page = await new_page(p, 390, 844, scheme, theme)
             r = await page.evaluate("""() => { const w = document.querySelector('.topbar .top-wordmark'); const cs = getComputedStyle(w); return { color: cs.color, dt: document.documentElement.dataset.theme, label: w.getAttribute('aria-label'), role: w.getAttribute('role') }; }""")

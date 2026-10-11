@@ -190,9 +190,9 @@ async def main():
         check('D02 Filter: «Eigene Schlagwörter» statt «Tags»', 'Eigene Schlagwörter' in grp and 'Tags' not in grp, str(grp))
         await page.keyboard.press('Escape'); await page.wait_for_timeout(450)
 
-        # ---------- D03: Auswahlzustand mit Haken, Hell/Dunkel/Schwarz ----------
+        # ---------- D03: Auswahlzustand mit Haken, Hell/Dunkel (seit 0.70.2 ohne Schwarz) ----------
         MARK = """(sel) => { const e = document.querySelector(sel); if (!e) return null; const cs = getComputedStyle(e, '::before'); return { content: cs.content, w: parseFloat(cs.width), h: parseFloat(cs.height), bw: cs.borderRightWidth, col: cs.borderRightColor }; }"""
-        for theme in ['light', 'dark', 'amoled']:
+        for theme in ['light', 'dark']:
             await ev("(t) => { state.theme = t; applyTheme(); state.view = 'settings-display'; render(); }", theme); await page.wait_for_timeout(250)
             m = await ev(MARK, '.theme-opt.active')
             ok = m and m['content'] != 'none' and m['w'] > 2 and m['h'] > 4 and m['bw'] != '0px'

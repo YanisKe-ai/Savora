@@ -1,5 +1,5 @@
 """Paket 37 (Anpassung): Smartphone, Tablet und Desktop.
-Misst ueber alle geaenderten Ansichten x Breiten (360, 390, 768, 1024, 1280) x Darstellungen (Hell, Dunkel, Schwarz, «Wie dein Gerät» hell/dunkel)
+Misst ueber alle geaenderten Ansichten x Breiten (360, 390, 768, 1024, 1280) x Darstellungen (Hell, Dunkel, «Wie dein Gerät» hell/dunkel)
 und mit grosser Systemschrift (24 px): seitlicher Ueberlauf, Tippflaechen >= 44 px, Text-Kontrast >= 4.5:1 (gross 3:1), kleinste Schrift >= 14 px,
 abgeschnittene Texte. Dazu: genau ein Einstellungsweg je Breite, Cover-Auswahl (zehn Cover), sehr langer Titel/lange Zutatenliste, «Heute geplant».
 Testdaten: tests/seed.js, erweitert per page.evaluate (nichts davon steht im Repo)."""
@@ -53,7 +53,7 @@ VIEWS = [
  ('paste',"state.view='paste-import'"),
 ]
 PASTE = "Gemüsesuppe\n\nZutaten:\n200 g Karotten\n1 Zwiebel\nSalz\n\nZubereitung:\n1. Gemüse schneiden.\n2. 20 Minuten kochen.\n\nFür 4 Personen, 30 Minuten"
-THEMES = {'light':('light','light'), 'dark':('dark','dark'), 'amoled':('amoled','dark'), 'auto-light':('auto','light'), 'auto-dark':('auto','dark')}
+THEMES = {'light':('light','light'), 'dark':('dark','dark'), 'auto-light':('auto','light'), 'auto-dark':('auto','dark')}
 async def setup(browser, w, h, theme, big=False):
     t, scheme = THEMES[theme]
     ctx = await browser.new_context(viewport={'width':w,'height':h}, reduced_motion='reduce', timezone_id='UTC', color_scheme=scheme)
@@ -129,7 +129,7 @@ async def main():
         b = await p.chromium.launch()
         for (w, h) in HEIGHTS.items():
             if QUICK and w not in (360, 390, 1280): continue   # schnelle Variante fuer die Entwicklung (SAVORA_ADAPT_QUICK=1); GitHub prueft immer alles
-            for theme in (('light', 'dark') if QUICK else ('light', 'dark', 'amoled', 'auto-light', 'auto-dark')):
+            for theme in (('light', 'dark') if QUICK else ('light', 'dark', 'auto-light', 'auto-dark')):
                 ctx, page, errs = await setup(b, w, h, theme)
                 expect = {'auto-light': 'light', 'auto-dark': 'dark'}.get(theme, theme)
                 check(f'[{w} {theme}] «Wie dein Gerät»/Darstellung ergibt data-theme={expect}', await page.evaluate("document.documentElement.getAttribute('data-theme')") == expect)
@@ -159,8 +159,8 @@ async def main():
                         check(f'[{w} {theme}] Lange Zutatenliste (39 Zeilen) und langer Titel bleiben im Bild', d['rows'] >= 38 and d['title'], str(d))
                 check(f'[{w} {theme}] Keine Seitenfehler', not errs, str(errs[:3]))
                 await ctx.close()
-            # grosse Systemschrift (24 px) in Hell und Schwarz
-            for theme in (('light',) if QUICK else ('light', 'amoled')):
+            # grosse Systemschrift (24 px) in Hell und Dunkel (seit 0.70.2 ohne Schwarz)
+            for theme in (('light',) if QUICK else ('light', 'dark')):
                 ctx, page, errs = await setup(b, w, h, theme, big=True)
                 for name, js in VIEWS + [('import', None)]:
                     if name == 'import': await show_import(page)

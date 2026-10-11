@@ -136,8 +136,8 @@ async def main():
         check('HTML in Eingaben wird als Text angezeigt, nichts ausgeführt', not inj['bold'] and inj['scripts'] == 0 and inj['imgs'] == 0 and '<img src=x' in inj['text'] and (await ev("() => window.__xss")) == 0, str(inj))
 
         # ---------- 8. Theme: PDF-Inhalt hängt nicht vom App-Theme ab ----------
-        th = await ev("""() => { const i = { templateId: 'nachtkueche', title: 'Theme', date: '2026-10-09' }; const out = []; ['light', 'dark', 'amoled'].forEach(t => { state.theme = t; applyTheme(); out.push(coverHtml(coverLayout(i))); }); state.theme = 'system'; applyTheme(); return out.every(x => x === out[0]); }""")
-        check('Titelblatt-HTML ist in Hell, Dunkel und Schwarz identisch', th)
+        th = await ev("""() => { const i = { templateId: 'nachtkueche', title: 'Theme', date: '2026-10-09' }; const out = []; ['light', 'dark'].forEach(t => { state.theme = t; applyTheme(); out.push(coverHtml(coverLayout(i))); }); state.theme = 'system'; applyTheme(); return out.every(x => x === out[0]); }""")
+        check('Titelblatt-HTML ist in Hell und Dunkel identisch', th)
         sym = await ev("() => ({ svg: wordmarkSvg('x'), vb: /viewBox=\"0 0 1200 400\"/.test(wordmarkSvg('x')), inks: COVER_TEMPLATES.map(t => coverLayout({ templateId: t.id }).logo.ink) })")
         check('Wortmarke: Pfad-SVG 1200 x 400 ohne Text und Bild, Farbe nur Creme (dunkle Cover) oder Tinte (helle Cover)', sym['vb'] and '<text' not in sym['svg'] and '<image' not in sym['svg'] and set(sym['inks']) == {'#F7F4EE', '#252720'}, str(sym['inks']))
 
