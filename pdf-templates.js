@@ -195,7 +195,7 @@ function pdfImgTag(imgUrl, recipe) {
   const fp = recipe && recipe.focalPoint;
   const x = fp && typeof fp.x === 'number' ? Math.round(fp.x * 100) : 50;
   const y = fp && typeof fp.y === 'number' ? Math.round(fp.y * 100) : 50;
-  return `<img src="${imgUrl}" class="pdf-img-cover" style="object-position:${x}% ${y}%;" alt="">`;
+  return `<img src="${escapeHtml(imgUrl)}" class="pdf-img-cover" style="object-position:${x}% ${y}%;" alt="">`;
 }
 
 /* ---------- Seite 1 eines Rezepts ----------
@@ -258,7 +258,7 @@ function pvCoverPage(title, author, coverImgUrl, subtitle) {
   const tpl = PDF_CTX.tpl;
   const logo = PDF_CTX.logo ? wordmarkSvg('pv-cover-logo') : '';
   return `<section class="pv-page pv-cover ${tpl.cls} ${coverImgUrl ? 'pv-cover-photo' : ''}" data-page-kind="cover">
-    ${coverImgUrl ? `<div class="pv-cover-img"><img src="${coverImgUrl}" class="pdf-img-cover" alt=""></div>` : ''}
+    ${coverImgUrl ? `<div class="pv-cover-img"><img src="${escapeHtml(coverImgUrl)}" class="pdf-img-cover" alt=""></div>` : ''}
     <div class="pv-cover-text">
       <div class="pv-cat">Kochbuch</div>
       <h1 class="pv-cover-title ${title.length > 28 ? 'pv-t-l' : 'pv-t-m'}">${pvEsc(title)}</h1>

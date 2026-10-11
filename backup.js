@@ -116,41 +116,64 @@ function restoreCookbooksFromBackup(settings, recipeIdMap) {
   return added;
 }
 
+/* Ergebnisbericht in die Statusflaeche schreiben: Zusammenfassung plus je Datensatz eine Zeile fuer alles, was nicht
+   uebernommen wurde (kein stiller Teilerfolg). ok === false faerbt den Bericht als Warnung. */
+function backupShowReport(msg, lines, ok) {
+  const el = document.getElementById('backupStatus');
+  if (!el) return;
+  const list = lines && lines.length ? `<ul class="import-report">${lines.map(l => `<li>${escapeHtml(l)}</li>`).join('')}</ul>` : '';
+  el.innerHTML = `<div class="import-status ${ok ? 'ok' : 'err'}">${escapeHtml(msg)}${list}</div>`;
+}
+
 async function restoreBackupFromFile(file) {
+  const progress = { written: 0 };   // Zahl der Datensaetze, die schon geschrieben wurden: bestimmt, was eine Fehlermeldung ehrlich behaupten darf
   try {
     const text = await file.text();
     let data;
     try { data = JSON.parse(text); } catch (parseErr) { throw new Error('Die Datei ist beschädigt oder keine Sicherung (kein gültiges JSON). Es wurde nichts verändert. Wähle die Datei „savora-sicherung-….json“ erneut oder eine andere Sicherung'); }
 
     if (data && data.type === 'recipe-share' && data.recipe) {
-      const clone = JSON.parse(JSON.stringify(data.recipe));
-      clone.id = uid();
-      clone.createdAt = Date.now();
-      clone.updatedAt = Date.now();
-      clone.favorite = false;
-      clone.sharedBy = data.sharedBy || null;
-      await dbPut(clone);
-      await loadRecipes();
-      const msg = `„${clone.title}“${clone.sharedBy ? ` von ${clone.sharedBy}` : ''} wurde zu deinem Kochbuch hinzugefügt.`;
+      const v = validateRecipe(data.recipe);
+      if (!v.ok) throw new Error(`Das geteilte Rezept ist nicht lesbar (${v.errors.slice(0, 3).join('; ')}). Es wurde nichts verändert`);
+      const clone = v.recipe;
+      const fp = backupRecipeFingerprint(clone);
+      const same = state.recipes.find(x => backupRecipeFingerprint(x) === fp);   // gleiche Datei zweimal einspielen legt keine zweite Kopie an
+      let msg;
+      if (same) msg = `„${clone.title || 'Ohne Titel'}“ war schon in deinem Kochbuch und wurde nicht doppelt angelegt.`;
+      else {
+        clone.id = uid();
+        clone.createdAt = Date.now();
+        clone.updatedAt = Date.now();
+        clone.favorite = false;
+        clone.sharedBy = typeof data.sharedBy === 'string' ? data.sharedBy.slice(0, 100) : null;
+        await dbPut(clone);
+        progress.written++;
+        await loadRecipes();
+        msg = `„${clone.title || 'Ohne Titel'}“${clone.sharedBy ? ` von ${clone.sharedBy}` : ''} wurde zu deinem Kochbuch hinzugefügt.`;
+      }
       render(); // Ansicht zuerst neu aufbauen, DANACH den Status-Text setzen —
                 // sonst wuerde ein nachfolgender render() die gerade gesetzte Meldung sofort wieder loeschen.
-      const freshStatusEl = document.getElementById('backupStatus');
-      if (freshStatusEl) freshStatusEl.innerHTML = `<div class="import-status ok">${escapeHtml(msg)}</div>`;
+      backupShowReport(msg, v.warnings.map(w => `Hinweis: ${w}`), true);
       showToast(msg);
       return;
     }
 
-    if (!data || !Array.isArray(data.recipes)) throw new Error('Diese Datei sieht nicht wie eine Savora-Sicherung oder ein geteiltes Rezept aus');
-    // Vorab prüfen: Einträge ohne Rezeptform (null, Zahl, Text) würden die Wiederherstellung mittendrin abbrechen. Sie werden übersprungen und gemeldet.
+    // Die ganze Sicherung wird VOR dem ersten Schreibzugriff geprueft. Ein grundsaetzlicher Fehler bricht ab, ohne etwas zu aendern.
+    const vb = validateBackup(data);
+    if (vb.fatal) throw new Error(vb.fatal + '. Es wurde nichts verändert');
+    const badSection = new Set(vb.sections.filter(x => !x.ok).map(x => x.key + ':' + x.index));
+    const badShopping = new Set(vb.shopping.filter(x => !x.ok).map(x => x.index));
     const isObj = (x) => x && typeof x === 'object' && !Array.isArray(x);
-    const badRecipes = data.recipes.filter(r => !isObj(r)).length;
-    data.recipes = data.recipes.filter(isObj);
-    if (Array.isArray(data.shopping)) data.shopping = data.shopping.filter(isObj);
+    const report = [];   // eine Zeile je Datensatz, der nicht uebernommen wurde oder einen Hinweis hat
+    vb.problems.forEach(p => report.push(`Nicht übernommen, ${p.label}: ${p.errors.slice(0, 2).join('; ')}${p.errors.length > 2 ? ' …' : ''}`));
+    const badRecipes = vb.recipes.filter(x => !x.ok).length;
     let added = 0, skipped = 0;
     const skippedIds = new Set();   // schon vorhandene, identische Rezepte: ihre lokalen Nährwert-Ergebnisse bleiben
     const recipeIdMap = {}; // alte Rezept-ID (aus der Sicherung) -> neue ID (siehe unten, wichtig fuer nutritionResults)
-    for (const r of data.recipes) {
-      const clone = JSON.parse(JSON.stringify(r));
+    for (const rec of vb.recipes) {
+      if (!rec.ok) continue;
+      rec.warnings.forEach(w => report.push(`Hinweis, ${rec.label}: ${w}`));
+      const clone = rec.recipe;
       const oldId = clone.id;
       // Original-ID behalten, wenn sie auf diesem Geraet frei ist (z.B. Wiederherstellung auf
       // neuem Geraet). Nur bei Kollision entsteht eine neue ID, damit nichts ueberschrieben wird.
@@ -164,15 +187,21 @@ async function restoreBackupFromFile(file) {
       if (idTaken) clone.id = uid();
       clone.updatedAt = Date.now();
       await dbPut(clone);
+      progress.written++;
+      state.recipes.push(clone);   // fuer die Duplikatpruefung der folgenden Datensaetze derselben Datei
       if (oldId) recipeIdMap[oldId] = clone.id;
       added++;
     }
     let addedItems = 0;
-    for (const s of (data.shopping || [])) {
+    for (let n = 0; n < (data.shopping || []).length; n++) {
+      const s = data.shopping[n];
+      if (badShopping.has(n) || !isObj(s)) continue;
       if (state.shopping.some(x => x.name === s.name && x.amount === s.amount && (x.unit || '') === (s.unit || ''))) continue;   // schon in der Einkaufsliste
       const clone = JSON.parse(JSON.stringify(s));
       clone.id = uid();
       await dbPutShopping(clone);
+      progress.written++;
+      state.shopping.push(clone);
       addedItems++;
     }
 
@@ -182,46 +211,56 @@ async function restoreBackupFromFile(file) {
     // (put = upsert) — anders als bei Rezepten wuerde ein Neuvergeben der ID die Verbindung
     // zwischen einer gelernten Zuordnung und dem Custom Food, auf das sie zeigt, zerstoeren.
     let addedFoods = 0, addedMatches = 0, addedResults = 0;
-    for (const f of (data.customFoods || [])) {
-      await dbPutCustomFood(JSON.parse(JSON.stringify(f)));
+    for (let n = 0; n < (data.customFoods || []).length; n++) {
+      if (badSection.has('customFoods:' + n)) continue;
+      await dbPutCustomFood(JSON.parse(JSON.stringify(data.customFoods[n])));
+      progress.written++;
       addedFoods++;
     }
-    for (const m of (data.nutritionMatches || [])) {
-      await dbPutNutritionMatch(JSON.parse(JSON.stringify(m)));
+    for (let n = 0; n < (data.nutritionMatches || []).length; n++) {
+      if (badSection.has('nutritionMatches:' + n)) continue;
+      await dbPutNutritionMatch(JSON.parse(JSON.stringify(data.nutritionMatches[n])));
+      progress.written++;
       addedMatches++;
     }
-    for (const res of (data.nutritionResults || [])) {
-      const clone = JSON.parse(JSON.stringify(res));
+    for (let n = 0; n < (data.nutritionResults || []).length; n++) {
+      if (badSection.has('nutritionResults:' + n)) continue;
+      const clone = JSON.parse(JSON.stringify(data.nutritionResults[n]));
       const newRecipeId = recipeIdMap[clone.recipeId];
       if (!newRecipeId || skippedIds.has(clone.recipeId)) continue; // Rezept aus der Sicherung ist nicht (mehr) dabei -> Ergebnis waere verwaist
       clone.recipeId = newRecipeId;
       await dbPutNutritionResult(clone);
+      progress.written++;
       addedResults++;
     }
 
     // Ab schemaVersion 4: Wochenplan, Sammlungen und Kochbuch-Auswahl. Aeltere Sicherungen haben
     // diese Felder nicht, dann passiert hier nichts. Rezept-IDs werden auf die neuen IDs umgebogen;
     // vorhandene Wochenplan-Eintraege werden ergaenzt, nie ersetzt.
-    let addedPlan = 0;
+    let addedPlan = 0, badDays = 0;
     for (const day of (data.mealplan || [])) {
-      if (!day || !day.date || day.movedTo) continue;
+      if (!isObj(day) || typeof day.date !== 'string' || !/^\d{4}-\d{1,2}-\d{1,2}$/.test(day.date)) { if (!(isObj(day) && day.movedTo)) badDays++; continue; }
+      if (day.movedTo) continue;
       // Sicherungen vor der Datumskorrektur (ohne keyVersion) auf den gemeinten Tag abbilden.
       const dayKey = day.keyVersion ? day.date : legacyUtcKeyToLocal(day.date);
-      const incoming = Array.isArray(day.entries) ? day.entries : (day.recipeIds || []).map(rid => ({ recipeId: rid, meal: '', servings: null }));
-      let mapped = incoming.map(en => en && en.type === 'note' ? { ...en, id: uid() } : ({ ...en, id: uid(), recipeId: recipeIdMap[en.recipeId] })).filter(en => en.type === 'note' ? String(en.text || '').trim() : en.recipeId);   // Notizeintraege (Paket 37) haben kein Rezept
+      const incoming = (Array.isArray(day.entries) ? day.entries : (Array.isArray(day.recipeIds) ? day.recipeIds : []).map(rid => ({ recipeId: rid, meal: '', servings: null }))).filter(isObj);
+      let mapped = incoming.map(en => en.type === 'note' ? { ...en, id: uid() } : ({ ...en, id: uid(), recipeId: recipeIdMap[en.recipeId] })).filter(en => en.type === 'note' ? String(en.text || '').trim() : en.recipeId);   // Notizeintraege (Paket 37) haben kein Rezept
       await loadMealplan();
       const existing = planEntriesFor(dayKey);
       mapped = mapped.filter(en => !existing.some(x => (en.type === 'note' ? x.type === 'note' && x.text === en.text : x.recipeId === en.recipeId) &&(x.meal || '') === (en.meal || '') && (x.servings || null) === (en.servings || null)));   // gleicher Eintrag schon da
       if (!mapped.length) continue;
       await savePlanEntries(dayKey, existing.concat(mapped));
+      progress.written++;
       addedPlan += mapped.length;
     }
+    if (badDays) report.push(`Nicht übernommen, Wochenplan: ${badDays} Tag${badDays === 1 ? '' : 'e'} ohne gültiges Datum`);
     // Kochbuch-Projekte (ab schemaVersion 5) und alte Einzelkonfiguration (aeltere Sicherungen): Rezept-IDs werden auf die
     // neuen IDs umgebogen. Vorhandene Kochbuecher werden nie ersetzt; identische (gleiche ID oder gleicher Inhalt) werden nicht verdoppelt.
     const addedBooks = restoreCookbooksFromBackup(data.settings, recipeIdMap);
+    if (addedBooks) progress.written++;
     if (data.settings && Array.isArray(data.settings.collections)) {
       const cols = getCollections();
-      data.settings.collections.forEach(c => { if (c && c.id && !cols.some(x => x.id === c.id)) cols.push(c); });
+      data.settings.collections.forEach(c => { if (c && typeof c === 'object' && typeof c.id === 'string' && !cols.some(x => x.id === c.id)) cols.push(c); });
       saveCollections(cols);
     }
     await loadRecipes();
@@ -232,16 +271,28 @@ async function restoreBackupFromFile(file) {
     if (addedPlan) extras.push(`${addedPlan} Wochenplan-Eintr${addedPlan === 1 ? 'ag' : 'äge'}`);
     if (addedFoods) extras.push(`${addedFoods} eigene${addedFoods === 1 ? 's' : ''} Lebensmittel`);
     if (addedMatches) extras.push(`${addedMatches} gelernte Zuordnung${addedMatches === 1 ? '' : 'en'}`);
-    const msg = `${added} Rezept${added === 1 ? '' : 'e'}${addedItems ? `, ${addedItems} Einkaufslisten-Eintrag(e)` : ''}${extras.length ? ' und ' + extras.join(', ') : ''} wiederhergestellt.${skipped ? ` ${skipped} Rezept${skipped === 1 ? ' war' : 'e waren'} schon vorhanden und ${skipped === 1 ? 'wurde' : 'wurden'} nicht doppelt angelegt.` : ''}${badRecipes ? ` ${badRecipes} Eintrag${badRecipes === 1 ? ' war' : 'e waren'} unlesbar und wurde${badRecipes === 1 ? '' : 'n'} übersprungen.` : ''}${data.schemaVersion > 5 ? ' Die Sicherung stammt aus einer neueren Savora-Version: Unbekannte Teile wurden nicht übernommen.' : ''}`;
+    const nBad = vb.problems.length;
+    const msg = `${added} Rezept${added === 1 ? '' : 'e'}${addedItems ? `, ${addedItems} Einkaufslisten-Eintrag(e)` : ''}${extras.length ? ' und ' + extras.join(', ') : ''} wiederhergestellt.${skipped ? ` ${skipped} Rezept${skipped === 1 ? ' war' : 'e waren'} schon vorhanden und ${skipped === 1 ? 'wurde' : 'wurden'} nicht doppelt angelegt.` : ''}${badRecipes ? ` ${badRecipes} ${badRecipes === 1 ? 'Eintrag war' : 'Einträge waren'} unlesbar und wurde${badRecipes === 1 ? '' : 'n'} übersprungen.` : ''}${nBad > badRecipes ? ` ${nBad - badRecipes} weitere Datensätze waren unlesbar und wurden übersprungen.` : ''}${data.schemaVersion > 5 ? ' Die Sicherung stammt aus einer neueren Savora-Version: Unbekannte Teile wurden nicht übernommen.' : ''}${nBad ? ' Du kannst dieselbe Datei nach einer Korrektur erneut einspielen, bereits übernommene Rezepte werden nicht doppelt angelegt.' : ''}`;
     render();
-    const freshStatusEl = document.getElementById('backupStatus');
-    if (freshStatusEl) freshStatusEl.innerHTML = `<div class="import-status ok">${escapeHtml(msg)}</div>`;
+    backupShowReport(msg, valReportLinesFromStrings(report, 12), !nBad);
     showToast(msg);
   } catch (e) {
     const statusEl = document.getElementById('backupStatus');
     const full = e && (e.name === 'QuotaExceededError' || /quota|voll/i.test(String(e.message || '')));
-    const hint = full ? ' Der Speicher des Geräts ist voll. Schon übernommene Rezepte bleiben erhalten; schaffe Platz und spiele dieselbe Datei erneut ein, bereits vorhandene Rezepte werden nicht doppelt angelegt.' : '';
-    if (statusEl) statusEl.innerHTML = `<div class="import-status err">Wiederherstellung fehlgeschlagen: ${escapeHtml((e && e.message) || 'Unbekannter Fehler')}.${hint}</div>`;
+    let msg = `Wiederherstellung fehlgeschlagen: ${(e && e.message) || 'Unbekannter Fehler'}.`;
+    if (progress.written > 0) {
+      // Es wurde schon geschrieben: nie behaupten, es sei nichts veraendert worden
+      try { await loadRecipes(); await loadShopping(); } catch (err2) { /* Ansicht wird beim naechsten Laden aktualisiert */ }
+      msg += ` Schon übernommen wurden ${progress.written} Datensatz/Datensätze und sie bleiben erhalten.${full ? ' Der Speicher des Geräts ist voll: Schaffe Platz und spiele dieselbe Datei erneut ein,' : ' Spiele dieselbe Datei erneut ein,'} bereits vorhandene Rezepte werden nicht doppelt angelegt.`;
+    } else if (full) {
+      msg += ' Der Speicher des Geräts ist voll. Es wurde nichts übernommen, deine bisherigen Daten und Eingaben bleiben unverändert. Schaffe Platz und versuche es erneut.';
+    }
+    if (statusEl) backupShowReport(msg, [], false);
     else showToast('Wiederherstellung fehlgeschlagen', 'error');
   }
+}
+function valReportLinesFromStrings(lines, max) {
+  const out = lines.slice(0, max);
+  if (lines.length > max) out.push(`… und ${lines.length - max} weitere Zeilen`);
+  return out;
 }

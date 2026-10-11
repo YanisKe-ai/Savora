@@ -94,6 +94,7 @@ const SHELL_ASSETS = [
   './assets/covers/thumbs/09-sonnenkueche.jpg',
   './assets/covers/thumbs/10-ofenglueck.jpg',
   './utils.js',
+  './validate.js',
   './legal.js',
   './native.js',
   './units.js',

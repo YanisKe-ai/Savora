@@ -237,10 +237,11 @@ function bindFilterSheet() {
    Foto noch geladen wird (imageId), steht kurz eine ruhige, leere Flaeche in derselben Groesse. */
 function placeholderInner() { return ''; }
 function placeholderClass() { return ''; }
-function hasPhoto(r) { return !!(r.image || r.imageId); }
+function hasPhoto(r) { return !!(recipeSafeImage(r) || recipeSafeImageId(r)); }
 function recipeImageHtml(r, cls, size) {
-  if (r.image) return `<img class="${cls}" src="${r.image}" alt="" loading="lazy">`;
-  if (r.imageId) return `<div class="${cls} placeholder" data-lazy-img="${size}" data-image-id="${r.imageId}" data-img-class="${cls}"></div>`;
+  const src = recipeSafeImage(r), imgId = recipeSafeImageId(r);
+  if (src) return `<img class="${escapeHtml(cls)}" src="${escapeHtml(src)}" alt="" loading="lazy">`;
+  if (imgId) return `<div class="${escapeHtml(cls)} placeholder" data-lazy-img="${escapeHtml(size)}" data-image-id="${escapeHtml(imgId)}" data-img-class="${escapeHtml(cls)}"></div>`;
   if (cls === 'plan-thumb' || cls === 'picker-thumb') return `<div class="${cls} placeholder"></div>`;   // kleine Vorschau in Listen: ruhige Flaeche, kein Buchstabe
   return '';
 }
@@ -460,10 +461,11 @@ function detailView() {
   const ingHtml = ingredientsPanel(r);
   const panelHtml = { ingredients: wide ? '' : ingHtml, steps: stepsPanel(r), nutrition: state.showNutrition ? nutritionPanel(r) : '', notes: hasNotes ? notesPanel(r) : '' };
   // Mit Foto: Bild unverzerrt (cover). Ohne Foto: kein Bildband, der Kopf ist rein typografisch (Titel gross in Lilita One).
-  const hero = r.image
-    ? `<div class="hero"><img class="hero-img" src="${r.image}" alt="${escapeHtml(r.title || '')}" style="view-transition-name: recipe-hero-img;"></div>`
-    : r.imageId
-      ? `<div class="hero"><div class="hero-img placeholder" data-lazy-img="full" data-image-id="${r.imageId}" data-img-class="hero-img" data-img-alt="${escapeHtml(r.title || '')}" style="view-transition-name: recipe-hero-img;"></div></div>`
+  const heroSrc = recipeSafeImage(r), heroImgId = recipeSafeImageId(r);
+  const hero = heroSrc
+    ? `<div class="hero"><img class="hero-img" src="${escapeHtml(heroSrc)}" alt="${escapeHtml(r.title || '')}" style="view-transition-name: recipe-hero-img;"></div>`
+    : heroImgId
+      ? `<div class="hero"><div class="hero-img placeholder" data-lazy-img="full" data-image-id="${escapeHtml(heroImgId)}" data-img-class="hero-img" data-img-alt="${escapeHtml(r.title || '')}" style="view-transition-name: recipe-hero-img;"></div></div>`
       : '';
   const extraTimes = [r.prepMinutes ? `Vorbereitungszeit ${r.prepMinutes} Min.` : '', r.restMinutes ? `Ruhen ${r.restMinutes} Min.` : '', r.cookMinutes ? `Garen/Backen ${r.cookMinutes} Min.` : ''].filter(Boolean);
   // Zeit und Menge zuerst und gross; Teilzeiten (Vorbereitungszeit, Ruhen, Garen) leiser in einer zweiten Zeile
@@ -802,7 +804,7 @@ function mealplanView() {
       }
       const r = state.recipes.find(x => x.id === e.recipeId);
       const servings = e.servings || r.servings || 0;
-      const thumb = (r.image || r.imageId) ? recipeImageHtml(r, 'plan-thumb', 'thumb') : '';   // ohne Foto keine Platzhalterflaeche
+      const thumb = hasPhoto(r) ? recipeImageHtml(r, 'plan-thumb', 'thumb') : '';   // ohne Foto keine Platzhalterflaeche
       return `<div class="plan-entry ${thumb ? 'has-thumb' : ''}">
         <button class="plan-entry-main" data-action="open-recipe" data-id="${r.id}">
           ${thumb}
@@ -1082,7 +1084,7 @@ function formView() {
   const chipSet = (label, id, options, keyOf, labelOf, action, dataAttr, activeList) => `<div class="field"><span class="field-label" id="${id}">${label}</span>
     <div class="diet-select-row" role="group" aria-labelledby="${id}">${options.map(o => { const k = keyOf(o); const on = (activeList || []).includes(k); return `<button type="button" class="diet-select-chip ${on ? 'active' : ''}" data-action="${action}" data-${dataAttr}="${k}" aria-pressed="${on}">${on ? ICONS.check : ''}${labelOf(o)}</button>`; }).join('')}</div></div>`;
   const realCount = realIngredients(r).length;
-  const missingAmounts = realIngredients(r).filter(i => parseAmount(i.amount) === null).length;
+  const missingAmounts = qtyMissingIngredients(realIngredients(r)).length;
   const stepCount = (r.steps || []).filter(s => (s.text || '').trim()).length;
   return `
     ${topbar(isNew ? 'Neues Rezept' : 'Rezept bearbeiten', { back: true, actions: `<button class="text-btn text-btn--strong" data-action="save-recipe">Speichern</button>` })}
@@ -1098,7 +1100,7 @@ function formView() {
           <div class="field"><label for="f-title">Titel</label><input type="text" id="f-title" value="${escapeHtml(r.title)}" placeholder="z.B. Zitronen-Risotto"></div>
           <div class="field"><label for="f-image">Foto</label>
             <div class="image-drop" id="imgDrop">
-              ${r.image ? `<img src="${r.image}" alt="">` : r.imageId ? `<div data-lazy-img="full" data-image-id="${r.imageId}" class="image-drop-placeholder">${ICONS.chef}</div>` : `<div class="image-drop-placeholder">${ICONS.chef}<span>Foto auswählen</span></div>`}
+              ${recipeSafeImage(r) ? `<img src="${escapeHtml(recipeSafeImage(r))}" alt="">` : recipeSafeImageId(r) ? `<div data-lazy-img="full" data-image-id="${escapeHtml(recipeSafeImageId(r))}" class="image-drop-placeholder">${ICONS.chef}</div>` : `<div class="image-drop-placeholder">${ICONS.chef}<span>Foto auswählen</span></div>`}
               <input type="file" accept="image/*" id="f-image" aria-label="Foto auswählen">
             </div></div>
           <div class="field-row field-row--2">
@@ -1170,7 +1172,7 @@ function formAsideBodyHtml(r) {
   const portions = Number(r.servings) > 0 ? servingLabel(r, r.servings) : '';
   const meta = [portions, r.timeMinutes > 0 ? `${r.timeMinutes} Min.` : '', r.difficulty || ''].filter(Boolean);
   const ings = realIngredients(r).length;
-  const missing = realIngredients(r).filter(i => parseAmount(i.amount) === null).length;
+  const missing = qtyMissingIngredients(realIngredients(r)).length;
   const steps = (r.steps || []).filter(s => (s.text || '').trim()).length;
   const labels = [];
   (r.diet || []).forEach(dk => { const d = DIET_OPTIONS.find(o => o.key === dk); if (d) labels.push(d.label); });
@@ -1186,9 +1188,9 @@ function formAsideBodyHtml(r) {
     </ul>`;
 }
 function formAsideHtml(r) {
-  const photo = r.image
-    ? `<img class="form-aside-img" src="${r.image}" alt="">`
-    : r.imageId ? `<div class="form-aside-img placeholder" data-lazy-img="full" data-image-id="${r.imageId}" data-img-class="form-aside-img" data-img-alt=""></div>` : '';
+  const photo = recipeSafeImage(r)
+    ? `<img class="form-aside-img" src="${escapeHtml(recipeSafeImage(r))}" alt="">`
+    : recipeSafeImageId(r) ? `<div class="form-aside-img placeholder" data-lazy-img="full" data-image-id="${escapeHtml(recipeSafeImageId(r))}" data-img-class="form-aside-img" data-img-alt=""></div>` : '';
   return `<aside class="form-aside" id="formAside" aria-label="Vorschau des Rezepts">
     ${photo ? `<div class="form-aside-photo">${photo}</div>` : ''}
     <div class="form-aside-body" id="formAsideBody">${formAsideBodyHtml(r)}</div>
