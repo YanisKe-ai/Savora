@@ -186,7 +186,7 @@ function filterOptionHtml(type, dim, id, label, checked) {
 }
 function filterGroupHtml(key, title, inner) {
   const id = `filter-group-${key}`;
-  return `<fieldset class="fs-group"><legend class="filter-group-title fs-legend" id="${id}">${title}</legend><div class="fs-opts">${inner}</div></fieldset>`;
+  return `<fieldset class="fs-group"><legend class="filter-group-title fs-legend" id="${escapeAttr(id)}">${title}</legend><div class="fs-opts">${inner}</div></fieldset>`;
 }
 function filterCountLabel(n) { return `${n} Rezept${n === 1 ? '' : 'e'} anzeigen`; }
 function filterStatusText(n) { return n === 0 ? 'Keine passenden Rezepte. Ändere die Auswahl oder setze sie zurück.' : (n === 1 ? '1 passendes Rezept' : `${n} passende Rezepte`); }
@@ -291,13 +291,13 @@ function recipeMetaLine(r, full) {
   return parts.join(' · ');
 }
 function favButton(r, extraCls) {
-  return `<button type="button" class="fav-toggle ${extraCls || ''} ${r.favorite ? 'is-active' : ''}" data-action="toggle-fav" data-id="${r.id}" aria-pressed="${r.favorite ? 'true' : 'false'}" aria-label="${r.favorite ? 'Aus Favoriten entfernen' : 'Zu Favoriten hinzufügen'}">${r.favorite ? ICONS.bookmarkFilled : ICONS.bookmark}</button>`;
+  return `<button type="button" class="fav-toggle ${extraCls || ''} ${r.favorite ? 'is-active' : ''}" data-action="toggle-fav" data-id="${escapeAttr(r.id)}" aria-pressed="${r.favorite ? 'true' : 'false'}" aria-label="${r.favorite ? 'Aus Favoriten entfernen' : 'Zu Favoriten hinzufügen'}">${r.favorite ? ICONS.bookmarkFilled : ICONS.bookmark}</button>`;
 }
 function recipeCard(r) {
   const photo = hasPhoto(r);
   const title = escapeHtml(r.title || 'Ohne Titel');
   return `<article class="rcard ${photo ? '' : 'rcard--text'}">
-    <button type="button" class="rcard-main" data-action="open-recipe" data-id="${r.id}" aria-label="${title} öffnen">
+    <button type="button" class="rcard-main" data-action="open-recipe" data-id="${escapeAttr(r.id)}" aria-label="${title} öffnen">
       ${photo ? recipeImageHtml(r, 'rcard-img', 'thumb') : ''}
       <span class="rcard-body">
         <span class="rcard-title">${title}</span>
@@ -314,7 +314,7 @@ function recipeRow(r, phone) {
     const title = escapeHtml(r.title || 'Ohne Titel');
     const time = r.timeMinutes > 0 ? `<span class="rrow-meta rrow-meta--time">${ICONS.clock}<span>${r.timeMinutes} Min.</span></span>` : '';
     return `<article class="rrow rrow--phone">
-    <button type="button" class="rrow-main" data-action="open-recipe" data-id="${r.id}" aria-label="${title} öffnen">
+    <button type="button" class="rrow-main" data-action="open-recipe" data-id="${escapeAttr(r.id)}" aria-label="${title} öffnen">
       ${photo ? recipeImageHtml(r, 'rrow-img', 'thumb') : `<span class="rrow-img rrow-ph" aria-hidden="true">${ICONS.bookOpen}</span>`}
       <span class="rrow-body">
         <span class="rrow-title">${title}</span>
@@ -325,7 +325,7 @@ function recipeRow(r, phone) {
   </article>`;
   }
   return `<article class="rrow ${photo ? '' : 'rrow--text'}">
-    <button type="button" class="rrow-main" data-action="open-recipe" data-id="${r.id}" aria-label="${escapeHtml(r.title || 'Ohne Titel')} öffnen">
+    <button type="button" class="rrow-main" data-action="open-recipe" data-id="${escapeAttr(r.id)}" aria-label="${escapeHtml(r.title || 'Ohne Titel')} öffnen">
       ${photo ? recipeImageHtml(r, 'rrow-img', 'thumb') : ''}
       <span class="rrow-body">
         <span class="rrow-title">${escapeHtml(r.title || 'Ohne Titel')}</span>
@@ -358,7 +358,7 @@ function todayPlannedHtml() {
   const label = (e) => {
     if (isNoteEntry(e)) return `<span class="today-note">${escapeHtml(e.text)}</span>`;
     const r = state.recipes.find(x => x.id === e.recipeId);
-    return `<button type="button" class="today-link" data-action="open-recipe" data-id="${r.id}">${escapeHtml(r.title || 'Ohne Titel')}</button>`;
+    return `<button type="button" class="today-link" data-action="open-recipe" data-id="${escapeAttr(r.id)}">${escapeHtml(r.title || 'Ohne Titel')}</button>`;
   };
   return `<section class="today-planned" aria-label="Heute geplant"><span class="today-label">Heute geplant</span>${items.map(label).join('')}</section>`;
 }
@@ -370,7 +370,7 @@ function homeView() {
   const summary = labels.length > 3 ? labels.slice(0, 3).join(' · ') + ` · + ${labels.length - 3} weitere` : labels.join(' · ');
   const favOnly = !!(state.favOnly || state.activeCollection === 'favorites');
   const sortLabel = (SORT_OPTIONS.find(o => o.id === state.sortBy) || SORT_OPTIONS[0]).label;
-  const sortOptions = SORT_OPTIONS.map(o => `<option value="${o.id}" ${state.sortBy === o.id ? 'selected' : ''}>${escapeHtml(o.label)}</option>`).join('');
+  const sortOptions = SORT_OPTIONS.map(o => `<option value="${escapeAttr(o.id)}" ${state.sortBy === o.id ? 'selected' : ''}>${escapeHtml(o.label)}</option>`).join('');
 
   let content;
   if (!state.recipes.length) content = emptyState();
@@ -483,13 +483,13 @@ function ingredientsPanel(r) {
   return `${unknownYield ? `<div class="amount-row amount-row--unknown">
       <span class="amount-row-label">Menge</span>
       <span class="hint-line">Ergibt: nicht angegeben, es gelten die Originalmengen.</span>
-      <button class="outline-btn outline-btn--small" data-action="edit-recipe" data-id="${r.id}">Angabe ergänzen</button>
+      <button class="outline-btn outline-btn--small" data-action="edit-recipe" data-id="${escapeAttr(r.id)}">Angabe ergänzen</button>
     </div>` : `<div class="amount-row">
       <span class="amount-row-label">Menge</span>
       <div class="stepper" role="group" aria-label="Menge anpassen">
-        <button data-action="serv-dec" data-id="${r.id}" aria-label="Weniger">${ICONS.minus}</button>
+        <button data-action="serv-dec" data-id="${escapeAttr(r.id)}" aria-label="Weniger">${ICONS.minus}</button>
         <span class="stepper-value" aria-live="polite">${escapeHtml(servingLabel(r, servings))}</span>
-        <button data-action="serv-inc" data-id="${r.id}" aria-label="Mehr">${ICONS.plus}</button>
+        <button data-action="serv-inc" data-id="${escapeAttr(r.id)}" aria-label="Mehr">${ICONS.plus}</button>
       </div>
     </div>`}
     ${!unknownYield && servings !== (r.servings || 1) ? `<p class="hint-line">Original: ${escapeHtml(servingLabel(r, r.servings || 1))}. Mengen werden immer vom Original berechnet.</p>` : ''}
@@ -499,7 +499,7 @@ function ingredientsPanel(r) {
         ${g.ingredients.map(i => {
           const isChecked = checked.has(i._index);
           const amt = scaledAmountLine(i, factor);
-          return `<li><button type="button" class="ing-check ${isChecked ? 'is-checked' : ''}" data-action="toggle-ingredient-check" data-id="${r.id}" data-idx="${i._index}" role="checkbox" aria-checked="${isChecked}">
+          return `<li><button type="button" class="ing-check ${isChecked ? 'is-checked' : ''}" data-action="toggle-ingredient-check" data-id="${escapeAttr(r.id)}" data-idx="${i._index}" role="checkbox" aria-checked="${isChecked}">
             <span class="check-box" aria-hidden="true">${ICONS.check}</span>
             <span class="ing-amount">${escapeHtml(amt)}</span>
             <span class="ing-name">${escapeHtml(i.name)}</span>
@@ -507,7 +507,7 @@ function ingredientsPanel(r) {
         }).join('')}
       </ul>
     </section>`).join('') : `<p class="hint-line">Noch keine Zutaten erfasst.</p>`}
-    ${checked.size ? `<button class="text-btn" data-action="reset-ingredient-checks" data-id="${r.id}">Häkchen zurücksetzen</button>` : ''}`;
+    ${checked.size ? `<button class="text-btn" data-action="reset-ingredient-checks" data-id="${escapeAttr(r.id)}">Häkchen zurücksetzen</button>` : ''}`;
 }
 function stepsPanel(r) {
   const entries = stepEntries(r);
@@ -522,9 +522,9 @@ function notesPanel(r) {
   return `${r.notes ? `<div class="note-card"><h3 class="note-card-title">Notiz</h3><p>${escapeHtml(r.notes)}</p></div>` : ''}
     ${log.map(n => `<div class="note-card note-card--dated">
       <div class="note-card-head"><span class="note-date">${new Date(n.date).toLocaleDateString('de-CH', { day: 'numeric', month: 'long', year: 'numeric' })}</span>
-      <button class="icon-btn icon-btn--small" data-action="delete-cook-note" data-id="${r.id}" data-note="${escapeHtml(n.id)}" aria-label="Notiz vom ${new Date(n.date).toLocaleDateString('de-CH')} löschen">${ICONS.trash}</button></div>
+      <button class="icon-btn icon-btn--small" data-action="delete-cook-note" data-id="${escapeAttr(r.id)}" data-note="${escapeHtml(n.id)}" aria-label="Notiz vom ${new Date(n.date).toLocaleDateString('de-CH')} löschen">${ICONS.trash}</button></div>
       <p>${escapeHtml(n.text)}</p></div>`).join('')}
-    <button class="ghost-btn" data-action="open-note-modal" data-id="${r.id}">${ICONS.plus} Notiz hinzufügen</button>`;
+    <button class="ghost-btn" data-action="open-note-modal" data-id="${escapeAttr(r.id)}">${ICONS.plus} Notiz hinzufügen</button>`;
 }
 function nutritionPanel(r) {
   let html = nutritionCardSection(r.id);
@@ -572,10 +572,10 @@ function detailView() {
   const conflictBox = conflicts.length ? `<div class="diet-warning" role="note">
       <strong>Kennzeichnung prüfen</strong>
       <p>${conflicts.map(c => `Als <b>${c.label === 'vegan' ? 'vegan' : 'vegetarisch'}</b> markiert, enthält aber: ${escapeHtml(Array.from(new Set(c.items)).slice(0, 4).join(', '))}${new Set(c.items).size > 4 ? ' …' : ''}.`).join(' ')}</p>
-      <div class="diet-warning-actions"><button class="outline-btn outline-btn--small" data-action="fix-diet-conflict" data-id="${r.id}">Kennzeichnung entfernen</button><button class="text-btn" data-action="edit-recipe" data-id="${r.id}">Bearbeiten</button></div>
+      <div class="diet-warning-actions"><button class="outline-btn outline-btn--small" data-action="fix-diet-conflict" data-id="${escapeAttr(r.id)}">Kennzeichnung entfernen</button><button class="text-btn" data-action="edit-recipe" data-id="${escapeAttr(r.id)}">Bearbeiten</button></div>
     </div>` : '';
   return `
-    ${topbar(r.title || 'Rezept', { back: true, plainTitle: 'Rezept', cls: 'topbar--detail', actions: `<button class="icon-btn" data-action="open-detail-menu" data-id="${r.id}" aria-label="Weitere Aktionen" aria-haspopup="dialog">${ICONS.more}</button>` })}
+    ${topbar(r.title || 'Rezept', { back: true, plainTitle: 'Rezept', cls: 'topbar--detail', actions: `<button class="icon-btn" data-action="open-detail-menu" data-id="${escapeAttr(r.id)}" aria-label="Weitere Aktionen" aria-haspopup="dialog">${ICONS.more}</button>` })}
     <main class="has-tabbar detail-main ${hero ? 'has-hero' : 'no-hero'}" data-tab="${tab}">
       ${hero}
       <div class="detail-cols"><div class="detail-col detail-col--info">
@@ -587,19 +587,19 @@ function detailView() {
         <p class="detail-meta-v2">${facts.map(f => `<span class="fact">${escapeHtml(f)}</span>`).join('')}</p>
         ${extraTimes.length ? `<p class="detail-times">${extraTimes.map(escapeHtml).join(' · ')}</p>` : ''}
       </div>
-      <button class="primary-btn primary-btn--block cook-start-inline" data-action="start-cook" data-id="${r.id}">${ICONS.play} Kochen starten</button>
+      <button class="primary-btn primary-btn--block cook-start-inline" data-action="start-cook" data-id="${escapeAttr(r.id)}">${ICONS.play} Kochen starten</button>
       <div class="detail-tools" role="group" aria-label="Weitere Aktionen zum Rezept">
-        <button type="button" class="tool-action" data-action="add-to-shopping" data-id="${r.id}">${ICONS.cart}<span>Einkaufen</span></button>
-        <button type="button" class="tool-action" data-action="open-plan-recipe" data-id="${r.id}">${ICONS.calendar}<span>Planen</span></button>
-        <button type="button" class="tool-action" data-action="edit-recipe" data-id="${r.id}">${ICONS.edit}<span>Bearbeiten</span></button>
-        <button type="button" class="tool-action" data-action="share-recipe" data-id="${r.id}">${ICONS.share}<span>Teilen</span></button>
+        <button type="button" class="tool-action" data-action="add-to-shopping" data-id="${escapeAttr(r.id)}">${ICONS.cart}<span>Einkaufen</span></button>
+        <button type="button" class="tool-action" data-action="open-plan-recipe" data-id="${escapeAttr(r.id)}">${ICONS.calendar}<span>Planen</span></button>
+        <button type="button" class="tool-action" data-action="edit-recipe" data-id="${escapeAttr(r.id)}">${ICONS.edit}<span>Bearbeiten</span></button>
+        <button type="button" class="tool-action" data-action="share-recipe" data-id="${escapeAttr(r.id)}">${ICONS.share}<span>Teilen</span></button>
       </div>
       ${source}
       ${conflictBox}
       <div class="detail-aside-ing" role="region" aria-label="Zutaten">${wide ? `<h2 class="sr-only">Zutaten</h2>` + ingHtml : ''}</div>
       </div><div class="detail-col detail-col--content">
       <div class="tabbar-v2" role="tablist" aria-label="Rezeptinhalt">
-        ${tabs.map(t => `<button role="tab" id="tab-${t.id}" class="tab-v2 ${tab === t.id ? 'is-active' : ''}" aria-selected="${tab === t.id}" aria-controls="panel-${t.id}" tabindex="${tab === t.id ? '0' : '-1'}" data-action="set-detail-tab" data-id="${t.id}">${t.label}</button>`).join('')}
+        ${tabs.map(t => `<button role="tab" id="tab-${t.id}" class="tab-v2 ${tab === t.id ? 'is-active' : ''}" aria-selected="${tab === t.id}" aria-controls="panel-${t.id}" tabindex="${tab === t.id ? '0' : '-1'}" data-action="set-detail-tab" data-id="${escapeAttr(t.id)}">${t.label}</button>`).join('')}
       </div>
       ${tabs.map(t => `<div class="tab-panel" id="panel-${t.id}" role="tabpanel" aria-labelledby="tab-${t.id}" ${tab === t.id ? '' : 'hidden'}><h2 class="sr-only">${t.label}</h2>${panelHtml[t.id]}</div>`).join('')}
       ${recipeCheckHtml(r)}
@@ -627,15 +627,15 @@ function textSourceHint(r) {
 }
 function sheet(id, title, body) {
   return `<div class="modal-backdrop" data-action="close-modal">
-    <div class="modal-sheet" role="dialog" aria-modal="true" aria-labelledby="${id}" tabindex="-1" onclick="event.stopPropagation()">
+    <div class="modal-sheet" role="dialog" aria-modal="true" aria-labelledby="${escapeAttr(id)}" tabindex="-1" onclick="event.stopPropagation()">
       <div class="sheet-handle" aria-hidden="true"></div>
-      <h2 class="modal-title" id="${id}">${escapeHtml(title)}</h2>
+      <h2 class="modal-title" id="${escapeAttr(id)}">${escapeHtml(title)}</h2>
       ${body}
     </div>
   </div>`;
 }
 function detailMenuModal(r) {
-  const item = (action, icon, label, extra) => `<button class="menu-item ${extra || ''}" data-action="${action}" data-id="${r.id}">${icon}<span>${label}</span></button>`;
+  const item = (action, icon, label, extra) => `<button class="menu-item ${extra || ''}" data-action="${action}" data-id="${escapeAttr(r.id)}">${icon}<span>${label}</span></button>`;
   return sheet('detail-menu-title', r.title || 'Rezept', `<div class="menu-list">
     ${item('edit-recipe', ICONS.edit, 'Bearbeiten')}
     ${item('duplicate-recipe', ICONS.copy, 'Duplizieren')}
@@ -655,7 +655,7 @@ function noteModal(r) {
     <textarea id="noteText" rows="4" placeholder="z.B. Beim nächsten Mal weniger Salz"></textarea></div>
     <label class="check-line"><input type="checkbox" id="noteDated" checked> Mit heutigem Datum als Kochnotiz speichern</label>
     <p class="hint-line">Ohne Datum wird der Text an die allgemeine Rezeptnotiz angehängt.</p>
-    <div class="form-actions"><button class="ghost-btn" data-action="close-modal">Abbrechen</button><button class="primary-btn" data-action="save-note" data-id="${r.id}">Speichern</button></div>`);
+    <div class="form-actions"><button class="ghost-btn" data-action="close-modal">Abbrechen</button><button class="primary-btn" data-action="save-note" data-id="${escapeAttr(r.id)}">Speichern</button></div>`);
 }
 function collectionsModal(r) {
   const cols = getCollections();
@@ -663,13 +663,13 @@ function collectionsModal(r) {
     <div class="menu-list">
       ${cols.length ? cols.map(c => {
         const on = (r.collections || []).includes(c.id);
-        return `<button class="menu-item" data-action="toggle-recipe-collection" data-id="${r.id}" data-col="${escapeHtml(c.id)}" role="checkbox" aria-checked="${on}"><span class="check-box ${on ? 'is-on' : ''}" aria-hidden="true">${ICONS.check}</span><span>${escapeHtml(c.name)}</span></button>`;
+        return `<button class="menu-item" data-action="toggle-recipe-collection" data-id="${escapeAttr(r.id)}" data-col="${escapeHtml(c.id)}" role="checkbox" aria-checked="${on}"><span class="check-box ${on ? 'is-on' : ''}" aria-hidden="true">${ICONS.check}</span><span>${escapeHtml(c.name)}</span></button>`;
       }).join('') : '<p class="hint-line">Noch keine eigene Sammlung angelegt.</p>'}
     </div>
     <div class="inline-add">
       <label for="newCollectionName" class="sr-only">Neue Sammlung</label>
       <input id="newCollectionName" type="text" placeholder="Neue Sammlung, z.B. Sonntagsküche">
-      <button class="primary-btn" data-action="create-collection" data-id="${r.id}">Sammlung erstellen</button>
+      <button class="primary-btn" data-action="create-collection" data-id="${escapeAttr(r.id)}">Sammlung erstellen</button>
     </div>`);
 }
 
@@ -712,7 +712,7 @@ function cookModeView() {
       </div>
       <div class="cookmode-nav">
         <button data-action="exit-cook">Später</button>
-        <button class="primary" data-action="cook-complete" data-id="${r.id}">Als gekocht speichern</button>
+        <button class="primary" data-action="cook-complete" data-id="${escapeAttr(r.id)}">Als gekocht speichern</button>
       </div>
     </div>`;
   }
@@ -726,7 +726,7 @@ function cookModeView() {
   const shownIngs = state.cookShowAllIngredients ? realIngredients(r).map(i => { const idx = r.ingredients.indexOf(i); return { ...i, _index: idx, _group: groupsById.get(idx) }; }) : stepIngs;
   const showGroups = hasNamedGroups(r);
   const factor = servingsFactor(r, currentServings(r));
-  const ingChips = shownIngs.map(i => `<button type="button" class="cook-ing ${checked.has(i._index) ? 'is-checked' : ''} ${i._ambiguous ? 'is-ambiguous' : ''}" data-action="toggle-ingredient-check" data-id="${r.id}" data-idx="${i._index}" role="checkbox" aria-checked="${checked.has(i._index)}"><span class="check-box" aria-hidden="true">${ICONS.check}</span>${escapeHtml(scaledAmountLine(i, factor))} ${escapeHtml(i.name)}${showGroups && i._group && (i._ambiguous || state.cookShowAllIngredients) ? `<span class="cook-ing-group">${escapeHtml(i._group)}</span>` : ''}</button>`).join('');
+  const ingChips = shownIngs.map(i => `<button type="button" class="cook-ing ${checked.has(i._index) ? 'is-checked' : ''} ${i._ambiguous ? 'is-ambiguous' : ''}" data-action="toggle-ingredient-check" data-id="${escapeAttr(r.id)}" data-idx="${i._index}" role="checkbox" aria-checked="${checked.has(i._index)}"><span class="check-box" aria-hidden="true">${ICONS.check}</span>${escapeHtml(scaledAmountLine(i, factor))} ${escapeHtml(i.name)}${showGroups && i._group && (i._ambiguous || state.cookShowAllIngredients) ? `<span class="cook-ing-group">${escapeHtml(i._group)}</span>` : ''}</button>`).join('');
   const matchNote = state.cookShowAllIngredients ? '' : match.fixed ? 'Von dir festgelegt' : match.ambiguous ? 'Vorschlag, nicht eindeutig' : (stepIngs.length ? 'Vorschlag' : '');
   const body = state.cookAllSteps
     ? `<ol class="cook-all-steps">${steps.map((s, n) => `<li>${s._section ? `<div class="cook-section">${escapeHtml(s._section)}</div>` : ''}<button class="cook-all-step ${n === idx ? 'is-current' : ''}" data-action="cook-goto" data-idx="${n}"><span class="step-no">${n + 1}</span><span>${escapeHtml(s.text)}</span></button></li>`).join('')}</ol>`
@@ -789,13 +789,13 @@ function stepIngredientsModal(r, stepIndex) {
 function shoppingItemRow(i) {
   const recipeTitles = Array.from(new Set((i.sources || []).map(s => s.title || (state.recipes.find(r => r.id === s.recipeId) || {}).title).filter(Boolean)));
   const amount = i.amount !== '' && i.amount !== undefined && i.amount !== null ? escapeHtml(shopAmountLine(i)) : (i.unit ? escapeHtml(i.unit) : '');
-  return `<div class="shop-row ${i.checked ? 'is-checked' : ''}" data-id="${i.id}">
-    <button class="shop-check" data-action="toggle-shopping-item" data-id="${i.id}" role="checkbox" aria-checked="${!!i.checked}" aria-label="${escapeHtml(i.name)}"><span class="check-box" aria-hidden="true">${ICONS.check}</span></button>
+  return `<div class="shop-row ${i.checked ? 'is-checked' : ''}" data-id="${escapeAttr(i.id)}">
+    <button class="shop-check" data-action="toggle-shopping-item" data-id="${escapeAttr(i.id)}" role="checkbox" aria-checked="${!!i.checked}" aria-label="${escapeHtml(i.name)}"><span class="check-box" aria-hidden="true">${ICONS.check}</span></button>
     <div class="shop-text">
       <span class="shop-name">${amount ? `<strong>${amount}</strong> ` : ''}${escapeHtml(i.name)}</span>
       ${recipeTitles.length ? `<span class="shop-source">aus: ${escapeHtml(recipeTitles.join(', '))}</span>` : ''}
     </div>
-    <button class="icon-btn icon-btn--small" data-action="open-shop-item" data-id="${i.id}" aria-label="${escapeHtml(i.name)} bearbeiten">${ICONS.moreH}</button>
+    <button class="icon-btn icon-btn--small" data-action="open-shop-item" data-id="${escapeAttr(i.id)}" aria-label="${escapeHtml(i.name)} bearbeiten">${ICONS.moreH}</button>
   </div>`;
 }
 function shoppingView() {
@@ -843,17 +843,17 @@ function shopItemModal(i) {
     <div class="field"><label for="shopEditName">Bezeichnung</label><input type="text" id="shopEditName" value="${escapeHtml(i.name)}"></div>
     ${canSplit ? `<p class="hint-line">Zusammengeführt aus ${i.sources.length} Einträgen: ${escapeHtml(i.sources.map(s => `${s.amount !== '' ? shopAmountLine(s) : (s.unit || '')} ${s.title ? '(' + s.title + ')' : ''}`.trim()).join(', '))}</p>` : ''}
     <div class="menu-list">
-      <button class="menu-item" data-action="toggle-shop-have" data-id="${i.id}">${ICONS.box}<span>${i.have ? 'Doch noch einkaufen' : 'Bereits vorhanden'}</span></button>
-      ${canSplit ? `<button class="menu-item" data-action="split-shop-item" data-id="${i.id}">${ICONS.split}<span>Zusammenführung trennen</span></button>` : ''}
-      <button class="menu-item menu-item--danger" data-action="delete-shopping-item" data-id="${i.id}">${ICONS.trash}<span>Entfernen</span></button>
+      <button class="menu-item" data-action="toggle-shop-have" data-id="${escapeAttr(i.id)}">${ICONS.box}<span>${i.have ? 'Doch noch einkaufen' : 'Bereits vorhanden'}</span></button>
+      ${canSplit ? `<button class="menu-item" data-action="split-shop-item" data-id="${escapeAttr(i.id)}">${ICONS.split}<span>Zusammenführung trennen</span></button>` : ''}
+      <button class="menu-item menu-item--danger" data-action="delete-shopping-item" data-id="${escapeAttr(i.id)}">${ICONS.trash}<span>Entfernen</span></button>
     </div>
-    <div class="form-actions"><button class="ghost-btn" data-action="close-modal">Abbrechen</button><button class="primary-btn" data-action="save-shop-item" data-id="${i.id}">Speichern</button></div>`);
+    <div class="form-actions"><button class="ghost-btn" data-action="close-modal">Abbrechen</button><button class="primary-btn" data-action="save-shop-item" data-id="${escapeAttr(i.id)}">Speichern</button></div>`);
 }
 function pickRecipesModal() {
   const sel = state.modal.selected || [];
   return sheet('pick-recipes-title', 'Rezepte wählen', `
     <div class="picker-list">
-      ${state.recipes.map(r => `<label class="shop-select-row"><input type="checkbox" data-pick-recipe="${r.id}" ${sel.includes(r.id) ? 'checked' : ''}><span class="ing-name">${escapeHtml(r.title || 'Ohne Titel')}</span><span class="ing-amount">${escapeHtml(servingShort(r, r.servings || 1))}</span></label>`).join('') || '<p class="hint-line">Noch keine Rezepte vorhanden.</p>'}
+      ${state.recipes.map(r => `<label class="shop-select-row"><input type="checkbox" data-pick-recipe="${escapeAttr(r.id)}" ${sel.includes(r.id) ? 'checked' : ''}><span class="ing-name">${escapeHtml(r.title || 'Ohne Titel')}</span><span class="ing-amount">${escapeHtml(servingShort(r, r.servings || 1))}</span></label>`).join('') || '<p class="hint-line">Noch keine Rezepte vorhanden.</p>'}
     </div>
     <div class="form-actions"><button class="ghost-btn" data-action="close-modal">Abbrechen</button><button class="primary-btn" data-action="confirm-pick-recipes">Weiter</button></div>`);
 }
@@ -885,7 +885,7 @@ function mealplanView() {
     const rows = sorted.map(e => {
       if (isNoteEntry(e)) {
         return `<div class="plan-entry plan-entry--note">
-          <button class="plan-entry-main" data-action="open-plan-entry" data-date="${key}" data-id="${escapeHtml(e.id)}" aria-label="Notiz ${escapeHtml(e.text)} bearbeiten">
+          <button class="plan-entry-main" data-action="open-plan-entry" data-date="${escapeAttr(key)}" data-id="${escapeHtml(e.id)}" aria-label="Notiz ${escapeHtml(e.text)} bearbeiten">
             <span class="plan-entry-text">${e.meal ? `<span class="plan-meal">${escapeHtml(mealLabel(e.meal))}</span>` : ''}<span class="plan-title">${escapeHtml(e.text)}</span></span>
           </button>
         </div>`;
@@ -894,11 +894,11 @@ function mealplanView() {
       const servings = e.servings || r.servings || 0;
       const thumb = hasPhoto(r) ? recipeImageHtml(r, 'plan-thumb', 'thumb') : '';   // ohne Foto keine Platzhalterflaeche
       return `<div class="plan-entry ${thumb ? 'has-thumb' : ''}">
-        <button class="plan-entry-main" data-action="open-recipe" data-id="${r.id}">
+        <button class="plan-entry-main" data-action="open-recipe" data-id="${escapeAttr(r.id)}">
           ${thumb}
           <span class="plan-entry-text">${e.meal ? `<span class="plan-meal">${escapeHtml(mealLabel(e.meal))}</span>` : ''}<span class="plan-title">${escapeHtml(r.title || 'Ohne Titel')}</span><span class="plan-servings">${escapeHtml(servingLabel(r, servings))}</span></span>
         </button>
-        <button class="icon-btn icon-btn--small" data-action="open-plan-entry" data-date="${key}" data-id="${escapeHtml(e.id)}" aria-label="Eintrag ${escapeHtml(r.title || '')} bearbeiten">${ICONS.moreH}</button>
+        <button class="icon-btn icon-btn--small" data-action="open-plan-entry" data-date="${escapeAttr(key)}" data-id="${escapeHtml(e.id)}" aria-label="Eintrag ${escapeHtml(r.title || '')} bearbeiten">${ICONS.moreH}</button>
       </div>`;
     }).join('');
     return `<section class="plan-day ${isToday ? 'is-today' : ''} ${entries.length ? '' : 'is-empty'}" aria-labelledby="day-${key}" ${isToday ? 'aria-current="date"' : ''}>
@@ -906,9 +906,9 @@ function mealplanView() {
         <h2 class="plan-day-title" id="day-${key}"><span class="plan-day-name">${dayName}</span> <span class="plan-day-date">${dayDate}</span>${isToday ? ' <span class="plan-today">Heute</span>' : ''}</h2>
         ${entries.length ? '' : '<p class="plan-empty">Nichts geplant</p>'}
       </div>
-      <button type="button" class="plan-add" data-action="open-day-picker" data-date="${key}" aria-label="Rezept planen, ${dayName} ${dayDate}">${ICONS.plus}<span class="plan-add-label">Rezept planen</span></button>
+      <button type="button" class="plan-add" data-action="open-day-picker" data-date="${escapeAttr(key)}" aria-label="Rezept planen, ${dayName} ${dayDate}">${ICONS.plus}<span class="plan-add-label">Rezept planen</span></button>
       ${entries.length ? `<div class="plan-list">${rows}</div>` : ''}
-      ${recipeCount ? `<div class="plan-day-foot"><label class="day-select"><input type="checkbox" data-plan-day="${key}" ${selected ? 'checked' : ''}> Einkaufen</label></div>` : ''}
+      ${recipeCount ? `<div class="plan-day-foot"><label class="day-select"><input type="checkbox" data-plan-day="${escapeAttr(key)}" ${selected ? 'checked' : ''}> Einkaufen</label></div>` : ''}
     </section>`;
   }).join('');
   const selCount = Array.from(state.planSelectedDays).filter(k => days.some(d => fmtDateKey(d) === k)).length;
@@ -933,7 +933,7 @@ function mealplanView() {
 function mealSlotChooser(current, customValue) {
   const isCustom = current && !MEAL_SLOTS.some(m => m.id === current);
   return `<div class="chip-row chip-row--wrap" role="radiogroup" aria-label="Mahlzeit">
-      ${MEAL_SLOTS.map(m => `<button type="button" class="chip ${current === m.id ? 'chip--active' : ''}" role="radio" aria-checked="${current === m.id}" data-action="set-plan-meal" data-id="${m.id}">${m.label}</button>`).join('')}
+      ${MEAL_SLOTS.map(m => `<button type="button" class="chip ${current === m.id ? 'chip--active' : ''}" role="radio" aria-checked="${current === m.id}" data-action="set-plan-meal" data-id="${escapeAttr(m.id)}">${m.label}</button>`).join('')}
     </div>
     <div class="field"><label for="planMealCustom">Eigene Bezeichnung (optional)</label><input id="planMealCustom" type="text" placeholder="z.B. Znüni oder Gäste" value="${escapeHtml(isCustom ? current : (customValue || ''))}"></div>`;
 }
@@ -957,14 +957,14 @@ function recipePickerModal() {
     </div>
     <h4 class="plan-quick-title">Rezept wählen</h4>
     <div class="picker-list">
-      ${state.recipes.map(r => `<button class="picker-item" data-action="assign-mealplan-recipe" data-date="${m.date}" data-id="${r.id}">${recipeImageHtml(r, 'picker-thumb', 'thumb')}<span>${escapeHtml(r.title || 'Ohne Titel')}</span></button>`).join('')}
+      ${state.recipes.map(r => `<button class="picker-item" data-action="assign-mealplan-recipe" data-date="${escapeAttr(m.date)}" data-id="${escapeAttr(r.id)}">${recipeImageHtml(r, 'picker-thumb', 'thumb')}<span>${escapeHtml(r.title || 'Ohne Titel')}</span></button>`).join('')}
     </div>`);
 }
 function planEntryModal() {
   const m = state.modal;
   const e = planEntriesFor(m.date).find(x => x.id === m.entryId);
   if (!e) return '';
-  const moveSel = (days) => `<div class="field"><label for="planMoveDay">Verschieben auf</label><select id="planMoveDay">${days.map((d, i) => { const k = fmtDateKey(d); return `<option value="${k}" ${k === m.date ? 'selected' : ''}>${WEEKDAY_LABELS[i]}, ${d.getDate()}. ${MONTH_LABELS[d.getMonth()]}</option>`; }).join('')}</select></div>`;
+  const moveSel = (days) => `<div class="field"><label for="planMoveDay">Verschieben auf</label><select id="planMoveDay">${days.map((d, i) => { const k = fmtDateKey(d); return `<option value="${escapeAttr(k)}" ${k === m.date ? 'selected' : ''}>${WEEKDAY_LABELS[i]}, ${d.getDate()}. ${MONTH_LABELS[d.getMonth()]}</option>`; }).join('')}</select></div>`;
   if (isNoteEntry(e)) {
     const wk = Array.from({ length: 7 }, (_, i) => addDays(state.weekStart, i));
     return sheet('plan-entry-title', 'Notiz', `
@@ -984,7 +984,7 @@ function planEntryModal() {
       <div class="stepper"><button data-action="plan-entry-servings" data-delta="-1" aria-label="Weniger">${ICONS.minus}</button><span class="stepper-value">${escapeHtml(servingLabel(r, servings))}</span><button data-action="plan-entry-servings" data-delta="1" aria-label="Mehr">${ICONS.plus}</button></div></div>
     <p class="hint-line">Das Rezept selbst bleibt bei ${escapeHtml(servingLabel(r, r.servings || 0))}.</p>` : `<p class="hint-line">Bei diesem Rezept fehlt die Angabe, wie viel es ergibt. Für diesen Termin gelten die Originalmengen. Ergänze die Angabe im Rezept, um zu skalieren.</p>`}
     ${mealSlotChooser(e.meal || '')}
-    <div class="field"><label for="planMoveDay">Verschieben auf</label><select id="planMoveDay">${days.map((d, i) => { const k = fmtDateKey(d); return `<option value="${k}" ${k === m.date ? 'selected' : ''}>${WEEKDAY_LABELS[i]}, ${d.getDate()}. ${MONTH_LABELS[d.getMonth()]}</option>`; }).join('')}</select></div>
+    <div class="field"><label for="planMoveDay">Verschieben auf</label><select id="planMoveDay">${days.map((d, i) => { const k = fmtDateKey(d); return `<option value="${escapeAttr(k)}" ${k === m.date ? 'selected' : ''}>${WEEKDAY_LABELS[i]}, ${d.getDate()}. ${MONTH_LABELS[d.getMonth()]}</option>`; }).join('')}</select></div>
     <div class="form-actions">
       <button class="ghost-btn danger-btn" data-action="remove-plan-entry">Entfernen</button>
       <button class="primary-btn" data-action="save-plan-entry">Speichern</button>
@@ -996,7 +996,7 @@ function planRecipeModal() {
   const days = Array.from({ length: 7 }, (_, i) => addDays(getMonday(new Date()), i));
   return sheet('plan-recipe-title', 'In den Wochenplan', `
     ${mealSlotChooser(m.meal || '')}
-    <div class="menu-list">${days.map((d, i) => `<button class="menu-item" data-action="assign-mealplan-recipe" data-date="${fmtDateKey(d)}" data-id="${m.recipeId}">${ICONS.calendar}<span>${WEEKDAY_LABELS[i]}, ${d.getDate()}. ${MONTH_LABELS[d.getMonth()]}</span></button>`).join('')}</div>`);
+    <div class="menu-list">${days.map((d, i) => `<button class="menu-item" data-action="assign-mealplan-recipe" data-date="${fmtDateKey(d)}" data-id="${escapeAttr(m.recipeId)}">${ICONS.calendar}<span>${WEEKDAY_LABELS[i]}, ${d.getDate()}. ${MONTH_LABELS[d.getMonth()]}</span></button>`).join('')}</div>`);
 }
 
 /* Vorlagenwaehler (Radiogruppe, Tastatur und Touch) und Vorschau aus derselben Layoutdefinition wie der Export */
@@ -1006,7 +1006,7 @@ function coverPickerHtml(cfg) {
   const warn = layout.warnings.length ? `<ul class="cb-warnings" role="alert">${layout.warnings.map(w => `<li class="cb-warn cb-warn--error">${escapeHtml(w.message)}</li>`).join('')}</ul>` : '';
   const sig = JSON.stringify([cfg.title, cfg.subtitle, cfg.author, cv, cfg.showLogo]);
   return `<div class="cover-picker" data-sig="${escapeHtml(sig)}">
-    <div class="cover-grid" role="radiogroup" aria-label="Titelblatt wählen">${COVER_TEMPLATES.map(t => `<button type="button" class="cover-opt ${t.id === layout.templateId ? 'is-active' : ''}" role="radio" aria-checked="${t.id === layout.templateId}" data-action="cb-cover-template" data-id="${t.id}" aria-label="${escapeHtml(t.name)}"><img src="${coverThumbUrl(t.id)}" alt="" loading="lazy" width="130" height="185"><span class="cover-opt-name">${escapeHtml(t.name)}</span>${t.id === layout.templateId ? `<span class="cover-opt-check" aria-hidden="true">${ICONS.check}</span>` : ''}</button>`).join('')}</div>
+    <div class="cover-grid" role="radiogroup" aria-label="Titelblatt wählen">${COVER_TEMPLATES.map(t => `<button type="button" class="cover-opt ${t.id === layout.templateId ? 'is-active' : ''}" role="radio" aria-checked="${t.id === layout.templateId}" data-action="cb-cover-template" data-id="${escapeAttr(t.id)}" aria-label="${escapeHtml(t.name)}"><img src="${coverThumbUrl(t.id)}" alt="" loading="lazy" width="130" height="185"><span class="cover-opt-name">${escapeHtml(t.name)}</span>${t.id === layout.templateId ? `<span class="cover-opt-check" aria-hidden="true">${ICONS.check}</span>` : ''}</button>`).join('')}</div>
     <div class="cover-preview" aria-label="Vorschau des Titelblatts">${coverPreviewHtml(layout)}</div>
     ${warn}
   </div>`;
@@ -1044,13 +1044,13 @@ function cookbookStepSelect(cfg) {
         ${cfg.items.map((it, n) => { const r = byId[it.recipeId]; return `<div class="cb-item">
           <span class="cb-item-no">${n + 1}</span>
           <span class="cb-item-title">${escapeHtml(r.title || 'Ohne Titel')}</span>
-          ${cfg.chapters.length ? `<select aria-label="Kapitel für ${escapeHtml(r.title || '')}" data-cb-item-chapter="${r.id}"><option value="">Ohne Kapitel</option>${cfg.chapters.map(c => `<option value="${escapeHtml(c.id)}" ${it.chapterId === c.id ? 'selected' : ''}>${escapeHtml(c.name)}</option>`).join('')}</select>` : ''}
+          ${cfg.chapters.length ? `<select aria-label="Kapitel für ${escapeHtml(r.title || '')}" data-cb-item-chapter="${escapeAttr(r.id)}"><option value="">Ohne Kapitel</option>${cfg.chapters.map(c => `<option value="${escapeHtml(c.id)}" ${it.chapterId === c.id ? 'selected' : ''}>${escapeHtml(c.name)}</option>`).join('')}</select>` : ''}
           <span class="cb-item-actions">
-            <button class="icon-btn icon-btn--small" data-action="cb-move-item" data-id="${r.id}" data-delta="-1" ${n === 0 ? 'disabled' : ''} aria-label="${escapeHtml(r.title || '')} nach oben">${ICONS.arrowUp}</button>
-            <button class="icon-btn icon-btn--small" data-action="cb-move-item" data-id="${r.id}" data-delta="1" ${n === cfg.items.length - 1 ? 'disabled' : ''} aria-label="${escapeHtml(r.title || '')} nach unten">${ICONS.arrowDown}</button>
-            <button class="icon-btn icon-btn--small" data-action="cb-remove-item" data-id="${r.id}" aria-label="${escapeHtml(r.title || '')} aus dem Kochbuch nehmen">${ICONS.x}</button>
+            <button class="icon-btn icon-btn--small" data-action="cb-move-item" data-id="${escapeAttr(r.id)}" data-delta="-1" ${n === 0 ? 'disabled' : ''} aria-label="${escapeHtml(r.title || '')} nach oben">${ICONS.arrowUp}</button>
+            <button class="icon-btn icon-btn--small" data-action="cb-move-item" data-id="${escapeAttr(r.id)}" data-delta="1" ${n === cfg.items.length - 1 ? 'disabled' : ''} aria-label="${escapeHtml(r.title || '')} nach unten">${ICONS.arrowDown}</button>
+            <button class="icon-btn icon-btn--small" data-action="cb-remove-item" data-id="${escapeAttr(r.id)}" aria-label="${escapeHtml(r.title || '')} aus dem Kochbuch nehmen">${ICONS.x}</button>
           </span></div>`; }).join('')}
-        ${missing.length ? `<h3 class="sub-title">Nicht im Kochbuch</h3>${missing.map(r => `<div class="cb-item cb-item--out"><span class="cb-item-title">${escapeHtml(r.title || 'Ohne Titel')}</span><button class="outline-btn outline-btn--small" data-action="cb-add-item" data-id="${r.id}" aria-label="${escapeHtml(r.title || 'Ohne Titel')} ins Kochbuch aufnehmen">${ICONS.plus} Aufnehmen</button></div>`).join('')}` : ''}
+        ${missing.length ? `<h3 class="sub-title">Nicht im Kochbuch</h3>${missing.map(r => `<div class="cb-item cb-item--out"><span class="cb-item-title">${escapeHtml(r.title || 'Ohne Titel')}</span><button class="outline-btn outline-btn--small" data-action="cb-add-item" data-id="${escapeAttr(r.id)}" aria-label="${escapeHtml(r.title || 'Ohne Titel')} ins Kochbuch aufnehmen">${ICONS.plus} Aufnehmen</button></div>`).join('')}` : ''}
       </section>
       <section class="panel">
         <h2 class="section-title">Kapitel</h2>
@@ -1065,7 +1065,7 @@ function cookbookStepSelect(cfg) {
 function cookbookPageStyleChoice(cfg) {
   const cur = cfg.pdfTemplate && PDF_TEMPLATES[cfg.pdfTemplate] ? cfg.pdfTemplate : pdfDefaultTemplateId();
   return `<div class="pdf-tpl-choice" role="radiogroup" aria-label="Seitenstil der Rezepte">
-      ${Object.values(PDF_TEMPLATES).map(t => `<button type="button" role="radio" aria-checked="${cur === t.id}" class="pdf-tpl-opt ${cur === t.id ? 'active' : ''}" data-action="cb-page-style" data-id="${t.id}"><span class="pdf-tpl-swatch pdf-tpl-swatch-${t.id.toLowerCase()}" aria-hidden="true"></span><b>${t.name}</b><small>${t.hint}</small></button>`).join('')}
+      ${Object.values(PDF_TEMPLATES).map(t => `<button type="button" role="radio" aria-checked="${cur === t.id}" class="pdf-tpl-opt ${cur === t.id ? 'active' : ''}" data-action="cb-page-style" data-id="${escapeAttr(t.id)}"><span class="pdf-tpl-swatch pdf-tpl-swatch-${t.id.toLowerCase()}" aria-hidden="true"></span><b>${t.name}</b><small>${t.hint}</small></button>`).join('')}
     </div>`;
 }
 function cookbookStepDesign(cfg) {
@@ -1169,8 +1169,8 @@ function formView() {
   const step = Math.max(0, Math.min(state.formStep || 0, FORM_STEPS.length - 1));
   const draft = loadRecipeDraft();
   const showDraft = draft && !state.draftBannerDismissed && draft.recipe && ((isNew && draft.isNew) || (!isNew && draft.recipe.id === r.id)) && draft.savedAt > (r.updatedAt || 0) - 1000 && !state.draftRestored;
-  const chipSet = (label, id, options, keyOf, labelOf, action, dataAttr, activeList) => `<div class="field"><span class="field-label" id="${id}">${label}</span>
-    <div class="diet-select-row" role="group" aria-labelledby="${id}">${options.map(o => { const k = keyOf(o); const on = (activeList || []).includes(k); return `<button type="button" class="diet-select-chip ${on ? 'active' : ''}" data-action="${action}" data-${dataAttr}="${k}" aria-pressed="${on}">${on ? ICONS.check : ''}${labelOf(o)}</button>`; }).join('')}</div></div>`;
+  const chipSet = (label, id, options, keyOf, labelOf, action, dataAttr, activeList) => `<div class="field"><span class="field-label" id="${escapeAttr(id)}">${label}</span>
+    <div class="diet-select-row" role="group" aria-labelledby="${escapeAttr(id)}">${options.map(o => { const k = keyOf(o); const on = (activeList || []).includes(k); return `<button type="button" class="diet-select-chip ${on ? 'active' : ''}" data-action="${action}" data-${dataAttr}="${k}" aria-pressed="${on}">${on ? ICONS.check : ''}${labelOf(o)}</button>`; }).join('')}</div></div>`;
   const realCount = realIngredients(r).length;
   const missingAmounts = qtyMissingIngredients(realIngredients(r)).length;
   const stepCount = (r.steps || []).filter(s => (s.text || '').trim()).length;
@@ -1197,7 +1197,7 @@ function formView() {
           </div>
           <div class="field-row field-row--2">
             <div class="field"><label for="f-time">Zeit (Min.)</label><input type="number" id="f-time" min="0" value="${r.timeMinutes > 0 ? r.timeMinutes : ''}" placeholder="${r.timeMinutes > 0 ? '' : 'unbekannt'}"></div>
-            <div class="field"><label for="f-difficulty">Schwierigkeit</label><select id="f-difficulty">${['', 'Einfach', 'Mittel', 'Anspruchsvoll'].map(d => `<option value="${d}" ${(r.difficulty || '') === d ? 'selected' : ''}>${d || 'Keine Angabe'}</option>`).join('')}</select></div>
+            <div class="field"><label for="f-difficulty">Schwierigkeit</label><select id="f-difficulty">${['', 'Einfach', 'Mittel', 'Anspruchsvoll'].map(d => `<option value="${escapeAttr(d)}" ${(r.difficulty || '') === d ? 'selected' : ''}>${d || 'Keine Angabe'}</option>`).join('')}</select></div>
           </div>
           <details class="field-more"${(r.prepMinutes || r.restMinutes || r.cookMinutes) ? ' open' : ''}><summary>Weitere Zeitangaben (optional)</summary>
             <div class="field-row field-row--3">
@@ -1240,7 +1240,7 @@ function formView() {
             </ul>
             ${(() => { const iss = typeof recipeQualityIssues === 'function' ? recipeQualityIssues(r) : []; return iss.length ? `<h3 class="sub-title">Hinweise</h3><ul class="review-list">${iss.map(i => `<li class="warn">${escapeHtml(i.text)}</li>`).join('')}</ul><p class="hint-line">Nichts wird automatisch geändert. Nach dem Speichern kannst du Vorschläge auf der Rezeptseite einzeln übernehmen.</p>` : ''; })()}
           </div>
-          ${!isNew ? `<button type="button" class="text-btn danger-link" data-action="confirm-delete" data-id="${r.id}">${ICONS.trash} Rezept löschen</button>` : ''}
+          ${!isNew ? `<button type="button" class="text-btn danger-link" data-action="confirm-delete" data-id="${escapeAttr(r.id)}">${ICONS.trash} Rezept löschen</button>` : ''}
         </section>
         <div class="form-actions form-actions--sticky">
           ${step > 0 ? `<button class="ghost-btn" data-action="form-goto-step" data-idx="${step - 1}">Zurück</button>` : `<button class="ghost-btn" data-action="back">Abbrechen</button>`}

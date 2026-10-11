@@ -197,11 +197,11 @@ function settingsShareView() {
     body = `
     ${share.inbox.length ? `<div class="settings-group"><div class="settings-group-title">Posteingang</div><div class="settings-group-card settings-group-card--padded">
       ${share.inbox.map(s => row(`${shareWho({ display_name: s.from_name, handle: s.from_handle })} schickt dir<br><span class="share-title">${escapeHtml(s.title)}</span>${s.message ? `<br><span class="share-msg">„${escapeHtml(s.message)}“</span>` : ''}`,
-        `<button class="primary-btn primary-btn--small" data-action="share-open-preview" data-id="${s.id}">Ansehen</button>`)).join('')}
+        `<button class="primary-btn primary-btn--small" data-action="share-open-preview" data-id="${escapeAttr(s.id)}">Ansehen</button>`)).join('')}
     </div></div>` : ''}
     ${incoming.length ? `<div class="settings-group"><div class="settings-group-title">Anfragen</div><div class="settings-group-card settings-group-card--padded">
       ${incoming.map(c => row(`${shareWho(c)} möchte sich mit dir verbinden`,
-        `<button class="primary-btn primary-btn--small" data-action="share-respond" data-id="${c.handle}" data-answer="accept">Annehmen</button><button class="ghost-btn primary-btn--small" data-action="share-respond" data-id="${c.handle}" data-answer="decline">Ablehnen</button><button class="text-btn" data-action="share-respond" data-id="${c.handle}" data-answer="block">Blockieren</button>`)).join('')}
+        `<button class="primary-btn primary-btn--small" data-action="share-respond" data-id="${escapeAttr(c.handle)}" data-answer="accept">Annehmen</button><button class="ghost-btn primary-btn--small" data-action="share-respond" data-id="${escapeAttr(c.handle)}" data-answer="decline">Ablehnen</button><button class="text-btn" data-action="share-respond" data-id="${escapeAttr(c.handle)}" data-answer="block">Blockieren</button>`)).join('')}
     </div></div>` : ''}
     <div class="settings-group"><div class="settings-group-title">Freund hinzufügen</div><div class="settings-group-card settings-group-card--padded">
       <div class="field"><label for="shareTarget">Profilname oder Einladungscode</label><input id="shareTarget" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="@name oder SAV-XXXX-XXXX" value="${escapeHtml(prefill)}"></div>
@@ -211,9 +211,9 @@ function settingsShareView() {
     </div></div>
     <div class="settings-group"><div class="settings-group-title">Verbindungen</div><div class="settings-group-card settings-group-card--padded">
       ${connected.length || outgoing.length || blocked.length ? '' : '<p class="settings-hint settings-hint--none">Noch niemand verbunden.</p>'}
-      ${connected.map(c => row(shareWho(c), `<button class="text-btn" data-action="share-remove" data-id="${c.handle}">Entfernen</button>`)).join('')}
-      ${outgoing.map(c => row(`${shareWho(c)}<br><span class="share-msg">Anfrage wartet auf Bestätigung</span>`, `<button class="text-btn" data-action="share-remove" data-id="${c.handle}">Zurückziehen</button>`)).join('')}
-      ${blocked.map(c => row(`${shareWho(c)}<br><span class="share-msg">Blockiert</span>`, `<button class="text-btn" data-action="share-remove" data-id="${c.handle}">Entsperren</button>`)).join('')}
+      ${connected.map(c => row(shareWho(c), `<button class="text-btn" data-action="share-remove" data-id="${escapeAttr(c.handle)}">Entfernen</button>`)).join('')}
+      ${outgoing.map(c => row(`${shareWho(c)}<br><span class="share-msg">Anfrage wartet auf Bestätigung</span>`, `<button class="text-btn" data-action="share-remove" data-id="${escapeAttr(c.handle)}">Zurückziehen</button>`)).join('')}
+      ${blocked.map(c => row(`${shareWho(c)}<br><span class="share-msg">Blockiert</span>`, `<button class="text-btn" data-action="share-remove" data-id="${escapeAttr(c.handle)}">Entsperren</button>`)).join('')}
     </div></div>
     <div class="settings-group"><div class="settings-group-title">Dein Profil</div><div class="settings-group-card settings-group-card--padded">
       <p class="settings-hint settings-hint--none">${shareWho(p)}</p>
@@ -253,8 +253,8 @@ function settingsSharePreviewView() {
       <ol class="share-list">${r.steps.filter(s => s.text).map(s => `<li>${escapeHtml(s.text).replace(/\n/g, '<br>')}</li>`).join('') || '<li>Keine Schritte</li>'}</ol>
       ${r.notes ? `<h3 class="share-sub">Notizen</h3><p>${escapeHtml(r.notes).replace(/\n/g, '<br>')}</p>` : ''}
       <div class="share-preview-actions">
-        <button class="primary-btn primary-btn--block" data-action="share-accept" data-id="${item.id}">${ICONS.check} Ins Kochbuch übernehmen</button>
-        <button class="ghost-btn primary-btn--block" data-action="share-decline" data-id="${item.id}">Ablehnen</button>
+        <button class="primary-btn primary-btn--block" data-action="share-accept" data-id="${escapeAttr(item.id)}">${ICONS.check} Ins Kochbuch übernehmen</button>
+        <button class="ghost-btn primary-btn--block" data-action="share-decline" data-id="${escapeAttr(item.id)}">Ablehnen</button>
       </div>
     </div>`;
   return settingsDetailShell('Rezept ansehen', body);
@@ -273,11 +273,11 @@ function shareSendModal() {
     const people = share.connections.filter(c => c.state === 'connected');
     inner = people.length ? `
       <fieldset class="share-people"><legend class="sr-only">Empfänger</legend>
-        ${people.map((c, i) => `<label class="share-person"><input type="radio" name="shareTo" value="${c.handle}" ${i === 0 ? 'checked' : ''}><span>${shareWho(c)}</span></label>`).join('')}
+        ${people.map((c, i) => `<label class="share-person"><input type="radio" name="shareTo" value="${escapeAttr(c.handle)}" ${i === 0 ? 'checked' : ''}><span>${shareWho(c)}</span></label>`).join('')}
       </fieldset>
       <div class="field"><label for="shareMessage">Nachricht (optional)</label><textarea id="shareMessage" maxlength="200" rows="2" placeholder="z. B. Probier das mal!"></textarea></div>
       <p class="cloud-error" id="shareError" role="alert"></p>
-      <div class="form-actions"><button class="primary-btn" data-action="share-send" data-id="${r.id}">Senden</button><button class="ghost-btn" data-action="close-modal">Abbrechen</button></div>`
+      <div class="form-actions"><button class="primary-btn" data-action="share-send" data-id="${escapeAttr(r.id)}">Senden</button><button class="ghost-btn" data-action="close-modal">Abbrechen</button></div>`
       : `<p class="settings-hint settings-hint--none">Du bist noch mit niemandem verbunden. Füge zuerst einen Freund hinzu.</p><div class="form-actions"><button class="primary-btn" data-action="goto-view" data-view="settings-share">Freund hinzufügen</button></div>`;
   }
   return sheet('share-send-title', 'Rezept senden', `<p class="settings-hint settings-hint--none">„${escapeHtml(r.title || 'Rezept')}“ wird als Kopie gesendet. Dein Original bleibt unverändert.</p>${inner}`);

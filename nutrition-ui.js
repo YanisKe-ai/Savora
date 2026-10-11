@@ -31,7 +31,7 @@ function nutritionResultHints(result) {
 /* ---------- Kompakte Karte (Punkt 24) — Platzhalter + Nachladen ---------- */
 function nutritionCardSection(recipeId) {
   return `<div class="nutrition-section">
-    <div data-lazy-nutrition data-recipe-id="${recipeId}" class="nutrition-card nutrition-card-loading">
+    <div data-lazy-nutrition data-recipe-id="${escapeAttr(recipeId)}" class="nutrition-card nutrition-card-loading">
       <span class="nutrition-loading-text">Wird geladen …</span>
     </div>
   </div>`;
@@ -43,7 +43,7 @@ function nutritionIngredientStatus(recipe, result) {
   const missing = list.filter(u => u.reason && u.reason !== 'not-found' && u.reason !== 'uncertain-match');
   const unclear = list.filter(u => u.reason === 'not-found' || u.reason === 'uncertain-match');
   const matched = result.matchedCount || 0;
-  const reasonText = (u) => u.reason === 'uncertain-match' ? `unsicher${u.candidate ? ', evtl. ' + escapeHtml(u.candidate) : ''}` : u.reason === 'not-found' ? 'nicht gefunden' : 'Menge fehlt oder nicht umrechenbar';
+  const reasonText = (u) => u.reason === 'uncertain-match' ? `unsicher${u.candidate ? ', evtl. ' + escapeHtml(u.candidate) : ''}` : u.reason === 'not-found' ? 'nicht gefunden' : u.reason === 'no-name' ? 'Zutatenname fehlt (nur ein Hinweis in Klammern)' : 'Menge fehlt oder nicht umrechenbar';
   return `<div class="nutri-status">
     <div class="nutri-status-row">
       <span class="nutri-pill nutri-pill--ok">${matched} erkannt</span>
@@ -53,7 +53,7 @@ function nutritionIngredientStatus(recipe, result) {
     ${(result.approximations || []).length ? `<p class="nutrition-hint-text">Ähnliches Lebensmittel verwendet: ${(result.approximations || []).map(a => escapeHtml(a.name) + ' (wie ' + escapeHtml(a.food.split(',')[0]) + ')').join(', ')}</p>` : ''}
     ${(result.unquantified || []).length ? `<p class="nutrition-hint-text">Ohne Mengenangabe nicht eingerechnet: ${(result.unquantified || []).map(escapeHtml).join(', ')}</p>` : ''}
     ${list.length ? `<details class="nutri-status-details"><summary>Nicht eingerechnet (${list.length})</summary><ul>${list.map(u => `<li><strong>${escapeHtml(u.name)}</strong>: ${reasonText(u)}</li>`).join('')}</ul>
-      <button class="text-btn" data-action="nutrition-open-match" data-id="${recipe.id}">Zuordnung korrigieren</button></details>` : ''}
+      <button class="text-btn" data-action="nutrition-open-match" data-id="${escapeAttr(recipe.id)}">Zuordnung korrigieren</button></details>` : ''}
   </div>`;
 }
 
@@ -64,7 +64,7 @@ function nutritionIncompleteInner(recipe, result) {
     <p class="nutrition-empty-text"><strong>Unvollständig berechnet:</strong> ${result.matchedCount || 0} von ${total} Zutaten konnten eingerechnet werden. Eine Portionssumme wäre daher zu niedrig und wird nicht angezeigt.</p>
     ${nutritionIngredientStatus(recipe, result)}
     <div class="nutrition-compact-actions">
-      <button class="primary-btn" data-action="nutrition-open-match" data-id="${recipe.id}">${ICONS.apple} Zutaten zuordnen</button>
+      <button class="primary-btn" data-action="nutrition-open-match" data-id="${escapeAttr(recipe.id)}">${ICONS.apple} Zutaten zuordnen</button>
     </div>`;
 }
 
@@ -76,7 +76,7 @@ function nutritionCompactInner(recipe, result) {
   if (!result) {
     return `
       <p class="nutrition-empty-text">Noch nicht berechnet.</p>
-      <button class="primary-btn" data-action="nutrition-open-match" data-id="${recipe.id}">Nährwerte berechnen</button>
+      <button class="primary-btn" data-action="nutrition-open-match" data-id="${escapeAttr(recipe.id)}">Nährwerte berechnen</button>
     `;
   }
   const cmode = result.needsServings ? 'total' : 'portion';   // Ausbeute unbekannt: Gesamtwerte statt Pro-Portion
@@ -92,15 +92,15 @@ function nutritionCompactInner(recipe, result) {
   return `
     <div class="nutrition-compact-heading">
       <span class="nutrition-confidence-badge tone-${confidenceBadgeClass(result.confidence)}">${conf.label}</span>
-      ${result.unresolvedCount > 0 ? `<button class="nutrition-review-link" data-action="nutrition-open-match" data-id="${recipe.id}">${result.unresolvedCount} Zutat${result.unresolvedCount === 1 ? '' : 'en'} prüfen</button>` : ''}
+      ${result.unresolvedCount > 0 ? `<button class="nutrition-review-link" data-action="nutrition-open-match" data-id="${escapeAttr(recipe.id)}">${result.unresolvedCount} Zutat${result.unresolvedCount === 1 ? '' : 'en'} prüfen</button>` : ''}
     </div>
     <p class="nutrition-basis">${cmode === 'total' ? 'Gesamtwerte des Rezepts' : 'Werte pro ' + (typeof servingMode === 'function' && servingMode(recipe) === 'pieces' ? 'Stück' : 'Portion')}, geschätzt</p>
     <div class="nutrition-compact-grid">${rows}</div>
     ${nutritionResultHints(result)}
     ${nutritionIngredientStatus(recipe, result)}
     <div class="nutrition-compact-actions">
-      <button class="nutrition-detail-link" data-action="nutrition-open-detail" data-id="${recipe.id}">Alle Nährwerte ${ICONS.chevronRight}</button>
-      <button class="nutrition-recalc-link" data-action="nutrition-open-match" data-id="${recipe.id}">${ICONS.swap} Neu berechnen</button>
+      <button class="nutrition-detail-link" data-action="nutrition-open-detail" data-id="${escapeAttr(recipe.id)}">Alle Nährwerte ${ICONS.chevronRight}</button>
+      <button class="nutrition-recalc-link" data-action="nutrition-open-match" data-id="${escapeAttr(recipe.id)}">${ICONS.swap} Neu berechnen</button>
     </div>
   `;
 }
@@ -125,7 +125,7 @@ async function hydrateNutritionCards() {
       if (st.status === 'not-calculated') node.innerHTML = nutritionCompactInner(recipe, null);
       else if (st.status === 'stale') node.innerHTML = `
           <p class="nutrition-empty-text">${ICONS.sparkle} Die Nährwerte sind veraltet (Zutaten, Portionen oder die Berechnung haben sich geändert). Bitte neu berechnen.</p>
-          <button class="primary-btn" data-action="nutrition-open-match" data-id="${recipe.id}">${ICONS.swap} Neu berechnen</button>`;
+          <button class="primary-btn" data-action="nutrition-open-match" data-id="${escapeAttr(recipe.id)}">${ICONS.swap} Neu berechnen</button>`;
       else if (st.status === 'failed') node.innerHTML = `<p class="nutrition-empty-text">Die Nährwerte konnten nicht gelesen werden.</p>`;
       else if (st.status === 'incomplete') node.innerHTML = nutritionIncompleteInner(recipe, st.result);
       else node.innerHTML = nutritionCompactInner(recipe, st.result);
@@ -193,7 +193,7 @@ function nutritionMatchStage(recipe) {
     ${!items.length ? `<p class="nutrition-empty-text">Keine berechenbaren Zutaten gefunden.</p>` : ''}
     <div class="form-actions">
       <button class="ghost-btn" data-action="close-modal">Abbrechen</button>
-      <button class="primary-btn" data-action="nutrition-apply" data-id="${recipe.id}">Übernehmen</button>
+      <button class="primary-btn" data-action="nutrition-apply" data-id="${escapeAttr(recipe.id)}">Übernehmen</button>
     </div>
   `;
 }
@@ -324,8 +324,8 @@ function nutritionBarcodeStage() {
 function nutritionCustomStage() {
   const target = state.nutritionSelectTarget;
   const field = (id, label, unit) => `<div class="field" style="margin-bottom:10px;">
-    <label for="${id}">${label}${unit ? ` (${unit})` : ''}</label>
-    <input type="text" inputmode="decimal" id="${id}" placeholder="0">
+    <label for="${escapeAttr(id)}">${label}${unit ? ` (${unit})` : ''}</label>
+    <input type="text" inputmode="decimal" id="${escapeAttr(id)}" placeholder="0">
   </div>`;
   return `
     <h2 class="modal-title" id="nutrition-modal-title">Eigenes Lebensmittel</h2>
@@ -429,12 +429,12 @@ function nutritionDetailModal(recipe, result) {
         <label for="nutritionFinishedWeight">Fertiggewicht (g, optional — für genauere „Pro 100 g“-Werte)</label>
         <input type="number" min="1" id="nutritionFinishedWeight" value="${recipe.nutritionFinishedWeight || ''}" placeholder="z.B. ${result.totalWeight || ''}">
       </div>
-      <button class="ghost-btn" data-action="nutrition-save-finished-weight" data-id="${recipe.id}" style="width:100%;margin-bottom:14px;">Fertiggewicht speichern</button>
+      <button class="ghost-btn" data-action="nutrition-save-finished-weight" data-id="${escapeAttr(recipe.id)}" style="width:100%;margin-bottom:14px;">Fertiggewicht speichern</button>
       ${NUTRITION_GROUP_ORDER.map((g) => nutritionDetailGroup(g, result)).join('')}
       ${sourceLabel ? `<p class="nutrition-source-line">${ICONS.book} ${escapeHtml(sourceLabel)}</p>` : ''}
       <p class="nutrition-disclaimer">Geschätzte Werte. Je nach Zutaten und Mengen können sie abweichen. Keine medizinische Aussage und keine Grundlage für Entscheidungen bei Allergien oder Unverträglichkeiten.</p>
       <div class="form-actions">
-        <button class="ghost-btn" data-action="nutrition-open-match" data-id="${recipe.id}">Zuordnung bearbeiten</button>
+        <button class="ghost-btn" data-action="nutrition-open-match" data-id="${escapeAttr(recipe.id)}">Zuordnung bearbeiten</button>
         <button class="primary-btn" data-action="close-modal">Schliessen</button>
       </div>
     </div>

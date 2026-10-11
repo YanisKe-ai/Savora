@@ -154,7 +154,12 @@ function parseIngredientLine(line) {
     if (p) return p;
   }
   const m = /^([\d.,\/]+)\s*([a-zA-ZäöüÄÖÜ.]*)\s+(.*)$/.exec(line.trim());
-  if (m) return { amount: m[1].replace(',', '.'), unit: m[2], name: m[3] };
+  if (m) {
+    // Nur ein bekanntes Einheitenwort ist eine Einheit: "1/2 Ei (verquirlen)" bleibt Menge 1/2 + Name "Ei (verquirlen)"
+    const isUnit = !m[2] || (typeof qtyIsUnitWord === 'function' ? qtyIsUnitWord(m[2]) : true);
+    if (isUnit) return { amount: m[1].replace(',', '.'), unit: m[2], name: m[3] };
+    return { amount: m[1].replace(',', '.'), unit: '', name: (m[2] + ' ' + m[3]).trim() };
+  }
   return { amount: '', unit: '', name: line };
 }
 

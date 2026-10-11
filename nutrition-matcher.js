@@ -72,8 +72,13 @@ async function searchAllFoods(query, limit = 20) {
    daraus eine Zubereitungsart erkannt (Punkt 21), fliesst sie NUR ein, wenn die Zutatenzeile
    selbst noch keinen expliziten ernaehrungsrelevanten Zustand nennt (die explizite Angabe in
    der Zutat selbst hat Vorrang vor der aus dem Fliesstext erratenen). */
-async function matchIngredient(rawName, steps, opts) {
+async function matchIngredient(rawNameIn, steps, opts) {
+  // Nur der eigentliche Zutatenname zaehlt: Klammerzusaetze ("(Ei verquirlen)", "[frisch]") werden nicht gesucht.
+  // Eine fruehere Bestaetigung unter dem vollen Text (mit Klammern) bleibt trotzdem gueltig (siehe confirmKeys).
+  const cleanedName = nutCleanIngredientName(rawNameIn).name;
+  const rawName = cleanedName || rawNameIn;
   const normalized = normalizeIngredientText(rawName);
+  const confirmKeys = [normalized, normalizeIngredientText(rawNameIn), normalizeIngredientText(opts && opts.originalName)].filter((k, i, a) => k && a.indexOf(k) === i);
   if (!normalized) {
     return { normalized, status: 'unmatched', food: null, candidates: [], confirmed: false, preparation: null, ingredientInfo: null };
   }
@@ -85,10 +90,12 @@ async function matchIngredient(rawName, steps, opts) {
   // 1) Bestaetigte Zuordnung hat Vorrang vor jeder automatischen Suche. Bewusst weiterhin ueber
   //    den vollen Originaltext normalisiert (nicht den bereinigten Kern) — eine einmal vom
   //    Nutzer bestaetigte Zeile soll exakt wiedererkannt werden (Punkt 89).
-  const confirmed = await dbGetNutritionMatch(normalized);
-  if (confirmed && confirmed.foodId) {
-    const food = await findFoodById(confirmed.foodId);
-    if (food) return { normalized, status: 'matched', food, candidates: [food], confirmed: true, preparation, ingredientInfo };
+  for (const key of confirmKeys) {
+    const confirmed = await dbGetNutritionMatch(key);
+    if (confirmed && confirmed.foodId) {
+      const food = await findFoodById(confirmed.foodId);
+      if (food) return { normalized, status: 'matched', food, candidates: [food], confirmed: true, preparation, ingredientInfo };
+    }
   }
 
   // 2) Eigene Lebensmittel vor der generischen Datenbank.
@@ -150,7 +157,7 @@ async function matchIngredients(ingredients, steps) {
   const results = [];
   for (const ing of ingredients) {
     const prepared = (typeof nutPrepareIngredient === 'function') ? nutPrepareIngredient(ing) : ing;
-    const result = await matchIngredient(prepared.name, steps);
+    const result = await matchIngredient(prepared.name, steps, { originalName: ing.name });
     results.push({ ingredient: ing, ...result });
   }
   return results;

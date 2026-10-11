@@ -2,6 +2,11 @@
 function uid() { return 'r_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 8); }
 
 function escapeHtml(s) { return (s === null || s === undefined || s === false ? '' : String(s)).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+/* Attribut-Wert maskieren (Audit-Nachtrag): IDs, Handles und Schluessel stammen teils aus gespeicherten Altdaten und duerfen
+   nie aus dem Attribut ausbrechen. Fuer normale IDs (Buchstaben, Ziffern, _ -) ist die Ausgabe identisch. */
+function escapeAttr(s) { return escapeHtml(s); }
+/* Wert fuer einen CSS-Attributselektor ([data-id="..."]) maskieren, damit Anfuehrungszeichen den Selektor nicht sprengen. */
+function cssAttr(s) { return String(s === null || s === undefined ? '' : s).replace(/["\\\n\r]/g, c => c === '\n' ? '\\a ' : c === '\r' ? '\\d ' : '\\' + c); }
 
 function fmtAmount(n) {
   if (n === null || n === undefined || n === '') return '';

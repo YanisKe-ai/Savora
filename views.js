@@ -129,7 +129,7 @@ function deleteModal(r) {
       <p style="font-size:14px;color:var(--text-muted);">„${escapeHtml(r.title)}“ wird endgültig aus deinem Kochbuch entfernt.</p>
       <div class="form-actions">
         <button class="ghost-btn" data-action="close-modal">Abbrechen</button>
-        <button class="primary-btn" style="background:var(--danger);color:#fff;flex:1;justify-content:center;" data-action="delete-recipe" data-id="${r.id}">Löschen</button>
+        <button class="primary-btn" style="background:var(--danger);color:#fff;flex:1;justify-content:center;" data-action="delete-recipe" data-id="${escapeAttr(r.id)}">Löschen</button>
       </div>
     </div>
   </div>`;
@@ -203,7 +203,7 @@ function renderStepWithTimers(text, stepIdx) {
     const t = state.timers[id];
     const label = t ? fmtClock(t.remaining) : seg.value;
     const cls = t && t.done ? 'done' : (t && t.running ? 'running' : '');
-    return `<button type="button" class="timer-chip ${cls}" data-timer-id="${id}" data-seconds="${seg.seconds}" data-action="toggle-timer" aria-label="${t && t.done ? 'Timer fertig' : t && t.running ? 'Timer läuft, ' + fmtClock(t.remaining) + ' verbleiben' : 'Timer starten, ' + fmtClock(seg.seconds)}">${t && t.done ? ICONS.check : ICONS.timer}<span data-timer-label="${id}">${label}</span></button>`;
+    return `<button type="button" class="timer-chip ${cls}" data-timer-id="${escapeAttr(id)}" data-seconds="${seg.seconds}" data-action="toggle-timer" aria-label="${t && t.done ? 'Timer fertig' : t && t.running ? 'Timer läuft, ' + fmtClock(t.remaining) + ' verbleiben' : 'Timer starten, ' + fmtClock(seg.seconds)}">${t && t.done ? ICONS.check : ICONS.timer}<span data-timer-label="${escapeAttr(id)}">${label}</span></button>`;
   }).join('');
 }
 
