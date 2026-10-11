@@ -51,7 +51,7 @@ function timeBucketsFor(minutes) {
 
 function activeStructuredFilterCount() {
   const { dietary, category, time } = state.activeFilters;
-  return dietary.size + category.size + time.size;
+  return dietary.size + category.size + time.size + ((state.activeFilters.more && state.activeFilters.more.size) || 0) + ((state.activeFilters.tags && state.activeFilters.tags.size) || 0);
 }
 
 
@@ -91,54 +91,36 @@ function addMenuModal() {
 
 function activeFilterCount() {
   const f = state.activeFilters || {};
-  return ((f.dietary && f.dietary.size) || 0) + ((f.category && f.category.size) || 0) + ((f.time && f.time.size) || 0) + (state.favOnly ? 1 : 0) + (state.activeTag ? 1 : 0) + (state.activeCollection && state.activeCollection !== 'all' ? 1 : 0);
+  return activeStructuredFilterCount() + (state.favOnly ? 1 : 0) + (state.activeTag ? 1 : 0) + (state.activeCollection && state.activeCollection !== 'all' ? 1 : 0);
 }
 function emptyFilterState() {
   const q = (state.query || '').trim();
-  const hasFilters = typeof activeFilterCount === 'function' ? activeFilterCount() > 0 : true;
-  if (q) {
+  const extra = activeFilterCount() - (state.favOnly ? 1 : 0);   // zusaetzliche Filter ohne Alle/Favoriten
+  const qShort = q.length > 40 ? q.slice(0, 40) + '…' : q;
+  if (q && extra <= 0 && !state.favOnly) {
     return `<div class="empty-state">
     ${ICONS.search}
-    <h2>Keine Treffer für „${escapeHtml(q.length > 40 ? q.slice(0, 40) + '…' : q)}“</h2>
-    <p>Prüfe die Schreibweise oder suche nach einer Zutat oder einem Stichwort.${hasFilters ? ' Aktive Filter schränken die Suche zusätzlich ein.' : ''}</p>
-    <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:center;">
-      ${hasFilters ? `<button class="ghost-btn" data-action="open-filter-sheet">${ICONS.filter} Filter ändern</button>` : ''}
+    <h2>Keine Treffer für „${escapeHtml(qShort)}“</h2>
+    <p>Prüfe die Schreibweise oder suche nach einer Zutat oder einem Stichwort.</p>
+    <div class="empty-actions">
       <button class="primary-btn" data-action="clear-search">Suche löschen</button>
     </div>
   </div>`;
   }
+  let hint = 'Ändere die Auswahl oder setze die Filter zurück.';
+  if (q && (extra > 0 || state.favOnly)) hint = `Die Suche nach „${escapeHtml(qShort)}“ und die Auswahl schränken sich gegenseitig ein.`;
+  else if (state.favOnly && extra <= 0) hint = 'Du hast noch keine Favoriten markiert.';
   return `<div class="empty-state">
     ${ICONS.filter}
-    <h2>Keine Rezepte passen zu diesen Filtern</h2>
-    <p>Versuch es mit weniger Filtern oder einer anderen Kombination.</p>
-    <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:center;">
-      <button class="ghost-btn" data-action="open-filter-sheet">${ICONS.filter} Filter ändern</button>
-      <button class="primary-btn" data-action="clear-all-filters">Alle Filter löschen</button>
+    <h2>Keine passenden Rezepte</h2>
+    <p>${hint}</p>
+    <div class="empty-actions">
+      ${extra > 0 ? `<button class="primary-btn" data-action="reset-extra-filters">Filter zurücksetzen</button>` : (state.favOnly ? `<button class="primary-btn" data-action="set-fav-mode" data-id="all">Alle Rezepte anzeigen</button>` : '')}
+      ${q ? `<button class="ghost-btn" data-action="clear-search">Suche löschen</button>` : ''}
+      ${extra > 0 || state.favOnly ? `<button class="ghost-btn" data-action="open-filter-sheet">Filter ändern</button>` : ''}
     </div>
   </div>`;
 }
-
-/* ---------- Filter-Sheet (Punkt 104-107, 118) ---------- */
-function filterCheckboxGroup(title, groupId, options, activeSet, getId, getLabel) {
-  // Eindeutige ID je Gruppe (Mahlzeit und Gericht teilen sich dieselbe Filterdimension).
-  const headingId = `filter-group-${groupId}-${String(title).toLowerCase().replace(/[^a-z0-9]+/g, '-')}`;
-  return `<div class="filter-group">
-    <h3 class="filter-group-title" id="${headingId}">${title}</h3>
-    <div class="filter-checkbox-row" role="group" aria-labelledby="${headingId}">
-      ${options.map(o => {
-        const id = getId(o), label = getLabel(o);
-        const active = activeSet.has(id);
-        return `<button type="button" class="filter-checkbox ${active ? 'active' : ''}" data-action="toggle-filter" data-dim="${groupId}" data-id="${escapeHtml(id)}" aria-pressed="${active}">
-          <span class="filter-checkbox-box" aria-hidden="true">${active ? ICONS.check : ''}</span>${escapeHtml(label)}
-        </button>`;
-      }).join('')}
-    </div>
-  </div>`;
-}
-
-
-
-
 
 function deleteModal(r) {
   return `<div class="modal-backdrop" data-action="close-modal">
@@ -252,10 +234,10 @@ function settingsGroup(label, rowsHtml) {
   </div>`;
 }
 
-function settingsDetailShell(title, bodyHtml) {
+function settingsDetailShell(title, bodyHtml, cls) {
   return `
     ${topbar(title, { back: true })}
-    <main class="has-tabbar settings-page">${bodyHtml}</main>
+    <main class="has-tabbar settings-page${cls ? ' ' + cls : ''}">${bodyHtml}</main>
     ${bottomNav()}
   `;
 }
@@ -267,7 +249,7 @@ function settingsView() {
 
   return `
     ${topbar('Einstellungen')}
-    <main class="has-tabbar settings-page">
+    <main class="has-tabbar settings-page settings-page--home">
       ${pageTitle('Einstellungen')}
       ${settingsGroup('Deine Daten', [
         settingsRow({ icon: ICONS.cloud, title: 'Konto und Sicherung', summary: cloudSettingsSummary(), view: 'settings-data' }),
@@ -343,7 +325,7 @@ function settingsDisplayView() {
   const body = settingsSectionHead('Helles oder dunkles Design') + settingsThemeBodyHtml()
     + settingsSectionHead('Mengenangaben') + settingsUnitsBodyHtml()
     + settingsSectionHead('Nährwerte') + settingsNutritionBodyHtml();
-  return settingsDetailShell('Anzeige', body);
+  return settingsDetailShell('Anzeige', body, 'settings-page--cols');
 }
 
 /* Absendername: freiwillig, wird heute nirgends automatisch ausgegeben (weder PDF noch Teilen).
@@ -406,13 +388,13 @@ function settingsDataView(first) {
   const backup = settingsSectionHead('Sicherungskopie', 'Eine Datei zum Aufbewahren: ein fester Stand deiner Rezepte, unabhängig von deinem Konto.')
     + settingsBackupSectionHtml();
   const body = first === 'backup' ? backup + sync : sync + backup;
-  return settingsDetailShell('Konto und Sicherung', body)
+  return settingsDetailShell('Konto und Sicherung', body, 'settings-page--cols')
     + (state.modal && state.modal.type === 'cloud-new-password' && typeof cloudNewPasswordModal === 'function' ? cloudNewPasswordModal() : '');
 }
 
 
 function settingsHelpView() {
-  return settingsDetailShell('Hilfe erhalten', legalHelpHtml());
+  return settingsDetailShell('Hilfe erhalten', legalHelpHtml(), 'settings-page--cols');
 }
 function settingsPrivacyView() {
   return settingsDetailShell('Datenschutz', legalPrivacyHtml());
@@ -427,7 +409,7 @@ function settingsLicensesView() {
   return settingsDetailShell('Lizenzen', legalLicensesHtml());
 }
 function settingsAboutView() {
-  return settingsDetailShell('Über Savora', legalAboutHtml());
+  return settingsDetailShell('Über Savora', legalAboutHtml(), 'settings-page--cols');
 }
 /* Punkt 12/13: eigener, dedizierter Screen statt Accordion-Textarea in den Settings. Wird ueber
    die FAB (addMenuModal) erreicht, nicht ueber "Mehr". */
@@ -449,8 +431,31 @@ function pasteImportView() {
         <button class="primary-btn" data-action="do-paste-import">${ICONS.fileText} Rezept-Entwurf erstellen</button>
       </div>
     </div>`;
+  // Hilfespalte: nur auf breiten Bildschirmen sichtbar (Paket 42); beschreibt, was recipe-import.js wirklich erkennt
+  const help = `<aside class="import-help" aria-label="Was Savora erkennt">
+      <h2 class="import-help-h">Das erkennt Savora</h2>
+      <ul class="import-help-list">
+        <li><b>Titel.</b> Die erste Zeile über den Zutaten.</li>
+        <li><b>Zutaten.</b> Zeilen unter der Überschrift «Zutaten», mit Menge und Einheit.</li>
+        <li><b>Zubereitung.</b> Nummerierte Schritte oder der Text unter «Zubereitung» oder «Anleitung».</li>
+        <li><b>Portionen und Zeit.</b> Zum Beispiel «Für 4 Personen» oder «Vorbereitung: 15 Minuten».</li>
+      </ul>
+      <p class="import-help-note">Was Savora nicht sicher zuordnen kann, zeigt es dir zum Prüfen. Es wird nichts erfunden und nichts gespeichert, bevor du den Entwurf bestätigst.</p>
+      <h3 class="import-help-h import-help-h--sub">Beispiel</h3>
+      <pre class="import-example">Gemüsesuppe
+
+Zutaten:
+200 g Karotten
+1 Zwiebel
+
+Zubereitung:
+1. Gemüse schneiden.
+2. 20 Minuten kochen.
+
+Für 4 Personen, 30 Minuten</pre>
+    </aside>`;
   return `
     ${topbar('Aus Text importieren', { back: true })}
-    <main class="has-tabbar settings-page">${body}</main>
+    <main class="has-tabbar settings-page import-page"><div class="import-layout">${body}${help}</div></main>
   `;
 }

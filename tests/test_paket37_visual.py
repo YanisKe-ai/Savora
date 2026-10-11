@@ -118,12 +118,12 @@ async def main():
                     lupe: !!document.querySelector('.topbar [aria-label=\"Suchen\"], .topbar [data-action=\"focus-search\"]'),
                     gear: !!document.querySelector('.topbar [data-action=\"goto-view\"][data-view=\"settings\"][aria-label=\"Einstellungen\"]'),
                     recent: !!document.querySelector('.recent-card'), allTitle: Array.from(document.querySelectorAll('main h2')).some(h => h.textContent.trim() === 'Alle Rezepte' && getComputedStyle(h).position !== 'absolute'),
-                    firstRecipe: Math.round(document.querySelector('.rcard, .rrow').getBoundingClientRect().top), stripRow: (() => { const s = document.querySelector('.filter-strip'); if (!s) return null; const kids = Array.from(s.children).map(k => Math.round(k.getBoundingClientRect().top)); return Math.max(...kids) - Math.min(...kids); })() })""")
+                    firstRecipe: Math.round(document.querySelector('.rcard, .rrow').getBoundingClientRect().top), stripRow: (() => { const s = document.querySelector('.filter-bar'); if (!s) return null; const kids = Array.from(s.children).map(k => Math.round(k.getBoundingClientRect().top)); return Math.max(...kids) - Math.min(...kids); })() })""")
                 check(tag + 'Startseite: genau ein Suchfeld, kein Lupen-Knopf oben', home['search'] == 1 and home['fields'] == 1 and not home['lupe'], str(home))
                 check(tag + 'Startseite: Zahnrad zu den Einstellungen in der Kopfzeile', home['gear'], str(home))
                 check(tag + 'Startseite: kein Zwischentitel "Alle Rezepte", kein "Zuletzt bearbeitet"', not home['allTitle'] and not home['recent'], str(home))
-                check(tag + 'Startseite: Filterchips und Ansichtsumschalter in einer Zeile', home['stripRow'] is not None and home['stripRow'] <= 6, str(home['stripRow']))
-                check(tag + 'Startseite: erstes Rezept beginnt frueh', home['firstRecipe'] < (420 if w < 600 else 400), str(home['firstRecipe']))
+                check(tag + 'Startseite: Alle/Favoriten und Filter-Schaltfläche in einer Zeile (ab 375 px; schmaler darf umbrechen)', home['stripRow'] is not None and (w < 375 or home['stripRow'] <= 6), str(home['stripRow']))
+                check(tag + 'Startseite: erstes Rezept beginnt frueh', home['firstRecipe'] < (520 if w < 600 else 480), str(home['firstRecipe']))
                 # Rezept ohne Foto: kein Buchstaben-Platzhalter, keine leere Bildflaeche
                 cards = await page.evaluate("""() => { const t = Array.from(document.querySelectorAll('.rcard--text')); const ph = Array.from(document.querySelectorAll('.rcard')).filter(c => c.classList.contains('rcard--text')); const photo = Array.from(document.querySelectorAll('.rcard:not(.rcard--text)'));
                     return { text: t.length, imgInText: t.some(c => c.querySelector('img, .placeholder, .ph-letter')), letters: document.querySelectorAll('.ph-letter').length,
@@ -177,11 +177,11 @@ async def main():
                 check(tag + 'Kochmodus: Schritttext mindestens 28 px, Zutaten-Chips mind. 18 px', ck['step'] >= 27.99 and (ck['n'] == 0 or ck['chip'] >= 17.99), str(ck))
                 check(tag + 'Kochmodus: "Anpassen" und "Alle Zutaten" als Schaltflaechen mind. 44 px', ck['all'] and all(x >= 44 for x in ck['btn']), str(ck))
 
-                # Logo: Symbol in Hell dunkel, in Dunkel/Schwarz hell, rotes Detail immer rot
+                # Marke (Paket 43): nur die Wortmarke, Hell rot, Dunkel/Schwarz creme
                 await show_view("state.view='home'")
-                lg = await page.evaluate("""() => { const svg = document.querySelector('.topbar .brand-symbol, .brand-symbol'); if (!svg) return null; const g = svg.querySelector('g'); const red = svg.querySelector('path[fill]:not([fill=none])'); const stroke = getComputedStyle(g).stroke; const m = stroke.match(/\\d+/g).map(Number); return { stroke: m.slice(0, 3), lum: (0.2126 * m[0] + 0.7152 * m[1] + 0.0722 * m[2]) / 255, red: getComputedStyle(red).fill }; }""")
-                want_dark_symbol = theme == 'light'
-                check(tag + 'Logo: Symbol dunkel auf hell bzw. hell auf dunkel, rotes Detail bleibt rot', lg is not None and ((lg['lum'] < 0.3) == want_dark_symbol) and lg['red'].replace(' ', '') == 'rgb(230,75,53)', str(lg))
+                lg = await page.evaluate("""() => { const w = document.querySelector('.topbar .top-wordmark'); return w ? getComputedStyle(w).color.replace(/ /g, '') : null; }""")
+                want_wm = 'rgb(185,59,44)' if theme == 'light' else 'rgb(247,244,238)'
+                check(tag + 'Logo: Wortmarke rot auf hell bzw. creme auf dunkel', lg == want_wm, str(lg))
 
                 # Grosse Systemschrift
                 await page.evaluate("document.documentElement.style.fontSize = '24px'"); await page.wait_for_timeout(200)

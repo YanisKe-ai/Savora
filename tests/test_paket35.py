@@ -42,9 +42,9 @@ async def main():
         check('Verständliche Namen', all(n for n in names) and 'Nachtküche' in names and 'Ofenglück' in names, str(names))
         check('Alle Hintergründe vorhanden und unverändert (Originalgrösse)', all(_os.path.exists(f'{COVERS}/{FILES[i]}.png') and Image.open(f'{COVERS}/{FILES[i]}.png').size[0] in (1054, 1055) for i in IDS))
 
-        # ---------- 2. Leere Eingaben: nur Symbol und Datum ----------
+        # ---------- 2. Leere Eingaben: nur Wortmarke und Datum ----------
         L = await ev("() => coverLayout({ templateId: 'tomate', title: '', name: '   ', slogan: '\\n \\t', date: '2026-10-09', showDate: true, logo: true })")
-        check('Ohne Eingaben: keine Textblöcke, Symbol und Datum', L['blocks'] == [] and L['logo'] and L['date']['text'] == '09.10.2026', json.dumps(L['date']))
+        check('Ohne Eingaben: keine Textblöcke, Wortmarke und Datum', L['blocks'] == [] and L['logo'] and L['date']['text'] == '09.10.2026', json.dumps(L['date']))
         html = await ev("() => coverHtml(coverLayout({ templateId: 'tomate', date: '2026-10-09' }))")
         check('Ohne Eingaben kein Beispieltitel, kein Vorlagenname, kein Personenname', not any(w in html for w in ('Yanis', 'Keusch', 'Tomate', 'Mein persönliches', 'Kochbuch')), '')
         cfg0 = await ev("() => { localStorage.removeItem(COOKBOOK_CONFIG_KEY); localStorage.removeItem(COOKBOOK_PROJECTS_KEY); coverEnsureConfig(); const c = getCookbookConfig(); return { t: c.title, a: c.author, s: c.subtitle, cover: c.cover }; }")
@@ -90,9 +90,9 @@ async def main():
             for bl in Lz['blocks']:
                 if not (bl['x'] >= zz['x'] - 1e-6 and bl['x'] + bl['w'] <= zz['x'] + zz['w'] + 1e-6 and bl['y'] >= zz['y'] - 1e-6 and bl['y'] + bl['h'] <= zz['y'] + zz['h'] + 1e-6): bad.append((z['id'], bl['key']))
             if Lz['warnings']: bad.append((z['id'], 'warn'))
-            logo_bottom = logo_box['box']['y'] + logo_box['box']['w'] * logo_box['page']['w'] * (346 / 408) / logo_box['page']['h']
+            logo_bottom = logo_box['box']['y'] + logo_box['box']['w'] * logo_box['page']['w'] * (400 / 1200) / logo_box['page']['h']
             if zz['y'] < logo_bottom - 1e-6: bad.append((z['id'], 'logo-overlap'))
-        check('Alle Textblöcke liegen in den sicheren Zonen und überdecken das Symbol nicht', not bad, str(bad))
+        check('Alle Textblöcke liegen in den sicheren Zonen und überdecken die Wortmarke nicht', not bad, str(bad))
         short = await ev("() => coverLayout({ templateId: 'pop', title: 'Fein', date: '2026-10-09' })")
         check('Kurzer Titel: eine Zeile in grosser Schrift', len(short['blocks'][0]['lines']) == 1 and short['blocks'][0]['sizePx'] >= 90, str(short['blocks'][0]['sizePx']))
         long_ok = await ev("() => coverLayout({ templateId: 'pop', title: 'Die allerbesten Familienrezepte aus drei Generationen und vielen Ländern', date: '2026-10-09' })")
@@ -122,11 +122,11 @@ async def main():
             cs2 = region(d['x1'] - dw, d['y'], d['x1'], d['y'] + d['h'])
             w2 = min(contrast(c, ink) for c in cs2)
             if w2 < 4.5: poor.append((z['id'], 'date', round(w2, 1)))
-            lb = logo_box['box']; lh = lb['w'] * logo_box['page']['w'] * (346 / 408) / logo_box['page']['h']
+            lb = logo_box['box']; lh = lb['w'] * logo_box['page']['w'] * (400 / 1200) / logo_box['page']['h']
             cs3 = region(lb['x'], lb['y'], lb['x'] + lb['w'], lb['y'] + lh)
-            w3 = min(contrast(c, ink) for c in cs3)
+            w3 = min(contrast(c, hex2rgb('#F7F4EE' if z['ink'].upper() == '#FFFFFF' else '#252720')) for c in cs3)   # Wortmarke: Creme auf dunklen, Tinte auf hellen Titelblättern
             if w3 < 4.5: poor.append((z['id'], 'logo', round(w3, 1)))
-        check('Text, Datum und Symbol sind auf allen zehn Hintergründen lesbar (>= 4,5:1, Illustration unberührt)', not poor, str(poor))
+        check('Text, Datum und Wortmarke sind auf allen zehn Hintergründen lesbar (>= 4,5:1, Illustration unberührt)', not poor, str(poor))
 
         # ---------- 7. Sicherheit: Eingaben nur als Text ----------
         await ev("() => { window.__xss = 0; }")
@@ -138,8 +138,8 @@ async def main():
         # ---------- 8. Theme: PDF-Inhalt hängt nicht vom App-Theme ab ----------
         th = await ev("""() => { const i = { templateId: 'nachtkueche', title: 'Theme', date: '2026-10-09' }; const out = []; ['light', 'dark', 'amoled'].forEach(t => { state.theme = t; applyTheme(); out.push(coverHtml(coverLayout(i))); }); state.theme = 'system'; applyTheme(); return out.every(x => x === out[0]); }""")
         check('Titelblatt-HTML ist in Hell, Dunkel und Schwarz identisch', th)
-        sym = await ev("() => ({ light: coverSymbolSvg('#171717').includes('#E64B35'), dark: coverSymbolSvg('#FFFFFF').includes('#E64B35') })")
-        check('Lesezeichen bleibt rot in beiden Symbolvarianten', sym['light'] and sym['dark'])
+        sym = await ev("() => ({ svg: wordmarkSvg('x'), vb: /viewBox=\"0 0 1200 400\"/.test(wordmarkSvg('x')), inks: COVER_TEMPLATES.map(t => coverLayout({ templateId: t.id }).logo.ink) })")
+        check('Wortmarke: Pfad-SVG 1200 x 400 ohne Text und Bild, Farbe nur Creme (dunkle Cover) oder Tinte (helle Cover)', sym['vb'] and '<text' not in sym['svg'] and '<image' not in sym['svg'] and set(sym['inks']) == {'#F7F4EE', '#252720'}, str(sym['inks']))
 
         # ---------- 9. Vorlagenwähler im Browser: Maus, Tastatur, Fokus, Scroll ----------
         await ev("() => { localStorage.removeItem(COOKBOOK_CONFIG_KEY); localStorage.removeItem(COOKBOOK_PROJECTS_KEY); state.cookbookStep = 2; state.view = 'cookbook'; render(); }"); await page.wait_for_timeout(1000)

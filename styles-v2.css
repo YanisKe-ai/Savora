@@ -1816,7 +1816,6 @@ html.is-scrolled .home-head { box-shadow: 0 1px 0 rgba(37, 39, 32, .05), 0 8px 1
 @media (prefers-color-scheme: dark) { :root:not([data-theme]).is-scrolled .home-head { box-shadow: 0 1px 0 rgba(255, 255, 255, .05), 0 8px 14px -10px rgba(0, 0, 0, .7); } }
 @media (prefers-reduced-motion: reduce) { .home-head { transition: none; } }
 @media (prefers-contrast: more) { html.is-scrolled .home-head { box-shadow: 0 1px 0 var(--text); } }
-=======
 /* Paket 38: Einstellungen entschlackt. Zusammengelegte Seiten haben Abschnittskopf mit Überschrift und einem Satz.
    Zeilen der Hauptliste dürfen umbrechen (lange Zusammenfassung wie «Wie dein Gerät, Gramm und Milliliter»), nichts wird abgeschnitten. */
 .settings-section-head { margin: 2rem 0 0.75rem 0.25rem; min-width: 0; }
@@ -1827,7 +1826,7 @@ html.is-scrolled .home-head { box-shadow: 0 1px 0 rgba(37, 39, 32, .05), 0 8px 1
 .settings-row-title { min-width: 0; flex: 1 1 7rem; overflow-wrap: anywhere; }
 .settings-row-summary { min-width: 0; max-width: 55%; flex: 0 1 auto; }
 
-/* ==========================================================================
+/* =====================================================
    Wochenplan (Paket 41)
    Handy: eine ruhige Liste, ein Abschnitt pro Tag, keine Karten und keine Schatten.
    Heute: sanfte Salbeifläche. Ab 640 px ruhige Tageskacheln: 2 Spalten, ab 900 px 4 plus 3,
@@ -1912,3 +1911,210 @@ html.is-scrolled .home-head { box-shadow: 0 1px 0 rgba(37, 39, 32, .05), 0 8px 1
   .plan-entry:not(.has-thumb) .plan-entry-text > :last-child { padding-right: 2.5rem; }
   .plan-entry:not(.has-thumb) .icon-btn { top: auto; bottom: 0; }
 }
+/* ===== Paket 43: Savora-Wortmarke (Pfad-SVG, nur Schrift) statt Buch-Löffel-Zeichen ===== */
+/* Farbe folgt der App-Einstellung (data-theme am Wurzelelement), nicht dem System; ohne data-theme gilt das System (Startbild vor dem Laden). */
+.wordmark { display: block; flex: none; height: auto; aspect-ratio: 3 / 1; color: #B93B2C; }
+[data-theme="dark"] .wordmark, [data-theme="amoled"] .wordmark { color: #F7F4EE; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme]) .wordmark { color: #F7F4EE; } }
+.wordmark * { transition: none; }
+.top-wordmark { width: clamp(112px, 36vw, 136px); margin: -0.25rem 0 -0.25rem -0.25rem; }
+.nav-brand { padding: 0.25rem 0.5rem 1.25rem; }
+.nav-brand .nav-wordmark { width: 152px; height: auto; margin-left: -0.25rem; }
+#splash { background: var(--bg, #F7F4EE); }
+#splash .wordmark, #splashLogo { width: min(60vw, 240px); height: auto; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme]) #splash { background: #1B1A17; } }
+/* ==========================================================================
+   Filter (Paket 44)
+   Startseite: Suche, Alle/Favoriten, Filter-Schaltfläche, Zusammenfassung.
+   Fenster «Rezepte filtern» mit Entwurf. Nur Variablen, nichts knapp bemessen.
+   ========================================================================== */
+.home-head .search-field { margin-bottom: 0.5rem; }
+.filter-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem 0.75rem; margin: 0 0 0.5rem; }
+.seg { display: flex; flex: 1 1 11rem; min-width: 0; gap: 0.25rem; padding: 0.25rem; border-radius: 999px; background: var(--surface-soft); }
+.seg-btn { flex: 1 1 0; min-width: 0; min-height: 44px; padding: 0.25rem 0.75rem; border: 0; border-radius: 999px; background: transparent; color: var(--text-soft); font: inherit; font-size: 1rem; font-weight: 600; line-height: 1.2; overflow-wrap: anywhere; transition: background-color 140ms var(--ease-out, ease-out), color 140ms var(--ease-out, ease-out), transform 140ms var(--ease-out, ease-out); }
+.seg-btn[aria-pressed="true"] { background: var(--lime); color: var(--lime-ink); font-weight: 700; box-shadow: inset 0 0 0 1.5px var(--focus-ring); }
+.filter-btn { flex: 0 1 auto; display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem; min-height: 48px; padding: 0.25rem 1rem; border: 1.5px solid var(--border); border-radius: 999px; background: var(--card-bg); color: var(--text); font: inherit; font-size: 1rem; font-weight: 600; line-height: 1.2; transition: background-color 140ms var(--ease-out, ease-out), border-color 140ms var(--ease-out, ease-out), transform 140ms var(--ease-out, ease-out); }
+.filter-btn svg { width: 1.25rem; height: 1.25rem; flex: none; }
+.filter-btn.is-active { background: var(--lime); color: var(--lime-ink); border-color: var(--focus-ring); font-weight: 700; }
+.seg-btn:active, .filter-btn:active, .fs-opt:active { transform: scale(0.97); }
+.filter-summary { display: flex; flex-wrap: wrap; align-items: center; gap: 0 0.75rem; margin: 0 0 0.5rem; }
+.filter-summary-text { flex: 1 1 10rem; min-width: 0; margin: 0; font-size: 0.9375rem; line-height: 1.4; color: var(--text-soft); overflow-wrap: anywhere; }
+.filter-summary-reset { min-height: 44px; padding: 0 0.5rem; border: 0; background: transparent; color: var(--text); font: inherit; font-size: 0.9375rem; font-weight: 700; text-decoration: underline; text-underline-offset: 3px; }
+.result-row { display: flex; flex-wrap: wrap; align-items: center; gap: 0.25rem 0.75rem; margin: 0 0 0.75rem; }
+.result-row .result-line { flex: 1 1 auto; margin: 0; }
+.sort-pick { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 0.25rem 0.5rem; min-width: 0; max-width: 100%; font-size: 0.9375rem; color: var(--text-soft); }
+.sort-select { flex: 1 1 9rem; min-width: 0; min-height: 44px; max-width: 100%; padding: 0 0.75rem; border: 1px solid var(--border); border-radius: 999px; background: var(--surface-soft); color: var(--text); font: inherit; font-size: 0.9375rem; font-weight: 600; }
+.sort-select:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 2px; }
+.result-row .layout-toggle { flex: none; order: 2; }
+.result-row .sort-pick { order: 3; flex: 1 1 14rem; }
+.result-row .sort-pick .sort-select { flex: 1 1 9rem; }
+.empty-actions { display: flex; flex-wrap: wrap; gap: 0.5rem; justify-content: center; }
+.empty-actions .primary-btn, .empty-actions .ghost-btn { min-height: 48px; }
+
+.modal-sheet.filter-sheet { display: flex; flex-direction: column; max-width: 520px; padding: 0; overflow: hidden; max-height: 90vh; max-height: 90dvh; }
+.filter-sheet .sheet-handle { flex: none; margin: 0.25rem auto 0; }
+.fs-head { flex: none; display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; padding: 0 1.25rem 0.5rem; }
+.fs-title { margin: 0; font-family: var(--font-display); font-size: 1.375rem; line-height: 1.25; color: var(--text); min-width: 0; overflow-wrap: anywhere; }
+.fs-close { flex: none; width: 44px; height: 44px; display: inline-flex; align-items: center; justify-content: center; border: 0; border-radius: 50%; background: var(--surface-soft); color: var(--text); transition: transform 140ms var(--ease-out, ease-out); }
+.fs-close svg { width: 20px; height: 20px; }
+.fs-close:active { transform: scale(0.94); }
+.fs-body { flex: 1 1 auto; min-height: 0; overflow-y: auto; overscroll-behavior: contain; -webkit-overflow-scrolling: touch; padding: 0.25rem 1.25rem 1rem; }
+.fs-group { margin: 0 0 1.25rem; padding: 0; border: 0; min-width: 0; }
+.fs-legend { display: block; width: 100%; padding: 0; margin: 0 0 0.5rem; font-family: var(--font-display); font-size: 1rem; color: var(--text); }
+.fs-opts { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 9.5rem), 1fr)); gap: 0.5rem; }
+.fs-opt { position: relative; display: flex; align-items: center; gap: 0.75rem; min-height: 48px; padding: 0.5rem 0.75rem; border: 1.5px solid var(--border); border-radius: 14px; background: var(--card-bg); color: var(--text); font-size: 1rem; line-height: 1.25; cursor: pointer; transition: background-color 140ms var(--ease-out, ease-out), border-color 140ms var(--ease-out, ease-out), transform 140ms var(--ease-out, ease-out); }
+.fs-input { position: absolute; inset: 0; width: 100%; height: 100%; margin: 0; opacity: 0; cursor: pointer; }
+.fs-text { min-width: 0; overflow-wrap: anywhere; }
+.fs-mark { flex: none; width: 24px; height: 24px; display: inline-flex; align-items: center; justify-content: center; border: 2px solid var(--text-soft); border-radius: 7px; color: transparent; }
+.fs-mark svg { width: 14px; height: 14px; stroke-width: 3; }
+.fs-input[type="radio"] + .fs-mark { border-radius: 50%; }
+.fs-opt:has(.fs-input:checked) { background: var(--lime); border-color: var(--focus-ring); color: var(--lime-ink); font-weight: 600; }
+.fs-input:checked + .fs-mark { background: var(--lime-ink); border-color: var(--lime-ink); color: var(--lime); }
+.fs-opt:has(.fs-input:focus-visible) { outline: 2px solid var(--focus-ring); outline-offset: 2px; }
+.fs-foot { flex: none; padding: 0.75rem 1.25rem calc(0.75rem + env(safe-area-inset-bottom, 0px)); border-top: 1px solid var(--border); background: var(--card-bg); }
+.fs-status { margin: 0 0 0.5rem; font-size: 0.9375rem; line-height: 1.35; color: var(--text-soft); overflow-wrap: anywhere; }
+.fs-status.is-empty { color: var(--text); font-weight: 600; }
+.fs-actions { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+.fs-actions .ghost-btn { flex: 1 1 8rem; min-height: 48px; justify-content: center; }
+.fs-actions .primary-btn { flex: 2 1 12rem; min-height: 48px; justify-content: center; text-align: center; white-space: normal; }
+.modal-sheet.filter-sheet.sheet-enter { animation-duration: 240ms; animation-timing-function: var(--ease-out, cubic-bezier(.23, 1, .32, 1)); }
+.modal-backdrop:has(.filter-sheet.sheet-enter) { animation-duration: 200ms; }
+@media (hover: hover) and (pointer: fine) { .fs-opt:hover { border-color: var(--text-soft); } .seg-btn[aria-pressed="false"]:hover { color: var(--text); } }
+@media (prefers-reduced-motion: reduce) {
+  .seg-btn, .filter-btn, .fs-opt, .fs-close { transition: none; }
+  .seg-btn:active, .filter-btn:active, .fs-opt:active, .fs-close:active { transform: none; }
+}
+/* ==========================================================================
+   Breite Bildschirme (Paket 42): iPad und Laptop nutzen die Breite.
+   Alles ab 768 px; Basisregeln oben bleiben unberührt. Neue Hüllen im Markup (Seitenspalte im Editor,
+   Hilfespalte im Import) sind auf dem Handy ausgeblendet, das Handy bleibt Pixel für Pixel gleich.
+   Seitenrand: 24 px ab Tablet, 32 px ab Laptop (main nutzt clamp(16px, 4vw, 32px)).
+   ========================================================================== */
+.form-aside, .import-help { display: none; }
+
+/* Hintergrund über die volle Höhe: Seite und Seitenleisten-Spalte decken auch lange Seiten ganz ab (Punkt 8) */
+@media (min-width: 768px) {
+  html { background: var(--bg); min-height: 100%; }
+  body { min-height: 100vh; min-height: 100dvh; }
+}
+@media (min-width: 900px) {
+  html:has(.bottom-nav) { background: linear-gradient(to right, var(--card-bg) 0, var(--card-bg) 231px, var(--border) 231px, var(--border) 232px, var(--bg) 232px); }
+  /* Ohne Seitenleiste (Editor, Import) bleibt links keine leere Spalte */
+  body:has(.form-main), body:has(.import-page) { padding-left: 0; }
+  body { --p42-nav: 14.5rem; --p42-w: 1180px; }
+  body:has(.form-main), body:has(.import-page) { --p42-nav: 0px; }
+  body:has(.form-main) { --p42-w: 1400px; }
+  body:has(.import-page) { --p42-w: 1480px; }
+  body:has(.detail-main) { --p42-w: 1480px; }
+  body:has(.home-main) { --p42-w: 1680px; }
+  .topbar { padding-left: max(32px, calc((100vw - var(--p42-nav) - var(--p42-w)) / 2 + 32px)); padding-right: max(32px, calc((100vw - var(--p42-nav) - var(--p42-w)) / 2 + 32px)); }
+}
+
+/* Editor und Import auf dem iPad hochkant: volle Breite statt schmaler Mittelspalte */
+@media (min-width: 768px) {
+  .form-main, .import-page { max-width: 56rem; width: 100%; }
+  .form-page { max-width: none; margin: 0; }
+  .form-stepper { flex-wrap: wrap; overflow: visible; }
+  .form-step-btn { flex-shrink: 1; }
+  /* Kurze Felder nebeneinander (Menge, Einheit, Zeit, Schwierigkeit) */
+  .form-step.is-active[data-form-step="0"] { display: grid; grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr)); gap: 1.25rem 1rem; align-items: start; }
+  .form-step[data-form-step="0"] > .field { grid-column: 1 / -1; margin-bottom: 0; }
+  .form-step[data-form-step="0"] .field-row { display: contents; }
+  .form-step[data-form-step="0"] .field-more { grid-column: 1 / -1; margin: 0; }
+  .form-step[data-form-step="0"] .field-row--3 { display: grid; grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr)); gap: 0.75rem 1rem; }
+  /* Foto als angemessene Fläche statt riesigem Kasten */
+  .form-main .image-drop { max-width: 30rem; }
+  .form-main .image-drop-placeholder { height: 8.5rem; }
+  .form-main .image-drop img { max-height: 8.5rem; margin-bottom: 0; }
+  .form-actions { justify-content: space-between; }
+  .form-actions .primary-btn, .form-actions .ghost-btn { flex: 0 1 16rem; min-width: 9rem; }
+  .form-actions .primary-btn { flex: 0 1 18rem; }
+  /* Import: Textfeld deutlich höher */
+  .import-layout .field textarea.paste-import-textarea { min-height: 22rem; resize: vertical; }
+}
+
+/* Laptop und iPad quer */
+@media (min-width: 1024px) {
+  .form-main { display: grid; grid-template-columns: minmax(0, 1fr) 21rem; column-gap: 2.5rem; align-items: start; max-width: 1400px; }
+  .form-page { min-width: 0; }
+  .form-aside { display: block; position: sticky; top: calc(5.5rem + env(safe-area-inset-top, 0px)); margin-top: 3.75rem; background: var(--card-bg); border: 1px solid var(--hairline, var(--border)); border-radius: var(--r-card, 20px); overflow: hidden; }
+  .form-aside-photo { background: var(--surface-soft); }
+  .form-aside-img { display: block; width: 100%; aspect-ratio: 4 / 3; object-fit: cover; border-radius: 0; background: var(--surface-soft); }
+  .form-aside-body { padding: 1.25rem; }
+  .form-aside-title { font-family: var(--font-serif, var(--font-display)); font-size: 1.5rem; line-height: 1.2; font-weight: 600; margin: 0 0 0.5rem; color: var(--text); overflow-wrap: anywhere; hyphens: auto; }
+  .form-aside-meta { margin: 0 0 1rem; color: var(--text-soft); font-size: 1rem; }
+  .form-aside-facts { list-style: none; margin: 0; padding: 0; font-size: 1rem; color: var(--text); }
+  .form-aside-facts li { padding: 0.5rem 0; border-top: 1px solid var(--hairline, var(--border)); overflow-wrap: anywhere; }
+  .form-step.is-active[data-form-step="1"] { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: 2.5rem; align-items: start; }
+  .form-step[data-form-step="1"] > p, .form-step[data-form-step="1"] > .field--spaced { grid-column: 1 / -1; }
+  .form-step[data-form-step="1"] > .ghost-btn { grid-column: 1 / -1; justify-self: start; }
+  .form-step.is-active[data-form-step="4"] { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: 2.5rem; align-items: start; }
+  .form-step[data-form-step="4"] > .danger-link { grid-column: 1 / -1; justify-self: start; }
+  .form-step[data-form-step="4"] > .review-box { margin-top: 1.75rem; }
+  .form-step[data-form-step="4"] .field textarea { min-height: 12rem; }
+
+  /* Import: Textfeld links, Hilfespalte rechts */
+  .import-page { max-width: 1480px; }
+  .import-layout { display: grid; grid-template-columns: minmax(0, 1fr) 22rem; column-gap: 2.5rem; align-items: start; }
+  .import-layout > .settings-group { margin-bottom: 0; }
+  .import-layout .field textarea.paste-import-textarea { min-height: clamp(20rem, 52dvh, 34rem); }
+  .import-help { display: block; margin-top: 0.5rem; }
+  .import-help-h { font-family: var(--font-display); font-size: 1.25rem; font-weight: 700; line-height: 1.3; margin: 0 0 0.75rem; color: var(--text); }
+  .import-help-h--sub { margin-top: 1.5rem; }
+  .import-help-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 0.75rem; font-size: 1rem; line-height: 1.5; color: var(--text-soft); }
+  .import-help-list b { color: var(--text); }
+  .import-help-note { margin: 1rem 0 0; font-size: 1rem; line-height: 1.5; color: var(--text-soft); }
+  .import-example { margin: 0; padding: 1rem; background: var(--surface-soft); border-radius: var(--r-ctl, 0.875rem); font: inherit; font-size: 0.9375rem; line-height: 1.5; color: var(--text); white-space: pre-wrap; overflow-wrap: anywhere; }
+
+  /* Rezeptdetail: breiter, linke Spalte angenehm, rechte Spalte deutlich breiter */
+  .detail-main { max-width: 1480px; width: 100%; }
+  .detail-cols { grid-template-columns: clamp(20rem, 36%, 30rem) minmax(0, 1fr); column-gap: 2rem; }
+  .detail-main.has-hero { display: grid; grid-template-columns: clamp(20rem, 36%, 30rem) minmax(0, 1fr); column-gap: 2rem; align-items: start; }
+  .detail-main.has-hero .detail-cols { display: contents; }
+  .detail-main.has-hero .hero { grid-column: 1; grid-row: 1; margin: 1rem 0 0; }
+  .detail-main.has-hero .hero-img { aspect-ratio: 4 / 3; max-height: none; border-radius: var(--r-card, 20px); }
+  .detail-main.has-hero .detail-col--info { grid-column: 1; grid-row: 2; }
+  .detail-main.has-hero .detail-col--content { grid-column: 2; grid-row: 1 / span 2; }
+  .detail-col--info .detail-title-v2.is-long { font-size: 1.875rem; line-height: 1.15; }
+  .detail-col--content .step-text, .detail-col--content .notes-text { max-width: 70ch; }
+
+  /* Einstellungen: Abschnitte als Raster mit zwei Spalten, Detailseiten in zwei Spalten */
+  .settings-page { max-width: 1180px; }
+  .settings-page--home { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: 2.5rem; align-items: start; align-content: start; }
+  .settings-page--home > .page-title-row { grid-column: 1 / -1; }
+  .settings-page--home > .settings-group { margin-bottom: 0.5rem; }
+  .settings-page--home > .settings-group:nth-child(2) { grid-column: 1; grid-row: 2 / span 2; }
+  .settings-page--home > .settings-group:nth-child(3) { grid-column: 2; grid-row: 2; }
+  .settings-page--home > .settings-group:nth-child(4) { grid-column: 2; grid-row: 3; }
+  .settings-page--cols { column-count: 2; column-gap: 2.5rem; }
+  .settings-page--cols > * { break-inside: avoid; }
+  .settings-page--cols > .settings-section-head { break-after: avoid; }
+  .settings-page--cols > .settings-section-head { margin-top: 0; padding-top: 1.5rem; }
+  .settings-page--cols > .settings-section-head:first-child { padding-top: 0.5rem; }
+  .settings-page--cols > .settings-group { break-inside: avoid; }
+}
+@media (min-width: 768px) and (max-width: 1023px) {
+  .settings-page { max-width: 720px; }
+}
+
+/* Leerzustände: linksbündig zum Seitentitel, die drei Hinweise nebeneinander */
+@media (min-width: 768px) {
+  .home-main .empty-state, .shop-main .empty-state { text-align: left; padding: 2.5rem 0 1rem; }
+  .home-main .empty-state p, .shop-main .empty-state p { max-width: 62ch; }
+  .home-main .empty-actions, .home-main .empty-state > div[style] { justify-content: flex-start !important; }
+  .home-main .empty-steps { max-width: none; margin: 2rem 0 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr)); gap: 1rem; }
+}
+@media (min-width: 1024px) {
+  .home-main .empty-steps { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+
+/* Rezeptliste: mehr Spalten auf breiten Bildschirmen */
+@media (min-width: 1280px) {
+  .home-main { max-width: 1680px; }
+  .rlist { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: 1.5rem; }
+}
+@media (min-width: 1560px) { .rgrid { grid-template-columns: repeat(5, minmax(0, 1fr)); } }
+@media (min-width: 1840px) { .rgrid { grid-template-columns: repeat(6, minmax(0, 1fr)); } }
+
+/* Breite Bildschirme (Paket 42): Import darf die volle Breite nutzen (spezifischer als die Einstellungsseiten-Regel) */
+@media (min-width: 1024px) { main.settings-page.import-page { max-width: 1480px; } }

@@ -97,7 +97,7 @@ const DISH_TYPE_OPTIONS = [
   { id: 'drink', label: 'Getränk' },
 ];
 const TIME_BUCKET_OPTIONS = [
-  { id: 'under-15', label: '< 15 Min.', max: 15 },
-  { id: 'under-30', label: '< 30 Min.', max: 30 },
-  { id: 'under-60', label: '< 60 Min.', max: 60 },
+  { id: 'under-15', label: 'Bis 15 Min.', max: 15 },
+  { id: 'under-30', label: 'Bis 30 Min.', max: 30 },
+  { id: 'under-60', label: 'Bis 60 Min.', max: 60 },
 ];

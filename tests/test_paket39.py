@@ -82,9 +82,9 @@ async def main():
                 bg = await ev("() => [getComputedStyle(document.querySelector('.home-head')).backgroundColor, getComputedStyle(document.body).backgroundColor]")
                 check(tag + 'Kopf hat den vollen Seitenhintergrund (var(--bg))', bg[0] == bg[1] and 'rgba(0, 0, 0, 0)' not in bg[0], str(bg))
                 parts = await ev("""() => { const hd = document.querySelector('.home-head').getBoundingClientRect(); const inside = s => { const e = document.querySelector(s); if (!e) return null; const r = e.getBoundingClientRect(); return r.top >= hd.top - 0.5 && r.bottom <= hd.bottom + 0.5; };
-                    return { brand: inside('.home-head .topbar'), plus: inside('[data-action="open-add-menu"]'), gear: inside('.icon-btn--settings'), title: inside('.page-title'), search: inside('.search-input'), strip: inside('.filter-strip'), toggle: inside('.layout-toggle'),
+                    return { brand: inside('.home-head .topbar'), plus: inside('[data-action="open-add-menu"]'), gear: inside('.icon-btn--settings'), title: inside('.page-title'), search: inside('.search-input'), strip: inside('.filter-bar'), toggle: inside('.filter-btn'),
                       today: document.querySelector('.home-head .today-planned, .home-head .recent-title') ? 'im Kopf' : 'ok', nudgeInHead: !!document.querySelector('.home-head .nudge-card') }; }""")
-                check(tag + 'Wortmarke, Plus, Zahnrad, Titel, Suche, Filterstreifen, Umschalter liegen im festen Kopf', all(parts[k] for k in ['brand', 'plus', 'gear', 'title', 'search', 'strip', 'toggle']), str(parts))
+                check(tag + 'Wortmarke, Plus, Zahnrad, Titel, Suche, Alle/Favoriten, Filter-Schaltfläche liegen im festen Kopf', all(parts[k] for k in ['brand', 'plus', 'gear', 'title', 'search', 'strip', 'toggle']), str(parts))
                 check(tag + '«Heute geplant» und Sicherungshinweis stehen nicht im festen Kopf', parts['today'] == 'ok' and not parts['nudgeInHead'], str(parts))
                 if (w, h) == (390, 844):
                     check(tag + 'Kopf belegt höchstens 40 Prozent der Höhe', h1[2] <= 0.40 * h, f'{h1[2]} von {h}')

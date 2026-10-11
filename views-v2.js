@@ -56,7 +56,7 @@ function bottomNav() {
     </button>`;
   };
   return `<nav class="bottom-nav" aria-label="Hauptnavigation">
-    <div class="nav-brand" aria-hidden="true">${coverSymbolSvg('currentColor', 'brand-symbol')}<span>savora</span></div>
+    <div class="nav-brand" aria-hidden="true">${wordmarkSvg('nav-wordmark')}</div>
     ${tabs.map(t => btn(t)).join('')}
     ${btn({ view: 'settings', icon: ICONS.settings, label: 'Einstellungen' }, 'nav-settings')}
   </nav>`;
@@ -64,9 +64,9 @@ function bottomNav() {
 
 // Kompakte App-Bar fuer Unterseiten (Zurueck, Titel, Aktionen). Wird auch von den
 // Einstellungsseiten in views.js verwendet, deshalb gleiche Signatur wie bisher.
-/* Kopfzeile: kleines Logo + Wortmarke, klar getrennt vom Seitentitel darunter */
+/* Kopfzeile: nur die Savora-Wortmarke (Pfad-SVG), ohne Symbol; klar getrennt vom Seitentitel darunter */
 function brandLockup() {
-  return `<div class="brand-v2">${coverSymbolSvg('currentColor', 'brand-symbol')}<span class="brand-word">savora</span></div>`;
+  return `<div class="brand-v2">${wordmarkSvg('top-wordmark', 'Savora')}</div>`;
 }
 
 function topbar(title, opts = {}) {
@@ -84,58 +84,151 @@ function pageTitle(title, actions) {
 }
 
 /* ---------- Filter ---------- */
-function applyAllFilters(recipes) {
+function filterSpec() {
+  const f = state.activeFilters;
+  return { dietary: f.dietary, category: f.category, time: f.time, more: f.more || (f.more = new Set()), tags: f.tags || (f.tags = new Set()) };
+}
+/* Zentrale Filterlogik: innerhalb einer Gruppe ODER, zwischen Gruppen UND. Mit `spec` (Entwurf im Filterfenster)
+   wird nur die Auswahl ersetzt; Suche, Alle/Favoriten und Sortierung kommen immer aus dem state. */
+function applyAllFilters(recipes, spec) {
+  const f = spec || filterSpec();
   let list = recipesInCollection(state.activeCollection, recipes);
   if (state.query.trim()) list = list.filter(r => recipeMatchesQuery(r, state.query));
   if (state.activeTag) list = list.filter(r => (r.tags || []).includes(state.activeTag));
   if (state.favOnly) list = list.filter(r => r.favorite);
-  const { dietary, category, time } = state.activeFilters;
+  const { dietary, category, time, more, tags } = f;
   if (dietary.size) list = list.filter(r => { const bad = new Set(dietConflicts(r).map(c => c.label)); return (r.diet || []).some(d => dietary.has(d) && !bad.has(d)); });
   if (category.size) list = list.filter(r => (r.categoryTags || []).some(c => category.has(c)));
   if (time.size) list = list.filter(r => timeBucketsFor(r.timeMinutes).some(b => time.has(b)));
+  if (more && more.size) { const ids = Array.from(more); list = list.filter(r => ids.some(id => recipesInCollection(id, [r]).length)); }
+  if (tags && tags.size) list = list.filter(r => (r.tags || []).some(t => tags.has(t)));
   return sortRecipes(list, state.sortBy);
 }
 
-function collectionChips() {
-  const chips = [{ id: 'all', label: 'Alle' }, { id: 'quick', label: 'Schnell' }, { id: 'veggie', label: 'Vegetarisch' }, { id: 'favorites', label: 'Favoriten' }, { id: 'uncooked', label: 'Noch nicht gekocht' }];
-  if (state.recipes.some(isFrequentlyCooked)) chips.push({ id: 'frequent', label: 'Häufig gekocht' });
-  getCollections().forEach(c => chips.push({ id: c.id, label: c.name }));
-  const current = state.favOnly ? 'favorites' : state.activeCollection;
-  return chips.map(c => `<button type="button" class="chip ${current === c.id ? 'chip--active' : ''}" data-action="set-collection" data-id="${escapeHtml(c.id)}" aria-pressed="${current === c.id}">${escapeHtml(c.label)}</button>`).join('');
+/* Weitere Merkmale: nur, was die Daten wirklich hergeben (Kochzaehler, eigene Sammlungen). */
+function moreFilterOptions() {
+  const opts = [{ id: 'uncooked', label: 'Noch nicht gekocht' }];
+  if (state.recipes.some(isFrequentlyCooked) || state.activeFilters.more.has('frequent')) opts.push({ id: 'frequent', label: 'Häufig gekocht' });
+  getCollections().forEach(c => opts.push({ id: c.id, label: c.name }));
+  return opts;
 }
+function moreFilterLabel(id) {
+  const o = moreFilterOptions().find(x => x.id === id);
+  if (o) return o.label;
+  return ({ quick: 'Schnell', veggie: 'Vegetarisch', favorites: 'Favoriten' })[id] || id;
+}
+function appliedFilterLabels() {
+  const f = filterSpec(), out = [];
+  f.dietary.forEach(id => out.push(categoryLabelFor(id)));
+  f.category.forEach(id => out.push(categoryLabelFor(id)));
+  f.time.forEach(id => out.push((TIME_BUCKET_OPTIONS.find(t => t.id === id) || {}).label || id));
+  f.more.forEach(id => out.push(moreFilterLabel(id)));
+  f.tags.forEach(t => out.push(t));
+  if (state.activeTag) out.push(state.activeTag);
+  if (state.activeCollection && state.activeCollection !== 'all' && state.activeCollection !== 'favorites') out.push(moreFilterLabel(state.activeCollection));
+  return out;
+}
+function resetExtraFilters() {
+  const f = filterSpec();
+  f.dietary.clear(); f.category.clear(); f.time.clear(); f.more.clear(); f.tags.clear();
+  state.activeTag = null; state.activeCollection = 'all';
+}
+
+/* ---------- Filterfenster mit Entwurf ---------- */
+function newFilterDraft() {
+  const f = filterSpec();
+  const draft = { dietary: new Set(f.dietary), category: new Set(f.category), time: new Set(), more: new Set(f.more), tags: new Set(f.tags) };
+  // Zeit ist Einzelauswahl: bei mehreren gespeicherten Bereichen gilt der weiteste (die Bereiche umfassen einander)
+  const best = TIME_BUCKET_OPTIONS.filter(b => f.time.has(b.id)).sort((x, y) => y.max - x.max)[0];
+  if (best) draft.time.add(best.id);
+  // Aeltere Einzelfilter in die sichtbare Auswahl uebernehmen, damit nichts unsichtbar wirkt
+  if (state.activeTag) draft.tags.add(state.activeTag);
+  if (state.activeCollection && state.activeCollection !== 'all' && state.activeCollection !== 'favorites') draft.more.add(state.activeCollection);
+  return draft;
+}
+function filterDraft() {
+  if (!state.modal || state.modal.type !== 'filter-sheet') return null;
+  if (!state.modal.draft) state.modal.draft = newFilterDraft();
+  return state.modal.draft;
+}
+function filterOptionHtml(type, dim, id, label, checked) {
+  return `<label class="fs-opt"><input class="fs-input" type="${type}" ${type === 'radio' ? 'name="fs-time"' : ''} data-fs-dim="${dim}" value="${escapeHtml(id)}" ${checked ? 'checked' : ''}><span class="fs-mark" aria-hidden="true">${ICONS.check}</span><span class="fs-text">${escapeHtml(label)}</span></label>`;
+}
+function filterGroupHtml(key, title, inner) {
+  const id = `filter-group-${key}`;
+  return `<fieldset class="fs-group"><legend class="filter-group-title fs-legend" id="${id}">${title}</legend><div class="fs-opts">${inner}</div></fieldset>`;
+}
+function filterCountLabel(n) { return `${n} Rezept${n === 1 ? '' : 'e'} anzeigen`; }
+function filterStatusText(n) { return n === 0 ? 'Keine passenden Rezepte. Ändere die Auswahl oder setze sie zurück.' : (n === 1 ? '1 passendes Rezept' : `${n} passende Rezepte`); }
 
 function filterSheetModal() {
   if (!state.modal || state.modal.type !== 'filter-sheet') return '';
-  const { dietary, category, time } = state.activeFilters;
-  const resultCount = applyAllFilters(state.recipes).length;
-  const dietaryOptions = DIET_OPTIONS.filter(d => d.tone === 'diet' || d.tone === 'protein').map(d => ({ id: d.key, label: d.label }));
+  const d = filterDraft();
+  const n = applyAllFilters(state.recipes, d).length;
+  const dietaryOptions = DIET_OPTIONS.filter(o => o.tone === 'diet' || o.tone === 'protein');
+  const dishOptions = MEAL_TYPE_OPTIONS.concat(DISH_TYPE_OPTIONS);
   const tags = Array.from(new Set(state.recipes.flatMap(r => r.tags || []))).sort((a, b) => a.localeCompare(b, 'de'));
+  const timeNone = d.time.size === 0;
   return `<div class="modal-backdrop" data-action="close-modal">
     <div class="modal-sheet filter-sheet" role="dialog" aria-modal="true" aria-labelledby="filter-sheet-title" tabindex="-1" onclick="event.stopPropagation()">
       <div class="sheet-handle" aria-hidden="true"></div>
-      <h3 class="modal-title" id="filter-sheet-title">Filter</h3>
-      <div class="filter-group">
-        <h3 class="filter-group-title" id="filter-group-sort">Sortierung</h3>
-        <div class="sort-row" role="radiogroup" aria-labelledby="filter-group-sort">
-          ${SORT_OPTIONS.map(o => `<button type="button" class="sort-chip ${state.sortBy === o.id ? 'is-active' : ''}" role="radio" aria-checked="${state.sortBy === o.id}" data-action="set-sort" data-id="${o.id}">${o.label}</button>`).join('')}
-        </div>
+      <div class="fs-head">
+        <h2 class="fs-title" id="filter-sheet-title">Rezepte filtern</h2>
+        <button type="button" class="fs-close" data-action="close-modal" aria-label="Schliessen">${ICONS.x}</button>
       </div>
-      ${filterCheckboxGroup('Ernährung', 'dietary', dietaryOptions, dietary, o => o.id, o => o.label)}
-      ${filterCheckboxGroup('Mahlzeit', 'category', MEAL_TYPE_OPTIONS, category, o => o.id, o => o.label)}
-      ${filterCheckboxGroup('Gericht', 'category', DISH_TYPE_OPTIONS, category, o => o.id, o => o.label)}
-      ${filterCheckboxGroup('Zeit', 'time', TIME_BUCKET_OPTIONS, time, o => o.id, o => o.label)}
-      ${tags.length ? `<div class="filter-group">
-        <h3 class="filter-group-title" id="filter-group-tags">Tags</h3>
-        <div class="filter-checkbox-row" role="group" aria-labelledby="filter-group-tags">
-          ${tags.map(t => `<button type="button" class="filter-checkbox ${state.activeTag === t ? 'active' : ''}" data-action="filter-tag" data-tag="${escapeHtml(state.activeTag === t ? '' : t)}" aria-pressed="${state.activeTag === t}"><span class="filter-checkbox-box" aria-hidden="true">${state.activeTag === t ? ICONS.check : ''}</span>${escapeHtml(t)}</button>`).join('')}
+      <div class="fs-body">
+        ${filterGroupHtml('dietary', 'Ernährung', dietaryOptions.map(o => filterOptionHtml('checkbox', 'dietary', o.key, o.label, d.dietary.has(o.key))).join(''))}
+        ${filterGroupHtml('category', 'Gerichtart', dishOptions.map(o => filterOptionHtml('checkbox', 'category', o.id, o.label, d.category.has(o.id))).join(''))}
+        ${filterGroupHtml('time', 'Zubereitungszeit', filterOptionHtml('radio', 'time', '', 'Beliebig', timeNone) + TIME_BUCKET_OPTIONS.map(o => filterOptionHtml('radio', 'time', o.id, o.label, d.time.has(o.id))).join(''))}
+        ${filterGroupHtml('more', 'Weitere Merkmale', moreFilterOptions().map(o => filterOptionHtml('checkbox', 'more', o.id, o.label, d.more.has(o.id))).join(''))}
+        ${tags.length ? filterGroupHtml('tags', 'Tags', tags.map(t => filterOptionHtml('checkbox', 'tags', t, t, d.tags.has(t))).join('')) : ''}
+      </div>
+      <div class="fs-foot">
+        <p class="fs-status ${n === 0 ? 'is-empty' : ''}" role="status" aria-live="polite">${filterStatusText(n)}</p>
+        <div class="fs-actions">
+          <button type="button" class="ghost-btn fs-reset" data-action="fs-reset">Zurücksetzen</button>
+          <button type="button" class="primary-btn fs-apply" data-action="fs-apply">${filterCountLabel(n)}</button>
         </div>
-      </div>` : ''}
-      <div class="form-actions">
-        <button class="ghost-btn" data-action="clear-all-filters">Zurücksetzen</button>
-        <button class="primary-btn" data-action="close-modal">${resultCount} Rezept${resultCount === 1 ? '' : 'e'} anzeigen</button>
       </div>
     </div>
   </div>`;
+}
+/* Aenderungen im Fenster aktualisieren nur die Anzeige, ohne das Fenster neu zu bauen (Scrollstand und Fokus bleiben). */
+function syncFilterSheet() {
+  const sheet = document.querySelector('.filter-sheet'), d = filterDraft();
+  if (!sheet || !d) return;
+  sheet.querySelectorAll('.fs-input').forEach(inp => {
+    const set = d[inp.dataset.fsDim];
+    inp.checked = inp.type === 'radio' && inp.value === '' ? set.size === 0 : set.has(inp.value);
+  });
+  const n = applyAllFilters(state.recipes, d).length;
+  const st = sheet.querySelector('.fs-status'), ap = sheet.querySelector('.fs-apply');
+  if (st) { st.textContent = filterStatusText(n); st.classList.toggle('is-empty', n === 0); }
+  if (ap) ap.textContent = filterCountLabel(n);
+}
+function bindFilterSheet() {
+  const sheet = document.querySelector('.filter-sheet');
+  if (sheet && !sheet.dataset.fsBound) {
+    sheet.dataset.fsBound = '1';
+    sheet.addEventListener('change', (e) => {
+      const inp = e.target.closest && e.target.closest('.fs-input');
+      const d = filterDraft();
+      if (!inp || !d) return;
+      const set = d[inp.dataset.fsDim];
+      if (inp.type === 'radio') { set.clear(); if (inp.value) set.add(inp.value); }
+      else if (inp.checked) set.add(inp.value); else set.delete(inp.value);
+      syncFilterSheet();
+    });
+  }
+  const sel = document.getElementById('sortSelect');
+  if (sel && !sel.dataset.bound) {
+    sel.dataset.bound = '1';
+    sel.addEventListener('change', () => {
+      state.sortBy = sel.value;
+      try { localStorage.setItem(SORT_KEY, state.sortBy); } catch (err) {}
+      render();
+    });
+  }
 }
 
 /* ---------- Rezeptuebersicht ---------- */
@@ -216,25 +309,29 @@ function todayPlannedHtml() {
 }
 function homeView() {
   const list = applyAllFilters(state.recipes);
-  const filterCount = activeStructuredFilterCount() + (state.activeTag ? 1 : 0);
-  const collectionActive = state.favOnly || (state.activeCollection && state.activeCollection !== 'all');
-  const isFiltered = !!(state.query.trim() || filterCount || collectionActive);
-  const chips = [];
-  state.activeFilters.dietary.forEach(id => chips.push({ dim: 'dietary', id, label: categoryLabelFor(id) }));
-  state.activeFilters.category.forEach(id => chips.push({ dim: 'category', id, label: categoryLabelFor(id) }));
-  state.activeFilters.time.forEach(id => chips.push({ dim: 'time', id, label: (TIME_BUCKET_OPTIONS.find(t => t.id === id) || {}).label || id }));
+  const filterCount = activeStructuredFilterCount() + (state.activeTag ? 1 : 0) + (state.activeCollection && state.activeCollection !== 'all' && state.activeCollection !== 'favorites' ? 1 : 0);
+  const labels = appliedFilterLabels();
+  const summary = labels.length > 3 ? labels.slice(0, 3).join(' · ') + ` · + ${labels.length - 3} weitere` : labels.join(' · ');
+  const favOnly = !!(state.favOnly || state.activeCollection === 'favorites');
 
   let content;
   if (!state.recipes.length) content = emptyState();
   else if (!list.length) content = emptyFilterState();
   else {
     const items = state.homeLayout === 'list' ? `<div class="rlist">${list.map(recipeRow).join('')}</div>` : `<div class="rgrid">${list.map(recipeCard).join('')}</div>`;
-    const sortLabel = state.sortBy !== 'updated' ? (SORT_OPTIONS.find(o => o.id === state.sortBy) || {}).label || '' : '';
-    // Kein zweiter Titel neben dem Seitentitel: die Zeile erscheint nur bei Treffern oder gewaehlter Sortierung
-    const resultText = isFiltered ? `${list.length} Treffer${sortLabel ? ' · ' + sortLabel : ''}` : (sortLabel ? `Sortiert nach ${sortLabel}` : '');
+    const n = list.length;
     content = `
       <section class="home-section" aria-labelledby="all-h">
-        <h2 class="${resultText ? 'result-line' : 'sr-only'}" id="all-h">${escapeHtml(resultText || 'Alle Rezepte')}</h2>
+        <div class="result-row">
+          <h2 class="result-line" id="all-h">${n} Rezept${n === 1 ? '' : 'e'}</h2>
+          <label class="sort-pick"><span class="sort-pick-label">Sortierung</span>
+            <select class="sort-select" id="sortSelect">${SORT_OPTIONS.map(o => `<option value="${o.id}" ${state.sortBy === o.id ? 'selected' : ''}>${escapeHtml(o.label)}</option>`).join('')}</select>
+          </label>
+          <div class="layout-toggle" role="group" aria-label="Darstellung">
+            <button type="button" class="icon-toggle ${state.homeLayout !== 'list' ? 'is-active' : ''}" data-action="set-home-layout" data-id="grid" aria-pressed="${state.homeLayout !== 'list'}" aria-label="Rasteransicht">${ICONS.grid}</button>
+            <button type="button" class="icon-toggle ${state.homeLayout === 'list' ? 'is-active' : ''}" data-action="set-home-layout" data-id="list" aria-pressed="${state.homeLayout === 'list'}" aria-label="Listenansicht">${ICONS.list}</button>
+          </div>
+        </div>
         ${items}
       </section>`;
   }
@@ -246,21 +343,19 @@ function homeView() {
         ${pageTitle('Deine Rezepte')}
         <div class="search-field">
           ${ICONS.search}
-          <label for="searchInput" class="sr-only">Rezepte, Zutaten, Tags durchsuchen</label>
-          <input class="search-input" id="searchInput" type="search" enterkeyhint="search" placeholder="Rezepte, Zutaten, Tags durchsuchen …" value="${escapeHtml(state.query)}" autocomplete="off">
+          <label for="searchInput" class="sr-only">Rezepte suchen</label>
+          <input class="search-input" id="searchInput" type="search" enterkeyhint="search" placeholder="Rezepte suchen" value="${escapeHtml(state.query)}" autocomplete="off">
         </div>
-        ${state.recipes.length ? `<div class="filter-strip">
-          <div class="chip-row" role="group" aria-label="Sammlungen">${collectionChips()}</div>
-          <button type="button" class="tool-btn ${filterCount ? 'is-active' : ''}" data-action="open-filter-sheet" aria-label="Weitere Filter${filterCount ? ', ' + filterCount + ' aktiv' : ''}">${ICONS.sliders}${filterCount ? `<span class="chip-count">${filterCount}</span>` : ''}</button>
-          <div class="layout-toggle" role="group" aria-label="Darstellung">
-            <button type="button" class="icon-toggle ${state.homeLayout !== 'list' ? 'is-active' : ''}" data-action="set-home-layout" data-id="grid" aria-pressed="${state.homeLayout !== 'list'}" aria-label="Rasteransicht">${ICONS.grid}</button>
-            <button type="button" class="icon-toggle ${state.homeLayout === 'list' ? 'is-active' : ''}" data-action="set-home-layout" data-id="list" aria-pressed="${state.homeLayout === 'list'}" aria-label="Listenansicht">${ICONS.list}</button>
+        ${state.recipes.length ? `<div class="filter-bar">
+          <div class="seg" role="group" aria-label="Anzeige">
+            <button type="button" class="seg-btn" data-action="set-fav-mode" data-id="all" aria-pressed="${!favOnly}">Alle</button>
+            <button type="button" class="seg-btn" data-action="set-fav-mode" data-id="fav" aria-pressed="${favOnly}">Favoriten</button>
           </div>
+          <button type="button" class="filter-btn ${filterCount ? 'is-active' : ''}" data-action="open-filter-sheet" aria-haspopup="dialog">${ICONS.sliders}<span class="filter-btn-text">Filter${filterCount ? ' · ' + filterCount : ''}</span></button>
         </div>` : ''}
-        ${(chips.length || state.activeTag) ? `<div class="chip-row chip-row--active">
-          ${state.activeTag ? `<button class="chip chip--removable" data-action="filter-tag" data-tag="">${escapeHtml(state.activeTag)} ${ICONS.x}</button>` : ''}
-          ${chips.map(c => `<button class="chip chip--removable" data-action="remove-active-filter" data-dim="${c.dim}" data-id="${escapeHtml(c.id)}" aria-label="Filter ${escapeHtml(c.label)} entfernen">${escapeHtml(c.label)} ${ICONS.x}</button>`).join('')}
-          <button class="chip chip--ghost" data-action="clear-all-filters">Alle löschen</button>
+        ${filterCount ? `<div class="filter-summary">
+          <p class="filter-summary-text"><span class="sr-only">Aktive Filter: </span>${escapeHtml(summary)}</p>
+          <button type="button" class="filter-summary-reset" data-action="reset-extra-filters">Zurücksetzen</button>
         </div>` : ''}
       </section>
     </div>
@@ -626,7 +721,7 @@ function shoppingView() {
   const item = state.modal && state.modal.type === 'shop-item' ? state.shopping.find(x => x.id === state.modal.itemId) : null;
   return `
     ${topbar('Einkauf', { settings: true, actions: items.length ? `<button class="icon-btn" data-action="share-shopping" aria-label="Liste teilen oder kopieren">${ICONS.share}</button><button class="icon-btn" data-action="clear-all-shopping" aria-label="Ganze Einkaufsliste leeren">${ICONS.trash}</button>` : '' })}
-    <main class="has-tabbar">
+    <main class="has-tabbar shop-main">
       ${pageTitle('Einkaufsliste')}
       <div class="shop-add">
         <label for="shoppingAddInput" class="sr-only">Eigene Zutat hinzufügen</label>
@@ -896,7 +991,7 @@ function cookbookStepDesign(cfg) {
           <div class="field"><label for="cbDate">Veröffentlichungsdatum</label><input type="date" id="cbDate" data-cb-cover-date value="${escapeHtml((cfg.cover && cfg.cover.date) || '')}"></div>
           <label class="check-row"><input type="checkbox" data-cb-cover-flag="showDate" ${cfg.cover && cfg.cover.showDate === false ? '' : 'checked'}> <span>Datum auf dem Titelblatt zeigen</span></label>
         </div>
-        <label class="check-row"><input type="checkbox" data-cb-flag="showLogo" ${cfg.showLogo === false ? '' : 'checked'}> <span>Savora-Symbol oben rechts auf dem Titelblatt</span></label>
+        <label class="check-row"><input type="checkbox" data-cb-flag="showLogo" ${cfg.showLogo === false ? '' : 'checked'}> <span>Savora-Wortmarke oben rechts auf dem Titelblatt</span></label>
       </section>
       <section class="panel">
         <h2 class="section-title">Seitenstil der Rezepte</h2>
@@ -1062,8 +1157,40 @@ function formView() {
           ${step < FORM_STEPS.length - 1 ? `<button class="primary-btn" data-action="form-goto-step" data-idx="${step + 1}">Weiter</button>` : `<button class="primary-btn" data-action="save-recipe">Rezept speichern</button>`}
         </div>
       </div>
+      ${formAsideHtml(r)}
     </main>
     ${state.modal && state.modal.type === 'delete' ? deleteModal(r) : ''}
     ${state.modal && state.modal.type === 'ing-paste' ? ingPasteModal() : ''}
   `;
+}
+/* Seitenspalte im Editor (Paket 42): Vorschau des Rezepts aus den eingegebenen Daten, nur ab Laptopbreite sichtbar.
+   Sie wird beim Tippen ohne Neuaufbau aktualisiert (updateFormAside in actions-v2.js). */
+function formAsideBodyHtml(r) {
+  const title = (r.title || '').trim();
+  const portions = Number(r.servings) > 0 ? servingLabel(r, r.servings) : '';
+  const meta = [portions, r.timeMinutes > 0 ? `${r.timeMinutes} Min.` : '', r.difficulty || ''].filter(Boolean);
+  const ings = realIngredients(r).length;
+  const missing = realIngredients(r).filter(i => parseAmount(i.amount) === null).length;
+  const steps = (r.steps || []).filter(s => (s.text || '').trim()).length;
+  const labels = [];
+  (r.diet || []).forEach(dk => { const d = DIET_OPTIONS.find(o => o.key === dk); if (d) labels.push(d.label); });
+  (r.categoryTags || []).forEach(c => labels.push(categoryLabelFor(c)));
+  const tags = (r.tags || []).filter(Boolean);
+  return `<h2 class="form-aside-title">${escapeHtml(title && title !== 'Ohne Titel' ? title : 'Noch ohne Titel')}</h2>
+    <p class="form-aside-meta">${meta.length ? escapeHtml(meta.join(' · ')) : 'Menge und Zeit noch offen'}</p>
+    <ul class="form-aside-facts">
+      <li>${ings} Zutat${ings === 1 ? '' : 'en'}${missing ? `, davon ${missing} ohne Menge` : ''}</li>
+      <li>${steps} Zubereitungsschritt${steps === 1 ? '' : 'e'}</li>
+      ${labels.length ? `<li>${escapeHtml(labels.join(', '))}</li>` : ''}
+      ${tags.length ? `<li>Tags: ${escapeHtml(tags.join(', '))}</li>` : ''}
+    </ul>`;
+}
+function formAsideHtml(r) {
+  const photo = r.image
+    ? `<img class="form-aside-img" src="${r.image}" alt="">`
+    : r.imageId ? `<div class="form-aside-img placeholder" data-lazy-img="full" data-image-id="${r.imageId}" data-img-class="form-aside-img" data-img-alt=""></div>` : '';
+  return `<aside class="form-aside" id="formAside" aria-label="Vorschau des Rezepts">
+    ${photo ? `<div class="form-aside-photo">${photo}</div>` : ''}
+    <div class="form-aside-body" id="formAsideBody">${formAsideBodyHtml(r)}</div>
+  </aside>`;
 }

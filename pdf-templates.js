@@ -256,7 +256,7 @@ function pvContinuationPage(m, ingUnits, stepUnits, extrasHtml, tight, ingRight)
 
 function pvCoverPage(title, author, coverImgUrl, subtitle) {
   const tpl = PDF_CTX.tpl;
-  const logo = PDF_CTX.logo ? `<img class="pv-cover-logo" src="icon-96.png" alt="">` : '';
+  const logo = PDF_CTX.logo ? wordmarkSvg('pv-cover-logo') : '';
   return `<section class="pv-page pv-cover ${tpl.cls} ${coverImgUrl ? 'pv-cover-photo' : ''}" data-page-kind="cover">
     ${coverImgUrl ? `<div class="pv-cover-img"><img src="${coverImgUrl}" class="pdf-img-cover" alt=""></div>` : ''}
     <div class="pv-cover-text">
