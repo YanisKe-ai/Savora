@@ -2698,3 +2698,11 @@ mark.hl {
   .home-head--phone .filter-bar { gap: 0.25rem; }
   .home-head--phone .filter-btn { padding-left: 0.75rem; padding-right: 0.75rem; }
 }
+
+/* Weichzeichner-Schichten im Ruhezustand ganz ausschalten (nicht nur durchsichtig): spart Arbeit und verhindert einzelne Pixelunterschiede beim Rendern */
+.home-head::before, .home-head::after,
+.topbar:not(.topbar--home)::before, .topbar:not(.topbar--home)::after,
+.bottom-nav::before, .home-add-bar::before { visibility: hidden; }
+html.is-scrolled .home-head::before, html.is-scrolled .home-head::after,
+html.is-scrolled .topbar:not(.topbar--home)::before, html.is-scrolled .topbar:not(.topbar--home)::after,
+html.fs-more-below .bottom-nav::before, html.fs-more-below .home-add-bar::before { visibility: visible; }
