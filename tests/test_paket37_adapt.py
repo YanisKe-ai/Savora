@@ -6,6 +6,7 @@ Testdaten: tests/seed.js, erweitert per page.evaluate (nichts davon steht im Rep
 import asyncio, sys, os, json
 os.environ.setdefault('SAVORA_TEST_PORT', '8852')
 QUICK = bool(os.environ.get('SAVORA_ADAPT_QUICK'))
+PART = os.environ.get('SAVORA_ADAPT_PART', '')   # '1' oder '2': jede zweite Breite (Aufteilung auf zwei GitHub-Rechner, zusammen alle Breiten); leer = alle
 import os as _os; sys.path.insert(0, _os.path.dirname(_os.path.abspath(__file__)))
 from common import *
 FAIL = []
@@ -127,7 +128,8 @@ async def scan(page, key):
 async def main():
     async with async_playwright() as p:
         b = await p.chromium.launch()
-        for (w, h) in HEIGHTS.items():
+        for idx, (w, h) in enumerate(HEIGHTS.items()):
+            if PART and idx % 2 != int(PART) - 1: continue
             if QUICK and w not in (360, 390, 1280): continue   # schnelle Variante fuer die Entwicklung (SAVORA_ADAPT_QUICK=1); GitHub prueft immer alles
             for theme in (('light', 'dark') if QUICK else ('light', 'dark', 'auto-light', 'auto-dark')):
                 ctx, page, errs = await setup(b, w, h, theme)
