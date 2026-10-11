@@ -7,23 +7,24 @@ function viewFor(view) {
     case 'cookmode': return cookModeView();
     case 'settings': return settingsView();
     case 'settings-display': return settingsDisplayView();
-    case 'settings-units': return settingsUnitsView();
+    case 'settings-units': return settingsDisplayView();
     case 'settings-profile': return settingsProfileView();
-    case 'settings-backup': return settingsBackupView();
+    case 'settings-data': return settingsDataView('sync');
+    case 'settings-backup': return settingsDataView('backup');
     case 'settings-help': return settingsHelpView();
     case 'settings-privacy': return settingsPrivacyView();
     case 'settings-terms': return settingsTermsView();
     case 'settings-sources': return settingsSourcesView();
     case 'settings-about': return settingsAboutView();
     case 'settings-licenses': return settingsLicensesView();
-    case 'settings-nutrition': return settingsNutritionView();
+    case 'settings-nutrition': return settingsDisplayView();
     case 'paste-import': return pasteImportView();
     case 'shopping': return shoppingView();
     case 'mealplan': return mealplanView();
     case 'unitconverter': return unitConverterView();
     case 'cookbook': return cookbookDesignerView();
     case 'cookbooks': return cookbooksView();
-    case 'settings-sync': return settingsSyncView();
+    case 'settings-sync': return settingsDataView('sync');
     case 'settings-share': return settingsShareView();
     case 'settings-share-preview': return settingsSharePreviewView();
     default: return homeView();
@@ -269,21 +270,16 @@ function settingsView() {
     <main class="has-tabbar settings-page">
       ${pageTitle('Einstellungen')}
       ${settingsGroup('Deine Daten', [
-        settingsRow({ icon: ICONS.cloud, title: 'Auf mehreren Geräten', summary: cloudSettingsSummary(), view: 'settings-sync' }),
-        settingsRow({ icon: ICONS.download, title: 'Sicherungskopie', view: 'settings-backup' }),
+        settingsRow({ icon: ICONS.cloud, title: 'Konto und Sicherung', summary: cloudSettingsSummary(), view: 'settings-data' }),
         settingsRow({ icon: ICONS.share, title: 'Freunde &amp; Rezepte senden', summary: shareSettingsSummary(), view: 'settings-share' }),
       ].join(''))}
       ${settingsGroup('Anzeige &amp; Einheiten', [
-        settingsRow({ icon: ICONS.moon, title: 'Helles oder dunkles Design', summary: themeLabel, view: 'settings-display' }),
-        settingsRow({ icon: ICONS.ruler, title: 'Mengenangaben', summary: unitLabel, view: 'settings-units' }),
-        settingsRow({ icon: ICONS.info, title: 'Nährwerte anzeigen', summary: state.showNutrition ? 'An' : 'Aus', view: 'settings-nutrition' }),
+        settingsRow({ icon: ICONS.moon, title: 'Anzeige', summary: `${themeLabel}, ${unitLabel}`, view: 'settings-display' }),
         settingsRow({ icon: ICONS.scale, title: 'Masseinheiten-Rechner', action: 'open-unitconverter' }),
       ].join(''))}
       ${settingsGroup('Hilfe &amp; Infos', [
         settingsRow({ icon: ICONS.lifeBuoy, title: 'Hilfe erhalten', view: 'settings-help' }),
         settingsRow({ icon: ICONS.info, title: 'Über Savora', view: 'settings-about' }),
-        settingsRow({ icon: ICONS.shield, title: 'Datenschutz', view: 'settings-privacy' }),
-        settingsRow({ icon: ICONS.fileText, title: 'Nutzungsbedingungen', view: 'settings-terms' }),
       ].join(''))}
     </main>
     ${bottomNav()}
@@ -291,9 +287,15 @@ function settingsView() {
   `;
 }
 
-function settingsDisplayView() {
+/* Kopf eines Abschnitts auf einer zusammengelegten Seite: Überschrift und (optional) ein Satz, der
+   den Unterschied zum Nachbarabschnitt erklärt. */
+function settingsSectionHead(title, lead) {
+  return `<div class="settings-section-head"><h2 class="settings-section-h">${title}</h2>${lead ? `<p class="settings-section-lead">${lead}</p>` : ''}</div>`;
+}
+
+function settingsThemeBodyHtml() {
   const t = state.theme;
-  const body = `
+  return `
     <div class="settings-group">
       <div class="settings-group-card settings-group-card--padded">
         <p class="settings-hint">Dunkel eignet sich besonders gut zum Kochen am Abend.</p>
@@ -306,11 +308,10 @@ function settingsDisplayView() {
         <p class="settings-hint settings-hint--top">Schwarz: vollständig schwarzer Hintergrund für OLED-Displays.</p>
       </div>
     </div>`;
-  return settingsDetailShell('Helles oder dunkles Design', body);
 }
 
-function settingsUnitsView() {
-  const body = `
+function settingsUnitsBodyHtml() {
+  return `
     <div class="settings-group">
       <div class="settings-group-card settings-group-card--padded">
         <p class="settings-hint">Beim Import aus Text rechnet Savora die Mengen in diese Einheiten um. Du kannst jede Menge danach selbst ändern.</p>
@@ -320,11 +321,10 @@ function settingsUnitsView() {
         </div>
       </div>
     </div>`;
-  return settingsDetailShell('Mengenangaben', body);
 }
 
-function settingsNutritionView() {
-  const body = `
+function settingsNutritionBodyHtml() {
+  return `
     <div class="settings-group">
       <div class="settings-group-card settings-group-card--padded">
         <p class="settings-hint">Geschätzte Werte. Je nach Zutaten und Mengen können sie abweichen.</p>
@@ -335,7 +335,15 @@ function settingsNutritionView() {
         </div>
       </div>
     </div>`;
-  return settingsDetailShell('Nährwerte anzeigen', body);
+}
+
+/* Eine Seite «Anzeige» für Design, Mengenangaben und Nährwerte. Die alten Ansichtsnamen
+   'settings-units' und 'settings-nutrition' zeigen dieselbe Seite. */
+function settingsDisplayView() {
+  const body = settingsSectionHead('Helles oder dunkles Design') + settingsThemeBodyHtml()
+    + settingsSectionHead('Mengenangaben') + settingsUnitsBodyHtml()
+    + settingsSectionHead('Nährwerte') + settingsNutritionBodyHtml();
+  return settingsDetailShell('Anzeige', body);
 }
 
 /* Absendername: freiwillig, wird heute nirgends automatisch ausgegeben (weder PDF noch Teilen).
@@ -362,18 +370,17 @@ function settingsProfileView() {
    unverändert, inhaltlich gleiche Rezepte werden nicht doppelt angelegt, nichts wird gelöscht. */
 const RESTORE_EXPLAIN = 'Die Rezepte aus der Datei werden zu deinen vorhandenen Rezepten hinzugefügt. Was du schon hast, bleibt unverändert und wird nicht ersetzt. Rezepte, die genau so schon da sind, werden nicht doppelt angelegt. Einkaufsliste und Wochenplan werden ebenfalls ergänzt.';
 
-function settingsBackupView() {
+function settingsBackupSectionHtml() {
   const lastBackupLabel = state.lastBackupAt
     ? new Date(state.lastBackupAt).toLocaleDateString('de-CH', { day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' })
     : 'Noch keine Sicherung gespeichert';
-  const body = `
+  return `
     <div class="settings-group">
-      <div class="settings-group-title">Sicherung</div>
       <div class="settings-group-card settings-group-card--padded">
         <p class="settings-hint settings-hint--none">Speichere eine Kopie deiner Rezepte als Datei.</p>
         <p class="settings-hint">${typeof cloudSignedIn === 'function' && cloudSignedIn()
           ? 'Du bist mit einem Konto angemeldet: Deine Rezepte liegen in deinem Profil und sind auf jedem Gerät da, auch nach einer Neuinstallation. Du musst keine Sicherung erstellen. Eine Sicherungsdatei ist nur optional, wenn du einen festen Stand aufbewahren möchtest. Der Abgleich ersetzt das nicht ganz: löschst du ein Rezept, verschwindet es überall.'
-          : 'Deine Daten liegen nur auf diesem Gerät. Speichere regelmässig eine Sicherung, damit bei einem Gerätewechsel oder gelöschten Browserdaten nichts verloren geht. Unter „Auf mehreren Geräten“ kannst du zusätzlich einen Abgleich mit deinen anderen Geräten einrichten. Der Abgleich ersetzt keine Sicherung.'}</p>
+          : 'Deine Daten liegen nur auf diesem Gerät. Speichere regelmässig eine Sicherung, damit bei einem Gerätewechsel oder gelöschten Browserdaten nichts verloren geht. Im Abschnitt „Auf mehreren Geräten“ kannst du zusätzlich einen Abgleich mit deinen anderen Geräten einrichten. Der Abgleich ersetzt keine Sicherung.'}</p>
         ${(!SavoraNative.isNative && state.storagePersisted === false && !(typeof cloudSignedIn === 'function' && cloudSignedIn())) ? '<p class="settings-hint settings-hint--warn">Dein Browser hat den Speicher nicht als dauerhaft freigegeben und kann ihn bei Platzmangel räumen. Speichere deshalb regelmässig eine Sicherung.</p>' : ''}
         <button class="primary-btn" data-action="export-backup">${ICONS.download} Sicherung speichern</button>
         <p class="settings-hint settings-hint--top">Letzte Sicherung: ${escapeHtml(lastBackupLabel)}</p>
@@ -389,8 +396,20 @@ function settingsBackupView() {
         <div id="backupStatus"></div>
       </div>
     </div>`;
-  return settingsDetailShell('Sicherungskopie', body);
 }
+
+/* Eine Seite «Konto und Sicherung». 'settings-sync' (Konto zuerst) und 'settings-backup'
+   (Sicherungskopie zuerst) zeigen dieselbe Seite, damit alle bisherigen Verweise weiter stimmen. */
+function settingsDataView(first) {
+  const sync = settingsSectionHead('Auf mehreren Geräten', 'Gleicht deine Rezepte laufend mit deinem Konto ab, damit sie auf jedem Gerät gleich sind.')
+    + (typeof cloudAccountSectionHtml === 'function' ? cloudAccountSectionHtml() : '');
+  const backup = settingsSectionHead('Sicherungskopie', 'Eine Datei zum Aufbewahren: ein fester Stand deiner Rezepte, unabhängig von deinem Konto.')
+    + settingsBackupSectionHtml();
+  const body = first === 'backup' ? backup + sync : sync + backup;
+  return settingsDetailShell('Konto und Sicherung', body)
+    + (state.modal && state.modal.type === 'cloud-new-password' && typeof cloudNewPasswordModal === 'function' ? cloudNewPasswordModal() : '');
+}
+
 
 function settingsHelpView() {
   return settingsDetailShell('Hilfe erhalten', legalHelpHtml());
@@ -402,7 +421,7 @@ function settingsTermsView() {
   return settingsDetailShell('Nutzungsbedingungen', legalTermsHtml());
 }
 function settingsSourcesView() {
-  return settingsDetailShell('Datenquellen', legalSourcesHtml());
+  return settingsDetailShell('Datenquellen und Lizenzen', legalSourcesHtml());
 }
 function settingsLicensesView() {
   return settingsDetailShell('Lizenzen', legalLicensesHtml());

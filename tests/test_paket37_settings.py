@@ -1,4 +1,4 @@
-"""Paket 37: Einstellungen in drei Gruppen, klare Beschriftungen, Sicherung/Wiederherstellung, Namen beim Teilen."""
+"""Paket 38: Einstellungen mit sechs Zeilen in drei Gruppen, kombinierte Seiten (Konto und Sicherung, Anzeige), Rechtliches in Über Savora, Sicherung/Wiederherstellung, Namen beim Teilen."""
 import asyncio, json, sys
 import os as _os; sys.path.insert(0, _os.path.dirname(_os.path.abspath(__file__)))
 from common import *
@@ -7,7 +7,7 @@ def check(name, cond, info=''):
     print(('OK   ' if cond else 'FEHL ') + name, info)
     if not cond: FAIL.append(name)
 
-VIEWS = ['settings', 'settings-display', 'settings-units', 'settings-profile', 'settings-backup', 'settings-help', 'settings-privacy',
+VIEWS = ['settings', 'settings-data', 'settings-display', 'settings-units', 'settings-profile', 'settings-backup', 'settings-help', 'settings-privacy',
          'settings-terms', 'settings-sources', 'settings-about', 'settings-licenses', 'settings-nutrition', 'settings-sync', 'settings-share', 'settings-share-preview']
 
 async def main():
@@ -28,37 +28,46 @@ async def main():
         titles = [g['t'] for g in groups]
         check('Gruppen in Reihenfolge: Deine Daten, Anzeige & Einheiten, Hilfe & Infos', [t.lower() for t in titles] == ['deine daten', 'anzeige & einheiten', 'hilfe & infos'], str(titles))
         rows = [[r['title'] for r in g['rows']] for g in groups]
-        check('Deine Daten: Auf mehreren Geräten, Sicherungskopie, Freunde & Rezepte senden', rows[0] == ['Auf mehreren Geräten', 'Sicherungskopie', 'Freunde & Rezepte senden'], str(rows[0]))
-        check('Anzeige & Einheiten: Design, Mengenangaben, Nährwerte anzeigen, Rechner', rows[1] == ['Helles oder dunkles Design', 'Mengenangaben', 'Nährwerte anzeigen', 'Masseinheiten-Rechner'], str(rows[1]))
-        check('Hilfe & Infos: Hilfe erhalten, Über Savora, Datenschutz, Nutzungsbedingungen', rows[2] == ['Hilfe erhalten', 'Über Savora', 'Datenschutz', 'Nutzungsbedingungen'], str(rows[2]))
+        check('Deine Daten: Konto und Sicherung, Freunde & Rezepte senden', rows[0] == ['Konto und Sicherung', 'Freunde & Rezepte senden'], str(rows[0]))
+        check('Anzeige & Einheiten: Anzeige, Masseinheiten-Rechner', rows[1] == ['Anzeige', 'Masseinheiten-Rechner'], str(rows[1]))
+        check('Hilfe & Infos: Hilfe erhalten, Über Savora', rows[2] == ['Hilfe erhalten', 'Über Savora'], str(rows[2]))
+        check('Hauptliste hat genau 6 Zeilen', sum(len(r) for r in rows) == 6, str(rows))
         sums = {r['title']: r['sum'] for g in groups for r in g['rows']}
-        check('Ohne Anmeldung steht «Nicht angemeldet»', sums['Auf mehreren Geräten'] == 'Nicht angemeldet', str(sums))
+        check('Ohne Anmeldung steht «Nicht angemeldet»', sums['Konto und Sicherung'] == 'Nicht angemeldet', str(sums))
         txt = await main_text()
-        for old in ['Kochbuch gestalten und als PDF', 'Kochbuch & Profil', 'Synchronisation', 'Hilfe & Feedback', 'Darstellung', 'Imperial', 'Metrisch']:
+        for old in ['Kochbuch gestalten und als PDF', 'Kochbuch & Profil', 'Synchronisation', 'Hilfe & Feedback', 'Darstellung', 'Imperial', 'Metrisch', 'Datenschutz', 'Nutzungsbedingungen', 'Sicherungskopie', 'Auf mehreren Geräten']:
             check(f'Einstellungen ohne altes Wort «{old}»', old not in txt)
         check('Rechner-Zeile ruft open-unitconverter auf', await ev("document.querySelector('.settings-row[data-action=\"open-unitconverter\"]') !== null"))
         check('Seitentitel bleibt «Einstellungen»', await ev("document.querySelector('h1, .page-title, .topbar-title') && document.body.innerText.includes('Einstellungen')"))
 
-        # 2 Design
-        await ev("() => { state.theme = 'auto'; }"); await go('settings')
-        check('Design-Zusammenfassung «Wie dein Gerät»', 'Wie dein Gerät' in await main_text())
+        # 2 Anzeige: eine Seite mit drei Abschnitten
+        await ev("() => { state.theme = 'auto'; state.unitSystem = 'metric'; state.showNutrition = true; }"); await go('settings')
+        check('Anzeige-Zusammenfassung «Wie dein Gerät, Gramm und Milliliter»', sums_now := await ev("Array.from(document.querySelectorAll('.settings-row')).find(r => r.textContent.includes('Anzeige')).querySelector('.settings-row-summary').textContent") == 'Wie dein Gerät, Gramm und Milliliter', sums_now)
         await go('settings-display'); t = await main_text()
-        check('Designseite: «Wie dein Gerät» statt «System»', 'Wie dein Gerät' in t and 'System' not in t, t[:200])
-
-        # 3 Mengenangaben
-        await go('settings-units'); t = await main_text()
-        check('Mengenangaben: «Gramm und Milliliter» und «US-Masse (Cups, Unzen)»', 'Gramm und Milliliter' in t and 'US-Masse (Cups, Unzen)' in t and 'Imperial' not in t and 'Metrisch' not in t, t[:300])
-        await ev("() => { state.unitSystem = 'imperial'; state.view='settings'; render(); }"); await page.wait_for_timeout(150)
+        heads = await ev("Array.from(document.querySelectorAll('main h2')).map(h => h.textContent.trim())")
+        check('Anzeige: Abschnitte Design, Mengenangaben, Nährwerte', heads == ['Helles oder dunkles Design', 'Mengenangaben', 'Nährwerte'], str(heads))
+        check('Anzeige: «Wie dein Gerät» statt «System»', 'Wie dein Gerät' in t and 'System' not in t, t[:200])
+        check('Anzeige: Mengenangaben «Gramm und Milliliter» und «US-Masse (Cups, Unzen)»', 'Gramm und Milliliter' in t and 'US-Masse (Cups, Unzen)' in t and 'Imperial' not in t and 'Metrisch' not in t, t[:400])
+        check('Anzeige: Nährwerte-Satz', 'Geschätzte Werte. Je nach Zutaten und Mengen können sie abweichen.' in t)
+        check('Anzeige: Seitentitel «Anzeige»', await ev("document.querySelector('.topbar-title, .topbar h1, header') && document.querySelector('header, .topbar').innerText.includes('Anzeige')"))
+        for v in ('settings-units', 'settings-nutrition'):
+            await go(v); check(f'{v} zeigt dieselbe Anzeige-Seite', await ev("Array.from(document.querySelectorAll('main h2')).map(h => h.textContent.trim()).join('|')") == '|'.join(heads))
+        await go('settings-display')
+        await page.click('[data-action="set-unit-system"][data-system="imperial"]'); await page.wait_for_timeout(150)
+        await page.click('[data-action="set-show-nutrition"][data-value="0"]'); await page.wait_for_timeout(150)
+        await go('settings')
         check('Zusammenfassung zeigt US-Masse', 'US-Masse (Cups, Unzen)' in await main_text())
-        await ev("() => { state.unitSystem = 'metric'; }")
-
-        # 4 Naehrwerte
-        await go('settings-nutrition'); t = await main_text()
-        check('Nährwerte: Satz «Geschätzte Werte. Je nach Zutaten und Mengen können sie abweichen.»', 'Geschätzte Werte. Je nach Zutaten und Mengen können sie abweichen.' in t, t[:200])
-        await ev("() => { state.showNutrition = true; state.view='settings'; render(); }"); await page.wait_for_timeout(150)
-        check('Nährwerte anzeigen: Zusammenfassung «An»', 'An' in sums.get('Nährwerte anzeigen', '') or 'An' in await ev("Array.from(document.querySelectorAll('.settings-row')).find(r => r.textContent.includes('Nährwerte anzeigen')).querySelector('.settings-row-summary').textContent"))
+        await ev("() => { state.unitSystem = 'metric'; state.showNutrition = true; }")
 
         # 5 Sicherungsseite
+        await go('settings-backup'); t = await main_text()
+        h2 = await ev("Array.from(document.querySelectorAll('main h2')).map(h => h.textContent.trim())")
+        check('settings-backup: Sicherungskopie zuerst, dann Auf mehreren Geräten', h2 == ['Sicherungskopie', 'Auf mehreren Geräten'], str(h2))
+        for v in ('settings-sync', 'settings-data'):
+            await go(v); h2 = await ev("Array.from(document.querySelectorAll('main h2')).map(h => h.textContent.trim())")
+            check(f'{v}: Auf mehreren Geräten zuerst, dann Sicherungskopie', h2 == ['Auf mehreren Geräten', 'Sicherungskopie'], str(h2))
+        check('Konto und Sicherung: Anmeldefelder und Sicherungs-Knopf auf einer Seite', await ev("!!document.getElementById('cloudEmail') && !!document.querySelector('[data-action=export-backup]') && !!document.getElementById('restoreFileInput')"))
+        check('Konto und Sicherung: Seitentitel', 'Konto und Sicherung' in await ev("document.querySelector('header, .topbar').innerText"))
         await go('settings-backup'); t = await main_text()
         check('Sicherung: Beschreibung', 'Speichere eine Kopie deiner Rezepte als Datei.' in t)
         btns = await ev("Array.from(document.querySelectorAll('[data-action=\"export-backup\"], [data-action=\"trigger-restore\"]')).map(b => b.textContent.trim())")
@@ -99,13 +108,22 @@ async def main():
         await go('settings-profile')
         check('Profilseite zeigt nur noch den Namen (kein Kochbuch-Titel)', 'Dein Name' in await main_text() and await ev("document.getElementById('f-cookbook-title') === null"))
 
-        # 8 Datenquellen und Lizenzen erreichbar
+        # 8 Rechtliches in Über Savora
         await go('settings-about')
-        reach = await ev("Array.from(document.querySelectorAll('[data-view]')).map(b => b.dataset.view)")
-        check('Über Savora führt zu Datenquellen und Lizenzen', 'settings-sources' in reach and 'settings-licenses' in reach, str(reach))
+        reach = await ev("Array.from(document.querySelectorAll('main [data-view]')).map(b => b.dataset.view)")
+        check('Über Savora: Rechtliches mit Datenschutz, Nutzungsbedingungen, Datenquellen und Lizenzen', reach == ['settings-privacy', 'settings-terms', 'settings-sources'], str(reach))
+        rt = await ev("Array.from(document.querySelectorAll('.settings-row-title')).map(r => r.textContent.trim())")
+        check('Über Savora: Zeilen nichts doppelt', rt == ['Datenschutz', 'Nutzungsbedingungen', 'Datenquellen und Lizenzen'], str(rt))
+        check('Über Savora: Überschrift «Rechtliches»', 'rechtliches' in (await main_text()).lower())
         await page.click('[data-view="settings-sources"]'); await page.wait_for_timeout(200)
         check('Datenquellen öffnen sich', 'schweizer nährwertdatenbank' in (await main_text()).lower())
+        check('Datenquellen verweisen auf Lizenzen', await ev("!!document.querySelector('main [data-view=settings-licenses]')"))
         await go('settings-licenses'); check('Lizenzen öffnen sich', 'Roboto' in await main_text())
+        await go('settings-privacy'); check('Datenschutz erreichbar', 'Wer verantwortlich ist' in await main_text())
+        await go('settings-terms'); check('Nutzungsbedingungen erreichbar', 'Beta-Version' in await main_text())
+        await go('settings-about'); await page.click('[data-view="settings-privacy"]'); await page.wait_for_timeout(200)
+        await ev("document.querySelector('[data-action=back]').click()"); await page.wait_for_timeout(500)
+        check('Zurück von Datenschutz führt zu Über Savora', await ev("state.view") == 'settings-about')
 
         # 9 Hilfe erhalten
         await go('settings-help'); t = await ev("document.body.innerText")
@@ -121,6 +139,18 @@ async def main():
                     check(f'{v}: kein ß und keine Gedankenstriche', 'ß' not in bt and '—' not in bt and '–' not in bt, ''.join(c for c in bt if c in 'ß—–'))
                 ov = await ev("Math.max(document.documentElement.scrollWidth, document.body.scrollWidth) - innerWidth")
                 check(f'{v}: kein Überlauf bei 390 px{" und 24 px Schrift" if fs else ""}', ov <= 0, str(ov))
+        await page.set_viewport_size({'width': 360, 'height': 780})
+        for fs in ('', '24px'):
+            await ev(f"() => {{ document.documentElement.style.fontSize = '{fs}'; }}")
+            for v in ('settings', 'settings-data', 'settings-backup', 'settings-display', 'settings-about'):
+                await go(v)
+                ov = await ev("Math.max(document.documentElement.scrollWidth, document.body.scrollWidth) - innerWidth")
+                clip = await ev("Array.from(document.querySelectorAll('.settings-row')).filter(r => r.scrollWidth > r.clientWidth + 1).length")
+                check(f'{v}: bei 360 px{" und 24 px Schrift" if fs else ""} kein Überlauf, keine abgeschnittene Zeile', ov <= 0 and clip == 0, f'{ov} {clip}')
+                if v == 'settings': 
+                    small = await ev("Array.from(document.querySelectorAll('main *')).filter(e => e.childNodes.length && Array.from(e.childNodes).some(n => n.nodeType === 3 && n.textContent.trim()) && parseFloat(getComputedStyle(e).fontSize) < 14).length")
+                    hh = await ev("Math.min(...Array.from(document.querySelectorAll('.settings-row')).map(r => r.getBoundingClientRect().height))")
+                    check(f'Hauptliste: nichts unter 14 px, Zeilen mind. 44 px hoch ({fs or "normal"})', small == 0 and hh >= 44, f'{small} {hh}')
         await ev("() => { document.documentElement.style.fontSize = ''; }")
         check('Keine Seitenfehler', not errs, str(errs[:3]))
         await browser.close()

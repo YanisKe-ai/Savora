@@ -403,7 +403,7 @@ function cloudStartup() {
 }
 
 /* ---------- Oberflaeche ---------- */
-function settingsSyncView() {
+function cloudAccountSectionHtml() {
   const s = cloudSession();
   let body;
   if (s && s.user) {
@@ -443,8 +443,9 @@ function settingsSyncView() {
       ${CLOUD_SIGNUP_OPEN ? '' : `<p class="settings-hint beta-note">${ICONS.info} Noch kein Zugang? ${escapeHtml(CLOUD_CLOSED_BETA_TEXT)}</p>`}
       <p class="settings-hint">Gespeichert wird in Zürich (Supabase). Nur du hast Zugriff auf deine Daten.</p>`;
   }
-  return settingsDetailShell('Auf mehreren Geräten', body) + (state.modal && state.modal.type === 'cloud-new-password' ? cloudNewPasswordModal() : '');
+  return body;
 }
+function settingsSyncView() { return settingsDataView('sync'); }
 function cloudNewPasswordModal() {
   return sheet('cloud-pw-title', 'Neues Passwort festlegen', `
     <div class="field"><label for="cloudNewPassword">Neues Passwort</label><input type="password" id="cloudNewPassword" autocomplete="new-password" minlength="8"></div>
