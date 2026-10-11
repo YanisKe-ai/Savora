@@ -259,6 +259,9 @@ function bindEvents() {
   hydrateLazyImages();
   hydrateNutritionCards();
   bindNutritionSearchInput();
+  if (typeof initTickers === 'function') initTickers(document);
+  if (typeof initHighlights === 'function') initHighlights();
+  if (typeof updateScrollEdge === 'function') updateScrollEdge();
 
   const modalSheet = topModalSheet();
   applyModalInert();
@@ -823,11 +826,13 @@ async function dispatchAction(action, id, el, e) {
         applyTheme();
         render();
       };
-      // Absicherung gegen ueberlappende View-Transitions: wer schnell zwischen zwei
-      // Theme-Optionen tippt, bevor die vorherige Kreis-Animation fertig ist, sollte
-      // trotzdem sofort das neue Theme bekommen, statt dass die Animation haengen bleibt.
-      if (document.startViewTransition && !prefersReducedMotion() && !state._themeTransitionActive) {
-        const x = e.clientX, y = e.clientY;
+      // Kreis-Wisch ab dem Knopf (View Transitions API). Ohne API, bei Reduced Motion, bei unveraenderter Wahl und
+      // waehrend eine Animation laeuft: sofortiger Wechsel. Bei Tastaturbedienung (kein Zeiger) startet der Kreis in der Knopfmitte.
+      if (document.startViewTransition && !prefersReducedMotion() && !state._themeTransitionActive && nextTheme !== state.theme) {
+        const rect = el.getBoundingClientRect();
+        const fromKey = e && e.detail === 0;
+        const x = fromKey || !e ? rect.left + rect.width / 2 : e.clientX;
+        const y = fromKey || !e ? rect.top + rect.height / 2 : e.clientY;
         const endRadius = Math.hypot(Math.max(x, innerWidth - x), Math.max(y, innerHeight - y));
         document.documentElement.classList.add('theme-transitioning');
         state._themeTransitionActive = true;
@@ -835,11 +840,12 @@ async function dispatchAction(action, id, el, e) {
           document.documentElement.classList.remove('theme-transitioning');
           state._themeTransitionActive = false;
         };
-        const transition = document.startViewTransition(applyThemeChange);
+        let transition;
+        try { transition = document.startViewTransition(applyThemeChange); } catch (err) { finishUp(); applyThemeChange(); break; }
         transition.ready.then(() => {
           document.documentElement.animate(
             { clipPath: [`circle(0px at ${x}px ${y}px)`, `circle(${endRadius}px at ${x}px ${y}px)`] },
-            { duration: 550, easing: 'cubic-bezier(.4,0,.2,1)', pseudoElement: '::view-transition-new(root)' }
+            { duration: 420, easing: 'cubic-bezier(0.23, 1, 0.32, 1)', pseudoElement: '::view-transition-new(root)' }
           );
         }).catch(() => {});
         transition.finished.then(finishUp).catch(finishUp);

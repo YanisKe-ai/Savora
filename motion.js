@@ -171,10 +171,65 @@ function bindSheetDrag() {
   });
 }
 
-/* ---------- Weiche Kante unter den Kopfleisten erst beim Scrollen ---------- */
+/* ---------- Weiche Kante unter den Kopfleisten erst beim Scrollen ----------
+   is-scrolled: Kopf hat Inhalt darunter. fs-more-below: unter der unteren Leiste liegt noch Inhalt. Der Verlauf mit Unschaerfe
+   (CSS-Block «Feinschliff») blendet nur ein, wenn wirklich gescrollt wurde. */
 function updateScrollEdge() {
-  const on = (window.scrollY || document.documentElement.scrollTop || 0) > 2;
-  document.documentElement.classList.toggle('is-scrolled', on);
+  const y = window.scrollY || document.documentElement.scrollTop || 0;
+  const root = document.documentElement;
+  root.classList.toggle('is-scrolled', y > 2);
+  const more = y > 2 && (y + window.innerHeight) < (root.scrollHeight - 2);
+  root.classList.toggle('fs-more-below', more);
+}
+
+/* ---------- Feinschliff: Number Ticker ----------
+   Zaehlt eine Zahl in 420 ms (ease-out) von 0 auf den Endwert hoch. Der Text der Zahl bleibt die ganze Zeit der Endwert
+   (Bildschirmleser, Breite, Layout); die laufende Zahl liegt nur als aria-hidden-Schicht darueber. Pro Ansicht und Schluessel
+   nur einmal: Neuzeichnen (Suche tippen, Portionen aendern) zaehlt nicht erneut. Bei Reduced Motion bleibt alles statisch. */
+const _tickSeen = new Set();          // pro Ansicht
+const _tickSeenSession = new Set();   // pro App-Start (Einkauf-Zaehler)
+let _tickView = null;
+function initTickers(root) {
+  const viewKey = (state.view || '') + '|' + (state.activeRecipeId || '');
+  if (_tickView !== viewKey) { _tickView = viewKey; _tickSeen.clear(); }
+  const scope = root || document;
+  const nodes = scope.querySelectorAll ? scope.querySelectorAll('.tick[data-tick]:not([data-tick-done])') : [];
+  nodes.forEach(el => {
+    el.setAttribute('data-tick-done', '1');
+    const seen = el.dataset.tickScope === 'session' ? _tickSeenSession : _tickSeen;
+    const key = el.dataset.tickKey;
+    if (!key || seen.has(key)) return;
+    seen.add(key);
+    if (prefersReducedMotion() || document.hidden || !el.offsetParent) return;
+    const target = parseFloat(el.dataset.tick), dec = parseInt(el.dataset.dec || '0', 10);
+    if (!(target > 0)) return;
+    const fmt = (v) => v.toFixed(dec).replace('.', ',');
+    el.style.setProperty('--tick-color', getComputedStyle(el).color);   // die laufende Zahl liegt als CSS-Inhalt (nicht im Text, nicht für Bildschirmleser) darüber
+    el.dataset.live = fmt(0);
+    el.classList.add('is-ticking');
+    const DUR = 420, t0 = performance.now();
+    let done = false;
+    const finish = () => { if (done) return; done = true; el.classList.remove('is-ticking'); el.removeAttribute('data-live'); el.style.removeProperty('--tick-color'); };
+    const step = (now) => {
+      if (done) return;
+      if (!el.isConnected) { finish(); return; }
+      const p = Math.min(1, (now - t0) / DUR);
+      el.dataset.live = fmt(target * (1 - Math.pow(1 - p, 3)));
+      if (p < 1) requestAnimationFrame(step); else finish();
+    };
+    requestAnimationFrame(step);
+    setTimeout(finish, DUR + 150);   // Rueckfall, falls der Tab im Hintergrund keine Frames zeichnet
+  });
+}
+
+/* ---------- Feinschliff: Text Highlighter ----------
+   Der Wisch laeuft nur, wenn Treffer neu erscheinen (Suche beginnt), nicht bei jedem Tastendruck oder Neuzeichnen. */
+let _hlShown = false;
+function initHighlights() {
+  const marks = document.querySelectorAll('mark.hl');
+  if (!marks.length) { if (!(state.query || '').trim()) _hlShown = false; return; }
+  if (!_hlShown && !prefersReducedMotion()) marks.forEach(m => m.classList.add('hl-wipe'));
+  _hlShown = true;
 }
 
 /* ---------- Einmalige Einrichtung ---------- */
@@ -182,6 +237,7 @@ function updateScrollEdge() {
   // iOS: ohne touchstart-Listener zeigt WebKit keinen :active-Zustand (kein Drueck-Feedback)
   document.addEventListener('touchstart', () => {}, { passive: true });
   window.addEventListener('scroll', updateScrollEdge, { passive: true });
+  window.addEventListener('resize', updateScrollEdge, { passive: true });
   // Dynamic Type: auf Apple-Geraeten die Systemschriftgroesse als Grundgroesse uebernehmen (Standard 17 pt = 16 px Basis)
   try {
     const probe = document.createElement('span');
