@@ -279,22 +279,9 @@ button { -webkit-tap-highlight-color: transparent; }
 .shop-section--have .shop-name { color: var(--text-soft); }
 
 /* ---------- Wochenplan ---------- */
-.day-card { background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius-m); padding: 0.75rem 1rem; margin-bottom: 0.75rem; box-shadow: none; }
-.day-card.is-today { border-color: var(--violet);  }
-.day-card-head { display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; margin-bottom: 0.5rem; }
-.day-card-title { font-family: var(--font-display); font-size: 1.0625rem; font-weight: 800; margin: 0; }
-.day-card-date { font-size: 0.875rem; font-weight: 600; color: var(--text-soft); margin-left: 0.25rem; }
+/* Wochenplan: Gestaltung steht im Block «Wochenplan (Paket 41)» am Ende dieser Datei */
 .day-select { display: inline-flex; align-items: center; gap: 0.5rem; font-size: 0.875rem; color: var(--text-soft); min-height: 44px; }
 .day-select input { width: 18px; height: 18px; accent-color: var(--violet); }
-.plan-entry { display: flex; align-items: center; gap: 0.25rem; border-top: 1px solid var(--border); }
-.plan-entry-main { display: flex; align-items: center; gap: 0.75rem; flex: 1; min-width: 0; min-height: 56px; border: none; background: none; text-align: left; color: inherit; padding: 0.5rem 0; }
-.plan-thumb { width: 48px; height: 36px; border-radius: 8px; object-fit: cover; flex-shrink: 0; }
-.plan-entry-text { display: flex; flex-direction: column; min-width: 0; }
-.plan-meal { font-size: 0.875rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.08em; color: var(--accent); }
-.plan-title { font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.plan-servings { font-size: 0.875rem; color: var(--text-soft); }
-.day-add-btn { border-radius: var(--radius-s); border-color: var(--border); color: var(--text-soft); margin-top: 0.5rem; }
-.week-nav { background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius-m); }
 
 /* ---------- Kochbuch-Designer ---------- */
 .cookbook-main { max-width: 820px; }
@@ -1136,7 +1123,7 @@ html[data-nav-dir="back"]::view-transition-new(root) { animation: svInFromLeft 3
 @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --hairline: rgba(255, 255, 255, .08); --lift-1: 0 1px 2px rgba(0, 0, 0, .35), 0 8px 20px -10px rgba(0, 0, 0, .6); --lift-2: 0 2px 4px rgba(0, 0, 0, .4), 0 16px 34px -16px rgba(0, 0, 0, .75); } }
 
 /* Karten: keine harten Rahmen, sondern weiche Tiefe */
-.rcard, .rrow, .recent-card, .panel, .settings-group, .settings-card, .nutrition-card, .plan-day, .shop-section, .picker-list, .uc-card, .uc-result-row, .review-box {
+.rcard, .rrow, .recent-card, .panel, .settings-group, .settings-card, .nutrition-card, .shop-section, .picker-list, .uc-card, .uc-result-row, .review-box {
   border: 1px solid var(--hairline) !important; box-shadow: var(--lift-1); border-radius: var(--r-card);
 }
 @media (hover: hover) and (pointer: fine) { .rcard:hover, .recent-card:hover, .rrow:hover { border-color: var(--hairline) !important; box-shadow: var(--lift-2); } }
@@ -1206,11 +1193,6 @@ html[data-nav-dir="back"]::view-transition-new(root) { animation: svInFromLeft 3
 .rcard-title { font-size: 1.375rem; line-height: 1.12; }
 .rrow-title, .recent-title { font-size: 1.25rem; }
 .modal-sheet:focus, .modal-sheet:focus-visible { outline: none; }
-.week-nav { background: var(--surface-soft); border: none !important; border-radius: 999px; padding: 0.25rem; box-shadow: none; }
-.week-nav button { border-radius: 50% !important; border: none !important; background: var(--card-bg); width: 2.75rem; height: 2.75rem; min-width: 2.75rem; box-shadow: var(--lift-1); }
-.day-card { border-radius: var(--r-card); }
-.day-card.is-today { border-color: color-mix(in srgb, var(--violet) 50%, transparent) !important; box-shadow: var(--lift-1), 0 0 0 3px color-mix(in srgb, var(--violet) 14%, transparent); }
-.day-add-btn { border-color: var(--hairline); border-radius: var(--r-ctl); }
 
 /* ===== Paket 29b: Bewegung nach Emil Kowalski (starke Kurven, nur transform/opacity, aus dem Nichts nie scale(0)) ===== */
 :root { --ease-out: cubic-bezier(0.23, 1, 0.32, 1); --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1); --ease-drawer: cubic-bezier(0.32, 0.72, 0, 1); }
@@ -1309,7 +1291,6 @@ input[type="text"], input[type="search"], input[type="number"], input[type="emai
 [data-theme="dark"] .field-error, [data-theme="amoled"] .field-error { color: var(--tomato); }
 input[aria-invalid="true"], textarea[aria-invalid="true"] { border-color: var(--tomato) !important; box-shadow: 0 0 0 2px var(--tomato); }
 /* Aufraeumen nach der Design-Pruefung: keine Seitenstreifen, kein farbiges Leuchten */
-.day-card.is-today { box-shadow: var(--lift-1), 0 0 0 3px color-mix(in srgb, var(--tomato) 18%, transparent); }
 .cook-start-inline { box-shadow: 0 1px 2px rgba(37, 39, 32, .18), 0 8px 14px -10px rgba(37, 39, 32, .5); }
 
 /* ===== Paket 33: Interaktionen (Rueckmeldung sofort, Zustaende klar, Uebergaenge unterbrechbar) ===== */
@@ -1469,50 +1450,13 @@ input[aria-invalid="true"], textarea[aria-invalid="true"] { border-color: var(--
 
 /* ==========================================================================
    Wochenplan und Einkauf (Paket 37)
-   Flache Tagesliste (Handy), sieben Spalten ab 900 px. Nur Design-Variablen, keine festen Farben.
+   Einkauf und Eintragen ohne Rezept. Die Wochenplan-Gestaltung steht im Block «Wochenplan (Paket 41)». Nur Design-Variablen, keine festen Farben.
    Bewegung: nichts verzoegert das Abhaken; Rueckmeldung ist unmittelbar (Farbe/Haken in <= 120 ms), bei reduzierter Bewegung ohne Uebergang.
    ========================================================================== */
-.plan-week { display: flex; flex-direction: column; margin-bottom: 1rem; }
-.plan-day { padding: 1rem 0 0.25rem; border-bottom: 1px solid var(--hairline, var(--border)); }
-.plan-day:last-child { border-bottom: none; }
-.plan-day-head { display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; min-height: 44px; }
-.plan-day-title { margin: 0; display: flex; align-items: baseline; flex-wrap: wrap; gap: 0.25rem 0.5rem; font-family: var(--font-sans); font-size: 1.125rem; font-weight: 600; line-height: 1.25; color: var(--text); }
-.plan-day-date { font-size: 0.9375rem; font-weight: 400; color: var(--text-soft); }
-.plan-day-short { display: none; }
-.plan-today { display: inline-block; padding: 0.125rem 0.5rem; border-radius: 999px; font-size: 0.875rem; font-weight: 600; line-height: 1.3; background: var(--tomato); color: var(--on-tomato); }
-.plan-day.is-today .plan-day-name { text-decoration: underline; text-decoration-thickness: 2px; text-underline-offset: 0.25em; text-decoration-color: var(--tomato); }
-.plan-list { display: flex; flex-direction: column; }
-.plan-entry { display: flex; align-items: center; gap: 0.25rem; border-top: 1px solid var(--hairline, var(--border)); }
-.plan-entry-main { display: flex; align-items: center; gap: 0.75rem; flex: 1; min-width: 0; min-height: 52px; border: none; background: none; text-align: left; color: inherit; padding: 0.25rem 0; font: inherit; }
-.plan-entry--note .plan-title { font-weight: 500; white-space: normal; overflow-wrap: anywhere; }
-.plan-title { font-weight: 600; font-size: 1rem; }
-.plan-meal { font-size: 0.875rem; font-weight: 600; text-transform: none; letter-spacing: 0; color: var(--text-soft); }
-.plan-add { display: flex; align-items: center; gap: 0.5rem; width: 100%; min-height: 44px; padding: 0; border: none; border-top: 1px solid var(--hairline, var(--border)); background: none; color: var(--text-soft); font: inherit; font-size: 0.9375rem; font-weight: 500; text-align: left; }
-.plan-add svg { width: 18px; height: 18px; }
-.plan-day.is-empty .plan-add { border-top: none; }
-@media (hover: hover) and (pointer: fine) { .plan-add:hover { color: var(--text); } }
 .plan-quick-title { margin: 1rem 0 0.5rem; font-size: 0.9375rem; font-weight: 600; color: var(--text-soft); }
 .plan-note-row { display: flex; gap: 0.5rem; margin-top: 0.75rem; }
 .plan-note-row input { flex: 1; min-width: 0; min-height: 48px; padding: 0 1rem; border: 1px solid var(--border); border-radius: var(--radius-s); background: var(--card-bg); color: var(--text); font: inherit; font-size: 1rem; }
 .plan-note-row .outline-btn { flex: none; }
-.week-nav-label { font-size: 1rem; }
-@media (min-width: 900px) {
-  .plan-week { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 0 0.75rem; align-items: start; margin-top: 1rem; }
-  .plan-day { border-bottom: none; border-top: 2px solid var(--border); padding-top: 0.75rem; min-width: 0; }
-  .plan-day.is-today { border-top-color: var(--tomato); }
-  .plan-day-head { flex-direction: column; align-items: flex-start; gap: 0.125rem; min-height: 0; }
-  .plan-day-title { flex-direction: column; align-items: flex-start; gap: 0.125rem; }
-  .plan-day-long { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
-  .plan-day-short { display: inline; }
-  .plan-day-date { font-size: 0.875rem; }
-  .plan-entry { flex-direction: column; align-items: stretch; position: relative; }
-  .plan-thumb { display: none; }
-  .plan-entry-main { min-height: 48px; padding-right: 0; }
-  .plan-title { white-space: normal; overflow-wrap: anywhere; font-size: 0.9375rem; }
-  .plan-entry .icon-btn { position: absolute; top: 0; right: -0.5rem; }
-  .plan-entry:has(.icon-btn) .plan-entry-main { padding-right: 2.25rem; }
-  .day-select { font-size: 0.875rem; }
-}
 
 /* Einkauf: Abhaken ohne Verzoegerung, Zeile bleibt an ihrer Stelle */
 .shop-quick { grid-template-columns: repeat(auto-fit, minmax(min(100%, 11rem), 1fr)); }
@@ -1799,7 +1743,6 @@ html { scrollbar-color: var(--border) transparent; }
 .today-link { display: inline-flex; align-items: center; }
 .shop-name, .shop-source, .cb-item-title, .cook-title-line { overflow-wrap: anywhere; min-width: 0; }
 .cook-title-line { max-width: 100%; }
-.plan-title { white-space: normal; overflow-wrap: anywhere; text-overflow: clip; }
 .settings-row-summary { white-space: normal; text-overflow: clip; overflow-wrap: anywhere; text-align: right; }
 
 /* Mindestschriften und Tippflaechen */
@@ -1820,12 +1763,6 @@ input[type="date"] { min-height: 3rem; }
 .cover-opt-name { text-align: center; overflow-wrap: anywhere; }
 .cover-opt.is-active .cover-opt-name { color: var(--text); }
 
-/* Wochenplan: sieben Spalten erst ab 1400 px, dazwischen 4 + 3 (die Platzhalter-Vorschau bleibt in Spalten weg) */
-@media (min-width: 900px) {
-  .plan-week { grid-template-columns: repeat(4, minmax(0, 1fr)); row-gap: 1.5rem; }
-  .plan-thumb, .plan-thumb.placeholder { display: none; }
-}
-@media (min-width: 1400px) { .plan-week { grid-template-columns: repeat(7, minmax(0, 1fr)); } }
 
 /* Grosse Systemschrift auf schmalen Handys: Schritte und Import-Zeilen reihen sich um, statt zu sprengen */
 .icon-btn:not(.icon-btn--small) { flex-shrink: 0; }
@@ -1859,3 +1796,89 @@ input[type="date"] { min-height: 3rem; }
 .settings-row { padding-top: 0.5rem; padding-bottom: 0.5rem; }
 .settings-row-title { min-width: 0; flex: 1 1 7rem; overflow-wrap: anywhere; }
 .settings-row-summary { min-width: 0; max-width: 55%; flex: 0 1 auto; }
+
+/* ==========================================================================
+   Wochenplan (Paket 41)
+   Handy: eine ruhige Liste, ein Abschnitt pro Tag, keine Karten und keine Schatten.
+   Heute: sanfte Salbeifläche. Ab 640 px ruhige Tageskacheln: 2 Spalten, ab 900 px 4 plus 3,
+   ab 1400 px sieben. Nur Design-Variablen, keine festen Farben oder Schriftnamen.
+   ========================================================================== */
+.week-nav { display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; margin: 0.5rem 0 1rem; padding: 0; background: none; border: none; border-radius: 0; box-shadow: none; }
+.week-nav button { flex: none; display: flex; align-items: center; justify-content: center; width: 2.75rem; height: 2.75rem; min-width: 2.75rem; padding: 0; border: none; border-radius: 50%; background: var(--surface-soft); color: var(--text); box-shadow: none; transition: transform 120ms var(--ease-out); }
+.week-nav button svg { width: 20px; height: 20px; }
+.week-nav-label { flex: 1; min-width: 0; text-align: center; font-family: var(--font-sans); font-size: 1rem; font-weight: 600; line-height: 1.3; color: var(--text); overflow-wrap: anywhere; }
+
+.plan-week { display: flex; flex-direction: column; margin-bottom: 1.5rem; }
+.plan-day { display: grid; grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: "info add" "list list" "foot foot"; align-items: center; column-gap: 0.75rem; min-width: 0; padding: 0.75rem 0; border-top: 1px solid var(--hairline); }
+.plan-day.is-empty { padding: 0.5rem 0; }
+.plan-day-info { grid-area: info; min-width: 0; }
+.plan-day-title { margin: 0; display: flex; flex-wrap: wrap; align-items: baseline; gap: 0.125rem 0.5rem; font-family: var(--font-sans); font-size: 1.125rem; font-weight: 700; line-height: 1.3; color: var(--text); overflow-wrap: anywhere; }
+.plan-day-date { font-size: 0.9375rem; font-weight: 400; color: var(--text-soft); }
+.plan-today { display: inline-block; padding: 0.125rem 0.5rem; border-radius: 999px; font-size: 0.875rem; font-weight: 600; line-height: 1.3; background: var(--lime); color: var(--lime-ink); }
+.plan-empty { margin: 0; font-size: 0.9375rem; line-height: 1.4; color: var(--text-soft); }
+
+.plan-add { grid-area: add; display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem; width: 2.75rem; height: 2.75rem; padding: 0; border: none; border-radius: 50%; background: var(--surface-soft); color: var(--text); font: inherit; font-size: 0.9375rem; font-weight: 600; line-height: 1.25; transition: transform 120ms var(--ease-out); }
+.plan-add svg { width: 20px; height: 20px; flex: none; }
+.plan-add-label { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+
+.plan-list { grid-area: list; display: flex; flex-direction: column; margin-top: 0.25rem; min-width: 0; }
+.plan-entry { display: flex; align-items: center; gap: 0.25rem; border-top: 1px solid var(--hairline); min-width: 0; }
+.plan-entry:first-child { border-top: none; }
+.plan-entry-main { display: flex; align-items: center; gap: 0.75rem; flex: 1; min-width: 0; min-height: 3.5rem; padding: 0.5rem 0; border: none; background: none; color: inherit; font: inherit; text-align: left; transition: transform 120ms var(--ease-out); }
+.plan-thumb { width: 3rem; height: 3rem; flex: none; border-radius: 0.75rem; object-fit: cover; }
+.plan-entry-text { display: flex; flex-direction: column; gap: 0.125rem; min-width: 0; }
+.plan-meal { overflow-wrap: anywhere; font-size: 0.875rem; font-weight: 600; line-height: 1.3; color: var(--text-soft); }
+.plan-title { text-wrap: pretty; font-size: 1.0625rem; font-weight: 600; line-height: 1.3; color: var(--text); white-space: normal; overflow-wrap: anywhere; }
+.plan-entry--note .plan-title { font-weight: 500; }
+.plan-servings { overflow-wrap: anywhere; font-size: 0.9375rem; line-height: 1.3; color: var(--text-soft); }
+.plan-day-foot { grid-area: foot; display: flex; }
+.plan-day-foot .day-select { padding-inline: 0; font-size: 0.9375rem; }
+
+.plan-day.is-today { background: var(--surface-soft); border-radius: var(--r-card); border-top-color: transparent; margin: 0.25rem -0.5rem; padding-inline: 0.5rem; }
+.plan-day.is-today .plan-add { background: var(--card-bg); }
+.plan-day.is-today + .plan-day { border-top-color: transparent; }
+.plan-day:first-child { border-top-color: transparent; }
+.plan-main .primary-btn--block { margin-top: 0.5rem; }
+
+.plan-add:active, .plan-entry-main:active, .week-nav button:active { transform: scale(0.97); }
+@media (hover: hover) and (pointer: fine) {
+  .plan-add:hover, .week-nav button:hover { background: var(--surface-selected); }
+  .plan-entry-main:hover .plan-title { text-decoration: underline; text-underline-offset: 0.2em; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .plan-add, .plan-entry-main, .week-nav button { transition: none; }
+}
+
+/* Kacheln ab 640 px */
+@media (min-width: 640px) {
+  .plan-week { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem; align-items: start; margin-top: 0.5rem; }
+  .plan-day, .plan-day.is-empty, .plan-day.is-today { grid-template-columns: minmax(0, 1fr); grid-template-areas: "info" "list" "foot" "add"; grid-template-rows: auto 1fr auto auto; align-items: start; row-gap: 0.75rem; margin: 0; padding: 1rem; border: 1px solid var(--hairline); border-radius: var(--r-card); background: var(--card-bg); }
+  .plan-day.is-today { background: var(--surface-soft); border-color: transparent; }
+  .plan-day.is-today + .plan-day, .plan-day:first-child { border-top-color: var(--hairline); }
+  .plan-day.is-today:first-child { border-top-color: transparent; }
+  .plan-day-name { flex-basis: 100%; }
+  .plan-list { margin-top: 0; }
+  .plan-entry { display: block; position: relative; }
+  .plan-entry:first-child { border-top: none; }
+  .plan-entry-main { flex-direction: column; align-items: stretch; gap: 0.5rem; width: 100%; padding: 0.5rem 0; }
+  .plan-entry:not(.has-thumb) .plan-entry-text > :first-child { padding-right: 2.5rem; }
+  .plan-thumb { width: 100%; height: auto; aspect-ratio: 2 / 1; }
+  .week-nav { max-width: 26rem; }
+  .plan-entry .icon-btn { position: absolute; top: 0.25rem; right: -0.5rem; }
+  .plan-entry.has-thumb .icon-btn { top: 0.75rem; right: 0.25rem; background: var(--card-bg); border-radius: 50%; }
+  .plan-day.is-today .plan-entry.has-thumb .icon-btn { background: var(--surface-soft); }
+  .plan-add { width: auto; height: auto; min-height: 2.75rem; padding: 0.5rem 1rem; border-radius: 999px; text-align: center; }
+  .plan-add-label { position: static; width: auto; height: auto; overflow: visible; clip: auto; white-space: normal; }
+  .plan-main .primary-btn--block { width: auto; min-width: min(100%, 22rem); margin-inline: auto; }
+}
+@media (min-width: 900px) {
+  .plan-week { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+}
+@media (min-width: 1400px) {
+  .plan-week { grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 0.75rem; }
+  .plan-day, .plan-day.is-empty, .plan-day.is-today { padding: 0.75rem; }
+  .plan-day-title { font-size: 1rem; }
+  .plan-entry:not(.has-thumb) .plan-entry-text > :first-child { padding-right: 0; }
+  .plan-entry:not(.has-thumb) .plan-entry-text > :last-child { padding-right: 2.5rem; }
+  .plan-entry:not(.has-thumb) .icon-btn { top: auto; bottom: 0; }
+}
