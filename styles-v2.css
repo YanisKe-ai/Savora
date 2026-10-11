@@ -2722,7 +2722,7 @@ html.fs-more-below .bottom-nav::before, html.fs-more-below .home-add-bar::before
 .theme-quick-label { display: block; margin: 0 0 0.5rem; font-size: 0.9375rem; font-weight: 600; color: var(--text-soft); }
 .theme-quick-switch { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.5rem; }
 .theme-opt--quick { min-width: 0; min-height: 2.75rem; padding: 0.5rem; overflow-wrap: anywhere; text-align: center; }
-@media (min-width: 400px) {
+@media (min-width: 25rem) {   /* rem: bei grosser Systemschrift bleiben es zwei Spalten, damit die Tippflaechen gross genug sind */
   .theme-quick-switch { grid-template-columns: repeat(4, minmax(0, 1fr)); }
   .theme-opt--quick { padding: 0.5rem 0.25rem; }
 }
