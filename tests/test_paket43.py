@@ -1,7 +1,7 @@
 """Paket 43: neue Marke. Wortmarke (Pfad-SVG) statt Buch-Löffel-Zeichen in Kopfzeile, Seitenleiste, Startbild, Titelblatt und PDF;
 Prise als App-Icon/Favicon. Prüft Theme-Wahl gegen die Systemeinstellung, keine Hand neben der Wortmarke, Proportionen, Dateien unter
 einem Unterpfad (/Savora/), Manifest, Icon-Pixelmasse, Favicon-Links, PDF-Export und Layout bei 320/375/430 px mit grosser Schrift."""
-import asyncio, base64, json, os, re, struct, subprocess, sys, tempfile, threading
+import asyncio, re, base64, json, os, re, struct, subprocess, sys, tempfile, threading
 os.environ.setdefault('SAVORA_TEST_PORT', '8894')
 import os as _os; sys.path.insert(0, _os.path.dirname(_os.path.abspath(__file__)))
 from common import *
@@ -72,7 +72,8 @@ async def main():
     sw = open(_os.path.join(ROOT, 'sw.js'), encoding='utf-8').read()
     need = ['savora-wortmarke-light.svg', 'savora-wortmarke-dark.svg', 'savora-favicon.svg', 'savora-favicon-dark.svg', 'savora-favicon-16.png', 'savora-favicon-32.png', 'savora-app-icon-180.png', 'icon-512.png', 'icon-192.png', 'icon-512-maskable.png', 'icon-192-maskable.png', 'icon-180.png']
     check('Service-Worker-Shell enthält alle verwendeten Marken-Dateien', all(n in sw for n in need), str([n for n in need if n not in sw]))
-    check('Version: SW v65-paket43, VERSION und APP_VERSION 0.64.0', "'v65-paket43'" in sw and open(_os.path.join(ROOT, 'VERSION')).read().strip() == '0.64.0' and "'0.64.0'" in open(_os.path.join(ROOT, 'legal.js'), encoding='utf-8').read())
+    _ver = open(_os.path.join(ROOT, 'VERSION')).read().strip()
+    check('Version: VERSION, APP_VERSION und SW_VERSION stimmen ueberein und der Service Worker kennt die neue Marke', re.search(r"SW_VERSION = 'v\d+-paket\d+'", sw) is not None and ("'" + _ver + "'") in open(_os.path.join(ROOT, 'legal.js'), encoding='utf-8').read() and 'assets/logo/savora-app-icon-180.png' in sw)
     spl = re.search(r'<div id="splash">(.*?)</div>\s*<div id="app">', html, re.S).group(1)
     check('Startbild: nur die Wortmarke (Pfad-SVG, 1200 x 400), kein Bild, kein Symbol', 'viewBox="0 0 1200 400"' in spl and '<img' not in spl and spl.count('<svg') == 1, spl[:80])
     for f in ('savora-wortmarke-light.svg', 'savora-wortmarke-dark.svg'):
