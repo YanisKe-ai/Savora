@@ -1,19 +1,32 @@
 name: Tests
 
 # Laeuft bei jedem Push auf jeden Branch und bei jedem Pull Request nach main.
+# Die Testreihe ist auf vier GitHub-Rechner verteilt (gleiche Tests, nur parallel). Der Auswertungs-Job «tests» ist nur gruen,
+# wenn alle vier Teile gruen sind; sein Name bleibt gleich, damit bestehende Regeln und das automatische Zusammenfuehren weiter greifen.
 on:
   push:
   pull_request:
     branches: [main]
 
 jobs:
-  tests:
+  teil:
+    name: teil (${{ matrix.name }})
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 25
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: handy-vergleich
+            cmd: SAVORA_P42_ONLY=phones python tests/run_all.py paket42
+          - name: breite
+            cmd: SAVORA_P42_ONLY=layout python tests/run_all.py paket42 && python tests/run_all.py paket37_adapt
+          - name: allgemein
+            cmd: python tests/run_all.py --parallel 3 --ohne paket42,paket37_adapt
     steps:
       - uses: actions/checkout@v4
         with:
-          fetch-depth: 0   # volle Historie: der Datenerhalt-Test braucht einen frueheren Commit
+          fetch-depth: 0   # volle Historie: Datenerhalt-Test und Handy-Vergleich brauchen fruehere Commits
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
@@ -27,5 +40,14 @@ jobs:
           npm ci
           pip install -r tests/requirements.txt
           playwright install --with-deps chromium
-      - name: Alle Tests ausfuehren
-        run: python tests/run_all.py --parallel 3   # volle Reihe, bis zu 3 Tests gleichzeitig
+      - name: Tests ausfuehren
+        run: ${{ matrix.cmd }}
+
+  tests:
+    name: tests
+    runs-on: ubuntu-latest
+    needs: teil
+    if: always()
+    steps:
+      - name: Alle Teile gruen?
+        run: test "${{ needs.teil.result }}" = "success"

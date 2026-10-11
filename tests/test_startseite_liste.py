@@ -124,8 +124,9 @@ async def main():
         check('Favoritenknopf: getrennt, kein verschachtelter Knopf, mindestens 44 px, Zustand und Name', all(r['nested'] == 0 and not r['favInMain'] and r['favW'] >= 44 and r['favH'] >= 44 for r in rows) and by['Sloppy Joe Buns']['pressed'] == 'true' and by['Sloppy Joe Buns']['label'] == 'Aus Favoriten entfernen' and by['Carbonara']['label'] == 'Zu Favoriten hinzufügen', str(by['Carbonara']))
         check('Titel und Favoritenknopf ueberlappen nicht', all(r['titleR'] <= r['favL'] + 0.5 for r in rows))
         # Favorit: toggelt, oeffnet nicht
-        await page.click('.rrow--phone:nth-child(2) .fav-toggle'); await page.wait_for_timeout(250)
-        s1 = await ev("() => ({ view: state.view, fav: state.recipes.find(r => r.id === 'r_legacy_2').favorite, pressed: document.querySelectorAll('.rrow--phone')[1].querySelector('.fav-toggle').getAttribute('aria-pressed') })")
+        t2 = await ev("() => state.recipes.find(r => r.id === 'r_legacy_2').title")   # Zeile ueber den Titel waehlen: die Reihenfolge bei «Zuletzt bearbeitet» ist bei gleichem Zeitstempel nicht fest
+        await page.click(f'.rrow--phone:has(.rrow-title:text-is("{t2}")) .fav-toggle'); await page.wait_for_timeout(250)
+        s1 = await ev("(t) => ({ view: state.view, fav: state.recipes.find(r => r.id === 'r_legacy_2').favorite, pressed: Array.from(document.querySelectorAll('.rrow--phone')).find(r => r.querySelector('.rrow-title').textContent.trim() === t).querySelector('.fav-toggle').getAttribute('aria-pressed') })", t2)
         check('Favoritenknopf setzt den Favoriten und oeffnet das Rezept nicht', s1['view'] == 'home' and s1['fav'] is True and s1['pressed'] == 'true', str(s1))
         await page.click('.rrow--phone:nth-child(2) .fav-toggle'); await page.wait_for_timeout(250)
         check('Favoritenknopf nimmt den Favoriten wieder zurueck', await ev("state.recipes.find(r => r.id === 'r_legacy_2').favorite") in (False, None, 0) or not await ev("state.recipes.find(r => r.id === 'r_legacy_2').favorite"))

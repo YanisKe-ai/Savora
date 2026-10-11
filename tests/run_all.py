@@ -18,17 +18,19 @@ QUICK_ENV = {'paket37_adapt': {'SAVORA_ADAPT_QUICK': '1'}}
 BASE_PORT = int(os.environ.get("SAVORA_BASE_PORT", "8900"))
 
 args = sys.argv[1:]
+skip = set()
 parallel = 1; quick = False; names = []
 i = 0
 while i < len(args):
     a = args[i]
     if a == '--schnell': quick = True; parallel = max(parallel, 3)
+    elif a == '--ohne' and i + 1 < len(args): skip.update(args[i + 1].split(',')); i += 1   # Tests auslassen (fuer die Aufteilung auf mehrere GitHub-Rechner)
     elif a == '--parallel':
         parallel = 3
         if i + 1 < len(args) and args[i + 1].isdigit(): parallel = int(args[i + 1]); i += 1
     else: names.append(a)
     i += 1
-wanted = names or ALL
+wanted = [n for n in (names or ALL) if n not in skip]
 RUN_ID = f'{os.getpid()}-{int(time.time())}'
 OUT_BASE = os.path.join(tempfile.gettempdir(), f'savora-tests-run-{RUN_ID}')
 
