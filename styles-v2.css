@@ -2577,7 +2577,7 @@ mark.hl {
   /* --- Kochbücher: Liste als Raster aus Karten --- */
   html:not(#lp) body .cbk-list { margin: 0; grid-template-columns: repeat(auto-fill, minmax(min(100%, 30rem), 1fr)); gap: var(--lp-card-gap); }
   html:not(#lp) body .cbk-card { padding: 1.25rem; gap: 1.25rem; }
-  html:not(#lp) body .cbk-actions .text-btn:not(.ghost-btn):not(.primary-btn) { padding-left: 0.375rem; padding-right: 0.375rem; }
+  html:not(#lp) body .cbk-actions .text-btn:not(.ghost-btn):not(.primary-btn) { padding-left: 0.5rem; padding-right: 0.5rem; }
   html:not(#lp) body .cookbooks-main > .hint-line, html:not(#lp) body .cookbooks-main > .empty-state { margin-top: 1.5rem; }
 
   /* --- Kochbuch bearbeiten: Schrittleiste oben, Bereiche nebeneinander, Lesebreite begrenzt --- */
@@ -2643,3 +2643,6 @@ mark.hl {
   .rcard, .plan-day, .cbk-card, .primary-btn, .ghost-btn, .outline-btn, .bottom-nav button { transition: none; }
   .rcard:hover, .plan-day:hover, .cbk-card:hover, .primary-btn:active, .ghost-btn:active, .outline-btn:active, .filter-btn:active, .seg-btn:active, .bottom-nav button:active, .rcard:active { transform: none; }
 }
+
+/* Freunde als überlappende Kreise (Teilen-Seite) */
+.tl-avatars { margin: 0 0 0.75rem; }
