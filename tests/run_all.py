@@ -15,7 +15,7 @@ FIRST = ['migration', 'flows']                      # abhaengig: teilen sich den
 MOCK_CHAIN = ['sync', 'paket36']                    # beide nutzen den Test-Datenbank-Nachbau auf Port 8796: nie gleichzeitig
 LAST = ['monkey', 'paket37_interaction']            # zeitempfindlich (Millisekunden-Messungen): allein laufen lassen
 QUICK_ENV = {'paket37_adapt': {'SAVORA_ADAPT_QUICK': '1'}}
-BASE_PORT = 8900
+BASE_PORT = int(os.environ.get("SAVORA_BASE_PORT", "8900"))
 
 args = sys.argv[1:]
 parallel = 1; quick = False; names = []

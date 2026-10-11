@@ -1816,7 +1816,6 @@ html.is-scrolled .home-head { box-shadow: 0 1px 0 rgba(37, 39, 32, .05), 0 8px 1
 @media (prefers-color-scheme: dark) { :root:not([data-theme]).is-scrolled .home-head { box-shadow: 0 1px 0 rgba(255, 255, 255, .05), 0 8px 14px -10px rgba(0, 0, 0, .7); } }
 @media (prefers-reduced-motion: reduce) { .home-head { transition: none; } }
 @media (prefers-contrast: more) { html.is-scrolled .home-head { box-shadow: 0 1px 0 var(--text); } }
-=======
 /* Paket 38: Einstellungen entschlackt. Zusammengelegte Seiten haben Abschnittskopf mit Überschrift und einem Satz.
    Zeilen der Hauptliste dürfen umbrechen (lange Zusammenfassung wie «Wie dein Gerät, Gramm und Milliliter»), nichts wird abgeschnitten. */
 .settings-section-head { margin: 2rem 0 0.75rem 0.25rem; min-width: 0; }
@@ -1912,7 +1911,6 @@ html.is-scrolled .home-head { box-shadow: 0 1px 0 rgba(37, 39, 32, .05), 0 8px 1
   .plan-entry:not(.has-thumb) .plan-entry-text > :last-child { padding-right: 2.5rem; }
   .plan-entry:not(.has-thumb) .icon-btn { top: auto; bottom: 0; }
 }
-=======
 /* ===== Paket 43: Savora-Wortmarke (Pfad-SVG, nur Schrift) statt Buch-Löffel-Zeichen ===== */
 /* Farbe folgt der App-Einstellung (data-theme am Wurzelelement), nicht dem System; ohne data-theme gilt das System (Startbild vor dem Laden). */
 .wordmark { display: block; flex: none; height: auto; aspect-ratio: 3 / 1; color: #B93B2C; }
@@ -1925,7 +1923,6 @@ html.is-scrolled .home-head { box-shadow: 0 1px 0 rgba(37, 39, 32, .05), 0 8px 1
 #splash { background: var(--bg, #F7F4EE); }
 #splash .wordmark, #splashLogo { width: min(60vw, 240px); height: auto; }
 @media (prefers-color-scheme: dark) { :root:not([data-theme]) #splash { background: #1B1A17; } }
-=======
 /* ==========================================================================
    Filter (Paket 44)
    Startseite: Suche, Alle/Favoriten, Filter-Schaltfläche, Zusammenfassung.
