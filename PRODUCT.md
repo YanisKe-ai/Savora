@@ -30,8 +30,10 @@ Ein privates Kochbuch statt einer Rezeptplattform: eigene Sammlung, offline nutz
 - Offen / nicht geprüft: echtes iPhone, mobile Hintergrundtimer.
 
 ## Brand Commitments
-- Name «Savora», Symbol (Buch mit Löffel, rotes Lesezeichen) und die zehn Titelblätter Pop, Lieblingsbuch, Tomate, Salbei, Nachtküche, Citrus, Bistro, Garten, Sonnenküche, Ofenglück sind freigegeben: Originaldateien verwenden (`assets/logo`, `assets/covers`), keine neuen Cover erfinden.
-- Dunkles Symbol auf heller Fläche, helles auf dunkler; App-Symbol schwarz mit weissem Symbol und rotem Detail; rotes Detail immer erhalten; keine automatische Invertierung der Grafik.
+- Seit 0.64.0 (verbindlich, bestätigt am 11.10.2026): App-Icon und Favicon sind die «Prise» (Variante 02 Tinte: Hintergrund #252720, cremefarbene Hand #F7F4EE, Körner #E2705E). Die frühere Vorgabe «Buch-Löffel-Logo» und «schwarzes Löffel-Icon» ist ersetzt.
+- In der App steht ausschliesslich die Wortmarke «savora» (Teigschrift, Pfad-SVG, kein Text, keine Schriftdatei), nie mit Handsymbol daneben. Hell #B93B2C, Dunkel und Schwarz #F7F4EE; massgeblich ist die App-Einstellung, «Wie dein Gerät» folgt dem System. Fertige Varianten umschalten, kein Invertierungsfilter, keine Logo-Animation, nicht strecken oder neigen.
+- Lilita One (Rezept-/Buchtitel) und Public Sans (alles andere) bleiben die App-Schriften und sind von der Wortmarke unabhängig. Quellen: `assets/logo/`.
+- Die zehn Titelblätter Pop, Lieblingsbuch, Tomate, Salbei, Nachtküche, Citrus, Bistro, Garten, Sonnenküche, Ofenglück sind freigegeben (`assets/covers`), keine neuen Cover erfinden. Auf Titelblatt und PDF steht oben rechts nur die Wortmarke (dunkle Fläche: hell, helle Fläche: #252720).
 - Tomatenrot als einziger Akzent.
 
 ## Evidence on Hand

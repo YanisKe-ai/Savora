@@ -177,11 +177,11 @@ async def main():
                 check(tag + 'Kochmodus: Schritttext mindestens 28 px, Zutaten-Chips mind. 18 px', ck['step'] >= 27.99 and (ck['n'] == 0 or ck['chip'] >= 17.99), str(ck))
                 check(tag + 'Kochmodus: "Anpassen" und "Alle Zutaten" als Schaltflaechen mind. 44 px', ck['all'] and all(x >= 44 for x in ck['btn']), str(ck))
 
-                # Logo: Symbol in Hell dunkel, in Dunkel/Schwarz hell, rotes Detail immer rot
+                # Marke (Paket 43): nur die Wortmarke, Hell rot, Dunkel/Schwarz creme
                 await show_view("state.view='home'")
-                lg = await page.evaluate("""() => { const svg = document.querySelector('.topbar .brand-symbol, .brand-symbol'); if (!svg) return null; const g = svg.querySelector('g'); const red = svg.querySelector('path[fill]:not([fill=none])'); const stroke = getComputedStyle(g).stroke; const m = stroke.match(/\\d+/g).map(Number); return { stroke: m.slice(0, 3), lum: (0.2126 * m[0] + 0.7152 * m[1] + 0.0722 * m[2]) / 255, red: getComputedStyle(red).fill }; }""")
-                want_dark_symbol = theme == 'light'
-                check(tag + 'Logo: Symbol dunkel auf hell bzw. hell auf dunkel, rotes Detail bleibt rot', lg is not None and ((lg['lum'] < 0.3) == want_dark_symbol) and lg['red'].replace(' ', '') == 'rgb(230,75,53)', str(lg))
+                lg = await page.evaluate("""() => { const w = document.querySelector('.topbar .top-wordmark'); return w ? getComputedStyle(w).color.replace(/ /g, '') : null; }""")
+                want_wm = 'rgb(185,59,44)' if theme == 'light' else 'rgb(247,244,238)'
+                check(tag + 'Logo: Wortmarke rot auf hell bzw. creme auf dunkel', lg == want_wm, str(lg))
 
                 # Grosse Systemschrift
                 await page.evaluate("document.documentElement.style.fontSize = '24px'"); await page.wait_for_timeout(200)

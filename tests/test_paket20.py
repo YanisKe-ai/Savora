@@ -12,10 +12,10 @@ async def main():
         page.on('pageerror', lambda e: errs.append(str(e)))
         await goto(page); await page.evaluate(open(SEED_PATH).read()); await page.wait_for_timeout(400)
         ev = page.evaluate
-        head = await ev("""() => { const t = document.querySelector('.topbar'); const i = document.querySelector('.brand-symbol'); const h = document.querySelector('.page-title'); const tr = t.getBoundingClientRect(), hr = h.getBoundingClientRect();
-          return { icon: !!i, border: getComputedStyle(t).borderBottomWidth, gap: Math.round(hr.top - tr.bottom), wm: parseFloat(getComputedStyle(document.querySelector('.brand-word')).fontSize), pt: parseFloat(getComputedStyle(h).fontSize) }; }""")
+        head = await ev("""() => { const t = document.querySelector('.topbar'); const i = document.querySelector('.top-wordmark'); const h = document.querySelector('.page-title'); const tr = t.getBoundingClientRect(), hr = h.getBoundingClientRect();
+          return { icon: !!i, border: getComputedStyle(t).borderBottomWidth, gap: Math.round(hr.top - tr.bottom), wm: document.querySelector('.top-wordmark').getBoundingClientRect().width, pt: parseFloat(getComputedStyle(h).fontSize) }; }""")
         check('Kopfzeile: Logo, keine harte Linie, Abstand zum Seitentitel', head['icon'] and head['border'] == '0px' and head['gap'] >= 14, str(head))
-        check('Wortmarke deutlich kleiner als der Seitentitel', head['wm'] < head['pt'], str(head))
+        check('Wortmarke bleibt zurückhaltend (112 bis 150 px breit)', 111 <= head['wm'] <= 150, str(head))
         res = await ev("""async () => { const r = state.recipes.find(x => x.id === 'r_legacy_1'); const out = await buildSinglePdf(r.id, 'off'); return { size: out && out.blob.size, name: out && out.filename }; }""")
         check('Einzelrezept-PDF wird erzeugt', res['size'] and res['size'] > 5000, str(res))
         res = await ev("""async () => { const cb = await buildCookbookPdf('off'); return cb && cb.blob.size; }""")

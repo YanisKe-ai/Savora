@@ -5,7 +5,7 @@
    - Kontrollierter Update-Flow: kein automatisches skipWaiting. Ein neuer Worker wartet, bis
      die Seite per postMessage({type:'SKIP_WAITING'}) explizit zustimmt.
 */
-const SW_VERSION = 'v63-paket39';
+const SW_VERSION = 'v65-paket43';
 const CACHE_SHELL = 'savora-shell-' + SW_VERSION;
 const CACHE_RUNTIME = 'savora-runtime-' + SW_VERSION;
 // Statische Referenzdaten (z.B. Schweizer Naehrwertdatenbank): aendert sich nur bei
@@ -32,12 +32,22 @@ const SHELL_ASSETS = [
   './icon-96.png',
   './icon-32.png',
   './icon-180.png',
-  './logo-mark.png',
-  './logo-zeichen.png',
   './icon-192.png',
   './icon-512.png',
   './icon-192-maskable.png',
   './icon-512-maskable.png',
+  './assets/logo/savora-app-icon-180.png',
+  './assets/logo/savora-app-icon-maskable.svg',
+  './assets/logo/savora-app-icon.svg',
+  './assets/logo/savora-favicon-16.png',
+  './assets/logo/savora-favicon-32.png',
+  './assets/logo/savora-favicon-dark.svg',
+  './assets/logo/savora-favicon.svg',
+  './assets/logo/savora-symbol-dark.svg',
+  './assets/logo/savora-symbol-light.svg',
+  './assets/logo/savora-symbol-mono.svg',
+  './assets/logo/savora-wortmarke-dark.svg',
+  './assets/logo/savora-wortmarke-light.svg',
   './public-sans.woff2',
   './lilita-one.woff2',
   './sofia-sans-extra-condensed.woff2',

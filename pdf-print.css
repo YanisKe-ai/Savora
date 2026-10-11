@@ -97,7 +97,7 @@
 .pv-cover-rule { width: 28mm; height: 2.6pt; background: var(--pv-accent2); margin: 0 0 7mm; }
 .pv-cover-sub { font-size: 12pt; color: var(--pv-muted); margin: 0 0 3mm; }
 .pv-cover-author { font-size: 11pt; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--pv-accent2); margin: 0; }
-.pv-cover-logo { position: absolute; bottom: 13mm; right: 15mm; width: 11mm; height: 11mm; border-radius: 2.6mm; }
+.pv-cover-logo { position: absolute; bottom: 13mm; right: 15mm; width: 33mm; height: auto; color: #252720; }
 .pv-tpl-b.pv-cover { background: #40205F; }
 .pv-tpl-b .pv-cover-title { color: #fff; } .pv-tpl-b .pv-cover-rule { background: var(--lime); } .pv-tpl-b .pv-cover-author { color: var(--lime); } .pv-tpl-b .pv-cover-sub { color: #E4D8F2; } .pv-tpl-b .pv-cover .pv-cat, .pv-tpl-b.pv-cover .pv-cat { color: var(--lime); }
 .pv-tpl-c .pv-cover-text { border-top: 1.4pt solid var(--pv-ink); padding-top: 8mm; }

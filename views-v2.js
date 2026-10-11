@@ -56,7 +56,7 @@ function bottomNav() {
     </button>`;
   };
   return `<nav class="bottom-nav" aria-label="Hauptnavigation">
-    <div class="nav-brand" aria-hidden="true">${coverSymbolSvg('currentColor', 'brand-symbol')}<span>savora</span></div>
+    <div class="nav-brand" aria-hidden="true">${wordmarkSvg('nav-wordmark')}</div>
     ${tabs.map(t => btn(t)).join('')}
     ${btn({ view: 'settings', icon: ICONS.settings, label: 'Einstellungen' }, 'nav-settings')}
   </nav>`;
@@ -64,9 +64,9 @@ function bottomNav() {
 
 // Kompakte App-Bar fuer Unterseiten (Zurueck, Titel, Aktionen). Wird auch von den
 // Einstellungsseiten in views.js verwendet, deshalb gleiche Signatur wie bisher.
-/* Kopfzeile: kleines Logo + Wortmarke, klar getrennt vom Seitentitel darunter */
+/* Kopfzeile: nur die Savora-Wortmarke (Pfad-SVG), ohne Symbol; klar getrennt vom Seitentitel darunter */
 function brandLockup() {
-  return `<div class="brand-v2">${coverSymbolSvg('currentColor', 'brand-symbol')}<span class="brand-word">savora</span></div>`;
+  return `<div class="brand-v2">${wordmarkSvg('top-wordmark', 'Savora')}</div>`;
 }
 
 function topbar(title, opts = {}) {
@@ -893,7 +893,7 @@ function cookbookStepDesign(cfg) {
           <div class="field"><label for="cbDate">Veröffentlichungsdatum</label><input type="date" id="cbDate" data-cb-cover-date value="${escapeHtml((cfg.cover && cfg.cover.date) || '')}"></div>
           <label class="check-row"><input type="checkbox" data-cb-cover-flag="showDate" ${cfg.cover && cfg.cover.showDate === false ? '' : 'checked'}> <span>Datum auf dem Titelblatt zeigen</span></label>
         </div>
-        <label class="check-row"><input type="checkbox" data-cb-flag="showLogo" ${cfg.showLogo === false ? '' : 'checked'}> <span>Savora-Symbol oben rechts auf dem Titelblatt</span></label>
+        <label class="check-row"><input type="checkbox" data-cb-flag="showLogo" ${cfg.showLogo === false ? '' : 'checked'}> <span>Savora-Wortmarke oben rechts auf dem Titelblatt</span></label>
       </section>
       <section class="panel">
         <h2 class="section-title">Seitenstil der Rezepte</h2>

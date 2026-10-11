@@ -79,7 +79,7 @@ Regeln:
 - Rezeptfotos sind der Hauptinhalt: nie verzerren (`object-fit: cover`), Karte 5:4, Ansicht 16:10.
 - **Ohne Foto gibt es keinen Buchstaben-Platzhalter und keine leere Bildfläche.** Raster: kompakte typografische Karte (Salbeifläche, Titel in Lilita One, Meta darunter), gleich hoch wie eine Foto-Karte. Liste: Zeile ohne Vorschaubild. Rezeptansicht: typografischer Kopf (Titel gross in Fraunces, Zeit und Menge), kein Bildband. Während ein gespeichertes Foto lädt, steht kurz eine ruhige leere Salbeifläche.
 - Symbole: eine Strichstärke, eine Familie (die vorhandenen Linien-Icons), Farbe Tinte oder Zweittext, Rot nur für aktive Zustände.
-- App-Symbol: schwarz mit weissem Zeichen und rotem Detail (`assets/logo/`). Quellen in `assets/logo-src/`.
+- Marke: App-Icon «Prise» (Tinte, `assets/logo/`), in der App nur die Wortmarke (Hell `#B93B2C`, Dunkel `#F7F4EE`), siehe `docs/LOGO-UND-COVER.md`. `assets/logo-src/` ist ein Altbestand.
 
 ## 7. Komponenten
 
