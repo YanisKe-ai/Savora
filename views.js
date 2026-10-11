@@ -51,7 +51,7 @@ function timeBucketsFor(minutes) {
 
 function activeStructuredFilterCount() {
   const { dietary, category, time } = state.activeFilters;
-  return dietary.size + category.size + time.size;
+  return dietary.size + category.size + time.size + ((state.activeFilters.more && state.activeFilters.more.size) || 0) + ((state.activeFilters.tags && state.activeFilters.tags.size) || 0);
 }
 
 
@@ -91,54 +91,36 @@ function addMenuModal() {
 
 function activeFilterCount() {
   const f = state.activeFilters || {};
-  return ((f.dietary && f.dietary.size) || 0) + ((f.category && f.category.size) || 0) + ((f.time && f.time.size) || 0) + (state.favOnly ? 1 : 0) + (state.activeTag ? 1 : 0) + (state.activeCollection && state.activeCollection !== 'all' ? 1 : 0);
+  return activeStructuredFilterCount() + (state.favOnly ? 1 : 0) + (state.activeTag ? 1 : 0) + (state.activeCollection && state.activeCollection !== 'all' ? 1 : 0);
 }
 function emptyFilterState() {
   const q = (state.query || '').trim();
-  const hasFilters = typeof activeFilterCount === 'function' ? activeFilterCount() > 0 : true;
-  if (q) {
+  const extra = activeFilterCount() - (state.favOnly ? 1 : 0);   // zusaetzliche Filter ohne Alle/Favoriten
+  const qShort = q.length > 40 ? q.slice(0, 40) + '…' : q;
+  if (q && extra <= 0 && !state.favOnly) {
     return `<div class="empty-state">
     ${ICONS.search}
-    <h2>Keine Treffer für „${escapeHtml(q.length > 40 ? q.slice(0, 40) + '…' : q)}“</h2>
-    <p>Prüfe die Schreibweise oder suche nach einer Zutat oder einem Stichwort.${hasFilters ? ' Aktive Filter schränken die Suche zusätzlich ein.' : ''}</p>
-    <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:center;">
-      ${hasFilters ? `<button class="ghost-btn" data-action="open-filter-sheet">${ICONS.filter} Filter ändern</button>` : ''}
+    <h2>Keine Treffer für „${escapeHtml(qShort)}“</h2>
+    <p>Prüfe die Schreibweise oder suche nach einer Zutat oder einem Stichwort.</p>
+    <div class="empty-actions">
       <button class="primary-btn" data-action="clear-search">Suche löschen</button>
     </div>
   </div>`;
   }
+  let hint = 'Ändere die Auswahl oder setze die Filter zurück.';
+  if (q && (extra > 0 || state.favOnly)) hint = `Die Suche nach „${escapeHtml(qShort)}“ und die Auswahl schränken sich gegenseitig ein.`;
+  else if (state.favOnly && extra <= 0) hint = 'Du hast noch keine Favoriten markiert.';
   return `<div class="empty-state">
     ${ICONS.filter}
-    <h2>Keine Rezepte passen zu diesen Filtern</h2>
-    <p>Versuch es mit weniger Filtern oder einer anderen Kombination.</p>
-    <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:center;">
-      <button class="ghost-btn" data-action="open-filter-sheet">${ICONS.filter} Filter ändern</button>
-      <button class="primary-btn" data-action="clear-all-filters">Alle Filter löschen</button>
+    <h2>Keine passenden Rezepte</h2>
+    <p>${hint}</p>
+    <div class="empty-actions">
+      ${extra > 0 ? `<button class="primary-btn" data-action="reset-extra-filters">Filter zurücksetzen</button>` : (state.favOnly ? `<button class="primary-btn" data-action="set-fav-mode" data-id="all">Alle Rezepte anzeigen</button>` : '')}
+      ${q ? `<button class="ghost-btn" data-action="clear-search">Suche löschen</button>` : ''}
+      ${extra > 0 || state.favOnly ? `<button class="ghost-btn" data-action="open-filter-sheet">Filter ändern</button>` : ''}
     </div>
   </div>`;
 }
-
-/* ---------- Filter-Sheet (Punkt 104-107, 118) ---------- */
-function filterCheckboxGroup(title, groupId, options, activeSet, getId, getLabel) {
-  // Eindeutige ID je Gruppe (Mahlzeit und Gericht teilen sich dieselbe Filterdimension).
-  const headingId = `filter-group-${groupId}-${String(title).toLowerCase().replace(/[^a-z0-9]+/g, '-')}`;
-  return `<div class="filter-group">
-    <h3 class="filter-group-title" id="${headingId}">${title}</h3>
-    <div class="filter-checkbox-row" role="group" aria-labelledby="${headingId}">
-      ${options.map(o => {
-        const id = getId(o), label = getLabel(o);
-        const active = activeSet.has(id);
-        return `<button type="button" class="filter-checkbox ${active ? 'active' : ''}" data-action="toggle-filter" data-dim="${groupId}" data-id="${escapeHtml(id)}" aria-pressed="${active}">
-          <span class="filter-checkbox-box" aria-hidden="true">${active ? ICONS.check : ''}</span>${escapeHtml(label)}
-        </button>`;
-      }).join('')}
-    </div>
-  </div>`;
-}
-
-
-
-
 
 function deleteModal(r) {
   return `<div class="modal-backdrop" data-action="close-modal">

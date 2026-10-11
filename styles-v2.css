@@ -1889,3 +1889,65 @@ html.is-scrolled .home-head { box-shadow: 0 1px 0 rgba(37, 39, 32, .05), 0 8px 1
 .settings-row { padding-top: 0.5rem; padding-bottom: 0.5rem; }
 .settings-row-title { min-width: 0; flex: 1 1 7rem; overflow-wrap: anywhere; }
 .settings-row-summary { min-width: 0; max-width: 55%; flex: 0 1 auto; }
+
+/* ==========================================================================
+   Filter (Paket 44)
+   Startseite: Suche, Alle/Favoriten, Filter-Schaltfläche, Zusammenfassung.
+   Fenster «Rezepte filtern» mit Entwurf. Nur Variablen, nichts knapp bemessen.
+   ========================================================================== */
+.home-head .search-field { margin-bottom: 0.5rem; }
+.filter-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem 0.75rem; margin: 0 0 0.5rem; }
+.seg { display: flex; flex: 1 1 11rem; min-width: 0; gap: 0.25rem; padding: 0.25rem; border-radius: 999px; background: var(--surface-soft); }
+.seg-btn { flex: 1 1 0; min-width: 0; min-height: 44px; padding: 0.25rem 0.75rem; border: 0; border-radius: 999px; background: transparent; color: var(--text-soft); font: inherit; font-size: 1rem; font-weight: 600; line-height: 1.2; overflow-wrap: anywhere; transition: background-color 140ms var(--ease-out, ease-out), color 140ms var(--ease-out, ease-out), transform 140ms var(--ease-out, ease-out); }
+.seg-btn[aria-pressed="true"] { background: var(--lime); color: var(--lime-ink); font-weight: 700; box-shadow: inset 0 0 0 1.5px var(--focus-ring); }
+.filter-btn { flex: 0 1 auto; display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem; min-height: 48px; padding: 0.25rem 1rem; border: 1.5px solid var(--border); border-radius: 999px; background: var(--card-bg); color: var(--text); font: inherit; font-size: 1rem; font-weight: 600; line-height: 1.2; transition: background-color 140ms var(--ease-out, ease-out), border-color 140ms var(--ease-out, ease-out), transform 140ms var(--ease-out, ease-out); }
+.filter-btn svg { width: 1.25rem; height: 1.25rem; flex: none; }
+.filter-btn.is-active { background: var(--lime); color: var(--lime-ink); border-color: var(--focus-ring); font-weight: 700; }
+.seg-btn:active, .filter-btn:active, .fs-opt:active { transform: scale(0.97); }
+.filter-summary { display: flex; flex-wrap: wrap; align-items: center; gap: 0 0.75rem; margin: 0 0 0.5rem; }
+.filter-summary-text { flex: 1 1 10rem; min-width: 0; margin: 0; font-size: 0.9375rem; line-height: 1.4; color: var(--text-soft); overflow-wrap: anywhere; }
+.filter-summary-reset { min-height: 44px; padding: 0 0.5rem; border: 0; background: transparent; color: var(--text); font: inherit; font-size: 0.9375rem; font-weight: 700; text-decoration: underline; text-underline-offset: 3px; }
+.result-row { display: flex; flex-wrap: wrap; align-items: center; gap: 0.25rem 0.75rem; margin: 0 0 0.75rem; }
+.result-row .result-line { flex: 1 1 auto; margin: 0; }
+.sort-pick { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 0.25rem 0.5rem; min-width: 0; max-width: 100%; font-size: 0.9375rem; color: var(--text-soft); }
+.sort-select { flex: 1 1 9rem; min-width: 0; min-height: 44px; max-width: 100%; padding: 0 0.75rem; border: 1px solid var(--border); border-radius: 999px; background: var(--surface-soft); color: var(--text); font: inherit; font-size: 0.9375rem; font-weight: 600; }
+.sort-select:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 2px; }
+.result-row .layout-toggle { flex: none; order: 2; }
+.result-row .sort-pick { order: 3; flex: 1 1 14rem; }
+.result-row .sort-pick .sort-select { flex: 1 1 9rem; }
+.empty-actions { display: flex; flex-wrap: wrap; gap: 0.5rem; justify-content: center; }
+.empty-actions .primary-btn, .empty-actions .ghost-btn { min-height: 48px; }
+
+.modal-sheet.filter-sheet { display: flex; flex-direction: column; max-width: 520px; padding: 0; overflow: hidden; max-height: 90vh; max-height: 90dvh; }
+.filter-sheet .sheet-handle { flex: none; margin: 0.25rem auto 0; }
+.fs-head { flex: none; display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; padding: 0 1.25rem 0.5rem; }
+.fs-title { margin: 0; font-family: var(--font-display); font-size: 1.375rem; line-height: 1.25; color: var(--text); min-width: 0; overflow-wrap: anywhere; }
+.fs-close { flex: none; width: 44px; height: 44px; display: inline-flex; align-items: center; justify-content: center; border: 0; border-radius: 50%; background: var(--surface-soft); color: var(--text); transition: transform 140ms var(--ease-out, ease-out); }
+.fs-close svg { width: 20px; height: 20px; }
+.fs-close:active { transform: scale(0.94); }
+.fs-body { flex: 1 1 auto; min-height: 0; overflow-y: auto; overscroll-behavior: contain; -webkit-overflow-scrolling: touch; padding: 0.25rem 1.25rem 1rem; }
+.fs-group { margin: 0 0 1.25rem; padding: 0; border: 0; min-width: 0; }
+.fs-legend { display: block; width: 100%; padding: 0; margin: 0 0 0.5rem; font-family: var(--font-display); font-size: 1rem; color: var(--text); }
+.fs-opts { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 9.5rem), 1fr)); gap: 0.5rem; }
+.fs-opt { position: relative; display: flex; align-items: center; gap: 0.75rem; min-height: 48px; padding: 0.5rem 0.75rem; border: 1.5px solid var(--border); border-radius: 14px; background: var(--card-bg); color: var(--text); font-size: 1rem; line-height: 1.25; cursor: pointer; transition: background-color 140ms var(--ease-out, ease-out), border-color 140ms var(--ease-out, ease-out), transform 140ms var(--ease-out, ease-out); }
+.fs-input { position: absolute; inset: 0; width: 100%; height: 100%; margin: 0; opacity: 0; cursor: pointer; }
+.fs-text { min-width: 0; overflow-wrap: anywhere; }
+.fs-mark { flex: none; width: 24px; height: 24px; display: inline-flex; align-items: center; justify-content: center; border: 2px solid var(--text-soft); border-radius: 7px; color: transparent; }
+.fs-mark svg { width: 14px; height: 14px; stroke-width: 3; }
+.fs-input[type="radio"] + .fs-mark { border-radius: 50%; }
+.fs-opt:has(.fs-input:checked) { background: var(--lime); border-color: var(--focus-ring); color: var(--lime-ink); font-weight: 600; }
+.fs-input:checked + .fs-mark { background: var(--lime-ink); border-color: var(--lime-ink); color: var(--lime); }
+.fs-opt:has(.fs-input:focus-visible) { outline: 2px solid var(--focus-ring); outline-offset: 2px; }
+.fs-foot { flex: none; padding: 0.75rem 1.25rem calc(0.75rem + env(safe-area-inset-bottom, 0px)); border-top: 1px solid var(--border); background: var(--card-bg); }
+.fs-status { margin: 0 0 0.5rem; font-size: 0.9375rem; line-height: 1.35; color: var(--text-soft); overflow-wrap: anywhere; }
+.fs-status.is-empty { color: var(--text); font-weight: 600; }
+.fs-actions { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+.fs-actions .ghost-btn { flex: 1 1 8rem; min-height: 48px; justify-content: center; }
+.fs-actions .primary-btn { flex: 2 1 12rem; min-height: 48px; justify-content: center; text-align: center; white-space: normal; }
+.modal-sheet.filter-sheet.sheet-enter { animation-duration: 240ms; animation-timing-function: var(--ease-out, cubic-bezier(.23, 1, .32, 1)); }
+.modal-backdrop:has(.filter-sheet.sheet-enter) { animation-duration: 200ms; }
+@media (hover: hover) and (pointer: fine) { .fs-opt:hover { border-color: var(--text-soft); } .seg-btn[aria-pressed="false"]:hover { color: var(--text); } }
+@media (prefers-reduced-motion: reduce) {
+  .seg-btn, .filter-btn, .fs-opt, .fs-close { transition: none; }
+  .seg-btn:active, .filter-btn:active, .fs-opt:active, .fs-close:active { transform: none; }
+}

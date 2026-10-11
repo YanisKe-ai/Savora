@@ -177,10 +177,36 @@ async function handleActionV2(action, id, el, e) {
       return true;
     }
     case 'set-collection':
-      state.favOnly = false;
-      state.activeCollection = id || 'all';
+      // Aeltere Einstiegsstelle: Alle/Favoriten bleiben getrennt, alles andere ist ein zusaetzlicher Filter
+      if (!id || id === 'all') state.favOnly = false;
+      else if (id === 'favorites') state.favOnly = true;
+      else { state.activeFilters.more.clear(); state.activeFilters.more.add(id); }
       render();
       return true;
+    case 'set-fav-mode':
+      state.favOnly = id === 'fav';
+      state.activeCollection = 'all';
+      render();
+      return true;
+    case 'reset-extra-filters':
+      resetExtraFilters();
+      render();
+      return true;
+    case 'fs-reset': {
+      const d = filterDraft();
+      if (d) { ['dietary', 'category', 'time', 'more', 'tags'].forEach(k => d[k].clear()); syncFilterSheet(); }
+      return true;
+    }
+    case 'fs-apply': {
+      const d = filterDraft();
+      if (d) {
+        const f = state.activeFilters;
+        ['dietary', 'category', 'time', 'more', 'tags'].forEach(k => { f[k] = new Set(d[k]); });
+        state.activeTag = null; state.activeCollection = 'all';
+      }
+      closeModal();
+      return true;
+    }
     case 'set-home-layout':
       state.homeLayout = id === 'list' ? 'list' : 'grid';
       try { localStorage.setItem(HOME_LAYOUT_KEY, state.homeLayout); } catch (err) {}
@@ -190,8 +216,8 @@ async function handleActionV2(action, id, el, e) {
       state.query = ''; render();
       return true;
     case 'clear-all-filters':
-      state.activeFilters.dietary.clear(); state.activeFilters.category.clear(); state.activeFilters.time.clear();
-      state.favOnly = false; state.activeTag = null; state.activeCollection = 'all';
+      resetExtraFilters();
+      state.favOnly = false;
       if (state.modal) closeModal(); else render();
       return true;
     case 'open-recipe':

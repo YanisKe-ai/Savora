@@ -40,7 +40,7 @@ const state = {
   // Filter-/Kategoriensystem (Master-Prompt Teil I): mehrere Dimensionen, innerhalb einer
   // Dimension ODER, zwischen Dimensionen UND (Punkt 107). Als Sets, damit Mehrfachauswahl
   // pro Dimension moeglich ist.
-  activeFilters: { dietary: new Set(), category: new Set(), time: new Set() },
+  activeFilters: { dietary: new Set(), category: new Set(), time: new Set(), more: new Set(), tags: new Set() },
   // Feast x Bloom Umbau: reine UI-Zustaende, nichts davon wird ungefragt gespeichert.
   activeCollection: 'all',       // 'all' | 'favorites' | 'uncooked' | 'frequent' | <Sammlungs-ID>
   homeLayout: (function () { try { return localStorage.getItem('savora-home-layout') || 'grid'; } catch (e) { return 'grid'; } })(),
@@ -92,8 +92,8 @@ const scrollMemory = {};
 // Scrollposition, zu der beim Entsperren zurueckgekehrt wird.
 let bodyScrollLockY = null;
 
-function lockBodyScroll() {
-  bodyScrollLockY = window.scrollY;
+function lockBodyScroll(y) {
+  bodyScrollLockY = (typeof y === 'number') ? y : window.scrollY;
   document.body.style.position = 'fixed';
   document.body.style.top = `-${bodyScrollLockY}px`;
   document.body.style.left = '0';
@@ -230,6 +230,9 @@ function render(skipHistoryPush) {
   // Waehrend der Hintergrund gesperrt ist, liest window.scrollY nur noch 0 (body ist fixed) —
   // das waere keine sinnvolle Position zum Erhalten, deshalb hier bewusst ausgeklammert.
   const preservedY = (!viewChanged && !hadModal) ? window.scrollY : null;
+  // Position VOR dem DOM-Tausch merken: danach kann der Browser sie kurzzeitig auf 0 geklemmt haben,
+  // dann waere der Hintergrund nach dem Schliessen eines Fensters ganz oben (Sprung).
+  const yBeforeLock = (hasModal && !hadModal && !viewChanged) ? window.scrollY : null;
   // Punkt 6: render() ersetzt bei JEDEM Aufruf das komplette #app-innerHTML, auch das
   // .modal-sheet-Element selbst — dessen eigener scrollTop (z.B. beim Scrollen durch die
   // Filter-Optionen) ginge dadurch bei jedem einzelnen Filter-Toggle verloren. Bleibt dasselbe
@@ -262,7 +265,7 @@ function render(skipHistoryPush) {
     // Faengt ein natives Browser-Verhalten ab, das NACH einem Klick auf ein gerade per
     // innerHTML entferntes/ersetztes Element eigenstaendig noch einmal scrollt.
     requestAnimationFrame(() => { applyScroll(); if (typeof updateScrollEdge === 'function') updateScrollEdge(); if (typeof coverFitPreviews === 'function') coverFitPreviews(); });
-    if (hasModal && !hadModal) lockBodyScroll();
+    if (hasModal && !hadModal) lockBodyScroll(yBeforeLock);
     restoreFocusFingerprint(focusFp);
     if (preservedModalScrollTop !== null) {
       const newModalSheet = document.querySelector('.modal-sheet');

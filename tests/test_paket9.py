@@ -37,12 +37,12 @@ async def main():
         check('Zuletzt gekocht: jüngstes zuerst, nie gekocht zuletzt', await order('cooked') == ['Carbonara', 'Sloppy Joe Buns', 'Gemüse-Curry'])
         check('Kürzeste Zeit: ohne Zeitangabe zuletzt', await order('time') == ['Carbonara', 'Sloppy Joe Buns', 'Gemüse-Curry'])
         # Oberflaeche
-        await page.evaluate("() => { state.sortBy = 'updated'; state.view = 'home'; state.modal = { type: 'filter-sheet' }; render(); }"); await page.wait_for_timeout(300)
-        await page.evaluate("document.querySelector('[data-action=\"set-sort\"][data-id=\"az\"]').click()"); await page.wait_for_timeout(300)
-        check('Sortierwahl bleibt gespeichert und markiert', await page.evaluate("localStorage.getItem('savora-sort')") == 'az' and await page.evaluate("document.querySelector('.sort-chip.is-active').textContent") == 'A bis Z')
-        await page.evaluate("() => { state.modal = null; render(); }"); await page.wait_for_timeout(300)
+        await page.evaluate("() => { state.sortBy = 'updated'; state.view = 'home'; state.modal = null; render(); }"); await page.wait_for_timeout(300)
+        # Paket 44: Sortierung steht getrennt bei der Trefferzahl (Auswahlfeld), nicht mehr im Filterfenster
+        await page.evaluate("() => { const s = document.getElementById('sortSelect'); s.value = 'az'; s.dispatchEvent(new Event('change')); }"); await page.wait_for_timeout(300)
+        check('Sortierwahl bleibt gespeichert und markiert', await page.evaluate("localStorage.getItem('savora-sort')") == 'az' and await page.evaluate("document.getElementById('sortSelect').selectedOptions[0].textContent") == 'A bis Z')
         titles = await page.evaluate("Array.from(document.querySelectorAll('.rcard-title')).map(e => e.textContent)")
-        check('Startseite folgt der Sortierung und nennt sie', titles == ['Carbonara', 'Gemüse-Curry', 'Sloppy Joe Buns'] and 'A bis Z' in await page.evaluate("document.getElementById('all-h').textContent"), str(titles))
+        check('Startseite folgt der Sortierung und nennt sie', titles == ['Carbonara', 'Gemüse-Curry', 'Sloppy Joe Buns'] and await page.evaluate("document.getElementById('sortSelect').value") == 'az', str(titles))
         await page.evaluate("() => { state.sortBy = 'updated'; localStorage.removeItem('savora-sort'); }")
 
         # Geschwindigkeit mit 500 Rezepten
@@ -59,7 +59,7 @@ async def main():
         pg = await c2.new_page(); await goto(pg); await pg.evaluate(open(SEED_PATH).read()); await pg.wait_for_timeout(300)
         await pg.evaluate("() => { state.view = 'home'; state.modal = { type: 'filter-sheet' }; render(); }"); await pg.wait_for_timeout(300)
         ov = await pg.evaluate("document.documentElement.scrollWidth - document.documentElement.clientWidth")
-        btn = await pg.evaluate("(() => { const b = document.querySelector('.filter-sheet .form-actions .primary-btn').getBoundingClientRect(); const s = document.querySelector('.filter-sheet').getBoundingClientRect(); return b.right <= s.right + 0.5 })()")
+        btn = await pg.evaluate("(() => { const b = document.querySelector('.filter-sheet .fs-actions .primary-btn').getBoundingClientRect(); const s = document.querySelector('.filter-sheet').getBoundingClientRect(); return b.right <= s.right + 0.5 })()")
         check('Filterdialog 320 px: kein Überlauf, Knopf im Dialog', ov <= 0 and btn, f'{ov}')
         await b2.close()
     print('\nFEHLGESCHLAGEN:', FAIL or 'keine')

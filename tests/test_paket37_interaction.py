@@ -51,10 +51,11 @@ async def main():
         check('Favorit: keine Scrollsprünge', abs(await sy(page) - y0) <= 2, f'{y0} -> {await sy(page)}')
         # Filterblatt: Sortierung und Tag, danach schließen
         await ev("() => document.querySelector('[data-action=\"open-filter-sheet\"]').click()"); await settle(page, 400)
-        await ev("() => document.querySelector('[data-action=\"set-sort\"][data-id]:not(.is-active)').click()"); await settle(page, 300)
-        await ev("() => document.querySelector('[data-action=\"filter-tag\"]').click()"); await settle(page, 300)
-        await ev("() => document.querySelector('[data-action=\"close-modal\"]').click()"); await settle(page, 500)
-        await ev("() => document.querySelector('[data-action=\"clear-all-filters\"], .chip--removable') && document.querySelector('.chip--removable').click()"); await settle(page, 300)
+        # Paket 44: Sortierung ist ein Auswahlfeld bei der Trefferzahl, Tags sind Kästchen im Filterfenster (Entwurf, «N Rezepte anzeigen» übernimmt)
+        await ev("() => document.querySelector('.fs-input[data-fs-dim=\"tags\"]').click()"); await settle(page, 300)
+        await ev("() => document.querySelector('[data-action=\"fs-apply\"]').click()"); await settle(page, 500)
+        await ev("() => { const s = document.getElementById('sortSelect'); s.value = 'az'; s.dispatchEvent(new Event('change')); }"); await settle(page, 300)
+        await ev("() => { const b = document.querySelector('[data-action=\"reset-extra-filters\"]'); if (b) b.click(); }"); await settle(page, 300)
         check('Filter/Sortierung/Schließen: Scrollposition bleibt', abs(await sy(page) - y0) <= 3, f'{y0} -> {await sy(page)}')
         # Wochenplan
         await go(page, 'mealplan'); await scroll_to(page, 200); y1 = await sy(page)
