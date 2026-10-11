@@ -1826,7 +1826,7 @@ html.is-scrolled .home-head { box-shadow: 0 1px 0 rgba(37, 39, 32, .05), 0 8px 1
 .settings-row-title { min-width: 0; flex: 1 1 7rem; overflow-wrap: anywhere; }
 .settings-row-summary { min-width: 0; max-width: 55%; flex: 0 1 auto; }
 
-/* ============================================================
+/* =====================================================
    Wochenplan (Paket 41)
    Handy: eine ruhige Liste, ein Abschnitt pro Tag, keine Karten und keine Schatten.
    Heute: sanfte Salbeifläche. Ab 640 px ruhige Tageskacheln: 2 Spalten, ab 900 px 4 plus 3,
@@ -1984,3 +1984,134 @@ html.is-scrolled .home-head { box-shadow: 0 1px 0 rgba(37, 39, 32, .05), 0 8px 1
   .seg-btn, .filter-btn, .fs-opt, .fs-close { transition: none; }
   .seg-btn:active, .filter-btn:active, .fs-opt:active, .fs-close:active { transform: none; }
 }
+/* ==========================================================================
+   Breite Bildschirme (Paket 42): iPad und Laptop nutzen die Breite.
+   Alles ab 768 px; Basisregeln oben bleiben unberührt. Neue Hüllen im Markup (Seitenspalte im Editor,
+   Hilfespalte im Import) sind auf dem Handy ausgeblendet, das Handy bleibt Pixel für Pixel gleich.
+   Seitenrand: 24 px ab Tablet, 32 px ab Laptop (main nutzt clamp(16px, 4vw, 32px)).
+   ========================================================================== */
+.form-aside, .import-help { display: none; }
+
+/* Hintergrund über die volle Höhe: Seite und Seitenleisten-Spalte decken auch lange Seiten ganz ab (Punkt 8) */
+@media (min-width: 768px) {
+  html { background: var(--bg); min-height: 100%; }
+  body { min-height: 100vh; min-height: 100dvh; }
+}
+@media (min-width: 900px) {
+  html:has(.bottom-nav) { background: linear-gradient(to right, var(--card-bg) 0, var(--card-bg) 231px, var(--border) 231px, var(--border) 232px, var(--bg) 232px); }
+  /* Ohne Seitenleiste (Editor, Import) bleibt links keine leere Spalte */
+  body:has(.form-main), body:has(.import-page) { padding-left: 0; }
+  body { --p42-nav: 14.5rem; --p42-w: 1180px; }
+  body:has(.form-main), body:has(.import-page) { --p42-nav: 0px; }
+  body:has(.form-main) { --p42-w: 1400px; }
+  body:has(.import-page) { --p42-w: 1480px; }
+  body:has(.detail-main) { --p42-w: 1480px; }
+  body:has(.home-main) { --p42-w: 1680px; }
+  .topbar { padding-left: max(32px, calc((100vw - var(--p42-nav) - var(--p42-w)) / 2 + 32px)); padding-right: max(32px, calc((100vw - var(--p42-nav) - var(--p42-w)) / 2 + 32px)); }
+}
+
+/* Editor und Import auf dem iPad hochkant: volle Breite statt schmaler Mittelspalte */
+@media (min-width: 768px) {
+  .form-main, .import-page { max-width: 56rem; width: 100%; }
+  .form-page { max-width: none; margin: 0; }
+  .form-stepper { flex-wrap: wrap; overflow: visible; }
+  .form-step-btn { flex-shrink: 1; }
+  /* Kurze Felder nebeneinander (Menge, Einheit, Zeit, Schwierigkeit) */
+  .form-step.is-active[data-form-step="0"] { display: grid; grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr)); gap: 1.25rem 1rem; align-items: start; }
+  .form-step[data-form-step="0"] > .field { grid-column: 1 / -1; margin-bottom: 0; }
+  .form-step[data-form-step="0"] .field-row { display: contents; }
+  .form-step[data-form-step="0"] .field-more { grid-column: 1 / -1; margin: 0; }
+  .form-step[data-form-step="0"] .field-row--3 { display: grid; grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr)); gap: 0.75rem 1rem; }
+  /* Foto als angemessene Fläche statt riesigem Kasten */
+  .form-main .image-drop { max-width: 30rem; }
+  .form-main .image-drop-placeholder { height: 8.5rem; }
+  .form-main .image-drop img { max-height: 8.5rem; margin-bottom: 0; }
+  .form-actions { justify-content: space-between; }
+  .form-actions .primary-btn, .form-actions .ghost-btn { flex: 0 1 16rem; min-width: 9rem; }
+  .form-actions .primary-btn { flex: 0 1 18rem; }
+  /* Import: Textfeld deutlich höher */
+  .import-layout .field textarea.paste-import-textarea { min-height: 22rem; resize: vertical; }
+}
+
+/* Laptop und iPad quer */
+@media (min-width: 1024px) {
+  .form-main { display: grid; grid-template-columns: minmax(0, 1fr) 21rem; column-gap: 2.5rem; align-items: start; max-width: 1400px; }
+  .form-page { min-width: 0; }
+  .form-aside { display: block; position: sticky; top: calc(5.5rem + env(safe-area-inset-top, 0px)); margin-top: 3.75rem; background: var(--card-bg); border: 1px solid var(--hairline, var(--border)); border-radius: var(--r-card, 20px); overflow: hidden; }
+  .form-aside-photo { background: var(--surface-soft); }
+  .form-aside-img { display: block; width: 100%; aspect-ratio: 4 / 3; object-fit: cover; border-radius: 0; background: var(--surface-soft); }
+  .form-aside-body { padding: 1.25rem; }
+  .form-aside-title { font-family: var(--font-serif, var(--font-display)); font-size: 1.5rem; line-height: 1.2; font-weight: 600; margin: 0 0 0.5rem; color: var(--text); overflow-wrap: anywhere; hyphens: auto; }
+  .form-aside-meta { margin: 0 0 1rem; color: var(--text-soft); font-size: 1rem; }
+  .form-aside-facts { list-style: none; margin: 0; padding: 0; font-size: 1rem; color: var(--text); }
+  .form-aside-facts li { padding: 0.5rem 0; border-top: 1px solid var(--hairline, var(--border)); overflow-wrap: anywhere; }
+  .form-step.is-active[data-form-step="1"] { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: 2.5rem; align-items: start; }
+  .form-step[data-form-step="1"] > p, .form-step[data-form-step="1"] > .field--spaced { grid-column: 1 / -1; }
+  .form-step[data-form-step="1"] > .ghost-btn { grid-column: 1 / -1; justify-self: start; }
+  .form-step.is-active[data-form-step="4"] { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: 2.5rem; align-items: start; }
+  .form-step[data-form-step="4"] > .danger-link { grid-column: 1 / -1; justify-self: start; }
+  .form-step[data-form-step="4"] > .review-box { margin-top: 1.75rem; }
+  .form-step[data-form-step="4"] .field textarea { min-height: 12rem; }
+
+  /* Import: Textfeld links, Hilfespalte rechts */
+  .import-page { max-width: 1480px; }
+  .import-layout { display: grid; grid-template-columns: minmax(0, 1fr) 22rem; column-gap: 2.5rem; align-items: start; }
+  .import-layout > .settings-group { margin-bottom: 0; }
+  .import-layout .field textarea.paste-import-textarea { min-height: clamp(20rem, 52dvh, 34rem); }
+  .import-help { display: block; margin-top: 0.5rem; }
+  .import-help-h { font-family: var(--font-display); font-size: 1.25rem; font-weight: 700; line-height: 1.3; margin: 0 0 0.75rem; color: var(--text); }
+  .import-help-h--sub { margin-top: 1.5rem; }
+  .import-help-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 0.75rem; font-size: 1rem; line-height: 1.5; color: var(--text-soft); }
+  .import-help-list b { color: var(--text); }
+  .import-help-note { margin: 1rem 0 0; font-size: 1rem; line-height: 1.5; color: var(--text-soft); }
+  .import-example { margin: 0; padding: 1rem; background: var(--surface-soft); border-radius: var(--r-ctl, 0.875rem); font: inherit; font-size: 0.9375rem; line-height: 1.5; color: var(--text); white-space: pre-wrap; overflow-wrap: anywhere; }
+
+  /* Rezeptdetail: breiter, linke Spalte angenehm, rechte Spalte deutlich breiter */
+  .detail-main { max-width: 1480px; width: 100%; }
+  .detail-cols { grid-template-columns: clamp(20rem, 36%, 30rem) minmax(0, 1fr); column-gap: 2rem; }
+  .detail-main.has-hero { display: grid; grid-template-columns: clamp(20rem, 36%, 30rem) minmax(0, 1fr); column-gap: 2rem; align-items: start; }
+  .detail-main.has-hero .detail-cols { display: contents; }
+  .detail-main.has-hero .hero { grid-column: 1; grid-row: 1; margin: 1rem 0 0; }
+  .detail-main.has-hero .hero-img { aspect-ratio: 4 / 3; max-height: none; border-radius: var(--r-card, 20px); }
+  .detail-main.has-hero .detail-col--info { grid-column: 1; grid-row: 2; }
+  .detail-main.has-hero .detail-col--content { grid-column: 2; grid-row: 1 / span 2; }
+  .detail-col--info .detail-title-v2.is-long { font-size: 1.875rem; line-height: 1.15; }
+  .detail-col--content .step-text, .detail-col--content .notes-text { max-width: 70ch; }
+
+  /* Einstellungen: Abschnitte als Raster mit zwei Spalten, Detailseiten in zwei Spalten */
+  .settings-page { max-width: 1180px; }
+  .settings-page--home { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: 2.5rem; align-items: start; align-content: start; }
+  .settings-page--home > .page-title-row { grid-column: 1 / -1; }
+  .settings-page--home > .settings-group { margin-bottom: 0.5rem; }
+  .settings-page--home > .settings-group:nth-child(2) { grid-column: 1; grid-row: 2 / span 2; }
+  .settings-page--home > .settings-group:nth-child(3) { grid-column: 2; grid-row: 2; }
+  .settings-page--home > .settings-group:nth-child(4) { grid-column: 2; grid-row: 3; }
+  .settings-page--cols { column-count: 2; column-gap: 2.5rem; }
+  .settings-page--cols > * { break-inside: avoid; }
+  .settings-page--cols > .settings-section-head { break-after: avoid; }
+  .settings-page--cols > .settings-section-head { margin-top: 0; padding-top: 1.5rem; }
+  .settings-page--cols > .settings-section-head:first-child { padding-top: 0.5rem; }
+  .settings-page--cols > .settings-group { break-inside: avoid; }
+}
+@media (min-width: 768px) and (max-width: 1023px) {
+  .settings-page { max-width: 720px; }
+}
+
+/* Leerzustände: linksbündig zum Seitentitel, die drei Hinweise nebeneinander */
+@media (min-width: 768px) {
+  .home-main .empty-state, .shop-main .empty-state { text-align: left; padding: 2.5rem 0 1rem; }
+  .home-main .empty-state p, .shop-main .empty-state p { max-width: 62ch; }
+  .home-main .empty-actions, .home-main .empty-state > div[style] { justify-content: flex-start !important; }
+  .home-main .empty-steps { max-width: none; margin: 2rem 0 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr)); gap: 1rem; }
+}
+@media (min-width: 1024px) {
+  .home-main .empty-steps { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+
+/* Rezeptliste: mehr Spalten auf breiten Bildschirmen */
+@media (min-width: 1280px) {
+  .home-main { max-width: 1680px; }
+  .rlist { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: 1.5rem; }
+}
+@media (min-width: 1560px) { .rgrid { grid-template-columns: repeat(5, minmax(0, 1fr)); } }
+@media (min-width: 1840px) { .rgrid { grid-template-columns: repeat(6, minmax(0, 1fr)); } }
