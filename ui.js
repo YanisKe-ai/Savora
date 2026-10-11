@@ -273,6 +273,12 @@ function bindEvents() {
   const searchInput = document.getElementById('searchInput');
   if (searchInput) {
     clearTimeout(searchDebounceTimer);
+    searchInput.addEventListener('keydown', (e) => {
+      if (e.key !== 'Escape' || !state.searchOpen) return;   // Handy-Suche: Escape schliesst das Feld, der Suchtext bleibt (Knopf bleibt gefüllt)
+      e.preventDefault(); clearTimeout(searchDebounceTimer);
+      state.query = e.target.value; state.searchOpen = false; render();
+      const btn = document.getElementById('searchBtn'); if (btn) focusWithoutScroll(btn);
+    });
     searchInput.addEventListener('input', (e) => {
       state.query = e.target.value;
       // Punkt 2: der Sprung entsteht hier nicht durch render()/focus() (die sind bereits mit

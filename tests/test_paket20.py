@@ -13,10 +13,10 @@ async def main():
         await goto(page); await page.evaluate(open(SEED_PATH).read()); await page.wait_for_timeout(400)
         ev = page.evaluate
         # Handy-Startseite: kein sichtbarer Seitentitel, die Suche steht unter dem Schriftzug
-        head = await ev("""() => { const t = document.querySelector('.topbar'); const i = document.querySelector('.top-wordmark'); const h = document.querySelector('.page-title, .home-head .search-field'); const tr = t.getBoundingClientRect(), hr = h.getBoundingClientRect();
+        head = await ev("""() => { const t = document.querySelector('.topbar'); const i = document.querySelector('.top-wordmark'); const h = document.querySelector('.page-title, .home-head .search-field, .home-head .filter-bar'); const tr = t.getBoundingClientRect(), hr = h.getBoundingClientRect();
           return { icon: !!i, border: getComputedStyle(t).borderBottomWidth, gap: Math.round(hr.top - tr.bottom), wm: document.querySelector('.top-wordmark').getBoundingClientRect().width, pt: parseFloat(getComputedStyle(h).fontSize) }; }""")
         check('Kopfzeile: Logo, keine harte Linie, Abstand zum Seitentitel bzw. zur Suche (Handy)', head['icon'] and head['border'] == '0px' and head['gap'] >= 14, str(head))
-        check('Wortmarke bleibt zurückhaltend (112 bis 150 px breit)', 111 <= head['wm'] <= 150, str(head))
+        check('Wortmarke bleibt zurückhaltend (Handy bewusst vergrössert: 160 bis 176 px breit)', 160 <= head['wm'] <= 176, str(head))
         res = await ev("""async () => { const r = state.recipes.find(x => x.id === 'r_legacy_1'); const out = await buildSinglePdf(r.id, 'off'); return { size: out && out.blob.size, name: out && out.filename }; }""")
         check('Einzelrezept-PDF wird erzeugt', res['size'] and res['size'] > 5000, str(res))
         res = await ev("""async () => { const cb = await buildCookbookPdf('off'); return cb && cb.blob.size; }""")

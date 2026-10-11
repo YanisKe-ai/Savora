@@ -75,7 +75,7 @@ async def main():
 
         # ---------- 2. Fokus über render() ----------
         await go(page, 'home')
-        await page.click('#searchInput'); await page.keyboard.type('testgericht')
+        await open_search(page); await page.click('#searchInput'); await page.keyboard.type('testgericht')
         await settle(page, 400)
         await page.keyboard.press('ArrowLeft'); await page.keyboard.press('ArrowLeft'); await page.keyboard.press('ArrowLeft')
         await page.keyboard.type('X'); await settle(page, 450)   # 'testgerXicht': Live-Filter rendert neu
@@ -240,7 +240,7 @@ async def main():
         await page.keyboard.press('Tab')
         pos = await ev("() => { const r = document.activeElement.getBoundingClientRect(); return { top: Math.round(r.top), tag: document.activeElement.tagName }; }")
         check('Tab-Reihenfolge: erster Fokus liegt im oberen Bereich', pos['top'] < 300, str(pos))
-        ring = await ev("""() => { document.activeElement.blur(); document.querySelector('#searchInput').focus(); const cs = getComputedStyle(document.activeElement); return { ow: cs.outlineWidth, os: cs.outlineStyle, sh: cs.boxShadow }; }""")
+        ring = await ev("""() => { document.activeElement.blur(); (document.querySelector('#searchInput') || document.querySelector('#searchBtn')).focus(); const cs = getComputedStyle(document.activeElement); return { ow: cs.outlineWidth, os: cs.outlineStyle, sh: cs.boxShadow }; }""")
         await page.keyboard.press('Tab'); await settle(page, 200)
         ring = await ev("() => { const cs = getComputedStyle(document.activeElement); return { ow: cs.outlineWidth, os: cs.outlineStyle, sh: cs.boxShadow, m: document.activeElement.matches(':focus-visible') }; }")
         check('Sichtbarer Fokusring bei Tastaturfokus', ring['m'] and ((ring['os'] != 'none' and ring['ow'] != '0px') or ring['sh'] != 'none'), str(ring))
