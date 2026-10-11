@@ -84,7 +84,7 @@ function shareHandleInviteLink() {
     sessionStorage.setItem(SHARE_INVITE_KEY, code.toUpperCase());
     setTimeout(() => {
       if (cloudSignedIn()) { state.view = 'settings-share'; render(); shareRefresh(); }
-      else showToast('Melde dich an (Mehr, Synchronisation), um die Einladung anzunehmen.', 'info');
+      else showToast('Melde dich an (Einstellungen, Auf mehreren Geräten), um die Einladung anzunehmen.', 'info');
     }, 800);
   } catch (e) { /* ungueltige Adresse: ignorieren */ }
 }
@@ -182,7 +182,7 @@ function settingsShareView() {
       <div class="field"><label for="shareHandle">Profilname</label><input id="shareHandle" autocomplete="off" autocapitalize="off" spellcheck="false" maxlength="24" placeholder="z. B. yanis_kocht"></div>
       <div class="field"><label for="shareName">Anzeigename (optional)</label><input id="shareName" autocomplete="off" maxlength="40" placeholder="z. B. Yanis"></div>
       <p class="cloud-error" id="shareError" role="alert"></p>
-      <button class="primary-btn primary-btn--block" data-action="share-profile-save">Profil anlegen</button>
+      <button class="primary-btn primary-btn--block" data-action="share-profile-save">Profil erstellen</button>
       <p class="settings-hint settings-hint--top">3 bis 24 Zeichen: Kleinbuchstaben, Zahlen und Unterstrich.</p>
     </div></div>`;
   } else {
@@ -230,7 +230,7 @@ function settingsShareView() {
       <button class="text-btn" data-action="share-invite-reset">Neuen Einladungscode erzeugen</button>
     </div></div>`;
   }
-  return settingsDetailShell('Freunde & Rezepte', body);
+  return settingsDetailShell('Freunde & Rezepte senden', body + senderNameSectionHtml());
 }
 
 function shareFindInbox(id) { return share.inbox.find(x => x.id === id) || null; }
@@ -238,7 +238,7 @@ function settingsSharePreviewView() {
   const item = shareFindInbox(share.previewId);
   if (!item) { return settingsDetailShell('Rezept ansehen', '<p class="settings-hint">Dieses Rezept ist nicht mehr da.</p><button class="ghost-btn primary-btn--block" data-action="goto-view" data-view="settings-share">Zurück</button>'); }
   const r = shareRecipeFromPayload(item.recipe, item.from_handle);
-  const meta = [r.timeMinutes ? `${r.timeMinutes} Min.` : '', yieldKnown(r) ? servingLabel(r, r.servings) : 'Ausbeute offen', r.difficulty || ''].filter(Boolean);
+  const meta = [r.timeMinutes ? `${r.timeMinutes} Min.` : '', yieldKnown(r) ? servingLabel(r, r.servings) : 'Ergibt: offen', r.difficulty || ''].filter(Boolean);
   const ings = r.ingredients.filter(i => (i.name || '').trim());
   const body = `
     <div class="share-preview">

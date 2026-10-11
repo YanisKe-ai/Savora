@@ -19,6 +19,7 @@ const state = {
   showNutrition: (() => { try { return localStorage.getItem('savora-show-nutrition') !== '0'; } catch (e) { return true; } })(),
   cookScale: (() => { try { return Math.max(0, Math.min(2, parseInt(localStorage.getItem('savora-cook-scale') || '0', 10) || 0)); } catch (e) { return 0; } })(),
   cookbookTitle: localStorage.getItem(COOKBOOK_TITLE_KEY) || '',
+  cookbookStep: 1,   // Schritt im Kochbuch-Editor: 1 Rezepte auswaehlen, 2 Gestalten, 3 Vorschau und PDF
   senderName: localStorage.getItem(SENDER_NAME_KEY) || '',
   lastBackupAt: localStorage.getItem(LAST_BACKUP_KEY) || null,
   timers: {}, // id -> { remaining, total, running, done, intervalId }
@@ -66,7 +67,7 @@ function applyTheme() {
 }
 /* Browserleiste (theme-color) und iOS-Statusleiste passen sich dem gewaehlten Modus an, nicht dem des Systems:
    Wer in der App "Dunkel" waehlt, waehrend das Telefon hell ist, soll keine dunkle Uhr auf dunklem Grund sehen. */
-const THEME_CHROME = { light: '#FAFAF8', dark: '#121214', amoled: '#000000' };
+const THEME_CHROME = { light: '#F7F4EE', dark: '#1B1A17', amoled: '#000000' };
 function syncThemeChrome(theme) {
   const meta = document.querySelector('meta[name="theme-color"]');
   if (meta) meta.setAttribute('content', THEME_CHROME[theme] || THEME_CHROME.light);
@@ -187,11 +188,41 @@ window.addEventListener('popstate', (e) => {
    an mehreren Stellen im Code wird state.modal direkt auf null gesetzt (z.B. 'back',
    'new-recipe', 'goto-view'), ohne ueber closeModal() zu laufen. Nur eine zentrale Pruefung
    bei jedem render() erfasst zuverlaessig JEDEN Fall, in dem sich die Modal-Praesenz aendert. */
+/* Paket 37: Fokus ueber render() hinweg erhalten. render() ersetzt das ganze DOM; ohne diese Sicherung
+   verliert jedes Feld (Formular, Kochbuch-Editor, Text-Import, Freunde) beim Neuzeichnen Fokus und Cursor.
+   Das Element wird ueber id, data-Attribute oder Klasse plus Index wiedergefunden. */
+function focusFingerprint(el) {
+  if (!el || el === document.body || !App.contains(el)) return null;
+  const fp = { tag: el.tagName.toLowerCase() };
+  if (el.id) fp.id = el.id;
+  else {
+    const attrs = Array.from(el.attributes).filter(a => /^data-/.test(a.name) && a.value.length < 80).map(a => `[${a.name}="${String(a.value).replace(/["\\]/g, '\\$&')}"]`).join('');
+    if (attrs) fp.sel = el.tagName.toLowerCase() + attrs;
+    else if (el.className && typeof el.className === 'string') { fp.sel = el.tagName.toLowerCase() + '.' + el.className.trim().split(/\s+/).join('.'); }
+    else return null;
+    try { fp.idx = Array.from(App.querySelectorAll(fp.sel)).indexOf(el); } catch (e) { return null; }
+    if (fp.idx < 0) return null;
+  }
+  if (typeof el.selectionStart === 'number') { try { fp.s = el.selectionStart; fp.e = el.selectionEnd; fp.d = el.selectionDirection; } catch (e) { /* Typ ohne Auswahl */ } }
+  return fp;
+}
+function restoreFocusFingerprint(fp) {
+  if (!fp) return;
+  let el = null;
+  try { el = fp.id ? document.getElementById(fp.id) : App.querySelectorAll(fp.sel)[fp.idx]; } catch (e) { return; }
+  if (!el || el === document.activeElement || el.disabled) return;
+  window.__restoringFocus = true;
+  focusWithoutScroll(el);
+  window.__restoringFocus = false;
+  if (fp.s != null && typeof el.setSelectionRange === 'function') { try { el.setSelectionRange(fp.s, fp.e, fp.d || 'none'); } catch (e) { /* nicht kritisch */ } }
+}
+
 function render(skipHistoryPush) {
   const prevView = lastRenderedView;
   const viewChanged = state.view !== prevView;
   const hadModal = bodyScrollLockY !== null;
   const hasModal = !!state.modal;
+  const focusFp = (!viewChanged && !(hasModal && !hadModal) && !(hadModal && !hasModal)) ? focusFingerprint(document.activeElement) : null;
 
   if (viewChanged && prevView && !hadModal && typeof TAB_VIEWS !== 'undefined' && TAB_VIEWS.includes(prevView)) {
     scrollMemory[prevView] = window.scrollY;
@@ -232,6 +263,7 @@ function render(skipHistoryPush) {
     // innerHTML entferntes/ersetztes Element eigenstaendig noch einmal scrollt.
     requestAnimationFrame(() => { applyScroll(); if (typeof updateScrollEdge === 'function') updateScrollEdge(); if (typeof coverFitPreviews === 'function') coverFitPreviews(); });
     if (hasModal && !hadModal) lockBodyScroll();
+    restoreFocusFingerprint(focusFp);
     if (preservedModalScrollTop !== null) {
       const newModalSheet = document.querySelector('.modal-sheet');
       if (newModalSheet) newModalSheet.scrollTop = preservedModalScrollTop;
@@ -261,7 +293,7 @@ function render(skipHistoryPush) {
   const NO_TRANSITION_VIEWS = new Set(['form', 'cookmode']);
   // Richtung des Seitenwechsels: tiefer hinein = von rechts, zurueck = nach rechts hinaus, Reiter = Ueberblendung
   if (viewChanged) {
-    const depth = (v) => (['home', 'mealplan', 'shopping', 'settings'].includes(v) ? 0 : v === 'cookmode' ? 2 : 1);
+    const depth = (v) => (['home', 'mealplan', 'shopping', 'cookbooks', 'settings'].includes(v) ? 0 : v === 'cookmode' ? 2 : 1);
     const a = depth(prevView || 'home'), b = depth(state.view);
     document.documentElement.dataset.navDir = b > a ? 'forward' : b < a ? 'back' : 'fade';
   }
@@ -319,7 +351,7 @@ async function loadMealplan() {
   state.mealplanRecords = {};
   rows.forEach(r => {
     state.mealplanRecords[r.date] = r; // kompletter Record, damit beim Speichern nichts verloren geht
-    state.mealplan[r.date] = Array.isArray(r.entries) ? r.entries.map(e => e.recipeId) : (r.recipeIds || []);
+    state.mealplan[r.date] = Array.isArray(r.entries) ? r.entries.filter(e => e && e.recipeId).map(e => e.recipeId) : (r.recipeIds || []);   // Notizeintraege haben kein Rezept
   });
 }
 

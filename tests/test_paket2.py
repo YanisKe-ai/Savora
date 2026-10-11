@@ -60,7 +60,7 @@ async def main():
         # Sicherung statt Backup
         await page.evaluate("() => { state.view = 'settings-backup'; render(); }"); await page.wait_for_timeout(200)
         t = await page.evaluate("document.body.innerText")
-        check('Sicherungsseite ohne Wort "Backup"', 'Backup' not in t and 'Sicherung erstellen' in t)
+        check('Sicherungsseite ohne Wort "Backup"', 'Backup' not in t and 'Sicherung speichern' in t)
         # Tippflaechen der Einklapp-Zeilen
         await page.evaluate("() => { state.view = 'settings-help'; render(); }")
         h = await page.evaluate("document.querySelector('.faq summary').getBoundingClientRect().height")

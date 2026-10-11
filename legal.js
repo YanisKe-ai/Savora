@@ -2,7 +2,7 @@
    Alle Angaben, die nur die verantwortliche Person kennt, stehen zentral in LEGAL. Solange ein Wert
    mit "[" beginnt, ist er ein Platzhalter und wird in der App farbig markiert angezeigt.
    Kein Rechtsrat: Vor einer oeffentlichen Veroeffentlichung von einer Fachperson pruefen lassen. */
-const APP_VERSION = '0.59.0';   // muss mit der Datei VERSION uebereinstimmen (Test: tests/test_paket2.py)
+const APP_VERSION = '0.60.0';   // muss mit der Datei VERSION uebereinstimmen (Test: tests/test_paket2.py)
 const LEGAL = {
   name: '[Name der verantwortlichen Person]',
   email: '[Kontakt-E-Mail]',
@@ -31,7 +31,7 @@ function legalPrivacyHtml() {
     <p class="legal-stand">Stand: ${escapeHtml(LEGAL.updated)}. Savora ist eine private Beta-Version.</p>
     ${legalSection('Kurz gesagt', legalList([
       'Ohne Anmeldung bleiben alle deine Daten auf diesem Gerät.',
-      'Nur wenn du dich unter „Synchronisation“ anmeldest, werden deine Inhalte mit deinen anderen Geräten abgeglichen.',
+      'Nur wenn du dich unter „Auf mehreren Geräten“ anmeldest, werden deine Inhalte mit deinen anderen Geräten abgeglichen.',
       'Savora enthält keine Werbung, keine Tracker und keine Analyse-Dienste.',
     ]))}
     ${legalSection('Wer verantwortlich ist', `
@@ -39,7 +39,7 @@ function legalPrivacyHtml() {
       <p>Kontakt für alle Fragen zum Datenschutz: ${legalValue(LEGAL.email)}</p>`)}
     ${legalSection('Welche Daten wo liegen', `
       <p><b>Auf deinem Gerät.</b> Rezepte mit Fotos, Notizen, Wochenplan, Einkaufsliste, Sammlungen, Kochfortschritt, Timer und Einstellungen liegen im Speicher des Browsers oder der App. Sie verlassen das Gerät nicht, solange du nicht angemeldet bist und keine Datei teilst.</p>
-      <p><b>Mit Konto (Synchronisation).</b> Für die Anmeldung wird deine E-Mail-Adresse gespeichert, das Passwort nur in geschützter Form. Dazu kommen Rezepte, Fotos, Wochenplan, Einkaufsliste, Sammlungen, die Kochbuch-Auswahl und der Zeitpunkt der letzten Änderung. Nur dein Konto kann diese Daten lesen.</p>
+      <p><b>Mit Konto (auf mehreren Geräten).</b> Für die Anmeldung wird deine E-Mail-Adresse gespeichert, das Passwort nur in geschützter Form. Dazu kommen Rezepte, Fotos, Wochenplan, Einkaufsliste, Sammlungen, die Kochbuch-Auswahl und der Zeitpunkt der letzten Änderung. Nur dein Konto kann diese Daten lesen.</p>
       <p><b>Barcode-Suche.</b> Suchst du ein Produkt per Barcode und die Schweizer Nährwertdatenbank hat keinen Treffer, wird die Nummer des Barcodes an Open Food Facts gesendet. Andere Rezeptdaten werden nicht übertragen. Der Dienst sieht dabei technisch bedingt deine IP-Adresse.</p>
       <p><b>Kamera und Fotos.</b> Die Kamera wird nur zum Scannen eines Barcodes und für „Foto scannen“ genutzt. Bei „Foto scannen“ liest die Texterkennung von iOS den Text aus dem Bild. Das läuft auf deinem Gerät, Bilder werden weder gespeichert noch übertragen. Es entsteht nur der erkannte Text, den du prüfst.</p>
       <p><b>Mitteilungen (iOS-App).</b> Die Timer-Meldungen werden auf deinem Gerät geplant. Es gibt keinen Push-Server.</p>
@@ -49,9 +49,9 @@ function legalPrivacyHtml() {
     ${legalSection('Wozu die Daten dienen', `
       <p>Deine Daten werden nur bearbeitet, um dir Savora bereitzustellen: Speichern, Abgleichen und Anmelden. Die Synchronisation nutzt du freiwillig. Mit der Anmeldung stimmst du dieser Bearbeitung zu, du kannst dich jederzeit abmelden. Deine Daten werden nicht verkauft und nicht für Werbung verwendet. Empfänger sind ausschliesslich der Betreiber des Synchronisationsdienstes (siehe oben) und, nur für Barcodes, Open Food Facts.</p>`)}
     ${legalSection('Aufbewahrung und Löschung', `
-      <p>Daten in der Cloud bleiben, bis du sie löschst. Unter „Mehr“, „Synchronisation“, „Konto und Cloud-Daten löschen“ entfernst du dein Konto und alle Cloud-Daten endgültig. Rezepte auf deinem Gerät bleiben dabei erhalten. Sie verschwinden erst, wenn du sie selbst löschst, die Browserdaten leerst oder die App deinstallierst.</p>`)}
+      <p>Daten in der Cloud bleiben, bis du sie löschst. Unter „Einstellungen“, „Auf mehreren Geräten“, „Konto und Cloud-Daten löschen“ entfernst du dein Konto und alle Cloud-Daten endgültig. Rezepte auf deinem Gerät bleiben dabei erhalten. Sie verschwinden erst, wenn du sie selbst löschst, die Browserdaten leerst oder die App deinstallierst.</p>`)}
     ${legalSection('Deine Rechte', `
-      <p>Du kannst Auskunft über deine Daten verlangen sowie deren Berichtigung und Löschung. Eine vollständige Kopie deiner Rezepte erstellst du selbst unter „Sicherung &amp; Wiederherstellung“. Schreib für alles Weitere an ${legalValue(LEGAL.email)}. Du kannst dich zusätzlich beim Eidgenössischen Datenschutz- und Öffentlichkeitsbeauftragten (EDÖB) beschweren.</p>`)}
+      <p>Du kannst Auskunft über deine Daten verlangen sowie deren Berichtigung und Löschung. Eine vollständige Kopie deiner Rezepte erstellst du selbst unter „Sicherungskopie“. Schreib für alles Weitere an ${legalValue(LEGAL.email)}. Du kannst dich zusätzlich beim Eidgenössischen Datenschutz- und Öffentlichkeitsbeauftragten (EDÖB) beschweren.</p>`)}
     ${legalSection('Sicherheit', `
       <p>Die Übertragung zum Synchronisationsdienst ist verschlüsselt, und jedes Konto sieht nur seine eigenen Daten. Die Inhalte sind auf dem Server nicht zusätzlich Ende-zu-Ende verschlüsselt. Wähle deshalb ein Passwort, das du nirgends sonst verwendest.</p>`)}
     ${legalSection('Änderungen', `<p>Ändert sich etwas, passen wir diese Seite und das Datum oben an.</p>`)}`;
@@ -67,7 +67,7 @@ function legalTermsHtml() {
     ${legalSection('Deine Inhalte', `
       <p>Deine Rezepte, Fotos und Notizen gehören dir. Du bist dafür verantwortlich, dass du sie speichern und weitergeben darfst. Das gilt vor allem für fremde Rezepttexte und Fotos, die urheberrechtlich geschützt sein können. Savora nutzt deine Inhalte nur, um die App zu betreiben.</p>`)}
     ${legalSection('Sicherung', `
-      <p>Erstelle regelmässig eine Sicherungsdatei. In einer Beta-Version kann es zu Fehlern kommen, und die Synchronisation ersetzt keine Sicherung.</p>`)}
+      <p>Speichere regelmässig eine Sicherungsdatei. In einer Beta-Version kann es zu Fehlern kommen, und der Abgleich zwischen Geräten ersetzt keine Sicherung.</p>`)}
     ${legalSection('Nährwerte und Allergene', `
       <p>Alle Nährwerte sind berechnete Schätzwerte ohne Gewähr. Sie sind keine Ernährungs- oder medizinische Beratung. Verlasse dich bei Allergien, Unverträglichkeiten oder Diäten nie auf die Angaben in Savora. Prüfe immer die Verpackung und frage im Zweifel nach.</p>`)}
     ${legalSection('Verfügbarkeit und Haftung', `
@@ -91,7 +91,7 @@ function legalSourcesHtml() {
     ${legalSection('Eigene Angaben', `
       <p>Von dir erfasste eigene Lebensmittel und von dir bestätigte Zuordnungen haben Vorrang vor automatischen Treffern aus den Datenbanken.</p>`)}
     ${legalSection('Wichtig', `
-      <p>Alle Werte sind Schätzungen ohne Gewähr und keine Grundlage für Entscheidungen bei Allergien oder Krankheiten. Ein fehlender Wert steht als „–“ und bedeutet „keine Daten“, nicht „null“.</p>`)}`;
+      <p>Alle Werte sind Schätzungen ohne Gewähr und keine Grundlage für Entscheidungen bei Allergien oder Krankheiten. Ein fehlender Wert bleibt leer und bedeutet „keine Daten“, nicht „null“.</p>`)}`;
 }
 
 function legalLicensesHtml() {
@@ -99,11 +99,12 @@ function legalLicensesHtml() {
   return `
     <p class="legal-stand">Savora nutzt frei lizenzierte Schriften und Bibliotheken. Vielen Dank an die Entwicklerinnen und Entwickler.</p>
     ${legalSection('Schriften', `<ul class="legal-list">
-      ${row('Roboto', 'Apache License 2.0', 'Fliesstext.')}
-      ${row('Sofia Sans Extra Condensed', 'SIL Open Font License 1.1', 'Titel.')}
+      ${row('DM Sans', 'SIL Open Font License 1.1', 'Bedienung und Fliesstext.')}
+      ${row('Fraunces', 'SIL Open Font License 1.1', 'Rezept- und Buchtitel.')}
       ${row('Archivo', 'SIL Open Font License 1.1', 'Schriftzug.')}
+      ${row('Roboto', 'Apache License 2.0', 'Nur in den PDF-Vorlagen.')}
+      ${row('Sofia Sans Extra Condensed', 'SIL Open Font License 1.1', 'Nur in den PDF-Vorlagen.')}
       ${row('Source Serif 4', 'SIL Open Font License 1.1', 'Titel in den PDF-Vorlagen.')}
-      ${row('Baloo 2', 'SIL Open Font License 1.1', 'Ältere Ansichten.')}
     </ul>`)}
     ${legalSection('Bibliotheken', `<ul class="legal-list">
       ${row('jsPDF 2.5.1', 'MIT-Lizenz', 'Erzeugt die PDF-Dateien.')}
@@ -117,15 +118,15 @@ function legalLicensesHtml() {
 function legalHelpHtml() {
   const q = (title, body) => `<details class="faq"><summary>${title}</summary><p>${body}</p></details>`;
   return `
-    ${legalSection('Kontakt', `<p>Fragen oder Rückmeldungen zu Savora schickst du an ${legalValue(LEGAL.email)}. Bei Fehlern hilft es, kurz zu beschreiben, was du getan hast und was du stattdessen erwartet hast.</p>`)}
+    ${legalSection('Kontakt', `<p>Fragen oder Rückmeldungen schickst du an ${legalValue(LEGAL.email)}. Bei einem Fehler hilft es, kurz zu schreiben, was du getan hast und was du erwartet hast.</p>`)}
     ${legalSection('Häufige Fragen', [
       q('Wo liegen meine Rezepte?', 'Auf diesem Gerät, im Speicher des Browsers oder der App. Ohne Anmeldung verlassen sie das Gerät nie.'),
-      q('Wie sichere ich meine Rezepte?', 'Unter „Mehr“, „Sicherung &amp; Wiederherstellung“ erstellst du eine Sicherungsdatei. Bewahre sie an einem zweiten Ort auf, zum Beispiel in der Dateien-App oder per E-Mail an dich selbst.'),
-      q('Was macht die Synchronisation?', 'Sie gleicht deine Rezepte, Fotos, den Wochenplan und die Einkaufsliste zwischen deinen Geräten ab. Sie ist keine Sicherung: Was du löschst, verschwindet auf allen Geräten.'),
+      q('Wie sichere ich meine Rezepte?', 'Unter „Einstellungen“, „Sicherungskopie“ speicherst du eine Datei mit deinen Rezepten. Bewahre sie an einem zweiten Ort auf, zum Beispiel in der Dateien-App oder per E-Mail an dich selbst.'),
+      q('Was bringt „Auf mehreren Geräten“?', 'Deine Rezepte, Fotos, der Wochenplan und die Einkaufsliste sind auf allen Geräten gleich, auf denen du angemeldet bist. Das ist keine Sicherung: Was du löschst, verschwindet auf allen Geräten.'),
       q('Warum kommt eine Timer-Meldung nur in der iOS-App?', 'Der Browser kann bei gesperrtem Telefon keine Meldung senden. Die iOS-App plant die Meldung auf dem Gerät und fragt beim ersten Timer nach der Erlaubnis.'),
-      q('Bleibt der Bildschirm im Kochmodus an?', 'Ja. Oben im Kochmodus steht „Bildschirm bleibt an“. Wenn dort „Bildschirm kann ausgehen“ steht, unterstützt dein Browser das nicht.'),
-      q('Warum ändern sich Mengen, wenn ich Portionen ändere?', 'Savora rechnet immer vom Originalrezept aus. Die gespeicherten Mengen bleiben unverändert, nur die Anzeige wird umgerechnet.'),
-      q('Wie genau sind die Nährwerte?', 'Es sind Schätzwerte auf Basis der erkannten Zutaten. Fehlende oder unklare Mengen fliessen nicht als exakte Werte ein. Mehr dazu unter „Datenquellen“.'),
+      q('Bleibt der Bildschirm im Kochmodus an?', 'Ja. Oben im Kochmodus steht „Bildschirm bleibt an“. Steht dort „Bildschirm kann ausgehen“, unterstützt dein Browser das nicht.'),
+      q('Warum ändern sich Mengen, wenn ich Portionen ändere?', 'Savora rechnet immer vom Originalrezept aus. Die gespeicherten Mengen bleiben gleich, nur die Anzeige wird umgerechnet.'),
+      q('Wie genau sind die Nährwerte?', 'Geschätzte Werte. Je nach Zutaten und Mengen können sie abweichen. Mehr dazu unter „Über Savora“, „Datenquellen“.'),
     ].join(''))}`;
 }
 

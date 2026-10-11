@@ -450,6 +450,7 @@ function parseFreeTextRecipeLegacy(raw) {
   r.timeMinutes = timeMatch ? timeMinutes : 0;
   const servMatch = metaLines.join(' ').match(/(\d+)\s*(portionen|personen|servings|stück|stueck|stk)/i);
   if (servMatch) { r.servings = parseInt(servMatch[1]); if (/^st(ü|ue)ck|^stk/i.test(servMatch[2])) r.servingMode = 'pieces'; }
+  else r.servings = 0;   // keine Ausbeute im Text: unbekannt lassen statt den Standardwert 4 als erkannt auszugeben
 
   return importEnrichRecipe(r, raw, tagWords, detectedNotes, { titleLine, servMatch, timeMatch });
 }

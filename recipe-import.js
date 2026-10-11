@@ -46,6 +46,8 @@ function impStepHeader(l) {
   if (importIsStepHeader(l)) return { inline: '' };
   const k = importHeadKey(l);
   const m = /^(zubereitung|anleitung|zubereitungsschritte|directions|instructions|method|preparation|vorbereitung)\s*:\s*(.+)$/i.exec(k);
+  // "Vorbereitung: 15 Minuten" ist eine Zeitangabe, kein Beginn der Zubereitung
+  if (m && /^vorbereitung$/i.test(m[1]) && /^(?:ca\.?\s*|etwa\s+)?\d+(?:[.,]\d+)?\s*(?:h|std\.?|stunden?|min\.?|minuten?)(?:\s*(?:und\s*)?\d+\s*(?:min\.?|minuten?))?\.?$/i.test(m[2].trim())) return null;
   if (m) return { inline: m[2].trim() };
   if (/^vorbereitung$/i.test(k) && /:\s*$/.test(importStripEmoji(l))) return { inline: '' };
   return null;
@@ -91,7 +93,7 @@ function importParseYield(text) {
 const IMP_TIME_LABELS = [
   [/^(gesamtzeit|gesamtdauer|total time|zeitaufwand|dauert|dauer|zeit)\b/i, 'total'],
   [/^(zubereitungszeit)\b/i, 'totalOrPrep'],
-  [/^(arbeitszeit|aktive zeit|aktiv|vorbereitungszeit|prep time)\b/i, 'prep'],
+  [/^(arbeitszeit|aktive zeit|aktiv|vorbereitungszeit|vorbereitung|prep time)\b/i, 'prep'],
   [/^(ruhezeit|kühlzeit|gehzeit|wartezeit|ziehzeit|rest time|chill time)\b/i, 'rest'],
   [/^(kochzeit|backzeit|garzeit|bratzeit|cook time)\b/i, 'cook'],
 ];
@@ -112,6 +114,9 @@ function impConsumeMetaPart(l, meta, durationOnlyOk) {
   // Quelle: nackte URL oder "Quelle: https://..."
   let m = /^(?:quelle|source|rezept von|von|link)?\s*:?\s*(https?:\/\/\S+)\s*$/i.exec(t);
   if (m) { meta.source = m[1].replace(/[).,;]+$/, ''); return true; }
+  // Quelle als Freitext ("Quelle: Eigenes Rezept"): gehoert ins Quellenfeld, nicht in die Zubereitung
+  m = /^(?:quelle|source)\s*:\s*(\S.*)$/i.exec(t);
+  if (m) { meta.source = m[1].trim(); return true; }
   // Schwierigkeit
   m = /^(?:schwierigkeit(?:sgrad)?|level|difficulty)\s*:?\s*(einfach|leicht|mittel|mittelschwer|anspruchsvoll|schwer|easy|medium|hard)\b/i.exec(t);
   if (m) {
@@ -127,7 +132,7 @@ function impConsumeMetaPart(l, meta, durationOnlyOk) {
   // Reine Dauer ("45 Min", "ca. 1 Std. 30 Min.") ohne Bezeichnung zaehlt als Gesamtzeit (bisheriges Verhalten)
   if (typeof isDurationOnlyLine === 'function' && isDurationOnlyLine(t)) {
     const mins = typeof parseDurationText === 'function' ? parseDurationText(t) : null;
-    if (mins) { meta.times = meta.times || {}; if (meta.times.total == null) meta.times.total = mins; return true; }
+    if (mins) { meta.times = meta.times || {}; if (meta.times.total == null) { meta.times.total = mins; meta.bareTime = { text: t, minutes: mins }; } return true; }
   }
   // Zeiten mit ausdruecklicher Bezeichnung
   for (const [re, kind] of IMP_TIME_LABELS) {
@@ -367,6 +372,12 @@ function importFinalizeDraft(r, ctx) {
   if (ctx.yield && ctx.yield.unknown) issues.push({ id: 'yield-range', level: 'check', field: 'servings', text: `Die Ausbeute ist als Spanne angegeben („${ctx.yield.text}“). Bitte eine Zahl eintragen.` });
   // Zeit
   if (!(r.timeMinutes > 0)) issues.push({ id: 'time', level: 'missing', field: 'time', text: 'Gesamtzeit fehlt oder ist im Text nicht eindeutig angegeben. Sie bleibt leer, es wird nichts zusammengerechnet.' });
+  // Nur wenn die Zeit wirklich unklar ist, wird nachgefragt (eindeutig bezeichnete Zeiten bleiben ohne Hinweis)
+  if (ctx.seg && ctx.seg.meta) {
+    const mt = ctx.seg.meta.times || {}, only = (k) => mt[k] != null && ['total', 'totalOrPrep', 'prep', 'rest', 'cook'].filter(x => mt[x] != null).length === 1;
+    if (only('totalOrPrep')) issues.push({ id: 'time-unclear', level: 'check', field: 'time', text: `Ist ${mt.totalOrPrep} Minuten die Vorbereitungszeit oder die Gesamtzeit? Im Text steht nur «Zubereitungszeit». Übernommen als Gesamtzeit, im Formular unter «Zeit» änderbar.` });
+    else if (ctx.seg.meta.bareTime && only('total')) issues.push({ id: 'time-unclear', level: 'check', field: 'time', text: `Ist ${ctx.seg.meta.bareTime.minutes} Minuten die Vorbereitungszeit? Die Angabe steht ohne Bezeichnung im Text. Übernommen als Gesamtzeit, im Formular unter «Zeit» änderbar.` });
+  }
   if (ctx.seg && ctx.seg.meta.timeRanges) issues.push({ id: 'time-range', level: 'check', field: 'time', text: `Zeit als Spanne angegeben („${ctx.seg.meta.timeRanges[0]}“). Bitte eine Zahl eintragen.` });
   // Alternativen im Schritt (mehrere Garmethoden)
   const methodSteps = steps.filter(s => /\n/.test(s.text) && /(airfryer|backofen|heißluft|umluft|ober-?\/?unterhitze|grill|pfanne|mikrowelle)/i.test(s.text));

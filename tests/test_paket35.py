@@ -1,4 +1,4 @@
-"""Paket 35: neues Savora-Symbol und zehn Kochbuch-Titelblätter.
+"""Paket 35 (Paket 37: Konfiguration liegt jetzt im aktiven Kochbuch-Projekt; Tests setzen die alte Einzelkonfiguration und loeschen die Projekte, damit die Migration sie neu uebernimmt; Cover-Bedienung liegt in Schritt 2 des Editors): neues Savora-Symbol und zehn Kochbuch-Titelblätter.
 Prüft Vorlagenliste, leere Eingaben, Datum (Zeitzonen, Format), Migration alter Konfigurationen, Layout (sichere Zonen,
 Umbruch, Warnungen), Lesbarkeit mit echten Pixeln, Escaping, Vorlagenwähler per Tastatur, echte PDF-Exporte aller zehn Vorlagen
 (Text, Vergleich mit der Vorschau), Fehlerfälle, Offline-Export und unveränderte Bestandsdaten."""
@@ -47,7 +47,7 @@ async def main():
         check('Ohne Eingaben: keine Textblöcke, Symbol und Datum', L['blocks'] == [] and L['logo'] and L['date']['text'] == '09.10.2026', json.dumps(L['date']))
         html = await ev("() => coverHtml(coverLayout({ templateId: 'tomate', date: '2026-10-09' }))")
         check('Ohne Eingaben kein Beispieltitel, kein Vorlagenname, kein Personenname', not any(w in html for w in ('Yanis', 'Keusch', 'Tomate', 'Mein persönliches', 'Kochbuch')), '')
-        cfg0 = await ev("() => { localStorage.removeItem(COOKBOOK_CONFIG_KEY); coverEnsureConfig(); const c = getCookbookConfig(); return { t: c.title, a: c.author, s: c.subtitle, cover: c.cover }; }")
+        cfg0 = await ev("() => { localStorage.removeItem(COOKBOOK_CONFIG_KEY); localStorage.removeItem(COOKBOOK_PROJECTS_KEY); coverEnsureConfig(); const c = getCookbookConfig(); return { t: c.title, a: c.author, s: c.subtitle, cover: c.cover }; }")
         check('Neue Konfiguration: Titel, Name, Slogan leer, gültige Vorlage', cfg0['t'] == '' and cfg0['a'] == '' and cfg0['s'] == '' and cfg0['cover']['templateId'] in IDS, str(cfg0))
 
         # ---------- 3. Datum ----------
@@ -63,22 +63,22 @@ async def main():
             check(f'Datum bleibt Kalenderdatum in {tz} (heute 31.12. 23:30 lokal, gespeichert 31.03.)', r == ['2026-12-31', '31.03.2026'], str(r))
             await c2.close()
         # Datum bleibt beim Vorlagenwechsel und Reexport stabil
-        st = await ev("""async () => { localStorage.removeItem(COOKBOOK_CONFIG_KEY); const c = coverEnsureConfig(); const cfg = getCookbookConfig(); cfg.cover.date = '2025-05-17'; cfg.cover.templateId = 'bistro'; saveCookbookConfig(cfg);
+        st = await ev("""async () => { localStorage.removeItem(COOKBOOK_CONFIG_KEY); localStorage.removeItem(COOKBOOK_PROJECTS_KEY); const c = coverEnsureConfig(); const cfg = getCookbookConfig(); cfg.cover.date = '2025-05-17'; cfg.cover.templateId = 'bistro'; saveCookbookConfig(cfg);
             const c2 = getCookbookConfig(); c2.cover.templateId = 'citrus'; saveCookbookConfig(c2); coverEnsureConfig(); return getCookbookConfig().cover; }""")
         check('Datum wird bei Vorlagenwechsel und Neuöffnen nicht auf heute gesetzt', st['date'] == '2025-05-17' and st['templateId'] == 'citrus', str(st))
 
         # ---------- 4. Migration und Datenschutz der Auswahl ----------
         mg = await ev("""() => { const out = {};
-          localStorage.setItem(COOKBOOK_CONFIG_KEY, JSON.stringify({ title: 'Altes Buch', subtitle: 'Alt', author: 'Alte Autorin', pdfTemplate: 'B', coverRecipeId: 'r_x', items: [{ recipeId: state.recipes[0].id, chapterId: '' }], chapters: [] }));
+          localStorage.removeItem(COOKBOOK_PROJECTS_KEY); localStorage.setItem(COOKBOOK_CONFIG_KEY, JSON.stringify({ title: 'Altes Buch', subtitle: 'Alt', author: 'Alte Autorin', pdfTemplate: 'B', coverRecipeId: 'r_x', items: [{ recipeId: state.recipes[0].id, chapterId: '' }], chapters: [] }));
           coverEnsureConfig(); let c = getCookbookConfig(); out.old = { title: c.title, subtitle: c.subtitle, author: c.author, tpl: c.pdfTemplate, cover: c.cover.templateId, items: c.items.length, coverRecipeId: c.coverRecipeId, date: coverIsValidDateKey(c.cover.date) };
-          localStorage.setItem(COOKBOOK_CONFIG_KEY, JSON.stringify({ title: 'X', items: [], cover: { v: 1, templateId: 'gibtsnicht', date: '2025-01-31', showDate: false } }));
+          localStorage.removeItem(COOKBOOK_PROJECTS_KEY); localStorage.setItem(COOKBOOK_CONFIG_KEY, JSON.stringify({ title: 'X', items: [], cover: { v: 1, templateId: 'gibtsnicht', date: '2025-01-31', showDate: false } }));
           c = getCookbookConfig(); out.bad = c.cover;
-          localStorage.setItem(COOKBOOK_CONFIG_KEY, JSON.stringify({ title: 'Y' })); const n = state.recipes.length; c = getCookbookConfig(); out.stub = [c.items.length, n, c.isDefault];
+          localStorage.removeItem(COOKBOOK_PROJECTS_KEY); localStorage.setItem(COOKBOOK_CONFIG_KEY, JSON.stringify({ title: 'Y' })); const n = state.recipes.length; c = getCookbookConfig(); out.stub = [c.items.length, n, c.isDefault];
           return out; }""")
         check('Alte Konfiguration: Titel, Name, Slogan, Auswahl und Rezeptvorlage bleiben, gültiges Titelblatt ergänzt', mg['old']['title'] == 'Altes Buch' and mg['old']['subtitle'] == 'Alt' and mg['old']['author'] == 'Alte Autorin' and mg['old']['tpl'] == 'B' and mg['old']['cover'] in IDS and mg['old']['items'] == 1 and mg['old']['date'] and mg['old']['coverRecipeId'] == 'r_x', str(mg['old']))
         check('Unbekannte Vorlage wird auf gültigen Wert gesetzt, Datum und Schalter bleiben', mg['bad']['templateId'] in IDS and mg['bad']['date'] == '2025-01-31' and mg['bad']['showDate'] is False, str(mg['bad']))
         check('Ohne gespeicherte Auswahl bleibt „alle Rezepte“ (wird nicht eingefroren)', mg['stub'][0] == mg['stub'][1] and mg['stub'][2] is True, str(mg['stub']))
-        await ev("() => localStorage.removeItem(COOKBOOK_CONFIG_KEY)")
+        await ev("() => localStorage.removeItem(COOKBOOK_CONFIG_KEY); localStorage.removeItem(COOKBOOK_PROJECTS_KEY)")
 
         # ---------- 5. Layout: sichere Zonen, Umbruch, Warnungen ----------
         zones = await ev("() => COVER_TEMPLATES.map(t => ({ id: t.id, text: t.text, ink: t.ink, date: Object.assign({}, COVER_DATE_ZONE, t.date || {}) }))")
@@ -142,7 +142,7 @@ async def main():
         check('Lesezeichen bleibt rot in beiden Symbolvarianten', sym['light'] and sym['dark'])
 
         # ---------- 9. Vorlagenwähler im Browser: Maus, Tastatur, Fokus, Scroll ----------
-        await ev("() => { localStorage.removeItem(COOKBOOK_CONFIG_KEY); state.view = 'cookbook'; render(); }"); await page.wait_for_timeout(1000)
+        await ev("() => { localStorage.removeItem(COOKBOOK_CONFIG_KEY); localStorage.removeItem(COOKBOOK_PROJECTS_KEY); state.cookbookStep = 2; state.view = 'cookbook'; render(); }"); await page.wait_for_timeout(1000)
         opts = await ev("() => Array.from(document.querySelectorAll('.cover-opt')).map(e => [e.dataset.id, e.getAttribute('role'), e.getAttribute('aria-checked')])")
         check('Wähler zeigt zehn Vorschaubilder als Radiogruppe, genau eine aktiv', len(opts) == 10 and all(o[1] == 'radio' for o in opts) and sum(1 for o in opts if o[2] == 'true') == 1, str(opts[:2]))
         await page.fill('#cbTitle', 'Testbuch ä'); await page.wait_for_timeout(300)
@@ -166,7 +166,7 @@ async def main():
 
         # ---------- 10. Echte PDF-Exporte aller zehn Vorlagen ----------
         tmp = tempfile.mkdtemp(prefix='savora-cover-')
-        await ev("""async () => { const r = state.recipes[0]; localStorage.setItem(COOKBOOK_CONFIG_KEY, JSON.stringify({ title: '', subtitle: '', author: '', items: [{ recipeId: r.id, chapterId: '' }], chapters: [], cover: { v: 1, templateId: 'pop', date: '2026-10-09', showDate: true } })); }""")
+        await ev("""async () => { const r = state.recipes[0]; localStorage.removeItem(COOKBOOK_PROJECTS_KEY); localStorage.setItem(COOKBOOK_CONFIG_KEY, JSON.stringify({ title: '', subtitle: '', author: '', items: [{ recipeId: r.id, chapterId: '' }], chapters: [], cover: { v: 1, templateId: 'pop', date: '2026-10-09', showDate: true } })); }""")
         sheets = []
         diffs = []
         for tid in IDS:
@@ -237,7 +237,7 @@ async def main():
         if not ready:
             print('OFFEN Offline-Export: Service Worker wurde in der Testumgebung nicht aktiv, nicht geprüft')
         else:
-            await pg.evaluate("""() => { const r = state.recipes[0]; localStorage.setItem(COOKBOOK_CONFIG_KEY, JSON.stringify({ title: 'Offline', items: [{ recipeId: r.id, chapterId: '' }], chapters: [], cover: { v: 1, templateId: 'ofenglueck', date: '2026-10-09', showDate: true } })); }""")
+            await pg.evaluate("""() => { const r = state.recipes[0]; localStorage.removeItem(COOKBOOK_PROJECTS_KEY); localStorage.setItem(COOKBOOK_CONFIG_KEY, JSON.stringify({ title: 'Offline', items: [{ recipeId: r.id, chapterId: '' }], chapters: [], cover: { v: 1, templateId: 'ofenglueck', date: '2026-10-09', showDate: true } })); }""")
             on = await pg.evaluate("async () => { const r = await buildCookbookPdf('off'); return r ? r.blob.size : 0; }")
             await pg.reload(); await pg.wait_for_function("typeof state !== 'undefined'"); await pg.wait_for_timeout(1500)
             await c3.set_offline(True)

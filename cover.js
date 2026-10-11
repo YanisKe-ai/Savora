@@ -3,7 +3,7 @@
    optionale Texte der nutzenden Person (Titel, Name, Slogan) und das Veroeffentlichungsdatum unten rechts.
    Ohne eigene Eingaben erscheinen nur Symbol und Datum. Es werden nie Namen, Beispieltitel oder Vorlagennamen gedruckt.
 
-   Gespeichert wird pro Kochbuch (Kochbuch-Konfiguration, Schluessel savora-cookbook-config):
+   Gespeichert wird pro Kochbuch-Projekt (config im Projekt, Schluessel savora-cookbook-projects; siehe cookbooks.js):
      cfg.cover = { v: 1, templateId, date: 'YYYY-MM-DD' (Kalenderdatum ohne Zeitzone), showDate }
    Die Texte bleiben in den bisherigen Feldern cfg.title, cfg.author (Name) und cfg.subtitle (Slogan).
    Alle Koordinaten sind relativ zur Seite (0..1) und gelten fuer Vorschau und Export gleichermassen. */
@@ -85,15 +85,15 @@ function coverSanitizeConfig(raw, forceDate) {
 /* Stellt sicher, dass die Kochbuch-Konfiguration ein Titelblatt hat. Beim ersten Anlegen wird das lokale heutige
    Datum einmalig gespeichert (und bleibt danach stabil). Ohne bestehende Konfiguration wird eine angelegt. */
 function coverEnsureConfig() {
-  const cfg = readJsonKey(COOKBOOK_CONFIG_KEY, null);
+  const cfg = cookbookGetRaw();   // aktives Kochbuch-Projekt
   const c = cfg && cfg.cover;
   const ok = c && c.v === COVER_SCHEMA_VERSION && coverIsValidDateKey(c.date) && coverTemplateById(c.templateId);
   if (!ok) {
     // Nur das Titelblatt ergaenzen. Eine noch nie gespeicherte Auswahl (items) bleibt "alle Rezepte" und wird hier nicht eingefroren.
     const next = { ...(cfg || {}), cover: coverSanitizeConfig(c, !(c && coverIsValidDateKey(c.date))) };
-    writeJsonKey(COOKBOOK_CONFIG_KEY, next);
+    cookbookSetRaw(next);
   }
-  return typeof getCookbookConfig === 'function' ? getCookbookConfig() : readJsonKey(COOKBOOK_CONFIG_KEY, null);
+  return getCookbookConfig();
 }
 
 /* ---------- Texte messen und umbrechen (eine Implementierung fuer Vorschau und Export) ---------- */

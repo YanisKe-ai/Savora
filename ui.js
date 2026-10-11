@@ -8,19 +8,53 @@ function announceLive(msg, assertive) {
 
 let toastTimer = null;
 
-function showToast(msg, type = 'success', assertive = false) {
+/* opts (optional, rueckwaertskompatibel): { actionLabel, onAction, duration }.
+   Mit actionLabel entsteht ein Toast mit Schaltflaeche (z. B. «Rueckgaengig»): mindestens 6 s sichtbar,
+   pausiert bei Hover/Fokus, per Tab erreichbar und per Strg/Cmd+Z ausloesbar. Ohne opts bleibt alles wie bisher. */
+let toastAction = null;   // { el, fire } fuer das Tastaturkuerzel
+function dismissToast(el) { if (!el || !el.isConnected) return; el.classList.add('is-leaving'); setTimeout(() => el.remove(), 160); }
+function showToast(msg, type = 'success', assertive = false, opts) {
   state.toastMsg = msg;
   const existing = document.querySelector('.toast:not(.toast-undo)');
   if (existing) existing.remove();
+  toastAction = null;
   const el = document.createElement('div');
   el.className = 'toast' + (type === 'error' ? ' toast-error' : '');
+  clearTimeout(toastTimer);
+  if (opts && opts.actionLabel && typeof opts.onAction === 'function') {
+    el.classList.add('toast-action');
+    const span = document.createElement('span'); span.className = 'toast-text'; span.textContent = msg;
+    const btn = document.createElement('button'); btn.type = 'button'; btn.className = 'toast-action-btn'; btn.textContent = opts.actionLabel;
+    el.append(span, btn);
+    let done = false;
+    const fire = () => { if (done) return; done = true; clearTimeout(toastTimer); toastAction = null; el.remove(); opts.onAction(); };
+    btn.addEventListener('click', fire);
+    toastAction = { el, fire };
+    const total = Math.max(6000, opts.duration || 8000);
+    let left = total, started = Date.now();
+    const arm = (ms) => { clearTimeout(toastTimer); started = Date.now(); toastTimer = setTimeout(() => { if (toastAction && toastAction.el === el) toastAction = null; dismissToast(el); }, ms); };
+    const pause = () => { clearTimeout(toastTimer); left = Math.max(3000, left - (Date.now() - started)); };
+    const resume = () => arm(left);
+    el.addEventListener('mouseenter', pause); el.addEventListener('mouseleave', resume);
+    el.addEventListener('focusin', pause); el.addEventListener('focusout', resume);
+    document.body.appendChild(el);
+    announceLive(msg + '. ' + opts.actionLabel + ' mit Strg+Z oder über die Schaltfläche.', assertive || type === 'error');
+    arm(total);
+    return;
+  }
   el.textContent = msg;
   document.body.appendChild(el);
   announceLive(msg, assertive || type === 'error');
-  clearTimeout(toastTimer);
   const duration = type === 'error' ? 5500 : type === 'info' ? 4000 : 2500;
   toastTimer = setTimeout(() => { el.classList.add('is-leaving'); setTimeout(() => el.remove(), 160); }, duration);   // Ausgang kurz und gleichgerichtet zum Eingang
 }
+document.addEventListener('keydown', (e) => {
+  if (!toastAction || !(e.ctrlKey || e.metaKey) || e.shiftKey || e.altKey || e.key.toLowerCase() !== 'z') return;
+  const t = e.target;
+  if (t && (t.isContentEditable || (t.matches && t.matches('input:not([type=checkbox]):not([type=radio]), textarea')))) return;   // in Textfeldern gehoert Strg+Z dem Feld
+  e.preventDefault();
+  toastAction.fire();
+});
 
 let undoState = null; // { timer, el, onExpire }
 
@@ -128,7 +162,12 @@ function closeModal() {
 
 function onModalEscape(e) {
   if (e.key === 'Escape' && state.modal) {
+    if (e.isComposing) return;
     e.preventDefault();
+    // Nicht ohne Rueckfrage schliessen, wenn im Dialog Text eingegeben, aber nicht uebernommen wurde
+    const sheet = document.querySelector('.modal-sheet');
+    const typed = sheet && Array.from(sheet.querySelectorAll('textarea, input[type="text"], input:not([type])')).some(f => f.value.trim() && f.value !== f.defaultValue);
+    if (typed && !window.confirm('Eingaben verwerfen?')) return;
     closeModal();
     return;
   }
@@ -232,11 +271,17 @@ function bindEvents() {
         const { fullBlob, thumbBlob, mime } = await processImageFile(file);
         const id = uid();
         await dbPutImage({ id, blob: fullBlob, thumbBlob, mime });
-        if (oldImageId) dbDeleteImage(oldImageId).catch(() => {});
+        if (oldImageId) {
+          // Das bisherige Foto eines gespeicherten Rezepts erst nach dem Speichern löschen: bricht man das Bearbeiten ab, bleibt es erhalten
+          const savedRecipe = state.recipes.find(x => x.id === state.editingRecipe.id);
+          if (savedRecipe && savedRecipe.imageId === oldImageId) (state.imagesToDeleteOnSave = state.imagesToDeleteOnSave || []).push(oldImageId);
+          else dbDeleteImage(oldImageId).catch(() => {});
+        }
         state.editingRecipe.imageId = id;
         state.editingRecipe.image = null;
       } catch (err) {
-        showToast('Foto konnte nicht verarbeitet werden', 'error');
+        const quota = err && err.name === 'QuotaExceededError';
+        showToast(quota ? 'Foto nicht gespeichert: Der Speicher des Geräts ist voll.' : 'Dieses Foto kann nicht gelesen werden. Wähle ein Bild im Format JPEG, PNG oder WebP.', 'error');
       }
       render();
     });
@@ -339,11 +384,20 @@ async function dispatchAction(action, id, el, e) {
       if (!r.steps.length) r.steps = [{ text: '' }];
       delete r._importSummary; delete r._import; // nur Anzeigehilfen, gehoeren nicht in die Datenbank
       await dbPut(r);
+      clearRecipeDraft();
       await loadRecipes();
+      (state.imagesToDeleteOnSave || []).forEach(imgId => { if (imgId !== r.imageId && !state.recipes.some(x => x.imageId === imgId)) dbDeleteImage(imgId).catch(() => {}); });
+      state.imagesToDeleteOnSave = [];
       state.activeRecipeId = r.id;
       state.view = 'detail';
       render();
       showToast('Rezept gespeichert');
+      } catch (err) {
+        // Speichern fehlgeschlagen (z. B. Speicher voll): das Formular bleibt offen, alle Eingaben und der Entwurf bleiben erhalten
+        console.error('Rezept speichern fehlgeschlagen', err);
+        state.editingRecipeSnapshot = state.editingRecipeSnapshot || '__unsaved__';
+        const full = err && (err.name === 'QuotaExceededError' || /quota|voll|full/i.test(String(err.message || '')));
+        showToast(full ? 'Nicht gespeichert: Der Speicher des Geräts ist voll. Deine Eingaben bleiben stehen. Lösche nicht benötigte Rezepte oder Bilder und tippe erneut auf „Speichern“.' : 'Nicht gespeichert. Deine Eingaben bleiben stehen. Tippe erneut auf „Speichern“. Hilft das nicht, erstelle unter Einstellungen eine Sicherung und lade die App neu.', 'error', true);
       } finally { state.savingRecipe = false; }
       break;
     }
@@ -560,6 +614,8 @@ async function dispatchAction(action, id, el, e) {
       downloadBackup();
       break;
     case 'trigger-restore':
+      // Erst erklären, was passiert (Text steht auch auf der Seite), dann die Datei wählen lassen.
+      if (!window.confirm('Aus Sicherung wiederherstellen?\n\n' + RESTORE_EXPLAIN)) break;
       document.getElementById('restoreFileInput').click();
       break;
     case 'share-recipe':
@@ -763,23 +819,23 @@ async function dispatchAction(action, id, el, e) {
       const errBox = document.getElementById('pasteError');
       const showErr = (html) => { if (errBox) { errBox.innerHTML = html; errBox.hidden = false; errBox.focus(); } };
       if (errBox) { errBox.hidden = true; errBox.innerHTML = ''; }
-      if (!text) { showErr('<p>Bitte zuerst Text einfügen.</p>'); break; }
+      if (!text) { showErr('<p>Es ist noch kein Text da. Füge zuerst den Rezepttext ein und tippe dann auf „Rezept-Entwurf erstellen“.</p>'); break; }
       // Strukturiertes Rezept-JSON (Version 1) wird erkannt und durch dieselbe Validierung und Vorschau geführt wie Freitext
       if (typeof looksLikeRecipeJson === 'function' && looksLikeRecipeJson(text)) {
         const res = parseRecipeJson(text);
-        if (!res.ok) { showErr(`<p><strong>Das Rezept-JSON konnte nicht übernommen werden.</strong></p><ul>${res.errors.map(e => `<li>${escapeHtml(e.message)}</li>`).join('')}</ul>`); break; }
+        if (!res.ok) { showErr(`<p><strong>Das Rezept-JSON konnte nicht übernommen werden.</strong> Dein Text bleibt stehen. Korrigiere die folgenden Punkte und tippe erneut auf „Rezept-Entwurf erstellen“.</p><ul>${res.errors.map(e => `<li>${escapeHtml(e.message)}</li>`).join('')}</ul>`); break; }
         state.editingRecipe = res.recipe;
         state.formStep = 0;
         state.view = 'form';
         render();
-        showToast('Entwurf aus JSON erstellt, bitte prüfen');
+        showToast('Entwurf erstellt. Bitte Rezept prüfen.');
         break;
       }
       state.editingRecipe = parseFreeTextRecipe(text);
       state.formStep = 0;
       state.view = 'form';
       render();
-      showToast('Entwurf erstellt, bitte prüfen');
+      showToast('Entwurf erstellt. Bitte Rezept prüfen.');
       break;
     }
     /* ---------- Importvorschau: gezielte Korrekturen (aendern nur den Entwurf, speichern nichts) ---------- */

@@ -125,8 +125,14 @@ function setupVisualViewportKeyboardHandling() {
 // verlassen.
 document.addEventListener('focusin', (e) => {
   const el = e.target;
+  if (window.__restoringFocus) return;   // Fokus nach render() wiederhergestellt: nicht scrollen
   if (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.tagName === 'SELECT') {
-    setTimeout(() => { el.scrollIntoView({ block: 'center', behavior: 'smooth' }); }, 300);
+    setTimeout(() => {
+      if (!el.isConnected) return;
+      const r = el.getBoundingClientRect(), vh = (window.visualViewport && window.visualViewport.height) || window.innerHeight;
+      if (r.top >= 56 && r.bottom <= vh - 8) return;   // schon sichtbar: kein Scrollsprung
+      el.scrollIntoView({ block: 'center', behavior: prefersReducedMotion() ? 'auto' : 'smooth' });
+    }, 300);
   }
 });
 

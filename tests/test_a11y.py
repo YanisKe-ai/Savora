@@ -14,7 +14,7 @@ VIEWS = [
  ('Quellen', "state.view='settings-sources'"), ('Lizenzen', "state.view='settings-licenses'"), ('Ueber', "state.view='settings-about'"), ('Hilfe', "state.view='settings-help'"),
  ('Rechner Gewicht', "state.view='unitconverter'; state.ucTab=undefined; state.ucUnit=undefined; state.ucAmount=undefined"), ('Rechner Temperatur', "state.view='unitconverter'; ucSwitchTab('temp')"),
  ('Rechner Zutaten', "state.view='unitconverter'; ucSwitchTab('food')"),
- ('Kochbuch', "state.view='cookbook'"), ('Formular Basis', "state.editingRecipe = JSON.parse(JSON.stringify(state.recipes[0])); state.formStep=0; state.view='form'"),
+ ('Kochbuch Schritt 1', "state.cookbookStep=1; state.view='cookbook'"), ('Kochbuch Schritt 2', "state.cookbookStep=2; state.view='cookbook'"), ('Kochbuch Schritt 3', "state.cookbookStep=3; state.view='cookbook'"), ('Kochbuecher', "state.view='cookbooks'"),  # Paket 37: Editor in drei Schritten und Liste der Kochbuecher ('Formular Basis', "state.editingRecipe = JSON.parse(JSON.stringify(state.recipes[0])); state.formStep=0; state.view='form'"),
  ('Formular Zutaten', "state.editingRecipe = JSON.parse(JSON.stringify(state.recipes[0])); state.formStep=2; state.view='form'"), ('Text-Import', "state.view='paste-import'"),
 ]
 async def main():

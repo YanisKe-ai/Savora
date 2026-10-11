@@ -105,6 +105,30 @@ function qtyFormat(q, unit, fmt) {
   if (q.kind === 'qualitative' || q.kind === 'ambiguous' || q.kind === 'invalid') return q.text || '';
   return '';
 }
+/* Gemeinsame Anzeige fuer Rezeptansicht, Einkaufsliste und PDF: liefert { text, unit }.
+   Gespeichert bleibt der exakte Ausgangswert (0.125 kg); nur die Anzeige wechselt in eine sinnvolle Einheit:
+   kg unter 1 kg als g, l unter 1 l als ml (bei Bereichen entscheidet die Obergrenze). Keine Umrechnung zwischen
+   Gewicht und Volumen (g und ml sind ohne Dichte nicht gleichzusetzen). Nicht numerische Angaben bleiben unveraendert.
+   opts.fmt: eigene Zahlenformatierung (z. B. ohne Kuechenrundung im PDF), opts.raw: Originaltext fuer Nicht-Zahlen. */
+function qtyDisplay(q, unit, opts) {
+  opts = opts || {};
+  let u = String(unit == null ? '' : unit).trim();
+  if (qtyIsNumeric(q)) {
+    const k = u.toLowerCase().replace(/\.$/, '');
+    const down = (k === 'kg' || k === 'kilogramm') ? 'g' : (k === 'l' || k === 'liter') ? 'ml' : '';
+    if (down && q.max > 0 && q.max < 1) { q = qtyMap(q, v => qtyRound(v * 1000)); u = down; }
+  }
+  const fmt = opts.fmt || ((v) => (typeof kitchenAmount === 'function' ? kitchenAmount(v, u) : String(Math.round(v * 100) / 100)));
+  let text = qtyFormat(q, u, fmt);
+  if (!text && opts.raw != null && !(q && q.kind === 'missing')) text = String(opts.raw).trim();
+  return { text, unit: u };
+}
+// "125 g", "2–4 EL" oder nur die Einheit, wenn keine Menge da ist
+function qtyDisplayLine(q, unit, opts) {
+  const d = qtyDisplay(q, unit, opts);
+  return d.text ? d.text + (d.unit ? ' ' + d.unit : '') : d.unit;
+}
+
 /* In das gespeicherte Feld schreiben: exakt als Zahl-Text, Bereich als "min-max" */
 function qtyToStored(q) {
   if (!q) return '';
@@ -188,9 +212,12 @@ function shopQty(i) {
   return parseQuantity(i.amount, i.unit);
 }
 function shopAmountText(i) { return qtyFormat(shopQty(i), i.unit); }
+function shopAmountDisplay(i) { return qtyDisplay(shopQty(i), i.unit); }   // { text, unit } mit g statt 0.125 kg
+function shopAmountLine(i) { return qtyDisplayLine(shopQty(i), i.unit); }
 // Quantity -> Felder des Einkaufsartikels
 function shopFieldsFromQty(q) {
-  if (q && q.kind === 'exact') return { amount: qtyRound(Math.round(q.min * 100) / 100) };
-  if (q && q.kind === 'range') return { amount: qtyRound(Math.round(q.min * 100) / 100), amountMax: qtyRound(Math.round(q.max * 100) / 100) };
+  // Praezise Werte behalten (0.125 kg darf nicht zu 0.13 werden); gerundet wird erst bei der Anzeige
+  if (q && q.kind === 'exact') return { amount: qtyRound(q.min) };
+  if (q && q.kind === 'range') return { amount: qtyRound(q.min), amountMax: qtyRound(q.max) };
   return { amount: q && q.text ? q.text : '' };
 }
