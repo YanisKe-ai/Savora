@@ -31,6 +31,15 @@ function openForm(recipe) {
   takeFormSnapshot(); // Formular rendert synchron (siehe state.js), DOM ist hier vorhanden
 }
 
+/* Vorschau-Spalte im Editor (Paket 42): bei jeder Eingabe aus den echten Formulardaten neu füllen, ohne den Fokus anzutasten */
+function updateFormAside() {
+  const body = document.getElementById('formAsideBody');
+  if (!body || state.view !== 'form' || !document.getElementById('f-title') || body.offsetParent === null) return;
+  body.innerHTML = formAsideBodyHtml(collectFormData());
+}
+document.addEventListener('input', (e) => { if (e.target.closest && e.target.closest('#recipeForm')) updateFormAside(); });
+document.addEventListener('change', (e) => { if (e.target.closest && e.target.closest('#recipeForm')) updateFormAside(); });
+
 let draftSaveTimer = null;
 document.addEventListener('input', (e) => {
   if (state.view !== 'form' || !e.target.closest || !e.target.closest('#recipeForm')) return;

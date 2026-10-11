@@ -252,10 +252,10 @@ function settingsGroup(label, rowsHtml) {
   </div>`;
 }
 
-function settingsDetailShell(title, bodyHtml) {
+function settingsDetailShell(title, bodyHtml, cls) {
   return `
     ${topbar(title, { back: true })}
-    <main class="has-tabbar settings-page">${bodyHtml}</main>
+    <main class="has-tabbar settings-page${cls ? ' ' + cls : ''}">${bodyHtml}</main>
     ${bottomNav()}
   `;
 }
@@ -267,7 +267,7 @@ function settingsView() {
 
   return `
     ${topbar('Einstellungen')}
-    <main class="has-tabbar settings-page">
+    <main class="has-tabbar settings-page settings-page--home">
       ${pageTitle('Einstellungen')}
       ${settingsGroup('Deine Daten', [
         settingsRow({ icon: ICONS.cloud, title: 'Konto und Sicherung', summary: cloudSettingsSummary(), view: 'settings-data' }),
@@ -343,7 +343,7 @@ function settingsDisplayView() {
   const body = settingsSectionHead('Helles oder dunkles Design') + settingsThemeBodyHtml()
     + settingsSectionHead('Mengenangaben') + settingsUnitsBodyHtml()
     + settingsSectionHead('Nährwerte') + settingsNutritionBodyHtml();
-  return settingsDetailShell('Anzeige', body);
+  return settingsDetailShell('Anzeige', body, 'settings-page--cols');
 }
 
 /* Absendername: freiwillig, wird heute nirgends automatisch ausgegeben (weder PDF noch Teilen).
@@ -406,13 +406,13 @@ function settingsDataView(first) {
   const backup = settingsSectionHead('Sicherungskopie', 'Eine Datei zum Aufbewahren: ein fester Stand deiner Rezepte, unabhängig von deinem Konto.')
     + settingsBackupSectionHtml();
   const body = first === 'backup' ? backup + sync : sync + backup;
-  return settingsDetailShell('Konto und Sicherung', body)
+  return settingsDetailShell('Konto und Sicherung', body, 'settings-page--cols')
     + (state.modal && state.modal.type === 'cloud-new-password' && typeof cloudNewPasswordModal === 'function' ? cloudNewPasswordModal() : '');
 }
 
 
 function settingsHelpView() {
-  return settingsDetailShell('Hilfe erhalten', legalHelpHtml());
+  return settingsDetailShell('Hilfe erhalten', legalHelpHtml(), 'settings-page--cols');
 }
 function settingsPrivacyView() {
   return settingsDetailShell('Datenschutz', legalPrivacyHtml());
@@ -427,7 +427,7 @@ function settingsLicensesView() {
   return settingsDetailShell('Lizenzen', legalLicensesHtml());
 }
 function settingsAboutView() {
-  return settingsDetailShell('Über Savora', legalAboutHtml());
+  return settingsDetailShell('Über Savora', legalAboutHtml(), 'settings-page--cols');
 }
 /* Punkt 12/13: eigener, dedizierter Screen statt Accordion-Textarea in den Settings. Wird ueber
    die FAB (addMenuModal) erreicht, nicht ueber "Mehr". */
@@ -449,8 +449,31 @@ function pasteImportView() {
         <button class="primary-btn" data-action="do-paste-import">${ICONS.fileText} Rezept-Entwurf erstellen</button>
       </div>
     </div>`;
+  // Hilfespalte: nur auf breiten Bildschirmen sichtbar (Paket 42); beschreibt, was recipe-import.js wirklich erkennt
+  const help = `<aside class="import-help" aria-label="Was Savora erkennt">
+      <h2 class="import-help-h">Das erkennt Savora</h2>
+      <ul class="import-help-list">
+        <li><b>Titel.</b> Die erste Zeile über den Zutaten.</li>
+        <li><b>Zutaten.</b> Zeilen unter der Überschrift «Zutaten», mit Menge und Einheit.</li>
+        <li><b>Zubereitung.</b> Nummerierte Schritte oder der Text unter «Zubereitung» oder «Anleitung».</li>
+        <li><b>Portionen und Zeit.</b> Zum Beispiel «Für 4 Personen» oder «Vorbereitung: 15 Minuten».</li>
+      </ul>
+      <p class="import-help-note">Was Savora nicht sicher zuordnen kann, zeigt es dir zum Prüfen. Es wird nichts erfunden und nichts gespeichert, bevor du den Entwurf bestätigst.</p>
+      <h3 class="import-help-h import-help-h--sub">Beispiel</h3>
+      <pre class="import-example">Gemüsesuppe
+
+Zutaten:
+200 g Karotten
+1 Zwiebel
+
+Zubereitung:
+1. Gemüse schneiden.
+2. 20 Minuten kochen.
+
+Für 4 Personen, 30 Minuten</pre>
+    </aside>`;
   return `
     ${topbar('Aus Text importieren', { back: true })}
-    <main class="has-tabbar settings-page">${body}</main>
+    <main class="has-tabbar settings-page import-page"><div class="import-layout">${body}${help}</div></main>
   `;
 }

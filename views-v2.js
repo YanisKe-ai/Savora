@@ -622,7 +622,7 @@ function shoppingView() {
   const item = state.modal && state.modal.type === 'shop-item' ? state.shopping.find(x => x.id === state.modal.itemId) : null;
   return `
     ${topbar('Einkauf', { settings: true, actions: items.length ? `<button class="icon-btn" data-action="share-shopping" aria-label="Liste teilen oder kopieren">${ICONS.share}</button><button class="icon-btn" data-action="clear-all-shopping" aria-label="Ganze Einkaufsliste leeren">${ICONS.trash}</button>` : '' })}
-    <main class="has-tabbar">
+    <main class="has-tabbar shop-main">
       ${pageTitle('Einkaufsliste')}
       <div class="shop-add">
         <label for="shoppingAddInput" class="sr-only">Eigene Zutat hinzufügen</label>
@@ -1055,8 +1055,40 @@ function formView() {
           ${step < FORM_STEPS.length - 1 ? `<button class="primary-btn" data-action="form-goto-step" data-idx="${step + 1}">Weiter</button>` : `<button class="primary-btn" data-action="save-recipe">Rezept speichern</button>`}
         </div>
       </div>
+      ${formAsideHtml(r)}
     </main>
     ${state.modal && state.modal.type === 'delete' ? deleteModal(r) : ''}
     ${state.modal && state.modal.type === 'ing-paste' ? ingPasteModal() : ''}
   `;
+}
+/* Seitenspalte im Editor (Paket 42): Vorschau des Rezepts aus den eingegebenen Daten, nur ab Laptopbreite sichtbar.
+   Sie wird beim Tippen ohne Neuaufbau aktualisiert (updateFormAside in actions-v2.js). */
+function formAsideBodyHtml(r) {
+  const title = (r.title || '').trim();
+  const portions = Number(r.servings) > 0 ? servingLabel(r, r.servings) : '';
+  const meta = [portions, r.timeMinutes > 0 ? `${r.timeMinutes} Min.` : '', r.difficulty || ''].filter(Boolean);
+  const ings = realIngredients(r).length;
+  const missing = realIngredients(r).filter(i => parseAmount(i.amount) === null).length;
+  const steps = (r.steps || []).filter(s => (s.text || '').trim()).length;
+  const labels = [];
+  (r.diet || []).forEach(dk => { const d = DIET_OPTIONS.find(o => o.key === dk); if (d) labels.push(d.label); });
+  (r.categoryTags || []).forEach(c => labels.push(categoryLabelFor(c)));
+  const tags = (r.tags || []).filter(Boolean);
+  return `<h2 class="form-aside-title">${escapeHtml(title && title !== 'Ohne Titel' ? title : 'Noch ohne Titel')}</h2>
+    <p class="form-aside-meta">${meta.length ? escapeHtml(meta.join(' · ')) : 'Menge und Zeit noch offen'}</p>
+    <ul class="form-aside-facts">
+      <li>${ings} Zutat${ings === 1 ? '' : 'en'}${missing ? `, davon ${missing} ohne Menge` : ''}</li>
+      <li>${steps} Zubereitungsschritt${steps === 1 ? '' : 'e'}</li>
+      ${labels.length ? `<li>${escapeHtml(labels.join(', '))}</li>` : ''}
+      ${tags.length ? `<li>Tags: ${escapeHtml(tags.join(', '))}</li>` : ''}
+    </ul>`;
+}
+function formAsideHtml(r) {
+  const photo = r.image
+    ? `<img class="form-aside-img" src="${r.image}" alt="">`
+    : r.imageId ? `<div class="form-aside-img placeholder" data-lazy-img="full" data-image-id="${r.imageId}" data-img-class="form-aside-img" data-img-alt=""></div>` : '';
+  return `<aside class="form-aside" id="formAside" aria-label="Vorschau des Rezepts">
+    ${photo ? `<div class="form-aside-photo">${photo}</div>` : ''}
+    <div class="form-aside-body" id="formAsideBody">${formAsideBodyHtml(r)}</div>
+  </aside>`;
 }

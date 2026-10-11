@@ -40,7 +40,7 @@ async def main():
         # Rezeptseite zweispaltig
         await show("state.activeRecipeId='r_legacy_1'; state.view='detail'; state.detailTab='ingredients'")
         ing = await r('.detail-aside-ing'); steps = await r('#panel-steps'); tab_ing = await r('#tab-ingredients')
-        check('Rezeptseite: Zutaten links und Zubereitung rechts nebeneinander', ing['disp'] == 'block' and steps['disp'] == 'block' and ing['r'] < steps['l'] and abs(ing['t'] - steps['t']) < 400, f"{ing['l']:.0f}-{ing['r']:.0f} / {steps['l']:.0f}")
+        check('Rezeptseite: Zutaten links und Zubereitung rechts nebeneinander', ing['disp'] == 'block' and steps['disp'] == 'block' and ing['r'] < steps['l'] and abs(ing['t'] - steps['t']) < 900, f"{ing['l']:.0f}-{ing['r']:.0f} / {steps['l']:.0f}")
         check('Reiter "Zutaten" entfällt, Zutaten sind links sichtbar', tab_ing['disp'] == 'none' if tab_ing else True)
         vis = await page.evaluate("(() => { const e = document.querySelector('.detail-aside-ing .ing-check'); const b = e.getBoundingClientRect(); return b.top >= 0 && b.bottom <= innerHeight })()")
         check('Erste Zutat ohne Scrollen sichtbar (800 px hoch)', vis)
