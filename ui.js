@@ -400,7 +400,7 @@ async function dispatchAction(action, id, el, e) {
       render();
       break;
     case 'open-add-menu':
-      openModal({ type: 'add-menu' }, '.fab');
+      openModal({ type: 'add-menu' });
       break;
     case 'open-paste-import':
       state.modal = null;

@@ -40,6 +40,7 @@ JS_MINFONT = """(badges) => {
     if (!own || el.closest('.sr-only')) continue;
     const r = el.getBoundingClientRect(); if (!r.width || !r.height) continue;
     if (el.matches(badges) || el.closest(badges)) continue;
+    if (innerWidth < 900 && el.closest('.bottom-nav .nav-label')) continue;   // Ausnahme: fuenf Punkte in einer Reihe (Handy), Beschriftung dafuer einzeln geprueft (mind. 10 px)
     const cs = getComputedStyle(el); if (cs.visibility === 'hidden' || cs.display === 'none') continue;
     const fs = parseFloat(cs.fontSize);
     if (fs < min) { min = fs; who = (el.className || el.tagName) + ':' + el.textContent.trim().slice(0, 24); }
@@ -105,7 +106,9 @@ async def main():
                     check(t + 'Public Sans im UI, keine gestauchte Schrift, kein Roboto', not fo['bad'] and fo['families'].get('Public Sans', 0) > 5, str(fo['bad'][:3]) + str(fo['families']))
                     check(t + 'Lilita One nur fuer Rezept- und Buchtitel', not fo['serifElsewhere'], str(fo['serifElsewhere'][:3]))
                     mn = await page.evaluate(JS_MINFONT, BADGES)
-                    check(t + 'kleinste Schrift mindestens 14 px (ausser Zaehler)', mn[0] >= 13.99, f'{mn[0]} {mn[1]}')
+                    check(t + 'kleinste Schrift mindestens 14 px (ausser Zaehler, ausser Beschriftung der fuenfteiligen Leiste)', mn[0] >= 13.99, f'{mn[0]} {mn[1]}')
+                    nl = await page.evaluate("() => { const l = document.querySelector('.bottom-nav .nav-label'); return l ? [parseFloat(getComputedStyle(l).fontSize), innerWidth] : null; }")
+                    check(t + 'Navigation: Beschriftung mindestens 10 px (Handy, fuenf Punkte) bzw. 14 px (Seitenleiste)', nl is None or nl[0] >= (13.99 if nl[1] >= 900 else 9.99), str(nl))
                     taps = await page.evaluate(JS_TAPS)
                     check(t + 'Tippflaechen mindestens 44 px', not taps, str(taps[:4]))
                     ov = await page.evaluate("() => [document.documentElement.scrollWidth, window.innerWidth]")
@@ -117,22 +120,31 @@ async def main():
                 home = await page.evaluate("""() => ({ search: document.querySelectorAll('input[type=search], [role=searchbox]').length, fields: document.querySelectorAll('.search-field').length,
                     lupe: !!document.querySelector('.topbar [aria-label=\"Suchen\"], .topbar [data-action=\"focus-search\"]'),
                     gear: !!document.querySelector('.topbar [data-action=\"goto-view\"][data-view=\"settings\"][aria-label=\"Einstellungen\"]'),
+                    more: (document.querySelector('.bottom-nav .nav-settings .nav-label') || {}).textContent,
                     recent: !!document.querySelector('.recent-card'), allTitle: Array.from(document.querySelectorAll('main h2')).some(h => h.textContent.trim() === 'Alle Rezepte' && getComputedStyle(h).position !== 'absolute'),
                     firstRecipe: Math.round(document.querySelector('.rcard, .rrow').getBoundingClientRect().top), stripRow: (() => { const s = document.querySelector('.filter-bar'); if (!s) return null; const kids = Array.from(s.children).map(k => Math.round(k.getBoundingClientRect().top)); return Math.max(...kids) - Math.min(...kids); })() })""")
                 check(tag + 'Startseite: genau ein Suchfeld, kein Lupen-Knopf oben', home['search'] == 1 and home['fields'] == 1 and not home['lupe'], str(home))
-                check(tag + 'Startseite: Zahnrad zu den Einstellungen in der Kopfzeile', home['gear'], str(home))
+                check(tag + 'Startseite: kein Zahnrad mehr in der Kopfzeile, Einstellungen ueber «Mehr»/«Einstellungen» in der Navigation', not home['gear'] and home['more'] == ('Mehr' if w < 900 else 'Einstellungen'), str(home))
                 check(tag + 'Startseite: kein Zwischentitel "Alle Rezepte", kein "Zuletzt bearbeitet"', not home['allTitle'] and not home['recent'], str(home))
                 check(tag + 'Startseite: Alle/Favoriten und Filter-Schaltfläche in einer Zeile (ab 375 px; schmaler darf umbrechen)', home['stripRow'] is not None and (w < 375 or home['stripRow'] <= 6), str(home['stripRow']))
                 check(tag + 'Startseite: erstes Rezept beginnt frueh', home['firstRecipe'] < (520 if w < 600 else 480), str(home['firstRecipe']))
-                # Rezept ohne Foto: kein Buchstaben-Platzhalter, keine leere Bildflaeche
-                cards = await page.evaluate("""() => { const t = Array.from(document.querySelectorAll('.rcard--text')); const ph = Array.from(document.querySelectorAll('.rcard')).filter(c => c.classList.contains('rcard--text')); const photo = Array.from(document.querySelectorAll('.rcard:not(.rcard--text)'));
-                    return { text: t.length, imgInText: t.some(c => c.querySelector('img, .placeholder, .ph-letter')), letters: document.querySelectorAll('.ph-letter').length,
-                      hText: t.length ? Math.round(t[0].getBoundingClientRect().height) : 0, hPhoto: photo.length ? Math.round(photo[0].getBoundingClientRect().height) : 0, fam: t.length ? getComputedStyle(t[0].querySelector('.rcard-title')).fontFamily.split(',')[0] : '' }; }""")
-                check(tag + 'Rezept ohne Foto (Raster): typografische Karte ohne Bild und ohne Buchstaben', cards['text'] >= 1 and not cards['imgInText'] and cards['letters'] == 0 and 'Lilita One' in cards['fam'], str(cards))
-                check(tag + 'Rezept ohne Foto (Raster): etwa so hoch wie eine Foto-Karte', cards['hPhoto'] > 0 and abs(cards['hText'] - cards['hPhoto']) <= 0.2 * cards['hPhoto'] + 8, str(cards))
-                await show_view("state.view='home';state.homeLayout='list'")
-                rows = await page.evaluate("() => { const t = Array.from(document.querySelectorAll('.rrow--text')); return { n: t.length, img: t.some(c => c.querySelector('img, .placeholder, .ph-letter')), h: t.length ? Math.round(t[0].getBoundingClientRect().height) : 0 }; }")
-                check(tag + 'Rezept ohne Foto (Liste): kein Bild, keine leere Flaeche, Zeile mindestens 64 px', rows['n'] >= 1 and not rows['img'] and rows['h'] >= 64, str(rows))
+                if w >= 768:
+                    # Rezept ohne Foto: kein Buchstaben-Platzhalter, keine leere Bildflaeche
+                    cards = await page.evaluate("""() => { const t = Array.from(document.querySelectorAll('.rcard--text')); const ph = Array.from(document.querySelectorAll('.rcard')).filter(c => c.classList.contains('rcard--text')); const photo = Array.from(document.querySelectorAll('.rcard:not(.rcard--text)'));
+                        return { text: t.length, imgInText: t.some(c => c.querySelector('img, .placeholder, .ph-letter')), letters: document.querySelectorAll('.ph-letter').length,
+                          hText: t.length ? Math.round(t[0].getBoundingClientRect().height) : 0, hPhoto: photo.length ? Math.round(photo[0].getBoundingClientRect().height) : 0, fam: t.length ? getComputedStyle(t[0].querySelector('.rcard-title')).fontFamily.split(',')[0] : '' }; }""")
+                    check(tag + 'Rezept ohne Foto (Raster): typografische Karte ohne Bild und ohne Buchstaben', cards['text'] >= 1 and not cards['imgInText'] and cards['letters'] == 0 and 'Lilita One' in cards['fam'], str(cards))
+                    check(tag + 'Rezept ohne Foto (Raster): etwa so hoch wie eine Foto-Karte', cards['hPhoto'] > 0 and abs(cards['hText'] - cards['hPhoto']) <= 0.2 * cards['hPhoto'] + 8, str(cards))
+                    await show_view("state.view='home';state.homeLayout='list'")
+                    rows = await page.evaluate("() => { const t = Array.from(document.querySelectorAll('.rrow--text')); return { n: t.length, img: t.some(c => c.querySelector('img, .placeholder, .ph-letter')), h: t.length ? Math.round(t[0].getBoundingClientRect().height) : 0 }; }")
+                    check(tag + 'Rezept ohne Foto (Liste): kein Bild, keine leere Flaeche, Zeile mindestens 64 px', rows['n'] >= 1 and not rows['img'] and rows['h'] >= 64, str(rows))
+                else:
+                    # Handy (Startseite als Liste): Rezepte ohne Foto bekommen einen ruhigen Platzhalter in Fotogroesse, ohne Buchstaben
+                    await show_view("state.view='home'")
+                    rows = await page.evaluate("""() => { const all = Array.from(document.querySelectorAll('.rrow--phone')); const ph = all.filter(r => r.querySelector('.rrow-ph')); const photo = all.filter(r => !r.querySelector('.rrow-ph'));
+                        const sz = (r) => { const b = r.querySelector('.rrow-img').getBoundingClientRect(); return [Math.round(b.width), Math.round(b.height)]; };
+                        return { n: ph.length, letters: document.querySelectorAll('.ph-letter').length, szPh: ph.length ? sz(ph[0]) : null, szPhoto: photo.length ? sz(photo[0]) : null, h: ph.length ? Math.round(ph[0].getBoundingClientRect().height) : 0, text: ph.length ? ph[0].querySelector('.rrow-img').textContent.trim() : null }; }""")
+                    check(tag + 'Rezept ohne Foto (Handy-Liste): ruhiger Platzhalter ohne Buchstaben, so gross wie ein Foto, Zeile mindestens 64 px', rows['n'] >= 1 and rows['letters'] == 0 and rows['text'] == '' and rows['szPh'] == rows['szPhoto'] and rows['h'] >= 64, str(rows))
                 await show_view("state.homeLayout='grid';state.view='home'")
                 await show_view("state.view='detail';state.activeRecipeId='r_legacy_3'")
                 nd = await page.evaluate("""() => ({ hero: !!document.querySelector('.hero, .hero-img'), letter: !!document.querySelector('.ph-letter'), fam: getComputedStyle(document.querySelector('.detail-title-v2')).fontFamily.split(',')[0], fs: parseFloat(getComputedStyle(document.querySelector('.detail-title-v2')).fontSize),

@@ -26,10 +26,10 @@ async def main():
         await go('settings')
         groups = await ev("Array.from(document.querySelectorAll('.settings-group')).map(g => ({ t: g.querySelector('.settings-group-title').textContent.trim(), rows: Array.from(g.querySelectorAll('.settings-row')).map(r => ({ title: r.querySelector('.settings-row-title').textContent.trim(), sum: (r.querySelector('.settings-row-summary') || {}).textContent || '' })) }))")
         titles = [g['t'] for g in groups]
-        check('Gruppen in Reihenfolge: Deine Daten, Anzeige & Einheiten, Hilfe & Infos', [t.lower() for t in titles] == ['deine daten', 'anzeige & einheiten', 'hilfe & infos'], str(titles))
+        check('Gruppen in Reihenfolge: Deine Daten, Darstellung, Hilfe & Infos', [t.lower() for t in titles] == ['deine daten', 'darstellung', 'hilfe & infos'], str(titles))
         rows = [[r['title'] for r in g['rows']] for g in groups]
         check('Deine Daten: Konto und Sicherung, Rezepte mit anderen teilen (Audit D02)', rows[0] == ['Konto und Sicherung', 'Rezepte mit anderen teilen'], str(rows[0]))
-        check('Anzeige & Einheiten: Darstellung und Einheiten, Masseinheiten-Rechner (Audit D02)', rows[1] == ['Darstellung und Einheiten', 'Masseinheiten-Rechner'], str(rows[1]))
+        check('Darstellung: Darstellung und Einheiten, Masseinheiten-Rechner (Audit D02)', rows[1] == ['Darstellung und Einheiten', 'Masseinheiten-Rechner'], str(rows[1]))
         check('Hilfe & Infos: Hilfe erhalten, Über Savora', rows[2] == ['Hilfe erhalten', 'Über Savora'], str(rows[2]))
         check('Hauptliste hat genau 6 Zeilen', sum(len(r) for r in rows) == 6, str(rows))
         sums = {r['title']: r['sum'] for g in groups for r in g['rows']}
@@ -38,7 +38,10 @@ async def main():
         for old in ['Kochbuch gestalten und als PDF', 'Kochbuch & Profil', 'Synchronisation', 'Hilfe & Feedback', 'Imperial', 'Metrisch', 'Datenschutz', 'Nutzungsbedingungen', 'Sicherungskopie', 'Auf mehreren Geräten']:
             check(f'Einstellungen ohne altes Wort «{old}»', old not in txt)
         check('Rechner-Zeile ruft open-unitconverter auf', await ev("document.querySelector('.settings-row[data-action=\"open-unitconverter\"]') !== null"))
-        check('Seitentitel bleibt «Einstellungen»', await ev("document.querySelector('h1, .page-title, .topbar-title') && document.body.innerText.includes('Einstellungen')"))
+        check('Seitentitel auf dem Handy «Mehr» (Navigationspunkt), auf dem Desktop weiterhin «Einstellungen»', await ev("document.querySelector('.page-title').textContent.trim()") == 'Mehr')
+        await page.set_viewport_size({'width': 1280, 'height': 800}); await page.wait_for_timeout(300)
+        check('Seitentitel bleibt auf dem Desktop «Einstellungen»', await ev("document.querySelector('.page-title').textContent.trim()") == 'Einstellungen')
+        await page.set_viewport_size({'width': 390, 'height': 844}); await page.wait_for_timeout(300)
 
         # 2 Anzeige: eine Seite mit drei Abschnitten
         await ev("() => { state.theme = 'auto'; state.unitSystem = 'metric'; state.showNutrition = true; }"); await go('settings')
