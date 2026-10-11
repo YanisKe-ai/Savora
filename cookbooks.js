@@ -181,7 +181,7 @@ function cookbooksView() {
   const store = cookbookStoreRead();
   const only = store.books.length <= 1;
   return `
-    ${topbar('Kochbücher', { settings: true })}
+    ${topbar('Kochbücher')}
     <main class="has-tabbar cookbooks-main">
       ${pageTitle('Kochbücher', `<button class="primary-btn cbk-new" data-action="cb-new">${ICONS.plus} Neues Kochbuch</button>`)}
       <ul class="cbk-list" aria-label="Deine Kochbücher">

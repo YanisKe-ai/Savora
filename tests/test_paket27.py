@@ -36,7 +36,7 @@ async def main():
         page.on('pageerror', lambda e: errs.append(str(e)))
         await goto(page); await page.evaluate(open(SEED_PATH).read()); await page.wait_for_timeout(400)
         ev = page.evaluate
-        tr = await ev("() => getComputedStyle(document.querySelector('.round-btn')).transitionProperty")
+        tr = await ev("() => getComputedStyle(document.querySelector('.round-btn, .home-add-btn')).transitionProperty")
         check('Drück-Feedback: Knöpfe haben einen schnellen transform-Übergang', 'transform' in tr, tr)
         rules = await ev("() => Array.from(document.styleSheets).flatMap(s => { try { return Array.from(s.cssRules); } catch (e) { return []; } }).filter(r => r.media).map(r => r.media.mediaText).join('|')")
         check('Reduzierte Transparenz und erhöhter Kontrast werden beachtet', 'prefers-reduced-transparency' in rules and 'prefers-contrast' in rules)

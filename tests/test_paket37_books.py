@@ -1,4 +1,4 @@
-"""Paket 37: Hauptnavigation (vier Bereiche, Einstellungen als Zahnrad) und Kochbuch-Projekte.
+"""Paket 37: Hauptnavigation (fuenf Punkte, «Mehr» statt Zahnrad im Kopf) und Kochbuch-Projekte.
 Prueft Navigation (Symbol und Beschriftung, Seitenleiste, Safe Area, Tastatur), Migration der alten Einzelkonfiguration,
 Anlegen/Umbenennen/Duplizieren/Loeschen, Wiederoeffnen, leere Textfelder, Datum, zehn Cover ohne 404, lange Titel, Fokus beim Tippen,
 echtes PDF, Sicherung und Wiederherstellung (auch alte Sicherung ohne Projekte)."""
@@ -32,22 +32,22 @@ async def main():
         ev = page.evaluate
         n_recipes = await ev("() => state.recipes.length")
 
-        # ---------- 1. Navigation: vier Tabs mit Symbol und Beschriftung ----------
+        # ---------- 1. Navigation: fuenf Punkte (Rezepte, Wochenplan, Einkauf, Kochbuecher, Mehr) mit Symbol und Beschriftung; kein Zahnrad im Kopf mehr ----------
         for view in ('home', 'mealplan', 'shopping', 'cookbooks'):
             await ev("(v) => { state.view = v; render(); }", view); await page.wait_for_timeout(400)
             tabs = await ev("""() => Array.from(document.querySelectorAll('.bottom-nav button')).filter(b => b.getBoundingClientRect().height > 0).map(b => ({ label: (b.querySelector('.nav-label') || {}).textContent, svg: !!b.querySelector('svg'), h: b.getBoundingClientRect().height, w: b.getBoundingClientRect().width }))""")
-            check(f'{view}: genau vier sichtbare Tabs mit Symbol und Beschriftung', [t['label'] for t in tabs] == ['Rezepte', 'Wochenplan', 'Einkauf', 'Kochbücher'] and all(t['svg'] for t in tabs) and all(t['h'] >= 44 for t in tabs), str(tabs))
+            check(f'{view}: genau fuenf sichtbare Punkte (vier Bereiche und «Mehr») mit Symbol und Beschriftung', [t['label'] for t in tabs] == ['Rezepte', 'Wochenplan', 'Einkauf', 'Kochbücher', 'Mehr'] and all(t['svg'] for t in tabs) and all(t['h'] >= 44 for t in tabs), str(tabs))
             gear = await ev("""() => { const g = Array.from(document.querySelectorAll('header [aria-label="Einstellungen"], .topbar [aria-label="Einstellungen"]')).filter(x => x.getBoundingClientRect().height > 0)[0]; if (!g) return null; const r = g.getBoundingClientRect(); return { w: r.width, h: r.height, label: g.getAttribute('aria-label'), top: r.top }; }""")
-            check(f'{view}: Zahnrad „Einstellungen“ in der Kopfzeile, mindestens 44 px', bool(gear) and gear['w'] >= 43.5 and gear['h'] >= 43.5 and gear['top'] < 120, str(gear))
+            check(f'{view}: kein Zahnrad „Einstellungen“ mehr in der Kopfzeile (neu: «Mehr» in der Leiste)', gear is None, str(gear))
         active = await ev("() => Array.from(document.querySelectorAll('.bottom-nav button.active .nav-label')).map(e => e.textContent)")
         check('Ansicht Kochbücher: nur „Kochbücher“ aktiv', active == ['Kochbücher'], str(active))
-        # Zahnrad per Tastatur: fokussieren, Enter
+        # «Mehr» per Tastatur: fokussieren, Enter
         await ev("() => { state.view = 'shopping'; render(); }"); await page.wait_for_timeout(300)
-        await ev("() => document.querySelector('.topbar [aria-label=\"Einstellungen\"]').focus()")
+        await ev("() => document.querySelector('.bottom-nav .nav-settings').focus()")
         await page.keyboard.press('Enter'); await page.wait_for_timeout(500)
-        check('Zahnrad ist per Tastatur erreichbar und öffnet die Einstellungen', await ev("() => state.view") == 'settings')
+        check('«Mehr» ist per Tastatur erreichbar und öffnet die Einstellungen', await ev("() => state.view") == 'settings')
         act = await ev("() => Array.from(document.querySelectorAll('.bottom-nav button.active')).filter(b => b.getBoundingClientRect().height > 0).length")
-        check('In den Einstellungen ist kein Haupt-Tab aktiv', act == 0, str(act))
+        check('In den Einstellungen ist nur «Mehr» aktiv (aria-current), kein anderer Haupt-Tab', act == 1 and await ev("() => Array.from(document.querySelectorAll('.bottom-nav button[aria-current=page] .nav-label')).map(e => e.textContent)") == ['Mehr'], str(act))
         await ev("() => { state.view = 'cookbook'; render(); }"); await page.wait_for_timeout(300)
         active = await ev("() => Array.from(document.querySelectorAll('.bottom-nav button.active .nav-label')).map(e => e.textContent)")
         check('Im Kochbuch-Editor ist „Kochbücher“ aktiv', active == ['Kochbücher'], str(active))

@@ -96,10 +96,14 @@ async def main():
         await click(page, '[data-action="reset-extra-filters"]')
         reset = await page.evaluate("applyAllFilters(state.recipes).length")
         check('8 Filter kombinierbar und zuruecksetzbar', combo == ['Gemüse-Curry'] and reset == 4, f"{combo} reset={reset}")
+        # Der Raster/Liste-Umschalter gehoert zu Tablet und Desktop; auf dem Handy ist die Liste Standard und es gibt keinen Umschalter (Startseite als Liste)
+        check('Handy: Liste ist Standard, kein Raster/Liste-Umschalter', await page.evaluate("document.querySelectorAll('.rrow--phone').length") == 4 and await page.evaluate("!document.querySelector('[data-action=\"set-home-layout\"]')"))
+        await page.set_viewport_size({'width': 820, 'height': 1180}); await page.wait_for_timeout(500)
         await click(page, '[data-action="set-home-layout"][data-id="list"]')
         lst = await page.evaluate("document.querySelectorAll('.rrow').length")
         await click(page, '[data-action="set-home-layout"][data-id="grid"]')
-        check('Raster/Liste umschaltbar', lst == 4 and await page.evaluate("document.querySelectorAll('.rcard').length") == 4)
+        check('Raster/Liste umschaltbar (Tablet)', lst == 4 and await page.evaluate("document.querySelectorAll('.rcard').length") == 4)
+        await page.set_viewport_size({'width': 390, 'height': 844}); await page.wait_for_timeout(500)
 
         # 10 Kochmodus mit Timer und gespeichertem Fortschritt
         await show(page, f"() => {{ state.activeRecipeId = '{zid}'; state.view = 'detail'; render(); }}", '.detail-main')

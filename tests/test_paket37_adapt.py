@@ -91,7 +91,7 @@ JS_ALL = r"""() => {
     const r=el.getBoundingClientRect(); if(!r.width||!r.height) continue;
     const cs=getComputedStyle(el); if(cs.visibility==='hidden'||cs.display==='none') continue;
     const fs=parseFloat(cs.fontSize);
-    if(!el.closest('.chip-count,.nav-badge,.filter-count-badge') && fs<min){min=fs;who=(el.className||el.tagName)+':'+el.textContent.trim().slice(0,24);}
+    if(!el.closest('.chip-count,.nav-badge,.filter-count-badge') && !(innerWidth<900 && el.closest('.bottom-nav .nav-label')) && fs<min){min=fs;who=(el.className||el.tagName)+':'+el.textContent.trim().slice(0,24);}
     if (el.disabled || el.closest('[disabled]') || cs.opacity < 1 || el.closest('[aria-disabled=true]')) continue;
     const bg=bgOf(el); if(bg.img) continue;
     const fg=parse(cs.color); if(!fg) continue;
@@ -102,6 +102,7 @@ JS_ALL = r"""() => {
     if (cs.textOverflow==='ellipsis' && el.scrollWidth>el.clientWidth+2) out.clipped.push('ELLIPSIS '+(el.className||el.tagName)+' '+el.textContent.trim().slice(0,20));
   }
   out.minfont=[min,who];
+  out.navfont=(()=>{const l=document.querySelector('.bottom-nav .nav-label');return l?[parseFloat(getComputedStyle(l).fontSize),innerWidth]:null})();
   out.navs = {gear: Array.from(document.querySelectorAll('[aria-label=Einstellungen], .nav-settings')).filter(e=>{const r=e.getBoundingClientRect();return r.width>0&&r.height>0&&getComputedStyle(e).visibility!=='hidden'}).map(e=>e.className)};
   out.nav = {bottom: (()=>{const n=document.querySelector('.bottom-nav');if(!n)return null;const r=n.getBoundingClientRect();return [Math.round(r.left),Math.round(r.top),Math.round(r.width),Math.round(r.height)]})()};
   return out;
@@ -116,7 +117,8 @@ async def scan(page, key):
     r = await page.evaluate(JS_ALL)
     check(f'{key}: kein seitlicher Ueberlauf', r['overflow'][0] <= r['overflow'][1] + 1, str(r['overflow']))
     check(f'{key}: Tippflaechen mindestens 44 px', not r['taps'], str(r['taps'][:4]))
-    check(f'{key}: kleinste Schrift mindestens 14 px (ausser Zaehler)', r['minfont'][0] >= 13.99, str(r['minfont']))
+    check(f'{key}: kleinste Schrift mindestens 14 px (ausser Zaehler und Beschriftung der fuenfteiligen unteren Leiste)', r['minfont'][0] >= 13.99, str(r['minfont']))
+    check(f'{key}: Navigation: Beschriftung mindestens 10 px (untere Leiste) bzw. 14 px (Seitenleiste)', r['navfont'] is None or r['navfont'][0] >= (13.99 if r['navfont'][1] >= 900 else 9.99), str(r['navfont']))
     check(f'{key}: Text-Kontrast mindestens 4.5:1 (gross 3:1)', not r['contrast'], str(r['contrast'][:4]))
     clip = [c for c in r['clipped'] if not any(i in c for i in IGNORE_CLIP)]
     check(f'{key}: nichts abgeschnitten', not clip, str(clip[:4]))
@@ -137,8 +139,8 @@ async def main():
                     r = await scan(page, f'[{w} {theme}] {name}')
                     if name in TABS:
                         gear = [g for g in r['navs']['gear'] if 'icon-btn--settings' in g]; side = [g for g in r['navs']['gear'] if 'nav-settings' in g]
-                        want = (1, 0) if w < 900 else (0, 1)
-                        check(f'[{w} {theme}] {name}: genau ein Einstellungsweg ({"Zahnrad" if w < 900 else "Seitenleiste"})', (len(gear), len(side)) == want, str(r['navs']))
+                        want = (0, 1)   # kein Zahnrad im Kopf mehr: der Weg zu den Einstellungen ist «Mehr» (unten) bzw. «Einstellungen» (Seitenleiste)
+                        check(f'[{w} {theme}] {name}: genau ein Einstellungsweg ({"«Mehr» in der unteren Leiste" if w < 900 else "Seitenleiste"}), kein Zahnrad', (len(gear), len(side)) == want, str(r['navs']))
                     if name == 'cb2':
                         cv = await page.evaluate("""() => { const o = Array.from(document.querySelectorAll('.cover-opt')); const on = o.filter(x => x.getAttribute('aria-checked') === 'true');
                             return { n: o.length, on: on.length, check: on.every(x => !!x.querySelector('.cover-opt-check')), minw: Math.min(...o.map(x => x.getBoundingClientRect().width)), minh: Math.min(...o.map(x => x.getBoundingClientRect().height)),

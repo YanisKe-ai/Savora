@@ -24,6 +24,8 @@ Object.assign(ICONS, {
   sliders: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 6h9M17 6h3M4 12h3M11 12h9M4 18h11M19 18h1"/><circle cx="15" cy="6" r="2"/><circle cx="9" cy="12" r="2"/><circle cx="17" cy="18" r="2"/></svg>`,
   homeFilled: `<svg viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"><path d="M3.2 10.4 12 3l8.8 7.4V20a1.2 1.2 0 0 1-1.2 1.2h-4.4v-5.7a1.2 1.2 0 0 0-1.2-1.2h-4a1.2 1.2 0 0 0-1.2 1.2v5.7H4.4A1.2 1.2 0 0 1 3.2 20z"/></svg>`,
   cloud: `${SVG_OPEN}<path d="M7 18h10a4 4 0 0 0 .6-7.95A6 6 0 0 0 6.1 9.2 4.5 4.5 0 0 0 7 18z"/></svg>`,
+  books: `${SVG_OPEN}<rect x="4" y="3" width="16" height="5" rx="1.5"/><rect x="4" y="10" width="16" height="5" rx="1.5"/><rect x="4" y="17" width="16" height="4" rx="1.5"/></svg>`,
+  menu: `${SVG_OPEN}<path d="M4 7h16M4 12h16M4 17h16"/></svg>`,
   bookOpen: `${SVG_OPEN}<path d="M2 5h7a3 3 0 0 1 3 3v12a2 2 0 0 0-2-2H2z"/><path d="M22 5h-7a3 3 0 0 0-3 3v12a2 2 0 0 1 2-2h8z"/></svg>`,
 });
 
@@ -31,8 +33,9 @@ const TAB_VIEWS = ['home', 'mealplan', 'shopping', 'cookbooks', 'settings'];
 const DAY_SHORT = ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So'];
 
 /* ---------- Navigation ----------
-   Vier Hauptbereiche: Rezepte, Wochenplan, Einkauf, Kochbuecher. Einstellungen sind kein Tab: auf dem Handy
-   ein Zahnrad in der Kopfzeile (topbar opts.settings), ab 900 px zusaetzlich ein eigener Eintrag unten in der Seitenleiste. */
+   Genau fuenf Punkte: Rezepte, Wochenplan, Einkauf, Kochbuecher und Mehr (= die bestehende Einstellungsseite).
+   Bis 899 px liegt die Leiste unten (Handy und Tablet hochkant), ab 900 px als Seitenleiste, dort heisst der letzte Punkt «Einstellungen».
+   Ein Zahnrad im Kopf gibt es nicht mehr. «Mehr» bleibt auf allen Unterseiten der Einstellungen aktiv. */
 function navTabActive(view) {
   const v = state.view;
   if (view === 'home') return v === 'home' || v === 'detail';
@@ -40,25 +43,29 @@ function navTabActive(view) {
   if (view === 'settings') return isMoreSectionView(v) && v !== 'cookbook';
   return v === view;
 }
+/* Handy-Layout (unter 768 px): Startseite als Rezeptliste. Tablet und Desktop behalten ihre bisherige Startseite. */
+const PHONE_QUERY = '(max-width: 767px)';
+function isCompactNav() { return !!(window.matchMedia && matchMedia('(max-width: 899px)').matches); }   // untere Leiste: der letzte Punkt heisst «Mehr», darueber «Einstellungen»
+function isPhoneLayout() { return !!(window.matchMedia && matchMedia(PHONE_QUERY).matches); }
 function bottomNav() {
   const tabs = [
-    { view: 'home', icon: ICONS.home, iconActive: ICONS.homeFilled, label: 'Rezepte' },
+    { view: 'home', icon: ICONS.bookOpen, label: 'Rezepte' },
     { view: 'mealplan', icon: ICONS.calendar, label: 'Wochenplan' },
     { view: 'shopping', icon: ICONS.cart, label: 'Einkauf' },
-    { view: 'cookbooks', icon: ICONS.bookOpen, label: 'Kochbücher' },
+    { view: 'cookbooks', icon: ICONS.books, label: 'Kochbücher' },
+    { view: 'settings', icon: ICONS.menu, label: isCompactNav() ? 'Mehr' : 'Einstellungen', cls: 'nav-settings' },
   ];
   const openCount = state.shopping.filter(i => !i.checked && !i.have).length;
-  const btn = (t, cls) => {
+  const btn = (t) => {
     const active = navTabActive(t.view);
     const badge = t.view === 'shopping' && openCount ? `<span class="nav-badge" aria-hidden="true">${openCount > 99 ? '99+' : openCount}</span>` : '';
-    return `<button data-action="nav-tab" data-view="${t.view}" class="${cls || ''} ${active ? 'active' : ''}" ${active ? 'aria-current="page"' : ''}>
-      <span class="nav-icon" aria-hidden="true">${active && t.iconActive ? t.iconActive : t.icon}${badge}</span><span class="nav-label">${t.label}</span>
+    return `<button type="button" data-action="nav-tab" data-view="${t.view}" class="${t.cls || ''} ${active ? 'active' : ''}" ${active ? 'aria-current="page"' : ''}>
+      <span class="nav-icon" aria-hidden="true">${t.icon}${badge}</span><span class="nav-label">${t.label}</span>
     </button>`;
   };
   return `<nav class="bottom-nav" aria-label="Hauptnavigation">
     <div class="nav-brand" aria-hidden="true">${wordmarkSvg('nav-wordmark')}</div>
-    ${tabs.map(t => btn(t)).join('')}
-    ${btn({ view: 'settings', icon: ICONS.settings, label: 'Einstellungen' }, 'nav-settings')}
+    ${tabs.map(btn).join('')}
   </nav>`;
 }
 
@@ -75,7 +82,7 @@ function topbar(title, opts = {}) {
     : brandLockup();
   return `<header class="topbar ${opts.back ? 'topbar--sub' : ''} ${opts.cls || ''}">
     <div class="topbar-left">${left}${opts.back ? (opts.plainTitle ? `<span class="topbar-title">${escapeHtml(opts.plainTitle)}</span>` : `<h1 class="topbar-title">${escapeHtml(title)}</h1>`) : ''}</div>
-    <div class="topbar-actions">${opts.actions || ''}${opts.settings ? `<button class="icon-btn icon-btn--settings" data-action="goto-view" data-view="settings" aria-label="Einstellungen">${ICONS.settings}</button>` : ''}</div>
+    <div class="topbar-actions">${opts.actions || ''}</div>
   </header>`;
 }
 
@@ -243,6 +250,15 @@ function bindFilterSheet() {
       syncFilterSheet();
     });
   }
+  const vsel = document.getElementById('viewSelect');
+  if (vsel && !vsel.dataset.bound) {
+    vsel.dataset.bound = '1';
+    vsel.addEventListener('change', () => {
+      state.favOnly = vsel.value === 'fav';
+      state.activeCollection = 'all';
+      render();
+    });
+  }
   const sel = document.getElementById('sortSelect');
   if (sel && !sel.dataset.bound) {
     sel.dataset.bound = '1';
@@ -291,8 +307,23 @@ function recipeCard(r) {
     ${favButton(r, 'rcard-fav')}
   </article>`;
 }
-function recipeRow(r) {
+function recipeRow(r, phone) {
   const photo = hasPhoto(r);
+  if (phone) {
+    /* Handy-Liste: quadratisches Foto (oder ruhiger Platzhalter), Titel, Zeit nur wenn bekannt, eigener Favoritenknopf als Geschwister (kein verschachtelter Knopf) */
+    const title = escapeHtml(r.title || 'Ohne Titel');
+    const time = r.timeMinutes > 0 ? `<span class="rrow-meta rrow-meta--time">${ICONS.clock}<span>${r.timeMinutes} Min.</span></span>` : '';
+    return `<article class="rrow rrow--phone">
+    <button type="button" class="rrow-main" data-action="open-recipe" data-id="${r.id}" aria-label="${title} öffnen">
+      ${photo ? recipeImageHtml(r, 'rrow-img', 'thumb') : `<span class="rrow-img rrow-ph" aria-hidden="true">${ICONS.bookOpen}</span>`}
+      <span class="rrow-body">
+        <span class="rrow-title">${title}</span>
+        ${time}
+      </span>
+    </button>
+    ${favButton(r, 'rrow-fav')}
+  </article>`;
+  }
   return `<article class="rrow ${photo ? '' : 'rrow--text'}">
     <button type="button" class="rrow-main" data-action="open-recipe" data-id="${r.id}" aria-label="${escapeHtml(r.title || 'Ohne Titel')} öffnen">
       ${photo ? recipeImageHtml(r, 'rrow-img', 'thumb') : ''}
@@ -332,24 +363,42 @@ function todayPlannedHtml() {
   return `<section class="today-planned" aria-label="Heute geplant"><span class="today-label">Heute geplant</span>${items.map(label).join('')}</section>`;
 }
 function homeView() {
+  const phone = isPhoneLayout();
   const list = applyAllFilters(state.recipes);
   const filterCount = activeStructuredFilterCount() + (state.activeTag ? 1 : 0) + (state.activeCollection && state.activeCollection !== 'all' && state.activeCollection !== 'favorites' ? 1 : 0);
   const labels = appliedFilterLabels();
   const summary = labels.length > 3 ? labels.slice(0, 3).join(' · ') + ` · + ${labels.length - 3} weitere` : labels.join(' · ');
   const favOnly = !!(state.favOnly || state.activeCollection === 'favorites');
+  const sortLabel = (SORT_OPTIONS.find(o => o.id === state.sortBy) || SORT_OPTIONS[0]).label;
+  const sortOptions = SORT_OPTIONS.map(o => `<option value="${o.id}" ${state.sortBy === o.id ? 'selected' : ''}>${escapeHtml(o.label)}</option>`).join('');
 
   let content;
   if (!state.recipes.length) content = emptyState();
   else if (!list.length) content = emptyFilterState();
   else {
-    const items = state.homeLayout === 'list' ? `<div class="rlist">${list.map(recipeRow).join('')}</div>` : `<div class="rgrid">${list.map(recipeCard).join('')}</div>`;
     const n = list.length;
-    content = `
+    if (phone) {
+      /* Handy: immer die Liste, kein Raster/Liste-Umschalter; «N Rezepte · Sortierung» als ruhige Zeile */
+      content = `
+      <section class="home-section" aria-labelledby="all-h">
+        <div class="result-row result-row--phone">
+          <h2 class="result-line" id="all-h">${n} Rezept${n === 1 ? '' : 'e'}</h2>
+          <span class="result-dot" aria-hidden="true">·</span>
+          <div class="inline-pick sort-inline">
+            <span class="inline-pick-text">${escapeHtml(sortLabel)}</span>${ICONS.arrowDown}
+            <select class="inline-pick-select sort-select" id="sortSelect" aria-label="Sortierung">${sortOptions}</select>
+          </div>
+        </div>
+        <div class="rlist rlist--phone">${list.map(r => recipeRow(r, true)).join('')}</div>
+      </section>`;
+    } else {
+      const items = state.homeLayout === 'list' ? `<div class="rlist">${list.map(r => recipeRow(r)).join('')}</div>` : `<div class="rgrid">${list.map(recipeCard).join('')}</div>`;
+      content = `
       <section class="home-section" aria-labelledby="all-h">
         <div class="result-row">
           <h2 class="result-line" id="all-h">${n} Rezept${n === 1 ? '' : 'e'}</h2>
           <label class="sort-pick"><span class="sort-pick-label">Sortierung</span>
-            <select class="sort-select" id="sortSelect">${SORT_OPTIONS.map(o => `<option value="${o.id}" ${state.sortBy === o.id ? 'selected' : ''}>${escapeHtml(o.label)}</option>`).join('')}</select>
+            <select class="sort-select" id="sortSelect">${sortOptions}</select>
           </label>
           <div class="layout-toggle" role="group" aria-label="Darstellung">
             <button type="button" class="icon-toggle ${state.homeLayout !== 'list' ? 'is-active' : ''}" data-action="set-home-layout" data-id="grid" aria-pressed="${state.homeLayout !== 'list'}" aria-label="Rasteransicht">${ICONS.grid}</button>
@@ -358,38 +407,54 @@ function homeView() {
         </div>
         ${items}
       </section>`;
+    }
   }
 
-  return `
-    <div class="home-head">
-      ${topbar('', { cls: 'topbar--home', settings: true, actions: `<button class="round-btn round-btn--accent" data-action="open-add-menu" aria-label="Rezept hinzufügen">${ICONS.plus}</button>` })}
-      <section class="home-head-body" aria-label="Suche und Filter">
-        ${pageTitle('Deine Rezepte')}
-        <div class="search-field">
-          ${ICONS.search}
-          <label for="searchInput" class="sr-only">Rezepte suchen</label>
-          <input class="search-input" id="searchInput" type="search" enterkeyhint="search" placeholder="Rezepte suchen" value="${escapeHtml(state.query)}" autocomplete="off">
-        </div>
-        ${state.recipes.length ? `<div class="filter-bar">
+  const filterBtn = `<button type="button" class="filter-btn ${filterCount ? 'is-active' : ''}" data-action="open-filter-sheet" aria-haspopup="dialog">${ICONS.sliders}<span class="filter-btn-text">Filter${filterCount ? ' · ' + filterCount : ''}</span></button>`;
+  const filterBar = !state.recipes.length ? '' : (phone
+    ? `<div class="filter-bar filter-bar--phone">
+          <div class="inline-pick view-pick">
+            <span class="inline-pick-text">${favOnly ? 'Favoriten' : 'Alle Rezepte'}</span>${ICONS.arrowDown}
+            <select class="inline-pick-select" id="viewSelect" aria-label="Anzeige">
+              <option value="all" ${favOnly ? '' : 'selected'}>Alle Rezepte</option>
+              <option value="fav" ${favOnly ? 'selected' : ''}>Favoriten</option>
+            </select>
+          </div>
+          ${filterBtn}
+        </div>`
+    : `<div class="filter-bar">
           <div class="seg" role="group" aria-label="Anzeige">
             <button type="button" class="seg-btn" data-action="set-fav-mode" data-id="all" aria-pressed="${!favOnly}">Alle</button>
             <button type="button" class="seg-btn" data-action="set-fav-mode" data-id="fav" aria-pressed="${favOnly}">Favoriten</button>
           </div>
-          <button type="button" class="filter-btn ${filterCount ? 'is-active' : ''}" data-action="open-filter-sheet" aria-haspopup="dialog">${ICONS.sliders}<span class="filter-btn-text">Filter${filterCount ? ' · ' + filterCount : ''}</span></button>
-        </div>` : ''}
+          ${filterBtn}
+        </div>`);
+
+  return `
+    <div class="home-head ${phone ? 'home-head--phone' : ''}">
+      ${phone ? topbar('', { cls: 'topbar--home topbar--center' }) : topbar('', { cls: 'topbar--home', actions: `<button class="round-btn round-btn--accent" data-action="open-add-menu" aria-label="Rezept hinzufügen">${ICONS.plus}</button>` })}
+      <section class="home-head-body" aria-label="Suche und Filter">
+        ${phone ? '<h1 class="sr-only">Deine Rezepte</h1>' : pageTitle('Deine Rezepte')}
+        <div class="search-field">
+          ${ICONS.search}
+          <label for="searchInput" class="sr-only">Rezepte suchen</label>
+          <input class="search-input" id="searchInput" type="search" enterkeyhint="search" placeholder="${phone ? 'Rezepte suchen …' : 'Rezepte suchen'}" value="${escapeHtml(state.query)}" autocomplete="off">
+        </div>
+        ${filterBar}
         ${filterCount ? `<div class="filter-summary">
           <p class="filter-summary-text"><span class="sr-only">Aktive Filter: </span>${escapeHtml(summary)}</p>
           <button type="button" class="filter-summary-reset" data-action="reset-extra-filters">Zurücksetzen</button>
         </div>` : ''}
       </section>
     </div>
-    <main class="has-tabbar home-main">
+    <main class="has-tabbar home-main ${phone && state.recipes.length ? 'home-main--addbar' : ''}">
       ${todayPlannedHtml()}
       ${(() => { const n = backupNudgeInfo(); return n ? `<div class="nudge-card" role="note">
         <p class="nudge-text">${n.never ? 'Noch keine Sicherung' : 'Letzte Sicherung vor ' + n.days + ' Tagen'}</p>
         <div class="nudge-actions"><button class="text-btn" data-action="goto-view" data-view="settings-backup">Sichern</button><button class="text-btn text-btn--quiet" data-action="backup-nudge-dismiss">Später</button></div></div>` : ''; })()}
       ${content}
     </main>
+    ${phone && state.recipes.length ? `<div class="home-add-bar"><button type="button" class="home-add-btn" data-action="open-add-menu">${ICONS.plus}<span>Rezept hinzufügen</span></button></div>` : ''}
     ${bottomNav()}
     ${filterSheetModal()}
     ${addMenuModal()}
@@ -745,7 +810,7 @@ function shoppingView() {
   const sections = SHOP_SECTIONS.filter(s => grouped[s]).map(s => `<section class="shop-section"><h2 class="shop-section-title">${escapeHtml(s)}</h2>${grouped[s].map(shoppingItemRow).join('')}</section>`).join('');
   const item = state.modal && state.modal.type === 'shop-item' ? state.shopping.find(x => x.id === state.modal.itemId) : null;
   return `
-    ${topbar('Einkauf', { settings: true, actions: items.length ? `<button class="icon-btn" data-action="share-shopping" aria-label="Liste teilen oder kopieren">${ICONS.share}</button><button class="icon-btn" data-action="clear-all-shopping" aria-label="Ganze Einkaufsliste leeren">${ICONS.trash}</button>` : '' })}
+    ${topbar('Einkauf', { actions: items.length ? `<button class="icon-btn" data-action="share-shopping" aria-label="Liste teilen oder kopieren">${ICONS.share}</button><button class="icon-btn" data-action="clear-all-shopping" aria-label="Ganze Einkaufsliste leeren">${ICONS.trash}</button>` : '' })}
     <main class="has-tabbar shop-main">
       ${pageTitle('Einkaufsliste')}
       <div class="shop-add">
@@ -796,7 +861,7 @@ function pickRecipesModal() {
 /* ---------- Wochenplan ---------- */
 function mealplanView() {
   if (!state.recipes.length) {
-    return `${topbar('Wochenplan', { settings: true })}
+    return `${topbar('Wochenplan')}
       <main class="has-tabbar">${pageTitle('Wochenplan')}<div class="empty-state">${ICONS.calendar}<h2>Noch keine Rezepte für den Wochenplan</h2><p>Trag zuerst ein paar Rezepte ein, dann kannst du sie hier auf die Tage verteilen.</p><button class="primary-btn" data-action="new-recipe">${ICONS.plus} Erstes Rezept eintragen</button></div></main>${bottomNav()}`;
   }
   const days = Array.from({ length: 7 }, (_, i) => addDays(state.weekStart, i));
@@ -848,7 +913,7 @@ function mealplanView() {
   }).join('');
   const selCount = Array.from(state.planSelectedDays).filter(k => days.some(d => fmtDateKey(d) === k)).length;
   return `
-    ${topbar('Wochenplan', { settings: true })}
+    ${topbar('Wochenplan')}
     <main class="has-tabbar plan-main">
       ${pageTitle('Wochenplan')}
       <div class="week-nav">

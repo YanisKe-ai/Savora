@@ -199,9 +199,12 @@ async def main():
             inactive = await ev(MARK, '.theme-opt:not(.active)')
             check(f'D03 [{theme}] aktive Einstellungsoption zeigt Haken, inaktive nicht', bool(ok) and inactive['content'] == 'none', str(m))
             await ev("() => { state.view = 'home'; resetExtraFilters(); render(); }"); await page.wait_for_timeout(200)
+            # Die Segment-Auswahl «Alle/Favoriten» gibt es auf Tablet und Desktop; auf dem Handy ist es seit der Startseite als Liste eine Auswahl «Alle Rezepte».
+            await page.set_viewport_size({'width': 820, 'height': 1180}); await page.wait_for_timeout(500)
             m2 = await ev(MARK, '.seg-btn[aria-pressed="true"]')
             m3 = await ev(MARK, '.seg-btn[aria-pressed="false"]')
             check(f'D03 [{theme}] «Alle» zeigt Haken, «Favoriten» nicht', bool(m2) and m2['content'] != 'none' and m2['w'] > 2 and m3['content'] == 'none', str(m2))
+            await page.set_viewport_size({'width': 390, 'height': 844}); await page.wait_for_timeout(500)
             await page.click('[data-action="open-filter-sheet"]'); await page.wait_for_selector('.filter-sheet'); await page.wait_for_timeout(250)
             await page.click('.fs-input[data-fs-dim="dietary"][value="vegan"] >> xpath=..'); await page.wait_for_timeout(80)
             mk = await ev("() => { const e = document.querySelector('.fs-input:checked + .fs-mark'); const cs = getComputedStyle(e); return { vis: !!e.querySelector('svg'), color: cs.color, bg: cs.backgroundColor, bd: cs.borderColor }; }")

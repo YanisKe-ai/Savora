@@ -45,7 +45,9 @@ async def pick(page, dim, value):
 
 async def main():
     async with async_playwright() as p:
-        b, ctx = await open_ctx(p, 390, 844, 'reduce'); page = await ctx.new_page(); errs = []
+        # Ablauf, Entwurf, Zaehler und Fokusfalle laufen auf dem Tablet (820 px): dort steht weiter die Segment-Auswahl «Alle/Favoriten» und das Raster.
+        # Das Handy (unter 768 px) hat seit der Startseite als Liste eine eigene Anordnung; sie prueft Abschnitt A2 hier und test_startseite_liste.py.
+        b, ctx = await open_ctx(p, 820, 700, 'reduce'); page = await ctx.new_page(); errs = []
         page.on('pageerror', lambda e: errs.append(str(e)))
         await goto(page); await page.evaluate(open(SEED_PATH).read()); await page.wait_for_timeout(300)
         n = await page.evaluate(EXTRA); await page.wait_for_timeout(300); ev = page.evaluate
@@ -57,10 +59,10 @@ async def main():
         st = await ev("""() => ({ ph: document.getElementById('searchInput').placeholder, fw: Math.round(document.querySelector('.search-field').getBoundingClientRect().width), cw: Math.round(document.querySelector('.home-head-body').getBoundingClientRect().width),
           seg: Array.from(document.querySelectorAll('.seg-btn')).map(e => e.textContent.trim() + ':' + e.getAttribute('aria-pressed')), fb: document.querySelector('.filter-btn').textContent.trim(), chips: document.querySelectorAll('.chip').length, summary: !!document.querySelector('.filter-summary'),
           searchTop: document.querySelector('.search-field').getBoundingClientRect().top, barTop: document.querySelector('.filter-bar').getBoundingClientRect().top })""")
-        check('Suche: Platzhalter «Rezepte suchen», volle Breite, eigene Zeile', st['ph'] == 'Rezepte suchen' and st['fw'] >= st['cw'] - 40 and st['barTop'] > st['searchTop'] + 40, str(st))
+        check('Suche: Platzhalter «Rezepte suchen», volle Breite, eigene Zeile', st['ph'] == 'Rezepte suchen' and st['fw'] >= st['cw'] - 70 and st['barTop'] > st['searchTop'] + 40, str(st))
         check('Alle/Favoriten: «Alle» gewählt, Filter-Schaltfläche heisst «Filter», keine Chip-Leiste, keine Zusammenfassung', st['seg'] == ['Alle:true', 'Favoriten:false'] and st['fb'] == 'Filter' and st['chips'] == 0 and not st['summary'], str(st))
         hh = await ev(HEAD_RECT)
-        check('Kopf belegt höchstens 40 Prozent der Höhe (390x844)', hh[2] <= 0.40 * 844, str(hh))
+        check('Kopf belegt höchstens 40 Prozent der Höhe (820x700)', hh[2] <= 0.40 * 700, str(hh))
         rl = await ev("() => document.querySelector('.result-line').textContent.trim()")
         check('Trefferzeile zeigt Anzahl', rl == '8 Rezepte', rl)
 
@@ -70,6 +72,21 @@ async def main():
         check('Favoriten zählen nicht im Filterzähler', await ev("() => document.querySelector('.filter-btn').textContent.trim()") == 'Filter')
         await page.click('.seg-btn[data-id="all"]'); await page.wait_for_timeout(200)
         check('Alle: gesamte Sammlung', await ev(COUNT) == 8)
+
+        # ---------- A2. Handy: Startseite als Liste (Auswahl «Alle Rezepte», Filter, Zeile mit Anzahl und Sortierung) ----------
+        b2, ctx2 = await open_ctx(p, 390, 844, 'reduce'); pg2 = await ctx2.new_page(); ev2 = pg2.evaluate
+        await goto(pg2); await pg2.evaluate(open(SEED_PATH).read()); await pg2.wait_for_timeout(300); await ev2(EXTRA); await pg2.wait_for_timeout(200)
+        await ev2("() => { resetExtraFilters(); state.query=''; state.favOnly=false; state.modal=null; state.view='home'; render(); window.scrollTo(0,0); }"); await pg2.wait_for_timeout(250)
+        st2 = await ev2("""() => ({ ph: document.getElementById('searchInput').placeholder, fw: Math.round(document.querySelector('.search-field').getBoundingClientRect().width), cw: Math.round(document.querySelector('.home-head-body').getBoundingClientRect().width),
+          sel: document.getElementById('viewSelect').value, opts: Array.from(document.querySelectorAll('#viewSelect option')).map(o => o.textContent.trim()), seg: document.querySelectorAll('.seg-btn').length, fb: document.querySelector('.filter-btn').textContent.trim(), chips: document.querySelectorAll('.chip').length,
+          rl: document.querySelector('.result-line').textContent.trim(), searchTop: document.querySelector('.search-field').getBoundingClientRect().top, barTop: document.querySelector('.filter-bar').getBoundingClientRect().top, hh: Math.round(document.querySelector('.home-head').getBoundingClientRect().height) })""")
+        check('Handy: Suche «Rezepte suchen …» in voller Breite, darunter «Alle Rezepte» und «Filter»', st2['ph'] == 'Rezepte suchen …' and st2['fw'] >= st2['cw'] - 40 and st2['barTop'] > st2['searchTop'] + 40 and st2['sel'] == 'all' and st2['opts'] == ['Alle Rezepte', 'Favoriten'] and st2['seg'] == 0 and st2['fb'] == 'Filter' and st2['chips'] == 0, str(st2))
+        check('Handy: Kopf belegt höchstens 40 Prozent der Höhe (390x844) und Zeile zeigt «8 Rezepte»', st2['hh'] <= 0.40 * 844 and st2['rl'] == '8 Rezepte', str(st2))
+        await pg2.select_option('#viewSelect', 'fav'); await pg2.wait_for_timeout(250)
+        check('Handy: Favoriten wählbar, zählen nicht im Filterzähler', await ev2(COUNT) == 4 and await ev2("() => document.querySelector('.filter-btn').textContent.trim()") == 'Filter')
+        await pg2.select_option('#viewSelect', 'all'); await pg2.wait_for_timeout(250)
+        check('Handy: «Alle Rezepte» zeigt die gesamte Sammlung', await ev2(COUNT) == 8)
+        await b2.close()
 
         # ---------- B. Fenster, Entwurf, Zähler ----------
         await open_sheet(page)
