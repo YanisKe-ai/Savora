@@ -77,6 +77,17 @@ function parseQuantity(raw, unit) {
   return { kind: 'invalid', text: s };
 }
 function qtyFromIngredient(ing) { return parseQuantity(ing ? ing.amount : null, ing ? ing.unit : ''); }
+/* Gemeinsame Klassifikation einer Zutat fuer ALLE Zusammenfassungen (Import, Kontrolle, Editor, Einkauf, PDF):
+   exact | range | missing | qualitative | ambiguous | invalid. Eine fehlende Menge bei "Salz nach Geschmack" oder
+   "etwas Pfeffer" ist qualitativ, nicht fehlend. Ein Bereich ("1-2 EL") ist nie fehlend. */
+const QTY_NAME_QUALITATIVE_RE = /(^|[\s,(])(nach (geschmack|belieben|bedarf)|etwas|ein wenig|ein bisschen|einige|ein paar|zum (bestreuen|servieren|garnieren|anbraten|braten|bestreichen|anrichten))(?=[\s,).]|$)/i;
+function qtyIngredientStatus(ing) {
+  const q = qtyFromIngredient(ing);
+  if (q.kind === 'missing' && ing && QTY_NAME_QUALITATIVE_RE.test(String(ing.name == null ? '' : ing.name))) return 'qualitative';
+  return q.kind;
+}
+// Zutaten, bei denen wirklich keine Mengenangabe vorliegt (qualitative, mehrdeutige und Bereichs-Angaben zaehlen nicht)
+function qtyMissingIngredients(list) { return (list || []).filter(i => qtyIngredientStatus(i) === 'missing'); }
 function qtyIsNumeric(q) { return !!q && (q.kind === 'exact' || q.kind === 'range'); }
 
 /* Skalieren: beide Grenzen, immer vom Originalwert (nie von einem schon skalierten Wert) */

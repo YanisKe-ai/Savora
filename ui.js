@@ -81,14 +81,19 @@ function showUndoToast(msg, onUndo, onExpire) {
 function collectFormData() {
   const r = state.editingRecipe;
   r.title = document.getElementById('f-title').value.trim() || 'Ohne Titel';
-  r.servings = parseInt(document.getElementById('f-servings').value) || 0;   // leer = Ausbeute unbekannt (nie still 1)
-  r.timeMinutes = parseInt(document.getElementById('f-time').value) || 0;
+  // leer = unbekannt (0). Ungueltige Eingaben (negativ, Dezimal, zu gross) werden hier nie still uebernommen, gerundet oder begrenzt:
+  // das Feld wird beim Speichern erklaert (formNumberErrors), bis dahin bleibt der bisherige Wert im Modell.
+  const numField = (elId, key, prev) => { const f = FORM_NUMBER_FIELDS.find(x => x.id === elId); const el = document.getElementById(elId); if (!el) return prev; if (formNumberProblem(f, el.value, !!(el.validity && el.validity.badInput))) return prev; const s = String(el.value).trim(); return s === '' ? 0 : Number(s); };
+  r.servings = numField('f-servings', 'servings', r.servings || 0);
+  r.timeMinutes = numField('f-time', 'timeMinutes', r.timeMinutes || 0);
   r.difficulty = document.getElementById('f-difficulty').value;
   // Weitere Zeitangaben sind optional und additiv: leer = unbekannt (Feld wird entfernt, nichts erfunden)
   [['f-prep', 'prepMinutes'], ['f-rest', 'restMinutes'], ['f-cook', 'cookMinutes']].forEach(([elId, key]) => {
     const el = document.getElementById(elId);
     if (!el) return;
-    const v = parseInt(el.value, 10);
+    const f = FORM_NUMBER_FIELDS.find(x => x.id === elId);
+    if (formNumberProblem(f, el.value, !!(el.validity && el.validity.badInput))) return;   // ungueltig: bisheriger Wert bleibt, das Feld wird beim Speichern erklaert
+    const v = Number(String(el.value).trim());
     if (v > 0) r[key] = v; else delete r[key];
   });
   r.notes = document.getElementById('f-notes').value;
@@ -282,7 +287,7 @@ function bindEvents() {
         state.editingRecipe.image = null;
       } catch (err) {
         const quota = err && err.name === 'QuotaExceededError';
-        showToast(quota ? 'Foto nicht gespeichert: Der Speicher des Geräts ist voll.' : 'Dieses Foto kann nicht gelesen werden. Wähle ein Bild im Format JPEG, PNG oder WebP.', 'error');
+        showToast(quota ? 'Foto nicht gespeichert: Der Speicher des Geräts ist voll.' : (err && err.userMessage) || 'Dieses Foto kann nicht gelesen werden. Wähle ein Bild im Format JPEG, PNG oder WebP.', 'error');
       }
       render();
     });
@@ -376,6 +381,8 @@ async function dispatchAction(action, id, el, e) {
         }
         break;
       }
+      // Ausbeute und Zeiten pruefen, bevor irgendetwas gespeichert wird: Fehler am Feld erklaeren, Fokus aufs erste fehlerhafte Feld
+      if (formShowNumberErrors(formNumberErrors())) break;
       state.savingRecipe = true;
       try {
       const r = collectFormData();

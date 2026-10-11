@@ -16,10 +16,11 @@ const PDF_RENDER_SCALE = 3;
 const PDF_JPEG_QUALITY = 0.95;
 
 async function resolveRecipeImageDataUrl(r) {
-  if (r.image) return r.image;
-  if (r.imageId) {
+  const safeSrc = recipeSafeImage(r);
+  if (safeSrc) return safeSrc;
+  if (recipeSafeImageId(r)) {
     try {
-      const record = await dbGetImage(r.imageId);
+      const record = await dbGetImage(recipeSafeImageId(r));
       if (record && record.blob) return await blobToDataUrl(record.blob);
     } catch (e) { /* Bild wird im PDF einfach weggelassen */ }
   }
