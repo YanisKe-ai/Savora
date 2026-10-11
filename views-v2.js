@@ -58,7 +58,7 @@ function bottomNav() {
   const openCount = state.shopping.filter(i => !i.checked && !i.have).length;
   const btn = (t) => {
     const active = navTabActive(t.view);
-    const badge = t.view === 'shopping' && openCount ? `<span class="nav-badge" aria-hidden="true">${openCount > 99 ? '99+' : openCount}</span>` : '';
+    const badge = t.view === 'shopping' && openCount ? `<span class="nav-badge" aria-hidden="true">${openCount > 99 ? '99+' : tickerHtml(openCount, 'nav-badge', 'session')}</span>` : '';
     return `<button type="button" data-action="nav-tab" data-view="${t.view}" class="${t.cls || ''} ${active ? 'active' : ''}" ${active ? 'aria-current="page"' : ''}>
       <span class="nav-icon" aria-hidden="true">${t.icon}${badge}</span><span class="nav-label">${t.label}</span>
     </button>`;
@@ -296,11 +296,12 @@ function favButton(r, extraCls) {
 function recipeCard(r) {
   const photo = hasPhoto(r);
   const title = escapeHtml(r.title || 'Ohne Titel');
+  const titleHl = highlightHtml(r.title || 'Ohne Titel', state.query);
   return `<article class="rcard ${photo ? '' : 'rcard--text'}">
     <button type="button" class="rcard-main" data-action="open-recipe" data-id="${escapeAttr(r.id)}" aria-label="${title} öffnen">
       ${photo ? recipeImageHtml(r, 'rcard-img', 'thumb') : ''}
       <span class="rcard-body">
-        <span class="rcard-title">${title}</span>
+        <span class="rcard-title">${titleHl}</span>${searchIngredientHitHtml(r, state.query)}
         <span class="rcard-meta">${escapeHtml(recipeMetaLine(r, false))}</span>
       </span>
     </button>
@@ -312,12 +313,13 @@ function recipeRow(r, phone) {
   if (phone) {
     /* Handy-Liste: quadratisches Foto (oder ruhiger Platzhalter), Titel, Zeit nur wenn bekannt, eigener Favoritenknopf als Geschwister (kein verschachtelter Knopf) */
     const title = escapeHtml(r.title || 'Ohne Titel');
+    const titleHl = highlightHtml(r.title || 'Ohne Titel', state.query);
     const time = r.timeMinutes > 0 ? `<span class="rrow-meta rrow-meta--time">${ICONS.clock}<span>${r.timeMinutes} Min.</span></span>` : '';
     return `<article class="rrow rrow--phone">
     <button type="button" class="rrow-main" data-action="open-recipe" data-id="${escapeAttr(r.id)}" aria-label="${title} öffnen">
       ${photo ? recipeImageHtml(r, 'rrow-img', 'thumb') : `<span class="rrow-img rrow-ph" aria-hidden="true">${ICONS.bookOpen}</span>`}
       <span class="rrow-body">
-        <span class="rrow-title">${title}</span>
+        <span class="rrow-title">${titleHl}</span>${searchIngredientHitHtml(r, state.query)}
         ${time}
       </span>
     </button>
@@ -328,7 +330,7 @@ function recipeRow(r, phone) {
     <button type="button" class="rrow-main" data-action="open-recipe" data-id="${escapeAttr(r.id)}" aria-label="${escapeHtml(r.title || 'Ohne Titel')} öffnen">
       ${photo ? recipeImageHtml(r, 'rrow-img', 'thumb') : ''}
       <span class="rrow-body">
-        <span class="rrow-title">${escapeHtml(r.title || 'Ohne Titel')}</span>
+        <span class="rrow-title">${highlightHtml(r.title || 'Ohne Titel', state.query)}</span>${searchIngredientHitHtml(r, state.query)}
         <span class="rrow-meta">${escapeHtml(recipeMetaLine(r, true))}${isUncooked(r) ? ' · noch nicht gekocht' : ''}</span>
       </span>
     </button>
@@ -382,7 +384,7 @@ function homeView() {
       content = `
       <section class="home-section" aria-labelledby="all-h">
         <div class="result-row result-row--phone">
-          <h2 class="result-line" id="all-h">${n} Rezept${n === 1 ? '' : 'e'}</h2>
+          <h2 class="result-line" id="all-h">${tickerHtml(n, 'count')} Rezept${n === 1 ? '' : 'e'}</h2>
           <span class="result-dot" aria-hidden="true">·</span>
           <div class="inline-pick sort-inline">
             <span class="inline-pick-text">${escapeHtml(sortLabel)}</span>${ICONS.arrowDown}
@@ -396,7 +398,7 @@ function homeView() {
       content = `
       <section class="home-section" aria-labelledby="all-h">
         <div class="result-row">
-          <h2 class="result-line" id="all-h">${n} Rezept${n === 1 ? '' : 'e'}</h2>
+          <h2 class="result-line" id="all-h">${tickerHtml(n, 'count')} Rezept${n === 1 ? '' : 'e'}</h2>
           <label class="sort-pick"><span class="sort-pick-label">Sortierung</span>
             <select class="sort-select" id="sortSelect">${sortOptions}</select>
           </label>
@@ -514,7 +516,7 @@ function ingredientsPanel(r) {
           return `<li><button type="button" class="ing-check ${isChecked ? 'is-checked' : ''}" data-action="toggle-ingredient-check" data-id="${escapeAttr(r.id)}" data-idx="${i._index}" role="checkbox" aria-checked="${isChecked}">
             <span class="check-box" aria-hidden="true">${ICONS.check}</span>
             <span class="ing-amount">${escapeHtml(amt)}</span>
-            <span class="ing-name">${escapeHtml(i.name)}</span>
+            <span class="ing-name">${highlightHtml(i.name, state.query)}</span>
           </button></li>`;
         }).join('')}
       </ul>
