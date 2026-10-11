@@ -110,7 +110,7 @@ async def main():
         # ---------- 4. Offline-Start der neuen App, alle SHELL_ASSETS ----------
         miss = await ev("""async (a) => { const out = []; for (const u of a) { if (!(await caches.match(u))) out.push(u); } return out; }""", SHELL + DATA_ASSETS)
         check(f'Alle {len(SHELL)} SHELL_ASSETS und {len(DATA_ASSETS)} Datei-Assets (Schriften, cookbooks.js, share.js, Titelblätter) im Cache', not miss, str(miss[:5]))
-        check('Schriften dm-sans, fraunces und Skripte cookbooks.js, share.js im Cache', all(x in SHELL for x in ['./dm-sans.woff2', './fraunces.woff2', './cookbooks.js', './share.js']))
+        check('Schriften public-sans, lilita-one und Skripte cookbooks.js, share.js im Cache', all(x in SHELL for x in ['./public-sans.woff2', './lilita-one.woff2', './cookbooks.js', './share.js']))
         await ctx.set_offline(True)
         await page.reload(); await page.wait_for_function("typeof state !== 'undefined' && document.getElementById('app').children.length > 0", timeout=30000); await page.wait_for_timeout(1500)
         n = await ev("() => state.recipes.length")

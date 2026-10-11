@@ -1,16 +1,16 @@
-/* Schriften lokal (OFL, variable Schriften, nur lateinische Zeichen): DM Sans fuer die Bedienung,
-   Fraunces zurueckhaltend nur fuer Rezept- und Buchtitel. Funktioniert offline, sobald die Dateien im Cache liegen. */
+/* Schriften lokal (OFL, nur lateinische Zeichen): Public Sans (variabel) fuer die Bedienung,
+   Lilita One (nur Normalgewicht) fuer Rezept- und Buchtitel. Funktioniert offline, sobald die Dateien im Cache liegen. */
   @font-face {
-    font-family: 'DM Sans';
-    src: url('dm-sans.woff2') format('woff2');
-    font-weight: 100 1000;
+    font-family: 'Public Sans';
+    src: url('public-sans.woff2') format('woff2');
+    font-weight: 100 900;
     font-style: normal;
     font-display: swap;
   }
   @font-face {
-    font-family: 'Fraunces';
-    src: url('fraunces.woff2') format('woff2');
-    font-weight: 100 900;
+    font-family: 'Lilita One';
+    src: url('lilita-one.woff2') format('woff2');
+    font-weight: 400;
     font-style: normal;
     font-display: swap;
   }
@@ -80,11 +80,12 @@
     --shadow-soft: 0 2px 10px rgba(37,39,32,0.07);
 
     /* ============ TYPOGRAFIE ============ */
-    /* DM Sans: Navigation, Formulare, Zutaten, Einstellungen, Schaltflaechen, Seitentitel und Abschnitte.
-       Fraunces nur fuer Rezept- und Buchtitel (--font-serif). Die PDF-Vorlagen behalten ihre eigenen Schriften. */
-    --font-display: 'DM Sans', system-ui, -apple-system, 'Segoe UI', sans-serif;
-    --font-sans: 'DM Sans', system-ui, -apple-system, 'Segoe UI', sans-serif;
-    --font-serif: 'Fraunces', 'Iowan Old Style', Georgia, serif;
+    /* Public Sans: Navigation, Formulare, Zutaten, Einstellungen, Schaltflaechen, Seitentitel und Abschnitte.
+       Lilita One nur fuer Rezept- und Buchtitel (--font-serif, --font-title). Die PDF-Vorlagen behalten ihre eigenen Schriften. */
+    --font-display: 'Public Sans', system-ui, -apple-system, 'Segoe UI', sans-serif;
+    --font-sans: 'Public Sans', system-ui, -apple-system, 'Segoe UI', sans-serif;
+    --font-title: 'Lilita One', 'Public Sans', system-ui, -apple-system, 'Segoe UI', sans-serif;
+    --font-serif: var(--font-title);
     --font-pdf-display: 'Sofia Sans Extra Condensed', 'Arial Narrow', system-ui, sans-serif;
     --font-pdf-sans: 'Roboto', system-ui, -apple-system, 'Segoe UI', sans-serif;
 

@@ -100,8 +100,8 @@ function legalLicensesHtml() {
   return `
     <p class="legal-stand">Savora nutzt frei lizenzierte Schriften und Bibliotheken. Vielen Dank an die Entwicklerinnen und Entwickler.</p>
     ${legalSection('Schriften', `<ul class="legal-list">
-      ${row('DM Sans', 'SIL Open Font License 1.1', 'Bedienung und Fliesstext.')}
-      ${row('Fraunces', 'SIL Open Font License 1.1', 'Rezept- und Buchtitel.')}
+      ${row('Lilita One', 'SIL Open Font License 1.1', 'Rezept- und Buchtitel.')}
+      ${row('Public Sans', 'SIL Open Font License 1.1', 'Bedienung und Fliesstext.')}
       ${row('Archivo', 'SIL Open Font License 1.1', 'Schriftzug.')}
       ${row('Roboto', 'Apache License 2.0', 'Nur in den PDF-Vorlagen.')}
       ${row('Sofia Sans Extra Condensed', 'SIL Open Font License 1.1', 'Nur in den PDF-Vorlagen.')}
