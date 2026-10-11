@@ -5,6 +5,7 @@ const state = {
   activeRecipeId: null,
   editingRecipe: null,
   query: '',
+  searchOpen: false,   // Handy: Suchfeld geöffnet (nur Anzeige, wird nicht gespeichert)
   activeTag: null,
   favOnly: false,
   cookStepIndex: 0,

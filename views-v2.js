@@ -410,10 +410,20 @@ function homeView() {
     }
   }
 
-  const filterBtn = `<button type="button" class="filter-btn ${filterCount ? 'is-active' : ''}" data-action="open-filter-sheet" aria-haspopup="dialog">${ICONS.sliders}<span class="filter-btn-text">Filter${filterCount ? ' · ' + filterCount : ''}</span></button>`;
+  const filterBtn = `<button type="button" class="filter-btn ${filterCount ? 'is-active' : ''}" ${phone && state.searchOpen ? 'inert' : ''} data-action="open-filter-sheet" aria-haspopup="dialog">${ICONS.sliders}<span class="filter-btn-text">Filter${filterCount ? ' · ' + filterCount : ''}</span></button>`;
+  /* Handy: Suche als runder Knopf neben «Filter»; geoeffnet liegt das Feld ueber der Zeile (kein Springen der Liste), die Zeile dahinter ist inert */
+  const searchOpen = !!state.searchOpen, searchEnter = !!state.searchEnter; state.searchEnter = false;
+  const hasQuery = !!state.query.trim();
+  const searchBtn = `<button type="button" class="search-btn ${hasQuery ? 'is-active' : ''}" id="searchBtn" data-action="open-search" aria-label="Suchen" aria-expanded="${searchOpen}" aria-controls="searchPop" ${searchOpen ? 'inert' : ''}>${ICONS.search}</button>`;
+  const searchPop = searchOpen ? `<div class="search-pop ${searchEnter ? 'is-entering' : ''}" id="searchPop" role="search">
+      ${ICONS.search}
+      <label for="searchInput" class="sr-only">Rezepte suchen</label>
+      <input class="search-input" id="searchInput" type="search" enterkeyhint="search" placeholder="Rezepte suchen …" value="${escapeHtml(state.query)}" autocomplete="off">
+      <button type="button" class="search-close" data-action="close-search" data-id="${hasQuery ? 'clear' : 'keep'}" aria-label="${hasQuery ? 'Suche löschen und schliessen' : 'Suche schliessen'}">${ICONS.x}</button>
+    </div>` : '';
   const filterBar = !state.recipes.length ? '' : (phone
     ? `<div class="filter-bar filter-bar--phone">
-          <div class="inline-pick view-pick">
+          <div class="inline-pick view-pick" ${searchOpen ? 'inert' : ''}>
             <span class="inline-pick-text">${favOnly ? 'Favoriten' : 'Alle Rezepte'}</span>${ICONS.arrowDown}
             <select class="inline-pick-select" id="viewSelect" aria-label="Anzeige">
               <option value="all" ${favOnly ? '' : 'selected'}>Alle Rezepte</option>
@@ -421,6 +431,8 @@ function homeView() {
             </select>
           </div>
           ${filterBtn}
+          ${searchBtn}
+          ${searchPop}
         </div>`
     : `<div class="filter-bar">
           <div class="seg" role="group" aria-label="Anzeige">
@@ -435,11 +447,11 @@ function homeView() {
       ${phone ? topbar('', { cls: 'topbar--home topbar--center' }) : topbar('', { cls: 'topbar--home', actions: `<button class="round-btn round-btn--accent" data-action="open-add-menu" aria-label="Rezept hinzufügen">${ICONS.plus}</button>` })}
       <section class="home-head-body" aria-label="Suche und Filter">
         ${phone ? '<h1 class="sr-only">Deine Rezepte</h1>' : pageTitle('Deine Rezepte')}
-        <div class="search-field">
+        ${phone ? '' : `<div class="search-field">
           ${ICONS.search}
           <label for="searchInput" class="sr-only">Rezepte suchen</label>
           <input class="search-input" id="searchInput" type="search" enterkeyhint="search" placeholder="${phone ? 'Rezepte suchen …' : 'Rezepte suchen'}" value="${escapeHtml(state.query)}" autocomplete="off">
-        </div>
+        </div>`}
         ${filterBar}
         ${filterCount ? `<div class="filter-summary">
           <p class="filter-summary-text"><span class="sr-only">Aktive Filter: </span>${escapeHtml(summary)}</p>

@@ -82,7 +82,7 @@ async def main():
                 bg = await ev("() => [getComputedStyle(document.querySelector('.home-head')).backgroundColor, getComputedStyle(document.body).backgroundColor]")
                 check(tag + 'Kopf hat den vollen Seitenhintergrund (var(--bg))', bg[0] == bg[1] and 'rgba(0, 0, 0, 0)' not in bg[0], str(bg))
                 parts = await ev("""() => { const hd = document.querySelector('.home-head').getBoundingClientRect(); const inside = s => { const e = document.querySelector(s); if (!e) return null; const r = e.getBoundingClientRect(); return r.top >= hd.top - 0.5 && r.bottom <= hd.bottom + 0.5; };
-                    return { brand: inside('.home-head .topbar'), plus: inside('[data-action="open-add-menu"]'), gear: inside('.icon-btn--settings'), title: inside('.page-title'), search: inside('.search-input'), strip: inside('.filter-bar'), toggle: inside('.filter-btn'),
+                    return { brand: inside('.home-head .topbar'), plus: inside('[data-action="open-add-menu"]'), gear: inside('.icon-btn--settings'), title: inside('.page-title'), search: inside('.search-input, #searchBtn'), strip: inside('.filter-bar'), toggle: inside('.filter-btn'),
                       today: document.querySelector('.home-head .today-planned, .home-head .recent-title') ? 'im Kopf' : 'ok', nudgeInHead: !!document.querySelector('.home-head .nudge-card') }; }""")
                 # Neu (Startseite als Liste): kein Zahnrad mehr (Einstellungen ueber «Mehr»); Handy ohne Plus (Aktionsknopf unten) und ohne sichtbaren Seitentitel
                 need = ['brand', 'search', 'strip', 'toggle'] if w < 768 else ['brand', 'plus', 'title', 'search', 'strip', 'toggle']
@@ -119,14 +119,14 @@ async def main():
             # Fokus im Suchfeld
             await ev("() => { state.view = 'home'; render(); window.scrollTo(0, 300); }"); await page.wait_for_timeout(300)
             hb0 = await ev(HEAD_RECT)
-            await page.click('#searchInput'); await page.keyboard.type('Car', delay=60); await page.wait_for_timeout(400)
+            await open_search(page); await page.click('#searchInput'); await page.keyboard.type('Car', delay=60); await page.wait_for_timeout(400)
             st = await ev("() => ({ id: document.activeElement.id, v: document.activeElement.value })")
             hb1 = await ev(HEAD_RECT)
             check(f'{w}x{h}: Fokus bleibt beim Tippen im Suchfeld, Text vollständig', st['id'] == 'searchInput' and st['v'] == 'Car', str(st))
             check(f'{w}x{h}: Kopf bewegt sich beim Tippen nicht', hb0 == hb1, f'{hb0} -> {hb1}')
             # Tastatur: ein per Tab erreichtes Rezept liegt nie hinter dem festen Kopf
             await to_top(page, "state.query = ''; state.view = 'home'")
-            await page.focus('#searchInput')
+            await open_search(page); await page.focus('#searchInput')
             seen = []
             for i in range(14):
                 await page.keyboard.press('Tab'); await page.wait_for_timeout(120)

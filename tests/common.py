@@ -73,3 +73,8 @@ async def overflow_info(page):
     """Nennt die Elemente, die rechts ueber den Bildschirm ragen (Diagnose fuer Fehler, die nur in der CI-Umgebung auftreten)."""
     try: return await page.evaluate(OVERFLOW_JS)
     except Exception as e: return [str(e)]
+
+async def open_search(page):
+    """Handy: Suche ist ein runder Knopf («Suchen»); oeffnet das Feld, falls es noch zu ist. Auf Tablet/Desktop ist das Feld immer da."""
+    if not await page.evaluate("() => !!document.getElementById('searchInput')"):
+        await page.click('#searchBtn'); await page.wait_for_selector('#searchInput')

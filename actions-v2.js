@@ -178,6 +178,21 @@ async function handleActionV2(action, id, el, e) {
       return false;
 
     /* ----- Uebersicht ----- */
+    case 'open-search': {
+      state.searchOpen = true; state.searchEnter = true;
+      render();
+      const input = document.getElementById('searchInput');
+      if (input) focusWithoutScroll(input);
+      return true;
+    }
+    case 'close-search': {
+      state.searchOpen = false;
+      if (id === 'clear') state.query = '';
+      render();
+      const btn = document.getElementById('searchBtn');
+      if (btn) focusWithoutScroll(btn);
+      return true;
+    }
     case 'focus-search': {
       const input = document.getElementById('searchInput');
       if (!input) return true;
