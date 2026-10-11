@@ -125,7 +125,8 @@ async def main():
             check(f'{label}: genau eine sichtbare Wortmarke im Kopf bzw. in der Seitenleiste', len(marks) == 1, str(marks))
             if label == 'Desktop': check('Desktop: Seitenleistenmarke besteht nur aus der Wortmarke', r['navChildren'] == ['svg.wordmark nav-wordmark'], str(r['navChildren']))
             mk = marks[0]
-            lo, hi = (112, 144) if label == 'Telefon' else (140, 168)
+            # seit 0.70.0: Telefon-Wortmarke 168x56 px (vorher 112 bis 144 px)
+            lo, hi = (160, 176) if label == 'Telefon' else (140, 168)
             check(f'{label}: Wortmarke unverzerrt (3:1), kein object-fit cover, keine Neigung, Breite {lo} bis {hi} px', abs(mk['ratio'] - 3) < 0.03 and mk['fit'] != 'cover' and mk['tr'] == 'none' and mk['vb'] == '0 0 1200 400' and mk['par'] != 'none' and lo <= mk['w'] <= hi, str(mk))
             await browser.close()
 

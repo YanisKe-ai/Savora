@@ -134,7 +134,8 @@ async def main():
         check('Kochbücher: Position beim Zurückkehren gemerkt', abs(await sy(page) - ycb) <= 4 or ycb < 5, f'{ycb} -> {await sy(page)}')
 
         # ---------- 4. Dialoge ----------
-        await go(page, 'home')
+        # seit 0.70.0 (Handy): Solange das Suchfeld offen ist, ist die Zeile mit «Filter» inert (Suchfeld liegt darueber). Der Suchtest oben laesst es offen, also hier zuerst schliessen.
+        await go(page, 'home', "state.searchOpen = false; state.query = '';")
         await page.focus('[data-action="open-filter-sheet"]'); await page.keyboard.press('Enter'); await settle(page, 500)
         d = await ev("""() => { const s = document.querySelector('.modal-sheet'); return { role: s.getAttribute('role'), modal: s.getAttribute('aria-modal'), lab: !!document.getElementById(s.getAttribute('aria-labelledby')),
           inside: s.contains(document.activeElement) }; }""")

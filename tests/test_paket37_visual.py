@@ -80,6 +80,18 @@ JS_CONTRAST = """(pairs) => {
   return res;
 }"""
 
+# seit 0.70.0 (Handy): Zeile unter dem Titel = Auswahl «Alle Rezepte» | Filter | Suchknopf (Suchfeld nur geoeffnet, dann absolut darueber)
+JS_PHONE_STRIP = """() => {
+  const bar = document.querySelector('.filter-bar--phone'); if (!bar) return null;
+  const pick = bar.querySelector('.view-pick'), sel = bar.querySelector('select#viewSelect'), f = bar.querySelector('[data-action="open-filter-sheet"]'), sb = bar.querySelector('#searchBtn');
+  if (!pick || !f || !sb) return { sel: !!sel, missing: true };
+  const r = e => e.getBoundingClientRect(), t = e => Math.round(r(e).top), txt = f.querySelector('.filter-btn-text');
+  const tops = [pick, f, sb].map(t);
+  return { sel: !!sel && sel.options.length === 2, pickText: pick.querySelector('.inline-pick-text').textContent.trim(), searchLabel: sb.getAttribute('aria-label'),
+    order: r(pick).right <= r(f).left + 1 && r(f).right <= r(sb).left + 1, row: Math.max(...tops) - Math.min(...tops),
+    filterW: Math.round(r(f).width), filterTextVisible: !!txt && r(txt).width > 2, vw: innerWidth };
+}"""
+
 async def measure_contrast(page, pairs):
     return await page.evaluate(JS_CONTRAST, pairs)
 
@@ -127,7 +139,13 @@ async def main():
                 check(tag + 'Startseite: genau eine Suche (Handy: runder Knopf «Suchen» neben dem Filter, sonst ein Suchfeld), kein Lupen-Knopf oben', ((home['search'] == 0 and home['fields'] == 0 and home['btn']) if w < 768 else (home['search'] == 1 and home['fields'] == 1)) and not home['lupe'], str(home))
                 check(tag + 'Startseite: kein Zahnrad mehr in der Kopfzeile, Einstellungen ueber «Mehr»/«Einstellungen» in der Navigation', not home['gear'] and home['more'] == ('Mehr' if w < 900 else 'Einstellungen'), str(home))
                 check(tag + 'Startseite: kein Zwischentitel "Alle Rezepte", kein "Zuletzt bearbeitet"', not home['allTitle'] and not home['recent'], str(home))
-                check(tag + 'Startseite: Alle/Favoriten und Filter-Schaltfläche in einer Zeile (ab 375 px; schmaler darf umbrechen)', home['stripRow'] is not None and (w < 375 or home['stripRow'] <= 6), str(home['stripRow']))
+                if w < 768:
+                    # seit 0.70.0 (Handy): statt Segment «Alle/Favoriten» eine Auswahl «Alle Rezepte» (select #viewSelect in .view-pick) links, Filter-Knopf und Suchknopf rechts davon, alles in einer Zeile
+                    strip = await page.evaluate(JS_PHONE_STRIP)
+                    ok_strip = strip is not None and strip['sel'] and strip['pickText'] == 'Alle Rezepte' and strip['searchLabel'] == 'Suchen' and strip['order'] and strip['row'] <= 6
+                    check(tag + 'Startseite (Handy, seit 0.70.0): Auswahl «Alle Rezepte» links, Filter-Knopf rechts, Suchknopf daneben (aria-label «Suchen»), alles in einer Zeile', ok_strip, str(strip))
+                else:
+                    check(tag + 'Startseite: Alle/Favoriten und Filter-Schaltfläche in einer Zeile (Tablet/Desktop)', home['stripRow'] is not None and home['stripRow'] <= 6, str(home['stripRow']))
                 check(tag + 'Startseite: erstes Rezept beginnt frueh', home['firstRecipe'] < (520 if w < 600 else 480), str(home['firstRecipe']))
                 if w >= 768:
                     # Rezept ohne Foto: kein Buchstaben-Platzhalter, keine leere Bildflaeche
@@ -205,6 +223,16 @@ async def main():
                 await page.evaluate("document.documentElement.style.fontSize = ''")
                 check(tag + 'Keine Seitenfehler', not errs, str(errs[:3]))
                 await ctx.close()
+
+        # seit 0.70.0 bei 320 px: «Filter» nur als Symbol, damit «Alle Rezepte» in eine Zeile passt; Zeile bleibt eine Zeile, kein Ueberlauf
+        ctx = await browser.new_context(viewport={'width': 320, 'height': 700}, reduced_motion='reduce', timezone_id='UTC')
+        await ctx.add_init_script(NO_SW + " try{localStorage.setItem('savora-splash-seen','1')}catch(e){}")
+        page = await ctx.new_page(); await goto(page); await page.evaluate(open(SEED_PATH).read()); await page.wait_for_timeout(400)
+        await page.evaluate("() => { state.view = 'home'; render(); }"); await page.wait_for_timeout(450)
+        st = await page.evaluate(JS_PHONE_STRIP)
+        ov = await page.evaluate("() => [document.documentElement.scrollWidth, window.innerWidth]")
+        check('Startseite 320 px (seit 0.70.0): Auswahl, Filter nur als Symbol (44 px), Suchknopf in einer Zeile, kein Ueberlauf', st is not None and st.get('row', 99) <= 6 and st.get('order') and not st.get('filterTextVisible') and st.get('filterW') == 44 and st.get('pickText') == 'Alle Rezepte' and ov[0] <= ov[1] + 1, str(st) + str(ov))
+        await ctx.close()
 
         # Bewegung: reduziert und normal
         for reduced in ('reduce', 'no-preference'):
