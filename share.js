@@ -84,7 +84,7 @@ function shareHandleInviteLink() {
     sessionStorage.setItem(SHARE_INVITE_KEY, code.toUpperCase());
     setTimeout(() => {
       if (cloudSignedIn()) { state.view = 'settings-share'; render(); shareRefresh(); }
-      else showToast('Melde dich an (Einstellungen, Auf mehreren Geräten), um die Einladung anzunehmen.', 'info');
+      else showToast('Melde dich an (Einstellungen, Konto und Sicherung), um die Einladung anzunehmen.', 'info');
     }, 800);
   } catch (e) { /* ungueltige Adresse: ignorieren */ }
 }

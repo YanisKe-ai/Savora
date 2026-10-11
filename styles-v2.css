@@ -1849,3 +1849,13 @@ input[type="date"] { min-height: 3rem; }
 
 /* Feinschliff (Paket 37): Umrechnungs-Reiter auf sehr schmalen Bildschirmen in zwei Reihen (kein Seitwaerts-Scrollen, auch bei breiteren Schriften) */
 @media (max-width: 359px) { .uc-tabs { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+
+/* Paket 38: Einstellungen entschlackt. Zusammengelegte Seiten haben Abschnittskopf mit Überschrift und einem Satz.
+   Zeilen der Hauptliste dürfen umbrechen (lange Zusammenfassung wie «Wie dein Gerät, Gramm und Milliliter»), nichts wird abgeschnitten. */
+.settings-section-head { margin: 2rem 0 0.75rem 0.25rem; min-width: 0; }
+.settings-section-head:first-child { margin-top: 0.5rem; }
+.settings-section-h { font-family: var(--font-display); font-size: 1.25rem; font-weight: 700; line-height: 1.3; color: var(--text); margin: 0 0 0.25rem; overflow-wrap: anywhere; }
+.settings-section-lead { font-size: 0.9375rem; line-height: 1.5; color: var(--text-soft); margin: 0; overflow-wrap: anywhere; }
+.settings-row { padding-top: 0.5rem; padding-bottom: 0.5rem; }
+.settings-row-title { min-width: 0; flex: 1 1 7rem; overflow-wrap: anywhere; }
+.settings-row-summary { min-width: 0; max-width: 55%; flex: 0 1 auto; }
