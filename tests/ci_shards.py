@@ -34,9 +34,9 @@ def teile():
         'breite-1': f"SAVORA_ADAPT_PART=1 {py} paket37_adapt",
         'breite-2': f"SAVORA_ADAPT_PART=2 {py} paket37_adapt",
         'layout': f"SAVORA_P42_ONLY=layout {py} paket42",
-        'allgemein-1': f"{py} migration {' '.join(g[0])} --parallel 3",
-        'allgemein-2': f"{py} migration {' '.join(g[1])} --parallel 3",
-        'allgemein-3': f"{py} migration {' '.join(g[2])} --parallel 3",
+        'allgemein-1': f"{py} migration {' '.join(g[0])} --parallel 2",
+        'allgemein-2': f"{py} migration {' '.join(g[1])} --parallel 2",
+        'allgemein-3': f"{py} migration {' '.join(g[2])} --parallel 2",
     }
 def pruefen():
     g = gruppen(); ziel = [t for t in alle() if t != 'migration']

@@ -13,7 +13,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 ALL = ['migration', 'flows', 'sync', 'pruefung', 'visual', 'offline', 'native', 'paket1', 'paket2', 'paket3', 'paket4', 'a11y', 'theme', 'paket6', 'paket7', 'paket8', 'paket9', 'import', 'monkey', 'pdfpreview', 'units', 'shell', 'photoscan', 'restore', 'paket19', 'paket20', 'nutrition', 'export', 'recipecheck', 'paket24', 'nutrition_import', 'paket27', 'paket30', 'paket31', 'paket33', 'nutrition_range', 'recipe_json', 'paket34', 'paket35', 'paket36', 'paket37_data', 'paket37_import', 'paket37_settings', 'paket37_plan', 'paket37_books', 'paket37_visual', 'paket37_adapt','paket37_interaction', 'paket39', 'paket43', 'paket44', 'startseite_liste', 'paket42', 'audit_b', 'audit_a', 'audit_c', 'audit_nachtrag', 'naehrwerte_klammern', 'teilen_ui', 'titel_suche', 'feinschliff', 'laptop_platz', 'ansicht_umschalter', 'rezepte_zeile', 'heute_schalter', 'ohne_schwarz', 'markers']
 FIRST = ['migration', 'flows']                      # abhaengig: teilen sich den Ausgabeordner
 MOCK_CHAIN = ['sync', 'paket36']                    # beide nutzen den Test-Datenbank-Nachbau auf Port 8796: nie gleichzeitig
-LAST = ['monkey', 'paket37_interaction']            # zeitempfindlich (Millisekunden-Messungen): allein laufen lassen
+LAST = ['monkey', 'paket37_interaction', 'paket39', 'paket37_plan']            # zeitempfindlich (Millisekunden-Messungen): allein laufen lassen
 QUICK_ENV = {'paket37_adapt': {'SAVORA_ADAPT_QUICK': '1'}}
 BASE_PORT = int(os.environ.get("SAVORA_BASE_PORT", "8900"))
 
