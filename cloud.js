@@ -281,6 +281,10 @@ async function cloudApplyRemote(row) {
     if (row.kind === 'recipe') {
       if (row.deleted) await cloudOrig.dbDelete(row.id);
       else {
+        // Daten aus der Cloud sind von aussen: erst pruefen (Typen, IDs, Bildquelle), ungueltige Rezepte nicht uebernehmen
+        const checked = validateRecipe(row.data);
+        if (!checked.ok) { console.warn('Cloud-Rezept nicht uebernommen', row.id, checked.errors.slice(0, 3)); return false; }
+        row.data = checked.recipe;
         await cloudOrig.dbPut(row.data);
         if (row.data && row.data.imageId && !(await dbGetImage(row.data.imageId))) {
           try { await cloudFetchImage(row.data.imageId); } catch (e) { /* Bild folgt beim naechsten Abgleich */ }

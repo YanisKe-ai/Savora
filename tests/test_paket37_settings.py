@@ -28,28 +28,28 @@ async def main():
         titles = [g['t'] for g in groups]
         check('Gruppen in Reihenfolge: Deine Daten, Anzeige & Einheiten, Hilfe & Infos', [t.lower() for t in titles] == ['deine daten', 'anzeige & einheiten', 'hilfe & infos'], str(titles))
         rows = [[r['title'] for r in g['rows']] for g in groups]
-        check('Deine Daten: Konto und Sicherung, Freunde & Rezepte senden', rows[0] == ['Konto und Sicherung', 'Freunde & Rezepte senden'], str(rows[0]))
-        check('Anzeige & Einheiten: Anzeige, Masseinheiten-Rechner', rows[1] == ['Anzeige', 'Masseinheiten-Rechner'], str(rows[1]))
+        check('Deine Daten: Konto und Sicherung, Rezepte mit anderen teilen (Audit D02)', rows[0] == ['Konto und Sicherung', 'Rezepte mit anderen teilen'], str(rows[0]))
+        check('Anzeige & Einheiten: Darstellung und Einheiten, Masseinheiten-Rechner (Audit D02)', rows[1] == ['Darstellung und Einheiten', 'Masseinheiten-Rechner'], str(rows[1]))
         check('Hilfe & Infos: Hilfe erhalten, Über Savora', rows[2] == ['Hilfe erhalten', 'Über Savora'], str(rows[2]))
         check('Hauptliste hat genau 6 Zeilen', sum(len(r) for r in rows) == 6, str(rows))
         sums = {r['title']: r['sum'] for g in groups for r in g['rows']}
         check('Ohne Anmeldung steht «Nicht angemeldet»', sums['Konto und Sicherung'] == 'Nicht angemeldet', str(sums))
         txt = await main_text()
-        for old in ['Kochbuch gestalten und als PDF', 'Kochbuch & Profil', 'Synchronisation', 'Hilfe & Feedback', 'Darstellung', 'Imperial', 'Metrisch', 'Datenschutz', 'Nutzungsbedingungen', 'Sicherungskopie', 'Auf mehreren Geräten']:
+        for old in ['Kochbuch gestalten und als PDF', 'Kochbuch & Profil', 'Synchronisation', 'Hilfe & Feedback', 'Imperial', 'Metrisch', 'Datenschutz', 'Nutzungsbedingungen', 'Sicherungskopie', 'Auf mehreren Geräten']:
             check(f'Einstellungen ohne altes Wort «{old}»', old not in txt)
         check('Rechner-Zeile ruft open-unitconverter auf', await ev("document.querySelector('.settings-row[data-action=\"open-unitconverter\"]') !== null"))
         check('Seitentitel bleibt «Einstellungen»', await ev("document.querySelector('h1, .page-title, .topbar-title') && document.body.innerText.includes('Einstellungen')"))
 
         # 2 Anzeige: eine Seite mit drei Abschnitten
         await ev("() => { state.theme = 'auto'; state.unitSystem = 'metric'; state.showNutrition = true; }"); await go('settings')
-        check('Anzeige-Zusammenfassung «Wie dein Gerät, Gramm und Milliliter»', sums_now := await ev("Array.from(document.querySelectorAll('.settings-row')).find(r => r.textContent.includes('Anzeige')).querySelector('.settings-row-summary').textContent") == 'Wie dein Gerät, Gramm und Milliliter', sums_now)
+        check('Anzeige-Zusammenfassung «Wie dein Gerät, Gramm und Milliliter»', sums_now := await ev("Array.from(document.querySelectorAll('.settings-row')).find(r => r.textContent.includes('Darstellung und Einheiten')).querySelector('.settings-row-summary').textContent") == 'Wie dein Gerät, Gramm und Milliliter', sums_now)
         await go('settings-display'); t = await main_text()
         heads = await ev("Array.from(document.querySelectorAll('main h2')).map(h => h.textContent.trim())")
         check('Anzeige: Abschnitte Design, Mengenangaben, Nährwerte', heads == ['Helles oder dunkles Design', 'Mengenangaben', 'Nährwerte'], str(heads))
         check('Anzeige: «Wie dein Gerät» statt «System»', 'Wie dein Gerät' in t and 'System' not in t, t[:200])
         check('Anzeige: Mengenangaben «Gramm und Milliliter» und «US-Masse (Cups, Unzen)»', 'Gramm und Milliliter' in t and 'US-Masse (Cups, Unzen)' in t and 'Imperial' not in t and 'Metrisch' not in t, t[:400])
         check('Anzeige: Nährwerte-Satz', 'Geschätzte Werte. Je nach Zutaten und Mengen können sie abweichen.' in t)
-        check('Anzeige: Seitentitel «Anzeige»', await ev("document.querySelector('.topbar-title, .topbar h1, header') && document.querySelector('header, .topbar').innerText.includes('Anzeige')"))
+        check('Darstellung: Seitentitel «Darstellung und Einheiten»', await ev("document.querySelector('.topbar-title, .topbar h1, header') && document.querySelector('header, .topbar').innerText.includes('Darstellung und Einheiten')"))
         for v in ('settings-units', 'settings-nutrition'):
             await go(v); check(f'{v} zeigt dieselbe Anzeige-Seite', await ev("Array.from(document.querySelectorAll('main h2')).map(h => h.textContent.trim()).join('|')") == '|'.join(heads))
         await go('settings-display')

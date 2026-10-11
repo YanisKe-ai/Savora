@@ -16,7 +16,7 @@ def check(name, cond, info=''):
     print(('OK   ' if cond else 'FEHL ') + name, info)
     if not cond: FAIL.append(name)
 
-BASIS_COMMIT = '8dab7841d390bec92d215461aa276b40079a34e6'   # Stand direkt vor Paket 42 (Marke, Filter, Wochenplan, Startseite sind darin enthalten)
+BASIS_COMMIT = '9a083fe11ec9c13fb43e42382098df63788cee11'   # Stand 0.68.0 (Audit-Paket: Texte, Haken, Mahlzeit/Gericht bewusst geaendert)
 PHONES = [(375, 812), (390, 844), (430, 932)]
 QUICK = bool(os.environ.get('SAVORA_P42_QUICK'))
 

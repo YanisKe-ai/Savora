@@ -230,7 +230,7 @@ function settingsShareView() {
       <button class="text-btn" data-action="share-invite-reset">Neuen Einladungscode erzeugen</button>
     </div></div>`;
   }
-  return settingsDetailShell('Freunde & Rezepte senden', body + senderNameSectionHtml(), 'settings-page--cols');
+  return settingsDetailShell('Rezepte mit anderen teilen', body + senderNameSectionHtml(), 'settings-page--cols');
 }
 
 function shareFindInbox(id) { return share.inbox.find(x => x.id === id) || null; }
@@ -244,7 +244,7 @@ function settingsSharePreviewView() {
     <div class="share-preview">
       <p class="share-from">Von ${shareWho({ display_name: item.from_name, handle: item.from_handle })}</p>
       ${item.message ? `<p class="share-msg share-msg--box">„${escapeHtml(item.message)}“</p>` : ''}
-      ${share.previewImage ? `<img class="share-preview-img" src="${share.previewImage}" alt="${escapeHtml(r.title)}">` : ''}
+      ${share.previewImage ? `<img class="share-preview-img" src="${escapeHtml(share.previewImage)}" alt="${escapeHtml(r.title)}">` : ''}
       <h2 class="detail-title-v2">${escapeHtml(r.title)}</h2>
       <p class="detail-meta-v2">${meta.map(escapeHtml).join(' • ')}</p>
       <h3 class="share-sub">Zutaten</h3>
@@ -373,6 +373,9 @@ async function handleShareAction(action, id, el) {
       const item = shareFindInbox(id);
       if (!item) return true;
       const recipe = shareRecipeFromPayload(item.recipe, item.from_handle);
+      const checkedShare = validateRecipe(recipe);
+      if (!checkedShare.ok) { shareShowError('Dieses Rezept ist nicht lesbar und wurde nicht übernommen: ' + checkedShare.errors.slice(0, 2).join('; ')); return true; }
+      Object.assign(recipe, checkedShare.recipe);
       try {
         if (item.has_image) {
           const url = share.previewId === id && share.previewImage ? share.previewImage : await shareRpc('savora_share_image', { p_id: id });

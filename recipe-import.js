@@ -388,7 +388,7 @@ function importFinalizeDraft(r, ctx) {
   if (ctx.seg && ctx.seg.flags.includes('title-long')) issues.push({ id: 'title-long', level: 'check', field: 'title', text: 'Der Titel war sehr lang und wurde an einer Wortgrenze gekürzt. Der Originaltitel steht im Originaltext.' });
   if (ctx.warnings && ctx.warnings.length) ctx.warnings.forEach(w => issues.push({ id: 'json-warning', level: 'check', field: w.path || 'recipe', text: w.message }));
   const s = r._importSummary || {};
-  const noQty = real.filter(x => qtyFromIngredient(x.i).kind === 'missing').map(x => String(x.i.name).trim());
+  const noQty = real.filter(x => qtyIngredientStatus(x.i) === 'missing').map(x => String(x.i.name).trim());
   r._importSummary = {
     ...s,
     titleFound: !!(r.title && r.title !== 'Importiertes Rezept'),

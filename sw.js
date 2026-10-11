@@ -2,18 +2,29 @@
    - CACHE_SHELL: App-Grundgerüst (HTML/CSS/JS-Module/Icons/Font) — network-first, damit online
      immer die neueste Version geladen wird, offline greift der Cache als Fallback.
    - CACHE_RUNTIME: alles andere — stale-while-revalidate mit Obergrenze.
+   - CACHE_DATA: grosse optionale Dateien (Cover in Vollaufloesung, Naehrwertdatei, PDF-Vorschau).
+     Sie gehoeren NICHT zur Installation: Fehlen oder Scheitern darf die App-Installation nie
+     verhindern. Sie werden beim ersten Gebrauch geladen (danach cache-first) oder auf Wunsch
+     ueber PREPARE_OFFLINE gesammelt vorbereitet.
+   - Antworten werden nur gecacht, wenn sie wirklich die erwartete Datei sind (Status 200, kein
+     HTML anstelle von JS/CSS/Bild). Eine Fehlerseite ersetzt nie eine funktionierende Datei.
+   - Aufraeumen beim Aktivieren betrifft ausschliesslich Caches mit dem Savora-Praefix, nie
+     fremde Caches desselben Origins.
    - Kontrollierter Update-Flow: kein automatisches skipWaiting. Ein neuer Worker wartet, bis
      die Seite per postMessage({type:'SKIP_WAITING'}) explizit zustimmt.
 */
-const SW_VERSION = 'v68-paket42';
+const SW_VERSION = 'v69-audit';
 const CACHE_SHELL = 'savora-shell-' + SW_VERSION;
 const CACHE_RUNTIME = 'savora-runtime-' + SW_VERSION;
-// Statische Referenzdaten (z.B. Schweizer Naehrwertdatenbank): aendert sich nur bei
-// einem neuen SW_VERSION, nicht bei jedem App-Start — cache-first statt network-first,
-// damit nicht bei jedem Online-Start erneut ~1 MB geladen werden.
 const CACHE_DATA = 'savora-data-' + SW_VERSION;
-const STATIC_DATA_ASSETS = [
+const CACHE_PREFIX = 'savora-';   // Namensraum aller eigenen Caches (alte Versionen eingeschlossen)
+// Optionale, grosse Dateien (rund 13 MB Cover in Vollaufloesung plus Naehrwertdatei, dazu die
+// PDF-Vorschau-Bibliothek). Nicht Teil der Installation: cache-first nach dem ersten Abruf, oder
+// gesammelt per PREPARE_OFFLINE. Die kleinen Cover-Vorschaubilder stehen in SHELL_ASSETS.
+const OPTIONAL_ASSETS = [
   './swiss-fcd-data.json',
+  './vendor/pdfjs/pdf.min.js',
+  './vendor/pdfjs/pdf.worker.min.js',
   './assets/covers/01-pop.png',
   './assets/covers/02-lieblingsbuch.png',
   './assets/covers/03-tomate.png',
@@ -24,7 +35,7 @@ const STATIC_DATA_ASSETS = [
   './assets/covers/08-garten.png',
   './assets/covers/09-sonnenkueche.png',
   './assets/covers/10-ofenglueck.png',
-];   // grosse, unveraenderliche Dateien: beim ersten Gebrauch laden, danach aus dem Cache (Offline-Export)
+];
 const SHELL_ASSETS = [
   './',
   './index.html',
@@ -83,6 +94,7 @@ const SHELL_ASSETS = [
   './assets/covers/thumbs/09-sonnenkueche.jpg',
   './assets/covers/thumbs/10-ofenglueck.jpg',
   './utils.js',
+  './validate.js',
   './legal.js',
   './native.js',
   './units.js',
@@ -120,25 +132,96 @@ const SHELL_ASSETS = [
 ];
 const RUNTIME_MAX_ENTRIES = 60;
 
+/* Nur eine echte, vollstaendige Antwort auf die erwartete Datei darf in einen Cache.
+   Fehlerseiten (404/5xx), Teilantworten, undurchsichtige Antworten und HTML anstelle von
+   JS/CSS/Bild/Schrift (z.B. ein Weiterleitungs-Fallback) werden verworfen. */
+function isExpectedResponse(url, res) {
+  if (!res || res.status !== 200 || res.type === 'opaque' || res.type === 'error') return false;
+  const ct = (res.headers.get('content-type') || '').toLowerCase();
+  const p = url.pathname;
+  const isDocument = p.endsWith('/') || p.endsWith('.html');
+  if (isDocument) return ct.includes('text/html');
+  return !ct.includes('text/html');
+}
+
+/* Installation: alle Shell-Dateien muessen vorhanden und gueltig sein, sonst scheitert die
+   Installation als Ganzes. Die bisherige Version samt ihren Caches bleibt dann unberuehrt
+   (der neue Cache hat einen eigenen, versionierten Namen) und offline weiter nutzbar. */
+async function precacheShell() {
+  const cache = await caches.open(CACHE_SHELL);
+  try {
+    await Promise.all(SHELL_ASSETS.map(async (asset) => {
+      const req = new Request(asset, { cache: 'reload' });   // am HTTP-Cache vorbei: keine Mischung aus alten und neuen Dateien
+      const res = await fetch(req);
+      if (!isExpectedResponse(new URL(req.url), res)) throw new Error('Ungueltige Antwort fuer ' + asset + ' (' + res.status + ')');
+      await cache.put(req, res);
+    }));
+  } catch (err) {
+    await caches.delete(CACHE_SHELL);   // kein halb gefuellter Cache dieser Version
+    throw err;
+  }
+}
+
 self.addEventListener('install', (event) => {
-  event.waitUntil(Promise.all([
-    caches.open(CACHE_SHELL).then((cache) => cache.addAll(SHELL_ASSETS)),
-    caches.open(CACHE_DATA).then((cache) => cache.addAll(STATIC_DATA_ASSETS)),
-  ]));
+  event.waitUntil(precacheShell());
 });
+
+/* Raeumt nur eigene, veraltete Caches auf: Namensraum "savora-" ausser den drei aktuellen.
+   Fremde Caches desselben Origins (andere Projekte) bleiben unberuehrt. */
+function isOwnStaleCache(name) {
+  return name.startsWith(CACHE_PREFIX) && name !== CACHE_SHELL && name !== CACHE_RUNTIME && name !== CACHE_DATA;
+}
 
 self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches.keys()
-      .then((keys) => Promise.all(
-        keys.filter((k) => k !== CACHE_SHELL && k !== CACHE_RUNTIME && k !== CACHE_DATA).map((k) => caches.delete(k))
-      ))
+      .then((keys) => Promise.all(keys.filter(isOwnStaleCache).map((k) => caches.delete(k))))
       .then(() => self.clients.claim())
   );
 });
 
+/* Offline-Stand: sind ALLE benoetigten Dateien (Shell plus optionale grosse Dateien) im Cache? */
+async function offlineStatus() {
+  const shell = await caches.open(CACHE_SHELL);
+  const data = await caches.open(CACHE_DATA);
+  const missing = [];
+  await Promise.all([
+    ...SHELL_ASSETS.map(async (a) => { if (!(await shell.match(a))) missing.push(a); }),
+    ...OPTIONAL_ASSETS.map(async (a) => { if (!(await data.match(a))) missing.push(a); }),
+  ]);
+  const total = SHELL_ASSETS.length + OPTIONAL_ASSETS.length;
+  return { ready: missing.length === 0, total, cached: total - missing.length, missing: missing.sort() };
+}
+
+/* Explizite Offline-Vorbereitung: holt fehlende optionale Dateien (3 gleichzeitig) und meldet
+   den Fortschritt. Einzelne Fehler brechen nicht ab, sie bleiben in "missing" sichtbar. */
+async function prepareOffline(port) {
+  const data = await caches.open(CACHE_DATA);
+  const todo = [];
+  for (const a of OPTIONAL_ASSETS) if (!(await data.match(a))) todo.push(a);
+  let done = 0;
+  const queue = todo.slice();
+  const worker = async () => {
+    while (queue.length) {
+      const a = queue.shift();
+      try {
+        const res = await fetch(new Request(a, { cache: 'reload' }));
+        if (isExpectedResponse(new URL(res.url || a, self.location.href), res)) await data.put(a, res);
+      } catch (e) { /* bleibt fehlend, Wiederholen moeglich */ }
+      done++;
+      port.postMessage({ type: 'progress', done, total: todo.length });
+    }
+  };
+  await Promise.all([worker(), worker(), worker()]);
+  port.postMessage(Object.assign({ type: 'done' }, await offlineStatus()));
+}
+
 self.addEventListener('message', (event) => {
-  if (event.data && event.data.type === 'SKIP_WAITING') self.skipWaiting();
+  const d = event.data;
+  if (!d) return;
+  if (d.type === 'SKIP_WAITING') self.skipWaiting();
+  else if (d.type === 'OFFLINE_STATUS' && event.ports[0]) event.waitUntil(offlineStatus().then((st) => event.ports[0].postMessage(Object.assign({ type: 'done' }, st))));
+  else if (d.type === 'PREPARE_OFFLINE' && event.ports[0]) event.waitUntil(prepareOffline(event.ports[0]));
 });
 
 async function trimRuntimeCache() {
@@ -158,7 +241,7 @@ function isShellRequest(url) {
 
 function isStaticDataRequest(url) {
   if (url.origin !== self.location.origin) return false;
-  return STATIC_DATA_ASSETS.some((a) => url.pathname.endsWith(a.replace('./', '')));
+  return OPTIONAL_ASSETS.some((a) => url.pathname.endsWith(a.replace('./', '')));
 }
 
 self.addEventListener('fetch', (event) => {
@@ -168,12 +251,13 @@ self.addEventListener('fetch', (event) => {
   if (url.hostname.endsWith('.supabase.co')) return;
 
   if (isStaticDataRequest(url)) {
+    // Cache-first nach dem ersten Abruf; nur gueltige Antworten werden gespeichert.
     event.respondWith(
       caches.open(CACHE_DATA).then(async (cache) => {
         const cached = await cache.match(event.request);
         if (cached) return cached;
         const res = await fetch(event.request);
-        cache.put(event.request, res.clone());
+        if (isExpectedResponse(url, res)) cache.put(event.request, res.clone());
         return res;
       })
     );
@@ -181,14 +265,20 @@ self.addEventListener('fetch', (event) => {
   }
 
   if (event.request.mode === 'navigate' || isShellRequest(url)) {
+    // Network-first. Nur in den eigenen Shell-Cache lesen/schreiben (nie in fremde Caches schauen).
+    const fromShell = (req) => caches.open(CACHE_SHELL).then((c) => c.match(req));
     event.respondWith(
       fetch(event.request)
         .then((res) => {
-          const copy = res.clone();
-          caches.open(CACHE_SHELL).then((cache) => cache.put(event.request, copy));
-          return res;
+          if (isExpectedResponse(url, res)) {
+            const copy = res.clone();
+            caches.open(CACHE_SHELL).then((cache) => cache.put(event.request, copy));
+            return res;
+          }
+          // Fehlerseite o.ae.: nie speichern; wenn vorhanden lieber die gespeicherte, funktionierende Datei liefern
+          return fromShell(event.request).then((cached) => cached || res);
         })
-        .catch(() => caches.match(event.request).then((cached) => cached || caches.match('./index.html')))
+        .catch(() => fromShell(event.request).then((cached) => cached || (event.request.mode === 'navigate' ? fromShell('./index.html') : undefined) || Response.error()))
     );
     return;
   }
@@ -198,11 +288,13 @@ self.addEventListener('fetch', (event) => {
       const cached = await cache.match(event.request);
       const networkPromise = fetch(event.request)
         .then((res) => {
-          cache.put(event.request, res.clone());
-          trimRuntimeCache();
+          if (res && res.status === 200 && res.type !== 'opaque') {
+            cache.put(event.request, res.clone());
+            trimRuntimeCache();
+          }
           return res;
         })
-        .catch(() => cached);
+        .catch(() => cached || Response.error());
       return cached || networkPromise;
     })
   );

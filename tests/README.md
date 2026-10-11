@@ -10,6 +10,7 @@ Alle Tests laufen mit Playwright (Python) gegen die echte App in einem Testbrows
 | `test_pruefung.py` | Prüfbericht F01 bis F11 (Zeitzonen, Import, PDF). Teile brauchen eine private Sicherung in `tests/private/`, sonst als "UEBERSPRUNGEN" gemeldet |
 | `test_visual.py` | 320, 390, 768, 1280 px, Dunkelmodus, kein Seitwärts-Scrollen |
 | `test_offline.py` | Service Worker, Offline-Start, Navigation |
+| `test_audit_b.py` | Audit B: Cache-Eigentum, optionale Dateien, Offline-Anzeige, PDF-Bibliotheken bei Bedarf, Fehlerseiten nicht gecacht, Update ohne Entwurfsverlust, Lazy-Bilder |
 | `test_native.py` | iOS-App mit Plugin-Attrappen: Teilen, Bildschirm, Timer, Statusleiste, Haptik |
 | `test_paket1.py` bis `test_paket9.py` | Rezeptseite, Texte, Rechner, Formular, Kochmodus, breites Layout, Feinschliff, Suche |
 | `test_a11y.py` | Barrierefreiheit mit axe-core in Hell, Dunkel und Schwarz, 390 und 1280 px |

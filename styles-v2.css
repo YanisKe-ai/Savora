@@ -2118,3 +2118,39 @@ html.is-scrolled .home-head { box-shadow: 0 1px 0 rgba(37, 39, 32, .05), 0 8px 1
 
 /* Breite Bildschirme (Paket 42): Import darf die volle Breite nutzen (spezifischer als die Einstellungsseiten-Regel) */
 @media (min-width: 1024px) { main.settings-page.import-page { max-width: 1480px; } }
+
+/* Auswahlzustand mit sichtbarem Haken (Audit D03): Farbe allein genügt nicht, in Hell, Dunkel und Schwarz.
+   Der Haken ist eine reine Form (kein Zeichensatz, keine Animation) und folgt der Textfarbe, damit der Kontrast
+   jedes Zustands dem Text entspricht. Der Zustand für Screenreader bleibt in aria-pressed/aria-checked/aria-selected. */
+.chip--active:not(.chip--icon)::before,
+.theme-opt.active::before,
+.seg-btn[aria-pressed="true"]::before,
+.sort-chip.is-active::before,
+.nutrition-segmented button.active::before,
+.uc-tab.is-active::before {
+  content: ''; flex: none; display: inline-block; box-sizing: content-box; width: 0.3em; height: 0.58em;
+  margin: 0 0.6em 0.12em 0.15em; border: solid currentColor; border-width: 0 0.16em 0.16em 0; transform: rotate(45deg); vertical-align: middle;
+}
+.pdf-tpl-opt { position: relative; }
+.pdf-tpl-opt.active::after {
+  content: ''; position: absolute; top: 0.5rem; right: 0.5rem; width: 1.5rem; height: 1.5rem; border-radius: 50%; background-color: var(--tomato);
+  background-repeat: no-repeat; background-position: center; background-size: 0.9rem;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23fff' stroke-width='3.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 12.5l4.5 4.5L19 7.5'/%3E%3C/svg%3E");
+}
+[data-theme="dark"] .pdf-tpl-opt.active::after, [data-theme="amoled"] .pdf-tpl-opt.active::after {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%231B1A17' stroke-width='3.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 12.5l4.5 4.5L19 7.5'/%3E%3C/svg%3E");
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme]) .pdf-tpl-opt.active::after {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%231B1A17' stroke-width='3.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 12.5l4.5 4.5L19 7.5'/%3E%3C/svg%3E");
+  }
+}
+.icon-toggle { position: relative; }
+.icon-toggle.is-active::after { content: ''; position: absolute; left: calc(50% - 0.1875rem); bottom: 3px; width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+@media (forced-colors: active) {
+  .chip--active:not(.chip--icon)::before, .theme-opt.active::before, .seg-btn[aria-pressed="true"]::before, .sort-chip.is-active::before,
+  .nutrition-segmented button.active::before, .uc-tab.is-active::before { border-color: CanvasText; }
+}
+
+/* Längere Seitentitel (z.B. «Darstellung und Einheiten», «Rezepte mit anderen teilen») dürfen auf zwei Zeilen umbrechen, statt mit «…» abgeschnitten zu werden */
+.topbar--sub .topbar-title { -webkit-line-clamp: 2; line-height: 1.15; overflow-wrap: anywhere; }

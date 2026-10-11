@@ -1,7 +1,7 @@
 /* ---------- Helpers ---------- */
 function uid() { return 'r_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 8); }
 
-function escapeHtml(s) { return (s || '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function escapeHtml(s) { return (s === null || s === undefined || s === false ? '' : String(s)).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 
 function fmtAmount(n) {
   if (n === null || n === undefined || n === '') return '';

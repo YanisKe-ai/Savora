@@ -73,7 +73,7 @@ async def main():
     need = ['savora-wortmarke-light.svg', 'savora-wortmarke-dark.svg', 'savora-favicon.svg', 'savora-favicon-dark.svg', 'savora-favicon-16.png', 'savora-favicon-32.png', 'savora-app-icon-180.png', 'icon-512.png', 'icon-192.png', 'icon-512-maskable.png', 'icon-192-maskable.png', 'icon-180.png']
     check('Service-Worker-Shell enthält alle verwendeten Marken-Dateien', all(n in sw for n in need), str([n for n in need if n not in sw]))
     _ver = open(_os.path.join(ROOT, 'VERSION')).read().strip()
-    check('Version: VERSION, APP_VERSION und SW_VERSION stimmen ueberein und der Service Worker kennt die neue Marke', re.search(r"SW_VERSION = 'v\d+-paket\d+'", sw) is not None and ("'" + _ver + "'") in open(_os.path.join(ROOT, 'legal.js'), encoding='utf-8').read() and 'assets/logo/savora-app-icon-180.png' in sw)
+    check('Version: VERSION, APP_VERSION und SW_VERSION stimmen ueberein und der Service Worker kennt die neue Marke', re.search(r"SW_VERSION = 'v\d+-[a-z0-9]+'", sw) is not None and ("'" + _ver + "'") in open(_os.path.join(ROOT, 'legal.js'), encoding='utf-8').read() and 'assets/logo/savora-app-icon-180.png' in sw)
     spl = re.search(r'<div id="splash">(.*?)</div>\s*<div id="app">', html, re.S).group(1)
     check('Startbild: nur die Wortmarke (Pfad-SVG, 1200 x 400), kein Bild, kein Symbol', 'viewBox="0 0 1200 400"' in spl and '<img' not in spl and spl.count('<svg') == 1, spl[:80])
     for f in ('savora-wortmarke-light.svg', 'savora-wortmarke-dark.svg'):

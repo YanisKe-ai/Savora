@@ -81,14 +81,19 @@ function showUndoToast(msg, onUndo, onExpire) {
 function collectFormData() {
   const r = state.editingRecipe;
   r.title = document.getElementById('f-title').value.trim() || 'Ohne Titel';
-  r.servings = parseInt(document.getElementById('f-servings').value) || 0;   // leer = Ausbeute unbekannt (nie still 1)
-  r.timeMinutes = parseInt(document.getElementById('f-time').value) || 0;
+  // leer = unbekannt (0). Ungueltige Eingaben (negativ, Dezimal, zu gross) werden hier nie still uebernommen, gerundet oder begrenzt:
+  // das Feld wird beim Speichern erklaert (formNumberErrors), bis dahin bleibt der bisherige Wert im Modell.
+  const numField = (elId, key, prev) => { const f = FORM_NUMBER_FIELDS.find(x => x.id === elId); const el = document.getElementById(elId); if (!el) return prev; if (formNumberProblem(f, el.value, !!(el.validity && el.validity.badInput))) return prev; const s = String(el.value).trim(); return s === '' ? 0 : Number(s); };
+  r.servings = numField('f-servings', 'servings', r.servings || 0);
+  r.timeMinutes = numField('f-time', 'timeMinutes', r.timeMinutes || 0);
   r.difficulty = document.getElementById('f-difficulty').value;
   // Weitere Zeitangaben sind optional und additiv: leer = unbekannt (Feld wird entfernt, nichts erfunden)
   [['f-prep', 'prepMinutes'], ['f-rest', 'restMinutes'], ['f-cook', 'cookMinutes']].forEach(([elId, key]) => {
     const el = document.getElementById(elId);
     if (!el) return;
-    const v = parseInt(el.value, 10);
+    const f = FORM_NUMBER_FIELDS.find(x => x.id === elId);
+    if (formNumberProblem(f, el.value, !!(el.validity && el.validity.badInput))) return;   // ungueltig: bisheriger Wert bleibt, das Feld wird beim Speichern erklaert
+    const v = Number(String(el.value).trim());
     if (v > 0) r[key] = v; else delete r[key];
   });
   r.notes = document.getElementById('f-notes').value;
@@ -144,9 +149,22 @@ function focusWithoutScroll(el, opts) {
   }
 }
 
+/* Selektor des aktuell fokussierten Elements, falls der Aufrufer keinen angibt: so kehrt der Fokus
+   beim Schliessen auch dann zum Ausloeser zurueck (data-action plus data-id, sonst nichts erfinden). */
+function triggerSelectorFromActive() {
+  const el = document.activeElement;
+  if (!el || el === document.body || !el.getAttribute) return null;
+  const act = el.getAttribute('data-action');
+  if (!act || !/^[\w-]+$/.test(act)) return null;
+  let sel = `[data-action="${act}"]`;
+  const id = el.getAttribute('data-id');
+  if (id && !/["\\]/.test(id)) sel += `[data-id="${id}"]`;
+  return sel;
+}
 function openModal(modal, triggerSelector) {
-  modalTriggerSelector = triggerSelector || null;
+  modalTriggerSelector = triggerSelector || triggerSelectorFromActive();
   state.modal = modal;
+  if (modal && modal.type === 'pdf-export' && typeof pdfWarmUp === 'function') pdfWarmUp();   // PDF-Bibliotheken schon beim Oeffnen anfordern
   render();
 }
 function closeModal() {
@@ -165,28 +183,72 @@ function onModalEscape(e) {
     if (e.isComposing) return;
     e.preventDefault();
     // Nicht ohne Rueckfrage schliessen, wenn im Dialog Text eingegeben, aber nicht uebernommen wurde
-    const sheet = document.querySelector('.modal-sheet');
+    const sheet = topModalSheet();
     const typed = sheet && Array.from(sheet.querySelectorAll('textarea, input[type="text"], input:not([type])')).some(f => f.value.trim() && f.value !== f.defaultValue);
     if (typed && !window.confirm('Eingaben verwerfen?')) return;
     closeModal();
     return;
   }
   if (e.key === 'Tab' && state.modal) {
-    const modal = document.querySelector('.modal-sheet');
+    const modal = topModalSheet();
     if (!modal) return;
-    const focusables = Array.from(modal.querySelectorAll('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'))
-      .filter((el) => !el.disabled && el.offsetParent !== null);
-    if (!focusables.length) return;
+    const focusables = modalFocusables(modal);
+    const active = document.activeElement;
+    // Fokus-Falle (B02/A01): Tab und Umschalt+Tab bleiben im obersten Dialog. Das gilt auch, wenn der
+    // Dialogcontainer selbst den Fokus hat (direkt nach dem Oeffnen), wenn kein Control aktiv ist oder
+    // wenn der Fokus ausserhalb liegt.
+    if (!focusables.length) { e.preventDefault(); focusWithoutScroll(modal); return; }
     const first = focusables[0], last = focusables[focusables.length - 1];
-    // Fokus-Falle: Tab/Shift+Tab kreist innerhalb des Dialogs, statt auf die
-    // dahinterliegende Seite auszubrechen.
-    if (e.shiftKey && document.activeElement === first) { e.preventDefault(); focusWithoutScroll(last); }
-    else if (e.shiftKey && !modal.contains(document.activeElement)) { e.preventDefault(); focusWithoutScroll(last); }
-    else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); focusWithoutScroll(first); }
-    else if (!e.shiftKey && !modal.contains(document.activeElement)) { e.preventDefault(); focusWithoutScroll(first); }
+    if (!modal.contains(active) || active === modal) {
+      e.preventDefault(); focusWithoutScroll(e.shiftKey ? last : first);
+    } else if (e.shiftKey && active === first) { e.preventDefault(); focusWithoutScroll(last); }
+    else if (!e.shiftKey && active === last) { e.preventDefault(); focusWithoutScroll(first); }
   }
 }
 
+/* Oberster Dialog: bei verschachtelten Dialogen gilt der zuletzt im Dokument stehende. */
+function topModalSheet() {
+  const all = document.querySelectorAll('.modal-sheet');
+  return all.length ? all[all.length - 1] : null;
+}
+function modalFocusables(modal) {
+  const sel = 'button, [href], input:not([type="hidden"]), select, textarea, summary, [contenteditable=""], [contenteditable="true"], [tabindex]:not([tabindex="-1"])';
+  return Array.from(modal.querySelectorAll(sel)).filter((el) => {
+    if (el.disabled || el.closest('[inert], [hidden]')) return false;
+    if (el.getAttribute('tabindex') === '-1') return false;
+    const st = getComputedStyle(el);
+    if (st.visibility === 'hidden' || st.display === 'none') return false;
+    // Native Radiogruppe: nur das markierte (oder erste) Element ist per Tab erreichbar
+    return true;
+  }).filter((el, i, arr) => {
+    if (el.type !== 'radio' || !el.name) return true;
+    const group = arr.filter((o) => o.type === 'radio' && o.name === el.name && o.form === el.form);
+    const checked = group.find((o) => o.checked);
+    return (checked || group[0]) === el;
+  });
+}
+
+/* Hintergrund inert (A01): alles ausserhalb des obersten Dialogs wird fuer Tastatur, Zeiger und
+   Screenreader gesperrt. Es werden nur Geschwister entlang des Pfades vom Dialog zur Dokumentwurzel
+   markiert, sodass der Dialog selbst und seine Vorfahren bedienbar bleiben. Verschachtelte Dialoge:
+   der oberste ist aktiv, alle darunterliegenden (auch frueher geoeffnete) sind mitgesperrt.
+   Die Live-Regionen bleiben frei, damit Ansagen weiter ankommen. */
+function applyModalInert() {
+  document.querySelectorAll('[data-savora-inert]').forEach((el) => { el.inert = false; el.removeAttribute('data-savora-inert'); });
+  const top = topModalSheet();
+  if (!top) return;
+  let node = top;
+  while (node && node !== document.body) {
+    const parent = node.parentElement;
+    if (!parent) break;
+    Array.from(parent.children).forEach((sib) => {
+      if (sib === node || sib.tagName === 'SCRIPT' || sib.tagName === 'STYLE' || sib.id === 'liveRegion' || sib.id === 'liveRegionAssertive') return;
+      if (sib.hasAttribute('data-savora-inert')) return;
+      sib.inert = true; sib.setAttribute('data-savora-inert', '');
+    });
+    node = parent;
+  }
+}
 function bindEvents() {
   App.querySelectorAll('[data-action]').forEach(el => {
     el.addEventListener('click', onAction);
@@ -198,9 +260,11 @@ function bindEvents() {
   hydrateNutritionCards();
   bindNutritionSearchInput();
 
-  const modalSheet = document.querySelector('.modal-sheet');
+  const modalSheet = topModalSheet();
+  applyModalInert();
   if (modalSheet) {
-    focusWithoutScroll(modalSheet);
+    // Anfangsfokus nur beim Erscheinen eines neuen Dialogs (nicht bei jedem Neuaufbau)
+    if (!document.activeElement || !modalSheet.contains(document.activeElement)) focusWithoutScroll(modalSheet);
     document.addEventListener('keydown', onModalEscape);
   } else {
     document.removeEventListener('keydown', onModalEscape);
@@ -282,7 +346,7 @@ function bindEvents() {
         state.editingRecipe.image = null;
       } catch (err) {
         const quota = err && err.name === 'QuotaExceededError';
-        showToast(quota ? 'Foto nicht gespeichert: Der Speicher des Geräts ist voll.' : 'Dieses Foto kann nicht gelesen werden. Wähle ein Bild im Format JPEG, PNG oder WebP.', 'error');
+        showToast(quota ? 'Foto nicht gespeichert: Der Speicher des Geräts ist voll.' : (err && err.userMessage) || 'Dieses Foto kann nicht gelesen werden. Wähle ein Bild im Format JPEG, PNG oder WebP.', 'error');
       }
       render();
     });
@@ -376,6 +440,8 @@ async function dispatchAction(action, id, el, e) {
         }
         break;
       }
+      // Ausbeute und Zeiten pruefen, bevor irgendetwas gespeichert wird: Fehler am Feld erklaeren, Fokus aufs erste fehlerhafte Feld
+      if (formShowNumberErrors(formNumberErrors())) break;
       state.savingRecipe = true;
       try {
       const r = collectFormData();
@@ -615,6 +681,9 @@ async function dispatchAction(action, id, el, e) {
       break;
     case 'export-backup':
       downloadBackup();
+      break;
+    case 'offline-prepare':
+      offlinePrepare();
       break;
     case 'trigger-restore':
       // Erst erklären, was passiert (Text steht auch auf der Seite), dann die Datei wählen lassen.

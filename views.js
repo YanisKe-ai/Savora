@@ -61,7 +61,7 @@ function addMenuModal() {
   if (!state.modal || state.modal.type !== 'add-menu') return '';
   return `<div class="modal-backdrop" data-action="close-modal">
     <div class="modal-sheet add-menu-sheet" role="dialog" aria-modal="true" aria-labelledby="add-menu-title" tabindex="-1" onclick="event.stopPropagation()">
-      <h3 class="modal-title" id="add-menu-title">Rezept hinzufügen</h3>
+      <h2 class="modal-title" id="add-menu-title">Rezept hinzufügen</h2>
       <div class="add-menu-options">
         <button type="button" class="add-menu-option" data-action="new-recipe">
           <span class="add-menu-option-icon">${ICONS.edit}</span>
@@ -125,7 +125,7 @@ function emptyFilterState() {
 function deleteModal(r) {
   return `<div class="modal-backdrop" data-action="close-modal">
     <div class="modal-sheet" role="dialog" aria-modal="true" aria-labelledby="delete-modal-title" tabindex="-1" onclick="event.stopPropagation()">
-      <h3 class="modal-title" id="delete-modal-title">Rezept löschen?</h3>
+      <h2 class="modal-title" id="delete-modal-title">Rezept löschen?</h2>
       <p style="font-size:14px;color:var(--text-muted);">„${escapeHtml(r.title)}“ wird endgültig aus deinem Kochbuch entfernt.</p>
       <div class="form-actions">
         <button class="ghost-btn" data-action="close-modal">Abbrechen</button>
@@ -253,10 +253,10 @@ function settingsView() {
       ${pageTitle('Einstellungen')}
       ${settingsGroup('Deine Daten', [
         settingsRow({ icon: ICONS.cloud, title: 'Konto und Sicherung', summary: cloudSettingsSummary(), view: 'settings-data' }),
-        settingsRow({ icon: ICONS.share, title: 'Freunde &amp; Rezepte senden', summary: shareSettingsSummary(), view: 'settings-share' }),
+        settingsRow({ icon: ICONS.share, title: 'Rezepte mit anderen teilen', summary: shareSettingsSummary(), view: 'settings-share' }),
       ].join(''))}
       ${settingsGroup('Anzeige &amp; Einheiten', [
-        settingsRow({ icon: ICONS.moon, title: 'Anzeige', summary: `${themeLabel}, ${unitLabel}`, view: 'settings-display' }),
+        settingsRow({ icon: ICONS.moon, title: 'Darstellung und Einheiten', summary: `${themeLabel}, ${unitLabel}`, view: 'settings-display' }),
         settingsRow({ icon: ICONS.scale, title: 'Masseinheiten-Rechner', action: 'open-unitconverter' }),
       ].join(''))}
       ${settingsGroup('Hilfe &amp; Infos', [
@@ -325,11 +325,11 @@ function settingsDisplayView() {
   const body = settingsSectionHead('Helles oder dunkles Design') + settingsThemeBodyHtml()
     + settingsSectionHead('Mengenangaben') + settingsUnitsBodyHtml()
     + settingsSectionHead('Nährwerte') + settingsNutritionBodyHtml();
-  return settingsDetailShell('Anzeige', body, 'settings-page--cols');
+  return settingsDetailShell('Darstellung und Einheiten', body, 'settings-page--cols');
 }
 
 /* Absendername: freiwillig, wird heute nirgends automatisch ausgegeben (weder PDF noch Teilen).
-   Der Abschnitt steht in «Freunde & Rezepte senden» und ist auch als eigene Seite erreichbar. */
+   Der Abschnitt steht in «Rezepte mit anderen teilen» und ist auch als eigene Seite erreichbar. */
 function senderNameSectionHtml() {
   return `<div class="settings-group">
     <div class="settings-group-title">Name beim Teilen (freiwillig)</div>
@@ -374,10 +374,10 @@ function settingsBackupSectionHtml() {
         <button class="ghost-btn" data-action="trigger-restore">${ICONS.upload} Aus Sicherung wiederherstellen</button>
         <input type="file" id="restoreFileInput" accept="application/json" style="display:none;">
         <p class="settings-hint settings-hint--top">${RESTORE_EXPLAIN}</p>
-        <p class="settings-hint">Gedacht für Dateien, die du hier unter „Sicherung speichern“ gespeichert hast. Rezepte von Freunden kommen direkt in Savora an (unter „Freunde &amp; Rezepte senden“). Ein als PDF weitergegebenes Rezept lässt sich nicht in Savora einspielen.</p>
+        <p class="settings-hint">Gedacht für Dateien, die du hier unter „Sicherung speichern“ gespeichert hast. Rezepte von Freunden kommen direkt in Savora an (unter „Rezepte mit anderen teilen“). Ein als PDF weitergegebenes Rezept lässt sich nicht in Savora einspielen.</p>
         <div id="backupStatus"></div>
       </div>
-    </div>`;
+    </div>${typeof offlineSectionHtml === 'function' ? offlineSectionHtml() : ''}`;
 }
 
 /* Eine Seite «Konto und Sicherung». 'settings-sync' (Konto zuerst) und 'settings-backup'
