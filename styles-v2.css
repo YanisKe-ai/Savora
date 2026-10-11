@@ -2146,7 +2146,7 @@ html.is-scrolled .home-head { box-shadow: 0 1px 0 rgba(37, 39, 32, .05), 0 8px 1
   }
 }
 .icon-toggle { position: relative; }
-.icon-toggle.is-active::after { content: ''; position: absolute; left: 50%; bottom: 3px; width: 6px; height: 6px; margin-left: -3px; border-radius: 50%; background: currentColor; }
+.icon-toggle.is-active::after { content: ''; position: absolute; left: calc(50% - 0.1875rem); bottom: 3px; width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
 @media (forced-colors: active) {
   .chip--active:not(.chip--icon)::before, .theme-opt.active::before, .seg-btn[aria-pressed="true"]::before, .sort-chip.is-active::before,
   .nutrition-segmented button.active::before, .uc-tab.is-active::before { border-color: CanvasText; }

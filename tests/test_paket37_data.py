@@ -16,7 +16,7 @@ OLD = '14e7887'   # Version 0.58.0
 SW_TEXT = open(os.path.join(ROOT, 'sw.js'), encoding='utf-8').read()
 NEW_VERSION = re.search(r"SW_VERSION = '([^']+)'", SW_TEXT).group(1)
 SHELL = re.findall(r"'(\./[^']*)'", SW_TEXT.split('const SHELL_ASSETS = [')[1].split('];')[0])
-DATA_ASSETS = re.findall(r"'(\./[^']*)'", SW_TEXT.split('const STATIC_DATA_ASSETS = [')[1].split('];')[0])
+DATA_ASSETS = []   # seit 0.68.0 (Audit P01) sind die grossen Dateien optional und werden erst beim ersten Gebrauch geladen (test_audit_b prueft das)
 
 OLD_EXTRA = r"""
 async () => {

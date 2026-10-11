@@ -25,8 +25,8 @@ def make_site(version=None, remove=()):
     """Kopie der App (ohne grosse Nebenordner). Optional anderer SW_VERSION-Wert und entfernte Dateien (liefern dann 404)."""
     dest = tempfile.mkdtemp(prefix='savora-site-')
     for name in os.listdir(ROOT):
-        if name in SKIP_DIRS: continue
         src = os.path.join(ROOT, name)
+        if name in SKIP_DIRS or name.startswith('.') or os.path.islink(src): continue
         if os.path.isdir(src): shutil.copytree(src, os.path.join(dest, name))
         else: shutil.copy2(src, os.path.join(dest, name))
     if version:
