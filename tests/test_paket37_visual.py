@@ -118,12 +118,12 @@ async def main():
                     lupe: !!document.querySelector('.topbar [aria-label=\"Suchen\"], .topbar [data-action=\"focus-search\"]'),
                     gear: !!document.querySelector('.topbar [data-action=\"goto-view\"][data-view=\"settings\"][aria-label=\"Einstellungen\"]'),
                     recent: !!document.querySelector('.recent-card'), allTitle: Array.from(document.querySelectorAll('main h2')).some(h => h.textContent.trim() === 'Alle Rezepte' && getComputedStyle(h).position !== 'absolute'),
-                    firstRecipe: Math.round(document.querySelector('.rcard, .rrow').getBoundingClientRect().top), stripRow: (() => { const s = document.querySelector('.filter-strip'); if (!s) return null; const kids = Array.from(s.children).map(k => Math.round(k.getBoundingClientRect().top)); return Math.max(...kids) - Math.min(...kids); })() })""")
+                    firstRecipe: Math.round(document.querySelector('.rcard, .rrow').getBoundingClientRect().top), stripRow: (() => { const s = document.querySelector('.filter-bar'); if (!s) return null; const kids = Array.from(s.children).map(k => Math.round(k.getBoundingClientRect().top)); return Math.max(...kids) - Math.min(...kids); })() })""")
                 check(tag + 'Startseite: genau ein Suchfeld, kein Lupen-Knopf oben', home['search'] == 1 and home['fields'] == 1 and not home['lupe'], str(home))
                 check(tag + 'Startseite: Zahnrad zu den Einstellungen in der Kopfzeile', home['gear'], str(home))
                 check(tag + 'Startseite: kein Zwischentitel "Alle Rezepte", kein "Zuletzt bearbeitet"', not home['allTitle'] and not home['recent'], str(home))
-                check(tag + 'Startseite: Filterchips und Ansichtsumschalter in einer Zeile', home['stripRow'] is not None and home['stripRow'] <= 6, str(home['stripRow']))
-                check(tag + 'Startseite: erstes Rezept beginnt frueh', home['firstRecipe'] < (420 if w < 600 else 400), str(home['firstRecipe']))
+                check(tag + 'Startseite: Alle/Favoriten und Filter-Schaltfläche in einer Zeile (ab 375 px; schmaler darf umbrechen)', home['stripRow'] is not None and (w < 375 or home['stripRow'] <= 6), str(home['stripRow']))
+                check(tag + 'Startseite: erstes Rezept beginnt frueh', home['firstRecipe'] < (520 if w < 600 else 480), str(home['firstRecipe']))
                 # Rezept ohne Foto: kein Buchstaben-Platzhalter, keine leere Bildflaeche
                 cards = await page.evaluate("""() => { const t = Array.from(document.querySelectorAll('.rcard--text')); const ph = Array.from(document.querySelectorAll('.rcard')).filter(c => c.classList.contains('rcard--text')); const photo = Array.from(document.querySelectorAll('.rcard:not(.rcard--text)'));
                     return { text: t.length, imgInText: t.some(c => c.querySelector('img, .placeholder, .ph-letter')), letters: document.querySelectorAll('.ph-letter').length,

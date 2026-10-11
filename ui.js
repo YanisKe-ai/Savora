@@ -193,6 +193,7 @@ function bindEvents() {
   });
   if (state.view === 'cookmode') bindCookSwipe();
   if (typeof bindSheetDrag === 'function') bindSheetDrag();
+  if (typeof bindFilterSheet === 'function') bindFilterSheet();
   hydrateLazyImages();
   hydrateNutritionCards();
   bindNutritionSearchInput();
@@ -428,7 +429,9 @@ async function dispatchAction(action, id, el, e) {
       break;
     }
     case 'filter-tag':
-      state.activeTag = el.dataset.tag || null;
+      state.activeTag = null;
+      state.activeFilters.tags.clear();
+      if (el.dataset.tag) state.activeFilters.tags.add(el.dataset.tag);
       render();
       break;
     case 'toggle-fav-filter':
