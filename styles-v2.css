@@ -2115,3 +2115,6 @@ html.is-scrolled .home-head { box-shadow: 0 1px 0 rgba(37, 39, 32, .05), 0 8px 1
 }
 @media (min-width: 1560px) { .rgrid { grid-template-columns: repeat(5, minmax(0, 1fr)); } }
 @media (min-width: 1840px) { .rgrid { grid-template-columns: repeat(6, minmax(0, 1fr)); } }
+
+/* Breite Bildschirme (Paket 42): Import darf die volle Breite nutzen (spezifischer als die Einstellungsseiten-Regel) */
+@media (min-width: 1024px) { main.settings-page.import-page { max-width: 1480px; } }
