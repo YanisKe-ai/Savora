@@ -255,7 +255,7 @@ function settingsView() {
         settingsRow({ icon: ICONS.cloud, title: 'Konto und Sicherung', summary: cloudSettingsSummary(), view: 'settings-data' }),
         settingsRow({ icon: ICONS.share, title: 'Rezepte mit anderen teilen', summary: shareSettingsSummary(), view: 'settings-share' }),
       ].join(''))}
-      ${settingsGroup('Anzeige &amp; Einheiten', [
+      ${settingsGroup('Darstellung', [
         settingsRow({ icon: ICONS.moon, title: 'Darstellung und Einheiten', summary: `${themeLabel}, ${unitLabel}`, view: 'settings-display' }),
         settingsRow({ icon: ICONS.scale, title: 'Masseinheiten-Rechner', action: 'open-unitconverter' }),
       ].join(''))}
