@@ -38,7 +38,10 @@ async def main():
         for old in ['Kochbuch gestalten und als PDF', 'Kochbuch & Profil', 'Synchronisation', 'Hilfe & Feedback', 'Imperial', 'Metrisch', 'Datenschutz', 'Nutzungsbedingungen', 'Sicherungskopie', 'Auf mehreren Geräten']:
             check(f'Einstellungen ohne altes Wort «{old}»', old not in txt)
         check('Rechner-Zeile ruft open-unitconverter auf', await ev("document.querySelector('.settings-row[data-action=\"open-unitconverter\"]') !== null"))
-        check('Seitentitel bleibt «Einstellungen»', await ev("document.querySelector('h1, .page-title, .topbar-title') && document.body.innerText.includes('Einstellungen')"))
+        check('Seitentitel auf dem Handy «Mehr» (Navigationspunkt), auf dem Desktop weiterhin «Einstellungen»', await ev("document.querySelector('.page-title').textContent.trim()") == 'Mehr')
+        await page.set_viewport_size({'width': 1280, 'height': 800}); await page.wait_for_timeout(300)
+        check('Seitentitel bleibt auf dem Desktop «Einstellungen»', await ev("document.querySelector('.page-title').textContent.trim()") == 'Einstellungen')
+        await page.set_viewport_size({'width': 390, 'height': 844}); await page.wait_for_timeout(300)
 
         # 2 Anzeige: eine Seite mit drei Abschnitten
         await ev("() => { state.theme = 'auto'; state.unitSystem = 'metric'; state.showNutrition = true; }"); await go('settings')

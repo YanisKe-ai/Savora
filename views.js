@@ -250,7 +250,7 @@ function settingsView() {
   return `
     ${topbar('Einstellungen')}
     <main class="has-tabbar settings-page settings-page--home">
-      ${pageTitle('Einstellungen')}
+      ${pageTitle(isCompactNav() ? 'Mehr' : 'Einstellungen')}
       ${settingsGroup('Deine Daten', [
         settingsRow({ icon: ICONS.cloud, title: 'Konto und Sicherung', summary: cloudSettingsSummary(), view: 'settings-data' }),
         settingsRow({ icon: ICONS.share, title: 'Rezepte mit anderen teilen', summary: shareSettingsSummary(), view: 'settings-share' }),

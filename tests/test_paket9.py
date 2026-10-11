@@ -41,7 +41,7 @@ async def main():
         # Paket 44: Sortierung steht getrennt bei der Trefferzahl (Auswahlfeld), nicht mehr im Filterfenster
         await page.evaluate("() => { const s = document.getElementById('sortSelect'); s.value = 'az'; s.dispatchEvent(new Event('change')); }"); await page.wait_for_timeout(300)
         check('Sortierwahl bleibt gespeichert und markiert', await page.evaluate("localStorage.getItem('savora-sort')") == 'az' and await page.evaluate("document.getElementById('sortSelect').selectedOptions[0].textContent") == 'A bis Z')
-        titles = await page.evaluate("Array.from(document.querySelectorAll('.rcard-title')).map(e => e.textContent)")
+        titles = await page.evaluate("Array.from(document.querySelectorAll('.rrow-title')).map(e => e.textContent)")   # Handy: Listenzeilen statt Karten
         check('Startseite folgt der Sortierung und nennt sie', titles == ['Carbonara', 'Gemüse-Curry', 'Sloppy Joe Buns'] and await page.evaluate("document.getElementById('sortSelect').value") == 'az', str(titles))
         await page.evaluate("() => { state.sortBy = 'updated'; localStorage.removeItem('savora-sort'); }")
 

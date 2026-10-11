@@ -84,7 +84,10 @@ async def main():
                 parts = await ev("""() => { const hd = document.querySelector('.home-head').getBoundingClientRect(); const inside = s => { const e = document.querySelector(s); if (!e) return null; const r = e.getBoundingClientRect(); return r.top >= hd.top - 0.5 && r.bottom <= hd.bottom + 0.5; };
                     return { brand: inside('.home-head .topbar'), plus: inside('[data-action="open-add-menu"]'), gear: inside('.icon-btn--settings'), title: inside('.page-title'), search: inside('.search-input'), strip: inside('.filter-bar'), toggle: inside('.filter-btn'),
                       today: document.querySelector('.home-head .today-planned, .home-head .recent-title') ? 'im Kopf' : 'ok', nudgeInHead: !!document.querySelector('.home-head .nudge-card') }; }""")
-                check(tag + 'Wortmarke, Plus, Zahnrad, Titel, Suche, Alle/Favoriten, Filter-Schaltfläche liegen im festen Kopf', all(parts[k] for k in ['brand', 'plus', 'gear', 'title', 'search', 'strip', 'toggle']), str(parts))
+                # Neu (Startseite als Liste): kein Zahnrad mehr (Einstellungen ueber «Mehr»); Handy ohne Plus (Aktionsknopf unten) und ohne sichtbaren Seitentitel
+                need = ['brand', 'search', 'strip', 'toggle'] if w < 768 else ['brand', 'plus', 'title', 'search', 'strip', 'toggle']
+                check(tag + 'Wortmarke, Suche, Alle/Favoriten, Filter-Schaltfläche' + ('' if w < 768 else ', Plus, Titel') + ' liegen im festen Kopf', all(parts[k] for k in need), str(parts))
+                check(tag + 'Kein Zahnrad im Kopf, auf dem Handy auch kein Plus und kein Seitentitel im Kopf', parts['gear'] is None and (w >= 768 or (not parts['plus'] and parts['title'] is None)), str(parts))
                 check(tag + '«Heute geplant» und Sicherungshinweis stehen nicht im festen Kopf', parts['today'] == 'ok' and not parts['nudgeInHead'], str(parts))
                 if (w, h) == (390, 844):
                     check(tag + 'Kopf belegt höchstens 40 Prozent der Höhe', h1[2] <= 0.40 * h, f'{h1[2]} von {h}')
@@ -105,7 +108,7 @@ async def main():
             # Zurück stellt Scrollposition wieder her
             await ev("() => { window.scrollTo(0, 500); }"); await page.wait_for_timeout(300)
             y0 = await ev("() => window.scrollY")
-            await page.evaluate("() => { const c = Array.from(document.querySelectorAll('.rcard-main')).find(e => e.getBoundingClientRect().top > document.querySelector('.home-head').getBoundingClientRect().bottom + 10 && e.getBoundingClientRect().bottom < innerHeight - 60); (c || document.querySelector('.rcard-main')).click(); }")
+            await page.evaluate("() => { const c = Array.from(document.querySelectorAll('.rcard-main, .rrow-main')).find(e => e.getBoundingClientRect().top > document.querySelector('.home-head').getBoundingClientRect().bottom + 10 && e.getBoundingClientRect().bottom < innerHeight - 60); (c || document.querySelector('.rcard-main, .rrow-main')).click(); }")
             await page.wait_for_timeout(500)
             vw = await ev("() => state.view")
             await page.click('[data-action="back"]'); await page.wait_for_timeout(600)
@@ -162,17 +165,19 @@ async def main():
             check(f'{vname}: Titel in Lilita One sind Normalgewicht ohne künstliches Fett', not fo['weight'] and not fo['synth'], str(fo['weight'][:3]) + str(fo['synth'][:3]))
         # Titel-Eigenschaften
         await ev("() => { state.view = 'home'; state.homeLayout = 'grid'; render(); }"); await page.wait_for_timeout(250)
-        ts = await ev("() => { const cs = getComputedStyle(document.querySelector('.rcard-title')); return [cs.fontSynthesis, cs.letterSpacing, cs.overflowWrap, cs.hyphens, cs.lineHeight, cs.fontSize, cs.fontFamily.split(',')[0]]; }")
+        ts = await ev("() => { const cs = getComputedStyle(document.querySelector('.rcard-title, .rrow-title')); return [cs.fontSynthesis, cs.letterSpacing, cs.overflowWrap, cs.hyphens, cs.lineHeight, cs.fontSize, cs.fontFamily.split(',')[0]]; }")
         check('Kartentitel: font-synthesis none, Laufweite 0, umbrechen, Silbentrennung', 'none' in ts[0] and ts[1] in ('0px', 'normal') and ts[2] == 'anywhere' and ts[3] == 'auto', str(ts))
         lh = float(ts[4].replace('px', '')) / float(ts[5].replace('px', ''))
         check('Kartentitel: Zeilenhöhe 1.1 bis 1.2', 1.09 <= lh <= 1.21, str(lh))
+        await page.set_viewport_size({'width': 820, 'height': 1180}); await page.wait_for_timeout(500)   # sichtbarer Seitentitel gibt es nur auf Tablet und Desktop; auf dem Handy steht «Alle Rezepte» an seiner Stelle
         pt = await ev("() => { const cs = getComputedStyle(document.querySelector('.page-title')); const st = getComputedStyle(document.querySelector('.settings-row, .section-title, h2') || document.body); return [cs.fontFamily.split(',')[0], cs.fontWeight]; }")
         check('Seitentitel «Deine Rezepte» in Public Sans 700', 'Public Sans' in pt[0] and pt[1] == '700', str(pt))
+        await page.set_viewport_size({'width': 390, 'height': 844}); await page.wait_for_timeout(400)
         # Kontrast Titel (>= 4.5:1) in drei Darstellungen
         for theme in ['light', 'dark', 'schwarz']:
             await set_theme(page, theme); await page.wait_for_timeout(200)
             cr = await ev("""() => { const par = s => { const m = s.match(/[\\d.]+/g).map(Number); return m; }; const lum = c => { const f = v => { v /= 255; return v <= .03928 ? v / 12.92 : Math.pow((v + .055) / 1.055, 2.4); }; return .2126 * f(c[0]) + .7152 * f(c[1]) + .0722 * f(c[2]); };
-              const t = par(getComputedStyle(document.querySelector('.rcard-title')).color), bgc = par(getComputedStyle(document.body).backgroundColor); const a = lum(t), b = lum(bgc); return (Math.max(a, b) + .05) / (Math.min(a, b) + .05); }""")
+              const t = par(getComputedStyle(document.querySelector('.rcard-title, .rrow-title')).color), bgc = par(getComputedStyle(document.body).backgroundColor); const a = lum(t), b = lum(bgc); return (Math.max(a, b) + .05) / (Math.min(a, b) + .05); }""")
             check(f'Titelkontrast {theme} mindestens 4.5:1', cr >= 4.5, f'{cr:.1f}')
         await set_theme(page, 'light')
         # Titelblatt: Schriften bleiben Sofia/Roboto der freigegebenen Vorlagen, nie DM Sans/Fraunces
@@ -188,6 +193,7 @@ async def main():
             await ev(f"() => {{ document.documentElement.style.fontSize = '{fs}'; }}")
             for vname, js in [('Karte', "state.view='home';state.homeLayout='grid';state.query='Überbackene'"), ('Liste', "state.view='home';state.homeLayout='list';state.query='Überbackene'"),
                               ('Ansicht', "state.view='detail';state.activeRecipeId='r_long'"), ('Kochmodus', "state.view='cookmode';state.activeRecipeId='r_long';state.cookStepIndex=0;state.cookFinished=false;state.cookAllSteps=false")]:
+                if vname == 'Karte' and w < 768: continue   # Karten (Raster) gibt es nur ab 768 px; auf dem Handy gilt die Liste (naechster Durchlauf)
                 await ev("() => { " + js + "; state.modal = null; render(); window.scrollTo(0, 0); }"); await page.wait_for_timeout(350)
                 r = await ev("""(sel) => { const e = document.querySelector(sel); if (!e) return null; const r = e.getBoundingClientRect(); const p = (e.closest('.rcard, .rrow, .detail-head, .cook-title-line, main') || e.parentElement).getBoundingClientRect();
                     return { sw: e.scrollWidth, cw: e.clientWidth, right: Math.round(r.right), pright: Math.round(p.right), vw: document.documentElement.clientWidth, doc: document.documentElement.scrollWidth, fam: getComputedStyle(e).fontFamily.split(',')[0], text: e.textContent.trim().slice(0, 20), h: Math.round(r.height), clampLines: getComputedStyle(e).webkitLineClamp }; }""", {'Karte': '.rcard-title', 'Liste': '.rrow-title', 'Ansicht': '.detail-title-v2', 'Kochmodus': '.cook-title-text'}[vname])

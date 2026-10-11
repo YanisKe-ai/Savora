@@ -5,7 +5,11 @@
 2. Breite: bei 768, 820, 1024, 1180, 1280, 1440 und 1920 px nutzen Editor, Import, Detail und Einstellungen die Breite (kein schmaler Streifen),
    kein seitlicher Ueberlauf, Schritt-Reiter vollstaendig, Hintergrund deckt die ganze Hoehe, Vorschau im Editor aktualisiert sich beim Tippen ohne Fokusverlust.
 Hinweis: BASIS_COMMIT ist der Stand direkt vor Paket 42. Wenn spaetere Pakete das Handy bewusst veraendern (z. B. neue Schriften, fester Kopf der Startseite),
-den Basis-Commit auf den Stand vor Paket 42 plus diese Pakete anheben."""
+den Basis-Commit auf den Stand vor Paket 42 plus diese Pakete anheben.
+Startseite als Liste (Handy): Die Startseite und die untere Navigation (fuenf Punkte statt vier, «Mehr», Wortmarke zentriert, kein Zahnrad) haben sich auf dem Handy bewusst
+geaendert. Fuer Ansichten, die diese Startseite oder die untere Navigation zeigen, wird der Pixelvergleich deshalb nicht verlangt (Allowlist PHONE_CHANGED_VIEWS, unten
+dokumentiert); ihr neues Verhalten prueft test_startseite_liste.py. Alle uebrigen Ansichten (Editor, Import, Kochmodus, Leerzustand Import) bleiben Pixel fuer Pixel
+unveraendert. BASIS_COMMIT zeigt auf den Audit-Stand 0.68.0 (Begruendung oben am Wert), damit nur die Aenderungen dieses Pakets sichtbar werden."""
 import asyncio, hashlib, os, shutil, sys, tempfile
 os.environ.setdefault('SAVORA_TEST_PORT', '8892')
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -16,9 +20,17 @@ def check(name, cond, info=''):
     print(('OK   ' if cond else 'FEHL ') + name, info)
     if not cond: FAIL.append(name)
 
-BASIS_COMMIT = '4715ac006e99719f79cab1a6ad1d63044f739c6f'   # Stand 0.67.0 (vor dem Audit-Paket)
+# Begruendung der Anhebung: Der Audit-Stand 0.68.0 hat das Handy gegenueber 0.67.0 bewusst veraendert (Seitentitel in der Kopfzeile duerfen auf zwei Zeilen umbrechen statt mit «...» abzuschneiden,
+# Auswahlhaken, Punkt am aktiven Umschalter). Der Vergleich gegen 0.67.0 schlug deshalb schon vor der Startseite als Liste in Editor und Import an. Neue Basis ist der Stand direkt vor der
+# Startseite als Liste (Audit-Stand 0.68.0); so zeigt der Vergleich genau die Aenderungen dieses Pakets (siehe PHONE_CHANGED_VIEWS).
+BASIS_COMMIT = '9a083fe11ec9c13fb43e42382098df63788cee11'   # Stand 0.68.0 (Audit-Stand), direkt vor der Startseite als Liste
 PHONES = [(375, 812), (390, 844), (430, 932)]
 QUICK = bool(os.environ.get('SAVORA_P42_QUICK'))
+# Ansichten, die auf dem Handy bewusst anders aussehen (Startseite als Liste, untere Navigation mit fuenf Punkten statt vier, zentrierte Wortmarke, kein Zahnrad).
+# Das sind genau die Ansichten, in denen die untere Navigation oder die Startseite sichtbar ist (geprueft: .bottom-nav vorhanden). Editor, Import und Kochmodus nicht.
+PHONE_CHANGED_VIEWS = {'home', 'home-list', 'empty-home', 'detail-long', 'detail-photo', 'detail-short', 'settings', 'settings-data', 'settings-display', 'settings-share', 'settings-help',
+                       'settings-about', 'mealplan', 'shopping', 'cookbooks', 'cookbook1', 'cookbook2', 'cookbook3', 'empty-shopping', 'empty-mealplan', 'empty-cookbooks'}
+def view_of(fname): return fname[:-4].split('-', 2)[2]
 
 def same_pixels(a, b):
     ba, bb = open(a, 'rb').read(), open(b, 'rb').read()
@@ -49,6 +61,9 @@ async def phone_compare():
         if d != 0: bad.append((f, d))
     # Rendering-Flackern (einzelne Pixel in seltenen Aufnahmen, auch zwischen zwei Laeufen desselben Stands): Abweichende Bilder werden bis zu dreimal
     # neu aufgenommen. Ein echter Unterschied zwischen den Staenden bleibt bei jeder Wiederholung bestehen und faellt weiter durch.
+    # Allowlist zuerst abtrennen: nur die unveraenderten Ansichten muessen identisch sein (und werden bei Flackern wiederholt)
+    changed = [(f, d) for f, d in bad if view_of(f) in PHONE_CHANGED_VIEWS]
+    bad = [(f, d) for f, d in bad if view_of(f) not in PHONE_CHANGED_VIEWS]
     for attempt in range(3):
         if not bad: break
         again = []
@@ -59,7 +74,8 @@ async def phone_compare():
             d2 = same_pixels(os.path.join(out_old, f), os.path.join(out_new, f))
             if d2 != 0: again.append((f, d2))
         bad = again
-    check('Handy: 0 abweichende Pixel in allen Ansichten, Groessen und Darstellungen', not bad, f'{len(files)} Bilder verglichen, Abweichungen: {bad[:8]}')
+    check('Handy: 0 abweichende Pixel in allen unveraenderten Ansichten (Editor, Import, Kochmodus, Leerzustand Import), alle Groessen und Darstellungen', not bad, f'{len(files)} Bilder verglichen, Abweichungen: {bad[:8]}')
+    check('Handy: Startseite/Navigation weichen bewusst ab (Allowlist), mindestens Startseite und Einstellungen unterscheiden sich', any(view_of(f) == 'home' for f, d in changed) and any(view_of(f) == 'settings' for f, d in changed), f'{len(changed)} Bilder weichen bewusst ab')
     shutil.rmtree(old, ignore_errors=True)
 
 JS_METRICS = """() => {

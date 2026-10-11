@@ -43,9 +43,11 @@ async def main():
         await go(page, 'home'); await scroll_to(page, 900)
         y0 = await sy(page); check('Vorbedingung: Startseite ist scrollbar', y0 > 500, str(y0))
         # Umschalter Liste/Raster
-        for lay in ('list', 'grid', 'list'):
-            await page.evaluate("(l) => document.querySelector(`[data-action=\"set-home-layout\"][data-id=\"${l}\"]`).click()", lay); await settle(page, 250)
-        check('Listen/Raster-Umschalter: keine Scrollsprünge', abs(await sy(page) - y0) <= 2, f'{y0} -> {await sy(page)}')
+        # Handy: es gibt keinen Raster/Liste-Umschalter mehr (Liste ist Standard); stattdessen die Sortierung der Liste umschalten (gleich viele Zeilen, kein Zwang zum Scrollen)
+        check('Handy: kein Raster/Liste-Umschalter', await ev("() => !document.querySelector('[data-action=\"set-home-layout\"]')"))
+        for srt in ('az', 'updated', 'az', 'updated'):
+            await page.evaluate("(v) => { const s = document.getElementById('sortSelect'); s.value = v; s.dispatchEvent(new Event('change')); }", srt); await settle(page, 250)
+        check('Sortier-Umschalter der Liste: keine Scrollsprünge', abs(await sy(page) - y0) <= 2, f'{y0} -> {await sy(page)}')
         # Favorit
         await ev("() => document.querySelector('[data-action=\"toggle-fav\"]').click()"); await settle(page, 300)
         check('Favorit: keine Scrollsprünge', abs(await sy(page) - y0) <= 2, f'{y0} -> {await sy(page)}')

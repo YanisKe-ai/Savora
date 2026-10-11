@@ -231,7 +231,11 @@ document.addEventListener('focusin', (e) => {
 });
 
 // Breitenwechsel (z.B. iPad drehen): die Rezeptseite ordnet die Zutaten neu an
-if (window.matchMedia) matchMedia('(min-width: 900px)').addEventListener('change', () => { if (state.view === 'detail') render(); });
+if (window.matchMedia) matchMedia('(min-width: 900px)').addEventListener('change', () => { if (state.view === 'detail' || state.view === 'settings') render();
+  else { const l = document.querySelector('.bottom-nav .nav-settings .nav-label'); if (l) l.textContent = isCompactNav() ? 'Mehr' : 'Einstellungen'; }   // letzter Punkt: «Mehr» in der unteren Leiste, «Einstellungen» in der Seitenleiste
+});
+// Handy-Startseite (unter 768 px) und Tablet-Startseite sind zwei Anordnungen: beim Ueberschreiten der Grenze neu zeichnen
+if (window.matchMedia) matchMedia(PHONE_QUERY).addEventListener('change', () => { if (state.view === 'home') render(); });
 
 /* Speicher als "dauerhaft" anfragen: Browser und iOS raeumen ihn dann nicht bei knappem Speicherplatz.
    Kein Dialog, die Antwort ist nur ein Hinweis (der Browser darf ablehnen). */

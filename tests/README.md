@@ -17,6 +17,7 @@ Alle Tests laufen mit Playwright (Python) gegen die echte App in einem Testbrows
 | `test_theme.py` | Darstellung: Browserleiste, Systemelemente, System-Wechsel |
 | `test_import.py` | Text-Import mit realistischen Rezepttexten, Timer-Erkennung |
 | `test_paket37_visual.py` | Neue visuelle Sprache: Schriftfamilien, kleinste Schrift, Tippflächen, Kontraste, Rezept ohne Foto, Startseite, Kochmodus, grosse Systemschrift, reduzierte Bewegung (Hell, Dunkel, Schwarz, 390 und 1280 px) |
+| `test_startseite_liste.py` | Handy-Startseite als Liste (unter 768 px) und Navigation mit fünf Punkten: Wortmarke zentriert, Zeilen, Favoriten, Aktionsknopf, Leerzustände, Filterdialog, 100 Rezepte, 320 bis 1440 px, Hell und Dunkel |
 | `test_monkey.py` | Zufallstest: klickt wahllos durch die App, es darf kein Fehler auftreten |
 
 Regeln: Nicht ausgeführte Tests gelten nie als bestanden. Die Tests laufen mit fester Zeitzone (UTC), damit sie überall gleich sind.
