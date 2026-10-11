@@ -77,7 +77,7 @@ async def main():
             try: keys = await ev("() => caches.keys()")
             except Exception: continue
             if keys and all(NEW_VERSION in k for k in keys): break
-        check('Nach dem Update sind alle alten Caches ersetzt', all(NEW_VERSION in k for k in keys) and len(keys) >= 2, str(keys))
+        check('Nach dem Update sind alle alten Caches ersetzt', all(NEW_VERSION in k for k in keys) and len(keys) >= 1, str(keys))   # seit 0.68.0 entstehen Daten- und Laufzeit-Cache erst bei Gebrauch
         await page.reload(); await page.wait_for_function("typeof cookbookStoreRead === 'function' && document.getElementById('app').children.length > 0", timeout=30000)
         await page.wait_for_timeout(1500)
         after = await ev(SNAP)
