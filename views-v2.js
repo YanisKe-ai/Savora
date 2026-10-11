@@ -250,19 +250,12 @@ function bindFilterSheet() {
       syncFilterSheet();
     });
   }
-  const vsel = document.getElementById('viewSelect');
-  if (vsel && !vsel.dataset.bound) {
-    vsel.dataset.bound = '1';
-    vsel.addEventListener('change', () => {
-      state.favOnly = vsel.value === 'fav';
-      state.activeCollection = 'all';
-      render();
-    });
-  }
   const sel = document.getElementById('sortSelect');
   if (sel && !sel.dataset.bound) {
     sel.dataset.bound = '1';
     sel.addEventListener('change', () => {
+      if (sel.value === '__fav') { state.favOnly = true; state.activeCollection = 'all'; render(); return; }
+      if (isPhoneLayout()) { state.favOnly = false; if (state.activeCollection === 'favorites') state.activeCollection = 'all'; }
       state.sortBy = sel.value;
       try { localStorage.setItem(SORT_KEY, state.sortBy); } catch (err) {}
       render();
@@ -380,9 +373,12 @@ function todayPlannedHtml() {
 }
 /* Ansicht Liste/Raster: gleicher Speicherort wie bisher (savora-home-layout). Handy: ohne gespeicherte Wahl bleibt es die Liste. */
 function layoutToggleHtml(layout, cls) {
+  /* Handy (cls gesetzt): unter 360 px zeigt CSS statt der zwei Knöpfe EINEN Wechsel-Knopf (Symbol der anderen Ansicht) */
+  const single = cls ? `<button type="button" class="layout-single" data-action="set-home-layout" data-id="${layout === 'list' ? 'grid' : 'list'}" aria-label="${layout === 'list' ? 'Zur Rasteransicht wechseln' : 'Zur Listenansicht wechseln'}">${layout === 'list' ? ICONS.grid : ICONS.list}</button>` : '';
   return `<div class="layout-toggle ${cls || ''}" role="group" aria-label="Darstellung">
             <button type="button" class="icon-toggle ${layout !== 'list' ? 'is-active' : ''}" data-action="set-home-layout" data-id="grid" aria-pressed="${layout !== 'list'}" aria-label="Rasteransicht">${ICONS.grid}</button>
             <button type="button" class="icon-toggle ${layout === 'list' ? 'is-active' : ''}" data-action="set-home-layout" data-id="list" aria-pressed="${layout === 'list'}" aria-label="Listenansicht">${ICONS.list}</button>
+            ${single}
           </div>`;
 }
 function homeView() {
@@ -392,12 +388,15 @@ function homeView() {
   const labels = appliedFilterLabels();
   const summary = labels.length > 3 ? labels.slice(0, 3).join(' · ') + ` · + ${labels.length - 3} weitere` : labels.join(' · ');
   const favOnly = !!(state.favOnly || state.activeCollection === 'favorites');
-  const sortLabel = (SORT_OPTIONS.find(o => o.id === state.sortBy) || SORT_OPTIONS[0]).label;
-  const sortOptions = SORT_OPTIONS.map(o => `<option value="${escapeAttr(o.id)}" ${state.sortBy === o.id ? 'selected' : ''}>${escapeHtml(o.label)}</option>`).join('');
+  /* Handy: «Nur Favoriten» steht als letzte Option in der Sortierung (Auswahl = state.favOnly, Sortierung bleibt gemerkt) */
+  const sortLabel = phone && favOnly ? 'Nur Favoriten' : (SORT_OPTIONS.find(o => o.id === state.sortBy) || SORT_OPTIONS[0]).label;
+  const sortOptions = SORT_OPTIONS.map(o => `<option value="${escapeAttr(o.id)}" ${state.sortBy === o.id && !(phone && favOnly) ? 'selected' : ''}>${escapeHtml(o.label)}</option>`).join('')
+    + (phone ? `<option value="__fav" ${favOnly ? 'selected' : ''}>Nur Favoriten</option>` : '');
+  const filterBtn = `<button type="button" class="filter-btn ${filterCount ? 'is-active' : ''}" ${filterCount ? `data-count="${filterCount}"` : ''} ${phone && state.searchOpen ? 'inert' : ''} data-action="open-filter-sheet" aria-haspopup="dialog">${ICONS.sliders}<span class="filter-btn-text">Filter${filterCount ? ' · ' + filterCount : ''}</span></button>`;
 
   let content;
   if (!state.recipes.length) content = emptyState();
-  else if (!list.length) content = emptyFilterState();
+  else if (!list.length) content = (phone ? `<div class="result-row result-row--phone result-row--tools-only"><div class="result-tools">${layoutToggleHtml(state.homeLayoutChosen ? (state.homeLayout === 'grid' ? 'grid' : 'list') : 'list', 'layout-toggle--phone')}${filterBtn}</div></div>` : '') + emptyFilterState();
   else {
     const n = list.length;
     if (phone) {
@@ -407,13 +406,15 @@ function homeView() {
       content = `
       <section class="home-section" aria-labelledby="all-h">
         <div class="result-row result-row--phone">
-          <h2 class="result-line" id="all-h">${tickerHtml(n, 'count')} Rezept${n === 1 ? '' : 'e'}</h2>
-          <span class="result-dot" aria-hidden="true">·</span>
-          <div class="inline-pick sort-inline">
-            <span class="inline-pick-text">${escapeHtml(sortLabel)}</span>${ICONS.arrowDown}
-            <select class="inline-pick-select sort-select" id="sortSelect" aria-label="Sortierung">${sortOptions}</select>
+          <div class="result-info">
+            <h2 class="result-line" id="all-h">${tickerHtml(n, 'count')} Rezept${n === 1 ? '' : 'e'}</h2>
+            <span class="result-dot" aria-hidden="true">·</span>
+            <div class="inline-pick sort-inline">
+              <span class="inline-pick-text">${escapeHtml(sortLabel)}</span>${ICONS.arrowDown}
+              <select class="inline-pick-select sort-select" id="sortSelect" aria-label="Sortierung">${sortOptions}</select>
+            </div>
           </div>
-          ${layoutToggleHtml(pl, 'layout-toggle--phone')}
+          <div class="result-tools">${layoutToggleHtml(pl, 'layout-toggle--phone')}${filterBtn}</div>
         </div>
         ${items}
       </section>`;
@@ -433,7 +434,6 @@ function homeView() {
     }
   }
 
-  const filterBtn = `<button type="button" class="filter-btn ${filterCount ? 'is-active' : ''}" ${phone && state.searchOpen ? 'inert' : ''} data-action="open-filter-sheet" aria-haspopup="dialog">${ICONS.sliders}<span class="filter-btn-text">Filter${filterCount ? ' · ' + filterCount : ''}</span></button>`;
   /* Handy: Suche als runder Knopf neben «Filter»; geoeffnet liegt das Feld ueber der Zeile (kein Springen der Liste), die Zeile dahinter ist inert */
   const searchOpen = !!state.searchOpen, searchEnter = !!state.searchEnter; state.searchEnter = false;
   const hasQuery = !!state.query.trim();
@@ -446,14 +446,9 @@ function homeView() {
     </div>` : '';
   const filterBar = !state.recipes.length ? '' : (phone
     ? `<div class="filter-bar filter-bar--phone">
-          <div class="inline-pick view-pick" ${searchOpen ? 'inert' : ''}>
-            <span class="inline-pick-text">${favOnly ? 'Favoriten' : 'Alle Rezepte'}</span>${ICONS.arrowDown}
-            <select class="inline-pick-select" id="viewSelect" aria-label="Anzeige">
-              <option value="all" ${favOnly ? '' : 'selected'}>Alle Rezepte</option>
-              <option value="fav" ${favOnly ? 'selected' : ''}>Favoriten</option>
-            </select>
+          <div class="view-pick" ${searchOpen ? 'inert' : ''}>
+            <span class="inline-pick-text">Alle Rezepte</span>
           </div>
-          ${filterBtn}
           ${searchBtn}
           ${searchPop}
         </div>`

@@ -57,7 +57,7 @@ async def main():
             # Favoriten-Ansicht: gleicher Titelort
             await ev(STATE_RESET); await ev("() => { state.favOnly = true; render(); }")
             fv = await ev("() => { const e = document.querySelector('.view-pick .inline-pick-text'); const r = document.createRange(); r.selectNodeContents(e); const q = r.getBoundingClientRect(); return { t: e.textContent.trim(), top: q.top, bottom: q.bottom }; }")
-            check(tag + 'Titel «Favoriten» steht auf gleicher Hoehe', fv['t'] == 'Favoriten' and abs(fv['top'] - res['settings']['top']) <= 1 and abs(fv['bottom'] - res['settings']['bottom']) <= 1, str(fv))
+            check(tag + 'Titel bleibt bei aktiven Favoriten «Alle Rezepte» (ohne Pfeil), auf gleicher Hoehe', fv['t'] == 'Alle Rezepte' and abs(fv['top'] - res['settings']['top']) <= 1 and abs(fv['bottom'] - res['settings']['bottom']) <= 1, str(fv))
             await ev(STATE_RESET)
             # Mehrere Seiten wechseln: Titel verspringt nicht (Klick durch die Tabs)
             seq = []
@@ -71,12 +71,12 @@ async def main():
         # ---------- B. Suche (390) ----------
         b, ctx, page, errs = await new_page(p, 390, 844); ev = page.evaluate
         await ev(STATE_RESET); await page.wait_for_timeout(250)
-        st = await ev("""() => { const b = document.getElementById('searchBtn'); const f = document.querySelector('.filter-btn'); const q = b.getBoundingClientRect(); const fr = f.getBoundingClientRect(); const cs = getComputedStyle(b);
+        st = await ev("""() => { const b = document.getElementById('searchBtn'); const f = document.querySelector('.view-pick'); const q = b.getBoundingClientRect(); const fr = f.getBoundingClientRect(); const cs = getComputedStyle(b);
           return { field: !!document.querySelector('.search-field'), input: !!document.getElementById('searchInput'), w: q.width, h: q.height, radius: cs.borderRadius, label: b.getAttribute('aria-label'), exp: b.getAttribute('aria-expanded'), svg: !!b.querySelector('svg'),
-            right: q.left >= fr.right - 0.5, sameRow: Math.abs((q.top + q.height / 2) - (fr.top + fr.height / 2)) <= 1, fh: fr.height, fborder: getComputedStyle(f).borderTopWidth, border: cs.borderTopWidth, bg: cs.backgroundColor, fbg: getComputedStyle(f).backgroundColor, rightEdge: Math.round(innerWidth - q.right) }; }""")
+            right: q.left >= fr.right - 0.5, sameRow: Math.abs((q.top + q.height / 2) - (fr.top + fr.height / 2)) <= 1, fh: fr.height, fborder: getComputedStyle(document.querySelector('.filter-btn')).borderTopWidth, border: cs.borderTopWidth, bg: cs.backgroundColor, fbg: getComputedStyle(document.querySelector('.filter-btn')).backgroundColor, rightEdge: Math.round(innerWidth - q.right) }; }""")
         check('Handy: kein breites Suchfeld mehr, Feld erst nach Tippen auf den Knopf', not st['field'] and not st['input'], str(st))
         check('Suchknopf: Kreis 44 px, Name «Suchen», Lupe, aria-expanded=false', abs(st['w'] - 44) <= 0.5 and abs(st['h'] - 44) <= 0.5 and st['radius'] in ('50%', '22px') and st['label'] == 'Suchen' and st['svg'] and st['exp'] == 'false', str(st))
-        check('Suchknopf: rechts neben «Filter», gleiche Zeile, gleiche Gestaltung (Rand, Hintergrund), buendig am rechten Rand', st['right'] and st['sameRow'] and st['border'] == st['fborder'] and st['bg'] == st['fbg'] and st['rightEdge'] == 16, str(st))
+        check('Suchknopf: rechts neben dem Titel, gleiche Zeile, gleiche Gestaltung wie «Filter» (Rand, Hintergrund), buendig am rechten Rand', st['right'] and st['sameRow'] and st['border'] == st['fborder'] and st['bg'] == st['fbg'] and st['rightEdge'] == 16, str(st))
         main_top = await ev("() => document.querySelector('.home-main').getBoundingClientRect().top")
         row_top = await ev("() => document.querySelector('.rrow--phone').getBoundingClientRect().top")
         await shot(page, 'rezepte_hell.png')
@@ -112,7 +112,8 @@ async def main():
         await ev(STATE_RESET)
         # Tastatur: Tab-Reihenfolge Titelwahl, Filter, Suche
         order = await ev("() => Array.from(document.querySelector('.filter-bar').querySelectorAll('select, button')).map(e => e.id || e.className.split(' ')[0])")
-        check('Tastatur: Reihenfolge Anzeige-Auswahl, Filter, Suchen', order == ['viewSelect', 'filter-btn', 'searchBtn'], str(order))
+        order2 = await ev("() => Array.from(document.querySelectorAll('.result-row select, .result-row button')).map(e => e.id || e.className.split(' ')[0])")
+        check('Tastatur: oben nur Suchen (Titel ohne Auswahl), Zeile darunter Sortierung, Umschalter, Filter', order == ['searchBtn'] and order2[0] == 'sortSelect' and order2[-1] == 'filter-btn', str((order, order2)))
         await page.focus('#searchBtn'); await page.keyboard.press('Enter'); await page.wait_for_timeout(300)
         check('Enter auf dem Knopf oeffnet die Suche mit Fokus im Feld', await ev("document.activeElement.id") == 'searchInput')
         await page.keyboard.press('Escape'); await page.wait_for_timeout(200)
@@ -148,8 +149,8 @@ async def main():
         for (w, h) in [(320, 640), (430, 932)]:
             b, ctx, page, errs = await new_page(p, w, h); ev = page.evaluate; tag = f'[{w}] '
             await ev(STATE_RESET)
-            g = await ev("""() => { const q = (s) => document.querySelector(s).getBoundingClientRect(); const p = q('.view-pick'), f = q('.filter-btn'), s = q('#searchBtn'); return { pickR: p.right, filterL: f.left, filterR: f.right, searchL: s.left, searchR: s.right, W: innerWidth, fw: f.width, fh: f.height, sw: document.documentElement.scrollWidth <= document.documentElement.clientWidth, name: document.querySelector('.filter-btn').textContent.trim() }; }""")
-            check(tag + 'Anzeige-Auswahl, Filter und Suchknopf ueberlappen nicht, rechter Rand 16 px, kein Ueberlauf', g['pickR'] <= g['filterL'] + 0.5 and g['filterR'] <= g['searchL'] + 0.5 and abs(g['W'] - g['searchR'] - 16) <= 1 and g['sw'] and g['fh'] >= 44 and g['fw'] >= 44, str(g))
+            g = await ev("""() => { const q = (s) => document.querySelector(s).getBoundingClientRect(); const p = q('.view-pick'), f = q('.filter-btn'), s = q('#searchBtn'); return { pickR: p.right, filterL: s.left, filterR: s.left, searchL: s.left, searchR: s.right, W: innerWidth, fw: f.width, fh: f.height, sw: document.documentElement.scrollWidth <= document.documentElement.clientWidth, name: document.querySelector('.filter-btn').textContent.trim() }; }""")
+            check(tag + 'Titel und Suchknopf ueberlappen nicht, rechter Rand 16 px, Filter (in der Zeile darunter) mindestens 44 px, kein Ueberlauf', g['pickR'] <= g['searchL'] + 0.5 and abs(g['W'] - g['searchR'] - 16) <= 1 and g['sw'] and g['fh'] >= 44 and g['fw'] >= 44, str(g))
             await page.click('#searchBtn'); await page.keyboard.type('Sloppy'); await page.wait_for_timeout(400)
             v = await ev("() => ({ n: document.querySelectorAll('.rrow--phone').length, input: document.getElementById('searchInput').getBoundingClientRect().width, sw: document.documentElement.scrollWidth <= document.documentElement.clientWidth })")
             check(tag + 'Offenes Feld nutzbar (Eingabe breit genug), Treffer, kein Ueberlauf', v['n'] == 1 and v['input'] >= 100 and v['sw'], str(v))

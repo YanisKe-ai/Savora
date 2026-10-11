@@ -83,12 +83,12 @@ JS_CONTRAST = """(pairs) => {
 # seit 0.70.0 (Handy): Zeile unter dem Titel = Auswahl «Alle Rezepte» | Filter | Suchknopf (Suchfeld nur geoeffnet, dann absolut darueber)
 JS_PHONE_STRIP = """() => {
   const bar = document.querySelector('.filter-bar--phone'); if (!bar) return null;
-  const pick = bar.querySelector('.view-pick'), sel = bar.querySelector('select#viewSelect'), f = bar.querySelector('[data-action="open-filter-sheet"]'), sb = bar.querySelector('#searchBtn');
+  const pick = bar.querySelector('.view-pick'), sel = bar.querySelector('select#viewSelect'), f = document.querySelector('.result-row [data-action="open-filter-sheet"]'), sb = bar.querySelector('#searchBtn');
   if (!pick || !f || !sb) return { sel: !!sel, missing: true };
   const r = e => e.getBoundingClientRect(), t = e => Math.round(r(e).top), txt = f.querySelector('.filter-btn-text');
-  const tops = [pick, f, sb].map(t);
-  return { sel: !!sel && sel.options.length === 2, pickText: pick.querySelector('.inline-pick-text').textContent.trim(), searchLabel: sb.getAttribute('aria-label'),
-    order: r(pick).right <= r(f).left + 1 && r(f).right <= r(sb).left + 1, row: Math.max(...tops) - Math.min(...tops),
+  const tops = [pick, sb].map(t);
+  return { sel: !sel && !pick.querySelector('svg'), pickText: pick.querySelector('.inline-pick-text').textContent.trim(), searchLabel: sb.getAttribute('aria-label'),
+    order: r(pick).right <= r(sb).left + 1 && r(f).top >= r(sb).bottom - 1, row: Math.max(...tops) - Math.min(...tops),
     filterW: Math.round(r(f).width), filterTextVisible: !!txt && r(txt).width > 2, vw: innerWidth };
 }"""
 
@@ -140,10 +140,10 @@ async def main():
                 check(tag + 'Startseite: kein Zahnrad mehr in der Kopfzeile, Einstellungen ueber «Mehr»/«Einstellungen» in der Navigation', not home['gear'] and home['more'] == ('Mehr' if w < 900 else 'Einstellungen'), str(home))
                 check(tag + 'Startseite: kein Zwischentitel "Alle Rezepte", kein "Zuletzt bearbeitet"', not home['allTitle'] and not home['recent'], str(home))
                 if w < 768:
-                    # seit 0.70.0 (Handy): statt Segment «Alle/Favoriten» eine Auswahl «Alle Rezepte» (select #viewSelect in .view-pick) links, Filter-Knopf und Suchknopf rechts davon, alles in einer Zeile
+                    # seit 0.71.0 (Handy): Titel «Alle Rezepte» ohne Pfeil links, Suchknopf rechts, Filter-Knopf in der Zeile darunter (neben dem Umschalter). Davor 0.70.0: statt Segment «Alle/Favoriten» eine Auswahl «Alle Rezepte» (select #viewSelect in .view-pick) links, Filter-Knopf und Suchknopf rechts davon, alles in einer Zeile
                     strip = await page.evaluate(JS_PHONE_STRIP)
                     ok_strip = strip is not None and strip['sel'] and strip['pickText'] == 'Alle Rezepte' and strip['searchLabel'] == 'Suchen' and strip['order'] and strip['row'] <= 6
-                    check(tag + 'Startseite (Handy, seit 0.70.0): Auswahl «Alle Rezepte» links, Filter-Knopf rechts, Suchknopf daneben (aria-label «Suchen»), alles in einer Zeile', ok_strip, str(strip))
+                    check(tag + 'Startseite (Handy, seit 0.70.0): Titel «Alle Rezepte» ohne Pfeil links, Suchknopf rechts (aria-label «Suchen»), Filter-Knopf in der Zeile darunter', ok_strip, str(strip))
                 else:
                     check(tag + 'Startseite: Alle/Favoriten und Filter-Schaltfläche in einer Zeile (Tablet/Desktop)', home['stripRow'] is not None and home['stripRow'] <= 6, str(home['stripRow']))
                 check(tag + 'Startseite: erstes Rezept beginnt frueh', home['firstRecipe'] < (520 if w < 600 else 480), str(home['firstRecipe']))

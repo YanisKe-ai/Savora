@@ -28,7 +28,7 @@ async def shot(page, name):
 RESET = "() => { try { localStorage.removeItem('savora-home-layout'); } catch (e) {} state.homeLayoutChosen = false; state.homeLayout = 'grid'; resetExtraFilters(); state.query = ''; state.searchOpen = false; state.favOnly = false; state.modal = null; state.view = 'home'; render(); window.scrollTo(0, 0); }"
 INFO = """() => { const t = document.querySelector('.layout-toggle'); if (!t) return null; const bs = [...t.querySelectorAll('.icon-toggle')].map(b => { const r = b.getBoundingClientRect(); return { n: b.getAttribute('aria-label'), p: b.getAttribute('aria-pressed'), w: r.width, h: r.height }; });
   const tr = t.getBoundingClientRect(), row = document.querySelector('.result-row').getBoundingClientRect(), W = document.documentElement.clientWidth;
-  return { bs, inRow: tr.top >= row.top - 1 && tr.bottom <= row.bottom + 1, right: tr.right, W, rowH: row.height, sw: document.documentElement.scrollWidth <= W,
+  const fl = document.querySelector('.filter-btn').getBoundingClientRect().left; return { bs, fl, inRow: tr.top >= row.top - 1 && tr.bottom <= row.bottom + 1, right: tr.right, W, rowH: row.height, sw: document.documentElement.scrollWidth <= W,
     rows: document.querySelectorAll('.rrow--phone').length, cards: document.querySelectorAll('.rcard--phone').length, grid: !!document.querySelector('.rgrid--phone') }; }"""
 
 async def main():
@@ -36,10 +36,19 @@ async def main():
         for (w, h) in [(320, 640), (390, 844), (430, 932)]:
             b, ctx, page, errs = await new_page(p, w, h); ev = page.evaluate; tag = f'[{w}] '
             await ev(RESET)
+            if w < 360:
+                # unter 360 px: EIN Wechsel-Knopf (Symbol und Name der anderen Ansicht), die zwei Knoepfe sind ausgeblendet
+                sg = await ev("() => { const b = document.querySelector('.layout-single'); const r = b.getBoundingClientRect(); return { n: b.getAttribute('aria-label'), w: r.width, h: r.height, two: [...document.querySelectorAll('.layout-toggle .icon-toggle')].every(e => e.getBoundingClientRect().width === 0) }; }")
+                check(tag + 'Unter 360 px: ein Wechsel-Knopf 44 px «Zur Rasteransicht wechseln», die zwei Knoepfe ausgeblendet', sg['n'] == 'Zur Rasteransicht wechseln' and sg['w'] >= 44 and sg['h'] >= 44 and sg['two'], str(sg))
+                await page.click('.layout-single'); await page.wait_for_timeout(250)
+                check(tag + 'Wechsel-Knopf schaltet auf Raster, Name wird «Zur Listenansicht wechseln», Wahl gespeichert', await ev("() => document.querySelector('.layout-single').getAttribute('aria-label')") == 'Zur Listenansicht wechseln' and await ev("() => !!document.querySelector('.rgrid--phone') && localStorage.getItem('savora-home-layout')") == 'grid')
+                await page.click('.layout-single'); await page.wait_for_timeout(250)
+                check(tag + 'Wechsel-Knopf schaltet zurueck auf Liste', await ev("() => !!document.querySelector('.rlist--phone')"))
+                await ctx.close(); await b.close(); continue
             i = await ev(INFO)
             check(tag + 'Umschalter sichtbar mit Namen Listenansicht/Rasteransicht', i and [x['n'] for x in i['bs']] == ['Rasteransicht', 'Listenansicht'], str(i and i['bs']))
             check(tag + 'Standard ist Liste (aria-pressed)', i['bs'][1]['p'] == 'true' and i['bs'][0]['p'] == 'false' and i['rows'] > 0 and not i['grid'])
-            check(tag + 'Touchflaeche mind. 44 px, im Zeilenbereich, rechts buendig', all(x['w'] >= 44 and x['h'] >= 44 for x in i['bs']) and i['inRow'] and i['W'] - i['right'] <= 20 + 1, f"{i['right']} {i['W']}")
+            check(tag + 'Touchflaeche mind. 44 px, im Zeilenbereich, 8 px links neben dem Filter', all(x['w'] >= 44 and x['h'] >= 44 for x in i['bs']) and i['inRow'] and i['right'] <= i['fl'] - 8 + 0.5, f"{i['right']} {i['W']}")
             await page.click('[data-action="set-home-layout"][data-id="grid"]'); await page.wait_for_timeout(200)
             g = await ev("""() => { const c = [...document.querySelectorAll('.rcard--phone')]; const xs = new Set(c.map(e => Math.round(e.getBoundingClientRect().left))); const im = c.map(e => e.querySelector('.rcard-img')).filter(Boolean).map(e => { const r = e.getBoundingClientRect(); return r.width / r.height; });
               return { n: c.length, cols: xs.size, ratios: im.slice(0, 6), sw: document.documentElement.scrollWidth <= document.documentElement.clientWidth, nested: document.querySelectorAll('.rcard--phone button button').length, store: localStorage.getItem('savora-home-layout') }; }""")
