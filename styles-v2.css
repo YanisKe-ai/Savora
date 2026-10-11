@@ -2357,7 +2357,7 @@ legend.tl-lead { padding: 0; }
 @media (max-width: 767px) {
   :root { --title-row-h: 2.75rem; --title-fs: 1.75rem; --title-gap: 1rem; }
   .topbar:not(.topbar--sub) { grid-template-rows: 3.5rem; min-height: 0; padding-top: calc(0.375rem + env(safe-area-inset-top, 0px)); padding-bottom: 0.25rem; }
-  main.has-tabbar:not(.home-main) { padding-top: 0; padding-left: 1rem; padding-right: 1rem; }
+  main.has-tabbar:not(.home-main):has(> .page-title-row) { padding-top: 0; padding-left: 1rem; padding-right: 1rem; }   /* nur Seiten mit Titelzeile (Editor und Import bleiben unveraendert) */
   /* Wortmarke: auf allen fünf Hauptseiten gleich gross (fest 168 px), mittig */
   .topbar:not(.topbar--sub) .top-wordmark { width: 168px; max-width: calc(100vw - 2rem); }
   main.has-tabbar > .page-title-row, main > .page-title-row { box-sizing: border-box; min-height: var(--title-row-h); margin: var(--title-gap) 0 1rem; padding: 0; align-items: center; align-content: flex-start; flex-wrap: wrap; row-gap: 0.5rem; }
