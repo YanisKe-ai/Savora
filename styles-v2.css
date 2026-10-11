@@ -2238,7 +2238,8 @@ body.keyboard-open .home-add-bar { display: none; }
 
 /* Sehr schmale Handys (320 px): etwas kleinere Beschriftung der Navigation und der Ansichtsauswahl, damit nichts abgeschnitten wird oder umbricht (Linux-Schriften sind etwas breiter) */
 @media (max-width: 339px) {
-  .bottom-nav .nav-label { font-size: 0.5625rem; letter-spacing: -0.01em; }
+  .bottom-nav .nav-label { font-size: 0.5625rem; letter-spacing: -0.02em; }
+  .bottom-nav button { padding-left: 0; padding-right: 0; }
   .home-head--phone .view-pick { font-size: 1.25rem; }
   .home-head--phone .view-pick .inline-pick-text { overflow-wrap: anywhere; }
 }

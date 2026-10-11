@@ -63,6 +63,7 @@ async def new_phone(p, w, h, seed=True):
     # Handys haben Overlay-Scrollbalken. Chromium unter Linux (GitHub) zieht sonst 15 px Breite ab und verschiebt jede Messung zur Mitte; deshalb Balken ausblenden.
     await page.add_init_script("document.addEventListener('DOMContentLoaded', () => { const s = document.createElement('style'); s.textContent = 'html { scrollbar-width: none } html::-webkit-scrollbar { display: none }'; document.head.appendChild(s); });")
     await goto(page)
+    await page.evaluate("() => document.fonts.ready.then(() => 1)")   # Schriften fertig geladen, sonst misst der Test mit Ersatzschrift (auf GitHub breiter)
     if seed: await page.evaluate(open(SEED_PATH).read()); await page.wait_for_timeout(400)
     return b, ctx, page, errs
 
