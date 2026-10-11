@@ -110,7 +110,7 @@ JS_ALL = r"""() => {
 
 HEIGHTS = {360: 740, 390: 844, 768: 1024, 1024: 768, 1280: 800}
 # Absichtlich unsichtbare oder einzeilig abgekuerzte Kopfzeilentitel (voller Titel steht darunter bzw. in der Liste)
-IGNORE_CLIP = ('topbar-title', 'form-step-label', 'plan-day-long', 'plan-add-label')   # plan-add-label: absichtlich nur fuer Screenreader sichtbar
+IGNORE_CLIP = ('topbar-title', 'form-step-label', 'plan-day-long', 'plan-add-label', 'filter-btn-text')   # plan-add-label und filter-btn-text (seit 0.71.0, Filter nur als Symbol bei schmalen Handys): absichtlich nur fuer Screenreader sichtbar
 TABS = ('home', 'mealplan', 'shopping', 'cookbooks')
 
 async def scan(page, key):

@@ -97,7 +97,7 @@ async def main():
         reset = await page.evaluate("applyAllFilters(state.recipes).length")
         check('8 Filter kombinierbar und zuruecksetzbar', combo == ['Gemüse-Curry'] and reset == 4, f"{combo} reset={reset}")
         # Auf dem Handy ist die Liste Standard; der Raster/Liste-Umschalter ist dort wieder vorhanden (Ansicht Umschalter), Details prueft test_ansicht_umschalter.py
-        check('Handy: Liste ist Standard, Raster/Liste-Umschalter vorhanden', await page.evaluate("document.querySelectorAll('.rrow--phone').length") == 4 and await page.evaluate("document.querySelectorAll('.result-row--phone [data-action=\"set-home-layout\"]').length") == 2)
+        check('Handy: Liste ist Standard, Raster/Liste-Umschalter vorhanden', await page.evaluate("document.querySelectorAll('.rrow--phone').length") == 4 and await page.evaluate("document.querySelectorAll('.result-row--phone .icon-toggle[data-action=\"set-home-layout\"]').length") == 2)
         await page.set_viewport_size({'width': 820, 'height': 1180}); await page.wait_for_timeout(500)
         await click(page, '[data-action="set-home-layout"][data-id="list"]')
         lst = await page.evaluate("document.querySelectorAll('.rrow').length")

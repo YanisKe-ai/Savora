@@ -44,7 +44,7 @@ async def main():
         y0 = await sy(page); check('Vorbedingung: Startseite ist scrollbar', y0 > 500, str(y0))
         # Umschalter Liste/Raster
         # Handy: es gibt keinen Raster/Liste-Umschalter mehr (Liste ist Standard); stattdessen die Sortierung der Liste umschalten (gleich viele Zeilen, kein Zwang zum Scrollen)
-        check('Handy: Umschalter Liste/Raster in der Ergebniszeile, Liste ist Standard', await ev("() => document.querySelectorAll('.result-row--phone [data-action=\"set-home-layout\"]').length === 2 && !!document.querySelector('.rrow--phone')"))
+        check('Handy: Umschalter Liste/Raster in der Ergebniszeile, Liste ist Standard', await ev("() => document.querySelectorAll('.result-row--phone .icon-toggle[data-action=\"set-home-layout\"]').length === 2 && !!document.querySelector('.rrow--phone')"))
         for srt in ('az', 'updated', 'az', 'updated'):
             await page.evaluate("(v) => { const s = document.getElementById('sortSelect'); s.value = v; s.dispatchEvent(new Event('change')); }", srt); await settle(page, 250)
         check('Sortier-Umschalter der Liste: keine Scrollsprünge', abs(await sy(page) - y0) <= 2, f'{y0} -> {await sy(page)}')

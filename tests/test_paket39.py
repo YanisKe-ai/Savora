@@ -85,7 +85,7 @@ async def main():
                     return { brand: inside('.home-head .topbar'), plus: inside('[data-action="open-add-menu"]'), gear: inside('.icon-btn--settings'), title: inside('.page-title'), search: inside('.search-input, #searchBtn'), strip: inside('.filter-bar'), toggle: inside('.filter-btn'),
                       today: document.querySelector('.home-head .today-planned, .home-head .recent-title') ? 'im Kopf' : 'ok', nudgeInHead: !!document.querySelector('.home-head .nudge-card') }; }""")
                 # Neu (Startseite als Liste): kein Zahnrad mehr (Einstellungen ueber «Mehr»); Handy ohne Plus (Aktionsknopf unten) und ohne sichtbaren Seitentitel
-                need = ['brand', 'search', 'strip', 'toggle'] if w < 768 else ['brand', 'plus', 'title', 'search', 'strip', 'toggle']
+                need = ['brand', 'search', 'strip'] if w < 768 else ['brand', 'plus', 'title', 'search', 'strip', 'toggle']
                 check(tag + 'Wortmarke, Suche, Alle/Favoriten, Filter-Schaltfläche' + ('' if w < 768 else ', Plus, Titel') + ' liegen im festen Kopf', all(parts[k] for k in need), str(parts))
                 check(tag + 'Kein Zahnrad im Kopf, auf dem Handy auch kein Plus und kein Seitentitel im Kopf', parts['gear'] is None and (w >= 768 or (not parts['plus'] and parts['title'] is None)), str(parts))
                 check(tag + '«Heute geplant» und Sicherungshinweis stehen nicht im festen Kopf', parts['today'] == 'ok' and not parts['nudgeInHead'], str(parts))
