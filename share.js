@@ -13,7 +13,7 @@ const SHARE_DONE_KEY = 'savora-share-done';
 const SHARE_INVITE_KEY = 'savora-share-invite';
 const SHARE_DROP_KEYS = ['id', 'favorite', 'cookCount', 'lastCookedAt', 'cookLog', 'createdAt', 'updatedAt', 'imageId', 'image', 'collections', 'collectionIds', 'sharedBy'];
 const SHARE_MAX_IMAGE_CHARS = 1400000;
-const share = { fetchedAt: 0, profile: undefined, connections: [], inbox: [], count: 0, loading: false, error: null, previewId: null, previewImage: null, timer: null };
+const share = { fetchedAt: 0, profile: undefined, connections: [], inbox: [], count: 0, loading: false, error: null, previewId: null, previewImage: null, timer: null, ui: {} };
 
 /* ---------- Server ---------- */
 async function shareRpc(name, args) {
@@ -41,7 +41,7 @@ async function shareRefresh() {
     share.inbox = (inbox || []).filter(x => !hidden.has(x.id));
     share.count = share.connections.filter(c => c.state === 'incoming').length + share.inbox.length;
     share.error = null;
-  } catch (e) { share.error = e.message || 'Laden fehlgeschlagen'; }
+  } catch (e) { share.error = shareErrText(e); }
   finally { share.loading = false; share.fetchedAt = Date.now(); }
   shareRerender();
 }
@@ -89,7 +89,7 @@ function shareHandleInviteLink() {
   } catch (e) { /* ungueltige Adresse: ignorieren */ }
 }
 function shareReset() {
-  share.fetchedAt = 0; share.profile = undefined; share.connections = []; share.inbox = []; share.count = 0; share.error = null; share.previewId = null; share.previewImage = null;
+  share.fetchedAt = 0; share.profile = undefined; share.connections = []; share.inbox = []; share.count = 0; share.error = null; share.previewId = null; share.previewImage = null; share.ui = {};
   try { localStorage.removeItem(SHARE_DONE_KEY); sessionStorage.removeItem(SHARE_INVITE_KEY); } catch (e) {}
 }
 function shareSettingsSummary() {
@@ -162,129 +162,204 @@ async function shareImageDataUrl(recipe) {
 }
 
 /* ---------- Oberflaeche ---------- */
+const SHARE_OFFLINE_TEXT = 'Keine Verbindung zum Internet. Zum Teilen brauchst du Internet. Deine Rezepte sind davon nicht betroffen.';
+function shareErrText(e) { return e && e.offline ? SHARE_OFFLINE_TEXT : (e && e.message) || 'Das hat nicht geklappt. Bitte nochmals versuchen.'; }
 function shareInviteLink(p) { return CLOUD_SITE_URL + '?freund=' + encodeURIComponent(p.invite_code); }
 function shareName(x) { return x.display_name || '@' + x.handle; }
 function shareWho(x) { return `<strong>${escapeHtml(shareName(x))}</strong>${x.display_name ? ` <span class="share-handle">@${escapeHtml(x.handle)}</span>` : ''}`; }
 
+const SHARE_SVG = {
+  inbox: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 12h-6l-2 3h-4l-2-3H2"/><path d="M5.5 5h13l3.5 7v6a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2v-6z"/></svg>',
+  send: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 2 11 13"/><path d="M22 2l-7 20-4-9-9-4z"/></svg>',
+  plus: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>'
+};
+function shareAvatar(x) { return `<span class="tl-avatar" aria-hidden="true">${escapeHtml((shareName(x).replace(/^@/, '').charAt(0) || '?').toUpperCase())}</span>`; }
+function shareFold(key, title, meta, inner, defaultOpen) {
+  const open = share.ui[key] !== undefined ? share.ui[key] : !!defaultOpen;
+  return `<details class="tl-fold" data-ui="${key}"${open ? ' open' : ''}><summary><span class="tl-fold-title">${title}</span>${meta ? `<span class="tl-fold-meta">${meta}</span>` : ''}<span class="tl-fold-chev" aria-hidden="true">${ICONS.chevronRight}</span></summary><div class="tl-fold-body">${inner}</div></details>`;
+}
+function shareSection(id, title, count, inner, extraCls) {
+  return `<section class="tl-sec${extraCls ? ' ' + extraCls : ''}" aria-labelledby="tl-h-${id}"><h2 class="tl-h" id="tl-h-${id}">${title}${count ? `<span class="tl-badge" aria-label="${count} neu">${count}</span>` : ''}</h2>${inner}</section>`;
+}
+function shareProfileFields(p, saveLabel, btnCls) {
+  return `<div class="field"><label for="shareHandle">Profilname</label><input type="text" id="shareHandle" autocomplete="off" autocapitalize="off" spellcheck="false" maxlength="24" ${p ? `value="${escapeHtml(p.handle)}"` : 'placeholder="z. B. yanis_kocht"'} aria-describedby="shareHandleHint"><p class="tl-hint" id="shareHandleHint">3 bis 24 Zeichen: Kleinbuchstaben, Zahlen und Unterstrich.</p></div>
+    <div class="field"><label for="shareName">Anzeigename (freiwillig)</label><input type="text" id="shareName" autocomplete="off" maxlength="40" ${p ? `value="${escapeHtml(p.display_name || '')}"` : 'placeholder="z. B. Yanis"'}></div>
+    <p class="cloud-error" id="shareError" role="alert"></p>
+    <button class="${btnCls}" data-action="share-profile-save">${saveLabel}</button>`;
+}
+
+function shareAsideHtml() {
+  return `<aside class="tl-aside" aria-label="So funktioniert das Teilen"><h2 class="tl-h">So funktioniert es</h2><ol class="tl-steps"><li>Konto und Profilnamen einrichten.</li><li>Freunde per Profilname oder Code hinzufügen. Sie bestätigen die Anfrage.</li><li>Ein Rezept wählen, einen Freund wählen, senden. Das Rezept kommt als Kopie an, und dein Original bleibt unverändert.</li><li>Empfangene Rezepte erst ansehen, dann übernehmen oder ablehnen.</li></ol></aside>`;
+}
 function settingsShareView() {
   let body;
+  let wide = false;
+  let intro = false;
   if (!cloudSignedIn()) {
-    body = `<div class="settings-group"><div class="settings-group-card settings-group-card--padded">
-      <p class="settings-hint settings-hint--none">Mit einem Konto kannst du Rezepte direkt an Freunde in Savora senden und von ihnen bekommen. Niemand sieht dein Kochbuch, es kommt nur an, was du aktiv sendest.</p>
+    intro = true;
+    body = `<div class="tl-card tl-card--intro">
+      <h2 class="tl-h tl-h--card">Rezepte mit Freunden austauschen</h2>
+      <p>Dafür brauchst du ein Konto. Dann kannst du Rezepte direkt an Freunde in Savora senden und von ihnen empfangen.</p>
+      <p class="tl-hint">Niemand sieht dein Kochbuch. Es kommt nur an, was du selbst sendest.</p>
       <button class="primary-btn primary-btn--block" data-action="goto-view" data-view="settings-sync">Zur Anmeldung</button>
-    </div></div>`;
+    </div>`;
   } else if (share.profile === undefined) {
     if (!share.loading && !share.error) setTimeout(shareRefresh, 0);
-    body = `<p class="settings-hint">${share.error ? escapeHtml(share.error) : 'Wird geladen …'}</p>${share.error ? '<button class="ghost-btn primary-btn--block" data-action="share-refresh">Nochmals versuchen</button>' : ''}`;
+    body = share.error
+      ? `<div class="tl-card" role="alert"><p>${escapeHtml(share.error)}</p><button class="ghost-btn primary-btn--block" data-action="share-refresh">Nochmals versuchen</button></div>`
+      : `<p class="tl-loading" role="status">Wird geladen …</p>`;
   } else if (!share.profile) {
-    body = `<div class="settings-group"><div class="settings-group-title">Dein Profil</div><div class="settings-group-card settings-group-card--padded">
-      <p class="settings-hint settings-hint--none">Lege einen Profilnamen fest, unter dem dich Freunde finden. Dein Kochbuch bleibt privat.</p>
-      <div class="field"><label for="shareHandle">Profilname</label><input id="shareHandle" autocomplete="off" autocapitalize="off" spellcheck="false" maxlength="24" placeholder="z. B. yanis_kocht"></div>
-      <div class="field"><label for="shareName">Anzeigename (optional)</label><input id="shareName" autocomplete="off" maxlength="40" placeholder="z. B. Yanis"></div>
-      <p class="cloud-error" id="shareError" role="alert"></p>
-      <button class="primary-btn primary-btn--block" data-action="share-profile-save">Profil erstellen</button>
-      <p class="settings-hint settings-hint--top">3 bis 24 Zeichen: Kleinbuchstaben, Zahlen und Unterstrich.</p>
-    </div></div>`;
+    intro = true;
+    body = `<div class="tl-card tl-card--intro">
+      <h2 class="tl-h tl-h--card">Profil einrichten</h2>
+      <p>Mit deinem Profilnamen finden dich Freunde. Dein Kochbuch bleibt privat.</p>
+      ${shareProfileFields(null, 'Profil erstellen', 'primary-btn primary-btn--block')}
+    </div>`;
   } else {
+    wide = true;
     const p = share.profile;
     const incoming = share.connections.filter(c => c.state === 'incoming');
     const connected = share.connections.filter(c => c.state === 'connected');
     const outgoing = share.connections.filter(c => c.state === 'outgoing');
     const blocked = share.connections.filter(c => c.state === 'blocked');
+    const hasFriends = connected.length > 0;
     if (!share.loading && Date.now() - share.fetchedAt > 2000) setTimeout(shareRefresh, 0);   // beim Oeffnen frisch laden
     const prefill = sessionStorage.getItem(SHARE_INVITE_KEY) || '';
-    const row = (inner, actions) => `<div class="share-row"><div class="share-row-text">${inner}</div><div class="share-row-actions">${actions}</div></div>`;
-    body = `
-    ${share.inbox.length ? `<div class="settings-group"><div class="settings-group-title">Posteingang</div><div class="settings-group-card settings-group-card--padded">
-      ${share.inbox.map(s => row(`${shareWho({ display_name: s.from_name, handle: s.from_handle })} schickt dir<br><span class="share-title">${escapeHtml(s.title)}</span>${s.message ? `<br><span class="share-msg">„${escapeHtml(s.message)}“</span>` : ''}`,
-        `<button class="primary-btn primary-btn--small" data-action="share-open-preview" data-id="${s.id}">Ansehen</button>`)).join('')}
-    </div></div>` : ''}
-    ${incoming.length ? `<div class="settings-group"><div class="settings-group-title">Anfragen</div><div class="settings-group-card settings-group-card--padded">
-      ${incoming.map(c => row(`${shareWho(c)} möchte sich mit dir verbinden`,
-        `<button class="primary-btn primary-btn--small" data-action="share-respond" data-id="${c.handle}" data-answer="accept">Annehmen</button><button class="ghost-btn primary-btn--small" data-action="share-respond" data-id="${c.handle}" data-answer="decline">Ablehnen</button><button class="text-btn" data-action="share-respond" data-id="${c.handle}" data-answer="block">Blockieren</button>`)).join('')}
-    </div></div>` : ''}
-    <div class="settings-group"><div class="settings-group-title">Freund hinzufügen</div><div class="settings-group-card settings-group-card--padded">
-      <div class="field"><label for="shareTarget">Profilname oder Einladungscode</label><input id="shareTarget" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="@name oder SAV-XXXX-XXXX" value="${escapeHtml(prefill)}"></div>
-      <p class="cloud-error" id="shareError" role="alert"></p>
+    const row = (x, inner, actions) => `<li class="tl-row">${shareAvatar(x)}<div class="tl-row-text">${inner}</div>${actions ? `<div class="tl-row-actions">${actions}</div>` : ''}</li>`;
+
+    const offlineBanner = share.error ? `<div class="tl-banner" role="status"><span>${escapeHtml(share.error)} Du siehst den Stand von vorhin.</span><button class="text-btn" data-action="share-refresh">Nochmals versuchen</button></div>` : '';
+
+    const inboxCards = share.inbox.map(s => `<li class="tl-row tl-row--inbox">${shareAvatar({ display_name: s.from_name, handle: s.from_handle })}<div class="tl-row-text"><span class="share-title">${escapeHtml(s.title)}</span><span class="tl-sub">von ${shareWho({ display_name: s.from_name, handle: s.from_handle })}</span>${s.message ? `<span class="share-msg">„${escapeHtml(s.message)}“</span>` : ''}</div><div class="tl-row-actions"><button class="primary-btn primary-btn--small" data-action="share-open-preview" data-id="${s.id}" aria-label="Ansehen: ${escapeHtml(s.title)} von ${escapeHtml(shareName({ display_name: s.from_name, handle: s.from_handle }))}">Ansehen</button></div></li>`).join('');
+    const inboxSec = share.inbox.length
+      ? shareSection('inbox', 'Posteingang', share.inbox.length, `<ul class="tl-list tl-card">${inboxCards}</ul>`)
+      : hasFriends ? shareSection('inbox', 'Posteingang', 0, `<div class="tl-card tl-card--quiet"><p>Nichts Neues. Rezepte, die dir Freunde senden, erscheinen hier. Du kannst sie ansehen, bevor du sie übernimmst.</p></div>`) : '';
+
+    const reqSec = incoming.length ? shareSection('req', 'Anfragen', incoming.length, `<ul class="tl-list tl-card">${incoming.map(c => `<li class="tl-row tl-row--req">${shareAvatar(c)}<div class="tl-row-text"><span class="tl-name">${shareWho(c)}</span><span class="tl-sub">möchte sich mit dir verbinden</span></div><div class="tl-row-actions">
+        <button class="primary-btn primary-btn--small" data-action="share-respond" data-id="${c.handle}" data-answer="accept" aria-label="Anfrage von ${escapeHtml(shareName(c))} annehmen">Annehmen</button>
+        <button class="ghost-btn primary-btn--small" data-action="share-respond" data-id="${c.handle}" data-answer="decline" aria-label="Anfrage von ${escapeHtml(shareName(c))} ablehnen">Ablehnen</button>
+        <button class="text-btn text-btn--quiet" data-action="share-respond" data-id="${c.handle}" data-answer="block" aria-label="${escapeHtml(shareName(c))} blockieren">Blockieren</button></div></li>`).join('')}</ul>`) : '';
+
+    const sendSec = hasFriends ? `<section class="tl-sec tl-sec--send" aria-label="Rezept senden"><div class="tl-card tl-card--action">
+        <div><h2 class="tl-h tl-h--card">Rezept senden</h2><p class="tl-hint tl-hint--flush">Wähle ein Rezept und einen Freund. Dein Original bleibt unverändert.</p></div>
+        <button class="primary-btn" data-action="share-pick-open">${SHARE_SVG.send} Rezept wählen</button></div></section>` : '';
+
+    const addForm = `<div class="field"><label for="shareTarget">Profilname oder Einladungscode</label><input type="text" id="shareTarget" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="@name oder SAV-XXXX-XXXX" value="${escapeHtml(prefill)}"></div>
+      <p class="cloud-error" id="shareConnectError" role="alert"></p>
       <button class="primary-btn primary-btn--block" data-action="share-connect">Anfrage senden</button>
-      <p class="settings-hint settings-hint--top">Die andere Person muss deine Anfrage bestätigen. Erst dann könnt ihr euch Rezepte senden.</p>
-    </div></div>
-    <div class="settings-group"><div class="settings-group-title">Verbindungen</div><div class="settings-group-card settings-group-card--padded">
-      ${connected.length || outgoing.length || blocked.length ? '' : '<p class="settings-hint settings-hint--none">Noch niemand verbunden.</p>'}
-      ${connected.map(c => row(shareWho(c), `<button class="text-btn" data-action="share-remove" data-id="${c.handle}">Entfernen</button>`)).join('')}
-      ${outgoing.map(c => row(`${shareWho(c)}<br><span class="share-msg">Anfrage wartet auf Bestätigung</span>`, `<button class="text-btn" data-action="share-remove" data-id="${c.handle}">Zurückziehen</button>`)).join('')}
-      ${blocked.map(c => row(`${shareWho(c)}<br><span class="share-msg">Blockiert</span>`, `<button class="text-btn" data-action="share-remove" data-id="${c.handle}">Entsperren</button>`)).join('')}
-    </div></div>
-    <div class="settings-group"><div class="settings-group-title">Dein Profil</div><div class="settings-group-card settings-group-card--padded">
-      <p class="settings-hint settings-hint--none">${shareWho(p)}</p>
+      <p class="tl-hint">Die andere Person muss bestätigen. Erst dann könnt ihr euch Rezepte senden.</p>`;
+    const friendList = (connected.length || outgoing.length) ? `<ul class="tl-list tl-card">
+        ${connected.map(c => row(c, `<span class="tl-name">${shareWho(c)}</span>`, '')).join('')}
+        ${outgoing.map(c => row(c, `<span class="tl-name">${shareWho(c)}</span><span class="tl-sub">Anfrage wartet auf Bestätigung</span>`, `<button class="text-btn" data-action="share-remove" data-id="${c.handle}" aria-label="Anfrage an ${escapeHtml(shareName(c))} zurückziehen">Zurückziehen</button>`)).join('')}
+      </ul>` : '';
+    const firstTime = `<div class="tl-card tl-card--quiet"><p class="tl-lead">Noch keine Freunde in Savora.</p><ol class="tl-steps"><li>Füge einen Freund per Profilname oder Code hinzu.</li><li>Die Person bestätigt deine Anfrage.</li><li>Danach könnt ihr euch Rezepte senden.</li></ol></div>`;
+    const manageInner = `<ul class="tl-list">
+        ${connected.map(c => row(c, `<span class="tl-name">${shareWho(c)}</span>`, `<button class="text-btn text-btn--danger" data-action="share-remove" data-id="${c.handle}" aria-label="Verbindung mit ${escapeHtml(shareName(c))} entfernen">Entfernen</button>`)).join('')}
+        ${blocked.map(c => row(c, `<span class="tl-name">${shareWho(c)}</span><span class="tl-sub">Blockiert</span>`, `<button class="text-btn" data-action="share-remove" data-id="${c.handle}" aria-label="${escapeHtml(shareName(c))} entsperren">Entsperren</button>`)).join('')}
+      </ul>`;
+    const friendsSec = shareSection('friends', 'Freunde', 0,
+      (hasFriends || outgoing.length ? friendList : firstTime)
+      + shareFold('add', `${SHARE_SVG.plus} Freund hinzufügen`, '', addForm, !hasFriends && !outgoing.length || !!prefill)
+      + (connected.length || blocked.length ? shareFold('manage', 'Freunde verwalten', '', manageInner, false) : ''));
+
+    const profileInner = `<p class="tl-lead">Dein Einladungscode</p>
       <p class="share-code" aria-label="Dein Einladungscode">${escapeHtml(p.invite_code)}</p>
       <div class="share-row-actions share-row-actions--wrap">
         <button class="ghost-btn primary-btn--small" data-action="share-copy-link">${ICONS.link} Einladungslink kopieren</button>
         <button class="ghost-btn primary-btn--small" data-action="share-copy-code">${ICONS.copy} Code kopieren</button>
       </div>
-      <p class="settings-hint settings-hint--top">Wer deinen Code oder Link hat, kann dir eine Anfrage schicken. Du entscheidest, ob du sie annimmst.</p>
-      <div class="field"><label for="shareHandle">Profilname</label><input id="shareHandle" autocomplete="off" autocapitalize="off" spellcheck="false" maxlength="24" value="${escapeHtml(p.handle)}"></div>
-      <div class="field"><label for="shareName">Anzeigename</label><input id="shareName" autocomplete="off" maxlength="40" value="${escapeHtml(p.display_name || '')}"></div>
-      <p class="cloud-error" id="shareError" role="alert"></p>
-      <button class="ghost-btn primary-btn--block" data-action="share-profile-save">Profil speichern</button>
-      <button class="text-btn" data-action="share-invite-reset">Neuen Einladungscode erzeugen</button>
-    </div></div>`;
+      <p class="tl-hint">Wer deinen Code oder Link hat, kann dir eine Anfrage schicken. Du entscheidest, ob du sie annimmst.</p>
+      <hr class="tl-rule">
+      ${shareProfileFields(p, 'Profil speichern', 'ghost-btn primary-btn--block')}
+      <button class="text-btn" data-action="share-invite-reset">Neuen Einladungscode erzeugen</button>`;
+    const profileSec = shareSection('profile', 'Mein Profil', 0, shareFold('profile', 'Code und Profil', `<span class="share-handle">@${escapeHtml(p.handle)}</span>`, profileInner, !hasFriends && !outgoing.length));
+
+    body = `${offlineBanner}<div class="tl-cols"><div class="tl-col">${inboxSec}${reqSec}${sendSec}</div><div class="tl-col">${friendsSec}${profileSec}</div></div>`;
   }
-  return settingsDetailShell('Rezepte mit anderen teilen', body + senderNameSectionHtml(), 'settings-page--cols');
+  return settingsDetailShell('Rezepte mit anderen teilen', `<div class="tl${wide ? ' tl--wide' : ''}${intro ? ' tl--intro' : ''}">${intro ? `<div class="tl-intro-grid"><div>${body}</div>${shareAsideHtml()}</div>` : body}${senderNameSectionHtml()}</div>`) + shareSendModal() + sharePickModal();
 }
 
 function shareFindInbox(id) { return share.inbox.find(x => x.id === id) || null; }
 function settingsSharePreviewView() {
   const item = shareFindInbox(share.previewId);
-  if (!item) { return settingsDetailShell('Rezept ansehen', '<p class="settings-hint">Dieses Rezept ist nicht mehr da.</p><button class="ghost-btn primary-btn--block" data-action="goto-view" data-view="settings-share">Zurück</button>'); }
+  if (!item) { return settingsDetailShell('Rezept ansehen', '<div class="tl tl--prev"><div class="tl-card"><p>Dieses Rezept ist nicht mehr da. Vielleicht hast du es schon übernommen oder abgelehnt.</p><button class="ghost-btn primary-btn--block" data-action="goto-view" data-view="settings-share">Zurück zum Posteingang</button></div></div>'); }
   const r = shareRecipeFromPayload(item.recipe, item.from_handle);
   const meta = [r.timeMinutes ? `${r.timeMinutes} Min.` : '', yieldKnown(r) ? servingLabel(r, r.servings) : 'Ergibt: offen', r.difficulty || ''].filter(Boolean);
   const ings = r.ingredients.filter(i => (i.name || '').trim());
   const body = `
-    <div class="share-preview">
-      <p class="share-from">Von ${shareWho({ display_name: item.from_name, handle: item.from_handle })}</p>
-      ${item.message ? `<p class="share-msg share-msg--box">„${escapeHtml(item.message)}“</p>` : ''}
-      ${share.previewImage ? `<img class="share-preview-img" src="${escapeHtml(share.previewImage)}" alt="${escapeHtml(r.title)}">` : ''}
-      <h2 class="detail-title-v2">${escapeHtml(r.title)}</h2>
-      <p class="detail-meta-v2">${meta.map(escapeHtml).join(' • ')}</p>
-      <h3 class="share-sub">Zutaten</h3>
-      <ul class="share-list">${ings.map(i => `<li>${escapeHtml(ingredientText(i))}</li>`).join('') || '<li>Keine Zutaten</li>'}</ul>
-      <h3 class="share-sub">Zubereitung</h3>
-      <ol class="share-list">${r.steps.filter(s => s.text).map(s => `<li>${escapeHtml(s.text).replace(/\n/g, '<br>')}</li>`).join('') || '<li>Keine Schritte</li>'}</ol>
-      ${r.notes ? `<h3 class="share-sub">Notizen</h3><p>${escapeHtml(r.notes).replace(/\n/g, '<br>')}</p>` : ''}
-      <div class="share-preview-actions">
-        <button class="primary-btn primary-btn--block" data-action="share-accept" data-id="${item.id}">${ICONS.check} Ins Kochbuch übernehmen</button>
-        <button class="ghost-btn primary-btn--block" data-action="share-decline" data-id="${item.id}">Ablehnen</button>
+    <div class="tl tl--prev share-preview">
+      <div class="tl-prev-head">
+        <p class="share-from">Von ${shareWho({ display_name: item.from_name, handle: item.from_handle })}</p>
+        ${item.message ? `<p class="share-msg share-msg--box">„${escapeHtml(item.message)}“</p>` : ''}
+        ${share.previewImage ? `<img class="share-preview-img" src="${escapeHtml(share.previewImage)}" alt="${escapeHtml(r.title)}">` : ''}
+        <h2 class="detail-title-v2">${escapeHtml(r.title)}</h2>
+        <p class="detail-meta-v2">${meta.map(escapeHtml).join(' • ')}</p>
+        <div class="share-preview-actions">
+          <button class="primary-btn primary-btn--block" data-action="share-accept" data-id="${item.id}">${ICONS.check} Ins Kochbuch übernehmen</button>
+          <button class="ghost-btn primary-btn--block" data-action="share-decline" data-id="${item.id}">Ablehnen</button>
+          <p class="tl-hint">Das ist nur eine Vorschau. Beim Übernehmen bekommst du eine eigene Kopie. Ablehnen löscht das Rezept aus deinem Posteingang.</p>
+        </div>
+      </div>
+      <div class="tl-prev-body">
+        <h3 class="share-sub">Zutaten</h3>
+        <ul class="share-list">${ings.map(i => `<li>${escapeHtml(ingredientText(i))}</li>`).join('') || '<li>Keine Zutaten</li>'}</ul>
+        <h3 class="share-sub">Zubereitung</h3>
+        <ol class="share-list">${r.steps.filter(s => s.text).map(s => `<li>${escapeHtml(s.text).replace(/\n/g, '<br>')}</li>`).join('') || '<li>Keine Schritte</li>'}</ol>
+        ${r.notes ? `<h3 class="share-sub">Notizen</h3><p>${escapeHtml(r.notes).replace(/\n/g, '<br>')}</p>` : ''}
       </div>
     </div>`;
   return settingsDetailShell('Rezept ansehen', body);
 }
 
+/* Schritt 1 des Sendens (von der Teilen-Seite aus): Rezept wählen. Schritt 2 ist das Fenster «Rezept senden» (Freund wählen, senden). */
+function sharePickList(q) {
+  const norm = s => String(s || '').toLowerCase();
+  const all = state.recipes.filter(r => !q || norm(r.title).includes(norm(q.trim())));
+  const shown = all.slice(0, 30);
+  if (!shown.length) return `<p class="tl-hint tl-hint--flush">${state.recipes.length ? 'Kein Rezept gefunden.' : 'Du hast noch keine Rezepte.'}</p>`;
+  return `<ul class="tl-pick-list">${shown.map(r => `<li><button type="button" class="tl-pick" data-action="share-pick" data-id="${r.id}"><span class="tl-pick-title">${escapeHtml(r.title || 'Rezept')}</span><span class="tl-fold-chev" aria-hidden="true">${ICONS.chevronRight}</span></button></li>`).join('')}</ul>${all.length > shown.length ? `<p class="tl-hint">${all.length - shown.length} weitere. Suche genauer, um sie zu finden.</p>` : ''}`;
+}
+function sharePickModal() {
+  if (!state.modal || state.modal.type !== 'share-pick') return '';
+  return sheet('share-pick-title', 'Welches Rezept senden?', `<div class="tl-pick-wrap"><div class="field"><label for="sharePickQ">Rezept suchen</label><input type="search" id="sharePickQ" autocomplete="off" spellcheck="false" placeholder="Titel eingeben …"></div><div id="sharePickList">${sharePickList('')}</div></div>`);
+}
+document.addEventListener('input', e => {
+  if (e.target && e.target.id === 'sharePickQ') { const l = document.getElementById('sharePickList'); if (l) { l.innerHTML = sharePickList(e.target.value); l.querySelectorAll('[data-action]').forEach(el => el.addEventListener('click', onAction)); } }
+});
+document.addEventListener('toggle', e => {
+  const k = e.target && e.target.dataset && e.target.dataset.ui;
+  if (k && e.target.classList.contains('tl-fold')) share.ui[k] = e.target.open;
+}, true);
+
 function shareSendModal() {
   if (!state.modal || state.modal.type !== 'share-send') return '';
   const r = state.recipes.find(x => x.id === state.modal.recipeId);
   if (!r) return '';
+  const onSharePage = state.view === 'settings-share';
+  const toPage = (label) => `<button class="primary-btn" data-action="${onSharePage ? 'close-modal' : 'goto-view'}" data-view="settings-share">${label}</button>`;
   let inner;
   if (!cloudSignedIn()) {
-    inner = `<p class="settings-hint settings-hint--none">Zum Senden brauchst du ein Konto.</p><div class="form-actions"><button class="primary-btn" data-action="goto-view" data-view="settings-sync">Zur Anmeldung</button></div>`;
+    inner = `<p class="settings-hint settings-hint--none">Zum Senden brauchst du ein Konto. Dann kannst du Rezepte direkt an Freunde in Savora senden.</p><div class="form-actions"><button class="primary-btn" data-action="goto-view" data-view="settings-sync">Zur Anmeldung</button></div>`;
+  } else if (share.profile === undefined) {
+    inner = `<p class="settings-hint settings-hint--none" role="status">${share.error ? escapeHtml(share.error) : 'Wird geladen …'}</p>${share.error ? '<div class="form-actions"><button class="primary-btn" data-action="share-refresh">Nochmals versuchen</button></div>' : ''}`;
   } else if (!share.profile) {
-    inner = `<p class="settings-hint settings-hint--none">Lege zuerst dein Profil an und verbinde dich mit einem Freund.</p><div class="form-actions"><button class="primary-btn" data-action="goto-view" data-view="settings-share">Zu Freunde &amp; Rezepte</button></div>`;
+    inner = `<p class="settings-hint settings-hint--none">Lege zuerst dein Profil an. Danach kannst du Freunde hinzufügen.</p><div class="form-actions">${toPage('Profil einrichten')}</div>`;
   } else {
     const people = share.connections.filter(c => c.state === 'connected');
     inner = people.length ? `
-      <fieldset class="share-people"><legend class="sr-only">Empfänger</legend>
+      <fieldset class="share-people"><legend class="tl-lead">Wem möchtest du es senden?</legend>
         ${people.map((c, i) => `<label class="share-person"><input type="radio" name="shareTo" value="${c.handle}" ${i === 0 ? 'checked' : ''}><span>${shareWho(c)}</span></label>`).join('')}
       </fieldset>
-      <div class="field"><label for="shareMessage">Nachricht (optional)</label><textarea id="shareMessage" maxlength="200" rows="2" placeholder="z. B. Probier das mal!"></textarea></div>
+      <div class="field"><label for="shareMessage">Nachricht (freiwillig)</label><textarea id="shareMessage" maxlength="200" rows="2" placeholder="z. B. Probier das mal!"></textarea></div>
       <p class="cloud-error" id="shareError" role="alert"></p>
       <div class="form-actions"><button class="primary-btn" data-action="share-send" data-id="${r.id}">Senden</button><button class="ghost-btn" data-action="close-modal">Abbrechen</button></div>`
-      : `<p class="settings-hint settings-hint--none">Du bist noch mit niemandem verbunden. Füge zuerst einen Freund hinzu.</p><div class="form-actions"><button class="primary-btn" data-action="goto-view" data-view="settings-share">Freund hinzufügen</button></div>`;
+      : `<p class="settings-hint settings-hint--none">Du hast noch keine Freunde in Savora. Füge zuerst einen Freund hinzu.</p><div class="form-actions">${toPage('Freund hinzufügen')}</div>`;
   }
-  return sheet('share-send-title', 'Rezept senden', `<p class="settings-hint settings-hint--none">„${escapeHtml(r.title || 'Rezept')}“ wird als Kopie gesendet. Dein Original bleibt unverändert.</p>${inner}`);
+  const change = state.modal.from === 'pick' ? ` <button type="button" class="text-btn" data-action="share-pick-open">Anderes Rezept</button>` : '';
+  return sheet('share-send-title', 'Rezept senden', `<p class="settings-hint settings-hint--none">„${escapeHtml(r.title || 'Rezept')}“ wird als Kopie gesendet. Dein Original bleibt unverändert.${change}</p>${inner}`);
 }
 
-function shareShowError(msg) {
-  const el = document.getElementById('shareError');
+function shareShowError(msg, id) {
+  const el = document.getElementById(id || 'shareError');
   if (el) el.textContent = msg; else showToast(msg, 'error');
 }
 async function shareCopy(text, okMsg) {
@@ -300,7 +375,7 @@ async function handleShareAction(action, id, el) {
       const n = (document.getElementById('shareName') || {}).value || '';
       el.disabled = true;
       try { share.profile = await shareRpc('savora_profile_set', { p_handle: h, p_name: n }); render(); showToast('Profil gespeichert'); shareRefresh(); }
-      catch (e) { shareShowError(e.message); }
+      catch (e) { shareShowError(shareErrText(e)); }
       finally { if (document.contains(el)) el.disabled = false; }
       return true;
     }
@@ -308,18 +383,19 @@ async function handleShareAction(action, id, el) {
     case 'share-copy-code': if (share.profile) await shareCopy(share.profile.invite_code, 'Code kopiert'); return true;
     case 'share-invite-reset':
       if (!window.confirm('Neuen Code erzeugen? Der alte Code und Link funktionieren dann nicht mehr.')) return true;
-      try { share.profile = await shareRpc('savora_invite_reset'); render(); showToast('Neuer Code erzeugt'); } catch (e) { showToast(e.message, 'error'); }
+      try { share.profile = await shareRpc('savora_invite_reset'); render(); showToast('Neuer Code erzeugt'); } catch (e) { showToast(shareErrText(e), 'error'); }
       return true;
     case 'share-connect': {
       const t = ((document.getElementById('shareTarget') || {}).value || '').trim();
-      if (!t) { shareShowError('Bitte einen Profilnamen oder Code eingeben.'); return true; }
+      if (!t) { shareShowError('Bitte einen Profilnamen oder Code eingeben.', 'shareConnectError'); return true; }
       el.disabled = true;
       try {
         const r = await shareRpc('savora_connect', { p_target: t });
         sessionStorage.removeItem(SHARE_INVITE_KEY);
         showToast(r.state === 'connected' ? `Verbunden mit ${shareName(r)}` : `Anfrage an ${shareName(r)} gesendet`);
+        share.ui.add = false;
         await shareRefresh(); render();
-      } catch (e) { shareShowError(e.message); }
+      } catch (e) { shareShowError(shareErrText(e), 'shareConnectError'); }
       finally { if (document.contains(el)) el.disabled = false; }
       return true;
     }
@@ -327,7 +403,7 @@ async function handleShareAction(action, id, el) {
       const answer = el.dataset.answer;
       if (answer === 'block' && !window.confirm('Dieses Profil blockieren? Es kann dir dann nichts mehr senden.')) return true;
       try { await shareRpc('savora_respond', { p_handle: id, p_action: answer }); await shareRefresh(); render(); showToast(answer === 'accept' ? 'Verbunden' : answer === 'block' ? 'Blockiert' : 'Anfrage abgelehnt'); }
-      catch (e) { showToast(e.message, 'error'); }
+      catch (e) { showToast(shareErrText(e), 'error'); }
       return true;
     }
     case 'share-remove': {
@@ -335,7 +411,7 @@ async function handleShareAction(action, id, el) {
       const text = c && c.state === 'connected' ? 'Verbindung entfernen? Ihr könnt euch dann keine Rezepte mehr senden.' : null;
       if (text && !window.confirm(text)) return true;
       try { await shareRpc('savora_remove', { p_handle: id }); await shareRefresh(); render(); }
-      catch (e) { showToast(e.message, 'error'); }
+      catch (e) { showToast(shareErrText(e), 'error'); }
       return true;
     }
     case 'share-open-send': {
@@ -355,10 +431,12 @@ async function handleShareAction(action, id, el) {
         const c = share.connections.find(x => x.handle === to.value);
         closeModal();
         setTimeout(() => showToast(`Rezept an ${c ? shareName(c) : '@' + to.value} gesendet`), 50);
-      } catch (e) { shareShowError(e.offline ? 'Keine Verbindung zum Internet. Bitte später nochmals.' : e.message); }
+      } catch (e) { shareShowError(e.offline ? 'Keine Verbindung zum Internet. Dein Rezept wurde nicht gesendet. Bitte später nochmals versuchen.' : shareErrText(e)); }
       finally { if (document.contains(el)) el.disabled = false; }
       return true;
     }
+    case 'share-pick-open': openModal({ type: 'share-pick' }); setTimeout(() => { const q = document.getElementById('sharePickQ'); if (q && window.matchMedia('(pointer: fine)').matches) q.focus(); }, 50); return true;
+    case 'share-pick': openModal({ type: 'share-send', recipeId: id, from: 'pick' }); return true;
     case 'share-open-preview': {
       share.previewId = id; share.previewImage = null;
       state.view = 'settings-share-preview'; render();

@@ -6,9 +6,10 @@ import os as _os; sys.path.insert(0, _os.path.dirname(_os.path.abspath(__file__)
 from common import *
 import mock_supabase as M
 from http.server import ThreadingHTTPServer
-srv = ThreadingHTTPServer(('127.0.0.1', 8796), M.H)
+MOCK_PORT = int(_os.environ.get('SAVORA_MOCK_PORT', '8796'))   # eigener Port moeglich, damit parallele Laeufe sich nicht stoeren
+srv = ThreadingHTTPServer(('127.0.0.1', MOCK_PORT), M.H)
 threading.Thread(target=srv.serve_forever, daemon=True).start()
-CLOUD = "window.SAVORA_CLOUD_URL_OVERRIDE = 'http://127.0.0.1:8796'; window.SAVORA_CLOUD_KEY_OVERRIDE = 'test-key';"
+CLOUD = "window.SAVORA_CLOUD_URL_OVERRIDE = 'http://127.0.0.1:%d'" % MOCK_PORT + "; window.SAVORA_CLOUD_KEY_OVERRIDE = 'test-key';"
 FAIL = []
 def check(name, cond, info=''):
     print(('OK   ' if cond else 'FEHL ') + name, info)
@@ -37,6 +38,9 @@ def add_user(email):
 async def open_share(page):
     await page.evaluate("() => { if (document.activeElement) document.activeElement.blur(); state.modal = null; state.view = 'settings-share'; render(); }")
     await page.wait_for_timeout(900)
+async def open_manage(page):
+    """«Freunde verwalten» ist eingeklappt (Entfernen, Entsperren): fuer Pruefungen dieser Knoepfe aufklappen."""
+    await page.evaluate("() => { share.ui.manage = true; render(); }"); await page.wait_for_timeout(200)
 async def text(page, sel='body'): return await page.evaluate("(s) => (document.querySelector(s) || {innerText: ''}).innerText", sel)
 async def make_profile(page, handle, name):
     await open_share(page)
@@ -95,8 +99,9 @@ async def main():
         await open_share(pb)
         check('B sieht die Anfrage', 'möchte sich mit dir verbinden' in await text(pb, 'main'))
         await click(pb, '[data-action="share-respond"][data-answer="accept"]', 900)
+        await open_manage(pb)
         check('B nimmt an: verbunden', M.CONNS and 'accepted' in M.CONNS.values() and 'Entfernen' in await text(pb, 'main'))
-        await open_share(pa)
+        await open_share(pa); await open_manage(pa)
         check('A sieht die Verbindung', 'Entfernen' in await text(pa, 'main') and 'wartet auf' not in await text(pa, 'main'))
 
         # 5. Rezept senden (mit Bild und Nachricht)
@@ -190,7 +195,7 @@ async def main():
         check('Anfrage ueber Einladungscode (Profil dora)', M.CONNS.get((bid, 'fake-dora')) == 'pending')
 
         # 12. Blockieren und Entfernen
-        await open_share(pb)
+        await open_share(pb); await open_manage(pb)
         await click(pb, '[data-action="share-remove"][data-id="yanis_kocht"]', 900)
         check('Verbindung entfernen', 'yanis_kocht' not in await text(pb, 'main'))
         e = await pa.evaluate("shareRpc('savora_send', {p_handle:'berta', p_recipe:{title:'X'}, p_image:null, p_message:null}).then(() => 'ok', e => e.message)")
