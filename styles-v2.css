@@ -2665,3 +2665,25 @@ mark.hl {
   .rgrid--phone .rcard--phone .rcard-meta--time svg { width: 1rem; height: 1rem; }
   .rgrid--phone .rcard--phone .rcard-fav { position: absolute; right: -0.25rem; bottom: -0.25rem; top: auto; width: 2.75rem; height: 2.75rem; }
 }
+
+
+/* Überlauf-Korrektur: grosse Systemschrift (24 px) – Rezeptdetail und Kopf der Startseite */
+/* Menge: der Stepper bricht unter das Label, statt über den Rand zu ragen */
+.amount-row { flex-wrap: wrap; row-gap: 0.5rem; }
+.amount-row .stepper { max-width: 100%; margin-left: auto; }
+.amount-row .stepper-value { min-width: 0; flex: 1 1 auto; padding: 0 0.5rem; text-align: center; overflow-wrap: anywhere; }
+.amount-row .stepper button { flex: 0 0 auto; }
+@media (min-width: 768px) {
+  /* Handy-Suche (Knopf und Overlay) gibt es nur auf dem Handy: ab 768 px weder im Layout noch in der Tastaturreihenfolge */
+  .search-btn, .search-pop { display: none; }
+  /* Container für die Kopfzeile der Startseite: Filter rutscht unter die Suche, wenn der Platz fehlt */
+  .home-head { container-type: inline-size; }
+}
+@container (max-width: 40rem) {
+  html:not(#lp) body .home-head-body > .filter-bar { grid-column: 1 / -1; margin-top: 0.75rem; flex-wrap: wrap; }
+}
+/* Rezeptdetail: die linke Spalte nimmt höchstens 45 % ein, die Inhaltsspalte bleibt lesbar */
+@media (min-width: 900px) {
+  html:not(#lp) body .detail-main.has-hero, html:not(#lp) body .detail-cols { grid-template-columns: min(clamp(24rem, 34%, 34rem), 45%) minmax(0, 1fr); }
+  html:not(#lp) body .detail-col--content { min-width: 0; }
+}
