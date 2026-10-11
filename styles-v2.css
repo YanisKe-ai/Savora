@@ -2706,3 +2706,24 @@ mark.hl {
 html.is-scrolled .home-head::before, html.is-scrolled .home-head::after,
 html.is-scrolled .topbar:not(.topbar--home)::before, html.is-scrolled .topbar:not(.topbar--home)::after,
 html.fs-more-below .bottom-nav::before, html.fs-more-below .home-add-bar::before { visibility: visible; }
+
+/* ============================================================   Heute-Schalter 0.71
+   Wochenplan: «Heute» unter der Wochenanzeige (Platz bleibt immer reserviert, in der aktuellen Woche unsichtbar, kein Sprung).
+   Mehr: Schnellschalter «Erscheinungsbild». */
+.week-nav { align-items: center; }
+.week-nav .week-nav-mid { flex: 1; min-width: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+.week-nav .week-nav-mid .week-nav-label { flex: none; outline: none; }
+.week-nav .week-today { flex: none; width: auto; min-width: 2.75rem; height: 2.75rem; margin: 0.25rem 0 0; padding: 0 1rem; border-radius: 1.375rem; background: none; border: 1px solid var(--border); color: var(--text); font-family: var(--font-sans); font-size: 0.9375rem; font-weight: 600; }
+.week-nav .week-today:hover { background: var(--surface-soft); }
+.week-nav .week-today:disabled { visibility: hidden; }
+.week-nav .week-today:focus-visible { outline: 3px solid var(--text); outline-offset: 2px; }
+.plan-day.is-today { scroll-margin-top: 6rem; scroll-margin-bottom: 6rem; }
+.theme-quick { padding: 1rem; border-bottom: 1px solid var(--hairline); }
+.theme-quick-label { display: block; margin: 0 0 0.5rem; font-size: 0.9375rem; font-weight: 600; color: var(--text-soft); }
+.theme-quick-switch { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.5rem; }
+.theme-opt--quick { min-width: 0; min-height: 2.75rem; padding: 0.5rem; overflow-wrap: anywhere; text-align: center; }
+@media (min-width: 400px) {
+  .theme-quick-switch { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .theme-opt--quick { padding: 0.5rem 0.25rem; }
+}
+@media (prefers-reduced-motion: reduce) { .week-nav .week-today { transition: none; } }

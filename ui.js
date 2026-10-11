@@ -744,6 +744,17 @@ async function dispatchAction(action, id, el, e) {
       state.weekStart = addDays(state.weekStart, 7);
       render();
       break;
+    case 'week-today': {
+      // Nur die angezeigte Woche wechselt; Daten bleiben unberuehrt. Danach den heutigen Tag sichtbar machen.
+      state.weekStart = getMonday(new Date());
+      render();
+      requestAnimationFrame(() => requestAnimationFrame(() => {
+        const t = document.querySelector('.plan-day.is-today');
+        if (t) { const r = t.getBoundingClientRect(); if (r.top < 80 || r.bottom > innerHeight - 80) t.scrollIntoView({ block: 'center', behavior: prefersReducedMotion() ? 'auto' : 'smooth' }); }
+        const lbl = document.getElementById('weekNavLabel'); if (lbl) focusWithoutScroll(lbl);
+      }));
+      break;
+    }
     case 'open-day-picker':
       openModal({ type: 'pick-recipe', date: el.dataset.date }, `[data-action="open-day-picker"][data-date="${escapeAttr(el.dataset.date)}"]`);
       break;
