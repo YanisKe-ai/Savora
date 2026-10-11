@@ -127,8 +127,9 @@ async def layout_checks():
         await ctx.close(); await b.close()
 
 async def main():
-    await layout_checks()
-    await phone_compare()
+    only = os.environ.get('SAVORA_P42_ONLY', '')   # 'layout' oder 'phones': Aufteilung auf zwei GitHub-Rechner, ohne Angabe laeuft beides
+    if only in ('', 'layout'): await layout_checks()
+    if only in ('', 'phones'): await phone_compare()
     print('\n' + ('ALLE OK' if not FAIL else f'{len(FAIL)} FEHLER: ' + '; '.join(FAIL[:10])))
     sys.exit(1 if FAIL else 0)
 asyncio.run(main())
