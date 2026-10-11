@@ -35,6 +35,7 @@ NAV_JS = """() => { const nav = document.querySelector('.bottom-nav'); const bs 
   return { n: bs.length, labels: bs.map(b => b.querySelector('.nav-label').innerText.trim()), active: bs.filter(b => b.getAttribute('aria-current') === 'page').map(b => b.querySelector('.nav-label').innerText.trim()),
     rects: bs.map(R), navRect: R(nav), pos: getComputedStyle(nav).position, vis: bs.every(vis),
     clipped: bs.filter(b => { const l = b.querySelector('.nav-label'); return l.scrollWidth > l.clientWidth + 0.5; }).length,
+    clipInfo: bs.map(b => { const l = b.querySelector('.nav-label'); return [l.innerText.trim(), l.scrollWidth, l.clientWidth, getComputedStyle(l).fontSize, getComputedStyle(l).fontFamily.slice(0, 24)]; }),
     labelRects: bs.map(b => { const l = b.querySelector('.nav-label'); const r = document.createRange(); r.selectNodeContents(l); const q = r.getBoundingClientRect(); return { l: q.left, r: q.right }; }),
     names: bs.map(b => b.innerText.replace(/\\s+/g, ' ').trim()), W: document.documentElement.clientWidth, H: innerHeight }; }"""
 BRAND_JS = """() => { const s = document.querySelector('.topbar .top-wordmark'); if (!s) return null; const r = s.getBoundingClientRect(); const tb = document.querySelector('.topbar').getBoundingClientRect(); const W = tb.width + 2 * tb.left;

@@ -2234,7 +2234,6 @@ body.keyboard-open .home-add-bar { display: none; }
   .settings-page--home .settings-row-title { flex: 1 1 8rem; overflow-wrap: break-word; }
   .settings-page--home .settings-row-summary { order: 4; flex: 1 0 100%; max-width: none; min-width: 0; text-align: left; padding-left: 2.25rem; padding-bottom: 0.25rem; }
 }
-=======
 
 /* Sehr schmale Handys (320 px): etwas kleinere Beschriftung der Navigation und der Ansichtsauswahl, damit nichts abgeschnitten wird oder umbricht (Linux-Schriften sind etwas breiter) */
 @media (max-width: 339px) {
