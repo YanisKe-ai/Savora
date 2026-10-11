@@ -57,11 +57,11 @@ Regeln:
 
 ## 4. Typografie
 
-- **DM Sans** (variabel, 100 bis 1000) für Navigation, Formulare, Zutaten, Einstellungen, Schaltflächen, Fliesstext sowie Seitentitel und Abschnitte (600/700). Variable `--font-sans` und `--font-display`.
-- **Fraunces** (variabel, 100 bis 900) zurückhaltend und nur für Rezepttitel (Rezeptansicht, Karten, Listen) und Buchtitel. Variable `--font-serif`. Nie für Bedienung.
+- **Public Sans** (variabel, 100 bis 900) für Navigation, Formulare, Zutaten, Einstellungen, Schaltflächen, Fliesstext sowie Seitentitel und Abschnitte (700). Variable `--font-sans` und `--font-display`.
+- **Lilita One** (nur Normalgewicht 400) nur für Rezepttitel (Rezeptansicht, Karten, Listen, Titel im Kochmodus) und Buchtitel (Kochbücher-Liste, Kopf des Kochbuch-Editors). Variablen `--font-title` und `--font-serif`. Immer `font-synthesis: none` (kein künstliches Fett), Laufweite 0, Zeilenhöhe 1.1 bis 1.15, `overflow-wrap: anywhere` und `hyphens: auto`. Rezepttitel im Wochenplan, im Einkauf und in «Heute geplant» bleiben Public Sans (ruhiger, dort stehen sie neben Bedienelementen). Nie für Bedienung.
 - Schriftzug "savora": Archivo (Logo), unverändert. Sofia Sans Extra Condensed und Roboto bleiben nur für PDF-Vorlagen geladen.
-- Beide Schriften liegen lokal (`dm-sans.woff2`, `fraunces.woff2`, nur lateinische Zeichen), stehen in den Preloads von `index.html` und in `SHELL_ASSETS` von `sw.js`. Lizenz: SIL Open Font License 1.1 (DM Sans: Copyright The DM Sans Project Authors; Fraunces: Copyright The Fraunces Project Authors). Der Lizenzhinweis gehört auch in die Lizenzseite der App.
-- Skala (rem, folgt der Systemschrift): Seitentitel 1.75 bis 2.25, Rezepttitel in der Ansicht 2 bis 3.25, Abschnitt 1.25, Zutatengruppe 1.125, Lesetext 1.0625 (17 px), Hilfstext und Meta 0.875 bis 0.9375, **nichts unter 0.875 (14 px)** ausser Zähler-Badges (12 px, fett). Kochmodus: Schritt `clamp(1.75rem, 1.4rem + 1.6vw, 2.25rem)`, Zutaten-Chips 1.125.
+- Beide Schriften liegen lokal (`public-sans.woff2`, `lilita-one.woff2`, nur lateinische Zeichen), stehen in den Preloads von `index.html` und in `SHELL_ASSETS` von `sw.js`. Lizenz: SIL Open Font License 1.1 (Public Sans: Copyright The Public Sans Project Authors; Lilita One: Copyright The Lilita One Project Authors). Der Lizenzhinweis gehört auch in die Lizenzseite der App.
+- Skala (rem, folgt der Systemschrift): Seitentitel 1.625 bis 2 (Startseite) bzw. 1.75 bis 2.25, Rezepttitel in der Ansicht 1.75 bis 3, Abschnitt 1.25, Zutatengruppe 1.125, Lesetext 1.0625 (17 px), Hilfstext und Meta 0.875 bis 0.9375, **nichts unter 0.875 (14 px)** ausser Zähler-Badges (12 px, fett). Kochmodus: Schritt `clamp(1.75rem, 1.4rem + 1.6vw, 2.25rem)`, Zutaten-Chips 1.125.
 - Zeilenabstand Lesetext 1.55 bis 1.65, Messlänge höchstens 65 Zeichen. Lange Titel brechen um (`overflow-wrap: anywhere`), nichts läuft bei grosser Systemschrift über.
 - Zahlen in Tabellen und Meta tabular. Keine Grossbuchstaben-Zeilen als Dekoration.
 
@@ -77,7 +77,7 @@ Regeln:
 ## 6. Bildsprache
 
 - Rezeptfotos sind der Hauptinhalt: nie verzerren (`object-fit: cover`), Karte 5:4, Ansicht 16:10.
-- **Ohne Foto gibt es keinen Buchstaben-Platzhalter und keine leere Bildfläche.** Raster: kompakte typografische Karte (Salbeifläche, Titel in Fraunces, Meta darunter), gleich hoch wie eine Foto-Karte. Liste: Zeile ohne Vorschaubild. Rezeptansicht: typografischer Kopf (Titel gross in Fraunces, Zeit und Menge), kein Bildband. Während ein gespeichertes Foto lädt, steht kurz eine ruhige leere Salbeifläche.
+- **Ohne Foto gibt es keinen Buchstaben-Platzhalter und keine leere Bildfläche.** Raster: kompakte typografische Karte (Salbeifläche, Titel in Lilita One, Meta darunter), gleich hoch wie eine Foto-Karte. Liste: Zeile ohne Vorschaubild. Rezeptansicht: typografischer Kopf (Titel gross in Fraunces, Zeit und Menge), kein Bildband. Während ein gespeichertes Foto lädt, steht kurz eine ruhige leere Salbeifläche.
 - Symbole: eine Strichstärke, eine Familie (die vorhandenen Linien-Icons), Farbe Tinte oder Zweittext, Rot nur für aktive Zustände.
 - App-Symbol: schwarz mit weissem Zeichen und rotem Detail (`assets/logo/`). Quellen in `assets/logo-src/`.
 

@@ -140,7 +140,7 @@ function filterSheetModal() {
 
 /* ---------- Rezeptuebersicht ---------- */
 /* Rezepte ohne Foto bekommen KEINE Bildflaeche und keinen Buchstaben: Karte und Zeile sind rein typografisch
-   (Salbei-Flaeche, Titel in Fraunces, Meta darunter), siehe .rcard--text und .rrow--text. Nur waehrend ein gespeichertes
+   (Salbei-Flaeche, Titel in Lilita One, Meta darunter), siehe .rcard--text und .rrow--text. Nur waehrend ein gespeichertes
    Foto noch geladen wird (imageId), steht kurz eine ruhige, leere Flaeche in derselben Groesse. */
 function placeholderInner() { return ''; }
 function placeholderClass() { return ''; }
@@ -240,31 +240,35 @@ function homeView() {
   }
 
   return `
-    ${topbar('', { cls: 'topbar--home', settings: true, actions: `<button class="round-btn round-btn--accent" data-action="open-add-menu" aria-label="Rezept hinzufügen">${ICONS.plus}</button>` })}
+    <div class="home-head">
+      ${topbar('', { cls: 'topbar--home', settings: true, actions: `<button class="round-btn round-btn--accent" data-action="open-add-menu" aria-label="Rezept hinzufügen">${ICONS.plus}</button>` })}
+      <section class="home-head-body" aria-label="Suche und Filter">
+        ${pageTitle('Deine Rezepte')}
+        <div class="search-field">
+          ${ICONS.search}
+          <label for="searchInput" class="sr-only">Rezepte, Zutaten, Tags durchsuchen</label>
+          <input class="search-input" id="searchInput" type="search" enterkeyhint="search" placeholder="Rezepte, Zutaten, Tags durchsuchen …" value="${escapeHtml(state.query)}" autocomplete="off">
+        </div>
+        ${state.recipes.length ? `<div class="filter-strip">
+          <div class="chip-row" role="group" aria-label="Sammlungen">${collectionChips()}</div>
+          <button type="button" class="tool-btn ${filterCount ? 'is-active' : ''}" data-action="open-filter-sheet" aria-label="Weitere Filter${filterCount ? ', ' + filterCount + ' aktiv' : ''}">${ICONS.sliders}${filterCount ? `<span class="chip-count">${filterCount}</span>` : ''}</button>
+          <div class="layout-toggle" role="group" aria-label="Darstellung">
+            <button type="button" class="icon-toggle ${state.homeLayout !== 'list' ? 'is-active' : ''}" data-action="set-home-layout" data-id="grid" aria-pressed="${state.homeLayout !== 'list'}" aria-label="Rasteransicht">${ICONS.grid}</button>
+            <button type="button" class="icon-toggle ${state.homeLayout === 'list' ? 'is-active' : ''}" data-action="set-home-layout" data-id="list" aria-pressed="${state.homeLayout === 'list'}" aria-label="Listenansicht">${ICONS.list}</button>
+          </div>
+        </div>` : ''}
+        ${(chips.length || state.activeTag) ? `<div class="chip-row chip-row--active">
+          ${state.activeTag ? `<button class="chip chip--removable" data-action="filter-tag" data-tag="">${escapeHtml(state.activeTag)} ${ICONS.x}</button>` : ''}
+          ${chips.map(c => `<button class="chip chip--removable" data-action="remove-active-filter" data-dim="${c.dim}" data-id="${escapeHtml(c.id)}" aria-label="Filter ${escapeHtml(c.label)} entfernen">${escapeHtml(c.label)} ${ICONS.x}</button>`).join('')}
+          <button class="chip chip--ghost" data-action="clear-all-filters">Alle löschen</button>
+        </div>` : ''}
+      </section>
+    </div>
     <main class="has-tabbar home-main">
-      ${pageTitle('Deine Rezepte')}
-      <div class="search-field">
-        ${ICONS.search}
-        <label for="searchInput" class="sr-only">Rezepte, Zutaten, Tags durchsuchen</label>
-        <input class="search-input" id="searchInput" type="search" enterkeyhint="search" placeholder="Rezepte, Zutaten, Tags durchsuchen …" value="${escapeHtml(state.query)}" autocomplete="off">
-      </div>
       ${todayPlannedHtml()}
       ${(() => { const n = backupNudgeInfo(); return n ? `<div class="nudge-card" role="note">
         <p class="nudge-text">${n.never ? 'Noch keine Sicherung' : 'Letzte Sicherung vor ' + n.days + ' Tagen'}</p>
         <div class="nudge-actions"><button class="text-btn" data-action="goto-view" data-view="settings-backup">Sichern</button><button class="text-btn text-btn--quiet" data-action="backup-nudge-dismiss">Später</button></div></div>` : ''; })()}
-      ${state.recipes.length ? `<div class="filter-strip">
-        <div class="chip-row" role="group" aria-label="Sammlungen">${collectionChips()}</div>
-        <button type="button" class="tool-btn ${filterCount ? 'is-active' : ''}" data-action="open-filter-sheet" aria-label="Weitere Filter${filterCount ? ', ' + filterCount + ' aktiv' : ''}">${ICONS.sliders}${filterCount ? `<span class="chip-count">${filterCount}</span>` : ''}</button>
-        <div class="layout-toggle" role="group" aria-label="Darstellung">
-          <button type="button" class="icon-toggle ${state.homeLayout !== 'list' ? 'is-active' : ''}" data-action="set-home-layout" data-id="grid" aria-pressed="${state.homeLayout !== 'list'}" aria-label="Rasteransicht">${ICONS.grid}</button>
-          <button type="button" class="icon-toggle ${state.homeLayout === 'list' ? 'is-active' : ''}" data-action="set-home-layout" data-id="list" aria-pressed="${state.homeLayout === 'list'}" aria-label="Listenansicht">${ICONS.list}</button>
-        </div>
-      </div>` : ''}
-      ${(chips.length || state.activeTag) ? `<div class="chip-row chip-row--active">
-        ${state.activeTag ? `<button class="chip chip--removable" data-action="filter-tag" data-tag="">${escapeHtml(state.activeTag)} ${ICONS.x}</button>` : ''}
-        ${chips.map(c => `<button class="chip chip--removable" data-action="remove-active-filter" data-dim="${c.dim}" data-id="${escapeHtml(c.id)}" aria-label="Filter ${escapeHtml(c.label)} entfernen">${escapeHtml(c.label)} ${ICONS.x}</button>`).join('')}
-        <button class="chip chip--ghost" data-action="clear-all-filters">Alle löschen</button>
-      </div>` : ''}
       ${content}
     </main>
     ${bottomNav()}
@@ -360,7 +364,7 @@ function detailView() {
   // Alle Panels liegen im DOM, der Tabwechsel blendet nur um (kein Neuaufbau, kein Scrollsprung).
   const ingHtml = ingredientsPanel(r);
   const panelHtml = { ingredients: wide ? '' : ingHtml, steps: stepsPanel(r), nutrition: state.showNutrition ? nutritionPanel(r) : '', notes: hasNotes ? notesPanel(r) : '' };
-  // Mit Foto: Bild unverzerrt (cover). Ohne Foto: kein Bildband, der Kopf ist rein typografisch (Titel gross in Fraunces).
+  // Mit Foto: Bild unverzerrt (cover). Ohne Foto: kein Bildband, der Kopf ist rein typografisch (Titel gross in Lilita One).
   const hero = r.image
     ? `<div class="hero"><img class="hero-img" src="${r.image}" alt="${escapeHtml(r.title || '')}" style="view-transition-name: recipe-hero-img;"></div>`
     : r.imageId
@@ -392,7 +396,7 @@ function detailView() {
       <div class="detail-cols"><div class="detail-col detail-col--info">
       <div class="detail-head">
         <div class="detail-title-row">
-          <h2 class="detail-title-v2 ${(r.title || '').length > 34 ? 'is-long' : ''}">${escapeHtml(r.title || 'Ohne Titel')}</h2>
+          <h2 class="detail-title-v2 ${(r.title || '').length > 34 ? 'is-long' : ''} ${(r.title || '').length > 70 ? 'is-xlong' : ''}">${escapeHtml(r.title || 'Ohne Titel')}</h2>
           ${favButton(r, 'detail-fav')}
         </div>
         <p class="detail-meta-v2">${facts.map(f => `<span class="fact">${escapeHtml(f)}</span>`).join('')}</p>
@@ -563,7 +567,7 @@ function cookModeView() {
       </div>
     </div>
     <div class="cook-progress" aria-hidden="true"><span style="width:${Math.round(((idx + 1) / total) * 100)}%"></span></div>
-    <div class="cook-title-line">${escapeHtml(r.title)}${state.wakeLock ? `<span class="wakelock-chip">${ICONS.sun} Bildschirm bleibt an</span>` : (state.wakeLockUnsupported ? `<span class="wakelock-chip wakelock-chip--off">Bildschirm kann ausgehen</span>` : '')}</div>
+    <div class="cook-title-line"><span class="cook-title-text">${escapeHtml(r.title)}</span>${state.wakeLock ? `<span class="wakelock-chip">${ICONS.sun} Bildschirm bleibt an</span>` : (state.wakeLockUnsupported ? `<span class="wakelock-chip wakelock-chip--off">Bildschirm kann ausgehen</span>` : '')}</div>
     <div class="cookmode-body">${body}</div>
     <div class="cook-timerbar" id="cookTimerBar" role="group" aria-label="Laufende Timer" ${cookTimerBarHtml(r) ? '' : 'hidden'}>${cookTimerBarHtml(r)}</div>
     <div class="cookmode-nav">
@@ -927,7 +931,7 @@ function cookbookDesignerView() {
   const book = cookbookActiveBook();
   const step = Math.min(3, Math.max(1, parseInt(state.cookbookStep, 10) || 1));
   return `
-    ${topbar(book.name, { back: true })}
+    ${topbar(book.name, { back: true, cls: 'topbar--book' })}
     <main class="has-tabbar cookbook-main" data-cb-step="${step}">
       ${cookbookStepper(step)}
       ${step === 1 ? cookbookStepSelect(cfg) : step === 2 ? cookbookStepDesign(cfg) : cookbookStepPreview(cfg)}
