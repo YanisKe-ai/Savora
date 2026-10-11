@@ -19,3 +19,10 @@ Alle Tests laufen mit Playwright (Python) gegen die echte App in einem Testbrows
 | `test_monkey.py` | Zufallstest: klickt wahllos durch die App, es darf kein Fehler auftreten |
 
 Regeln: Nicht ausgeführte Tests gelten nie als bestanden. Die Tests laufen mit fester Zeitzone (UTC), damit sie überall gleich sind.
+
+## Tests schneller ausfuehren
+
+- `python3 tests/run_all.py --parallel` startet bis zu 3 Tests gleichzeitig (jeder mit eigenem Port und eigenem Ausgabeordner). Abhaengige Tests (migration, flows) laufen zuerst, Messungen in Millisekunden (monkey, interaction) zuletzt und allein. Dauer: etwa 11 statt 22 Minuten.
+- `python3 tests/run_all.py --schnell` ist zusaetzlich parallel und prueft den grossen Anpassungstest nur mit den wichtigsten Breiten und Darstellungen. Fuer die Entwicklung gedacht.
+- Auf GitHub laeuft immer die volle Reihe (`--parallel 3`).
+- Bei einzelnen Aenderungen reichen meist die dazu passenden Tests, zum Beispiel `python3 tests/run_all.py paket37_settings paket6`.
