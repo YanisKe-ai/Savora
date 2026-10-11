@@ -695,32 +695,35 @@ function mealplanView() {
     const selected = state.planSelectedDays.has(key);
     const sorted = entries.slice().sort((a, b) => { const ia = order.indexOf(a.meal), ib = order.indexOf(b.meal); return (ia < 0 ? 9 : ia) - (ib < 0 ? 9 : ib); });
     const isToday = key === todayKey;
-    return `<section class="plan-day ${isToday ? 'is-today' : ''} ${entries.length ? '' : 'is-empty'}" aria-labelledby="day-${key}" ${isToday ? 'aria-current="date"' : ''}>
-      <div class="plan-day-head">
-        <h2 class="plan-day-title" id="day-${key}"><span class="plan-day-name"><span class="plan-day-long">${WEEKDAY_LABELS[idx]}</span><span class="plan-day-short" aria-hidden="true">${DAY_SHORT[idx]}</span></span> <span class="plan-day-date">${d.getDate()}. ${MONTH_LABELS[d.getMonth()]}</span>${isToday ? ' <span class="plan-today">Heute</span>' : ''}</h2>
-        ${recipeCount ? `<label class="day-select"><input type="checkbox" data-plan-day="${key}" ${selected ? 'checked' : ''}> Einkaufen</label>` : ''}
-      </div>
-      <div class="plan-list">
-      ${sorted.map(e => {
-        if (isNoteEntry(e)) {
-          return `<div class="plan-entry plan-entry--note">
-            <button class="plan-entry-main" data-action="open-plan-entry" data-date="${key}" data-id="${escapeHtml(e.id)}" aria-label="Notiz ${escapeHtml(e.text)} bearbeiten">
-              <span class="plan-entry-text">${e.meal ? `<span class="plan-meal">${escapeHtml(mealLabel(e.meal))}</span>` : ''}<span class="plan-title">${escapeHtml(e.text)}</span></span>
-            </button>
-          </div>`;
-        }
-        const r = state.recipes.find(x => x.id === e.recipeId);
-        const servings = e.servings || r.servings || 0;
-        return `<div class="plan-entry">
-          <button class="plan-entry-main" data-action="open-recipe" data-id="${r.id}">
-            ${recipeImageHtml(r, 'plan-thumb', 'thumb')}
-            <span class="plan-entry-text">${e.meal ? `<span class="plan-meal">${escapeHtml(mealLabel(e.meal))}</span>` : ''}<span class="plan-title">${escapeHtml(r.title || 'Ohne Titel')}</span><span class="plan-servings">${escapeHtml(servingLabel(r, servings))}</span></span>
+    const dayName = WEEKDAY_LABELS[idx];
+    const dayDate = `${d.getDate()}. ${MONTH_LABELS[d.getMonth()]}`;
+    const rows = sorted.map(e => {
+      if (isNoteEntry(e)) {
+        return `<div class="plan-entry plan-entry--note">
+          <button class="plan-entry-main" data-action="open-plan-entry" data-date="${key}" data-id="${escapeHtml(e.id)}" aria-label="Notiz ${escapeHtml(e.text)} bearbeiten">
+            <span class="plan-entry-text">${e.meal ? `<span class="plan-meal">${escapeHtml(mealLabel(e.meal))}</span>` : ''}<span class="plan-title">${escapeHtml(e.text)}</span></span>
           </button>
-          <button class="icon-btn icon-btn--small" data-action="open-plan-entry" data-date="${key}" data-id="${escapeHtml(e.id)}" aria-label="Eintrag ${escapeHtml(r.title || '')} bearbeiten">${ICONS.moreH}</button>
         </div>`;
-      }).join('')}
+      }
+      const r = state.recipes.find(x => x.id === e.recipeId);
+      const servings = e.servings || r.servings || 0;
+      const thumb = (r.image || r.imageId) ? recipeImageHtml(r, 'plan-thumb', 'thumb') : '';   // ohne Foto keine Platzhalterflaeche
+      return `<div class="plan-entry ${thumb ? 'has-thumb' : ''}">
+        <button class="plan-entry-main" data-action="open-recipe" data-id="${r.id}">
+          ${thumb}
+          <span class="plan-entry-text">${e.meal ? `<span class="plan-meal">${escapeHtml(mealLabel(e.meal))}</span>` : ''}<span class="plan-title">${escapeHtml(r.title || 'Ohne Titel')}</span><span class="plan-servings">${escapeHtml(servingLabel(r, servings))}</span></span>
+        </button>
+        <button class="icon-btn icon-btn--small" data-action="open-plan-entry" data-date="${key}" data-id="${escapeHtml(e.id)}" aria-label="Eintrag ${escapeHtml(r.title || '')} bearbeiten">${ICONS.moreH}</button>
+      </div>`;
+    }).join('');
+    return `<section class="plan-day ${isToday ? 'is-today' : ''} ${entries.length ? '' : 'is-empty'}" aria-labelledby="day-${key}" ${isToday ? 'aria-current="date"' : ''}>
+      <div class="plan-day-info">
+        <h2 class="plan-day-title" id="day-${key}"><span class="plan-day-name">${dayName}</span> <span class="plan-day-date">${dayDate}</span>${isToday ? ' <span class="plan-today">Heute</span>' : ''}</h2>
+        ${entries.length ? '' : '<p class="plan-empty">Nichts geplant</p>'}
       </div>
-      <button class="plan-add" data-action="open-day-picker" data-date="${key}">${ICONS.plus} Rezept planen</button>
+      <button type="button" class="plan-add" data-action="open-day-picker" data-date="${key}" aria-label="Rezept planen, ${dayName} ${dayDate}">${ICONS.plus}<span class="plan-add-label">Rezept planen</span></button>
+      ${entries.length ? `<div class="plan-list">${rows}</div>` : ''}
+      ${recipeCount ? `<div class="plan-day-foot"><label class="day-select"><input type="checkbox" data-plan-day="${key}" ${selected ? 'checked' : ''}> Einkaufen</label></div>` : ''}
     </section>`;
   }).join('');
   const selCount = Array.from(state.planSelectedDays).filter(k => days.some(d => fmtDateKey(d) === k)).length;

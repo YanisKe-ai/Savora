@@ -57,7 +57,7 @@ async def main():
         await ev("() => document.querySelector('[data-action=\"clear-all-filters\"], .chip--removable') && document.querySelector('.chip--removable').click()"); await settle(page, 300)
         check('Filter/Sortierung/Schließen: Scrollposition bleibt', abs(await sy(page) - y0) <= 3, f'{y0} -> {await sy(page)}')
         # Wochenplan
-        await go(page, 'mealplan'); await scroll_to(page, 200); y1 = await sy(page)
+        await go(page, 'mealplan'); await ev("() => { document.getElementById('app').style.minHeight = '4000px'; }"); await scroll_to(page, 200); y1 = await sy(page)   # Seite hoch genug, damit die kuerzere Woche die Position nicht begrenzt
         await ev("() => document.querySelector('[data-action=\"week-next\"]').click()"); await settle(page, 300)
         await ev("() => document.querySelector('[data-action=\"week-prev\"]').click()"); await settle(page, 300)
         check('Wochenplan Woche vor/zurück: Position bleibt', abs(await sy(page) - y1) <= 3 or y1 < 5, f'{y1} -> {await sy(page)}')

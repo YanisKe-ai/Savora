@@ -29,17 +29,24 @@ async def main():
         b, ctx, page, errs = await fresh(p)
         ev = page.evaluate
         await ev("() => { state.view = 'mealplan'; render(); }"); await page.wait_for_timeout(300)
-        d = await ev("""() => ({ days: document.querySelectorAll('.plan-day').length, nested: document.querySelectorAll('.day-card, .day-card .day-card').length,
+        d = await ev("""() => { const first = el => el.getBoundingClientRect(); const emptyDay = document.querySelector('.plan-day.is-empty'); const add = document.querySelector('.plan-add'); const today = document.querySelector('.plan-day.is-today');
+          return { days: document.querySelectorAll('.plan-day').length, nested: document.querySelectorAll('.day-card, .plan-day .plan-day').length,
           heute: Array.from(document.querySelectorAll('.plan-today')).map(e => e.textContent),
           dateSize: Math.min(...Array.from(document.querySelectorAll('.plan-day-date')).map(e => parseFloat(getComputedStyle(e).fontSize))),
           nameWeight: getComputedStyle(document.querySelector('.plan-day-title')).fontWeight, titles: Array.from(document.querySelectorAll('.plan-title')).map(e => e.textContent),
-          adds: Array.from(document.querySelectorAll('.plan-add')).map(e => e.textContent.trim()), addBorder: getComputedStyle(document.querySelector('.plan-add')).borderStyle,
-          cols: getComputedStyle(document.querySelector('.plan-week')).display })""")
-        check('Mobil: sieben Tage als Tagesliste, keine Karte-in-Karte', d['days'] == 7 and d['nested'] == 0 and d['cols'] == 'flex', str(d))
-        check('Mobil: Datum mindestens 14 px, Wochentag 600', d['dateSize'] >= 14 and d['nameWeight'] == '600', f"{d['dateSize']} {d['nameWeight']}")
-        check('Mobil: heutiger Tag mit Text «Heute»', d['heute'] == ['Heute'], str(d['heute']))
+          adds: Array.from(document.querySelectorAll('.plan-add')).map(e => e.getAttribute('aria-label')), addW: first(add).width, addH: first(add).height,
+          allAddsOk: Array.from(document.querySelectorAll('.plan-add')).every(e => first(e).width >= 44 && first(e).height >= 44),
+          emptyH: first(emptyDay).height, emptyText: emptyDay.querySelector('.plan-empty').textContent,
+          shadow: getComputedStyle(document.querySelector('.plan-day:not(.is-today)')).boxShadow, dayBorder: getComputedStyle(document.querySelector('.plan-day:not(.is-today)')).borderLeftWidth,
+          todayBg: today ? getComputedStyle(today).backgroundColor : '', pageBg: getComputedStyle(document.body).backgroundColor, todayText: today ? today.querySelector('.plan-today').textContent : '',
+          noPlaceholder: !document.querySelector('.plan-day .plan-thumb.placeholder:not([data-image-id])'),
+          cols: getComputedStyle(document.querySelector('.plan-week')).display } }""")
+        check('Mobil: sieben Tage als Liste (Flex), keine Karten (kein Schatten, kein Rahmen)', d['days'] == 7 and d['nested'] == 0 and d['cols'] == 'flex' and d['shadow'] == 'none' and d['dayBorder'] == '0px', str(d))
+        check('Mobil: Datum mindestens 14 px, Wochentag fett (700)', d['dateSize'] >= 14 and d['nameWeight'] == '700', f"{d['dateSize']} {d['nameWeight']}")
+        check('Mobil: heutiger Tag mit Text «Heute» und Salbeifläche (nicht nur Rand)', d['heute'] == ['Heute'] and d['todayBg'] != d['pageBg'] and d['todayBg'] != 'rgba(0, 0, 0, 0)', str(d['heute']) + d['todayBg'])
         check('Mobil: alter Wochenplan (Seed) zeigt beide Rezepte', d['titles'] == ['Sloppy Joe Buns', 'Carbonara'], str(d['titles']))
-        check('Mobil: «Rezept planen» als Textzeile statt gestrichelter Karte', all('Rezept planen' in a for a in d['adds']) and 'dashed' not in d['addBorder'])
+        check('Mobil: Plus-Knopf je Tag (aria-label «Rezept planen…»), mindestens 44 x 44 px', all((a or '').startswith('Rezept planen') for a in d['adds']) and d['allAddsOk'], f"{d['addW']}x{d['addH']}")
+        check('Mobil: leerer Tag kompakt (höchstens 80 px) mit «Nichts geplant»', d['emptyH'] <= 80 and d['emptyText'] == 'Nichts geplant', str(d['emptyH']))
         check('Mobil: kein seitlicher Überlauf', await ev(OVERFLOW))
         check('Leere Tage erlaubt: Woche mit nur 2 Rezepten, Einkauf-Knopf aktiv, Plan ohne Pflichtfelder', await ev("() => document.querySelectorAll('.plan-day.is-empty').length >= 5 && !document.querySelector('[data-action=\"mealplan-to-shopping\"]').disabled"))
 
@@ -133,18 +140,61 @@ async def main():
         w = await ev("""() => { const days = Array.from(document.querySelectorAll('.plan-day')); const lefts = new Set(days.map(d => Math.round(d.getBoundingClientRect().left)));
           return { n: days.length, cols: lefts.size, tracks: getComputedStyle(document.querySelector('.plan-week')).gridTemplateColumns.split(' ').length,
             minW: Math.min(...days.map(d => d.getBoundingClientRect().width)), nav: !!document.querySelector('[data-action="week-prev"]') && !!document.querySelector('[data-action="week-next"]'),
-            short: Array.from(document.querySelectorAll('.plan-day-short')).map(e => e.textContent).join(), shortShown: getComputedStyle(document.querySelector('.plan-day-short')).display,
-            titleSize: parseFloat(getComputedStyle(document.querySelector('.plan-title')).fontSize) } }""")
-        # Aenderung Paket 37 (Anpassung): sieben Spalten erst ab 1400 px; bei 900 bis 1399 px vier plus drei (sonst brachen lange Titel in ~128-px-Spalten Buchstabe fuer Buchstabe)
-        check('Breit (1280): sieben Tage in vier Spalten (4 + 3), Kurznamen Mo bis So', w['n'] == 7 and w['cols'] == 4 and w['tracks'] == 4 and w['short'] == 'Mo,Di,Mi,Do,Fr,Sa,So', str(w))
+            names: Array.from(document.querySelectorAll('.plan-day-name')).map(e => e.textContent).join(), titleSize: parseFloat(getComputedStyle(document.querySelector('.plan-title')).fontSize),
+            clipped: Array.from(document.querySelectorAll('.plan-title')).some(e => e.scrollWidth > e.clientWidth + 1) } }""")
+        # Paket 41: Kacheln; sieben Spalten erst ab 1400 px, bei 900 bis 1399 px vier plus drei (lange Titel brechen sonst Buchstabe fuer Buchstabe)
+        check('Breit (1280): sieben Tage in vier Spalten (4 + 3), volle Wochentagsnamen', w['n'] == 7 and w['cols'] == 4 and w['tracks'] == 4 and w['names'] == 'Montag,Dienstag,Mittwoch,Donnerstag,Freitag,Samstag,Sonntag', str(w))
         await page.set_viewport_size({'width': 1440, 'height': 900}); await page.wait_for_timeout(300)
         w2 = await ev("() => ({ cols: new Set(Array.from(document.querySelectorAll('.plan-day')).map(d => Math.round(d.getBoundingClientRect().left))).size, tracks: getComputedStyle(document.querySelector('.plan-week')).gridTemplateColumns.split(' ').length })")
         check('Sehr breit (1440): sieben Spalten Mo bis So nebeneinander', w2['cols'] == 7 and w2['tracks'] == 7, str(w2))
         await page.set_viewport_size({'width': 1280, 'height': 900}); await page.wait_for_timeout(300)
-        check('Breit: Spalten gut lesbar (Breite, Schrift) und Navigation Vor-/Folgewoche', w['minW'] >= 110 and w['titleSize'] >= 15 and w['nav'], str(w))
+        check('Breit: Spalten gut lesbar (Breite, Schrift), nichts abgeschnitten, Navigation Vor-/Folgewoche', w['minW'] >= 110 and w['titleSize'] >= 16 and w['nav'] and not w['clipped'], str(w))
         check('Breit: kein seitlicher Überlauf', await ev(OVERFLOW))
         await click(page, '[data-action="week-next"]')
         check('Breit: Folgewoche leer, Tage bleiben', await ev("() => document.querySelectorAll('.plan-day').length === 7 && document.querySelectorAll('.plan-entry').length === 0"))
+        await b.close()
+
+        # ---------- Paket 41: Wochenplan auf allen Bildschirmen, Darstellungen, grosse Systemschrift ----------
+        DATA41 = """async () => {
+          const r = emptyRecipe(); r.id = 'r_p41_long'; r.title = 'Gefüllte Peperoni mit Quinoa, Feta und geröstetem Sesam auf Tomatenragout mit Basilikumöl und Superkalifragilistischexpialigetischemzutatenbrot'; r.servings = 4; r.ingredients = [{amount:'1', unit:'', name:'Peperoni'}]; r.steps = [{text:'Kochen.'}]; await dbPut(r); await loadRecipes();
+          const wk = currentWeekDays();
+          await dbPutMealplanDay({ date: wk[0], recipeIds: ['r_legacy_1', 'r_p41_long'], entries: [{ id: 'p1', recipeId: 'r_legacy_1', meal: 'dinner', servings: 9 }, { id: 'p2', recipeId: 'r_p41_long', meal: 'lunch', servings: 4 }] });
+          await dbPutMealplanDay({ date: wk[2], recipeIds: [], entries: [{ id: 'p3', type: 'note', text: 'Reste' }] });
+          await dbPutMealplanDay({ date: fmtDateKey(new Date()), recipeIds: ['r_legacy_2'], entries: [{ id: 'p4', recipeId: 'r_legacy_2', meal: '', servings: 2 }] });
+          await loadMealplan(); state.view = 'mealplan'; render(); }"""
+        CHECK41 = """() => {
+          const vw = window.innerWidth; const bad = [];
+          const dayRects = Array.from(document.querySelectorAll(vw >= 640 ? '.plan-day' : '.plan-day:not(.is-today)')).map(e => e.getBoundingClientRect());
+          for (const sel of ['.plan-add', '.plan-entry-main', '.plan-entry .icon-btn', '.week-nav button', '.day-select']) for (const e of document.querySelectorAll(sel)) { const r = e.getBoundingClientRect(); if (r.height < 43.5 || (sel !== '.plan-entry-main' && sel !== '.day-select' && r.width < 43.5)) bad.push(sel + ' ' + Math.round(r.width) + 'x' + Math.round(r.height)); }
+          for (const e of document.querySelectorAll('.plan-day *')) { const r = e.getBoundingClientRect(); if (r.width && (r.right > vw + 1 || r.left < -1)) { bad.push('ausserhalb ' + e.className); break; } }
+          for (const e of document.querySelectorAll('.plan-title, .plan-day-title, .plan-empty, .plan-meal, .plan-servings')) { if (e.scrollWidth > e.clientWidth + 1 && getComputedStyle(e).display !== 'flex') bad.push('abgeschnitten ' + e.className); }
+          const small = Array.from(document.querySelectorAll('.plan-main *')).filter(e => e.childElementCount === 0 && e.textContent.trim() && parseFloat(getComputedStyle(e).fontSize) < 13.9).map(e => e.className);
+          const lum = c => { const m = c.match(/[\d.]+/g).map(Number); const f = v => { v /= 255; return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4); }; return 0.2126 * f(m[0]) + 0.7152 * f(m[1]) + 0.0722 * f(m[2]); };
+          const bg = e => { for (let n = e; n; n = n.parentElement) { const c = getComputedStyle(n).backgroundColor; if (c && !/rgba\(.*, 0\)|transparent/.test(c)) return c; } return 'rgb(255,255,255)'; };
+          const lows = [];
+          for (const e of document.querySelectorAll('.plan-day-name, .plan-day-date, .plan-empty, .plan-meal, .plan-title, .plan-servings, .plan-today, .day-select, .week-nav-label')) { const a = lum(getComputedStyle(e).color), b = lum(bg(e)); const ratio = (Math.max(a, b) + 0.05) / (Math.min(a, b) + 0.05); if (ratio < 4.5) lows.push(e.className + ' ' + ratio.toFixed(2)); }
+          return { overflow: document.documentElement.scrollWidth - vw, bad, small, lows, cols: new Set(dayRects.map(r => Math.round(r.left))).size }; }"""
+        EXPECT_COLS = {320: 1, 360: 1, 390: 1, 430: 1, 768: 2, 1024: 4, 1280: 4, 1440: 7}
+        bad_all = []
+        for theme in ('light', 'dark', 'amoled'):
+            for wd in (320, 360, 390, 430, 768, 1024, 1280, 1440):
+                b, ctx, page, errs = await fresh(p, wd, 900)
+                await page.evaluate(DATA41); await page.wait_for_timeout(300)
+                await page.evaluate(f"() => {{ document.documentElement.setAttribute('data-theme', '{theme}'); }}"); await page.wait_for_timeout(250)
+                r = await page.evaluate(CHECK41)
+                if r['overflow'] > 1 or r['bad'] or r['small'] or r['lows'] or r['cols'] != EXPECT_COLS[wd] or errs:
+                    bad_all.append(f"{theme} {wd}: {json.dumps(r, ensure_ascii=False)[:300]} {errs[:1]}")
+                if theme == 'light' and wd in (320, 1024):
+                    await page.evaluate("() => { document.documentElement.style.fontSize = '24px'; }"); await page.wait_for_timeout(250)
+                    r2 = await page.evaluate(CHECK41)
+                    if r2['overflow'] > 1 or any(x.startswith(('ausserhalb', 'abgeschnitten')) for x in r2['bad']):
+                        bad_all.append(f"24px {wd}: {json.dumps(r2, ensure_ascii=False)[:300]}")
+                await b.close()
+        check('Wochenplan Paket 41: 320 bis 1440 px in Hell, Dunkel, Schwarz: Spaltenzahl, kein Überlauf, Tippflächen 44 px, nichts abgeschnitten, Schrift ab 14 px, Kontrast 4.5:1; 24 px Systemschrift ohne Überlauf', not bad_all, ' | '.join(bad_all[:3]))
+        b, ctx, page, errs = await fresh(p, 390, 900)
+        await page.evaluate(DATA41); await page.wait_for_timeout(300)
+        navok = await page.evaluate("() => { const m = document.querySelector('.plan-main'); const btn = m.querySelector('[data-action=\"mealplan-to-shopping\"]'); const nav = document.querySelector('.bottom-nav'); window.scrollTo(0, document.body.scrollHeight); return btn.getBoundingClientRect().bottom <= nav.getBoundingClientRect().top + 1; }")
+        check('Mobil: «Zutaten der Woche einkaufen» am Seitenende nicht von der unteren Navigation verdeckt', navok)
         await b.close()
 
         # ---------- Einkauf ----------
