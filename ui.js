@@ -158,7 +158,7 @@ function triggerSelectorFromActive() {
   if (!act || !/^[\w-]+$/.test(act)) return null;
   let sel = `[data-action="${act}"]`;
   const id = el.getAttribute('data-id');
-  if (id && !/["\\]/.test(id)) sel += `[data-id="${id}"]`;
+  if (id && !/["\\]/.test(id)) sel += `[data-id="${escapeAttr(id)}"]`;
   return sel;
 }
 function openModal(modal, triggerSelector) {
@@ -528,7 +528,7 @@ async function dispatchAction(action, id, el, e) {
       closeModal(); // rendert bereits selbst — kein zusaetzliches render() noetig (Punkt 6)
       break;
     case 'confirm-delete':
-      openModal({ type: 'delete', recipeId: id }, `[data-action="confirm-delete"][data-id="${id}"]`);
+      openModal({ type: 'delete', recipeId: id }, `[data-action="confirm-delete"][data-id="${escapeAttr(id)}"]`);
       break;
     case 'close-modal':
       closeModal();
@@ -674,7 +674,7 @@ async function dispatchAction(action, id, el, e) {
       break;
     }
     case 'export-pdf':
-      openModal({ type: 'pdf-export', target: 'single', recipeId: id, stage: 'options', template: pdfDefaultTemplateId(), nutritionDetail: await defaultPdfNutritionDetail('single', id) }, `[data-action="export-pdf"][data-id="${id}"]`);
+      openModal({ type: 'pdf-export', target: 'single', recipeId: id, stage: 'options', template: pdfDefaultTemplateId(), nutritionDetail: await defaultPdfNutritionDetail('single', id) }, `[data-action="export-pdf"][data-id="${escapeAttr(id)}"]`);
       break;
     case 'export-cookbook':
       openModal({ type: 'pdf-export', target: 'cookbook', stage: 'options', template: (getCookbookConfig().pdfTemplate || pdfDefaultTemplateId()), nutritionDetail: await defaultPdfNutritionDetail('cookbook') }, `[data-action="export-cookbook"]`);
@@ -694,7 +694,7 @@ async function dispatchAction(action, id, el, e) {
       // Punkt 2: identischer Ablauf wie 'export-pdf' — ein Rezept hat nur noch EINEN PDF-Weg,
       // nicht zwei verschiedene (vorher: 'Teilen' ging direkt an navigator.share vorbei an
       // jeder Vorschau, 'Als PDF exportieren' zeigte eine Vorschau — inkonsistent).
-      openModal({ type: 'pdf-export', target: 'single', recipeId: id, stage: 'options', template: pdfDefaultTemplateId(), nutritionDetail: await defaultPdfNutritionDetail('single', id) }, `[data-action="share-recipe"][data-id="${id}"]`);
+      openModal({ type: 'pdf-export', target: 'single', recipeId: id, stage: 'options', template: pdfDefaultTemplateId(), nutritionDetail: await defaultPdfNutritionDetail('single', id) }, `[data-action="share-recipe"][data-id="${escapeAttr(id)}"]`);
       break;
     case 'save-profile-fields': {
       const titleInput = document.getElementById('f-cookbook-title');
@@ -736,7 +736,7 @@ async function dispatchAction(action, id, el, e) {
       render();
       break;
     case 'open-day-picker':
-      openModal({ type: 'pick-recipe', date: el.dataset.date }, `[data-action="open-day-picker"][data-date="${el.dataset.date}"]`);
+      openModal({ type: 'pick-recipe', date: el.dataset.date }, `[data-action="open-day-picker"][data-date="${escapeAttr(el.dataset.date)}"]`);
       break;
     case 'assign-mealplan-recipe': {
       const date = el.dataset.date;
@@ -961,7 +961,7 @@ async function dispatchAction(action, id, el, e) {
       if (!r) break;
       const relevant = (r.ingredients || []).filter(i => i.name && i.name.trim() && !isIngredientHeaderRow(i) && !isQualitativeIngredient(i));
       state.nutritionMatchItems = await matchIngredients(relevant, r.steps);
-      openModal({ type: 'nutrition', recipeId: id, stage: 'match' }, `[data-action="nutrition-open-match"][data-id="${id}"]`);
+      openModal({ type: 'nutrition', recipeId: id, stage: 'match' }, `[data-action="nutrition-open-match"][data-id="${escapeAttr(id)}"]`);
       break;
     }
     case 'nutrition-select-ingredient': {
@@ -1045,7 +1045,7 @@ async function dispatchAction(action, id, el, e) {
       const r = state.recipes.find(x => x.id === id);
       if (!r) break;
       state._nutritionDetailResult = await dbGetNutritionResult(r.id);
-      openModal({ type: 'nutrition-detail', recipeId: id }, `[data-action="nutrition-open-detail"][data-id="${id}"]`);
+      openModal({ type: 'nutrition-detail', recipeId: id }, `[data-action="nutrition-open-detail"][data-id="${escapeAttr(id)}"]`);
       break;
     }
     case 'nutrition-set-mode':

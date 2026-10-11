@@ -126,7 +126,7 @@ async function toggleShoppingItem(id) {
   item.checked = !wasChecked;
   state.shopStay = state.shopStay || new Set();
   state.shopStay.add(id);
-  const row = document.querySelector(`.shop-row[data-id="${id}"]`);
+  const row = document.querySelector(`.shop-row[data-id="${cssAttr(id)}"]`);
   if (row) {   // unmittelbare Rueckmeldung am Element, ohne Neuaufbau (kein Springen, Fokus bleibt)
     row.classList.toggle('is-checked', item.checked);
     const cb = row.querySelector('.shop-check'); if (cb) cb.setAttribute('aria-checked', String(item.checked));
@@ -135,7 +135,7 @@ async function toggleShoppingItem(id) {
   await dbPutShopping(item);
   showToast(`„${item.name}“ ${item.checked ? 'abgehakt' : 'wieder offen'}`, 'success', false, { actionLabel: 'Rückgängig', duration: 6000, onAction: async () => {
     item.checked = wasChecked; await dbPutShopping(item);
-    if (state.view === 'shopping') { const r2 = document.querySelector(`.shop-row[data-id="${id}"]`); if (r2) { r2.classList.toggle('is-checked', item.checked); const c2 = r2.querySelector('.shop-check'); if (c2) c2.setAttribute('aria-checked', String(item.checked)); updateShopCounts(); } else render(); }
+    if (state.view === 'shopping') { const r2 = document.querySelector(`.shop-row[data-id="${cssAttr(id)}"]`); if (r2) { r2.classList.toggle('is-checked', item.checked); const c2 = r2.querySelector('.shop-check'); if (c2) c2.setAttribute('aria-checked', String(item.checked)); updateShopCounts(); } else render(); }
   } });
   return true;
 }
@@ -257,7 +257,7 @@ async function handleActionV2(action, id, el, e) {
       if (set.has(idx)) set.delete(idx); else set.add(idx);
       const on = set.has(idx);
       SavoraNative.haptic('light');
-      document.querySelectorAll(`[data-action="toggle-ingredient-check"][data-id="${id}"][data-idx="${idx}"]`).forEach(b => { b.classList.toggle('is-checked', on); b.setAttribute('aria-checked', String(on)); });
+      document.querySelectorAll(`[data-action="toggle-ingredient-check"][data-id="${cssAttr(id)}"][data-idx="${idx}"]`).forEach(b => { b.classList.toggle('is-checked', on); b.setAttribute('aria-checked', String(on)); });
       const p = loadCookProgress();
       if (state.view === 'cookmode' || (p && p.recipeId === id)) { const prev = state.activeRecipeId; state.activeRecipeId = id; saveCookProgress(); state.activeRecipeId = prev; }
       return true;
@@ -341,7 +341,7 @@ async function handleActionV2(action, id, el, e) {
 
     /* ----- Notizen ----- */
     case 'open-note-modal':
-      openModal({ type: 'note', recipeId: id }, `[data-action="open-note-modal"][data-id="${id}"]`);
+      openModal({ type: 'note', recipeId: id }, `[data-action="open-note-modal"][data-id="${escapeAttr(id)}"]`);
       return true;
     case 'save-note': {
       const r = state.recipes.find(x => x.id === id);
@@ -522,7 +522,7 @@ async function handleActionV2(action, id, el, e) {
       const items = shoppingSelectionFor(r, currentServings(r));
       if (!items.length) { showToast('Dieses Rezept hat noch keine Zutaten'); return true; }
       markShoppingDuplicates(items);
-      openModal({ type: 'shop-select', items }, `[data-action="add-to-shopping"][data-id="${id}"]`);
+      openModal({ type: 'shop-select', items }, `[data-action="add-to-shopping"][data-id="${escapeAttr(id)}"]`);
       return true;
     }
     case 'open-shop-from-recipes':
@@ -584,7 +584,7 @@ async function handleActionV2(action, id, el, e) {
       return true;
     }
     case 'open-shop-item':
-      openModal({ type: 'shop-item', itemId: id }, `[data-action="open-shop-item"][data-id="${id}"]`);
+      openModal({ type: 'shop-item', itemId: id }, `[data-action="open-shop-item"][data-id="${escapeAttr(id)}"]`);
       return true;
     case 'save-shop-item': {
       const item = state.shopping.find(x => x.id === id);
@@ -683,7 +683,7 @@ async function handleActionV2(action, id, el, e) {
 
     /* ----- Wochenplan ----- */
     case 'open-day-picker':
-      openModal({ type: 'pick-recipe', date: el.dataset.date, meal: '' }, `[data-action="open-day-picker"][data-date="${el.dataset.date}"]`);
+      openModal({ type: 'pick-recipe', date: el.dataset.date, meal: '' }, `[data-action="open-day-picker"][data-date="${escapeAttr(el.dataset.date)}"]`);
       return true;
     case 'set-plan-meal':
       if (state.modal) { const ni = document.getElementById('planNoteInput'); if (ni) state.modal.noteDraft = ni.value; state.modal.meal = state.modal.meal === id ? '' : id; const c = document.getElementById('planMealCustom'); if (c) c.value = ''; render(); }
@@ -715,7 +715,7 @@ async function handleActionV2(action, id, el, e) {
       return true;
     }
     case 'open-plan-entry':
-      openModal({ type: 'plan-entry', date: el.dataset.date, entryId: id, meal: (planEntriesFor(el.dataset.date).find(x => x.id === id) || {}).meal || '' }, `[data-action="open-plan-entry"][data-id="${id}"]`);
+      openModal({ type: 'plan-entry', date: el.dataset.date, entryId: id, meal: (planEntriesFor(el.dataset.date).find(x => x.id === id) || {}).meal || '' }, `[data-action="open-plan-entry"][data-id="${escapeAttr(id)}"]`);
       return true;
     case 'plan-entry-servings': {
       const m = state.modal;
@@ -794,7 +794,7 @@ async function handleActionV2(action, id, el, e) {
       if (i < 0 || j < 0 || j >= list.length) return true;
       [list[i], list[j]] = [list[j], list[i]];
       saveCookbookConfig(cfg); render();
-      const again = document.querySelector(`[data-action="${action}"][data-id="${id}"][data-delta="${el.dataset.delta}"]:not([disabled])`) || document.querySelector(`[data-action="${action}"][data-id="${id}"]:not([disabled])`);
+      const again = document.querySelector(`[data-action="${action}"][data-id="${cssAttr(id)}"][data-delta="${el.dataset.delta}"]:not([disabled])`) || document.querySelector(`[data-action="${action}"][data-id="${cssAttr(id)}"]:not([disabled])`);
       if (again) focusWithoutScroll(again);
       return true;
     }
@@ -822,7 +822,7 @@ async function handleActionV2(action, id, el, e) {
       const cfg = getCookbookConfig();
       cfg.pdfTemplate = id;
       saveCookbookConfig(cfg); pdfRememberTemplate(id); render();
-      const again = document.querySelector(`[data-action="cb-page-style"][data-id="${id}"]`); if (again) focusWithoutScroll(again);
+      const again = document.querySelector(`[data-action="cb-page-style"][data-id="${cssAttr(id)}"]`); if (again) focusWithoutScroll(again);
       return true;
     }
     case 'cb-step': {
@@ -841,7 +841,7 @@ async function handleActionV2(action, id, el, e) {
       return true;
     case 'cb-rename': {
       const b = cookbookById(id); if (!b) return true;
-      openModal({ type: 'cb-name', mode: 'rename', id, value: b.name }, `[data-action="cb-rename"][data-id="${id}"]`);
+      openModal({ type: 'cb-name', mode: 'rename', id, value: b.name }, `[data-action="cb-rename"][data-id="${escapeAttr(id)}"]`);
       setTimeout(() => { const i = document.getElementById('cbNameInput'); if (i) { i.focus(); i.select(); } }, 30);
       return true;
     }
@@ -870,12 +870,12 @@ async function handleActionV2(action, id, el, e) {
       const copy = cookbookDuplicate(id); if (!copy) return true;
       render();
       showToast('Kochbuch dupliziert');
-      const again = document.querySelector(`[data-action="cb-open"][data-id="${copy.id}"]`); if (again) focusWithoutScroll(again);
+      const again = document.querySelector(`[data-action="cb-open"][data-id="${cssAttr(copy.id)}"]`); if (again) focusWithoutScroll(again);
       return true;
     }
     case 'cb-delete':
       if (cookbookBooks().length <= 1) { showToast('Mindestens ein Kochbuch bleibt bestehen'); return true; }
-      openModal({ type: 'cb-delete', id }, `[data-action="cb-delete"][data-id="${id}"]`);
+      openModal({ type: 'cb-delete', id }, `[data-action="cb-delete"][data-id="${escapeAttr(id)}"]`);
       return true;
     case 'cb-delete-confirm':
       if (cookbookDelete(id)) { closeModal(); showToast('Kochbuch gelöscht. Deine Rezepte sind unverändert.'); }

@@ -133,13 +133,13 @@ function unitConverterView() {
   const tab = ucEnsureState();
   const unitOptions = tab.units.map(u => `<option value="${u}" ${u === state.ucUnit ? 'selected' : ''}>${UC_LABELS[u]}</option>`).join('');
   const foodField = tab.id === 'food'
-    ? `<div class="uc-field"><label for="ucIngredient">Zutat</label><select id="ucIngredient" class="uc-select">${UC_FOODS.map(f => `<option value="${f.id}" ${f.id === state.ucFood ? 'selected' : ''}>${escapeHtml(f.name)}</option>`).join('')}</select></div>`
+    ? `<div class="uc-field"><label for="ucIngredient">Zutat</label><select id="ucIngredient" class="uc-select">${UC_FOODS.map(f => `<option value="${escapeAttr(f.id)}" ${f.id === state.ucFood ? 'selected' : ''}>${escapeHtml(f.name)}</option>`).join('')}</select></div>`
     : '';
   const quick = (UC_QUICK[state.ucUnit] || []).map(v => `<button type="button" class="uc-chip" data-action="uc-quick" data-value="${v}">${v}</button>`).join('');
   const defs = ucDefsKey();
   const defsBox = (tab.id === 'volume' || tab.id === 'food')
     ? `<div class="uc-defs"><div class="uc-dim-label">Löffel und Tasse</div>
-        <div class="theme-switch" role="radiogroup" aria-label="Löffel und Tasse">${Object.keys(UC_DEFS).map(k => `<button type="button" class="theme-opt ${defs === k ? 'active' : ''}" role="radio" aria-checked="${defs === k}" data-action="uc-defs" data-id="${k}">${UC_DEFS[k].label}</button>`).join('')}</div>
+        <div class="theme-switch" role="radiogroup" aria-label="Löffel und Tasse">${Object.keys(UC_DEFS).map(k => `<button type="button" class="theme-opt ${defs === k ? 'active' : ''}" role="radio" aria-checked="${defs === k}" data-action="uc-defs" data-id="${escapeAttr(k)}">${UC_DEFS[k].label}</button>`).join('')}</div>
         <p class="settings-hint settings-hint--top">${escapeHtml(UC_DEFS[defs].desc)}. Rezepte aus den USA meinen meist die US-Werte.</p></div>`
     : '';
   const tempTable = tab.id === 'temp'
@@ -152,7 +152,7 @@ function unitConverterView() {
     ${topbar('Masseinheiten-Rechner', { back: true })}
     <main class="has-tabbar uc-page">
       <div class="uc-tabs" role="tablist" aria-label="Art der Umrechnung">
-        ${UC_TABS.map(t => `<button type="button" role="tab" class="uc-tab ${t.id === tab.id ? 'is-active' : ''}" aria-selected="${t.id === tab.id}" data-action="uc-tab" data-id="${t.id}">${t.label}</button>`).join('')}
+        ${UC_TABS.map(t => `<button type="button" role="tab" class="uc-tab ${t.id === tab.id ? 'is-active' : ''}" aria-selected="${t.id === tab.id}" data-action="uc-tab" data-id="${escapeAttr(t.id)}">${t.label}</button>`).join('')}
       </div>
       <section class="uc-card">
         ${foodField}

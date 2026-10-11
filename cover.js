@@ -295,7 +295,7 @@ function coverRefresh(focusId) {
   if (keep && !focusId) focusId = keep;
   coverFitPreviews();
   if (Math.abs(window.scrollY - y0) > 0) window.scrollTo(0, y0);   // kein Springen beim Austauschen
-  if (focusId) { const b = document.querySelector(`.cover-opt[data-id="${focusId}"]`); if (b) b.focus({ preventScroll: true }); }
+  if (focusId) { const b = document.querySelector(`.cover-opt[data-id="${cssAttr(focusId)}"]`); if (b) b.focus({ preventScroll: true }); }
 }
 
 /* Vorschau zeichnen: dieselbe Funktion wie im Export (coverDraw), nur in Anzeigegroesse */

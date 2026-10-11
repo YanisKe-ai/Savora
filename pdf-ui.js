@@ -33,7 +33,7 @@ function pdfExportOptionsStage() {
     <p class="pdf-style-fixed" id="pdfStyleFixed"><b>${escapeHtml(pdfTemplateById(m.template).name)}</b> <span class="hint-line">Den Seitenstil änderst du im Kochbuch unter «Gestalten».</span></p>`
       : `<p class="nutrition-modal-subtitle">Seitenstil</p>
     <div class="pdf-tpl-choice" role="radiogroup" aria-label="Seitenstil">
-      ${Object.values(PDF_TEMPLATES).map((t) => `<button type="button" role="radio" aria-checked="${m.template === t.id}" class="pdf-tpl-opt ${m.template === t.id ? 'active' : ''}" data-action="pdf-export-set-template" data-id="${t.id}"><span class="pdf-tpl-swatch pdf-tpl-swatch-${t.id.toLowerCase()}" aria-hidden="true"></span><b>${t.name}</b><small>${t.hint}</small></button>`).join('')}
+      ${Object.values(PDF_TEMPLATES).map((t) => `<button type="button" role="radio" aria-checked="${m.template === t.id}" class="pdf-tpl-opt ${m.template === t.id ? 'active' : ''}" data-action="pdf-export-set-template" data-id="${escapeAttr(t.id)}"><span class="pdf-tpl-swatch pdf-tpl-swatch-${t.id.toLowerCase()}" aria-hidden="true"></span><b>${t.name}</b><small>${t.hint}</small></button>`).join('')}
     </div>`}
     ${state.showNutrition ? `    <p class="nutrition-modal-subtitle">Nährwerte im PDF</p>
     <div class="nutrition-segmented" role="radiogroup" aria-label="Nährwerte-Detailgrad">

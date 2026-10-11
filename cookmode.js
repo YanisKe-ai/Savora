@@ -49,12 +49,12 @@ function resyncRunningTimers() {
 function updateTimerChipDOM(id) {
   const t = state.timers[id];
   if (!t) return;
-  document.querySelectorAll(`[data-timer-label="${id}"]`).forEach(el => { el.textContent = fmtClock(t.remaining); });   // Chip im Text und Eintrag in der Timer-Leiste
-  const chipEl = document.querySelector(`[data-timer-id="${id}"]`);
+  document.querySelectorAll(`[data-timer-label="${cssAttr(id)}"]`).forEach(el => { el.textContent = fmtClock(t.remaining); });   // Chip im Text und Eintrag in der Timer-Leiste
+  const chipEl = document.querySelector(`[data-timer-id="${cssAttr(id)}"]`);
   if (chipEl) {
     chipEl.classList.toggle('running', t.running);
     chipEl.classList.toggle('done', t.done);
-    if (t.done) chipEl.innerHTML = `${ICONS.check}<span data-timer-label="${id}">${fmtClock(0)}</span>`;
+    if (t.done) chipEl.innerHTML = `${ICONS.check}<span data-timer-label="${escapeAttr(id)}">${fmtClock(0)}</span>`;
   }
 }
 
