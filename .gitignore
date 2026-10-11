@@ -5,3 +5,4 @@ www/
 tests/private/
 .DS_Store
 build/
+.venv
