@@ -344,8 +344,8 @@ function ceEditorHtml() {
         </div>
         <div class="ce-warnslot">${ceWarnSummary()}</div>
       </div>
+      ${custom ? '' : `<div class="ce-motif">${ceTemplateGrid()}</div>`}
       <div class="ce-side">
-        ${custom ? '' : ceTemplateGrid()}
         <div class="ce-tabswrap">${ceTabs()}</div>
         <div class="ce-panels" id="cepanel" role="tabpanel">${cePanelInner()}</div>
       </div>
@@ -363,7 +363,7 @@ function ceModalHtml() {
 
 /* ---------- Teilweise neu zeichnen (Fokus und Scrollposition bleiben) ---------- */
 function ceRoot() { return document.querySelector('.cover-picker.ce'); }
-function ceFocusKey() { const a = document.activeElement; return a && a.closest && a.closest('.ce-side') && a.dataset ? (a.dataset.k || a.id || '') : ''; }
+function ceFocusKey() { const a = document.activeElement; return a && a.closest && a.closest('.ce-side, .ce-motif') && a.dataset ? (a.dataset.k || a.id || '') : ''; }
 function ceRestoreFocus(key) {
   if (!key) return;
   const root = ceRoot(); if (!root) return;
@@ -404,9 +404,9 @@ function ceRenderAll() {
   const mode = root.querySelector('.ce-mode');
   mode.querySelectorAll('.ce-modebtn').forEach(b => b.setAttribute('aria-pressed', String((b.dataset.v === 'custom') === (ce.model.mode === 'custom'))));
   root.dataset.mode = ce.model.mode;
-  const side = root.querySelector('.ce-side'), grid = side.querySelector('.cover-grid');
-  if (ce.model.mode === 'custom' && grid) grid.closest('.ce-sec').remove();
-  if (ce.model.mode !== 'custom' && !grid) { const tmp = document.createElement('div'); tmp.innerHTML = ceTemplateGrid(); side.prepend(tmp.firstElementChild); }
+  const body = root.querySelector('.ce-body'), grid = body.querySelector('.cover-grid');
+  if (ce.model.mode === 'custom' && grid) grid.closest('.ce-motif').remove();
+  if (ce.model.mode !== 'custom' && !grid) body.querySelector('.ce-stage').insertAdjacentHTML('afterend', `<div class="ce-motif">${ceTemplateGrid()}</div>`);
   else if (grid) { const cur = coverValidTemplateId(ce.model.templateId); grid.querySelectorAll('.cover-opt').forEach((b) => { const on = b.dataset.id === cur; b.classList.toggle('is-active', on); b.setAttribute('aria-checked', String(on)); const chk = b.querySelector('.cover-opt-check'); if (on && !chk) b.insertAdjacentHTML('beforeend', `<span class="cover-opt-check" aria-hidden="true">${ICONS.check}</span>`); if (!on && chk) chk.remove(); }); }
   ceRenderTabs(); ceRenderPanels(); ceRenderWarnings(); ceSyncOverlay(); cePaintSoon(); ceUpdateHistoryButtons(); ceSetStatus(ce.status);
   ceRestoreFocus(key);

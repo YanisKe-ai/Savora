@@ -307,7 +307,7 @@ async def main():
             over = await ev("() => document.documentElement.scrollWidth - document.documentElement.clientWidth")
             check(f'{w} px: kein horizontales Scrollen', over <= 1, str(over))
             st, sd, pvb = await box(page, '.ce-stage'), await box(page, '.ce-side'), await box(page, '.ce-preview')
-            if w >= 900:
+            if w >= 1100:
                 check(f'{w} px: Vorschau links (höchstens 460 px), Bedienfelder rechts', sd['x'] > st['x'] + st['w'] - 2 and pvb['w'] <= 461, f'{st} {sd} {pvb}')
                 y0 = (await box(page, '.ce-stage'))['y']
                 await ev("() => window.scrollBy(0, 300)"); await page.wait_for_timeout(200)

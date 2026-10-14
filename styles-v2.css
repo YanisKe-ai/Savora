@@ -2990,8 +2990,9 @@ main.settings-page.kd-page { max-width: 40rem; padding-bottom: 2rem; }
 .ce-file { display: none; }
 .ce-sec--reset { padding-top: 0.5rem; border-top: 1px solid var(--border); }
 .ce-modebtn:focus-visible, .ce-tab:focus-visible, .ce-chip:focus-visible, .ce-segbtn:focus-visible, .ce-icon:focus-visible, .ce-step:focus-visible, .ce-cell:focus-visible, .ce-nudge:focus-visible, .ce-font:focus-visible, .ce-warnbar:focus-visible, .ce-grip:focus-visible, .ce-exact summary:focus-visible { outline: 3px solid var(--text); outline-offset: 2px; }
-@media (min-width: 900px) {
-  .ce-body { display: grid; grid-template-columns: minmax(0, 28.75rem) minmax(0, 1fr); align-items: start; gap: 1.5rem; }
+@media (min-width: 1100px) {
+  .ce-body { display: grid; grid-template-columns: minmax(0, min(460px, 40%)) minmax(0, 1fr); grid-template-areas: "motif motif" "stage side"; align-items: start; gap: 1.5rem; }
+  .ce-stage { grid-area: stage; } .ce-motif { grid-area: motif; } .ce-side { grid-area: side; }
   .ce-stage { top: calc(var(--ce-top, 0px) + 1rem); background: transparent; padding: 0; }
   .ce-preview { width: min(100%, 28.75rem, calc(80dvh * 794 / 1123)); }
 }
@@ -3004,3 +3005,4 @@ main.settings-page.kd-page { max-width: 40rem; padding-bottom: 2rem; }
 .ce-out { min-width: 3.5rem; }
 .ce-step, .ce-nudge, .ce-cell, .ce-segbtn, .ce-tab { transition: transform 160ms ease-out; }
 @media (prefers-reduced-motion: reduce) { .ce-tab { transition: none; } }
+@media (min-width: 640px) and (max-width: 1099px) { .ce-preview { width: min(100%, 22rem, calc(48dvh * 794 / 1123)); } }
