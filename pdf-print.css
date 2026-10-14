@@ -103,7 +103,7 @@
 .pv-steps { margin: 0; }
 .pv-step { display: grid; grid-template-columns: 11mm minmax(0, 1fr); margin: 0 0 3.6mm; line-height: var(--pv-lh); }
 .pv-step-no { font-family: var(--pv-no-font); font-weight: 700; color: var(--pv-accent); font-size: 17pt; line-height: 1; padding-top: .3mm; font-variant-numeric: tabular-nums; }
-.pv-tpl-prise-pop .pv-step-no { font-weight: 400; width: 8mm; height: 8mm; box-sizing: border-box; border: 1.3pt solid var(--pv-accent); border-radius: 50%; text-align: center; font-size: 12pt; line-height: 1; padding: 1.35mm 0 0; margin-top: .3mm; }
+.pv-tpl-prise-pop .pv-step-no { font-weight: 400; width: 8mm; height: 8mm; box-sizing: border-box; border: 1.3pt solid var(--pv-accent); border-radius: 50%; text-align: center; font-size: 12pt; line-height: 1; padding: .35mm 0 0; margin-top: .3mm; }
 .pv-tpl-prise-pop .pv-step[data-cont] .pv-step-no { border-color: transparent; }
 .pv-tpl-prise-pop .pv-step { margin-bottom: 2.4mm; padding-bottom: 2.2mm; border-bottom: .5pt solid var(--pv-step-rule); }
 .pv-step-text { white-space: pre-line; min-width: 0; overflow-wrap: break-word; }
