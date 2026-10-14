@@ -127,7 +127,7 @@ function prefersReducedMotion() {
 if ('scrollRestoration' in history) history.scrollRestoration = 'manual';
 const HISTORY_DRILLDOWN_VIEWS = new Set(['detail', 'form', 'cookmode', 'unitconverter', 'paste-import', 'cookbook']);
 function isHistoryDrilldownView(view) {
-  return HISTORY_DRILLDOWN_VIEWS.has(view) || view.indexOf('settings-') === 0;
+  return HISTORY_DRILLDOWN_VIEWS.has(view) || view.indexOf('settings-') === 0 || view === 'friends' || view.indexOf('friends-') === 0;
 }
 function navHistorySnapshot() {
   return { view: state.view, modalType: state.modal ? state.modal.type : null, activeRecipeId: state.activeRecipeId };

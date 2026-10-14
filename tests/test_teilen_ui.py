@@ -1,4 +1,4 @@
-"""Teilen ueberarbeitet: Seite «Socialize» (Handy zuerst, Tablet/Desktop in Spalten).
+"""Freunde & Rezepte: Layout, Ablauf und Bedienbarkeit (Handy zuerst, Tablet/Desktop begrenzte Breite).
 Prueft pro Zustand nur das Noetige (ohne Konto, ohne Profil, ohne Freunde, mit Freunden, Anfrage, Posteingang), die Reihenfolge der Bereiche
 (Posteingang, Anfragen, Rezept senden, Freunde, Profil), Zaehler, eingeklappte Bereiche (und dass sie ein Neuzeichnen ueberleben),
 den Ablauf Rezept waehlen, Freund waehlen, senden, Fehlertexte ohne Internet, Vorschau (Entscheidung vor den Zutaten),
@@ -27,7 +27,7 @@ INBOX = """[{id:'s1', from_handle:'berta', from_name:'Berta', title:'Pasta al Li
 async def setup(page, profile, conns, inbox, ui='{}'):
     await page.evaluate(f"""() => {{ share.profile = {profile}; share.connections = {conns}; share.inbox = {inbox}; share.error = null; share.ui = {ui};
       share.count = share.connections.filter(c => c.state==='incoming').length + share.inbox.length; share.fetchedAt = Date.now()+1e10; share.loading = false;
-      state.modal = null; state.view = 'settings-share'; render(); window.scrollTo(0,0); }}""")
+      state.modal = null; state.view = 'friends'; render(); window.scrollTo(0,0); }}""")
     await page.wait_for_timeout(350)
 async def ev(page, js, *a): return await page.evaluate(js, *a)
 async def tab(page, t):
@@ -53,7 +53,7 @@ async def main():
         await page.evaluate("() => { state.modal = null; state.view = 'settings-share'; render(); }"); await page.wait_for_timeout(300)
         t = await ev(page, "document.querySelector('main').innerText")
         check('Ohne Konto: erklaert Konto und Datenschutz, eine Hauptaktion', 'Konto' in t and 'Niemand sieht dein Kochbuch' in t and await ev(page, "document.querySelectorAll('main .tl .primary-btn').length") >= 1 and not await ev(page, "!!document.querySelector('#shareHandle, #shareTarget')"))
-        check('Ohne Konto: Name beim Teilen bleibt erreichbar', await ev(page, "!!document.getElementById('f-sender-name')"))
+        check('Ohne Konto: Titel «Freunde & Rezepte», Konto-Hinweis, keine Freundes-Funktion', await ev(page, "document.querySelector('.topbar-title').textContent") == 'Freunde & Rezepte' and not await ev(page, "!!document.querySelector('.tl-tab, #shareHandle')"))
         check('Ohne Konto: kein Cloud-Verkehr', len(M.LOG) == 0)
 
         # Anmelden
@@ -65,44 +65,49 @@ async def main():
         await setup(page, 'null', '[]', '[]')
         h = await ev(page, HEADS)
         check('Ohne Profil: nur «Profil einrichten», sonst nichts', h == ['Profil einrichten'] and await ev(page, "!!document.querySelector('#shareHandle') && !document.querySelector('#shareTarget') && !document.querySelector('.tl-fold')"), str(h))
-        check('Ohne Profil: Felder haben sichtbare Beschriftung und Format-Hinweis', await ev(page, "document.querySelector('label[for=shareHandle]').textContent.includes('Profilname') && !!document.getElementById('shareHandleHint')"))
+        check('Ohne Profil: Felder haben sichtbare Beschriftung und Format-Hinweis', await ev(page, "document.querySelector('label[for=shareHandle]').textContent.includes('Benutzername') && document.querySelector('label[for=shareName]').textContent.includes('Sichtbarer Name (freiwillig)') && !!document.getElementById('shareHandleHint')") and not await ev(page, "!!document.getElementById('f-sender-name')"))
 
         # 3 Profil, keine Freunde: Freund hinzufuegen ist offen, Anleitung, kein Senden/Posteingang
         await setup(page, PROFILE, '[]', '[]')
         h = await ev(page, HEADS)
         t = await ev(page, "document.querySelector('main').innerText")
-        check('Ohne Freunde: Bereiche Freunde und Profil, kein Posteingang, kein «Rezept senden»', h == ['Freunde', 'Mein Profil'], str(h))
-        check('Ohne Freunde: Anleitung in 3 Schritten und offenes Feld zum Hinzufuegen', await ev(page, "document.querySelectorAll('.tl-steps li').length") == 3 and await ev(page, "document.querySelector('.tl-fold[data-ui=add]').open") and 'Noch keine Freunde' in t)
-        check('Ohne Freunde: Einladungscode sofort sichtbar (Profil offen)', await ev(page, "document.querySelector('.tl-fold[data-ui=profile]').open") and 'SAV-AB12-CD34' in t)
+        check('Ohne Freunde: Reiter Empfangen mit Leerzustand und «Freunde ansehen»', 'Noch keine neuen Rezepte. Hier erscheinen Rezepte, die dir Freunde senden.' in t and await ev(page, "!!document.querySelector('[data-action=share-tab][data-id=friends]:not([role=tab])')"), t[:200])
+        await tab(page, 'friends')
+        h = await ev(page, HEADS)
+        t = await ev(page, "document.querySelector('main').innerText")
+        check('Reiter Freunde ohne Freunde: vier Bereiche in fester Reihenfolge', h == ['Deine Freunde', 'Anfragen', 'Freund hinzufügen', 'Dein Auftritt'], str(h))
+        check('Ohne Freunde: Hinweis statt leerer Liste, Einladungscode NICHT auf dieser Seite', 'Noch keine Freunde' in t and 'SAV-AB12-CD34' not in t and 'share-code' not in await ev(page, "document.querySelector('main').innerHTML"))
 
         # 4 Mit Freunden, Anfrage, Posteingang: Reihenfolge und Zaehler
         await setup(page, PROFILE, CONNS, INBOX)
-        check('Drei Reiter: Posteingang (2 neu), Senden, Freunde', await ev(page, "Array.from(document.querySelectorAll('.tl-tab')).map(b => b.textContent.replace(/\\d+$/, '').trim()).join('|')") == 'Posteingang|Senden|Freunde' and await ev(page, "document.querySelector('#tl-tab-inbox .tl-badge').getAttribute('aria-label')") == '2 neu')
+        check('Drei Reiter: Empfangen (1 neu), Senden, Freunde (1 Anfrage)', await ev(page, "Array.from(document.querySelectorAll('.tl-tab')).map(b => b.textContent.replace(/\\d+$/, '').trim()).join('|')") == 'Empfangen|Senden|Freunde' and await ev(page, "document.querySelector('#tl-tab-inbox .tl-badge').getAttribute('aria-label')") == '1 neu' and await ev(page, "document.querySelector('#tl-tab-friends .tl-badge').getAttribute('aria-label')") == '1 neu')
         h = await ev(page, HEADS)
-        check('Startreiter Posteingang zeigt Anfragen und Posteingang', [x.rstrip('0123456789') for x in h] == ['Anfragen', 'Posteingang'], str(h))
+        check('Startreiter Empfangen zeigt Anfragen-Hinweis und erhaltene Rezepte', [x.rstrip('0123456789') for x in h] == ['Erhaltene Rezepte'] and '1 offene Anfrage' in await ev(page, "document.querySelector('main').innerText"), str(h))
         await tab(page, 'send')
         check('Reiter Senden: Haupt-Knopf «Rezept waehlen» vorhanden', await ev(page, "!!document.querySelector('[data-action=share-pick-open]')"))
         await tab(page, 'friends')
         h = await ev(page, HEADS)
-        check('Reiter Freunde: Freunde, Mein Profil', [x.rstrip('0123456789') for x in h][:2] == ['Freunde', 'Mein Profil'], str(h))
-        check('Hinzufuegen, Verwalten und Profil sind eingeklappt', await ev(page, "Array.from(document.querySelectorAll('.tl-fold')).every(f => !f.open)"))
-        check('Freunde-Liste zeigt verbundene und wartende, Blockierte nur unter «verwalten»', 'Berta' in await ev(page, "document.querySelector('#tl-panel').innerText") and 'wartet auf Bestätigung' in await ev(page, "document.body.innerText") and 'Fritz' not in await ev(page, "Array.from(document.querySelectorAll('.tl-sec .tl-list.tl-card')).map(l => l.innerText).join(' ')"))
+        check('Reiter Freunde: Deine Freunde, Anfragen, Freund hinzufügen, Dein Auftritt', [x.rstrip('0123456789') for x in h] == ['Deine Freunde', 'Anfragen', 'Freund hinzufügen', 'Dein Auftritt'], str(h))
+        t = await ev(page, "document.querySelector('#tl-panel').innerText")
+        check('Freundesliste mit Namen und «Verwalten» pro Person; Anfragen eingehend/ausgehend getrennt', 'Berta' in t and 'Carl' not in t and '@carl_baut' in t and await ev(page, "document.querySelectorAll('[data-action=friend-manage]').length") == 2 and 'Eingehend' in t and 'Ausgehend' in t and 'Wartet auf Bestätigung' in t)
+        check('Blockierte stehen getrennt unter «Blockiert», mit «Entsperren»', 'Blockiert' in t and 'Fritz' in t and 'Entsperren' in t)
+        check('Einladungscode ist auf der Freunde-Seite nie sichtbar', 'SAV-AB12-CD34' not in await ev(page, "document.body.innerText"))
         await tab(page, 'inbox')
         names = await ev(page, "Array.from(document.querySelectorAll('main .tl button[data-action^=share-]')).filter(b => b.getBoundingClientRect().width > 0 && !b.textContent.trim()).length")
         check('Alle Knöpfe haben einen Namen', names == 0)
         check('Aktionsknoepfe nennen die Person (aria-label)', await ev(page, "Array.from(document.querySelectorAll('[data-action=share-respond]')).every(b => /Dora/.test(b.getAttribute('aria-label') || b.textContent)) && /Pasta/.test(document.querySelector('[data-action=share-open-preview]').getAttribute('aria-label'))"))
         await tab(page, 'friends')
         # eingeklappte Bereiche ueberleben ein Neuzeichnen
-        await page.evaluate("() => { const d = document.querySelector('.tl-fold[data-ui=manage]'); d.open = true; }"); await page.wait_for_timeout(100)
-        await page.evaluate("() => render()"); await page.wait_for_timeout(200)
-        check('Aufgeklappter Bereich bleibt nach dem Neuzeichnen offen', await ev(page, "document.querySelector('.tl-fold[data-ui=manage]').open"))
-        t = await ev(page, "document.querySelector('.tl-fold[data-ui=manage]').innerText")
-        check('Verwalten: Entfernen und Entsperren sind erreichbar', 'Entfernen' in t and 'Entsperren' in t and 'Fritz' in t)
+        await page.evaluate("() => document.querySelector('[data-action=friend-manage][data-id=berta]').click()"); await page.wait_for_timeout(300)
+        mt = await ev(page, "document.querySelector('.modal-sheet').innerText")
+        check('Verwalten: Senden, Entfernen, Blockieren mit erklaerten Folgen', 'Rezept an Berta senden' in mt and 'Freundschaft entfernen' in mt and 'Noch nicht übernommene Rezepte' in mt and 'blockieren' in mt.lower(), mt[:200])
+        await page.evaluate("() => document.querySelector('.modal-sheet [data-action=close-modal]').click()"); await page.wait_for_timeout(400)
         # 5 Leerer Posteingang
         await setup(page, PROFILE, CONNS, '[]')
-        check('Leerer Posteingang mit Freunden erklaert, was passiert', 'Nichts Neues' in await ev(page, "document.querySelector('main').innerText"))
+        check('Leerer Posteingang mit Freunden erklaert, was passiert', 'Noch keine neuen Rezepte' in await ev(page, "document.querySelector('main').innerText"))
         await setup(page, PROFILE, "[{handle:'berta', display_name:'Berta', state:'connected'}]", '[]')
-        check('Keine Anfrage: Bereich «Anfragen» fehlt', 'Anfragen' not in await ev(page, HEADS))
+        await tab(page, 'friends')
+        check('Keine Anfrage: «Keine offenen Anfragen»', 'Keine offenen Anfragen' in await ev(page, "document.querySelector('main').innerText"))
 
         # 6 Senden in drei Schritten: Rezept waehlen, Freund waehlen, senden
         await setup(page, PROFILE, "[{handle:'berta', display_name:'Berta', state:'connected'},{handle:'carl_baut', display_name:'', state:'connected'}]", '[]')
@@ -117,7 +122,7 @@ async def main():
         check('Rezept- und Dialogknoepfe sind mindestens 44 px hoch', await ev(page, SMALL_JS) == [], str(await ev(page, SMALL_JS)))
         await page.evaluate("() => document.querySelector('.tl-pick').click()"); await page.wait_for_selector('[data-action=share-send]'); await page.wait_for_timeout(300)
         mt = await ev(page, "document.querySelector('.modal-sheet').innerText")
-        check('Schritt 2: Freund waehlen (erster vorgewaehlt), Hinweis auf Kopie, anderes Rezept moeglich', 'Sloppy Joe' in mt and 'Kopie' in mt and 'Berta' in mt and 'Anderes Rezept' in mt and await ev(page, "document.querySelector('input[name=shareTo]:checked').value") == 'berta')
+        check('Schritt 2: Empfaenger NICHT vorgewaehlt, Hinweis auf Kopie, Sendehinweis, anderes Rezept moeglich', 'Sloppy Joe' in mt and 'Kopie' in mt and 'Berta' in mt and 'Anderes Rezept' in mt and 'erst, wenn du' in mt and await ev(page, "document.querySelector('input[name=shareTo]:checked')") is None and await ev(page, "document.querySelector('[data-action=share-send]').textContent") == 'Rezept senden')
         check('Empfaenger-Auswahl ist beschriftet (Gruppe mit Titel)', await ev(page, "document.querySelector('fieldset.share-people legend').textContent.includes('Wem')"))
         check('Senden-Dialog: Knoepfe mindestens 44 px', await ev(page, SMALL_JS) == [], str(await ev(page, SMALL_JS)))
         await page.evaluate("() => document.querySelector('input[name=shareTo][value=carl_baut]').click()")
@@ -134,15 +139,15 @@ async def main():
         await page.evaluate("() => document.querySelector('[data-action=share-send]').click()"); await page.wait_for_timeout(1500)
         sent = await ev(page, "window.__sent && { to: window.__sent.p_handle, msg: window.__sent.p_message, img: String(window.__sent.p_image).slice(0, 11), title: window.__sent.p_recipe.title, id: window.__sent.p_recipe.id || null }")
         check('Schritt 3: gesendet an den gewaehlten Freund, mit Bild und Nachricht, ohne Persoenliches', sent and sent['to'] == 'carl_baut' and sent['msg'] == 'Guten Appetit!' and sent['img'] == 'data:image/' and sent['id'] is None, str(sent))
-        check('Dialog geschlossen, Seite unveraendert offen', await ev(page, "!state.modal && state.view === 'settings-share'"))
+        check('Dialog geschlossen, Seite unveraendert offen', await ev(page, "!state.modal && state.view === 'friends'"))
 
         # 7 Senden ohne Freunde und ohne Profil: naechster Schritt
         await setup(page, PROFILE, '[]', '[]')
         await page.evaluate("() => openModal({ type: 'share-send', recipeId: 'r_legacy_1' })"); await page.wait_for_timeout(300)
         mt = await ev(page, "document.querySelector('.modal-sheet').innerText")
-        check('Senden ohne Freunde: «Freund hinzufuegen» als naechster Schritt', 'noch keine Freunde' in mt and 'Freund hinzufügen' in mt)
-        await page.evaluate("() => document.querySelector('.modal-sheet [data-action=close-modal]').click()"); await page.wait_for_timeout(400)
-        check('Dieser Knopf schliesst den Dialog auf der Teilen-Seite', await ev(page, "!state.modal && state.view === 'settings-share'"))
+        await page.evaluate("() => document.querySelector('.modal-sheet [data-action=goto-view]').click()"); await page.wait_for_timeout(400)
+        check('Der Knopf fuehrt zu «Freund hinzufügen» und schliesst den Dialog', await ev(page, "!state.modal && state.view === 'friends-add'"))
+        await page.evaluate("() => { state.view = 'friends'; render(); }")
         await setup(page, 'null', '[]', '[]')
         await page.evaluate("() => openModal({ type: 'share-send', recipeId: 'r_legacy_1' })"); await page.wait_for_timeout(300)
         check('Senden ohne Profil: «Profil einrichten»', 'Profil einrichten' in await ev(page, "document.querySelector('.modal-sheet').innerText"))
@@ -150,17 +155,18 @@ async def main():
 
         # 8 Ohne Internet auf der Seite: Fehlertexte
         await setup(page, PROFILE, '[]', '[]')
-        await tab(page, 'friends')
+        await page.evaluate("() => { state.view = 'friends-add'; render(); }"); await page.wait_for_selector('#shareTarget')
         await ctx.set_offline(True)
         await page.fill('#shareTarget', '@berta'); await page.evaluate("() => document.querySelector('[data-action=share-connect]').click()"); await page.wait_for_timeout(700)
         check('Freund hinzufuegen ohne Internet: Fehlertext beim Feld', 'Keine Verbindung' in await ev(page, "document.getElementById('shareConnectError').textContent"))
+        await page.evaluate("() => { state.view = 'friends'; share.ui.tab = 'friends'; render(); }")
         await page.evaluate("() => { document.activeElement.blur(); share.fetchedAt = 0; return shareRefresh(); }"); await page.wait_for_timeout(700)
         check('Neu laden ohne Internet: Hinweis «Stand von vorhin» mit Knopf', 'Stand von vorhin' in await ev(page, "(document.querySelector('.tl-banner') || {innerText: ''}).innerText") and await ev(page, "!!document.querySelector('.tl-banner [data-action=share-refresh]')"))
-        check('Ohne Internet bleibt die Seite benutzbar (Profil weiter sichtbar)', await ev(page, "!!document.querySelector('.tl-fold[data-ui=profile]')"))
+        check('Ohne Internet bleibt die Seite benutzbar (Profil weiter sichtbar)', await ev(page, "!!document.querySelector('.fr-nav[data-view=friends-profile]')"))
         await ctx.set_offline(False)
         await page.evaluate("() => { share.error = null; share.profile = undefined; share.fetchedAt = 0; share.loading = false; }")
         await page.evaluate("() => { shareReset(); share.error = 'Keine Verbindung zum Internet. Zum Teilen brauchst du Internet. Deine Rezepte sind davon nicht betroffen.'; render(); }"); await page.wait_for_timeout(300)
-        check('Erstes Laden ohne Internet: Fehlerkarte mit «Nochmals versuchen»', 'Nochmals versuchen' in await ev(page, "document.querySelector('main').innerText") and 'Rezepte sind davon nicht betroffen' in await ev(page, "document.querySelector('main').innerText"))
+        check('Erstes Laden ohne Internet: Fehlerkarte mit «Erneut versuchen», ohne Neuanlage-Aufforderung', 'Erneut versuchen' in await ev(page, "document.querySelector('main').innerText") and 'Rezepte sind davon nicht betroffen' in await ev(page, "document.querySelector('main').innerText") and 'einrichten' not in (await ev(page, "document.querySelector('main').innerText")).lower())
 
         # 9 Vorschau: Entscheidung vor den Zutaten
         await setup(page, PROFILE, CONNS, INBOX)
@@ -177,17 +183,25 @@ async def main():
 
         # 10 Tastatur und Fokus, Reduced Motion
         await setup(page, PROFILE, CONNS, INBOX)
-        await tab(page, 'friends')
-        await page.keyboard.press('Tab'); 
-        await page.evaluate("() => document.querySelector('.tl-fold[data-ui=add] > summary').focus()")
-        await page.keyboard.press('Enter'); await page.wait_for_timeout(150)
-        check('Tastatur: Enter auf «Freund hinzufuegen» klappt auf, Zustand bleibt gemerkt', await ev(page, "document.querySelector('.tl-fold[data-ui=add]').open && share.ui.add === true"))
-        await page.keyboard.press('Tab')
-        await page.evaluate("() => document.querySelector('.tl-fold[data-ui=add] > summary').focus()")
+        sel = await ev(page, "Array.from(document.querySelectorAll('[role=tab]')).map(t => t.getAttribute('aria-selected') + ':' + t.tabIndex).join(',')")
+        check('Reiter: nur der gewaehlte ist per Tab erreichbar (rollender tabindex)', sel == 'true:0,false:-1,false:-1', sel)
+        await page.evaluate("() => document.getElementById('tl-tab-inbox').focus()")
+        await page.keyboard.press('ArrowRight'); await page.wait_for_timeout(200)
+        check('Pfeil rechts: Reiter Senden gewaehlt und fokussiert', await ev(page, "document.activeElement.id === 'tl-tab-send' && document.activeElement.getAttribute('aria-selected') === 'true' && document.getElementById('tl-panel').getAttribute('aria-labelledby') === 'tl-tab-send'"))
+        await page.keyboard.press('End'); await page.wait_for_timeout(200)
+        check('Ende: letzter Reiter (Freunde)', await ev(page, "document.activeElement.id === 'tl-tab-friends'"))
+        await page.keyboard.press('ArrowRight'); await page.wait_for_timeout(200)
+        check('Pfeil rechts am Ende springt zum ersten Reiter', await ev(page, "document.activeElement.id === 'tl-tab-inbox'"))
+        await page.keyboard.press('ArrowLeft'); await page.wait_for_timeout(200)
+        check('Pfeil links am Anfang springt zum letzten Reiter', await ev(page, "document.activeElement.id === 'tl-tab-friends'"))
+        await page.keyboard.press('Home'); await page.wait_for_timeout(200)
+        check('Pos1: erster Reiter', await ev(page, "document.activeElement.id === 'tl-tab-inbox'"))
         fo = await ev(page, "(() => { const s = document.activeElement; const c = getComputedStyle(s); return c.outlineStyle !== 'none' && parseFloat(c.outlineWidth) > 0; })()")
-        check('Fokus ist sichtbar (Klappzeile)', fo)
-        check('Reduced Motion: Pfeil der Klappzeile ohne Uebergang', await ev(page, "getComputedStyle(document.querySelector('.tl-fold-chev')).transitionDuration") in ('0s', '0s, 0s') or await ev(page, "parseFloat(getComputedStyle(document.querySelector('.tl-fold-chev')).transitionDuration)") < 0.01, await ev(page, "getComputedStyle(document.querySelector('.tl-fold-chev')).transitionDuration"))
-        check('Alle Knoepfe und Klappzeilen mindestens 44 px', await ev(page, SMALL_JS) == [], str(await ev(page, SMALL_JS)))
+        check('Fokus ist sichtbar (Reiter)', fo)
+        check('Reduced Motion: Reiter ohne Uebergang', await ev(page, "parseFloat(getComputedStyle(document.querySelector('.tl-tab')).transitionDuration)") < 0.01)
+        await tab(page, 'friends')
+        check('Alle Knoepfe mindestens 44 px', await ev(page, SMALL_JS) == [], str(await ev(page, SMALL_JS)))
+        check('Zeilen mit Pfeil sind echte Buttons, Statuszeilen ohne Pfeil', await ev(page, "Array.from(document.querySelectorAll('.fr-chev')).every(c => c.closest('button.fr-nav')) && !document.querySelector('.fr-row .fr-chev')"))
 
         # 11 Breiten und Themen: kein Ueberlauf, Spalten ab Tablet-quer/Desktop
         for w, hgt in [(320, 640), (390, 844), (820, 1100), (1440, 900)]:
