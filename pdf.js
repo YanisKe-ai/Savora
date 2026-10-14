@@ -491,7 +491,8 @@ function pdfPhotoPlans(imgUrl, dims) {
   }
   const boxes = ar < 0.85 ? [{ w: 48, h: 64 }, { w: 42, h: 56 }, { w: 36, h: 48 }, { w: 32, h: 42 }]
     : ar <= 1.15 ? [{ w: 58, h: 58 }, { w: 50, h: 50 }, { w: 42, h: 42 }, { w: 36, h: 36 }]
-      : [{ w: 74, h: 54 }, { w: 64, h: 46 }, { w: 54, h: 40 }, { w: 46, h: 34 }];
+      : PDF_CTX.tpl.id === 'pur' ? [{ w: 76, h: 55 }, { w: 66, h: 48 }, { w: 56, h: 41 }, { w: 46, h: 34 }]   // Pur: Foto in der Vorlage ca. 76 mm breit (Vorlage 80)
+        : [{ w: 74, h: 54 }, { w: 64, h: 46 }, { w: 54, h: 40 }, { w: 46, h: 34 }];
   const f = boxes.map((b) => pdfFrameFor(dims, b));
   return [{ frame: f[0] }, { frame: f[1] }, { frame: f[2] }, { frame: f[2], tight: true }, { frame: f[3], tight: true }];
 }

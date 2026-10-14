@@ -216,6 +216,19 @@ function pvIngPanel(units, label) {
     const cellHtml = cells.map((list) => { const h = colHtml(list); return `<div class="pp-group ${pvIngColClass(h)}">${h}</div>`; }).join('');
     return `<div class="pv-ing-panel"><h2 class="pv-h">${label || 'Zutaten'}</h2><div class="pp-groups">${cellHtml}</div>${wave}</div>`;
   }
+  if (PDF_CTX.tpl.id === 'pur') {
+    // Pur (Vorlage): mehrere Gruppen als Raster, zeilenweise Gruppe 1 | 2, darunter 3 | 4; bei ungerader Zahl steht die letzte Gruppe links.
+    const gs = [];
+    atoms.forEach((a) => { const g = gs[gs.length - 1]; if (g && g.gi === a.gi) g.list.push(a); else gs.push({ gi: a.gi, list: [a] }); });
+    if (gs.length >= 2) {
+      let rows = '';
+      for (let r = 0; r < gs.length; r += 2) {
+        const pair = gs.slice(r, r + 2).map((g) => { const h = colHtml(g.list); return `<div class="${pvIngColClass(h)}">${h}</div>`; });
+        rows += `<div class="pv-ing-cols pv-ing-row">${pair.join('')}</div>`;
+      }
+      return `<div class="pv-ing-panel"><h2 class="pv-h">${label || 'Zutaten'}</h2>${rows}</div>`;
+    }
+  }
   const cols = pvSplitCols(atoms);
   const parts = cols.filter((c) => c.length).map((c) => colHtml(c));
   return `<div class="pv-ing-panel"><h2 class="pv-h">${label || 'Zutaten'}</h2><div class="pv-ing-cols${parts.length === 1 ? ' pv-ing-cols-1' : ''}">${parts.map((h) => `<div class="${pvIngColClass(h)}">${h}</div>`).join('')}</div>${wave}</div>`;

@@ -218,7 +218,7 @@
 @font-face { font-family: 'Carlito Pur'; font-weight: 700; font-style: normal; font-display: swap; ascent-override: 95.2%; descent-override: 70%; line-gap-override: 0%; src: url(vendor/fonts/carlito-bold.woff2) format('woff2'); }
 .pv-tpl-pur {
   --pv-ink: #1B221E; --pv-title-color: #0F1712; --pv-accent: #1D5232; --pv-muted: #5B645F; --pv-rule: #6A726D; --pv-panel: #E9F1E6;
-  --pv-tsize-s: 46pt; --pv-tsize-m: 38pt; --pv-tsize-l: 30pt; --pv-tsize-xl: 24pt;
+  --pv-tsize-s: 44pt; --pv-tsize-m: 34pt; --pv-tsize-l: 30pt; --pv-tsize-xl: 24pt;
   --pv-fs-body: 13pt; --pv-fs-ing: 12.5pt; --pv-lh: 1.38; --pv-h-size: 21pt; --pv-fs-label: 12pt;
 }
 .pv-tpl-pur.pv-page { padding-top: 14mm; }
@@ -250,12 +250,12 @@
 .pv-tpl-pur .pv-steps { border-top: .8pt solid var(--pv-rule); padding-top: 3.5mm; }
 .pv-tpl-pur.pv-cont-page .pv-steps:first-of-type { border-top: 0; padding-top: 0; }
 .pv-tpl-pur .pv-step { grid-template-columns: 15mm minmax(0, 1fr); margin: 0 0 4.4mm; }
-.pv-tpl-pur .pv-step-no { font-size: 29pt; line-height: 1; padding-top: .2mm; }
+.pv-tpl-pur .pv-step-no { font-size: 30pt; line-height: 1; padding-top: .2mm; }
 .pv-tpl-pur .pv-step-body { display: block; min-width: 0; }
-.pv-tpl-pur .pv-step-body .pv-step-heading { color: var(--pv-ink); font-size: 14.5pt; margin: 0 0 .6mm; }
+.pv-tpl-pur .pv-step-body .pv-step-heading { color: var(--pv-ink); font-size: 15pt; margin: 0 0 .6mm; }
 .pv-tpl-pur .pv-step-text { color: #3A423D; }
 .pv-tpl-pur .pv-step-body .pv-step-text { display: block; }
-.pv-tpl-pur .pv-step-heading { color: var(--pv-ink); font-size: 14.5pt; margin: 3mm 0 1.5mm; }
+.pv-tpl-pur .pv-step-heading { color: var(--pv-ink); font-size: 15pt; margin: 3mm 0 1.5mm; }
 /* Fussbereich: Linie, links Hinweise, rechts Naehrwerte als kleine Tabelle */
 .pv-tpl-pur .pv-extras { padding-top: 3mm; }
 .pv-tpl-pur .pv-extras-grid { border-top: .8pt solid var(--pv-rule); padding-top: 3mm; column-gap: 0; grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr); }
@@ -372,3 +372,8 @@
 .pv-tpl-pur .pv-ing-amt, .pv-tpl-pur .pv-ing-name { font-family: 'Carlito Pur', 'Carlito', Calibri, 'Segoe UI', Arial, sans-serif; }
 .pv-tpl-pur .pv-ing[data-stack] .pv-ing-amt, .pv-tpl-pur .pv-ing[data-uncertain] .pv-ing-name { font-family: var(--pv-font); }
 .pv-tpl-pur .pv-ing[data-stack] .pv-ing-amt { padding-bottom: .2mm; border-right: 0; }
+
+/* Pur, Feinschliff: Gruppenraster zeilenweise, Schriftwirkung an die Vorlage angeglichen */
+.pv-tpl-pur .pv-ing-row + .pv-ing-row { border-top: .6pt solid rgba(30, 60, 40, .22); margin-top: 1mm; padding-top: 1mm; }
+.pv-tpl-pur .pv-ing-row .pv-ing-col:first-child:last-child { grid-column: 1; }
+.pv-tpl-pur.pv-page { padding-bottom: 25mm; }   /* Reserve: html2canvas setzt Text ca. 1,5 mm tiefer, zweizeilige Fusszeile beginnt bei 280,4 mm */
