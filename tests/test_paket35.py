@@ -147,7 +147,7 @@ async def main():
         check('Wähler zeigt zehn Vorschaubilder als Radiogruppe, genau eine aktiv', len(opts) == 10 and all(o[1] == 'radio' for o in opts) and sum(1 for o in opts if o[2] == 'true') == 1, str(opts[:2]))
         await page.fill('#cbTitle', 'Testbuch ä'); await page.wait_for_timeout(300)
         focus_before = await ev("() => document.activeElement.id")
-        check('Beim Tippen bleibt der Fokus im Feld und die Vorschau zeigt den Text sofort', focus_before == 'cbTitle' and 'Testbuch ä' in (await ev("() => document.querySelector('canvas.cv-canvas').dataset.layout")), focus_before)
+        check('Beim Tippen bleibt der Fokus im Feld und die Vorschau zeigt den Text sofort', focus_before == 'cbTitle' and 'Testbuch ä' in (await ev("() => JSON.stringify(ce.layout)")), focus_before)
         await ev("() => document.querySelector('.cover-opt[data-id=\"citrus\"]').scrollIntoView()")
         await page.focus('.cover-opt[data-id="citrus"]'); await page.wait_for_timeout(300)
         y0 = await ev("() => window.scrollY")   # Fokussieren selbst darf scrollen; gemessen wird, ob die Auswahl danach springt
@@ -155,7 +155,7 @@ async def main():
         after = await ev("() => ({ id: document.activeElement.dataset.id, active: document.querySelector('.cover-opt.is-active').dataset.id, tpl: getCookbookConfig().cover.templateId, title: document.getElementById('cbTitle').value, y: window.scrollY })")
         check('Auswahl per Tastatur: Vorlage gesetzt, Fokus stabil, Eingaben erhalten, kein Springen', after['active'] == 'citrus' and after['tpl'] == 'citrus' and after['id'] == 'citrus' and after['title'] == 'Testbuch ä' and abs(after['y'] - y0) < 4, str(after) + f' y0={y0}')
         # Vorschaugrösse
-        pv = await ev("() => { const r = document.querySelector('.cover-preview').getBoundingClientRect(); return [Math.round(r.width), Math.round(r.height)]; }")
+        pv = await ev("() => { const r = document.querySelector('.ce-preview').getBoundingClientRect(); return [Math.round(r.width), Math.round(r.height)]; }")
         check('Vorschau im A4-Format', abs(pv[1] / pv[0] - 1.4142) < 0.02, str(pv))
         # Sehr kleines Fenster und Desktop ohne seitliches Scrollen
         for w in (320, 1280):

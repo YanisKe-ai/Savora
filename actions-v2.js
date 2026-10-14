@@ -145,6 +145,7 @@ function parseShoppingInput(text) {
 async function handleActionV2(action, id, el, e) {
   switch (action) {
     /* ----- Navigation mit Schutz vor Datenverlust ----- */
+    case 'ce-reset-confirm': ceResetCover(); closeModal(); return true;   // Cover-Editor (cover-editor.js)
     case 'back':
     case 'nav-tab':
       state.shopStay = new Set();   // Einkauf neu betreten: Abgehaktes wandert nach unten
