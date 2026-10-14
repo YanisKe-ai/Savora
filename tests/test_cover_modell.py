@@ -182,6 +182,20 @@ async def main():
         check('Logo: Position und Variante (auto auf dunklem Grund = hell)', r['tr']['x'] == 0.65 and r['tl']['x'] < 0.1 and r['br']['y'] > 0.8 and r['tr']['variant'] == 'light' and r['tr']['ink'] == '#F7F4EE' and r['br']['ink'] == '#252720' and r['none'] is None, json.dumps(r['tr']))
         check('Logo-Proportion 3:1 in allen Positionen', abs(r['tl']['w'] * 794 / (r['tl']['h'] * 1123) - 3) < 1e-9 and abs(r['br']['w'] * 794 / (r['br']['h'] * 1123) - 3) < 1e-9)
 
+        # ---- 8b. Standard-Textfarbe passt zu dem, was hinter dem Text liegt (Befund C5)
+        r = await ev("""() => { const out = [];
+          for (const bg of ['#B93B2C', '#22382F', '#252720', '#171717', '#F7F4EE', '#FFFFFF']) for (const rd of ['none', 'panel', 'gradient']) for (const img of [false, true]) {
+            const L = coverLayout(IN({ v2: mk(Object.assign({ bg: { color: bg }, readability: rd }, img ? { image: { id: 'cover-a-1', fit: 'cover', w: 3000, h: 4000 } } : {})) }), MEAS);
+            out.push({ bg, rd, img, kinds: L.warnings.map(w => w.kind + ':' + w.fieldId), inks: L.blocks.map(b => b.ink), date: L.date.ink });
+          }
+          const user = coverLayout(IN({ v2: mk({ bg: { color: '#22382F' }, readability: 'panel', fields: { title: { color: '#F7F4EE' } } }) }), MEAS);
+          const userKeep = coverLayout(IN({ v2: mk({ bg: { color: '#22382F' }, readability: 'panel', fields: { title: { color: '#B93B2C' } } }) }), MEAS);
+          return { out, user: user.warnings.map(w => w.kind + ':' + w.fieldId), userInk: user.blocks[0].ink, keepInk: userKeep.blocks[0].ink }; }""")
+        bad = [x for x in r['out'] if any(k.startswith('unreadable') for k in x['kinds'])]
+        check('Standardfarben (dunkle/helle Hintergründe x ohne/Fläche/Verlauf, mit/ohne Bild) erzeugen nie «unreadable»', not bad and len(r['out']) == 36, str(bad[:2]))
+        check('Textfläche: Standardschrift dunkel, Datum folgt dem Hintergrund', all(set(x['inks']) == {'#252720'} for x in r['out'] if x['rd'] == 'panel') and all(x['date'] == '#F7F4EE' for x in r['out'] if x['rd'] == 'panel' and not x['img'] and x['bg'] in ('#22382F', '#252720', '#171717')))
+        check('Nutzerfarbe wird nie überschrieben; helle Schrift auf Textfläche bleibt «unreadable»', r['userInk'] == '#F7F4EE' and 'unreadable:title' in r['user'] and r['keepInk'] == '#B93B2C', str(r['user']))
+
         # ---- 9. Vorlage mit Textänderungen: Vorlagenzone als Standard
         r = await ev("""() => {
           const t = COVER_TEMPLATES.find(x => x.id === 'tomate'), base = coverLayout(IN({ templateId: 'tomate' }), MEAS);

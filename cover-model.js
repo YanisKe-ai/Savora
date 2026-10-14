@@ -236,9 +236,9 @@ function coverValidate(layout) {
     }
   }
   if (layout.mode === 'custom' && !layout.image && layout.bgColor && layout.readability !== 'gradient') {
-    const bgc = layout.readability === 'panel' ? COVER_PAPER : layout.bgColor;
+    const behind = (id) => (id !== 'date' && layout.readability === 'panel') ? COVER_PAPER : layout.bgColor;   // Datum liegt nie auf der Textflaeche
     const texts = (layout.blocks || []).map(b => ({ id: coverBlockId(b), ink: b.ink })).concat(d ? [{ id: 'date', ink: d.ink }] : []);
-    texts.forEach(t => { if (coverContrast(t.ink, bgc) < 3) add(t.id, 'unreadable', 'Der Text ist hier schwer lesbar. Wähle eine andere Farbe oder aktiviere eine Textfläche.'); });
+    texts.forEach(t => { if (coverContrast(t.ink, behind(t.id)) < 3) add(t.id, 'unreadable', 'Der Text ist hier schwer lesbar. Wähle eine andere Farbe oder aktiviere eine Textfläche.'); });
   } else if (layout.readability === 'panel') {
     (layout.blocks || []).forEach(b => { if (coverContrast(b.ink, COVER_PAPER) < 3) add(coverBlockId(b), 'unreadable', 'Der Text ist hier schwer lesbar. Wähle eine andere Farbe oder aktiviere eine Textfläche.'); });
   }
