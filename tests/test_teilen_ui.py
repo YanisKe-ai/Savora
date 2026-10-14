@@ -168,6 +168,13 @@ async def main():
         order = await ev(page, "(() => { const a = document.querySelector('[data-action=share-accept]'), z = document.querySelector('.share-sub'); return !!(a.compareDocumentPosition(z) & Node.DOCUMENT_POSITION_FOLLOWING); })()")
         check('Vorschau: Uebernehmen und Ablehnen stehen vor den Zutaten, mit Erklaerung', order and 'Vorschau' in await ev(page, "document.querySelector('.share-preview-actions').innerText"))
 
+        check('Vorschau: dritter Weg «In Rezepte von Freunden behalten» vorhanden', await ev(page, "!!document.querySelector('[data-action=share-accept][data-mode=keep]')"))
+        n0 = await ev(page, "state.recipes.length")
+        await page.evaluate("() => document.querySelector('[data-action=share-accept][data-mode=keep]').click()"); await page.wait_for_timeout(1500)
+        kept = await ev(page, "state.recipes.filter(r => (r.collections || []).includes('friends')).map(r => r.title)")
+        check('Behalten: Rezept liegt in der Kategorie «Rezepte von Freunden»', await ev(page, "state.recipes.length") == n0 + 1 and kept == ['Pasta al Limone mit Ricotta'], str(kept))
+        check('Kategorie erscheint im Filter und filtert', await ev(page, "moreFilterOptions().some(o => o.id === 'friends' && o.label === 'Rezepte von Freunden') && recipesInCollection('friends', state.recipes).length === 1"))
+
         # 10 Tastatur und Fokus, Reduced Motion
         await setup(page, PROFILE, CONNS, INBOX)
         await tab(page, 'friends')

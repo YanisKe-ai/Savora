@@ -305,8 +305,9 @@ function settingsSharePreviewView() {
         <p class="detail-meta-v2">${meta.map(escapeHtml).join(' • ')}</p>
         <div class="share-preview-actions">
           <button class="primary-btn primary-btn--block" data-action="share-accept" data-id="${escapeAttr(item.id)}">${ICONS.check} Ins Kochbuch übernehmen</button>
+          <button class="ghost-btn primary-btn--block" data-action="share-accept" data-mode="keep" data-id="${escapeAttr(item.id)}">In «Rezepte von Freunden» behalten</button>
           <button class="ghost-btn primary-btn--block" data-action="share-decline" data-id="${escapeAttr(item.id)}">Ablehnen</button>
-          <p class="tl-hint">Das ist nur eine Vorschau. Beim Übernehmen bekommst du eine eigene Kopie. Ablehnen löscht das Rezept aus deinem Posteingang.</p>
+          <p class="tl-hint">Das ist nur eine Vorschau. Beim Übernehmen bekommst du eine eigene Kopie. In «Rezepte von Freunden» behalten legt sie in diese Kategorie (Filter auf der Rezepte-Seite). Ablehnen löscht das Rezept aus deinem Posteingang.</p>
         </div>
       </div>
       <div class="tl-prev-body">
@@ -465,6 +466,8 @@ async function handleShareAction(action, id, el) {
       const checkedShare = validateRecipe(recipe);
       if (!checkedShare.ok) { shareShowError('Dieses Rezept ist nicht lesbar und wurde nicht übernommen: ' + checkedShare.errors.slice(0, 2).join('; ')); return true; }
       Object.assign(recipe, checkedShare.recipe);
+      const keepInFriends = el && el.dataset && el.dataset.mode === 'keep';
+      if (keepInFriends) recipe.collections = Array.from(new Set((recipe.collections || []).concat('friends')));
       try {
         if (item.has_image) {
           const url = share.previewId === id && share.previewImage ? share.previewImage : await shareRpc('savora_share_image', { p_id: id });
@@ -484,7 +487,7 @@ async function handleShareAction(action, id, el) {
       shareFlushDone();
       state.activeRecipeId = recipe.id; state.detailTab = 'ingredients'; state.view = 'detail';
       render();
-      showToast('Rezept übernommen');
+      showToast(keepInFriends ? 'In «Rezepte von Freunden» gespeichert' : 'Rezept übernommen');
       return true;
     }
     case 'share-decline': {

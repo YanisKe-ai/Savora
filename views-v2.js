@@ -139,6 +139,7 @@ function applyAllFilters(recipes, spec) {
 function moreFilterOptions() {
   const opts = [{ id: 'uncooked', label: 'Noch nicht gekocht' }];
   if (state.recipes.some(isFrequentlyCooked) || state.activeFilters.more.has('frequent')) opts.push({ id: 'frequent', label: 'Häufig gekocht' });
+  if (state.recipes.some(r => (r.collections || []).includes('friends')) || state.activeFilters.more.has('friends')) opts.push({ id: 'friends', label: 'Rezepte von Freunden' });
   getCollections().forEach(c => opts.push({ id: c.id, label: c.name }));
   return opts;
 }
