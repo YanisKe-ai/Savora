@@ -1,4 +1,4 @@
-/* ---------- Kochbuch-Titelblaetter: zehn Vorlagen, gemeinsames Layout fuer Vorschau und PDF ----------
+/* ---------- Kochbuch-Titelblaetter: fuenfzehn Vorlagen, gemeinsames Layout fuer Vorschau und PDF ----------
    Ein Titelblatt besteht aus getrennten Ebenen: Hintergrund (PNG, unveraendert, ohne Text), Savora-Wortmarke oben rechts,
    optionale Texte der nutzenden Person (Titel, Name, Slogan) und das Veroeffentlichungsdatum unten rechts.
    Ohne eigene Eingaben erscheinen nur Wortmarke und Datum. Es werden nie Namen, Beispieltitel oder Vorlagennamen gedruckt.
@@ -23,6 +23,19 @@ const COVER_FONTS = {
 const COVER_BLOCK_WEIGHTS = { title: 3, slogan: 1.4, name: 1 };
 const COVER_DARK = '#171717', COVER_LIGHT = '#FFFFFF';
 
+const COVER_PT = 96 / 72;   // CSS-Pixel je Punkt (794 px = 210 mm = 595.3 pt)
+const COVER_MM = COVER_PAGE.w / 210;   // CSS-Pixel je Millimeter
+const COVER_FLOW_INK = '#252720', COVER_FLOW_CREAM = '#F7F4EE';
+const COVER_FLOW = {
+  text: { x: 0.09, y: 0.15, w: 0.82, h: 0.245 },
+  flow: {
+    title: { max: 34 * COVER_PT, min: 24 * COVER_PT, lh: 1.12, maxLines: 3 },
+    slogan: { max: 13 * COVER_PT, min: 11 * COVER_PT, lh: 1.3, maxLines: 2, gap: 5 * COVER_MM },   // gap: Abstand nach dem tatsaechlichen Ende des Titels
+    name: { max: 10 * COVER_PT, min: 10 * COVER_PT, lh: 1.3, maxLines: 2, gap: 3 * COVER_MM },   // Abstand nach dem vorherigen vorhandenen Feld
+  },
+  date: { x0: 0.09, y: 0.96, h: 0.014, size: 9 * COVER_PT, align: 'left' },   // obere Position einer einzeiligen Textbox, 9 pt
+  logo: { x: 0.66, y: 0.055, w: Math.min(0.25, 0.055 * COVER_PAGE.h / COVER_PAGE.w * 3) },   // hoechstens 25 % Breite und 5,5 % Hoehe
+};
 /* text: sichere Zone fuer Titel, Slogan und Name (relativ zur Seite). Die Illustrationen werden nicht ueberdeckt:
    Zonen enden oberhalb des Motivs (Lieblingsbuch: rechts vom linken Band, Bistro: oberhalb des Dampfs). */
 const COVER_TEMPLATES = [
@@ -36,9 +49,17 @@ const COVER_TEMPLATES = [
   { id: 'garten', name: 'Garten', file: 'garten', ink: COVER_DARK, logoVariant: 'light', text: { x: 0.09, y: 0.13, w: 0.82, h: 0.18 } },
   { id: 'sonnenkueche', name: 'Sonnenküche', file: 'sonnenkueche', ink: COVER_DARK, logoVariant: 'light', text: { x: 0.09, y: 0.13, w: 0.82, h: 0.23 } },
   { id: 'ofenglueck', name: 'Ofenglück', file: 'ofenglueck', ink: COVER_DARK, logoVariant: 'light', text: { x: 0.09, y: 0.13, w: 0.82, h: 0.24 } },
+  /* Fuenf Vorlagen mit festem Textaufbau (flow): Titel, Untertitel und Name werden nacheinander aus den gemessenen Zeilenhoehen gesetzt,
+     das Ganze endet spaetestens bei 39,5 % der Seitenhoehe (y 0.15 + h 0.245). Datum links unten, Wortmarke 66 % / 5,5 % (Hoehe hoechstens 5,5 %).
+     logoVariant bezeichnet wie bei den alten Vorlagen die Farbe des COVERS: 'dark' = dunkles Cover = helle Wortmarke. */
+  { id: 'savora-01-pasta-band', name: 'Pasta-Band', file: 'pasta-band', ink: COVER_FLOW_INK, logoVariant: 'light', ...COVER_FLOW },
+  { id: 'savora-02-geschmacksschichten', name: 'Geschmacksschichten', file: 'geschmacksschichten', ink: COVER_FLOW_CREAM, logoVariant: 'dark', ...COVER_FLOW },
+  { id: 'savora-03-scherenschnitt-tafel', name: 'Scherenschnitt-Tafel', file: 'scherenschnitt-tafel', ink: COVER_FLOW_INK, logoVariant: 'light', ...COVER_FLOW },
+  { id: 'savora-04-eine-prise', name: 'Eine Prise', file: 'eine-prise', ink: COVER_FLOW_CREAM, logoVariant: 'dark', ...COVER_FLOW },
+  { id: 'savora-05-tischrunde', name: 'Tischrunde', file: 'tischrunde', ink: COVER_FLOW_INK, logoVariant: 'light', ...COVER_FLOW },
 ];
-const COVER_IMAGE_SIZE = { default: [1055, 1491], ofenglueck: [1054, 1492] };
-const COVER_FILE_NUMBER = { pop: '01', lieblingsbuch: '02', tomate: '03', salbei: '04', nachtkueche: '05', citrus: '06', bistro: '07', garten: '08', sonnenkueche: '09', ofenglueck: '10' };
+const COVER_IMAGE_SIZE = { default: [1055, 1491], ofenglueck: [1054, 1492], 'savora-01-pasta-band': [1054, 1492], 'savora-02-geschmacksschichten': [1054, 1492], 'savora-03-scherenschnitt-tafel': [1055, 1491], 'savora-04-eine-prise': [1054, 1492], 'savora-05-tischrunde': [1054, 1492] };
+const COVER_FILE_NUMBER = { 'savora-01-pasta-band': '11', 'savora-02-geschmacksschichten': '12', 'savora-03-scherenschnitt-tafel': '13', 'savora-04-eine-prise': '14', 'savora-05-tischrunde': '15', pop: '01', lieblingsbuch: '02', tomate: '03', salbei: '04', nachtkueche: '05', citrus: '06', bistro: '07', garten: '08', sonnenkueche: '09', ofenglueck: '10' };
 function coverTemplateById(id) { return COVER_TEMPLATES.find(t => t.id === id) || null; }
 function coverValidTemplateId(id) { return coverTemplateById(id) ? id : COVER_DEFAULT_ID; }
 function coverBackgroundUrl(id) { const t = coverTemplateById(coverValidTemplateId(id)); return `assets/covers/${COVER_FILE_NUMBER[t.id]}-${t.file}.png`; }
@@ -142,6 +163,29 @@ function coverFitBlock(key, text, zone, measure) {
   const size = f.min, font = `${f.weight} ${size}px ${f.family}`;
   return { lines: coverWrap(text, widthPx, font, measure), size, lh: size * f.lh, fits: false };
 }
+/* Feste Aufteilung (Vorlagen mit tpl.flow): Titel bis zur Mindestgroesse verkleinern, danach der Untertitel; passt es dann noch nicht,
+   bleibt der Text unveraendert gross und es entsteht eine Warnung (nie abschneiden, nie Auslassungspunkte, nie heimlich kleiner). */
+function coverFlowLayout(tpl, texts, present, m) {
+  const z = tpl.text, F = tpl.flow, widthPx = z.w * COVER_PAGE.w, limit = (z.y + z.h) * COVER_PAGE.h;
+  const sizes = {}; present.forEach(k => { sizes[k] = F[k].max; });
+  const build = () => {
+    let y = z.y * COVER_PAGE.h, prev = null; const items = [];
+    present.forEach((k) => {
+      const f = COVER_FONTS[k], size = sizes[k], lh = size * F[k].lh;
+      const lines = coverWrap(texts[k], widthPx, `${f.weight} ${size}px ${f.family}`, m);
+      if (prev) y += F[k].gap != null ? F[k].gap : 0;
+      items.push({ key: k, lines, size, lh, y, h: lines.length * lh });
+      y += lines.length * lh; prev = k;
+    });
+    const bad = items.filter(it => it.lines.length > F[it.key].maxLines).map(it => it.key);
+    return { items, end: y, bad, ok: !bad.length && y <= limit + 0.01 };
+  };
+  let res = build();
+  for (const k of ['title', 'slogan']) {
+    while (!res.ok && sizes[k] && sizes[k] > F[k].min) { sizes[k] = Math.max(F[k].min, sizes[k] - 1); res = build(); }
+  }
+  return res;
+}
 const COVER_BLOCK_LABEL = { title: 'Der Titel', slogan: 'Der Untertitel', name: 'Der Name' };
 
 /* Berechnet das gesamte Titelblatt. input: { title, name, slogan, date, showDate, templateId, logo }.
@@ -154,7 +198,16 @@ function coverLayout(input, measure) {
   const present = ['title', 'slogan', 'name'].filter(k => texts[k]);
   const warnings = [];
   const blocks = [];
-  if (present.length) {
+  if (present.length && tpl.flow) {
+    const res = coverFlowLayout(tpl, texts, present, m), z = tpl.text;
+    if (!res.ok) {
+      const keys = res.bad.length ? res.bad : present;
+      warnings.push({ key: keys[0], keys, message: 'Der Text ist zu lang für dieses Cover. Bitte kürze Titel, Untertitel oder Name.' });
+    }
+    res.items.forEach((it) => {
+      blocks.push({ key: it.key, lines: it.lines, sizePx: it.size, lineHeightPx: it.lh, family: COVER_FONTS[it.key].family, weight: COVER_FONTS[it.key].weight, x: z.x, y: it.y / COVER_PAGE.h, w: z.w, h: it.h / COVER_PAGE.h, ink: tpl.ink, fits: res.ok });
+    });
+  } else if (present.length) {
     const z = tpl.text, gap = 0.016;
     const avail = z.h - gap * (present.length - 1);
     // Hoehe gerecht verteilen: Ein Feld, das schon in voller Schriftgroesse weniger braucht als sein Anteil, gibt den Rest ab
@@ -186,14 +239,15 @@ function coverLayout(input, measure) {
   }
   const dateText = input && input.showDate !== false ? coverFormatDate(input && input.date) : '';
   const dz = { ...COVER_DATE_ZONE, ...(tpl.date || {}) };
-  const date = dateText ? { text: dateText, sizePx: dz.size, x1: dz.x1, y: dz.y, h: dz.h, ink: tpl.ink, family: COVER_FONTS.date.family, weight: COVER_FONTS.date.weight } : null;
-  const logo = input && input.logo === false ? null : { x: COVER_LOGO_BOX.x, y: COVER_LOGO_BOX.y, w: COVER_LOGO_BOX.w, variant: tpl.logoVariant, ink: tpl.logoVariant === 'dark' ? COVER_WORDMARK_CREAM : COVER_WORDMARK_INK, h: COVER_LOGO_BOX.w * COVER_PAGE.w * (WORDMARK_BOX.h / WORDMARK_BOX.w) / COVER_PAGE.h };
+  const date = dateText ? { text: dateText, sizePx: dz.size, ...(dz.align === 'left' ? { x0: dz.x0, ax: dz.x0, align: 'left' } : { x1: dz.x1 }), y: dz.y, h: dz.h, ink: tpl.ink, family: COVER_FONTS.date.family, weight: COVER_FONTS.date.weight } : null;
+  const lb = { ...COVER_LOGO_BOX, ...(tpl.logo || {}) };
+  const logo = input && input.logo === false ? null : { x: lb.x, y: lb.y, w: lb.w, variant: tpl.logoVariant, ink: tpl.logoVariant === 'dark' ? COVER_WORDMARK_CREAM : COVER_WORDMARK_INK, h: lb.w * COVER_PAGE.w * (WORDMARK_BOX.h / WORDMARK_BOX.w) / COVER_PAGE.h };
   return { templateId: tpl.id, page: COVER_PAGE, ink: tpl.ink, blocks, date, logo, warnings, background: coverBackgroundUrl(tpl.id) };
 }
 
 /* ---------- Layout v2 (Cover-Editor): freie Felder in A4-Anteilen, Schrift in pt, echte Zeilenumbrueche ----------
    Vorlage ('template') = v1-Layout als Standard, nur Abweichungen aus model.fields werden angewendet. 'custom' = eigener Hintergrund. */
-const COVER_PT = 4 / 3, COVER_INCH_W = 210 / 25.4, COVER_V2_GAP = 0.016;
+const COVER_INCH_W = 210 / 25.4, COVER_V2_GAP = 0.016;
 const COVER_FIELD_LABEL = { title: 'Der Titel', subtitle: 'Der Untertitel', name: 'Der Name', extra1: 'Die weitere Zeile', date: 'Das Datum', logo: 'Das Logo', image: 'Das Bild' };
 function coverImageRects(img, iw, ih) {
   const pageA = COVER_PAGE.w / COVER_PAGE.h, imgA = iw / ih;
@@ -238,7 +292,7 @@ function coverLayoutV2(input, measure) {
     const lhr = o.font ? (o.font === 'Roboto' ? d.lh : meta.lh) : (b0 ? b0.lineHeightPx / b0.sizePx : d.lh);
     const x = o.x != null ? o.x : (b0 ? b0.x : d.x), w = o.w != null ? o.w : (b0 ? b0.w : d.w);
     const same = !!b0 && o.w == null && o.fontPt == null && !o.font;
-    const font = `${weight} ${sizePx}px ${meta.family}`;
+    const family = (!o.font && b0) ? b0.family : meta.family, font = `${weight} ${sizePx}px ${family}`;
     const lines = same ? b0.lines : coverWrap(texts[id], w * COVER_PAGE.w, font, m);
     const h = lines.length * sizePx * lhr / COVER_PAGE.h;
     if (b0 && Math.abs(h - b0.h) > 1e-6) flowChanged = true;
@@ -248,7 +302,7 @@ function coverLayoutV2(input, measure) {
     const words = texts[id].split(/\s+/);
     const split = words.some(wd => m(wd, font) > w * COVER_PAGE.w + 0.5);
     const geoSet = o.x != null || o.y != null || o.w != null || o.fontPt != null || !!o.font;
-    blocks.push({ key: id === 'subtitle' ? 'slogan' : id, id, lines, sizePx, sizePt: sizePx / COVER_PT, lineHeightPx: sizePx * lhr, family: meta.family, weight, font: o.font || d.font, x, y, w, h,
+    blocks.push({ key: id === 'subtitle' ? 'slogan' : id, id, lines, sizePx, sizePt: sizePx / COVER_PT, lineHeightPx: sizePx * lhr, family, weight, font: o.font || d.font, x, y, w, h,
       ink: o.color || defInk, align, fits: (b0 && !geoSet) ? b0.fits : true, splitWord: split, tx: align === 'left' ? x : (align === 'center' ? x + (w - tw) / 2 : x + w - tw), tw });
     cursor = y + h + COVER_V2_GAP;
   });
@@ -258,12 +312,13 @@ function coverLayoutV2(input, measure) {
   if (dtext) {
     const o = F.date || {}, dz = { ...COVER_DATE_ZONE, ...(tpl.date || {}) }, d = COVER_FIELD_DEFAULTS.date;
     const sizePx = o.fontPt ? o.fontPt * COVER_PT : (custom ? d.fontPt * COVER_PT : dz.size);
-    const w = o.w != null ? o.w : d.w, x = o.x != null ? o.x : (custom ? d.x : dz.x1 - w), y = o.y != null ? o.y : (custom ? d.y : dz.y);
-    const align = o.align || 'right', meta = COVER_FONT_TABLE[o.font || 'Roboto'];
+    const tleft = !custom && dz.align === 'left';
+    const w = o.w != null ? o.w : d.w, x = o.x != null ? o.x : (custom ? d.x : (tleft ? dz.x0 : dz.x1 - w)), y = o.y != null ? o.y : (custom ? d.y : dz.y);
+    const align = o.align || (tleft ? 'left' : 'right'), meta = COVER_FONT_TABLE[o.font || 'Roboto'];
     const weight = o.font && o.font !== 'Roboto' ? meta.weight : COVER_FONTS.date.weight;
     const tw = m(dtext, `${weight} ${sizePx}px ${meta.family}`) / COVER_PAGE.w;
     const ax = align === 'left' ? x : (align === 'center' ? x + w / 2 : x + w);
-    date = { text: dtext, sizePx, x1: ax, ax, align, y, h: Math.max(COVER_DATE_ZONE.h, sizePx * 1.25 / COVER_PAGE.h), w, tw, ink: o.color || defInk, family: meta.family, weight };
+    date = { text: dtext, sizePx, x1: ax, ax, align, y, h: custom ? Math.max(COVER_DATE_ZONE.h, sizePx * 1.25 / COVER_PAGE.h) : (o.fontPt ? Math.max(dz.h, sizePx * 1.25 / COVER_PAGE.h) : dz.h), w, tw, ink: o.color || defInk, family: meta.family, weight };
   }
   // Logo
   let logo = null;
@@ -366,8 +421,8 @@ function coverDraw(ctx, layout, bgImg, scale, userImg) {
   });
   if (layout.date) {
     const size = layout.date.sizePx * scale, font = `${layout.date.weight} ${size}px ${layout.date.family}`;
-    ctx.fillStyle = layout.date.ink; ctx.textAlign = layout.date.align || 'right';
-    ctx.fillText(layout.date.text, layout.date.x1 * W, baseline(layout.date.y * H, layout.date.h * H, font));
+    ctx.fillStyle = layout.date.ink; ctx.textAlign = layout.date.align === 'left' || layout.date.align === 'center' ? layout.date.align : 'right';
+    ctx.fillText(layout.date.text, (layout.date.ax != null ? layout.date.ax : (layout.date.align === 'left' ? layout.date.x0 : layout.date.x1)) * W, baseline(layout.date.y * H, layout.date.h * H, font));
   }
   ctx.restore();
 }
@@ -390,7 +445,8 @@ function coverHtml(layout, imgUrl) {
   const esc = (s) => escapeHtml(String(s));
   const pct = (v) => (v * 100).toFixed(3) + '%';
   const blocks = layout.blocks.map(b => `<div class="cv-block cv-${b.key}" style="left:${pct(b.x)};top:${pct(b.y)};width:${pct(b.w)};${b.align ? 'text-align:' + b.align + ';' : ''}font:${b.weight} ${b.sizePx}px/${b.lineHeightPx}px ${b.family}">${b.lines.map(l => `<div class="cv-line">${l ? esc(l) : '&nbsp;'}</div>`).join('')}</div>`).join('');
-  const date = layout.date ? `<div class="cv-date" style="${layout.date.align && layout.date.align !== 'right' ? 'left:' + pct(layout.date.ax) + ';' + (layout.date.align === 'center' ? 'transform:translateX(-50%);' : '') : 'right:' + pct(1 - layout.date.x1) + ';'}top:${pct(layout.date.y)};font:${layout.date.weight} ${layout.date.sizePx}px/1 ${layout.date.family}">${esc(layout.date.text)}</div>` : '';
+  const dateAx = layout.date ? (layout.date.ax != null ? layout.date.ax : (layout.date.align === 'left' ? layout.date.x0 : layout.date.x1)) : 0;
+  const date = layout.date ? `<div class="cv-date" style="${layout.date.align === 'left' || layout.date.align === 'center' ? 'left:' + pct(dateAx) + ';' + (layout.date.align === 'center' ? 'transform:translateX(-50%);' : '') : 'right:' + pct(1 - dateAx) + ';'}top:${pct(layout.date.y)};font:${layout.date.weight} ${layout.date.sizePx}px/1 ${layout.date.family}">${esc(layout.date.text)}</div>` : '';
   const logo = '';   // die Wortmarke ist reine Grafik (kein Text im PDF)
   return `<section class="pv-page pv-cover pv-cover2" data-page-kind="cover" data-cover="${esc(layout.mode === 'custom' ? 'custom' : layout.templateId)}">${imgUrl ? `<img class="cv-bg" src="${esc(imgUrl)}" alt="" style="left:0;top:0;width:100%;height:100%">` : ''}${logo}<div class="cv-textlayer">${blocks}${date}</div></section>`;
 }
@@ -461,6 +517,14 @@ function coverRefresh(focusId) {
   if (focusId) { const b = document.querySelector(`.cover-opt[data-id="${cssAttr(focusId)}"]`); if (b) b.focus({ preventScroll: true }); }
 }
 
+/* Betroffene Eingabefelder markieren, wenn der Text nicht auf das Cover passt (aria-invalid; die Meldung steht im Hinweis unter der Vorschau) */
+function coverMarkFields(layout) {
+  const bad = new Set(); ((layout && layout.warnings) || []).forEach(w => (w.keys || [w.key]).forEach(k => bad.add(k)));
+  [['title', 'cbTitle'], ['slogan', 'cbSubtitle'], ['name', 'cbAuthor']].forEach(([k, id]) => {
+    const el = document.getElementById(id); if (!el) return;
+    if (bad.has(k)) el.setAttribute('aria-invalid', 'true'); else el.removeAttribute('aria-invalid');
+  });
+}
 /* Vorschau zeichnen: dieselbe Funktion wie im Export (coverDraw), nur in Anzeigegroesse */
 let _coverPaintToken = 0;
 async function coverPaintPreviews() {
@@ -468,6 +532,7 @@ async function coverPaintPreviews() {
   const canvases = Array.from(document.querySelectorAll('canvas.cv-canvas'));
   for (const c of canvases) {
     let layout; try { layout = JSON.parse(c.dataset.layout); } catch (e) { continue; }
+    coverMarkFields(layout);
     try {
       const scale = Math.min(2, Math.max(0.5, (c.clientWidth || 320) * (window.devicePixelRatio || 1) / COVER_PAGE.w));
       const out = await coverRenderCanvas(layout, scale);

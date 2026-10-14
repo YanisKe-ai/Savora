@@ -1,4 +1,4 @@
-"""PDF-Export, Gruppe Cover: alle zehn Titelblaetter x kurze, lange und leere optionale Texte (Titel, Name, Slogan),
+"""PDF-Export, Gruppe Cover: alle fuenfzehn Titelblaetter x kurze, lange und leere optionale Texte (Titel, Name, Slogan),
 Datum an/aus, Wortmarke an/aus. Prueft im Layout (Boxen ueberlappen nicht, liegen mit Rand in der Seite, Schutzraum um die Wortmarke),
 an den echten Pixeln (Text liegt innerhalb seiner Box, nichts abgeschnitten, Wortmarke vorhanden) und an echten PDF-Seiten
 (A4, Text auswaehlbar, leere Felder = kein Text, Seite gleicht der Vorschau). Die Wortmarke bleibt das Original (Pfad unveraendert, 3:1).
@@ -12,7 +12,7 @@ FAIL = []
 def check(name, cond, info=''):
     print(('OK   ' if cond else 'FEHL ') + name, info)
     if not cond: FAIL.append(name)
-IDS = ['pop', 'lieblingsbuch', 'tomate', 'salbei', 'nachtkueche', 'citrus', 'bistro', 'garten', 'sonnenkueche', 'ofenglueck']
+IDS = ['pop', 'lieblingsbuch', 'tomate', 'salbei', 'nachtkueche', 'citrus', 'bistro', 'garten', 'sonnenkueche', 'ofenglueck', 'savora-01-pasta-band', 'savora-02-geschmacksschichten', 'savora-03-scherenschnitt-tafel', 'savora-04-eine-prise', 'savora-05-tischrunde']
 SHOTS = os.environ.get('SAVORA_COVER_SHOTS') or _os.path.join(OUT, 'cover-shots')
 os.makedirs(SHOTS, exist_ok=True)
 VARIANTS = {
@@ -42,7 +42,7 @@ BOXES_JS = """async (inp) => {
     out.boxes.push({ key: b.key, x0: b.x * 794, y0: b.y * 1123, x1: b.x * 794 + w, y1: b.y * 1123 + b.lines.length * b.lineHeightPx, zoneW: b.w * 794, lines: b.lines.length, size: b.sizePx, fits: b.fits, text: b.lines.join(' ') });
     out.sizes[b.key] = b.sizePx;
   });
-  if (L.date) { const font = `${L.date.weight} ${L.date.sizePx}px ${L.date.family}`; const w = coverMeasureDefault(L.date.text, font); out.boxes.push({ key: 'date', x0: L.date.x1 * 794 - w, x1: L.date.x1 * 794, y0: (L.date.y + L.date.h / 2) * 1123 - L.date.sizePx * 0.6, y1: (L.date.y + L.date.h / 2) * 1123 + L.date.sizePx * 0.6, size: L.date.sizePx, text: L.date.text }); }
+  if (L.date) { const font = `${L.date.weight} ${L.date.sizePx}px ${L.date.family}`; const w = coverMeasureDefault(L.date.text, font); out.boxes.push({ key: 'date', x0: L.date.align === 'left' ? L.date.x0 * 794 : L.date.x1 * 794 - w, x1: L.date.align === 'left' ? L.date.x0 * 794 + w : L.date.x1 * 794, y0: (L.date.y + L.date.h / 2) * 1123 - L.date.sizePx * 0.6, y1: (L.date.y + L.date.h / 2) * 1123 + L.date.sizePx * 0.6, size: L.date.sizePx, text: L.date.text }); }
   if (L.logo) out.boxes.push({ key: 'logo', x0: L.logo.x * 794, x1: (L.logo.x + L.logo.w) * 794, y0: L.logo.y * 1123, y1: L.logo.y * 1123 + L.logo.h * 1123, variant: L.logo.variant });
   return out; }"""
 
@@ -149,7 +149,7 @@ async def main():
                 sheet_items.append((tid, vname, full))
         check('Pixel: Wortmarke sichtbar, in ihrer Box, 3:1; Text innerhalb der Layoutboxen und mit Randabstand; leere Felder = kein Text', not pix, str(pix[:6]))
         for vname in ('kurz', 'lang', 'leer'):
-            sh = Image.new('RGB', (5 * 300 + 30, 2 * 424 + 30), (236, 233, 226))
+            sh = Image.new('RGB', (5 * 300 + 30, 3 * 424 + 30), (236, 233, 226))
             for k, (tid, vn, im) in enumerate([s for s in sheet_items if s[1] == vname]):
                 sh.paste(im.resize((290, int(290 * PAGE_H / PAGE_W))), (10 + (k % 5) * 300, 10 + (k // 5) * 414))
             sh.save(f'{SHOTS}/kontaktbogen-vorschau-{vname}.jpg', quality=88)
@@ -204,7 +204,7 @@ async def main():
                 if ImageStat.Stat(edge).mean[0] > 12: pdfprob.append((tid, vname, 'Randstreifen weicht ab (Marken/Beschnitt?)'))
         check(f'{len(pdf_sheets)} echte PDF-Seiten (A4): Text auswaehlbar, leere Felder = kein Text, Seite gleicht der Vorschau, keine Druckmarken', not pdfprob, str(pdfprob[:6]))
         for vname in ('kurz', 'lang', 'leer'):
-            sh = Image.new('RGB', (5 * 300 + 30, 2 * 424 + 30), (236, 233, 226))
+            sh = Image.new('RGB', (5 * 300 + 30, 3 * 424 + 30), (236, 233, 226))
             for k, tid in enumerate(IDS):
                 im = pdf_sheets.get((tid, vname))
                 if im: sh.paste(im.resize((290, int(290 * PAGE_H / PAGE_W))), (10 + (k % 5) * 300, 10 + (k // 5) * 414))
