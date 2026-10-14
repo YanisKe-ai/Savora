@@ -240,7 +240,10 @@ function pdfAddTextLayer(pdf, section, mmPerPx, uniFont) {
       pdf.setFontSize(sizePt);
       const widthMm = (l.right - l.x) * mmPerPx;
       const natural = pdf.getTextWidth(l.text) || widthMm;
-      pdf.text(l.text, l.x * mmPerPx, l.y * mmPerPx, { renderingMode: 'invisible', horizontalScale: widthMm / natural });
+      // Breite ueber die Schriftgroesse angleichen statt ueber horizontalScale (unsichtbarer Text, nur fuer Suchen und Kopieren):
+      // gestauchte Zeichenbreite machte die Leerzeichen bei schmaleren Schriften (Carlito) so schmal, dass pdftotext sie verschluckte
+      pdf.setFontSize(Math.max(1, sizePt * Math.min(1.6, Math.max(0.4, widthMm / natural))));
+      pdf.text(l.text, l.x * mmPerPx, l.y * mmPerPx, { renderingMode: 'invisible' });
     });
   } catch (e) { /* Textebene ist ein Zusatz; Fehler duerfen den Export nicht verhindern */ }
 }
