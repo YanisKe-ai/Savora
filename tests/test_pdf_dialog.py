@@ -1,7 +1,7 @@
 """PDF-Exportdialog: genau zwei Stile (Pur, Prise Pop), Standard Pur, Auswahl wird gemerkt, Doppelstart-Schutz, Abbruch,
 Fehlerzustand mit «Erneut versuchen», Vorschau = Download (gleiche Bytes), Zweiseiten-Satz nur bei genau zwei Seiten,
 «Name im PDF» (Vorschlag aus dem gespeicherten Namen, aenderbar, nie automatisch an, wird nicht gespeichert)."""
-import asyncio, base64, hashlib, os, subprocess, sys
+import asyncio, base64, hashlib, os, re, subprocess, sys
 import os as _os; sys.path.insert(0, _os.path.dirname(_os.path.abspath(__file__)))
 from common import *
 import p1_stub
@@ -34,7 +34,7 @@ async def main():
         check('Genau zwei Stile: Pur und Prise Pop', [o[0] for o in opts] == ['pur', 'prise-pop'] and [o[1] for o in opts] == ['Pur', 'Prise Pop'], str(opts))
         check('Standard ist Pur', opts[0][2] == 'true' and opts[1][2] == 'false', str(opts))
         txt = await page.evaluate("document.querySelector('.pdf-export-sheet').textContent")
-        check('Keine alten Stilnamen im Dialog', not any(w in txt for w in ('Klassisch', 'Kräftig', 'Schlicht', 'Zum Drucken')))
+        check('Keine alten Stilnamen im Dialog', not re.search(r'\b(Klassisch|Kräftig|Schlicht|Zum Drucken)\b', txt), ' '.join(txt.split())[:300])
         check('Dialog ist ein benannter Dialog mit Radiogruppe', await page.evaluate("(() => { const d = document.querySelector('.pdf-export-sheet'); return d.getAttribute('role') === 'dialog' && d.getAttribute('aria-modal') === 'true' && !!document.getElementById(d.getAttribute('aria-labelledby')) && !!document.querySelector('.pdf-tpl-choice[role=radiogroup]'); })()"))
         # Auswahl wird gemerkt
         await page.click('.pdf-tpl-opt[data-id="prise-pop"]'); await page.wait_for_timeout(200)

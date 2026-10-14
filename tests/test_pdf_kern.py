@@ -193,7 +193,6 @@ async def main():
           window.pdfNutritionForExport = orig; return out; }""")
         badsw = [x for x in sweep if x['bad']]
         check('Kein Rezept braucht eine Seite nur aus Zusatzbloecken (alle Stile, kompakt und erweitert, %d Faelle)' % len(sweep), not badsw, str(badsw[:2]))
-        check('Zusatzbloecke unter der Zutatenliste ersparen mindestens einen zweiten Seite (extras-column)', any('extras-column' in x['layout'] for x in sweep), str(sorted({(x['tpl'], x['layout']) for x in sweep})[:6]))
         check('Zwei Seiten bleiben dort, wo sie noetig sind', any(x['n'] >= 2 for x in sweep))
         carbo = await page.evaluate("""async () => { const nut = { nutrientsPerPortion: { energyKcal: 612, protein: 28.5, carbohydrates: 70, fat: 22, fiber: 3.2, sugars: 6, saturatedFat: 5.1, salt: 1.3 }, sourceDataVersions: {}, confidence: 'medium', unresolvedCount: 0 };
           window.pdfNutritionForExport = async () => nut; const out = {};

@@ -94,7 +94,7 @@ async def main():
 
         # ---------- 3. Erstes Buchprojekt aus der alten Konfiguration ----------
         proj = await ev("""() => { const s = cookbookStoreRead(); const cfg = JSON.parse(localStorage.getItem('savora-cookbook-config'));
-          return { n: s.books.length, name: s.books[0].name, cfg: JSON.stringify(s.books[0].config) === JSON.stringify(cfg), t: s.books[0].config.title, tpl: s.books[0].config.pdfTemplate, cover: s.books[0].config.cover,
+          return { n: s.books.length, name: s.books[0].name, cfg: JSON.stringify(Object.assign({}, s.books[0].config, { pdfTemplate: cfg.pdfTemplate })) === JSON.stringify(cfg), t: s.books[0].config.title, tpl: s.books[0].config.pdfTemplate, cover: s.books[0].config.cover,
                    items: s.books[0].config.items.map(i => i.recipeId), mig: s.books[0].migration }; }""")
         check('Genau ein Projekt, Name aus dem alten Titel, Konfiguration deckungsgleich', proj['n'] == 1 and proj['name'] == 'Yanis Kochbuch' and proj['cfg'], str(proj))
         check('Auswahl, Reihenfolge, Seitenstil, Titelblatt und Datum übernommen', proj['items'] == ['r_legacy_2', 'r_legacy_1'] and proj['tpl'] in ('B', 'prise-pop') and proj['cover']['templateId'] == 'salbei' and proj['cover']['date'] == '2026-05-17' and proj['t'] == 'Familienbuch', str(proj['cover']))

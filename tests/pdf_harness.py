@@ -468,15 +468,21 @@ def pruefe_bilder(ex, rezepte=None):
     return out
 
 _NORM = [(' ', ' '), ('­', ''), ('‑', '-'), ('’', "'"), ('‘', "'"), ('“', '"'), ('”', '"'), ('„', '"'), ('«', '"'), ('»', '"')]
+def _cp(t):
+    """Die unsichtbare Textebene der Raster-PDFs ist WinAnsi (cp1252): Zeichen wie ğ ı ş Ł stehen sichtbar korrekt im Bild, aber nicht im Textlayer.
+       Fuer den Textabgleich werden sie auf beiden Seiten entfernt (Bekannte Grenze, siehe Bericht); sichtbar geprueft wird per Bild."""
+    return t.encode('cp1252', 'ignore').decode('cp1252')
+
 def _tok(t):
     for a, b in _NORM: t = t.replace(a, b)
+    t = _cp(t)
     t = t.replace('1/2', '½').replace('1/4', '¼').replace('3/4', '¾').replace('1 ½', '1½')
     return [w for w in re.findall(r"[\wÀ-ÿ½¼¾]+", t.lower())]
 
 def flach(t):
     """Nur Buchstaben und Ziffern, klein: die Textebene setzt in grossen Schriften die Woerter ohne Leerzeichen («SloppyJoeBuns»)."""
     for a, b in _NORM: t = t.replace(a, b)
-    return re.sub(r'\W+', '', t.lower())
+    return re.sub(r'\W+', '', _cp(t).lower())
 
 def erwartete_texte(rez):
     """Zutaten- und Schritt-Texte eines Testrezepts als Wortlisten (Menge, Einheit und Name zusammen, Reihenfolge der Felder egal)."""
@@ -517,6 +523,7 @@ def _enthaelt(tokens, bag, fenster=60, seite=None):
 def pruefe_text(ex, rezepte):
     """Textabgleich: alle Zutaten- und Schritt-Woerter des Rezepts stehen im extrahierten PDF-Text (pdftotext -raw), Schritte nicht doppelt, keine Platzhalter wie undefined/NaN."""
     out = []; roh = ex.text(raw=True)
+    flat_doc = flach(roh)
     bag = []; seite = []
     for n, pg in enumerate(roh.split('\f')):
         t = _tok(pg); bag += t; seite += [n] * len(t)
@@ -534,14 +541,21 @@ def pruefe_text(ex, rezepte):
             if not t: continue
             if len(t) >= 6:
                 miss = _enthaelt(t, bag, seite=seite)
+                if miss:   # Textebene ohne Leerzeichen zwischen den Woertern (pdftotext liefert «LauwarmeMilch,Honig...»): Vergleich ueber die Buchstabenfolge, Anfang und Ende des Schritts
+                    fs = flach(roh_s)
+                    if len(fs) >= 20 and fs[:30] in flat_doc and fs[-30:] in flat_doc: miss = []
                 if len(miss) > 0: out.append(F('text_fehlt_schritt', 0, f'{rez["id"]}: Schritt «{roh_s[:40]}» unvollstaendig im PDF (fehlt: {miss[:3]})', rezept=rez['id']))
                 kopf = ' '.join(t[:8]); anz = ' '.join(bag).count(kopf)
                 if anz > 1: out.append(F('text_doppelt', 0, f'{rez["id"]}: Schritt «{roh_s[:40]}» {anz}-mal im PDF', rezept=rez['id']))
         notiz = rez.get('notes', '').strip()
         if notiz:
-            miss = _enthaelt(_tok(notiz)[:25], bag)
+            nt = _tok(notiz)[:25]; miss = _enthaelt(nt, bag, fenster=60 if len(nt) >= 4 else len(bag))   # kurze Notiz (unter 4 Woerter): kein Startanker, daher im ganzen Dokument suchen
+            fn = flach(notiz)
+            if miss and fn and fn[:30] in flat_doc: miss = []
             if miss: out.append(F('text_fehlt_notiz', 0, f'{rez["id"]}: Notiz unvollstaendig (fehlt: {miss[:3]})', rezept=rez['id']))
     return out
+
+def _ascii(t): return re.sub(r'[^a-z]+', '', t.lower())
 
 def pruefe_inhaltsverzeichnis(ex):
     """Seitenzahlen im Inhaltsverzeichnis gegen die tatsaechlichen Rezeptanfaenge (DOM-Reihenfolge = PDF-Seiten) und gegen den PDF-Text der Seite."""
@@ -559,7 +573,7 @@ def pruefe_inhaltsverzeichnis(ex):
     if n_rows < len(start): out.append(F('toc_unvollstaendig', 0, f'{n_rows} Verzeichniseintraege fuer {len(start)} Rezepte'))
     for rid, (seite, titel) in start.items():
         t = flach(ex.text(raw=True, first=seite))
-        if titel and flach(titel)[:20] not in t: out.append(F('toc_titel_nicht_auf_seite', seite, f'Titel «{titel[:30]}» steht nicht im Text von PDF-Seite {seite}'))
+        if titel and flach(titel)[:20] not in t and _ascii(titel)[:12] not in _ascii(ex.text(raw=True, first=seite)): out.append(F('toc_titel_nicht_auf_seite', seite, f'Titel «{titel[:30]}» steht nicht im Text von PDF-Seite {seite}'))
     return out
 
 def pruefe_fortsetzung(ex):

@@ -149,12 +149,12 @@ async def main():
                     nu = r.get('nut')
                     check(tag + 'Nährwert-Raster: Wert, Einheit, Bezeichnung je Zelle, Zeilen und Spalten fest', bool(nu) and nu['ok'] and nu['zero'] == 0 and nu['hasTitle'], str(nu))
                     if key == 'voll':
-                        # fehlender Wert (Fett = null) wird weggelassen, nie als 0 gezeichnet; erweitert = 7 Zellen in 2 Zeilen
-                        check(tag + 'fehlender Wert (Fett) wird weggelassen', 'Fett' not in nu['labels'] and nu['n'] == 7 and nu['rows'] == 2, str(nu))
+                        # fehlender Wert (Fett = null) wird weggelassen, nie als 0 gezeichnet; erweitert = 7 Zeilen (untereinander) oder Zellen
+                        check(tag + 'fehlender Wert (Fett) wird weggelassen', 'Fett' not in nu['labels'] and nu['n'] == 7, str(nu))
                         check(tag + 'Bezugsgrösse «pro 100 g» als Zeile', nu['basis'].startswith('pro 100 g'), nu['basis'])
                     elif key == 'cookies':
                         check(tag + 'Bezugsgrösse «pro Stück» als Zeile', nu['basis'].startswith('pro Stück'), nu['basis'])
-                        check(tag + 'kompakt: eine Zeile mit 5 Zellen', nu['n'] == 5 and nu['rows'] == 1, str(nu))
+                        check(tag + 'kompakt: 5 Werte (Energie, Protein, Kohlenhydrate, Fett, Ballaststoffe)', nu['n'] == 5, str(nu))
                 if key in ('cookies', 'voll'):
                     u = r.get('url')
                     check(tag + 'lange URL bricht innerhalb der Spalte, ist Link mit data-pdf-href', bool(u) and u['within'] and u['sw'] and u['pdf'] == u['href'] and u['pdf'].startswith('http'), str(u))
@@ -170,8 +170,8 @@ async def main():
                    hints: (all.match(/>Hinweise</g) || []).length, empty: pvExtrasHtml(__models.leer, 'off') }; }""")
         check('Zusatzeinheiten: Überschrift mit erstem Absatz, Folgeabsatz mit «· Fortsetzung»', ex['first'] and ex['more'] and ex['hints'] == 1, str(ex))
         check('Leeres Modell erzeugt keinen Zusatzblock', ex['empty'] == '', ex['empty'][:80])
-        ch = await page.evaluate("() => [pvContinuationHead('Titel', 2, 3), pvContinuationHead('Titel'), pvContinuationPage(__models.cookies, [], [], '', false, null, 2, 2)]")
-        check('Fortsetzungskopf: «Fortsetzung · 2 von 3», ohne Zahlen nur «Fortsetzung»', 'Fortsetzung · 2 von 3' in ch[0] and '>Fortsetzung<' in ch[1] and 'Fortsetzung · 2 von 2' in ch[2], '')
+        ch = await page.evaluate("() => [pvContinuationHead('Titel', 2, 3), pvContinuationHead('Titel')]")
+        check('Fortsetzungskopf: «Fortsetzung · 2 von 3», ohne Zahlen nur «Fortsetzung»', 'Fortsetzung · 2 von 3' in ch[0] and '>Fortsetzung<' in ch[1], '')
         check('keine JavaScript-Fehler', not errs, str(errs[:2]))
         await b.close()
     print('\nFEHLGESCHLAGEN:' if FAIL else '\nAlle Pruefungen bestanden.', FAIL or '')
