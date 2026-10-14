@@ -13,7 +13,7 @@
    - Kontrollierter Update-Flow: kein automatisches skipWaiting. Ein neuer Worker wartet, bis
      die Seite per postMessage({type:'SKIP_WAITING'}) explizit zustimmt.
 */
-const SW_VERSION = 'v90-feinschliff';
+const SW_VERSION = 'v91-editor';
 const CACHE_SHELL = 'savora-shell-' + SW_VERSION;
 const CACHE_RUNTIME = 'savora-runtime-' + SW_VERSION;
 const CACHE_DATA = 'savora-data-' + SW_VERSION;
@@ -66,6 +66,7 @@ const SHELL_ASSETS = [
   './assets/logo/savora-wortmarke-light.svg',
   './public-sans.woff2',
   './lilita-one.woff2',
+  './baloo2.woff2',
   './sofia-sans-extra-condensed.woff2',
   './roboto.woff2',
   './archivo.woff2',
@@ -86,6 +87,10 @@ const SHELL_ASSETS = [
   './images.js',
   './quantity.js',
   './cover.js',
+  './cover-editor.js',
+  './motion-cover.js',
+  './cover-image.js',
+  './cover-model.js',
   './assets/covers/thumbs/01-pop.jpg',
   './assets/covers/thumbs/02-lieblingsbuch.jpg',
   './assets/covers/thumbs/03-tomate.jpg',

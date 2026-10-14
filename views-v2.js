@@ -254,13 +254,14 @@ function bindFilterSheet() {
   if (sel && !sel.dataset.bound) {
     sel.dataset.bound = '1';
     sel.addEventListener('change', () => {
-      if (sel.value === '__fav') { state.favOnly = true; state.activeCollection = 'all'; render(); return; }
+      if (sel.value === '__fav') { state.favOnly = true; state.activeCollection = 'all'; motionFlipRecipes(render); return; }
       if (isPhoneLayout()) { state.favOnly = false; if (state.activeCollection === 'favorites') state.activeCollection = 'all'; }
       state.sortBy = sel.value;
       try { localStorage.setItem(SORT_KEY, state.sortBy); } catch (err) {}
-      render();
+      motionFlipRecipes(render);   // Karten gleiten an ihre neue Stelle (Bewegung M1)
     });
   }
+  if (typeof motionSegInit === 'function') motionSegInit();   // Auswahlfläche «Alle / Favoriten» nach jedem Neuaufbau setzen
 }
 
 /* ---------- Rezeptuebersicht ---------- */
@@ -293,7 +294,7 @@ function recipeCard(r, phone) {
   if (phone === true) {
     /* Handy-Raster: Foto 4:3 (oder ruhiger Platzhalter), Titel, Zeit nur wenn bekannt, Favoritenknopf als Geschwister (kein verschachtelter Knopf) */
     const time = r.timeMinutes > 0 ? `<span class="rcard-meta rcard-meta--time">${ICONS.clock}<span>${r.timeMinutes} Min.</span></span>` : '';
-    return `<article class="rcard rcard--phone">
+    return `<article class="rcard rcard--phone" data-flip-id="${escapeAttr(r.id)}">
     <button type="button" class="rcard-main" data-action="open-recipe" data-id="${escapeAttr(r.id)}" aria-label="${title} öffnen">
       ${photo ? recipeImageHtml(r, 'rcard-img', 'thumb') : `<span class="rcard-img rcard-ph" aria-hidden="true">${ICONS.bookOpen}</span>`}
       <span class="rcard-body">
@@ -304,7 +305,7 @@ function recipeCard(r, phone) {
     ${favButton(r, 'rcard-fav')}
   </article>`;
   }
-  return `<article class="rcard ${photo ? '' : 'rcard--text'}">
+  return `<article class="rcard ${photo ? '' : 'rcard--text'}" data-flip-id="${escapeAttr(r.id)}">
     <button type="button" class="rcard-main" data-action="open-recipe" data-id="${escapeAttr(r.id)}" aria-label="${title} öffnen">
       ${photo ? recipeImageHtml(r, 'rcard-img', 'thumb') : ''}
       <span class="rcard-body">
@@ -322,7 +323,7 @@ function recipeRow(r, phone) {
     const title = escapeHtml(r.title || 'Ohne Titel');
     const titleHl = highlightHtml(r.title || 'Ohne Titel', state.query);
     const time = r.timeMinutes > 0 ? `<span class="rrow-meta rrow-meta--time">${ICONS.clock}<span>${r.timeMinutes} Min.</span></span>` : '';
-    return `<article class="rrow rrow--phone">
+    return `<article class="rrow rrow--phone" data-flip-id="${escapeAttr(r.id)}">
     <button type="button" class="rrow-main" data-action="open-recipe" data-id="${escapeAttr(r.id)}" aria-label="${title} öffnen">
       ${photo ? recipeImageHtml(r, 'rrow-img', 'thumb') : `<span class="rrow-img rrow-ph" aria-hidden="true">${ICONS.bookOpen}</span>`}
       <span class="rrow-body">
@@ -333,7 +334,7 @@ function recipeRow(r, phone) {
     ${favButton(r, 'rrow-fav')}
   </article>`;
   }
-  return `<article class="rrow ${photo ? '' : 'rrow--text'}">
+  return `<article class="rrow ${photo ? '' : 'rrow--text'}" data-flip-id="${escapeAttr(r.id)}">
     <button type="button" class="rrow-main" data-action="open-recipe" data-id="${escapeAttr(r.id)}" aria-label="${escapeHtml(r.title || 'Ohne Titel')} öffnen">
       ${photo ? recipeImageHtml(r, 'rrow-img', 'thumb') : ''}
       <span class="rrow-body">
@@ -1034,17 +1035,7 @@ function planRecipeModal() {
 }
 
 /* Vorlagenwaehler (Radiogruppe, Tastatur und Touch) und Vorschau aus derselben Layoutdefinition wie der Export */
-function coverPickerHtml(cfg) {
-  const cv = cfg.cover || coverSanitizeConfig(null, true);
-  const layout = coverLayout({ templateId: cv.templateId, title: cfg.title, name: cfg.author, slogan: cfg.subtitle, date: cv.date, showDate: cv.showDate, logo: cfg.showLogo !== false });
-  const warn = layout.warnings.length ? `<ul class="cb-warnings" role="alert">${layout.warnings.map(w => `<li class="cb-warn cb-warn--error">${escapeHtml(w.message)}</li>`).join('')}</ul>` : '';
-  const sig = JSON.stringify([cfg.title, cfg.subtitle, cfg.author, cv, cfg.showLogo]);
-  return `<div class="cover-picker" data-sig="${escapeHtml(sig)}">
-    <div class="cover-grid" role="radiogroup" aria-label="Titelblatt wählen">${COVER_TEMPLATES.map(t => `<button type="button" class="cover-opt ${t.id === layout.templateId ? 'is-active' : ''}" role="radio" aria-checked="${t.id === layout.templateId}" data-action="cb-cover-template" data-id="${escapeAttr(t.id)}" aria-label="${escapeHtml(t.name)}"><img src="${coverThumbUrl(t.id)}" alt="" loading="lazy" width="130" height="185"><span class="cover-opt-name">${escapeHtml(t.name)}</span>${t.id === layout.templateId ? `<span class="cover-opt-check" aria-hidden="true">${ICONS.check}</span>` : ''}</button>`).join('')}</div>
-    <div class="cover-preview" aria-label="Vorschau des Titelblatts">${coverPreviewHtml(layout)}</div>
-    ${warn}
-  </div>`;
-}
+function coverPickerHtml(cfg) { return ceEditorHtml(cfg); }   // Cover-Editor: cover-editor.js
 function coverPreviewHtml(layout) { return `<canvas class="cv-canvas" width="794" height="1123" role="img" aria-label="Vorschau des Titelblatts" data-layout="${escapeHtml(JSON.stringify(layout))}"></canvas>`; }
 
 /* ---------- Kochbuch-Editor: ein Ablauf in drei Schritten ----------
@@ -1107,15 +1098,6 @@ function cookbookStepDesign(cfg) {
       <section class="panel">
         <h2 class="section-title" id="cbStepTitle" tabindex="-1">Titelblatt</h2>
         ${coverPickerHtml(cfg)}
-        <div class="field"><label for="cbTitle">Titel des Kochbuchs</label><input type="text" id="cbTitle" data-cb-field="title" value="${escapeHtml(cfg.title || '')}" autocomplete="off"></div>
-        <div class="field"><label for="cbSubtitle">Untertitel oder Slogan</label><input type="text" id="cbSubtitle" data-cb-field="subtitle" value="${escapeHtml(cfg.subtitle || '')}" autocomplete="off"></div>
-        <div class="field"><label for="cbAuthor">Name auf dem Cover</label><input type="text" id="cbAuthor" data-cb-field="author" value="${escapeHtml(cfg.author || '')}" autocomplete="off"></div>
-        <p class="hint-line">Alle drei Felder sind freiwillig. Was leer bleibt, wird nicht gedruckt. Der Name erscheint auch in der Fusszeile der Rezeptseiten.</p>
-        <div class="field-row field-row--2">
-          <div class="field"><label for="cbDate">Veröffentlichungsdatum</label><input type="date" id="cbDate" data-cb-cover-date value="${escapeHtml((cfg.cover && cfg.cover.date) || '')}"></div>
-          <label class="check-row"><input type="checkbox" data-cb-cover-flag="showDate" ${cfg.cover && cfg.cover.showDate === false ? '' : 'checked'}> <span>Datum auf dem Titelblatt zeigen</span></label>
-        </div>
-        <label class="check-row"><input type="checkbox" data-cb-flag="showLogo" ${cfg.showLogo === false ? '' : 'checked'}> <span>Savora-Wortmarke oben rechts auf dem Titelblatt</span></label>
       </section>
       <section class="panel">
         <h2 class="section-title">Seitenstil der Rezepte</h2>
@@ -1126,7 +1108,7 @@ function cookbookStepDesign(cfg) {
 function cookbookStepPreview(cfg) {
   const warnings = cookbookWarnings(cfg);
   const cv = cfg.cover || coverSanitizeConfig(null, true);
-  const layout = coverLayout({ templateId: cv.templateId, title: cfg.title, name: cfg.author, slogan: cfg.subtitle, date: cv.date, showDate: cv.showDate, logo: cfg.showLogo !== false });
+  const layout = coverLayout(coverInputFromConfig(cfg));
   const tpl = pdfTemplateById(pdfNormTpl(cfg.pdfTemplate || pdfDefaultTemplateId()));
   const tplName = (coverTemplateById(cv.templateId) || {}).name || '';
   const n = cfg.items.length;
@@ -1161,6 +1143,7 @@ function cookbookDesignerView() {
     </main>
     ${bottomNav()}
     ${pdfExportModal()}
+    ${ceModalHtml()}
   `;
 }
 

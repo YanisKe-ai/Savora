@@ -52,13 +52,6 @@ document.addEventListener('input', (e) => {
   }, 700);
 });
 
-document.addEventListener('input', (e) => {
-  const t = e.target;
-  if (state.view !== 'cookbook' || !t.matches || !t.matches('[data-cb-field="title"], [data-cb-field="subtitle"], [data-cb-field="author"]')) return;
-  const cfg = getCookbookConfig(); cfg[t.dataset.cbField] = t.value; saveCookbookConfig(cfg);
-  coverRefresh();   // Vorschau sofort, ohne die Seite neu zu zeichnen
-});
-
 /* Enter im Namensfeld speichert (Kochbuch anlegen oder umbenennen) */
 document.addEventListener('keydown', (e) => {
   if (e.key !== 'Enter' || !e.target || e.target.id !== 'cbNameInput' || e.isComposing) return;
@@ -78,15 +71,8 @@ document.addEventListener('change', (e) => {
   }
   if (state.view === 'cookbook' && t.matches) {
     const cfg = getCookbookConfig();
-    // Titelblatt: Vorschau aktualisiert sich direkt, ohne die ganze Seite neu zu zeichnen (Fokus und Scrollposition bleiben)
-    if (t.matches('[data-cb-cover-date]')) {
-      const d = coverNormalizeDate(t.value);
-      if (d) cfg.cover = { ...cfg.cover, date: d }; else t.value = cfg.cover.date;   // leer oder ungueltig: bisheriges Datum bleibt
-      saveCookbookConfig(cfg); coverRefresh(); return;
-    }
-    if (t.matches('[data-cb-cover-flag]')) { cfg.cover = { ...cfg.cover, [t.dataset.cbCoverFlag]: !!t.checked }; saveCookbookConfig(cfg); coverRefresh(); return; }
-    if (t.matches('[data-cb-field="title"], [data-cb-field="subtitle"], [data-cb-field="author"]')) { cfg[t.dataset.cbField] = t.value.trim(); saveCookbookConfig(cfg); coverRefresh(); return; }
-    if (t.matches('[data-cb-flag="showLogo"]')) { cfg.showLogo = !!t.checked; saveCookbookConfig(cfg); coverRefresh(); return; }
+    // Titelblatt-Eingaben (Texte, Datum, Logo) behandelt cover-editor.js
+    if (t.closest && t.closest('.cover-picker')) return;
     if (t.matches('[data-cb-flag]')) cfg[t.dataset.cbFlag] = !!t.checked;
     else if (t.matches('[data-cb-field]')) cfg[t.dataset.cbField] = t.value.trim();
     else if (t.matches('[data-cb-chapter]')) { const c = cfg.chapters.find(x => x.id === t.dataset.cbChapter); if (c) c.name = t.value.trim() || c.name; }
@@ -159,13 +145,7 @@ function parseShoppingInput(text) {
 async function handleActionV2(action, id, el, e) {
   switch (action) {
     /* ----- Navigation mit Schutz vor Datenverlust ----- */
-    case 'cb-cover-template': {
-      const cfg = getCookbookConfig();
-      cfg.cover = { ...cfg.cover, templateId: coverValidTemplateId(id) };
-      saveCookbookConfig(cfg);
-      coverRefresh(cfg.cover.templateId);
-      return true;
-    }
+    case 'ce-reset-confirm': ceResetCover(); closeModal(); return true;   // Cover-Editor (cover-editor.js)
     case 'back':
     case 'nav-tab':
       state.shopStay = new Set();   // Einkauf neu betreten: Abgehaktes wandert nach unten
@@ -188,7 +168,7 @@ async function handleActionV2(action, id, el, e) {
     case 'close-search': {
       state.searchOpen = false;
       if (id === 'clear') state.query = '';
-      render();
+      motionFlipRecipes(render);
       const btn = document.getElementById('searchBtn');
       if (btn) focusWithoutScroll(btn);
       return true;
@@ -205,16 +185,19 @@ async function handleActionV2(action, id, el, e) {
       if (!id || id === 'all') state.favOnly = false;
       else if (id === 'favorites') state.favOnly = true;
       else { state.activeFilters.more.clear(); state.activeFilters.more.add(id); }
-      render();
+      motionFlipRecipes(render);
       return true;
-    case 'set-fav-mode':
+    case 'set-fav-mode': {
+      const segFrom = motionSegRect();   // sichtbare Lage der Auswahlfläche VOR dem Neuaufbau
       state.favOnly = id === 'fav';
       state.activeCollection = 'all';
-      render();
+      motionFlipRecipes(render);
+      motionSegSlide(segFrom);
       return true;
+    }
     case 'reset-extra-filters':
       resetExtraFilters();
-      render();
+      motionFlipRecipes(render);
       return true;
     case 'fs-reset': {
       const d = filterDraft();
@@ -228,7 +211,7 @@ async function handleActionV2(action, id, el, e) {
         ['dietary', 'category', 'time', 'more', 'tags'].forEach(k => { f[k] = new Set(d[k]); });
         state.activeTag = null; state.activeCollection = 'all';
       }
-      closeModal();
+      closeModal();   // Neuaufbau erst nach popstate (asynchron): hier keine Kartenbewegung, das Fenster deckt die Liste ab
       return true;
     }
     case 'set-home-layout':
@@ -237,12 +220,12 @@ async function handleActionV2(action, id, el, e) {
       render();
       return true;
     case 'clear-search':
-      state.query = ''; render();
+      state.query = ''; motionFlipRecipes(render);
       return true;
     case 'clear-all-filters':
       resetExtraFilters();
       state.favOnly = false;
-      if (state.modal) closeModal(); else render();
+      if (state.modal) closeModal(); else motionFlipRecipes(render);
       return true;
     case 'open-recipe':
       if (state.activeRecipeId !== id) state.detailTab = 'ingredients';
@@ -672,10 +655,22 @@ async function handleActionV2(action, id, el, e) {
       showToast('Liste geleert', 'success', false, shopUndoOpts(snap));
       return true;
     }
-    case 'sort-checked-down':
+    case 'sort-checked-down': {
+      // Einzige Einkaufsaktion mit Bewegung: Zeilen gleiten nach dem Neuaufbau an ihren Platz (220 ms, ohne Staffelung).
+      // Der Knopf ist danach deaktiviert; der Fokus geht dann an den Titel «Erledigt» (wohin die Artikel gewandert sind), ohne Scrollen.
+      const hadFocus = document.activeElement && document.activeElement.closest && document.activeElement.closest('[data-action="sort-checked-down"]');
       state.shopStay = new Set();
-      render();
+      motionFlipShopping(render);
+      if (hadFocus) {
+        const btn = document.querySelector('[data-action="sort-checked-down"]');
+        if (btn && !btn.disabled) focusWithoutScroll(btn);
+        else {
+          const t = document.querySelector('.shop-section--done .shop-section-title') || document.querySelector('.shop-main .page-title');
+          if (t) { t.setAttribute('tabindex', '-1'); focusWithoutScroll(t); }
+        }
+      }
       return true;
+    }
     case 'share-shopping': {
       const open = state.shopping.filter(i => !i.checked && !i.have);
       const bySection = {};
@@ -842,11 +837,13 @@ async function handleActionV2(action, id, el, e) {
       return true;
     }
     case 'cb-step': {
+      // Bewegung M2 (motion-cover.js): Doppelklick auf Weiter/Zurueck ueberspringt keinen Schritt; Inhalt wechselt ruhig, Logik sofort
+      if (typeof motionStepIgnore === 'function' && motionStepIgnore(el, e)) return true;
       const n = Math.min(3, Math.max(1, parseInt(id, 10) || 1));
+      const from = Math.min(3, Math.max(1, parseInt(state.cookbookStep, 10) || 1));
       state.cookbookStep = n;
-      render();
-      window.scrollTo(0, 0);
-      const h = document.getElementById('cbStepTitle'); if (h) focusWithoutScroll(h);
+      const go = () => { render(); window.scrollTo(0, 0); const h = document.getElementById('cbStepTitle'); if (h) focusWithoutScroll(h); };
+      if (typeof motionCookbookStep === 'function' && state.view === 'cookbook') motionCookbookStep(from, n, go); else go();
       return true;
     }
 
