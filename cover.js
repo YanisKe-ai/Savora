@@ -278,10 +278,13 @@ function coverLayoutV2(input, measure) {
   if (!custom) coverLayout({ templateId: tpl.id, title: ids.includes('title') ? texts.title : '', slogan: ids.includes('subtitle') ? texts.subtitle : '', name: ids.includes('name') ? texts.name : '', showDate: false, logo: false }, m)
     .blocks.forEach(b => { baseBy[b.key === 'slogan' ? 'subtitle' : b.key] = b; });
   const bg = custom ? model.bg.color : null, dark = '#252720';
-  let defInk;
-  if (!custom) defInk = tpl.ink;
-  else if (model.image) defInk = model.readability === 'panel' ? dark : (typeof input.imageLuma === 'number' && input.imageLuma < 0.5 ? COVER_PAPER : dark);
-  else defInk = coverContrast(dark, bg) >= coverContrast(COVER_PAPER, bg) ? dark : COVER_PAPER;
+  // Standardfarbe richtet sich nach dem, was direkt hinter dem Text liegt: Textflaeche (Papier) -> Tinte; sonst Hintergrund/Bild
+  // (beim Verlauf waehlt der Verlauf seine Farbe passend zur Schrift). Das Datum liegt nie auf der Flaeche: es folgt dem Hintergrund.
+  let bgInk;
+  if (!custom) bgInk = tpl.ink;
+  else if (model.image) bgInk = typeof input.imageLuma === 'number' && input.imageLuma < 0.5 ? COVER_PAPER : dark;
+  else bgInk = coverContrast(dark, bg) >= coverContrast(COVER_PAPER, bg) ? dark : COVER_PAPER;
+  const defInk = model.readability === 'panel' ? dark : bgInk;
   const logoH = COVER_LOGO_BOX.w * COVER_PAGE.w * (WORDMARK_BOX.h / WORDMARK_BOX.w) / COVER_PAGE.h;
   let cursor = custom ? (model.logo.pos === 'bottom-right' ? 0.08 : 0.13) : tpl.text.y, flowChanged = false;
   const blocks = [];
@@ -318,7 +321,7 @@ function coverLayoutV2(input, measure) {
     const weight = o.font && o.font !== 'Roboto' ? meta.weight : COVER_FONTS.date.weight;
     const tw = m(dtext, `${weight} ${sizePx}px ${meta.family}`) / COVER_PAGE.w;
     const ax = align === 'left' ? x : (align === 'center' ? x + w / 2 : x + w);
-    date = { text: dtext, sizePx, x1: ax, ax, align, y, h: custom ? Math.max(COVER_DATE_ZONE.h, sizePx * 1.25 / COVER_PAGE.h) : (o.fontPt ? Math.max(dz.h, sizePx * 1.25 / COVER_PAGE.h) : dz.h), w, tw, ink: o.color || defInk, family: meta.family, weight };
+    date = { text: dtext, sizePx, x1: ax, ax, align, y, h: custom ? Math.max(COVER_DATE_ZONE.h, sizePx * 1.25 / COVER_PAGE.h) : (o.fontPt ? Math.max(dz.h, sizePx * 1.25 / COVER_PAGE.h) : dz.h), w, tw, ink: o.color || bgInk, family: meta.family, weight };
   }
   // Logo
   let logo = null;
