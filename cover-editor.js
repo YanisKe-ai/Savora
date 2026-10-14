@@ -43,6 +43,7 @@ const ce = {
   undo: [], redo: [], lastKey: '', lastT: 0,
   status: 'saved', saveTimer: 0, saveError: false,
   layout: null, drag: null, paintTok: 0, paintQueued: false, bgCache: {}, imgCache: {}, pendingRemove: new Set(),
+  fadeNext: false, paintError: '',   // Bewegung M2: naechstes fertiges Cover ueberblenden (nur diskrete Wechsel); letzter Zeichenfehler
 };
 
 /* ---------- Hilfen ---------- */
@@ -72,7 +73,7 @@ function ceEnsure() {
   if (ce.bookId !== book.id) {
     ceFlushImages();
     clearTimeout(ce.saveTimer);
-    Object.assign(ce, { bookId: book.id, model: null, undo: [], redo: [], sel: null, tab: null, imgMove: false, imgError: '', status: 'saved', saveError: false, lastKey: '', layout: null });
+    Object.assign(ce, { bookId: book.id, model: null, undo: [], redo: [], sel: null, tab: null, imgMove: false, imgError: '', status: 'saved', saveError: false, lastKey: '', layout: null, fadeNext: false, paintError: '' });
   }
   // Entwurf nur dann neu laden, wenn nichts Ungespeichertes in der Oberflaeche steht und der Speicher von aussen geaendert wurde
   if (!ce.model || (!ce.saveTimer && !ce.saveError && ce.savedSig !== ceStoredSig())) ceLoadFromStore();
@@ -442,10 +443,43 @@ async function cePaint() {
   const bg = L.background ? await ceLoadBg(L.background) : null;
   const user = L.image ? await ceUserImage(L.image.id) : null;
   if (tok !== ce.paintTok || !cv.isConnected) return;
+  // Bewegung M2: fehlt ein Bild, bleibt das zuletzt fertige Cover sichtbar (nie ein halbes Cover); Hinweis mit «Erneut versuchen»
+  const fail = (L.background && !bg) ? 'bg' : (L.image && !user) ? 'image' : '';
+  ceShowPaintError(fail);
+  if (fail && cv.dataset.painted) return;
   const scale = ceClamp((cv.clientWidth || 320) * (window.devicePixelRatio || 1) / COVER_PAGE.w, 0.5, 2);
   const w = Math.round(L.page.w * scale), h = Math.round(L.page.h * scale);
-  if (cv.width !== w) cv.width = w; if (cv.height !== h) cv.height = h;
-  coverDraw(cv.getContext('2d'), L, bg, scale, user);
+  if (ce.fadeNext && cv.dataset.painted && typeof motionCoverSwap === 'function') {
+    // Diskreter Wechsel (Vorlage, Art, Bild): neues Cover vollstaendig in einer zweiten Ebene vorbereiten, dann als Ganzes ueberblenden
+    const next = document.createElement('canvas'); next.width = w; next.height = h;
+    try { coverDraw(next.getContext('2d'), L, bg, scale, user); } catch (e) { next.width = 0; next.height = 0; ceShowPaintError('draw'); return; }
+    motionCoverSwap(cv, next);
+  } else {
+    // Texteingabe, Regler, Ziehen: direkt und fluessig in die sichtbare Ebene
+    if (typeof motionCoverCommit === 'function') motionCoverCommit();
+    if (cv.width !== w) cv.width = w; if (cv.height !== h) cv.height = h;
+    try { coverDraw(cv.getContext('2d'), L, bg, scale, user); } catch (e) { ceShowPaintError('draw'); return; }
+  }
+  cv.dataset.painted = '1'; ce.fadeNext = false;
+}
+/* Hinweis unter der Vorschau, wenn das neue Cover nicht fertig gezeichnet werden konnte (altes bleibt sichtbar) */
+function ceShowPaintError(kind) {
+  ce.paintError = kind || '';
+  const root = ceRoot(), stage = root && root.querySelector('.ce-stage'); if (!stage) return;
+  let el = stage.querySelector('.ce-painterr');
+  if (!kind) { if (el) el.remove(); root.removeAttribute('data-paint'); return; }
+  root.dataset.paint = 'error';
+  const msg = kind === 'image' ? 'Das Bild für das Titelblatt konnte nicht geladen werden. Die Vorschau zeigt noch den vorherigen Stand. Das PDF lässt sich erst erstellen, wenn das Bild wieder geladen ist oder du es entfernst.'
+    : kind === 'bg' ? 'Das gewählte Titelblatt konnte nicht geladen werden. Die Vorschau zeigt noch den vorherigen Stand. Prüfe die Verbindung oder wähle ein anderes Titelblatt.'
+    : 'Das Titelblatt konnte nicht gezeichnet werden. Die Vorschau zeigt noch den vorherigen Stand.';
+  if (!el) { stage.querySelector('.ce-preview').insertAdjacentHTML('afterend', '<div class="ce-painterr" role="alert"><p class="ce-painterr-text"></p><button type="button" class="ce-chip" data-ce="paint-retry" data-k="paint-retry">Erneut versuchen</button></div>'); el = stage.querySelector('.ce-painterr'); }
+  const t = el.querySelector('.ce-painterr-text'); if (t.textContent !== msg) t.textContent = msg;
+}
+function cePaintRetry() {
+  const L = ce.layout;
+  if (L && L.background) delete ce.bgCache[L.background];
+  if (L && L.image) delete ce.imgCache[L.image.id];
+  ce.fadeNext = true; cePaintSoon();
 }
 
 /* ---------- Bedienebene ueber der Vorschau ---------- */
@@ -590,7 +624,7 @@ function ceResetArrangement() {
 function ceResetCover() {
   ceCheckpoint(null);
   ce.model = coverModelSanitize({ v: 2, mode: 'template', templateId: ce.model.templateId, date: ce.model.date, showDate: ce.model.showDate });
-  ce.coverDirty = true; ce.sel = null; ce.imgMove = false; ce.tab = 'text';
+  ce.coverDirty = true; ce.sel = null; ce.imgMove = false; ce.tab = 'text'; ce.fadeNext = true;
   ceRelayout(); ceRenderAll(); ceScheduleSave(true);
 }
 
@@ -602,7 +636,7 @@ async function ceImportImage(file) {
   try {
     const r = await coverImageImport(file, ce.bookId);
     const old = ce.model.image;
-    ceChange((m) => { m.mode = 'custom'; m.image = { id: r.id, fit: old ? old.fit : 'cover', cx: 0.5, cy: 0.5, zoom: 1, w: r.w, h: r.h }; }, { panels: false, now: true });
+    ce.fadeNext = true; ceChange((m) => { m.mode = 'custom'; m.image = { id: r.id, fit: old ? old.fit : 'cover', cx: 0.5, cy: 0.5, zoom: 1, w: r.w, h: r.h }; }, { panels: false, now: true });
   } catch (e) {
     ce.imgError = (e && e.userMessage) || 'Das Bild konnte nicht geladen werden. Versuche es mit einer JPEG- oder PNG-Datei.';
   } finally { ce.imgBusy = false; ceRenderPanels(); }
@@ -620,11 +654,11 @@ document.addEventListener('click', (e) => {
   switch (a) {
     case 'mode': {
       if ((v === 'custom') === (ce.model.mode === 'custom')) break;
-      ceChange((m) => { m.mode = v === 'custom' ? 'custom' : 'template'; }, { now: true });
+      ce.fadeNext = true; ceChange((m) => { m.mode = v === 'custom' ? 'custom' : 'template'; }, { now: true });
       ce.sel = null; ce.imgMove = false; ce.tab = v === 'custom' ? 'bg' : 'text'; ceRenderAll(); break;
     }
     case 'tab': ce.tab = v; ce.imgMove = false; ceRenderTabs(); ceRenderPanels(); ceSyncOverlay(); ceRevealTabs(); ceFadePanel(); break;
-    case 'template': ceChange((m) => { m.templateId = coverValidTemplateId(b.dataset.id); }, { now: true }); ceRenderAll(); break;
+    case 'template': if (coverValidTemplateId(b.dataset.id) !== coverValidTemplateId(ce.model.templateId)) ce.fadeNext = true; ceChange((m) => { m.templateId = coverValidTemplateId(b.dataset.id); }, { now: true }); ceRenderAll(); break;
     case 'select': ceSelect(ce.sel === id ? null : id); break;
     case 'goto-warn': { const t = CE_FIELD_ORDER.includes(id) ? id : null; if (t) { ceSelect(t); const c = document.querySelector(`.ce-field[data-f="${t}"]`); if (c) c.scrollIntoView({ block: 'nearest' }); } else { ce.tab = id === 'image' ? 'bg' : 'arr'; ceRenderTabs(); ceRenderPanels(); } break; }
     case 'edit': { const inp = document.querySelector(`.ce-field[data-f="${id}"] input[type=text]`); if (inp) { inp.focus(); inp.select && inp.select(); } break; }
@@ -651,7 +685,7 @@ document.addEventListener('click', (e) => {
     case 'arr-reset': ceResetArrangement(); break;
     case 'cover-reset': openModal({ type: 'ce-reset' }, '[data-ce="cover-reset"]'); break;
     case 'pick': { const f = document.querySelector('[data-ce-file]'); if (f) f.click(); break; }
-    case 'img-remove': { ceChange((m) => { m.image = null; }, { panels: true, now: true }); ce.imgMove = false; ceSyncOverlay(); break; }
+    case 'img-remove': { ce.fadeNext = true; ceChange((m) => { m.image = null; }, { panels: true, now: true }); ce.imgMove = false; ceSyncOverlay(); break; }
     case 'fit': ceChange((m) => { if (m.image) { m.image = { ...m.image, fit: v, cx: 0.5, cy: 0.5, zoom: 1 }; } }, { panels: true }); break;
     case 'img-move': ce.imgMove = !ce.imgMove; if (ce.imgMove) ce.sel = null; ceSyncOverlay(); ceRenderPanels(); break;
     case 'img-reset': ceChange((m) => { if (m.image) m.image = { ...m.image, cx: 0.5, cy: 0.5, zoom: 1 }; }, { panels: true }); break;
@@ -659,6 +693,7 @@ document.addEventListener('click', (e) => {
     case 'undo': ceUndo(); break;
     case 'redo': ceRedo(); break;
     case 'retry': ceSaveNow(); break;
+    case 'paint-retry': cePaintRetry(); break;
     case 'hit': break;
   }
 });
