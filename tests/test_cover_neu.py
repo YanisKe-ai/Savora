@@ -45,14 +45,10 @@ def inputs(tid):
     out['kurz-ohne-logo'] = {**out['kurz'], 'logo': False}
     return out
 
+# Feste, plattformunabhaengige Textmessung (Breite aus Zeichenzahl, Schriftgroesse und Gewicht): Linux und Mac messen echte Schriften verschieden
 SNAP_JS = """async (all) => { await coverEnsureFonts(); const out = {};
-  for (const [key, inp] of Object.entries(all)) {
-    const L = coverLayout(inp);
-    const c = await coverRenderCanvas(L, 1);
-    const buf = new TextEncoder().encode(c.toDataURL('image/png'));
-    const h = Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256', buf))).map(b => b.toString(16).padStart(2, '0')).join('');
-    out[key] = { layout: L, px: h };
-  }
+  const fixed = (text, font) => { const m = /(\\d+)\\s+([\\d.]+)px/.exec(font); const w = +m[1], sz = +m[2]; return Array.from(text).length * sz * (w >= 800 ? 0.36 : w >= 700 ? 0.52 : 0.47); };
+  for (const [key, inp] of Object.entries(all)) out[key] = { layout: coverLayout(inp, fixed) };
   return out; }"""
 
 def round_json(o):
@@ -73,6 +69,7 @@ async def main():
         b, ctx = await open_ctx(p, 390, 844, 'no-preference')
         page = await ctx.new_page(); errs = []
         page.on('pageerror', lambda e: errs.append(str(e)))
+        if '--snapshot' in sys.argv: SITE.set_dir(old_checkout('1a9cf82'))   # Stand vor den neuen Covern (origin/main 0.76.0)
         await goto(page); await page.evaluate(open(SEED_PATH).read()); await page.wait_for_timeout(300)
         ev = page.evaluate
         await ev("() => document.fonts.ready"); await ev("() => coverEnsureFonts()")
@@ -190,10 +187,7 @@ async def main():
                 for k, v in inputs(tid).items(): allin[f'{tid}/{k}'] = v
             cur = round_json(await ev(SNAP_JS, allin))
             diff = [k for k in snap if json.dumps(snap[k]['layout'], sort_keys=True, ensure_ascii=False) != json.dumps(cur.get(k, {}).get('layout'), sort_keys=True, ensure_ascii=False)]
-            check(f'Alte zehn Cover: {len(snap)} Layout-Beschreibungen (Texte, Groessen, Positionen, Logo, Datum) gleich wie vor den neuen Covern', not diff and len(snap) >= 100, str(diff[:5]))
-            if os.environ.get('SAVORA_COVER_PIXEL'):
-                pd = [k for k in snap if snap[k]['px'] != cur[k]['px']]
-                check('Alte zehn Cover: gerenderte Pixel identisch (nur lokal auf dem Mac aussagekraeftig)', not pd, str(pd[:5]))
+            check(f'Alte zehn Cover: {len(snap)} Layout-Beschreibungen (feste Messfunktion: Texte, Groessen, Positionen, Logo, Datum) gleich wie vor den neuen Covern', not diff and len(snap) >= 100, str(diff[:5]))
         else:
             check('Schnappschuss tests/data/cover_alt_layouts.json vorhanden', False)
 

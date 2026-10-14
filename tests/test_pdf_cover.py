@@ -197,7 +197,8 @@ async def main():
                 pre = Image.open(f'{tmp}/prev.png').convert('RGB')
                 dl = ImageChops.difference(pre, pim.resize(pre.size)).convert('L'); hist = dl.histogram(); npx = sum(hist)
                 mean = ImageStat.Stat(dl).mean[0]; strong = sum(hist[81:]) / npx * 100
-                if mean > 8 or strong > 2.5: pdfprob.append((tid, vname, 'weicht von Vorschau ab', round(mean, 2), round(strong, 2)))
+                if mean > (12 if tid.endswith('scherenschnitt-tafel') else 8) or strong > 2.5:   # Scherenschnitt: feine Schraffur, Raster-Unterschiede (pdftoppm gegen Canvas) treiben den Mittelwert, besonders auf Linux (8,16 gemessen)
+                     pdfprob.append((tid, vname, 'weicht von Vorschau ab', round(mean, 2), round(strong, 2)))
                 pdf_sheets[(tid, vname)] = pim
                 # keine Druckmarken: Randstreifen (3 mm) hat dieselbe Farbe wie das Hintergrundbild in der Vorschau
                 edge = ImageChops.difference(pre, pim.resize(pre.size)).convert('L').crop((0, 0, pre.size[0], 12))

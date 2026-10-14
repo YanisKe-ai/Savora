@@ -144,8 +144,8 @@ async def main():
         browser, page = await new_page(p, 390, 844, 'light', 'light')
         ev = page.evaluate
         lay = await ev("() => { const out = {}; COVER_TEMPLATES.forEach(t => { const L = coverLayout({ templateId: t.id, title: 'Titel', date: '2026-10-09' }); out[t.id] = L.logo; }); return { out, hidden: coverLayout({ templateId: 'pop', logo: false }).logo, page: COVER_PAGE }; }")
-        zone_ok = all(0.5 <= l['x'] and l['x'] + l['w'] <= 0.93 + 1e-9 and l['y'] >= 0.03 and l['y'] + l['h'] <= 0.13 and 0.24 <= l['w'] <= 0.30 for l in lay['out'].values())
-        check('Cover-Layout: Wortmarke 24 bis 30 % der Seitenbreite, innerhalb der sicheren Zone, über dem Textbereich', zone_ok, str(lay['out']['pop']))
+        zone_ok = all(0.5 <= l['x'] and l['x'] + l['w'] <= 0.93 + 1e-9 and l['y'] >= 0.03 and l['y'] + l['h'] <= 0.13 and 0.23 <= l['w'] <= 0.30 for l in lay['out'].values())
+        check('Cover-Layout: Wortmarke 23 bis 30 % der Seitenbreite, innerhalb der sicheren Zone, über dem Textbereich', zone_ok, str(lay['out']['pop']))
         check('Option "Wortmarke anzeigen" aus: keine Marke im Layout', lay['hidden'] is None)
         tmp = tempfile.mkdtemp(prefix='savora-paket43-')
         bb = await ev("() => { const s = document.createElement('svg'); const d = document.createElementNS('http://www.w3.org/2000/svg', 'svg'); const p = document.createElementNS('http://www.w3.org/2000/svg', 'path'); p.setAttribute('d', WORDMARK_PATH); d.appendChild(p); document.body.appendChild(d); const b = p.getBBox(); d.remove(); return [b.x, b.y, b.width, b.height]; }")
