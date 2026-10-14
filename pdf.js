@@ -292,8 +292,32 @@ async function pdfRasterizeSection(section, fitsPage) {
   if (fitsPage) { section.style.minHeight = '297mm'; section.style.height = '297mm'; }
   const domH = section.getBoundingClientRect().height;
   const bg = cs.backgroundColor && !/rgba\(0, 0, 0, 0\)|transparent/.test(cs.backgroundColor) ? cs.backgroundColor : '#ffffff';
-  const canvas = await html2canvas(section, { scale: PDF_RENDER_SCALE, backgroundColor: bg, useCORS: true, logging: false, imageTimeout: 8000, windowWidth: Math.max(window.innerWidth || 0, 1100) });
+  const canvas = await html2canvas(section, { scale: PDF_RENDER_SCALE, backgroundColor: bg, useCORS: true, logging: false, imageTimeout: 8000, windowWidth: Math.max(window.innerWidth || 0, 1100), onclone: (doc, el) => pdfApplyTextTransform(doc, el) });
   return { canvas, domW, domH, bg };
+}
+/* html2canvas rechnet Textbereiche mit der Originallaenge. Wird der Text per CSS veraendert (text-transform: uppercase
+   macht aus «ß» zwei Zeichen «SS»), laufen die Bereiche ueber das Textende hinaus und der Export bricht ab
+   (IndexSizeError bei Range.setEnd). Darum im Klon fuer das Rastern den Text selbst umwandeln und die CSS-Umwandlung
+   abschalten. Das sichtbare Ergebnis ist gleich; die Seite in der App bleibt unveraendert. */
+function pdfApplyTextTransform(doc, root) {
+  const win = doc.defaultView || window;
+  const scope = root && root.querySelectorAll ? root : doc.body;   // nur der gerasterte Abschnitt (schnell auch bei vielen Seiten)
+  // Erst alle Umwandlungen lesen, dann anwenden: sonst erbt ein Kind nach dem Abschalten am Elternteil kein «uppercase» mehr.
+  const todo = [];
+  [scope].concat(Array.from(scope.querySelectorAll('*'))).forEach((el) => {
+    let tt;
+    try { tt = win.getComputedStyle(el).textTransform; } catch (e) { return; }
+    if (tt && tt !== 'none') todo.push([el, tt]);
+  });
+  todo.forEach(([el, tt]) => {
+    const fn = tt === 'uppercase' ? (t) => t.toLocaleUpperCase('de-CH')
+      : tt === 'lowercase' ? (t) => t.toLocaleLowerCase('de-CH')
+      : tt === 'capitalize' ? (t) => t.replace(/(^|\s)(\S)/g, (m, a, b) => a + b.toLocaleUpperCase('de-CH'))
+      : null;
+    if (!fn) return;
+    el.childNodes.forEach((n) => { if (n.nodeType === 3 && n.nodeValue) n.nodeValue = fn(n.nodeValue); });
+    el.style.textTransform = 'none';
+  });
 }
 function pdfComposePage(src, domW, domH, bg) {
   const S = PDF_RENDER_SCALE;
