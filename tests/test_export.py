@@ -28,7 +28,7 @@ async def main():
         await page.evaluate(JS_SEED, FX)
         ids = [f['id'] for f in FX] + ['fx_long40', 'fx_longstep', 'fx_min']
         before = await page.evaluate("(ids) => JSON.stringify(state.recipes.filter(r => ids.includes(r.id)).map(r => ({ id: r.id, title: r.title, ing: r.ingredients, steps: r.steps, notes: r.notes, img: (r.image || '').length })).sort((a, b) => a.id.localeCompare(b.id)))", ids)
-        for tpl in ('A', 'B', 'C'):
+        for tpl in TEMPLATE_IDS:
             await page.evaluate("(a) => saveCookbookConfig({ title: 'Testbuch', subtitle: '', author: 'Tester', pdfTemplate: a[0], chapters: [], items: a[1].map(id => ({ recipeId: id, chapterId: '' })) })", [tpl, ids])
             b64 = await page.evaluate("""async () => { const res = await buildCookbookPdf('off'); const u = new Uint8Array(await res.blob.arrayBuffer()); let s = ''; for (let i = 0; i < u.length; i += 8192) s += String.fromCharCode.apply(null, u.subarray(i, i + 8192)); return btoa(s); }""")
             path = f'{OUT}/book_{tpl}.pdf'; open(path, 'wb').write(base64.b64decode(b64)); raw = open(path, 'rb').read()
@@ -53,11 +53,11 @@ async def main():
             check(f'Vorlage {tpl}: Fusszeile mit Buchtitel und Autor', 'TESTBUCH / TESTER' in txt.upper().replace('  ', ' ') or 'Testbuch' in txt)
             check(f'Vorlage {tpl}: Hinweise und Quellen stehen nicht als nummerierte Schritte', 'Haltbarkeit' in norm and not re.search(r'0\d\s+Haltbarkeit', norm) and not re.search(r'\d\d\s+Quelle:', norm))
         # Einzelseiten-Regeln auf HTML-Ebene
-        lone = await page.evaluate("""async (ids) => { pdfSetContext('A', 'Testbuch', 'Tester', true); const out = []; for (const id of ids) { const r = state.recipes.find(x => x.id === id); const { htmlPages } = await buildRecipePdfPage(r, null, 'off'); const last = htmlPages[htmlPages.length - 1]; if (htmlPages.length > 1 && !/pv-step"|pv-ing"/.test(last)) out.push(id); } return out; }""", ids)
+        lone = await page.evaluate("""async (ids) => { pdfSetContext(__T0, 'Testbuch', 'Tester', true); const out = []; for (const id of ids) { const r = state.recipes.find(x => x.id === id); const { htmlPages } = await buildRecipePdfPage(r, null, 'off'); const last = htmlPages[htmlPages.length - 1]; if (htmlPages.length > 1 && !/pv-step"|pv-ing"/.test(last)) out.push(id); } return out; }""", ids)
         check('Keine letzte Seite nur mit einem Hinweis (Cookies-Fall)', not lone, str(lone))
-        cookies = await page.evaluate("""async () => { pdfSetContext('A', '', '', false); const r = state.recipes.find(x => x.id === 'fx_cookies'); const { htmlPages } = await buildRecipePdfPage(r, null, 'off'); return htmlPages.length; }""")
+        cookies = await page.evaluate("""async () => { pdfSetContext(__T0, '', '', false); const r = state.recipes.find(x => x.id === 'fx_cookies'); const { htmlPages } = await buildRecipePdfPage(r, null, 'off'); return htmlPages.length; }""")
         check('Kurzes Rezept mit Hinweisen bleibt auf einer Seite (Cookies)', cookies == 1, str(cookies))
-        empty = await page.evaluate("""async () => { pdfSetContext('A', '', '', false); const r = state.recipes.find(x => x.id === 'fx_carbonara'); const { htmlPages } = await buildRecipePdfPage(r, null, 'off'); return htmlPages.join(''); }""")
+        empty = await page.evaluate("""async () => { pdfSetContext(__T0, '', '', false); const r = state.recipes.find(x => x.id === 'fx_carbonara'); const { htmlPages } = await buildRecipePdfPage(r, null, 'off'); return htmlPages.join(''); }""")
         check('Leere Überschrift/leerer Schritt (Carbonara) erzeugt keinen leeren Block', 'pv-step-heading">Kombinieren' in empty and empty.count('class="pv-step"') == 2, str(empty.count('class="pv-step"')))
         check('Originalmengen bleiben unverändert (Prise, ½ Ei, ¼ TL)', await page.evaluate("""() => { const m = pdfBuildModel(state.recipes.find(x => x.id === 'fx_manti'), null); const t = m.ingredients.filter(i => i.type === 'ing').map(i => i.amount + ' ' + i.name).join('|'); return t.includes('¼\\u00a0TL Paprikaflocken') && t.includes('1\\u00a0Prise Salz') && t.includes('500\\u00a0g Mehl'); }"""))
         # Daten unveraendert

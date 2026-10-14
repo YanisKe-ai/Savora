@@ -18,7 +18,9 @@ from common import *   # noqa: E402,F401  (startet den lokalen Webserver, liefer
 from PIL import Image, ImageDraw   # noqa: E402
 
 FIXTURE_PFAD = os.path.join(TESTS, 'fixtures', 'pdf_rezepte.json')
-STILE = ('A', 'B', 'C')
+# Zentrale Liste der PDF-Stile: TEMPLATE_IDS, T0 (erster/Standard), T1 (zweiter) kommen aus tests/common.py (dort wegen der Browser-Globals __T0/__T1) und stehen hier per Stern-Import bereit.
+# SAVORA_PDF_IDS=A,B erlaubt Laeufe gegen alten Code (vor 0.75).
+STILE = tuple(TEMPLATE_IDS)
 NAEHRWERT_STUFEN = ('off', 'compact', 'full')
 COVER_VORLAGEN = ['pop', 'lieblingsbuch', 'tomate', 'salbei', 'nachtkueche', 'citrus', 'bistro', 'garten', 'sonnenkueche', 'ofenglueck']
 # Mindestgroessen (pt) auf A4 nach Auftrag: Haupttext 10, Sekundaertext 8,5
@@ -196,7 +198,7 @@ class Export:
 
 
 class PdfSession:
-    """async with PdfSession(out) as s: await s.single('pdf_manti', 'A', 'compact') ..."""
+    """async with PdfSession(out) as s: await s.single('pdf_manti', T0, 'compact') ..."""
     def __init__(self, out=None, breite=1000, hoehe=900):
         self.out = out or os.path.join(OUT, 'pdf'); os.makedirs(self.out, exist_ok=True); self.w, self.h = breite, hoehe
         self.fx = lade_fixtures(); self.naehrwerte_status = {}; self.fehler = []
@@ -232,17 +234,20 @@ class PdfSession:
         pfad = os.path.join(self.out, name + '.pdf'); open(pfad, 'wb').write(base64.b64decode(b64))
         ex = Export(name, pfad, dom, time.time() - t, optionen); ex.dateiname = fn
         return ex
-    async def single(self, rezept_id, stil='A', naehrwerte='off', name=None):
+    async def single(self, rezept_id, stil=None, naehrwerte='off', name=None):
+        stil = stil or T0
         name = name or f'einzel_{rezept_id.replace("pdf_", "")}_{stil}_{naehrwerte}'
         return await self._erfasse("buildSinglePdf(a[0], a[1], { template: a[2] })", [rezept_id, naehrwerte, stil], name, dict(art='einzel', rezept=rezept_id, stil=stil, naehrwerte=naehrwerte))
-    async def konfiguriere_buch(self, buch='ref', stil='A', titel=None, name=None, slogan=None, logo=True, cover='pop', datum_zeigen=True, datum='2026-10-14', ids=None):
+    async def konfiguriere_buch(self, buch='ref', stil=None, titel=None, name=None, slogan=None, logo=True, cover='pop', datum_zeigen=True, datum='2026-10-14', ids=None):
+        stil = stil or T0
         b = self.fx['books'][buch]
         items = [{'recipeId': i, 'chapterId': c} for i, c in b['items']] if ids is None else [{'recipeId': i, 'chapterId': ''} for i in ids]
         cfg = dict(title=b['title'] if titel is None else titel, subtitle=b['subtitle'] if slogan is None else slogan, author=b['author'] if name is None else name,
                    pdfTemplate=stil, chapters=b['chapters'] if ids is None else [], items=items, showLogo=logo, chapterPages=False, cover=dict(v=1, templateId=cover, date=datum, showDate=datum_zeigen))
         await self.page.evaluate("(c) => saveCookbookConfig(c)", cfg)
-    async def book(self, buch='ref', stil='A', naehrwerte='off', datei=None, **kw):
+    async def book(self, buch='ref', stil=None, naehrwerte='off', datei=None, **kw):
         """kw: titel, name (Autor), slogan, logo, cover, datum_zeigen, datum, ids (nur diese Rezepte, ohne Kapitel). datei = Dateiname des PDFs."""
+        stil = stil or T0
         await self.konfiguriere_buch(buch, stil, **kw)
         name = datei or f'buch_{buch}_{stil}_{naehrwerte}'
         return await self._erfasse("buildCookbookPdf(a[0], { template: a[1] })", [naehrwerte, stil], name, dict(art='buch', buch=buch, stil=stil, naehrwerte=naehrwerte, **{k: v for k, v in kw.items()}))
@@ -607,6 +612,28 @@ def alle_pruefungen(ex, rezepte=None):
     return r
 
 
+async def vorschau_gleich_download(s, stil=None, rezept='pdf_carbonara', stufe='full', erwarte_text='Zucker'):
+    """Echte Bedienung: Exportfenster oeffnen, Stil und Naehrwerte waehlen, PDF erstellen, in der Vorschau «Herunterladen» klicken.
+       Vergleicht die Bytes (SHA-256) von Vorschau und Download, Seitenzahl und gewaehlten Stil. Die Bedienelemente heissen
+       pdf-export-set-template (data-id = Stil), pdf-export-set-detail (data-level), pdf-export-build, pdf-export-download."""
+    stil = stil or T1; page = s.page
+    await page.evaluate("(id) => { state.activeRecipeId = id; state.view = 'detail'; render(); openModal({ type: 'pdf-export', target: 'single', recipeId: id, stage: 'options', template: window.__T0, nutritionDetail: 'off' }); }", rezept)
+    await page.wait_for_selector('[data-action="pdf-export-build"]', timeout=10000)
+    await page.click('[data-action="pdf-export-set-template"][data-id="' + stil + '"]')
+    if await page.query_selector('[data-action="pdf-export-set-detail"][data-level="' + stufe + '"]'): await page.click('[data-action="pdf-export-set-detail"][data-level="' + stufe + '"]')
+    await page.click('[data-action="pdf-export-build"]')
+    await page.wait_for_selector('[data-action="pdf-export-download"]', timeout=60000)
+    await page.wait_for_timeout(500)
+    h_vorschau = await page.evaluate("async () => { const b = state.modal.previewBlob; const u = new Uint8Array(await b.arrayBuffer()); const d = await crypto.subtle.digest('SHA-256', u); return [Array.from(new Uint8Array(d)).map(x => x.toString(16).padStart(2, '0')).join(''), b.pageCount || 0, state.modal.template, state.modal.nutritionDetail]; }")
+    async with page.expect_download(timeout=30000) as d:
+        await page.click('[data-action="pdf-export-download"]')
+    dl = await d.value; pfad = os.path.join(s.out, f'ui_download_{stil}_{stufe}.pdf'); await dl.save_as(pfad)
+    h_dl = hashlib.sha256(open(pfad, 'rb').read()).hexdigest()
+    n = pdfinfo(pfad)['seiten']; t = ' '.join(pdftext(pfad).split())
+    info = f'Vorschau {h_vorschau[0][:10]} Download {h_dl[:10]}, Stil {h_vorschau[2]}, Detail {h_vorschau[3]}, Seiten (Vorschau/Datei) {h_vorschau[1]}/{n}, «{erwarte_text}» im PDF: {erwarte_text in t}'
+    await page.evaluate("() => { state.modal = null; render(); }")
+    return {'gleich': h_vorschau[0] == h_dl and h_vorschau[2] == stil and h_vorschau[3] == stufe and (not erwarte_text or erwarte_text in t), 'seiten_ok': h_vorschau[1] == n, 'info': info, 'pdf': pfad}
+
 # ---------- Programm: Baseline-Exporte ----------
 async def _baseline(out, stile, buch_stile):
     os.makedirs(out, exist_ok=True)
@@ -623,7 +650,7 @@ async def _baseline(out, stile, buch_stile):
                     jobs.append(('einzel', rid, stil, nw))
         for stil in buch_stile:
             jobs.append(('buch', 'ref', stil, 'compact'))
-            if stil == 'A': jobs.append(('buch', 'gross', stil, 'compact'))
+            if stil == T0: jobs.append(('buch', 'gross', stil, 'compact'))
         for art, rid, stil, nw in jobs:
             try:
                 ex = await (s.single(rid, stil, nw) if art == 'einzel' else s.book(rid, stil, nw))

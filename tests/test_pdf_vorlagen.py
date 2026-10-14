@@ -1,5 +1,5 @@
 """PDF-Vorlagen (Inhalt der Rezeptseite): Zutatenspalte, Gruppentitel, Zusatzbloecke, Naehrwerte, Quellen, Typografie.
-Rendert pvRecipePage mit Testmodellen in allen drei Stilen (A, B, C) und misst im DOM (Schriften sind geladen).
+Rendert pvRecipePage mit Testmodellen in allen Stilen (TEMPLATE_IDS, Standard pur und prise-pop) und misst im DOM (Schriften sind geladen).
 Aelteres Zutatenmodell (Menge samt Einheit) UND neues Modell (amount/name/note/raw/uncertain) werden geprueft."""
 import asyncio, sys, os, json
 import os as _os; sys.path.insert(0, _os.path.dirname(_os.path.abspath(__file__)))
@@ -121,7 +121,7 @@ async def main():
         gl = await page.evaluate("""() => { const c = document.createElement('canvas').getContext('2d'); const w = (f, t) => { c.font = f; return c.measureText(t).width; };
           return ['½', '¼', '¾'].map((t) => [w('600 20px Roboto, serif', t), w('600 20px Roboto, monospace', t)]); }""")
         check('Brüche ½ ¼ ¾ sind in Roboto vorhanden', all(abs(a - b_) < .01 and a > 0 for a, b_ in gl), str(gl))
-        for tpl in ('A', 'B', 'C'):
+        for tpl in TEMPLATE_IDS:
             for key, detail in [('mantiAlt', 'off'), ('mantiNeu', 'compact'), ('cookies', 'compact'), ('voll', 'full'), ('leer', 'compact')]:
                 await page.evaluate("([k, t, d]) => { __render(k, t, d); }", [key, tpl, detail])
                 await page.evaluate("document.fonts.ready"); await page.wait_for_timeout(60)
@@ -165,7 +165,7 @@ async def main():
           return { n: u.length, bad: u.filter((x) => /pv-ing-group/.test(x.html) && !/pv-ing"/.test(x.html.slice(x.html.lastIndexOf('pv-ing-group')))).length,
                    endsGroup: u.filter((x) => /<div class="pv-ing-group">[^<]*<\\/div>$/.test(x.html)).length, total: u.reduce((a, x) => a + (x.html.match(/pv-ing"/g) || []).length, 0) }; }""")
         check('Einheiten: Gruppentitel immer mit mindestens einer Zutat, nichts geht verloren', un['bad'] == 0 and un['endsGroup'] == 0 and un['total'] == 66, str(un))
-        ex = await page.evaluate("""() => { pdfSetContext('A', '', '', true); const m = __models.cookies; const units = pvExtrasUnits(m, 'compact'); const all = pvExtrasHtml(m, 'compact');
+        ex = await page.evaluate("""() => { pdfSetContext(__T0, '', '', true); const m = __models.cookies; const units = pvExtrasUnits(m, 'compact'); const all = pvExtrasHtml(m, 'compact');
           return { n: units.length, first: units[0].html.includes('pv-label') && units[0].html.includes('<p>'), more: units.filter((x) => x.more).every((x) => !x.html.includes('pv-label') && x.contHtml.includes('Fortsetzung')),
                    hints: (all.match(/>Hinweise</g) || []).length, empty: pvExtrasHtml(__models.leer, 'off') }; }""")
         check('Zusatzeinheiten: Überschrift mit erstem Absatz, Folgeabsatz mit «· Fortsetzung»', ex['first'] and ex['more'] and ex['hints'] == 1, str(ex))

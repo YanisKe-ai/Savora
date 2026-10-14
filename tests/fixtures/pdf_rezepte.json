@@ -2100,6 +2100,399 @@
    "_nutri": true
   },
   {
+   "id": "pdf_zitronenpasta",
+   "title": "Zitronenpasta",
+   "servings": 2,
+   "timeMinutes": 15,
+   "tags": [
+    "Hauptgang"
+   ],
+   "categoryTags": [],
+   "diet": [],
+   "difficulty": "",
+   "notes": "",
+   "ingredients": [
+    {
+     "amount": "200",
+     "unit": "g",
+     "name": "Spaghetti"
+    },
+    {
+     "amount": "1",
+     "unit": "",
+     "name": "Bio-Zitrone (Schale und Saft)"
+    },
+    {
+     "amount": "2",
+     "unit": "EL",
+     "name": "Olivenöl"
+    },
+    {
+     "amount": "30",
+     "unit": "g",
+     "name": "Parmesan, gerieben"
+    },
+    {
+     "amount": "",
+     "unit": "",
+     "name": "Salz und Pfeffer"
+    }
+   ],
+   "steps": [
+    {
+     "text": "Die Spaghetti in Salzwasser bissfest kochen."
+    },
+    {
+     "text": "Zitronenschale abreiben, Saft auspressen und mit Olivenöl und Parmesan in einer grossen Schüssel verrühren."
+    },
+    {
+     "text": "Die Pasta abtropfen lassen, mit etwas Kochwasser unter die Sauce mischen und sofort servieren."
+    }
+   ],
+   "_img": "square"
+  },
+  {
+   "id": "pdf_gruppen",
+   "title": "Festplatte mit zehn Zutaten-Gruppen",
+   "servings": 6,
+   "timeMinutes": 150,
+   "tags": [
+    "Hauptgang"
+   ],
+   "categoryTags": [],
+   "diet": [],
+   "difficulty": "",
+   "notes": "",
+   "ingredients": [
+    {
+     "amount": "",
+     "unit": "",
+     "name": "Für den Teig:"
+    },
+    {
+     "amount": "50",
+     "unit": "ml",
+     "name": "Mehl"
+    },
+    {
+     "amount": "60",
+     "unit": "g",
+     "name": "Wasser"
+    },
+    {
+     "amount": "70",
+     "unit": "ml",
+     "name": "Salz"
+    },
+    {
+     "amount": "",
+     "unit": "",
+     "name": "Für die Füllung:"
+    },
+    {
+     "amount": "51",
+     "unit": "ml",
+     "name": "Hackfleisch"
+    },
+    {
+     "amount": "61",
+     "unit": "g",
+     "name": "Zwiebel"
+    },
+    {
+     "amount": "71",
+     "unit": "ml",
+     "name": "Petersilie"
+    },
+    {
+     "amount": "81",
+     "unit": "g",
+     "name": "Paprikapulver"
+    },
+    {
+     "amount": "",
+     "unit": "",
+     "name": "Für die Joghurtsauce:"
+    },
+    {
+     "amount": "52",
+     "unit": "ml",
+     "name": "Joghurt"
+    },
+    {
+     "amount": "62",
+     "unit": "g",
+     "name": "Knoblauch"
+    },
+    {
+     "amount": "72",
+     "unit": "ml",
+     "name": "Minze"
+    },
+    {
+     "amount": "",
+     "unit": "",
+     "name": "Für die Butter:"
+    },
+    {
+     "amount": "53",
+     "unit": "ml",
+     "name": "Butter"
+    },
+    {
+     "amount": "63",
+     "unit": "g",
+     "name": "Chiliflocken"
+    },
+    {
+     "amount": "",
+     "unit": "",
+     "name": "Zum Garnieren:"
+    },
+    {
+     "amount": "54",
+     "unit": "ml",
+     "name": "Sumach"
+    },
+    {
+     "amount": "64",
+     "unit": "g",
+     "name": "Pinienkerne"
+    },
+    {
+     "amount": "",
+     "unit": "",
+     "name": "Für die Brühe:"
+    },
+    {
+     "amount": "55",
+     "unit": "ml",
+     "name": "Gemüsebrühe"
+    },
+    {
+     "amount": "65",
+     "unit": "g",
+     "name": "Lorbeerblatt"
+    },
+    {
+     "amount": "75",
+     "unit": "ml",
+     "name": "Pfefferkörner"
+    },
+    {
+     "amount": "",
+     "unit": "",
+     "name": "Für den Salat:"
+    },
+    {
+     "amount": "56",
+     "unit": "ml",
+     "name": "Gurke"
+    },
+    {
+     "amount": "66",
+     "unit": "g",
+     "name": "Tomaten"
+    },
+    {
+     "amount": "76",
+     "unit": "ml",
+     "name": "Rucola"
+    },
+    {
+     "amount": "",
+     "unit": "",
+     "name": "Für die Marinade:"
+    },
+    {
+     "amount": "57",
+     "unit": "ml",
+     "name": "Zitronensaft"
+    },
+    {
+     "amount": "67",
+     "unit": "g",
+     "name": "Olivenöl"
+    },
+    {
+     "amount": "77",
+     "unit": "ml",
+     "name": "Honig"
+    },
+    {
+     "amount": "",
+     "unit": "",
+     "name": "Zum Servieren:"
+    },
+    {
+     "amount": "58",
+     "unit": "ml",
+     "name": "Fladenbrot"
+    },
+    {
+     "amount": "68",
+     "unit": "g",
+     "name": "Granatapfelkerne"
+    },
+    {
+     "amount": "",
+     "unit": "",
+     "name": "Vorbereitung:"
+    },
+    {
+     "amount": "59",
+     "unit": "ml",
+     "name": "Eiswasser"
+    },
+    {
+     "amount": "69",
+     "unit": "g",
+     "name": "Küchentuch"
+    }
+   ],
+   "steps": [
+    {
+     "text": "Alle Gruppen getrennt vorbereiten und bereitstellen."
+    },
+    {
+     "text": "Teig kneten, ruhen lassen und ausrollen."
+    },
+    {
+     "text": "Füllung würzen, Teigquadrate füllen und verschliessen."
+    },
+    {
+     "text": "In der Brühe garen und mit den Saucen anrichten."
+    }
+   ],
+   "_img": "landscape",
+   "_nutri": true
+  },
+  {
+   "id": "pdf_unicode",
+   "title": "Ağrı-Çorbası mit ½ Löffel Æble, Łódź und «Crème»",
+   "servings": 4,
+   "timeMinutes": 45,
+   "tags": [
+    "Hauptgang"
+   ],
+   "categoryTags": [],
+   "diet": [],
+   "difficulty": "",
+   "notes": "Notiz mit Sonderzeichen: ½ + ¼ = ¾; Größe wird «Grösse»; Ł, ş, ı, İ, ø, å, œ.",
+   "ingredients": [
+    {
+     "amount": "½",
+     "unit": "TL",
+     "name": "Kümmel (gemahlen)"
+    },
+    {
+     "amount": "1/3",
+     "unit": "Tasse",
+     "name": "Linsen – rot, gewaschen"
+    },
+    {
+     "amount": "¾",
+     "unit": "l",
+     "name": "Gemüsebrühe"
+    },
+    {
+     "amount": "1½",
+     "unit": "EL",
+     "name": "Öl für die Pfanne"
+    },
+    {
+     "amount": "2–3",
+     "unit": "Stk.",
+     "name": "Knoblauchzehen, fein gehackt"
+    },
+    {
+     "amount": "1 – 2",
+     "unit": "dl",
+     "name": "Rahm („flüssig“)"
+    },
+    {
+     "amount": "",
+     "unit": "",
+     "name": "Jalapeño, ñandú-Gewürz, Smørrebrød-Brösel"
+    },
+    {
+     "amount": "10",
+     "unit": "g",
+     "name": "Şeker und ığ-Pulver (zur Dekoration)"
+    },
+    {
+     "amount": "",
+     "unit": "",
+     "name": "Salz & Pfeffer nach Belieben"
+    }
+   ],
+   "steps": [
+    {
+     "text": "Die Zwiebeln glasig dünsten – nicht bräunen – und mit Kümmel würzen."
+    },
+    {
+     "text": "Linsen und Brühe zugeben, 20 Minuten köcheln lassen, dann pürieren und mit «Rahm» verfeinern."
+    },
+    {
+     "text": "Mit Pfeffer abschmecken; Reste in Ğ-Dosen abfüllen."
+    }
+   ],
+   "_img": "portrait"
+  },
+  {
+   "id": "pdf_cookies_lang",
+   "title": "Chocolate Chip Cookies mit Haferflocken, dunkler Schokolade, Meersalz und einem ungewöhnlich langen Titel für Gäste am Sonntag",
+   "servings": 24,
+   "timeMinutes": 45,
+   "tags": [
+    "Hauptgang"
+   ],
+   "categoryTags": [],
+   "diet": [],
+   "difficulty": "",
+   "notes": "Kurze Notiz.",
+   "ingredients": [
+    {
+     "amount": "150",
+     "unit": "g",
+     "name": "Butter, weich"
+    },
+    {
+     "amount": "2",
+     "unit": "",
+     "name": "Eier"
+    },
+    {
+     "amount": "300",
+     "unit": "g",
+     "name": "dunkle Schokolade, gehackt"
+    },
+    {
+     "amount": "3",
+     "unit": "gehäufte Esslöffel",
+     "name": "Rohzucker"
+    },
+    {
+     "amount": "½",
+     "unit": "Tasse",
+     "name": "Haferflocken"
+    }
+   ],
+   "steps": [
+    {
+     "text": "Butter und Zucker cremig rühren, Eier einzeln dazugeben."
+    },
+    {
+     "text": "Mehl, Haferflocken und Schokolade unterheben."
+    },
+    {
+     "text": "Kugeln formen und im auf 180 Grad vorgeheizten Ofen 12 Minuten backen."
+    }
+   ],
+   "_img": "portrait",
+   "_nutri": true
+  },
+  {
    "id": "pdf_mini01",
    "title": "Kapitelrezept Nummer 01",
    "servings": 3,
@@ -3108,6 +3501,22 @@
     [
      "pdf_dreiseiten",
      "c2"
+    ],
+    [
+     "pdf_zitronenpasta",
+     "c1"
+    ],
+    [
+     "pdf_gruppen",
+     "c2"
+    ],
+    [
+     "pdf_unicode",
+     "c1"
+    ],
+    [
+     "pdf_cookies_lang",
+     "c1"
     ],
     [
      "pdf_mini01",
