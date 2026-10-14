@@ -168,7 +168,6 @@ function openModal(modal, triggerSelector) {
   render();
 }
 function closeModal() {
-  stopNutritionBarcodeCamera(); // Kamera darf nie weiterlaufen, wenn das Modal verlassen wird
   revokePdfPreviewUrl(); // Blob-URL der PDF-Vorschau freigeben, sonst haengt der Blob im Speicher
   // Punkt 5: ueber history.back() statt direktem state.modal=null, damit der beim Oeffnen
   // gepushte History-Eintrag korrekt konsumiert wird (sonst haengt ein stiller Eintrag im
@@ -385,7 +384,7 @@ function renderKeepFocus(id) {
    kann (ein Editor, ein PDF-Export-Modal, ein Backup-Vorgang). */
 const ASYNC_GUARDED_ACTIONS = new Set([
   'save-recipe', 'export-backup', 'pdf-export-build', 'pdf-export-download', 'pdf-export-share',
-  'nutrition-confirm-match', 'nutrition-accept-suggestions', 'nutrition-save-custom', 'nutrition-barcode-lookup',
+  'nutrition-confirm-match', 'nutrition-accept-suggestions', 'nutrition-save-custom',
   'duplicate-recipe', 'share-send', 'share-accept', 'share-connect', 'rc-apply', 'confirm-shop-select', 'cook-complete', 'save-note',
 ]);
 const busyActions = new Set();
@@ -1095,31 +1094,6 @@ async function dispatchAction(action, id, el, e) {
       showToast('Fertiggewicht gespeichert');
       break;
     }
-
-    /* ---------- Nutrition: Open Food Facts Barcode (Punkt 27-29) ---------- */
-    case 'nutrition-open-barcode':
-      state.nutritionSelectTarget = el.dataset.name || state.nutritionSelectTarget;
-      state.nutritionBarcodeStatus = 'idle';
-      state.nutritionBarcodeProduct = null;
-      state.nutritionBarcodeInput = '';
-      state.modal.stage = 'barcode';
-      render();
-      break;
-    case 'nutrition-start-camera':
-      await startNutritionBarcodeCamera();
-      break;
-    case 'nutrition-barcode-lookup': {
-      const code = (document.getElementById('nutritionBarcodeManual').value || '').trim();
-      stopNutritionBarcodeCamera();
-      state.nutritionBarcodeInput = code;
-      await lookupBarcodeAndRender(code);
-      break;
-    }
-    case 'nutrition-close-barcode':
-      stopNutritionBarcodeCamera();
-      state.modal.stage = 'select';
-      render();
-      break;
 
     /* ---------- PDF-Export-Vorschau (Punkt 59, 65) ---------- */
     case 'noop':

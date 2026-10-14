@@ -20,8 +20,8 @@ check('Alle von index.html geladenen Dateien stehen in der Service-Worker-Liste'
 check('Die Liste enthält nur vorhandene Dateien', not ghost, str(ghost))
 # Seit Audit B (P01/P02): grosse Dateien sind optional, PDF-Bibliotheken werden bei Bedarf nachgeladen, bleiben aber offline im Shell-Cache
 check('Optionale grosse Dateien stehen NICHT in der Installationsliste', not (optional & set(re.findall(r"'\./([^']*)'", shell))), str(sorted(optional & set(re.findall(r"'\./([^']*)'", shell)))))
-check('Cover in Vollaufloesung und Naehrwertdatei sind optional', 'swiss-fcd-data.json' in optional and sum(1 for o in optional if o.startswith('assets/covers/') and '/thumbs/' not in o) == 10)
-check('Kleine Cover-Vorschaubilder bleiben in der Shell', sum(1 for u in re.findall(r"'\./(assets/covers/thumbs/[^']*)'", shell)) == 10)
+check('Cover in Vollaufloesung und Naehrwertdatei sind optional', 'swiss-fcd-data.json' in optional and sum(1 for o in optional if o.startswith('assets/covers/') and '/thumbs/' not in o) == 15)
+check('Kleine Cover-Vorschaubilder bleiben in der Shell', sum(1 for u in re.findall(r"'\./(assets/covers/thumbs/[^']*)'", shell)) == 15)
 check('jsPDF und html2canvas stehen nicht mehr als Script-Tag in index.html', not any(('jspdf' in u or 'html2canvas' in u) for u in used), str(sorted(used)))
 check('jsPDF und html2canvas bleiben im Shell-Cache (Export offline)', 'jspdf.umd.min.js' in listed and 'html2canvas.min.js' in listed and 'jspdf.umd.min.js' in shell and 'html2canvas.min.js' in shell)
 check('pdf.js laedt die Bibliotheken ueber ensurePdfLibs', 'ensurePdfLibs' in open(os.path.join(ROOT, 'pdf.js'), encoding='utf-8').read())

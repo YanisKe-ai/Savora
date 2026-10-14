@@ -905,8 +905,6 @@
   .nutrition-source-line svg { width: 13px; height: 13px; flex-shrink: 0; }
   .nutrition-disclaimer { font-size: 0.875rem; color: var(--text-muted); line-height: 1.4; margin-top: 0.5rem; }
   .nutrition-select-actions { display: flex; flex-direction: column; gap: 0.5rem; margin: 0.25rem 0 1rem; }
-  .nutrition-camera-wrap { background: #000; border-radius: var(--radius-m); overflow: hidden; aspect-ratio: 4/3; margin-bottom: 0.75rem; }
-  .nutrition-camera-wrap video { width: 100%; height: 100%; object-fit: cover; display: block; }
   .nutrition-prep-hint { font-size: 0.875rem; color: var(--accent); display: flex; align-items: center; gap: 0.25rem; margin-top: 0.125rem; }
   .nutrition-prep-hint svg { width: 10px; height: 10px; }
 
