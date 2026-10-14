@@ -65,7 +65,7 @@ async def main():
         await page.click('.ce-hit[data-hit="title"]'); await page.wait_for_timeout(300)
         act = await ev("() => document.activeElement && document.activeElement.tagName")
         fr = await ev("() => { const f = document.querySelector('.ce-frame[data-fr=\"title\"]'); return f ? f.getAttribute('aria-label') : null; }")
-        check('Antippen wählt das Feld aus (Rahmen, Beschriftung), Tastatur öffnet nicht', fr and 'Kochbuchtitel' in fr and act not in ('INPUT', 'TEXTAREA'), f'{act} {fr}')
+        check('Antippen wählt das Feld aus (Rahmen, Beschriftung), Tastatur öffnet nicht', fr and 'Kochbuchtitel' in fr and await ev("() => !!document.querySelector('.ce-field[data-f=title] .ce-badge') && !document.querySelector('.ce-field[data-f=title] [data-ce=select]')") and act not in ('INPUT', 'TEXTAREA'), f'{act} {fr}')
         await page.click('[data-ce="edit"][data-f="title"]')
         check('«Text bearbeiten» setzt den Fokus ins Eingabefeld', await ev("() => document.activeElement.id") == 'cbTitle')
         check('Einmaliger Rahmen und Griffe nur beim ausgewählten Feld', await ev("() => document.querySelectorAll('.ce-frame').length") == 1 and await ev("() => document.querySelectorAll('.ce-grip').length") == 2)
@@ -258,6 +258,15 @@ async def main():
         m = await ev("() => ce.model")
         check('Cover zurücksetzen: Vorlage ohne Anpassungen, Texte und Datum bleiben, Rezepte bleiben', m['mode'] == 'template' and not m['fields'] and m['image'] is None and await ev("() => ce.texts.title") == 'Testbuch' and await ev("() => state.recipes.length") == n_rec, str(m)[:200])
 
+        # ---------- 12b. Leere optionale Felder: keine Platzhalter in Vorschau oder Export ----------
+        await page.click('[data-ce="mode"][data-v="custom"]'); await page.click('[data-ce="tab"][data-v="text"]')
+        await page.fill('#cbSubtitle', ''); await page.fill('#cbAuthor', ''); await page.fill('#cbExtra1', ''); await page.dispatch_event('#cbAuthor', 'change'); await page.wait_for_timeout(300)
+        ph = await ev("""() => { const L = ce.layout, cfg = getCookbookConfig(), E = coverLayout(coverInputFromConfig(cfg)), h = coverHtml(E, '');
+          const txt = (l) => l.blocks.map(b => b.lines.join(' ')).join('|');
+          return { ids: E.blocks.map(b => b.id || b.key), view: txt(L), exp: txt(E), html: /Untertitel|Name|Weitere Textzeile|Textzeile|z\. B\./.test(h.replace(/class=\"[^\"]*\"/g, '')) }; }""")
+        check('Leere Felder: weder Vorschau noch Export (Layout und PDF-Textebene) enthalten Platzhaltertexte', ph['ids'] == ['title'] and ph['view'] == 'Testbuch' and ph['exp'] == 'Testbuch' and not ph['html'], str(ph))
+        await page.fill('#cbSubtitle', 'Kurz'); await page.dispatch_event('#cbSubtitle', 'change')
+
         # ---------- 13. Export ohne Editor-Elemente ----------
         await ev("() => { state.cookbookStep = 3; render(); }"); await page.wait_for_timeout(800)
         check('Vorschau und PDF-Schritt enthalten keine Bedienebene', await ev("() => document.querySelectorAll('.ce-overlay, .ce-frame, .ce-guides').length") == 0)
@@ -302,7 +311,7 @@ async def main():
         for w, h in ((390, 844), (768, 1024), (1440, 900)):
             browser, ctx, page = await new_page(p, w, h)
             ev = page.evaluate
-            await open_design(page, 'Breite', 'Untertitel', 'Name')
+            await open_design(page, 'Sonntagsküche', 'Rezepte aus dem Garten', 'Alex Muster')
             await page.click('[data-ce="mode"][data-v="custom"]'); await page.click('[data-ce="tab"][data-v="text"]'); await page.click('[data-ce="select"][data-f="title"]'); await page.wait_for_timeout(500)
             over = await ev("() => document.documentElement.scrollWidth - document.documentElement.clientWidth")
             check(f'{w} px: kein horizontales Scrollen', over <= 1, str(over))
@@ -331,18 +340,21 @@ async def main():
                 check('Fokusring: 3 px', fo == ['solid', '3px'], str(fo))
                 tabs = await ev("() => document.querySelector('.ce-tabs').getAttribute('role') + document.querySelector('.ce-tab.is-on').getAttribute('aria-selected')")
                 check('Reiter: tablist und aria-selected', tabs == 'tablisttrue')
-                await ev("() => document.activeElement.blur()")
-                await page.screenshot(path='/tmp/c3_shots/editor_390_hell.png')
-                await page.click('[data-ce="tab"][data-v="arr"]'); await page.wait_for_timeout(200); await page.screenshot(path='/tmp/c3_shots/editor_390_anordnung.png')
-            if w == 1440:
-                await page.screenshot(path='/tmp/c3_shots/editor_1440_hell.png')
+            await ev("() => { document.activeElement.blur(); window.scrollTo(0, 0); }"); await page.wait_for_timeout(300)
+            await page.screenshot(path=f'/tmp/c3_shots2/editor_{w}_hell.png')
+            await ev("() => window.scrollTo(0, 900)"); await page.wait_for_timeout(200)
+            await page.click('[data-ce="tab"][data-v="arr"]'); await page.wait_for_timeout(300)
+            tb = await box(page, '.ce-tabswrap'); pad = await ev("() => parseInt(document.documentElement.style.scrollPaddingTop) || 0")
+            check(f'{w} px: nach dem Reiterwechsel stehen die Reiter sichtbar unter Kopfleiste und Vorschau', tb['y'] >= pad - 2, f'{tb} {pad}')
+            await page.screenshot(path=f'/tmp/c3_shots2/editor_{w}_anordnung.png')
             await browser.close()
         for w, h, tag in ((390, 844, '390'), (1440, 900, '1440')):
             browser, ctx, page = await new_page(p, w, h, dark=True)
             await page.evaluate("() => { state.theme = 'dark'; applyTheme(); }")
-            await open_design(page, 'Dunkel', 'Untertitel', 'Name')
+            await open_design(page, 'Sonntagsküche', 'Rezepte aus dem Garten', 'Alex Muster')
             await page.click('[data-ce="mode"][data-v="custom"]'); await page.click('[data-ce="color"][data-v="#252720"]'); await page.click('[data-ce="tab"][data-v="text"]'); await page.click('[data-ce="select"][data-f="title"]'); await page.wait_for_timeout(500)
-            await page.screenshot(path=f'/tmp/c3_shots/editor_{tag}_dunkel.png')
+            await page.evaluate("() => { document.activeElement.blur(); window.scrollTo(0, 0); }"); await page.wait_for_timeout(300)
+            await page.screenshot(path=f'/tmp/c3_shots2/editor_{tag}_dunkel.png')
             await browser.close()
         print('\nFEHLER:', FAIL) if FAIL else print('\nAlle Prüfungen bestanden')
 asyncio.run(main())
