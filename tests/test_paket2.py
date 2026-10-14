@@ -25,7 +25,7 @@ async def main():
         page.on('pageerror', lambda e: errs.append(str(e)))
         await goto(page)
         pages = {
-            'settings-privacy': ['Wer verantwortlich ist', 'Deine Rechte', 'Supabase', 'Open Food Facts', 'Ende-zu-Ende'],
+            'settings-privacy': ['Wer verantwortlich ist', 'Deine Rechte', 'Supabase', 'Ende-zu-Ende'],
             'settings-terms': ['Beta-Version', 'Nährwerte und Allergene', 'Schweizer Recht'],
             'settings-sources': ['Schweizer Nährwertdatenbank', 'Open Food Facts', 'ODbL'],
             'settings-licenses': ['Roboto', 'jsPDF', 'html2canvas', 'Capacitor'],

@@ -254,3 +254,210 @@ function initHighlights() {
     }
   } catch (e) { /* Rueckfall: Browserstandard */ }
 })();
+
+/* ---------- Bewegung M1: Layout-Übergänge mit FLIP, gleitende Auswahlfläche ----------
+   Werte aus MOTION_TOKENS.json (Startwerte des Bewegungsauftrags). Ein zentraler Helfer für Rezeptkarten
+   (Filter/Sortierung/Suche) und «Erledigte nach unten»; render() bleibt der globale DOM-Tausch.
+   Regeln: Die Aktion selbst läuft immer sofort und synchron (fn), die Bewegung ist nur eine Ergänzung danach.
+   Identität kommt aus stabilen IDs (Rezept-/Artikel-ID, Map statt Selektor-Interpolation). Erst alle alten
+   Positionen lesen, dann DOM tauschen, dann alle neuen lesen, dann gesammelt animieren (nur transform/opacity,
+   Web Animations ohne fill, also keine Stilreste). Eine neue Aktion bricht die laufende Bewegung desselben Kanals
+   ab und startet von der aktuell SICHTBAREN Position (getBoundingClientRect enthält das laufende transform).
+   Jede Animation gehört einem Kanal und einer Transaktion: Aufräumen einer alten Transaktion berührt keine neuere.
+   Reduced Motion (auch beim Umschalten während der Sitzung), verdeckter Tab oder fehlende Web Animations:
+   sofort der Endzustand. Entfernte Karten verschwinden ohne Overlay: die Liste hat sofort ihre Endgeometrie,
+   es gibt keine doppelten, bedienbaren oder vorgelesenen Karten. */
+const MOTION = Object.freeze({
+  ease: 'cubic-bezier(0.2, 0.8, 0.2, 1)',
+  layout: 220,       // recipeReorder.duration
+  fade: 140,         // recipeReorder.enterExitDuration
+  enterY: 6,         // recipeReorder.enterTranslateY
+  select: 180,       // selectionIndicator.duration
+  shop: 220,         // shoppingExplicitSort.duration
+  margin: 160,       // Vorlauf über/unter dem sichtbaren Bereich (px)
+  maxMoving: 36,     // mehr bewegte Karten: nur kurz einblenden statt alles gleichzeitig verschieben
+});
+const _motionRuns = new Map();   // Kanal -> { tx, anims: Set<Animation> }
+let _motionTx = 0;
+
+function motionSupported() { return typeof Element !== 'undefined' && typeof Element.prototype.animate === 'function'; }
+function motionAllowed() { return motionSupported() && !motionReduced() && !document.hidden; }
+
+/* Bricht alle Bewegungen eines Kanals ab (Endzustand sofort, weil ohne fill). cancel() lehnt finished ab: abgefangen in motionTrack. */
+function motionCancel(channel) {
+  const run = _motionRuns.get(channel);
+  if (!run) return;
+  _motionRuns.delete(channel);
+  run.anims.forEach(a => { try { a.cancel(); } catch (e) { /* bereits beendet */ } });
+}
+function motionCancelAll() { Array.from(_motionRuns.keys()).forEach(motionCancel); }
+function motionTrack(channel, tx, anim) {
+  let run = _motionRuns.get(channel);
+  if (!run || run.tx !== tx) { if (run) motionCancel(channel); run = { tx, anims: new Set() }; _motionRuns.set(channel, run); }
+  run.anims.add(anim);
+  const done = () => {
+    const cur = _motionRuns.get(channel);
+    if (cur && cur.tx === tx) { cur.anims.delete(anim); if (!cur.anims.size) _motionRuns.delete(channel); }
+  };
+  anim.finished.then(done, done);
+  return anim;
+}
+
+/* FLIP um eine synchrone DOM-Änderung (meist render()).
+   cfg: items (Selektor), key(el) -> stabile ID, group(el) -> Layoutkennung (andere Gruppe = keine Bewegung,
+   z.B. Raster <-> Liste), duration, fadeNew: [{ items, key }] für neu erscheinende Begleiter (Abschnittstitel). */
+function motionFlip(channel, fn, cfg) {
+  const tx = ++_motionTx;
+  const animate = motionAllowed();
+  const group = cfg.group || (() => '');
+  const first = new Map(), firstExtra = new Set();
+  if (animate) {
+    const vh = window.innerHeight, m = MOTION.margin;
+    document.querySelectorAll(cfg.items).forEach(el => {
+      const k = cfg.key(el);
+      if (!k || first.has(k)) return;
+      const r = el.getBoundingClientRect();
+      first.set(k, { x: r.left, y: r.top, g: group(el), vis: r.bottom > -m && r.top < vh + m });
+    });
+    (cfg.fadeNew || []).forEach((f, i) => document.querySelectorAll(f.items).forEach(el => firstExtra.add(i + '|' + f.key(el))));
+  }
+  motionCancel(channel);
+  fn();
+  if (!animate || !motionAllowed()) return;
+  const vh = window.innerHeight, m = MOTION.margin;
+  const moves = [], enters = [], seen = new Set();
+  document.querySelectorAll(cfg.items).forEach(el => {
+    const k = cfg.key(el);
+    if (!k || seen.has(k)) return;
+    seen.add(k);
+    const r = el.getBoundingClientRect();
+    if (!r.width && !r.height) return;   // unsichtbar (display:none)
+    const vis = r.bottom > -m && r.top < vh + m;
+    const f = first.get(k);
+    if (f) {
+      if (f.g !== group(el)) return;
+      const dx = f.x - r.left, dy = f.y - r.top;
+      if ((Math.abs(dx) < 1 && Math.abs(dy) < 1) || (!vis && !f.vis)) return;
+      moves.push({ el, dx, dy, vis });
+    } else if (vis) enters.push(el);
+  });
+  (cfg.fadeNew || []).forEach((f, i) => document.querySelectorAll(f.items).forEach(el => {
+    if (firstExtra.has(i + '|' + f.key(el))) return;
+    const r = el.getBoundingClientRect();
+    if (r.bottom > -m && r.top < vh + m) enters.push(el);
+  }));
+  const many = moves.length > MOTION.maxMoving;
+  const dur = cfg.duration || MOTION.layout;
+  const fadeIn = [{ opacity: 0, transform: `translateY(${MOTION.enterY}px)` }, { opacity: 1, transform: 'none' }];
+  moves.forEach(({ el, dx, dy, vis }) => {
+    if (many) { if (vis) motionTrack(channel, tx, el.animate([{ opacity: 0 }, { opacity: 1 }], { duration: MOTION.fade, easing: MOTION.ease })); return; }
+    motionTrack(channel, tx, el.animate([{ transform: `translate(${dx}px, ${dy}px)` }, { transform: 'none' }], { duration: dur, easing: MOTION.ease }));
+  });
+  enters.forEach(el => motionTrack(channel, tx, el.animate(fadeIn, { duration: MOTION.fade, easing: MOTION.ease })));
+}
+
+/* Rezeptkarten der Startseite (Raster und Liste, Handy und gross): Identität = Rezept-ID */
+const MOTION_RECIPE_FLIP = {
+  items: '[data-flip-id]',
+  key: (el) => el.getAttribute('data-flip-id'),
+  group: (el) => (el.parentElement ? el.parentElement.className : ''),
+  duration: MOTION.layout,
+};
+function motionFlipRecipes(fn) {
+  if (state.view !== 'home') { fn(); return; }
+  motionFlip('recipes', fn, MOTION_RECIPE_FLIP);
+}
+
+/* Einkauf: nur «Erledigte nach unten». Identität = Artikel-ID; neu erscheinende Abschnittstitel blenden kurz ein. */
+const MOTION_SHOP_FLIP = {
+  items: '.shop-row[data-id]',
+  key: (el) => el.getAttribute('data-id'),
+  duration: MOTION.shop,
+  fadeNew: [
+    { items: '.shop-section-title', key: (el) => el.textContent.trim() },
+    { items: '.shopping-all-checked', key: () => 'all' },
+  ],
+};
+function motionFlipShopping(fn) { motionFlip('shop', fn, MOTION_SHOP_FLIP); }
+
+/* ---------- Gleitende Auswahlfläche bei «Alle / Favoriten» ----------
+   Eine aria-hidden Fläche (.seg-thumb) liegt hinter dem aktiven Knopf; Lage und Breite kommen aus dem
+   tatsächlichen Knopf (offsetLeft/Width, unabhängig von :active-Skalierung). render() baut die Leiste neu: die
+   alte Lage wird VOR dem Tausch gelesen (motionSegRect) und danach von dort zur neuen geführt. Erste Anzeige,
+   Schriftladen, Drehen und Grössenwechsel setzen die Fläche ohne Bewegung neu. aria-pressed bleibt die Semantik,
+   der Haken (::before) zusätzlich zur Farbe bleibt sichtbar. */
+let _segRO = null, _segObserved = null, _segKey = '';
+function motionSegKey(seg) { return Array.from(seg.querySelectorAll('.seg-btn')).map(b => b.offsetLeft + ':' + b.offsetWidth + ':' + b.offsetHeight + ':' + b.getAttribute('aria-pressed')).join('|'); }
+function motionSegPlace(seg) {
+  const thumb = seg && seg.querySelector(':scope > .seg-thumb');
+  const btn = seg && seg.querySelector('.seg-btn[aria-pressed="true"]');
+  if (!thumb) return null;
+  if (!btn || !btn.offsetWidth) { thumb.hidden = true; seg.classList.remove('has-thumb'); return null; }
+  thumb.hidden = false;
+  thumb.style.width = btn.offsetWidth + 'px';
+  thumb.style.height = btn.offsetHeight + 'px';
+  thumb.style.transform = `translate(${btn.offsetLeft}px, ${btn.offsetTop}px)`;
+  seg.classList.add('has-thumb');
+  _segKey = motionSegKey(seg);
+  return thumb;
+}
+function motionSegInit() {
+  const seg = document.querySelector('.filter-bar .seg');
+  if (!seg) { if (_segRO) { _segRO.disconnect(); _segObserved = null; } return; }
+  let thumb = seg.querySelector(':scope > .seg-thumb');
+  if (!thumb) {
+    thumb = document.createElement('span');
+    thumb.className = 'seg-thumb';
+    thumb.setAttribute('aria-hidden', 'true');
+    seg.insertBefore(thumb, seg.firstChild);
+  }
+  motionSegPlace(seg);
+  if (_segObserved !== seg && typeof ResizeObserver === 'function') {
+    if (!_segRO) _segRO = new ResizeObserver(() => {
+      const s = _segObserved;
+      if (!s || !s.isConnected || motionSegKey(s) === _segKey) return;   // nur echte Grössenwechsel (Drehen, Schrift, Fenster)
+      motionCancel('seg'); motionSegPlace(s);
+    });
+    _segRO.disconnect();
+    _segObserved = seg;
+    _segRO.observe(seg);
+    seg.querySelectorAll('.seg-btn').forEach(b => _segRO.observe(b));
+  }
+}
+/* Sichtbare Lage der Fläche (inkl. laufender Bewegung), relativ zur Leiste */
+function motionSegRect() {
+  const seg = document.querySelector('.filter-bar .seg');
+  const thumb = seg && seg.querySelector(':scope > .seg-thumb');
+  if (!thumb || thumb.hidden) return null;
+  const a = seg.getBoundingClientRect(), b = thumb.getBoundingClientRect();
+  return { x: b.left - a.left - seg.clientLeft, y: b.top - a.top - seg.clientTop, w: b.width };
+}
+/* Nach dem Tausch: von der alten zur neuen Lage gleiten (180 ms); Breitenunterschied über width der Fläche, nie über den Text */
+function motionSegSlide(prev) {
+  motionCancel('seg');
+  const seg = document.querySelector('.filter-bar .seg');
+  const thumb = motionSegPlace(seg);
+  if (!thumb || !prev || !motionAllowed()) return;
+  const btn = seg.querySelector('.seg-btn[aria-pressed="true"]');
+  const to = { x: btn.offsetLeft, y: btn.offsetTop, w: btn.offsetWidth };
+  if (Math.abs(prev.x - to.x) < 1 && Math.abs(prev.w - to.w) < 1) return;
+  const tx = ++_motionTx;
+  motionTrack('seg', tx, thumb.animate([
+    { transform: `translate(${prev.x}px, ${to.y}px)`, width: prev.w + 'px' },
+    { transform: `translate(${to.x}px, ${to.y}px)`, width: to.w + 'px' },
+  ], { duration: MOTION.select, easing: MOTION.ease }));
+}
+
+(function initMotionM1() {
+  // Reduced Motion während der Sitzung eingeschaltet: laufende Bewegungen sofort beenden (Endzustand)
+  try {
+    const mq = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)');
+    const onChange = () => { if (mq.matches) motionCancelAll(); };
+    if (mq && mq.addEventListener) mq.addEventListener('change', onChange);
+    else if (mq && mq.addListener) mq.addListener(onChange);
+  } catch (e) { /* ohne matchMedia: nichts zu tun */ }
+  // Hintergrund-Tab: nichts weiter animieren
+  document.addEventListener('visibilitychange', () => { if (document.hidden) motionCancelAll(); });
+  // Schrift geladen: Knopfbreiten können sich ändern, Auswahlfläche neu messen (ohne Bewegung)
+  try { if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => { const s = document.querySelector('.filter-bar .seg'); if (s) motionSegPlace(s); }); } catch (e) {}
+})();

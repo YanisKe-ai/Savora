@@ -168,7 +168,7 @@ async function handleActionV2(action, id, el, e) {
     case 'close-search': {
       state.searchOpen = false;
       if (id === 'clear') state.query = '';
-      render();
+      motionFlipRecipes(render);
       const btn = document.getElementById('searchBtn');
       if (btn) focusWithoutScroll(btn);
       return true;
@@ -185,16 +185,19 @@ async function handleActionV2(action, id, el, e) {
       if (!id || id === 'all') state.favOnly = false;
       else if (id === 'favorites') state.favOnly = true;
       else { state.activeFilters.more.clear(); state.activeFilters.more.add(id); }
-      render();
+      motionFlipRecipes(render);
       return true;
-    case 'set-fav-mode':
+    case 'set-fav-mode': {
+      const segFrom = motionSegRect();   // sichtbare Lage der Auswahlfläche VOR dem Neuaufbau
       state.favOnly = id === 'fav';
       state.activeCollection = 'all';
-      render();
+      motionFlipRecipes(render);
+      motionSegSlide(segFrom);
       return true;
+    }
     case 'reset-extra-filters':
       resetExtraFilters();
-      render();
+      motionFlipRecipes(render);
       return true;
     case 'fs-reset': {
       const d = filterDraft();
@@ -208,7 +211,7 @@ async function handleActionV2(action, id, el, e) {
         ['dietary', 'category', 'time', 'more', 'tags'].forEach(k => { f[k] = new Set(d[k]); });
         state.activeTag = null; state.activeCollection = 'all';
       }
-      closeModal();
+      closeModal();   // Neuaufbau erst nach popstate (asynchron): hier keine Kartenbewegung, das Fenster deckt die Liste ab
       return true;
     }
     case 'set-home-layout':
@@ -217,12 +220,12 @@ async function handleActionV2(action, id, el, e) {
       render();
       return true;
     case 'clear-search':
-      state.query = ''; render();
+      state.query = ''; motionFlipRecipes(render);
       return true;
     case 'clear-all-filters':
       resetExtraFilters();
       state.favOnly = false;
-      if (state.modal) closeModal(); else render();
+      if (state.modal) closeModal(); else motionFlipRecipes(render);
       return true;
     case 'open-recipe':
       if (state.activeRecipeId !== id) state.detailTab = 'ingredients';
@@ -652,10 +655,22 @@ async function handleActionV2(action, id, el, e) {
       showToast('Liste geleert', 'success', false, shopUndoOpts(snap));
       return true;
     }
-    case 'sort-checked-down':
+    case 'sort-checked-down': {
+      // Einzige Einkaufsaktion mit Bewegung: Zeilen gleiten nach dem Neuaufbau an ihren Platz (220 ms, ohne Staffelung).
+      // Der Knopf ist danach deaktiviert; der Fokus geht dann an den Titel «Erledigt» (wohin die Artikel gewandert sind), ohne Scrollen.
+      const hadFocus = document.activeElement && document.activeElement.closest && document.activeElement.closest('[data-action="sort-checked-down"]');
       state.shopStay = new Set();
-      render();
+      motionFlipShopping(render);
+      if (hadFocus) {
+        const btn = document.querySelector('[data-action="sort-checked-down"]');
+        if (btn && !btn.disabled) focusWithoutScroll(btn);
+        else {
+          const t = document.querySelector('.shop-section--done .shop-section-title') || document.querySelector('.shop-main .page-title');
+          if (t) { t.setAttribute('tabindex', '-1'); focusWithoutScroll(t); }
+        }
+      }
       return true;
+    }
     case 'share-shopping': {
       const open = state.shopping.filter(i => !i.checked && !i.have);
       const bySection = {};

@@ -168,7 +168,6 @@ function openModal(modal, triggerSelector) {
   render();
 }
 function closeModal() {
-  stopNutritionBarcodeCamera(); // Kamera darf nie weiterlaufen, wenn das Modal verlassen wird
   revokePdfPreviewUrl(); // Blob-URL der PDF-Vorschau freigeben, sonst haengt der Blob im Speicher
   // Punkt 5: ueber history.back() statt direktem state.modal=null, damit der beim Oeffnen
   // gepushte History-Eintrag korrekt konsumiert wird (sonst haengt ein stiller Eintrag im
@@ -292,7 +291,15 @@ function bindEvents() {
       const y = window.scrollY;
       requestAnimationFrame(() => { if (window.scrollY !== y) window.scrollTo(0, y); });
       clearTimeout(searchDebounceTimer);
-      searchDebounceTimer = setTimeout(() => renderKeepFocus('searchInput'), 120);
+      // IME (z.B. Japanisch, Akzente per Tottaste): waehrend der Komposition nicht neu aufbauen, sonst bricht sie ab;
+      // compositionend loest das Neuzeichnen aus. Treffer gleiten per FLIP (Bewegung M1), das Suchfeld selbst bewegt sich nicht.
+      if (e.isComposing) return;
+      searchDebounceTimer = setTimeout(() => motionFlipRecipes(() => renderKeepFocus('searchInput')), 120);
+    });
+    searchInput.addEventListener('compositionend', (e) => {
+      state.query = e.target.value;
+      clearTimeout(searchDebounceTimer);
+      searchDebounceTimer = setTimeout(() => motionFlipRecipes(() => renderKeepFocus('searchInput')), 120);
     });
   }
   const restoreInput = document.getElementById('restoreFileInput');
@@ -377,7 +384,7 @@ function renderKeepFocus(id) {
    kann (ein Editor, ein PDF-Export-Modal, ein Backup-Vorgang). */
 const ASYNC_GUARDED_ACTIONS = new Set([
   'save-recipe', 'export-backup', 'pdf-export-build', 'pdf-export-download', 'pdf-export-share',
-  'nutrition-confirm-match', 'nutrition-accept-suggestions', 'nutrition-save-custom', 'nutrition-barcode-lookup',
+  'nutrition-confirm-match', 'nutrition-accept-suggestions', 'nutrition-save-custom',
   'duplicate-recipe', 'share-send', 'share-accept', 'share-connect', 'rc-apply', 'confirm-shop-select', 'cook-complete', 'save-note',
 ]);
 const busyActions = new Set();
@@ -500,18 +507,18 @@ async function dispatchAction(action, id, el, e) {
       const r = state.recipes.find(x => x.id === id);
       r.favorite = !r.favorite;
       await dbPut(r);
-      render();
+      motionFlipRecipes(render);   // in «Favoriten» faellt die Karte weg, die anderen ruecken nach
       break;
     }
     case 'filter-tag':
       state.activeTag = null;
       state.activeFilters.tags.clear();
       if (el.dataset.tag) state.activeFilters.tags.add(el.dataset.tag);
-      render();
+      motionFlipRecipes(render);
       break;
     case 'toggle-fav-filter':
       state.favOnly = !state.favOnly;
-      render();
+      motionFlipRecipes(render);
       break;
     case 'open-filter-sheet':
       openModal({ type: 'filter-sheet' }, `[data-action="open-filter-sheet"]`);
@@ -520,13 +527,13 @@ async function dispatchAction(action, id, el, e) {
       const dim = el.dataset.dim, fid = el.dataset.id;
       const set = state.activeFilters[dim];
       if (set.has(fid)) set.delete(fid); else set.add(fid);
-      render();
+      motionFlipRecipes(render);
       break;
     }
     case 'remove-active-filter': {
       const dim = el.dataset.dim, fid = el.dataset.id;
       state.activeFilters[dim].delete(fid);
-      render();
+      motionFlipRecipes(render);
       break;
     }
     case 'clear-all-filters':
@@ -1087,31 +1094,6 @@ async function dispatchAction(action, id, el, e) {
       showToast('Fertiggewicht gespeichert');
       break;
     }
-
-    /* ---------- Nutrition: Open Food Facts Barcode (Punkt 27-29) ---------- */
-    case 'nutrition-open-barcode':
-      state.nutritionSelectTarget = el.dataset.name || state.nutritionSelectTarget;
-      state.nutritionBarcodeStatus = 'idle';
-      state.nutritionBarcodeProduct = null;
-      state.nutritionBarcodeInput = '';
-      state.modal.stage = 'barcode';
-      render();
-      break;
-    case 'nutrition-start-camera':
-      await startNutritionBarcodeCamera();
-      break;
-    case 'nutrition-barcode-lookup': {
-      const code = (document.getElementById('nutritionBarcodeManual').value || '').trim();
-      stopNutritionBarcodeCamera();
-      state.nutritionBarcodeInput = code;
-      await lookupBarcodeAndRender(code);
-      break;
-    }
-    case 'nutrition-close-barcode':
-      stopNutritionBarcodeCamera();
-      state.modal.stage = 'select';
-      render();
-      break;
 
     /* ---------- PDF-Export-Vorschau (Punkt 59, 65) ---------- */
     case 'noop':

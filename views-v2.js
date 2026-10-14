@@ -254,13 +254,14 @@ function bindFilterSheet() {
   if (sel && !sel.dataset.bound) {
     sel.dataset.bound = '1';
     sel.addEventListener('change', () => {
-      if (sel.value === '__fav') { state.favOnly = true; state.activeCollection = 'all'; render(); return; }
+      if (sel.value === '__fav') { state.favOnly = true; state.activeCollection = 'all'; motionFlipRecipes(render); return; }
       if (isPhoneLayout()) { state.favOnly = false; if (state.activeCollection === 'favorites') state.activeCollection = 'all'; }
       state.sortBy = sel.value;
       try { localStorage.setItem(SORT_KEY, state.sortBy); } catch (err) {}
-      render();
+      motionFlipRecipes(render);   // Karten gleiten an ihre neue Stelle (Bewegung M1)
     });
   }
+  if (typeof motionSegInit === 'function') motionSegInit();   // Auswahlfläche «Alle / Favoriten» nach jedem Neuaufbau setzen
 }
 
 /* ---------- Rezeptuebersicht ---------- */
@@ -293,7 +294,7 @@ function recipeCard(r, phone) {
   if (phone === true) {
     /* Handy-Raster: Foto 4:3 (oder ruhiger Platzhalter), Titel, Zeit nur wenn bekannt, Favoritenknopf als Geschwister (kein verschachtelter Knopf) */
     const time = r.timeMinutes > 0 ? `<span class="rcard-meta rcard-meta--time">${ICONS.clock}<span>${r.timeMinutes} Min.</span></span>` : '';
-    return `<article class="rcard rcard--phone">
+    return `<article class="rcard rcard--phone" data-flip-id="${escapeAttr(r.id)}">
     <button type="button" class="rcard-main" data-action="open-recipe" data-id="${escapeAttr(r.id)}" aria-label="${title} öffnen">
       ${photo ? recipeImageHtml(r, 'rcard-img', 'thumb') : `<span class="rcard-img rcard-ph" aria-hidden="true">${ICONS.bookOpen}</span>`}
       <span class="rcard-body">
@@ -304,7 +305,7 @@ function recipeCard(r, phone) {
     ${favButton(r, 'rcard-fav')}
   </article>`;
   }
-  return `<article class="rcard ${photo ? '' : 'rcard--text'}">
+  return `<article class="rcard ${photo ? '' : 'rcard--text'}" data-flip-id="${escapeAttr(r.id)}">
     <button type="button" class="rcard-main" data-action="open-recipe" data-id="${escapeAttr(r.id)}" aria-label="${title} öffnen">
       ${photo ? recipeImageHtml(r, 'rcard-img', 'thumb') : ''}
       <span class="rcard-body">
@@ -322,7 +323,7 @@ function recipeRow(r, phone) {
     const title = escapeHtml(r.title || 'Ohne Titel');
     const titleHl = highlightHtml(r.title || 'Ohne Titel', state.query);
     const time = r.timeMinutes > 0 ? `<span class="rrow-meta rrow-meta--time">${ICONS.clock}<span>${r.timeMinutes} Min.</span></span>` : '';
-    return `<article class="rrow rrow--phone">
+    return `<article class="rrow rrow--phone" data-flip-id="${escapeAttr(r.id)}">
     <button type="button" class="rrow-main" data-action="open-recipe" data-id="${escapeAttr(r.id)}" aria-label="${title} öffnen">
       ${photo ? recipeImageHtml(r, 'rrow-img', 'thumb') : `<span class="rrow-img rrow-ph" aria-hidden="true">${ICONS.bookOpen}</span>`}
       <span class="rrow-body">
@@ -333,7 +334,7 @@ function recipeRow(r, phone) {
     ${favButton(r, 'rrow-fav')}
   </article>`;
   }
-  return `<article class="rrow ${photo ? '' : 'rrow--text'}">
+  return `<article class="rrow ${photo ? '' : 'rrow--text'}" data-flip-id="${escapeAttr(r.id)}">
     <button type="button" class="rrow-main" data-action="open-recipe" data-id="${escapeAttr(r.id)}" aria-label="${escapeHtml(r.title || 'Ohne Titel')} öffnen">
       ${photo ? recipeImageHtml(r, 'rrow-img', 'thumb') : ''}
       <span class="rrow-body">
