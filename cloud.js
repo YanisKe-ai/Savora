@@ -204,6 +204,7 @@ async function cloudPrepareFirstSync() {
   (await dbGetAllShopping()).forEach(s => add('shopping', s.id, s.createdAt || 1));
   const imageIds = new Set((await dbGetAll()).map(r => r.imageId).filter(Boolean));
   imageIds.forEach(id => add('image', id, 1));
+  if (typeof coverImageIdsInUse === 'function') coverImageIdsInUse().forEach(id => add('image', id, 1));   // eigene Cover-Bilder gehen denselben Bildweg
   Object.entries(CLOUD_SETTING_KEYS).forEach(([name, key]) => { const v = localStorage.getItem(key); if (v && v !== '[]' && v !== '""') add('setting', name, 1); });
   writeJsonKey(CLOUD_QUEUE_KEY, q); writeJsonKey(CLOUD_META_KEY, m);
 }
@@ -237,9 +238,24 @@ async function cloudFetchImage(id) {
   const get = async (thumb) => { const res = await cloudFetch(`/storage/v1/object/authenticated/${CLOUD_BUCKET}/${cloudImagePath(id, thumb)}`); return res.blob(); };
   const blob = await get(false);
   let thumbBlob = null; try { thumbBlob = await get(true); } catch (e) { thumbBlob = blob; }
+  const isCover = typeof id === 'string' && id.startsWith('cover-');
+  if (isCover && !/^image\/(jpeg|png|webp)$/.test(blob.type || '')) throw new Error('Ungueltiges Cover-Bild');   // Daten von aussen: nur Bildformate der App
   cloud.applyingRemote = true;
-  try { await (cloudOrig.dbPutImage || dbPutImage)({ id, blob, thumbBlob, mime: blob.type || 'image/jpeg' }); }
+  try { await (cloudOrig.dbPutImage || dbPutImage)(isCover ? { id, blob, thumbBlob, mime: blob.type, kind: 'cover' } : { id, blob, thumbBlob, mime: blob.type || 'image/jpeg' }); }
   finally { cloud.applyingRemote = false; }
+}
+/* Cover-Bilder, die ein Kochbuch nennt, aber lokal fehlen (Einstellung kam per Abgleich, das Bild folgt): nachladen. Ein noch nicht
+   hochgeladenes Bild (404) wird fruehestens nach 5 Minuten erneut angefragt. */
+const cloudCoverMissing = new Map();   // ID -> Zeitpunkt des letzten Fehlversuchs
+async function cloudFetchMissingCoverImages() {
+  if (typeof coverImageIdsInUse !== 'function') return 0;
+  let n = 0;
+  for (const id of coverImageIdsInUse()) {
+    if (Date.now() - (cloudCoverMissing.get(id) || 0) < 300000) continue;
+    try { if (await dbGetImage(id)) continue; await cloudFetchImage(id); n++; }
+    catch (e) { if (e && e.offline) throw e; cloudCoverMissing.set(id, Date.now()); }
+  }
+  return n;
 }
 
 async function cloudPush() {
@@ -343,6 +359,7 @@ async function cloudSyncNow(opts = {}) {
   try {
     await cloudPush();
     changed = await cloudPull();
+    await cloudFetchMissingCoverImages();
     await cloudPush(); // was beim Pull als lokal neuer erkannt wurde
     cloud.lastError = null;
     writeJsonKey(CLOUD_LAST_KEY, Date.now());

@@ -22,12 +22,14 @@ async function downloadBackup() {
     dbGetAllCustomFoods(), dbGetAllNutritionMatches(), dbGetAllNutritionResults(),
   ]);
   const mealplan = await dbGetAllMealplan();
+  const coverImages = await backupCoverImages();
   const payload = {
     // version bleibt fuer aeltere App-Staende lesbar; schemaVersion beschreibt den Inhalt.
     app: 'savora', version: 3, schemaVersion: 5, exportedAt: new Date().toISOString(),
     recipes: recipesForExport, shopping: state.shopping,
     customFoods, nutritionMatches, nutritionResults,
     mealplan,
+    coverImages,   // eigene Cover-Bilder der Kochbuecher (Cover-Editor); aeltere Sicherungen haben das Feld nicht, aeltere App-Staende ignorieren es
     // cookbooks: alle Kochbuch-Projekte (ab schemaVersion 5); cookbookConfig: alte Einzelkonfiguration, damit aeltere App-Staende die Sicherung weiter lesen
     settings: { collections: getCollections(), cookbooks: cookbookStoreRead(), cookbookConfig: readJsonKey(COOKBOOK_CONFIG_KEY, null) },
   };
@@ -75,9 +77,64 @@ function backupRecipeFingerprint(r) {
   return JSON.stringify([r.title || '', r.servings, r.servingMode || '', r.timeMinutes || 0, r.ingredients || [], r.steps || [], r.notes || '', r.tags || [], r.diet || [], r.categoryTags || []]);
 }
 
-/* Rezept-IDs einer gesicherten Kochbuch-Konfiguration auf die neuen IDs abbilden (nicht aufloesbare Rezepte entfallen) */
-function backupMapCookbookConfig(config, recipeIdMap) {
+/* ---------- Cover-Bilder (Cover-Editor) ----------
+   Sicherung: [{ id, mime, w, h, data: Data-URL, thumb?: Data-URL }] fuer alle Bilder, die ein Kochbuch nennt (coverImageIdsInUse).
+   Wiederherstellen: gleiche ID, wenn sie frei ist oder dasselbe Bild schon dort liegt; sonst neue ID. Die Zuordnung alt -> neu
+   wird in den wiederhergestellten Kochbuechern nachgefuehrt (wie recipeIdMap bei Rezepten). Vorhandene Bilder werden nie ueberschrieben. */
+const BACKUP_COVER_ID_RE = /^cover-[A-Za-z0-9_-]{1,120}$/;
+const BACKUP_COVER_DATA_RE = /^data:image\/(?:png|jpeg|webp);base64,[A-Za-z0-9+\/]+={0,2}$/;
+const BACKUP_COVER_MAX = 60;
+async function backupCoverImages() {
+  const out = [];
+  if (typeof coverImageIdsInUse !== 'function') return out;
+  for (const id of coverImageIdsInUse()) {
+    try {
+      const rec = await dbGetImage(id);
+      if (!rec || !rec.blob) continue;
+      const item = { id, mime: rec.mime || rec.blob.type || 'image/jpeg', w: rec.w || 0, h: rec.h || 0, data: await blobToDataUrl(rec.blob) };
+      if (rec.thumbBlob && rec.thumbBlob !== rec.blob) item.thumb = await blobToDataUrl(rec.thumbBlob);
+      out.push(item);
+    } catch (e) { /* ein unlesbares Bild darf die Sicherung der Rezepte nicht verhindern */ }
+  }
+  return out;
+}
+async function backupDataUrlBlob(url) { return (await fetch(url)).blob(); }
+/* Gibt { map: altId -> neueId, written, problems: [Text] } zurueck. Schreibt nur gueltige, lesbare Bilder. */
+async function backupRestoreCoverImages(list, progress) {
+  const res = { map: {}, written: 0, problems: [] };
+  if (!Array.isArray(list)) return res;
+  let seen = 0;
+  for (const it of list) {
+    if (seen++ >= BACKUP_COVER_MAX) { res.problems.push(`Nicht übernommen, Titelbilder: mehr als ${BACKUP_COVER_MAX} Bilder in der Sicherung`); break; }
+    const id = it && typeof it === 'object' ? it.id : '';
+    if (typeof id !== 'string' || !BACKUP_COVER_ID_RE.test(id) || typeof it.data !== 'string' || !BACKUP_COVER_DATA_RE.test(it.data)) { res.problems.push('Nicht übernommen, Titelbild: Eintrag ist unlesbar'); continue; }
+    try {
+      const blob = await backupDataUrlBlob(it.data);
+      const probe = await createImageBitmap(blob);   // lesbar? (verhindert kaputte Bilder im Speicher)
+      const w = probe.width, h = probe.height; if (probe.close) probe.close();
+      const mime = blob.type || it.mime || 'image/jpeg';
+      let thumbBlob = blob;
+      if (typeof it.thumb === 'string' && BACKUP_COVER_DATA_RE.test(it.thumb)) { try { thumbBlob = await backupDataUrlBlob(it.thumb); } catch (e) { thumbBlob = blob; } }
+      const existing = await dbGetImage(id);
+      let newId = id;
+      if (existing) {
+        if (existing.blob && existing.blob.size === blob.size && (existing.mime || existing.blob.type) === mime) { res.map[id] = id; continue; }   // dasselbe Bild liegt schon da
+        newId = id.slice(0, 50) + '-r' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);   // gleiche ID, anderes Bild: nie ueberschreiben
+      }
+      await dbPutImage({ id: newId, blob, thumbBlob, mime, kind: 'cover', w, h });
+      if (progress) progress.written++;
+      res.map[id] = newId; res.written++;
+    } catch (e) { res.problems.push('Nicht übernommen, Titelbild: Bild ist beschädigt oder zu gross'); }
+  }
+  return res;
+}
+
+/* Rezept-IDs einer gesicherten Kochbuch-Konfiguration auf die neuen IDs abbilden (nicht aufloesbare Rezepte entfallen);
+   coverIdMap (optional): Cover-Bild-ID aus der Sicherung -> ID auf diesem Geraet */
+function backupMapCookbookConfig(config, recipeIdMap, coverIdMap) {
   const cfg = JSON.parse(JSON.stringify(config || {}));
+  const ci = cfg.cover && cfg.cover.image;
+  if (ci && typeof ci.id === 'string' && coverIdMap && coverIdMap[ci.id]) ci.id = coverIdMap[ci.id];
   if (Array.isArray(cfg.items)) cfg.items = cfg.items.map(it => ({ ...it, recipeId: recipeIdMap[it.recipeId] })).filter(it => it.recipeId);
   if (cfg.coverRecipeId) cfg.coverRecipeId = recipeIdMap[cfg.coverRecipeId] || '';
   return cfg;
@@ -88,16 +145,16 @@ function backupCookbookIsPristine(book) {
 }
 /* Gibt die Zahl der hinzugefuegten Kochbuecher zurueck. Aeltere Sicherungen ohne Projekte: die alte Einzelkonfiguration
    wird wie bei der Migration zu einem Projekt (ein noch unberuehrtes Startkochbuch uebernimmt sie). */
-function restoreCookbooksFromBackup(settings, recipeIdMap) {
+function restoreCookbooksFromBackup(settings, recipeIdMap, coverIdMap) {
   if (!settings) return 0;
   const store = cookbookStoreRead();   // loest bei Bedarf die Migration aus
   let added = 0;
   const sameConfig = (a, b) => JSON.stringify(a) === JSON.stringify(b);
   const incoming = [];
   const src = settings.cookbooks && cookbookSanitizeStore(settings.cookbooks);
-  if (src) src.books.forEach(b => incoming.push({ id: b.id, name: b.name, createdAt: b.createdAt, updatedAt: b.updatedAt, config: backupMapCookbookConfig(b.config, recipeIdMap) }));
+  if (src) src.books.forEach(b => incoming.push({ id: b.id, name: b.name, createdAt: b.createdAt, updatedAt: b.updatedAt, config: backupMapCookbookConfig(b.config, recipeIdMap, coverIdMap) }));
   else if (settings.cookbookConfig && typeof settings.cookbookConfig === 'object') {
-    const cfg = backupMapCookbookConfig(settings.cookbookConfig, recipeIdMap);
+    const cfg = backupMapCookbookConfig(settings.cookbookConfig, recipeIdMap, coverIdMap);
     if (Array.isArray(cfg.items) && cfg.items.length) incoming.push({ id: null, name: '', createdAt: Date.now(), updatedAt: Date.now(), config: cfg });
   }
   incoming.forEach((b) => {
@@ -256,7 +313,9 @@ async function restoreBackupFromFile(file) {
     if (badDays) report.push(`Nicht übernommen, Wochenplan: ${badDays} Tag${badDays === 1 ? '' : 'e'} ohne gültiges Datum`);
     // Kochbuch-Projekte (ab schemaVersion 5) und alte Einzelkonfiguration (aeltere Sicherungen): Rezept-IDs werden auf die
     // neuen IDs umgebogen. Vorhandene Kochbuecher werden nie ersetzt; identische (gleiche ID oder gleicher Inhalt) werden nicht verdoppelt.
-    const addedBooks = restoreCookbooksFromBackup(data.settings, recipeIdMap);
+    const covers = await backupRestoreCoverImages(data.coverImages, progress);   // Bilder zuerst, damit die Kochbuecher auf vorhandene Bilder zeigen
+    covers.problems.forEach(t => report.push(t));
+    const addedBooks = restoreCookbooksFromBackup(data.settings, recipeIdMap, covers.map);
     if (addedBooks) progress.written++;
     if (data.settings && Array.isArray(data.settings.collections)) {
       const cols = getCollections();
@@ -268,13 +327,14 @@ async function restoreBackupFromFile(file) {
     await loadMealplan();
     const extras = [];
     if (addedBooks) extras.push(`${addedBooks} Kochbuch${addedBooks === 1 ? '' : 'bücher'}`);
+    if (covers.written) extras.push(`${covers.written} Titelbild${covers.written === 1 ? '' : 'er'}`);
     if (addedPlan) extras.push(`${addedPlan} Wochenplan-Eintr${addedPlan === 1 ? 'ag' : 'äge'}`);
     if (addedFoods) extras.push(`${addedFoods} eigene${addedFoods === 1 ? 's' : ''} Lebensmittel`);
     if (addedMatches) extras.push(`${addedMatches} gelernte Zuordnung${addedMatches === 1 ? '' : 'en'}`);
     const nBad = vb.problems.length;
     const msg = `${added} Rezept${added === 1 ? '' : 'e'}${addedItems ? `, ${addedItems} Einkaufslisten-Eintrag(e)` : ''}${extras.length ? ' und ' + extras.join(', ') : ''} wiederhergestellt.${skipped ? ` ${skipped} Rezept${skipped === 1 ? ' war' : 'e waren'} schon vorhanden und ${skipped === 1 ? 'wurde' : 'wurden'} nicht doppelt angelegt.` : ''}${badRecipes ? ` ${badRecipes} ${badRecipes === 1 ? 'Eintrag war' : 'Einträge waren'} unlesbar und wurde${badRecipes === 1 ? '' : 'n'} übersprungen.` : ''}${nBad > badRecipes ? ` ${nBad - badRecipes} weitere Datensätze waren unlesbar und wurden übersprungen.` : ''}${data.schemaVersion > 5 ? ' Die Sicherung stammt aus einer neueren Savora-Version: Unbekannte Teile wurden nicht übernommen.' : ''}${nBad ? ' Du kannst dieselbe Datei nach einer Korrektur erneut einspielen, bereits übernommene Rezepte werden nicht doppelt angelegt.' : ''}`;
     render();
-    backupShowReport(msg, valReportLinesFromStrings(report, 12), !nBad);
+    backupShowReport(msg, valReportLinesFromStrings(report, 12), !nBad && !covers.problems.length);
     showToast(msg);
   } catch (e) {
     const statusEl = document.getElementById('backupStatus');
