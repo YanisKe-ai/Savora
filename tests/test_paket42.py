@@ -31,7 +31,7 @@ QUICK = bool(os.environ.get('SAVORA_P42_QUICK'))
 PHONE_CHANGED_VIEWS = {'home', 'home-list', 'empty-home', 'detail-long', 'detail-photo', 'detail-short', 'settings', 'settings-data', 'settings-display', 'settings-share', 'settings-help',
                        'settings-about', 'mealplan', 'shopping', 'cookbooks', 'cookbook1', 'cookbook2', 'cookbook3', 'empty-shopping', 'empty-mealplan', 'empty-cookbooks'}
 def view_of(fname): return fname[:-4].split('-', 2)[2]
-BOUNDED_VIEWS = {'settings', 'settings-data', 'settings-display', 'settings-help', 'settings-about', 'more'}   # begrenzte Lesebreite (Teilauftrag M1)
+BOUNDED_VIEWS = {'settings', 'settings-data', 'settings-display', 'settings-help', 'settings-about', 'more', 'settings-share'}   # begrenzte Lesebreite; settings-share zeigt jetzt «Freunde & Rezepte»
 
 def same_pixels(a, b):
     ba, bb = open(a, 'rb').read(), open(b, 'rb').read()

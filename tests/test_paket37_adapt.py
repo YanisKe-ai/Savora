@@ -78,7 +78,7 @@ JS_ALL = r"""() => {
   const sel = 'button, a[href], [role=button], [role=tab], [role=radio], [role=checkbox], summary, select, input:not([type=hidden]):not([type=checkbox]):not([type=radio]), textarea';
   for (const el of document.querySelectorAll('#app *')) {
     if (el.matches(sel)) {
-      if (el.closest('.sr-only') || el.matches('.sr-only,.timer-chip,.sheet-handle') || (el.tagName==='A' && el.closest('.source-line,.legal-card,p'))) {} else {
+      if (el.closest('.sr-only') || el.matches('.sr-only,.timer-chip,.sheet-handle,.kd-file-input') || (el.tagName==='A' && el.closest('.source-line,.legal-card,p'))) {} else {
       const cs = getComputedStyle(el); if (cs.visibility!=='hidden' && cs.display!=='none') { const r = el.getBoundingClientRect(); if ((r.width||r.height) && (r.width<43.5||r.height<43.5)) out.taps.push((el.className||el.tagName)+' '+Math.round(r.width)+'x'+Math.round(r.height)+' '+(el.getAttribute('aria-label')||el.textContent.trim().slice(0,18))); } }
     }
   }

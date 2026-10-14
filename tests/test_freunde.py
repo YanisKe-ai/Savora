@@ -43,7 +43,7 @@ async def main():
         await ev(page, "() => document.fonts.ready.then(() => 1)")
 
         # Anmelden (Nachbau-Konto)
-        await goto_view(page, 'settings-sync')
+        await goto_view(page, 'settings-account')
         await page.wait_for_selector('#cloudEmail')
         await page.fill('#cloudEmail', email); await page.fill('#cloudPassword', 'geheim-123')
         await ev(page, "() => document.querySelector('[data-action=\"cloud-sign-in\"]').click()"); await page.wait_for_timeout(1800)
@@ -76,7 +76,7 @@ async def main():
         async def slow2(route):
             await gate2.wait(); await route.continue_()
         await page.route('**/rpc/savora_profile_get', slow2)
-        await ev(page, "() => { shareReset(); state.view = 'settings'; render(); }"); await page.wait_for_timeout(500)
+        await ev(page, "() => { shareReset(); state.view = 'more'; render(); }"); await page.wait_for_timeout(500)
         check('Mehr-Zeile waehrend des Ladens', 'Profil wird geladen' in await main_text(page))
         gate2.set(); await page.wait_for_function("document.querySelector('main').innerText.includes('2 Freunde')", timeout=8000)
         check('Mehr-Zeile zeigt nach dem Laden echte Zahl («2 Freunde») ohne Navigation', await ev(page, "friendsSummary()") == '2 Freunde')

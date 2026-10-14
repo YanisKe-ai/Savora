@@ -29,7 +29,7 @@ async def click(page, sel, wait=350):
     await page.evaluate("(s) => { const e = document.querySelector(s); if (!e) throw new Error('fehlt ' + s); e.click(); }", sel)
     await page.wait_for_timeout(wait)
 async def login(page, email):
-    await show(page, "() => { state.modal = null; state.view = 'settings-sync'; render(); }", '#cloudEmail')
+    await show(page, "() => { state.modal = null; state.view = 'settings-account'; render(); }", '#cloudEmail')
     await page.fill('#cloudEmail', email); await page.fill('#cloudPassword', 'geheim-123')
     await click(page, '[data-action="cloud-sign-in"]')
     await page.wait_for_timeout(1500)
@@ -79,7 +79,7 @@ async def main():
         await pa.wait_for_timeout(300)
         check('Mit Konto: keine Sicherungs-Erinnerung', await pa.evaluate("!document.querySelector('.nudge-card') && backupNudgeInfo() === null"))
         await pa.evaluate("() => { state.view = 'settings-backup'; render(); }")
-        check('Mit Konto: Sicherungsseite sagt, dass keine Sicherung noetig ist', 'keine Sicherung erstellen' in await text(pa, 'main'))
+        check('Mit Konto: Sicherungsseite erklaert ehrlich Abgleich und Sicherungsdatei (kein pauschales «keine Sicherung noetig»)', 'Abgleich oder Sicherung?' in await text(pa, 'main') and 'keine Sicherung erstellen' not in await text(pa, 'main'))
 
         # 3. Profil anlegen
         await open_share(pa)

@@ -76,7 +76,7 @@ async def main():
         groups = await ev("() => Array.from(document.querySelectorAll('.settings-group')).map(g => [g.querySelector('.settings-group-title').textContent.trim(), Array.from(g.querySelectorAll('.settings-row')).map(r => r.querySelector('.settings-row-title').textContent.trim())])")
         check('Einstellungen: genau sechs Seiten in «Konto & Daten» und «App anpassen»', groups == [['Konto & Daten', ['Mein Konto', 'Geräteabgleich', 'Sicherung & Wiederherstellung']], ['App anpassen', ['Darstellung', 'Kochen & Mengen', 'Ohne Internet']]], str(groups))
         sums = await ev("() => Array.from(document.querySelectorAll('.settings-row-summary')).map(s => s.textContent.trim())")
-        check('Einstellungen: Untertitel zeigen echte Werte', sums[0] == 'Nicht angemeldet' and sums[1] == 'Zum Abgleichen anmelden' and sums[2] == 'Noch keine Sicherung heruntergeladen' and sums[3] == 'Wie dein Gerät' and sums[4].startswith('Gramm und Milliliter, Nährwerte sichtbar'), str(sums))
+        check('Einstellungen: Untertitel zeigen echte Werte', sums[0] == 'Nicht angemeldet' and sums[1] == 'Nicht angemeldet' and sums[2] == 'Noch keine Sicherung heruntergeladen' and sums[3] == 'Wie dein Gerät' and sums[4].startswith('Gramm und Milliliter, Nährwerte sichtbar'), str(sums))
         for k, (t, view) in enumerate([('Mein Konto', 'settings-account'), ('Geräteabgleich', 'settings-sync'), ('Sicherung & Wiederherstellung', 'settings-backup'), ('Darstellung', 'settings-display'), ('Kochen & Mengen', 'settings-cooking'), ('Ohne Internet', 'settings-offline')]):
             await go(page, 'settings'); await row(page, t)
             check(f'Einstellungen > {t} öffnet {view}', await ev("state.view") == view)

@@ -57,7 +57,7 @@ async def main():
         check('Ohne Konto: kein Cloud-Verkehr', len(M.LOG) == 0)
 
         # Anmelden
-        await page.evaluate("() => { state.modal = null; state.view = 'settings-sync'; render(); }"); await page.wait_for_selector('#cloudEmail')
+        await page.evaluate("() => { state.modal = null; state.view = 'settings-account'; render(); }"); await page.wait_for_selector('#cloudEmail')
         await page.fill('#cloudEmail', 'yanis@example.test'); await page.fill('#cloudPassword', 'geheim-123')
         await page.evaluate("() => document.querySelector('[data-action=\"cloud-sign-in\"]').click()"); await page.wait_for_timeout(1800)
 

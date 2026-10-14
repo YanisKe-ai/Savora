@@ -318,13 +318,18 @@ function moreFriendsBadge() {
   const n = (typeof share !== 'undefined' && share && Number(share.count)) || 0;
   return n > 0 ? `${n} neu` : '';
 }
+/* Abgemeldet: Vorgabetext. Angemeldet: echter Zustand aus share.js (Profil, neue Rezepte, Anfragen, Freunde). */
+function moreFriendsSummary() {
+  try { if (typeof cloudSignedIn === 'function' && cloudSignedIn() && typeof friendsSummary === 'function') return friendsSummary(); } catch (e) { /* Vorgabetext */ }
+  return 'Empfangene Rezepte und Kontakte';
+}
 function moreView() {
   return `
     ${topbar('Mehr')}
     <main class="has-tabbar settings-page settings-page--list">
       ${pageTitle('Mehr')}
       ${settingsGroup('Austauschen',
-        settingsRow({ icon: ICONS.share, title: 'Freunde &amp; Rezepte', summary: 'Empfangene Rezepte und Kontakte', view: 'friends', badge: moreFriendsBadge() }))}
+        settingsRow({ icon: ICONS.share, title: 'Freunde &amp; Rezepte', summary: moreFriendsSummary(), view: 'friends', badge: moreFriendsBadge() }))}
       ${settingsGroup('Werkzeuge',
         settingsRow({ icon: ICONS.scale, title: 'Einheiten umrechnen', summary: 'Gewicht, Volumen, Temperatur und Zutaten', view: 'unitconverter' }))}
       ${settingsGroup('Verwalten', [
