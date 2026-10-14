@@ -727,13 +727,13 @@ function pdfPlanMultiPage(m, recipe, imgUrl, dims, detail) {
 }
 
 /* Ergebnis: { htmlPages, layout, tier, pageCount }. Liefert IMMER Seiten mit dem kompletten Rezeptinhalt. */
-async function buildRecipePdfPage(r, previousLayout, nutritionDetail) {
+async function buildRecipePdfPage(r, previousLayout, nutritionDetail, chapter) {
   const imgUrl = await resolveRecipeImageDataUrl(r);
   const dims = imgUrl ? await getImageDimensions(imgUrl) : null;
   const detail = nutritionDetail || 'off';
   let result = null;
   if (detail !== 'off') { try { result = await pdfNutritionForExport(r); } catch (e) { /* Nährwerte sind optional */ } }
-  const m = pdfBuildModel(r, result);
+  const m = pdfBuildModel(r, result, { chapter: chapter || '' });
   const photoOk = !!(imgUrl && dims);
   const plans = pdfPhotoPlans(imgUrl, dims, PDF_CTX.tpl.id);
   for (let i = 0; i < plans.length; i++) {
@@ -839,7 +839,7 @@ async function pdfBuildCookbookImpl(nutritionDetail, opts) {
       pdfProgress(opts, i, recipes.length, 'plan');
       await pdfYield();
       const r = recipes[i];
-      const { htmlPages, layout } = await buildRecipePdfPage(r, previousLayout, nutritionDetail);
+      const { htmlPages, layout } = await buildRecipePdfPage(r, previousLayout, nutritionDetail, typeof pdfChapterNameFor === 'function' ? pdfChapterNameFor(cfg, r.id) : '');   // gleiche Kapitelangabe wie im Inhaltsverzeichnis
       pagesByRecipeId[r.id] = htmlPages;
       previousLayout = layout;
     }
