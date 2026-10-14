@@ -28,7 +28,7 @@ async def main():
         titles = [g['t'] for g in groups]
         check('Gruppen in Reihenfolge: Deine Daten, Darstellung, Hilfe & Infos', [t.lower() for t in titles] == ['deine daten', 'darstellung', 'hilfe & infos'], str(titles))
         rows = [[r['title'] for r in g['rows']] for g in groups]
-        check('Deine Daten: Konto und Sicherung, Socialize (Audit D02)', rows[0] == ['Konto und Sicherung', 'Socialize'], str(rows[0]))
+        check('Deine Daten: Konto und Sicherung, Freunde & Rezepte (Audit D02)', rows[0] == ['Konto und Sicherung', 'Freunde & Rezepte'], str(rows[0]))
         check('Darstellung: Darstellung und Einheiten, Masseinheiten-Rechner (Audit D02)', rows[1] == ['Darstellung und Einheiten', 'Masseinheiten-Rechner'], str(rows[1]))
         check('Hilfe & Infos: Hilfe erhalten, Über Savora', rows[2] == ['Hilfe erhalten', 'Über Savora'], str(rows[2]))
         check('Hauptliste hat genau 6 Zeilen', sum(len(r) for r in rows) == 6, str(rows))
@@ -100,7 +100,7 @@ async def main():
         check('Statusmeldung nennt Ergebnis', '1 Rezept' in st and 'nicht doppelt' in st, st)
 
         # 7 Name beim Teilen
-        await go('settings-share'); t = await main_text()
+        await go('settings-profile'); t = await main_text()   # «Name beim Teilen» ist nicht mehr Teil von «Freunde & Rezepte»
         check('Abschnitt «Name beim Teilen (freiwillig)» mit Hinweis', 'Name beim Teilen (freiwillig)' in t.replace('NAME BEIM TEILEN (FREIWILLIG)', 'Name beim Teilen (freiwillig)') and 'Wird nur gedruckt, wenn du ihn selbst im Kochbuch oder beim Teilen einschaltest.' in t, t[-300:])
         await page.fill('#f-sender-name', 'Anna'); await page.click('[data-action="save-profile-fields"]'); await page.wait_for_timeout(200)
         check('Name wird gespeichert', await ev("state.senderName === 'Anna' && localStorage.getItem(SENDER_NAME_KEY) === 'Anna'"))

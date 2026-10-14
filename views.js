@@ -25,7 +25,10 @@ function viewFor(view) {
     case 'cookbook': return cookbookDesignerView();
     case 'cookbooks': return cookbooksView();
     case 'settings-sync': return settingsDataView('sync');
-    case 'settings-share': return settingsShareView();
+    case 'friends': return friendsView();
+    case 'friends-profile': return typeof friendsProfileView === 'function' ? friendsProfileView() : friendsView();
+    case 'friends-add': return typeof friendsAddView === 'function' ? friendsAddView() : friendsView();
+    case 'settings-share': return friendsView();
     case 'settings-share-preview': return settingsSharePreviewView();
     default: return homeView();
   }
@@ -35,7 +38,7 @@ function viewFor(view) {
 // "Mehr" bleibt in der Tab-Leiste aktiv markiert, solange man sich in einer Settings-Detailseite
 // oder im davon erreichten Masseinheiten-Rechner befindet (Settings/Mehr-Redesign, Teil A).
 function isMoreSectionView(view) {
-  return view === 'settings' || view.indexOf('settings-') === 0 || view === 'unitconverter' || view === 'cookbook';
+  return view === 'settings' || view.indexOf('settings-') === 0 || view.indexOf('friends') === 0 || view === 'unitconverter' || view === 'cookbook';
 }
 
 
@@ -264,7 +267,7 @@ function settingsView() {
       ${pageTitle(isCompactNav() ? 'Mehr' : 'Einstellungen')}
       ${settingsGroup('Deine Daten', [
         settingsRow({ icon: ICONS.cloud, title: 'Konto und Sicherung', summary: cloudSettingsSummary(), view: 'settings-data' }),
-        settingsRow({ icon: ICONS.share, title: 'Socialize', summary: shareSettingsSummary(), view: 'settings-share' }),
+        settingsRow({ icon: ICONS.share, title: 'Freunde &amp; Rezepte', summary: friendsSummary(), view: 'friends' }),
       ].join(''))}
       ${settingsGroup('Darstellung', [
         themeQuickRow(t),
@@ -339,7 +342,7 @@ function settingsDisplayView() {
 }
 
 /* Absendername: freiwillig, wird heute nirgends automatisch ausgegeben (weder PDF noch Teilen).
-   Der Abschnitt steht in «Socialize» und ist auch als eigene Seite erreichbar. */
+   Der Abschnitt ist als eigene Seite erreichbar (nicht mehr im Freundesbereich); der Export-Dialog schlaegt den Wert vor. */
 function senderNameSectionHtml() {
   return `<div class="settings-group">
     <div class="settings-group-title">Name beim Teilen (freiwillig)</div>
@@ -384,7 +387,7 @@ function settingsBackupSectionHtml() {
         <button class="ghost-btn" data-action="trigger-restore">${ICONS.upload} Aus Sicherung wiederherstellen</button>
         <input type="file" id="restoreFileInput" accept="application/json" style="display:none;">
         <p class="settings-hint settings-hint--top">${RESTORE_EXPLAIN}</p>
-        <p class="settings-hint">Gedacht für Dateien, die du hier unter „Sicherung speichern“ gespeichert hast. Rezepte von Freunden kommen direkt in Savora an (unter „Socialize“). Ein als PDF weitergegebenes Rezept lässt sich nicht in Savora einspielen.</p>
+        <p class="settings-hint">Gedacht für Dateien, die du hier unter „Sicherung speichern“ gespeichert hast. Rezepte von Freunden kommen direkt in Savora an (unter „Freunde &amp; Rezepte“). Ein als PDF weitergegebenes Rezept lässt sich nicht in Savora einspielen.</p>
         <div id="backupStatus"></div>
       </div>
     </div>${typeof offlineSectionHtml === 'function' ? offlineSectionHtml() : ''}`;

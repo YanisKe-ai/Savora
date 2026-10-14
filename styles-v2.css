@@ -2249,8 +2249,6 @@ body.keyboard-open .home-add-bar { display: none; }
 /* ===== Teilen überarbeitet: Posteingang, Freunde, Profil (Seite «Socialize») ===== */
 .tl { display: block; max-width: 40rem; }
 .tl--wide, .tl--prev { max-width: none; }
-.tl-cols { display: flex; flex-direction: column; gap: 0; }
-.tl-col { min-width: 0; }
 .tl-sec { margin: 0 0 1.25rem; }
 .tl-h { margin: 0 0 0.5rem 0.25rem; font-size: 1.0625rem; font-weight: 700; color: var(--text); display: flex; align-items: center; gap: 0.5rem; }
 .tl-h--card { margin: 0 0 0.25rem; font-size: 1.1875rem; }
@@ -2284,19 +2282,6 @@ legend.tl-lead { padding: 0; }
 .tl-row-text .share-title { font-size: 1rem; }
 .tl-avatar { flex: 0 0 2.5rem; width: 2.5rem; height: 2.5rem; border-radius: 50%; background: var(--surface-soft); color: var(--text-soft); display: inline-flex; align-items: center; justify-content: center; font-weight: 800; font-size: 1rem; }
 .tl-row--inbox .tl-avatar { background: var(--lime); color: var(--lime-ink); }
-/* Einklappbare Bereiche */
-.tl-fold { margin: 0.75rem 0 0; background: var(--card-bg); border: 1px solid var(--hairline); border-radius: var(--r-card); }
-.tl-fold > summary { list-style: none; cursor: pointer; display: flex; align-items: center; gap: 0.5rem 0.75rem; min-height: 3.25rem; padding: 0.5rem 1rem; font-weight: 700; border-radius: var(--r-card); }
-.tl-fold > summary::-webkit-details-marker { display: none; }
-.tl-fold-title { flex: 1 1 auto; min-width: 0; display: inline-flex; align-items: center; gap: 0.5rem; overflow-wrap: anywhere; }
-.tl-fold-title svg { width: 18px; height: 18px; flex: 0 0 auto; }
-.tl-fold-meta { color: var(--text-soft); font-weight: 500; font-size: 0.875rem; text-align: right; }
-.tl-fold-chev { display: inline-flex; width: 20px; height: 20px; color: var(--text-soft); flex: 0 0 auto; transition: transform 160ms ease; }
-.tl-fold-chev svg { width: 100%; height: 100%; }
-.tl-fold[open] > summary .tl-fold-chev { transform: rotate(90deg); }
-.tl-fold-body { padding: 0 1rem 1rem; }
-.tl-fold-body > .tl-list { margin: 0 0 -0.25rem; }
-.tl-fold-body .primary-btn--block { margin-top: 0.25rem; }
 /* Rezept wählen */
 .tl-pick-list { list-style: none; margin: 0; padding: 0; max-height: 45dvh; overflow-y: auto; }
 .tl-pick { width: 100%; display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; min-height: 3rem; padding: 0.5rem 0.25rem; background: none; border: none; border-bottom: 1px solid var(--hairline); color: var(--text); font: inherit; font-weight: 600; text-align: left; }
@@ -2326,25 +2311,14 @@ legend.tl-lead { padding: 0; }
   .tl-card--action .primary-btn { width: auto; }
 }
 @media (min-width: 960px) {
-  .tl--wide .tl-cols { display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr); column-gap: 2.5rem; align-items: start; }
   .tl--prev { display: grid; grid-template-columns: minmax(0, 24rem) minmax(0, 1fr); column-gap: 3rem; align-items: start; }
   .tl--prev .tl-prev-head { position: sticky; top: 5rem; }
   .tl--prev .tl-prev-body .share-sub:first-child { margin-top: 0; }
   .tl--wide .tl-row--inbox .tl-row-actions, .tl--wide .tl-row--req .tl-row-actions { flex-basis: 100%; padding-left: calc(2.5rem + 0.75rem); }
 }
 .tl > .settings-group { margin-top: 1rem; }
-@media (prefers-reduced-motion: reduce) { .tl-fold-chev { transition: none; } }
-.tl-fold-meta { white-space: nowrap; max-width: 50%; overflow: hidden; text-overflow: ellipsis; }
-.tl--wide > .settings-group { max-width: 40rem; }
 
 .tl--intro { max-width: none; }
-.tl-intro-grid { display: block; max-width: 40rem; }
-.tl-aside { display: none; }
-@media (min-width: 960px) {
-  .tl-intro-grid { max-width: none; display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr); column-gap: 2.5rem; align-items: start; }
-  .tl-aside { display: block; padding-top: 0.25rem; }
-  .tl--intro > .settings-group { max-width: 40rem; }
-}
 
 
 /* ============================================================
@@ -2642,8 +2616,6 @@ mark.hl {
   .rcard:hover, .plan-day:hover, .cbk-card:hover, .primary-btn:active, .ghost-btn:active, .outline-btn:active, .filter-btn:active, .seg-btn:active, .bottom-nav button:active, .rcard:active { transform: none; }
 }
 
-/* Freunde als überlappende Kreise (Teilen-Seite) */
-.tl-avatars { margin: 0 0 0.75rem; }
 
 /* ===== Ansicht Umschalter: Liste oder Raster auf dem Handy ===== */
 @media (max-width: 767px) {
@@ -2860,3 +2832,33 @@ main.settings-page.kd-page { max-width: 40rem; padding-bottom: 2rem; }
 }
 #kontoOfflineBox { display: flex; flex-direction: column; gap: 0.75rem; }
 #kontoOfflineBox > * { margin: 0; }
+/* ===== Freunde & Rezepte ===== */
+.fr { max-width: 40rem; }
+.fr-sec { margin: 0 0 1.5rem; }
+.fr-sec > .tl-h { margin: 0 0 0.5rem 0.25rem; }
+.fr-sub { margin: 1rem 0 0.5rem 0.25rem; font-size: 0.875rem; font-weight: 700; color: var(--text-soft); }
+.fr-sub:first-child { margin-top: 0; }
+.fr-list { list-style: none; margin: 0; padding: 0; background: var(--card-bg); border: 1px solid var(--hairline); border-radius: var(--r-card); overflow: hidden; }
+.fr-row { display: flex; align-items: center; gap: 0.75rem; min-height: 3.5rem; padding: 0.5rem 1rem; border-bottom: 1px solid var(--hairline); }
+.fr-row:last-child { border-bottom: 0; }
+.fr-row--stack { flex-wrap: wrap; }
+.fr-row-text { flex: 1 1 8rem; min-width: 0; display: flex; flex-direction: column; gap: 0.25rem; overflow-wrap: anywhere; }
+.fr-name { font-weight: 700; font-size: 1rem; overflow-wrap: anywhere; }
+.fr-actions { flex: 0 0 100%; display: flex; flex-wrap: wrap; align-items: center; gap: 0.25rem 0.5rem; padding-left: 3.25rem; }
+.fr-nav { display: flex; align-items: center; gap: 0.75rem; width: 100%; min-height: 3.5rem; padding: 0.5rem 1rem; border: 0; background: none; color: var(--text); font: inherit; text-align: left; cursor: pointer; }
+.fr-nav-text { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 0.25rem; }
+.fr-nav:active { background: var(--surface-soft); }
+.fr-nav:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: -4px; border-radius: var(--r-card); }
+.fr-chev { display: inline-flex; flex: 0 0 auto; width: 20px; height: 20px; color: var(--text-soft); }
+.fr-chev svg { width: 100%; height: 100%; }
+.fr-note { margin: 0 0 1rem; }
+.fr-status { min-height: 1.5rem; margin: 0 0 0.5rem; color: var(--text-soft); font-size: 0.875rem; }
+.fr-steps { margin: 0.75rem 0 1rem; }
+.fr .tl-card--quiet .ghost-btn { margin-top: 0.25rem; }
+.fr .share-row-actions .ghost-btn { display: inline-flex; align-items: center; gap: 0.5rem; }
+.fr .share-row-actions svg { width: 18px; height: 18px; }
+.tl-tab:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 2px; }
+@media (min-width: 48rem) {
+  .fr-actions { flex-basis: auto; padding-left: 0; }
+  .fr-row--stack { flex-wrap: nowrap; }
+}
