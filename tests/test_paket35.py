@@ -75,7 +75,7 @@ async def main():
           c = getCookbookConfig(); out.bad = c.cover;
           localStorage.removeItem(COOKBOOK_PROJECTS_KEY); localStorage.setItem(COOKBOOK_CONFIG_KEY, JSON.stringify({ title: 'Y' })); const n = state.recipes.length; c = getCookbookConfig(); out.stub = [c.items.length, n, c.isDefault];
           return out; }""")
-        check('Alte Konfiguration: Titel, Name, Slogan, Auswahl und Rezeptvorlage bleiben, gültiges Titelblatt ergänzt', mg['old']['title'] == 'Altes Buch' and mg['old']['subtitle'] == 'Alt' and mg['old']['author'] == 'Alte Autorin' and mg['old']['tpl'] == 'B' and mg['old']['cover'] in IDS and mg['old']['items'] == 1 and mg['old']['date'] and mg['old']['coverRecipeId'] == 'r_x', str(mg['old']))
+        check('Alte Konfiguration: Titel, Name, Slogan, Auswahl und Rezeptvorlage bleiben, gültiges Titelblatt ergänzt', mg['old']['title'] == 'Altes Buch' and mg['old']['subtitle'] == 'Alt' and mg['old']['author'] == 'Alte Autorin' and mg['old']['tpl'] in ('B', 'prise-pop') and mg['old']['cover'] in IDS and mg['old']['items'] == 1 and mg['old']['date'] and mg['old']['coverRecipeId'] == 'r_x', str(mg['old']))
         check('Unbekannte Vorlage wird auf gültigen Wert gesetzt, Datum und Schalter bleiben', mg['bad']['templateId'] in IDS and mg['bad']['date'] == '2025-01-31' and mg['bad']['showDate'] is False, str(mg['bad']))
         check('Ohne gespeicherte Auswahl bleibt „alle Rezepte“ (wird nicht eingefroren)', mg['stub'][0] == mg['stub'][1] and mg['stub'][2] is True, str(mg['stub']))
         await ev("() => localStorage.removeItem(COOKBOOK_CONFIG_KEY); localStorage.removeItem(COOKBOOK_PROJECTS_KEY)")

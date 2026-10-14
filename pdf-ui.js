@@ -22,30 +22,96 @@ async function defaultPdfNutritionDetail(target, recipeId) {
   }
 }
 
+/* Vorlagen-ID normalisieren: pdf-templates.js (pdfNormalizeTemplateId) liefert immer «pur» oder «prise-pop».
+   Solange diese Funktion fehlt (Zwischenstand), bleibt die ID unveraendert. */
+function pdfNormTpl(id) { return typeof pdfNormalizeTemplateId === 'function' ? pdfNormalizeTemplateId(id) : id; }
+
+/* «Name im PDF»: Vorschlag aus dem gespeicherten Namen (state.senderName), pro Export aenderbar, nie automatisch eingeschaltet.
+   Im Kochbuch gilt der vorhandene Name auf dem Titelblatt (cfg.author), der schon heute gedruckt wird; der Wert hier gilt nur fuer diesen Export
+   und wird weder gespeichert noch mit dem Freundesprofil abgeglichen. */
+function pdfExportEnsureFields(m) {
+  if (m.fieldsReady) return;
+  m.fieldsReady = true;
+  m.template = pdfNormTpl(m.template);
+  const sender = String(state.senderName || '').trim();
+  if (m.target === 'cookbook') {
+    let author = '';
+    try { author = String(getCookbookConfig().author || '').trim(); } catch (e) { author = ''; }
+    m.printName = !!author; m.pdfName = author || sender;
+  } else { m.printName = false; m.pdfName = sender; }
+}
+function pdfExportNameValue(m) { return m.printName ? String(m.pdfName || '').replace(/\s+/g, ' ').trim() : ''; }
+document.addEventListener('input', (e) => {
+  const t = e.target;
+  if (t && t.id === 'pdfNameInput' && state.modal && state.modal.type === 'pdf-export') state.modal.pdfName = t.value;
+});
+document.addEventListener('change', (e) => {
+  const t = e.target;
+  if (t && t.id === 'pdfNamePrint' && state.modal && state.modal.type === 'pdf-export') state.modal.printName = !!t.checked;
+});
+
+/* Zwei Stile als Auswahl (Optionen) und als Umschalter in der Vorschau */
+function pdfStyleOptionsHtml(m, label) {
+  const cur = pdfNormTpl(m.template);
+  return `<div class="pdf-tpl-choice" role="radiogroup" aria-label="${label}">
+      ${Object.values(PDF_TEMPLATES).map((t) => `<button type="button" role="radio" aria-checked="${cur === t.id}" class="pdf-tpl-opt ${cur === t.id ? 'active' : ''}" data-action="pdf-export-set-template" data-id="${escapeAttr(t.id)}"><span class="pdf-tpl-swatch pdf-tpl-swatch-${escapeAttr(String(t.id).toLowerCase())}" aria-hidden="true"></span><b>${escapeHtml(t.name)}</b><small>${escapeHtml(t.hint)}</small></button>`).join('')}
+    </div>`;
+}
+function pdfStyleSwitchHtml(m) {
+  const cur = pdfNormTpl(m.template);
+  return `<div class="pdf-style-switch" role="radiogroup" aria-label="Seitenstil">
+      ${Object.values(PDF_TEMPLATES).map((t) => `<button type="button" role="radio" aria-checked="${cur === t.id}" class="${cur === t.id ? 'active' : ''}" data-action="pdf-export-set-template" data-id="${escapeAttr(t.id)}">${escapeHtml(t.name)}</button>`).join('')}
+    </div>`;
+}
+function pdfNameFieldHtml(m) {
+  const cb = m.target === 'cookbook';
+  return `<div class="pdf-name-field">
+      <label class="check-row"><input type="checkbox" id="pdfNamePrint" ${m.printName ? 'checked' : ''}> <span>Name im PDF drucken</span></label>
+      <div class="field"><label for="pdfNameInput">Name im PDF (freiwillig)</label><input type="text" id="pdfNameInput" maxlength="80" autocomplete="off" placeholder="z. B. Anna" value="${escapeHtml(m.pdfName || '')}" aria-describedby="pdfNameHint"></div>
+      <p class="hint-line" id="pdfNameHint">${cb ? 'Erscheint auf dem Titelblatt und in der Fusszeile.' : 'Erscheint in der Fusszeile.'} Gedruckt wird er nur, wenn du ihn ankreuzt. Er gilt nur für dieses PDF und wird nicht geteilt.</p>
+    </div>`;
+}
+
 function pdfExportOptionsStage() {
   const m = state.modal;
+  pdfExportEnsureFields(m);
   const level = m.nutritionDetail;
   const title = m.target === 'cookbook' ? 'Kochbuch als PDF exportieren' : 'Als PDF exportieren';
   return `
     <h2 class="modal-title" id="pdf-export-title">${title}</h2>
-    ${m.target === 'cookbook'
-      ? `<p class="nutrition-modal-subtitle">Seitenstil der Rezepte</p>
-    <p class="pdf-style-fixed" id="pdfStyleFixed"><b>${escapeHtml(pdfTemplateById(m.template).name)}</b> <span class="hint-line">Den Seitenstil änderst du im Kochbuch unter «Gestalten».</span></p>`
-      : `<p class="nutrition-modal-subtitle">Seitenstil</p>
-    <div class="pdf-tpl-choice" role="radiogroup" aria-label="Seitenstil">
-      ${Object.values(PDF_TEMPLATES).map((t) => `<button type="button" role="radio" aria-checked="${m.template === t.id}" class="pdf-tpl-opt ${m.template === t.id ? 'active' : ''}" data-action="pdf-export-set-template" data-id="${escapeAttr(t.id)}"><span class="pdf-tpl-swatch pdf-tpl-swatch-${t.id.toLowerCase()}" aria-hidden="true"></span><b>${t.name}</b><small>${t.hint}</small></button>`).join('')}
-    </div>`}
+    <p class="nutrition-modal-subtitle">Seitenstil</p>
+    ${pdfStyleOptionsHtml(m, 'Seitenstil')}
+    ${pdfNameFieldHtml(m)}
     ${state.showNutrition ? `    <p class="nutrition-modal-subtitle">Nährwerte im PDF</p>
     <div class="nutrition-segmented" role="radiogroup" aria-label="Nährwerte-Detailgrad">
       <button role="radio" aria-checked="${level === 'off'}" class="${level === 'off' ? 'active' : ''}" data-action="pdf-export-set-detail" data-level="off">Aus</button>
       <button role="radio" aria-checked="${level === 'compact'}" class="${level === 'compact' ? 'active' : ''}" data-action="pdf-export-set-detail" data-level="compact">Kompakt</button>
       <button role="radio" aria-checked="${level === 'full'}" class="${level === 'full' ? 'active' : ''}" data-action="pdf-export-set-detail" data-level="full">Erweitert</button>
     </div>` : ''}
+    <p class="hint-line pdf-preview-hint">Du siehst das fertige PDF in der Vorschau und kannst dort zwischen den beiden Stilen wechseln.</p>
     <div class="form-actions">
       <button class="ghost-btn" data-action="close-modal">Abbrechen</button>
       <button class="primary-btn" data-action="pdf-export-build">${ICONS.pdf} PDF erstellen</button>
     </div>
   `;
+}
+
+/* Stil waehlen: merkt ihn (und im Kochbuch im Stilfeld des Kochbuchs). In der Vorschau wird das PDF mit dem anderen Stil neu erzeugt. */
+async function pdfExportSetTemplate(id) {
+  const m = state.modal;
+  if (!m || m.type !== 'pdf-export') return;
+  const next = pdfNormTpl(id);
+  if (!PDF_TEMPLATES[next]) return;
+  const changed = pdfNormTpl(m.template) !== next;
+  m.template = next;
+  pdfRememberTemplate(next);
+  if (m.target === 'cookbook' && changed) {
+    try { const cfg = getCookbookConfig(); cfg.pdfTemplate = next; saveCookbookConfig(cfg); } catch (e) { /* Kochbuch unveraendert lassen */ }
+  }
+  if (m.stage === 'preview' && changed) { await pdfExportBuildAction(); return; }
+  render();
+  const again = document.querySelector(`[data-action="pdf-export-set-template"][data-id="${cssAttr(next)}"]`);
+  if (again && typeof focusWithoutScroll === 'function') focusWithoutScroll(again);
 }
 
 function pdfExportBuildingStage() {
@@ -73,7 +139,8 @@ function pdfExportErrorStage() {
 /* Seitenzahl in Worten fuer die Erklaerung bei mehrseitigen Rezepten */
 function pdfPageCountWord(n) { return ({ 2: 'zwei', 3: 'drei', 4: 'vier', 5: 'fünf', 6: 'sechs', 7: 'sieben', 8: 'acht' })[n] || String(n); }
 function pdfMultiPageNote(m) {
-  return m.target === 'single' && m.pageCount > 1 ? `Dieses Rezept erhält ${pdfPageCountWord(m.pageCount)} Seiten, damit alles gut lesbar bleibt.` : '';
+  // nur bei genau zwei Seiten und wenn die Seitenplanung (plannedPages) ebenfalls zwei Seiten gemeldet hat
+  return m.target === 'single' && m.pageCount === 2 && m.plannedPages === 2 ? 'Dieses Rezept erhält zwei Seiten, damit alles gut lesbar bleibt.' : '';
 }
 
 /* ---------- Ablauf: erzeugen -> Vorschau -> Download (immer dieselben Bytes) ----------
@@ -104,7 +171,7 @@ async function pdfExportBuildAction() {
   render();
   let result = null;
   try {
-    const opts = { template: m.template, signal: ctrl.signal, onProgress: (p) => pdfExportShowProgress(m, p) };
+    const opts = { template: pdfNormTpl(m.template), author: pdfExportNameValue(m), signal: ctrl.signal, onProgress: (p) => pdfExportShowProgress(m, p) };
     result = m.target === 'cookbook'
       ? await buildCookbookPdf(m.nutritionDetail, opts)
       : await buildSinglePdf(m.recipeId, m.nutritionDetail, opts);
@@ -122,6 +189,7 @@ async function pdfExportBuildAction() {
   }
   m.previewBlob = result.blob;
   m.pageCount = result.blob.pageCount || 0;
+  m.plannedPages = result.blob.plannedPages || 0;
   m.zoom = 1;
   m.filename = result.filename;
   m.previewUrl = URL.createObjectURL(result.blob);
@@ -145,9 +213,10 @@ function pdfExportPreviewStage() {
     <div class="pdf-preview-header">
       <button class="ghost-btn pdf-preview-close" data-action="pdf-export-back" aria-label="Vorschau schliessen, zurück zu den Optionen">${ICONS.back} Zurück</button>
       <h2 class="modal-title" id="pdf-export-title">Vorschau</h2>
-      <span class="pdf-preview-meta" aria-live="polite">${m.pageCount ? m.pageCount + (m.pageCount === 1 ? ' Seite' : ' Seiten') : ''}${m.template ? ' · ' + escapeHtml(pdfTemplateById(m.template).name) : ''}</span>
+      <span class="pdf-preview-meta" aria-live="polite">${m.pageCount ? m.pageCount + (m.pageCount === 1 ? ' Seite' : ' Seiten') : ''}</span>
       ${pdfPreviewUsesCanvas() ? `<span class="pdf-zoom"><button class="icon-btn" data-action="pdf-zoom" data-id="out" aria-label="Verkleinern" ${(m.zoom || 1) <= 1 ? 'disabled' : ''}>−</button><button class="icon-btn" data-action="pdf-zoom" data-id="in" aria-label="Vergrössern" ${(m.zoom || 1) >= 3 ? 'disabled' : ''}>+</button></span>` : ''}
     </div>
+    ${pdfStyleSwitchHtml(m)}
     ${pdfMultiPageNote(m) ? `<p class="pdf-info-line" id="pdfMultiPageNote">${pdfMultiPageNote(m)}</p>` : ''}
     <div class="pdf-preview-frame-wrap">
       ${pdfPreviewUsesCanvas()

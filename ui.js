@@ -686,7 +686,7 @@ async function dispatchAction(action, id, el, e) {
       openModal({ type: 'pdf-export', target: 'single', recipeId: id, stage: 'options', template: pdfDefaultTemplateId(), nutritionDetail: await defaultPdfNutritionDetail('single', id) }, `[data-action="export-pdf"][data-id="${escapeAttr(id)}"]`);
       break;
     case 'export-cookbook':
-      openModal({ type: 'pdf-export', target: 'cookbook', stage: 'options', template: (getCookbookConfig().pdfTemplate || pdfDefaultTemplateId()), nutritionDetail: await defaultPdfNutritionDetail('cookbook') }, `[data-action="export-cookbook"]`);
+      openModal({ type: 'pdf-export', target: 'cookbook', stage: 'options', template: pdfNormTpl(getCookbookConfig().pdfTemplate || pdfDefaultTemplateId()), nutritionDetail: await defaultPdfNutritionDetail('cookbook') }, `[data-action="export-cookbook"]`);
       break;
     case 'export-backup':
       downloadBackup();
@@ -1131,9 +1131,7 @@ async function dispatchAction(action, id, el, e) {
       break;
     }
     case 'pdf-export-set-template':
-      state.modal.template = id;
-      pdfRememberTemplate(id);
-      render();
+      await pdfExportSetTemplate(id);   // pdf-ui.js: merkt den Stil; in der Vorschau wird das PDF mit dem anderen Stil neu erzeugt
       break;
     case 'pdf-export-set-detail':
       state.modal.nutritionDetail = el.dataset.level;

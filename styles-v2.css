@@ -2872,3 +2872,16 @@ main.settings-page.kd-page { max-width: 40rem; padding-bottom: 2rem; }
   .fr-actions { flex-basis: auto; padding-left: 0; }
   .fr-row--stack { flex-wrap: nowrap; }
 }
+/* ===== PDF-Dialog: Stilwahl, Name im PDF ===== */
+.pdf-tpl-swatch-pur { background: linear-gradient(180deg, #FFFFFF 55%, #E6EEE4 55%); }
+.pdf-tpl-swatch-prise-pop { background: linear-gradient(180deg, #E5412D 34%, #FFF1B8 34%); }
+.pdf-name-field { margin: 1rem 0 0.5rem; }
+.pdf-name-field .field { margin-top: 0.5rem; margin-bottom: 0.25rem; }
+.pdf-preview-hint { margin: 0.75rem 0 0; }
+.pdf-style-switch { display: inline-flex; gap: 0.25rem; padding: 0.25rem; border: 1px solid var(--border, rgba(0, 0, 0, .15)); border-radius: 999px; margin: 0.5rem 0; }
+.pdf-style-switch button { min-height: 2.75rem; padding: 0 1rem; border: 0; border-radius: 999px; background: transparent; color: inherit; font: inherit; font-weight: 600; cursor: pointer; }
+.pdf-style-switch button.active { background: var(--text, #1b1a17); color: var(--bg, #fff); }
+.pdf-style-switch button:focus-visible { outline: 3px solid var(--text); outline-offset: 2px; }
+@media (prefers-reduced-motion: reduce) {
+  .pdf-style-switch button, .pdf-progress span { transition: none !important; animation: none !important; }
+}

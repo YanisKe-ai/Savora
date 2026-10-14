@@ -22,7 +22,7 @@ async def main():
         res = await ev("""async () => { const cb = await buildCookbookPdf('off'); return cb && cb.blob.size; }""")
         check('Kochbuch-PDF wird erzeugt', res and res > 5000, str(res))
         html = await ev("""() => { const r = state.recipes.find(x => x.id === 'r_legacy_1'); const m = pdfBuildModel(r, null); return pvStepUnits(m.steps).map(u => u.html).join(''); }""")
-        check('PDF-Schritte haben nummerierte Einträge (01, 02 ...)', html.count('class="pv-step-no"') >= 2 and '>01<' in html)
+        check('PDF-Schritte haben nummerierte Einträge (1, 2 ...)', html.count('class="pv-step-no"') >= 2 and '>1<' in html)
         toc = await ev("""() => { const d = document.createElement('div'); d.innerHTML = '<section class="pv-page pv-tpl-a"><div class="pv-toc-row"><span class="pv-toc-name">Titel</span></div></section>'; document.body.appendChild(d); const v = getComputedStyle(d.querySelector('.pv-toc-name')).overflow; d.remove(); return v; }""")
         check('Inhaltsverzeichnis schneidet Titel nicht ab', toc == 'visible', toc)
         await ev("() => { state.activeRecipeId = state.recipes.find(x => x.id === 'r_legacy_1').id; state.view = 'cookmode'; state.cookStepIndex = 1; state.cookFinished = false; render(); }"); await page.wait_for_timeout(300)

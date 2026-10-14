@@ -1,4 +1,5 @@
-/* ---------- PDF Editorial Engine: Bild-Fitting & Layout-Auswahl (Punkt 33-52, 67, 80) ----------
+/* ---------- PDF-Layoutgrundlagen: Bildmasse, Aufloesung, Hoehenmessung ----------
+   (Die fruehere Layout-Auswahl hero/split/floating der alten Vorlagen A/B/C ist entfernt; die Seiten entstehen in pdf.js/pdf-templates.js.)
    Reine Berechnungsfunktionen, keine DOM-/html2canvas-Abhaengigkeit — daher direkt mit
    Playwright testbar (siehe Implementierungsbericht: Testmatrix aus Punkt 80 durchlaufen). Die
    tatsaechliche Bilddarstellung im gerenderten PDF-HTML nutzt CSS object-fit (contain/cover),
@@ -60,45 +61,6 @@ function imageResolutionSufficientForFrame(sourceWidth, frameWidthMm) {
   if (!sourceWidth || !frameWidthMm) return false;
   const dpi = sourceWidth / (frameWidthMm / 25.4);
   return dpi >= MIN_PRINT_DPI;
-}
-
-/* ---------- 50-52: Layout-Auswahl ----------
-   Layouts (siehe pdf-templates.js fuer die HTML-Umsetzung):
-   hero, split-left, split-right, floating, full-statement, typography (kein Foto) */
-const PDF_LAYOUTS = ['hero', 'split-left', 'split-right', 'floating', 'full-statement'];
-
-// Stabiler, einfacher String-Hash (keine Kryptographie noetig) fuer die deterministische Auswahl —
-// derselbe Rezept-Stand ergibt IMMER dasselbe Layout (Punkt 51), aendert sich der Inhalt
-// (recipeId + Bild + grobe Textmenge fliessen ein), darf sich auch das Layout aendern.
-function pdfLayoutHash(str) {
-  let h = 0;
-  for (let i = 0; i < str.length; i++) h = (h * 31 + str.charCodeAt(i)) | 0;
-  return Math.abs(h);
-}
-
-function contentDensity(recipe) {
-  const ingCount = (recipe.ingredients || []).filter((i) => i.name && i.name.trim()).length;
-  const stepChars = (recipe.steps || []).reduce((sum, s) => sum + ((s.text || '').length), 0);
-  return ingCount + stepChars / 90; // grobe Gewichtung: ~90 Zeichen Zubereitungstext ~= 1 Zutat an "Platzbedarf"
-}
-
-/* Ermittelt die fuer ein Bild-Seitenverhaeltnis grundsaetzlich sinnvollen Layout-Kandidaten
-   (Punkt 43-48) — die eigentliche Auswahl daraus ist deterministisch, nicht zufaellig-chaotisch
-   (Punkt 51). */
-function candidateLayoutsForAspect(aspect, density, resolutionOk) {
-  // Punkt 41: reicht die Aufloesung fuer ein grossflaechiges Layout nicht, wird IMMER das
-  // kleinste Bild-Layout gewaehlt (Floating, 62mm-Box) statt ein Foto in einem grossen Rahmen
-  // hochzuskalieren — unabhaengig vom Seitenverhaeltnis. Das war zuvor ein echter Bug: ein
-  // 400px breites Bild landete trotzdem im 210mm-breiten Hero-Layout.
-  if (!resolutionOk) return ['floating'];
-  if (aspect === 'wide-landscape' || aspect === 'landscape') {
-    const list = ['hero'];
-    if (density < 9) list.push('full-statement'); // Punkt 47: nur bei kurzem Rezept + gutem Foto
-    return list;
-  }
-  if (aspect === 'portrait' || aspect === 'very-tall-portrait') return ['split-left', 'split-right'];
-  if (aspect === 'square') return ['floating', 'split-left', 'split-right'];
-  return ['hero'];
 }
 
 /* ---------- Reparatur-Auftrag Teil C/D: echte Hoehenmessung statt Annahme ----------
@@ -182,54 +144,4 @@ function cleanupPdfMeasureProbe() {
 
 function candidateFitsOnePage(html) {
   return measureSectionHeightMm(html) <= PAGE_HEIGHT_MM + PAGE_FIT_TOLERANCE_MM;
-}
-
-/* ---------- 49: Crop-Limit ----------
-   fitImageToFrame() lieferte den Crop-Anteil bisher nur zur Dokumentation, ohne dass er irgendwo
-   die Layoutwahl beeinflusste (toter Wert). Wird jetzt als Sicherheitsnetz genutzt: nur wenn ein
-   Cover-Crop wirklich extrem waere (z.B. eine sehr schmale Bildaufloesung mit einem stark
-   abweichenden Seitenverhaeltnis, das durch classifyAspectRatio grob in einen Eimer faellt, der
-   fuer dieses konkrete Bild trotzdem schlecht passt), wird der Kandidat verworfen — bewusst ein
-   hoher Schwellenwert, damit normale Portrait-/Quadrat-Fotos in Split/Floating (deren Rahmen
-   inhaerent schmal bzw. quadratisch sind) NICHT faelschlich abgelehnt werden. */
-const PDF_LAYOUT_FRAME_MM = {
-  hero: { w: 210, h: 115 },
-  'split-left': { w: 88, h: 297 },
-  'split-right': { w: 88, h: 297 },
-  floating: { w: 62, h: 62 },
-  'full-statement': { w: 210, h: 150 },
-};
-const MAX_ACCEPTABLE_CROP = 0.75;
-
-function cropFractionForLayout(layoutName, sourceWidth, sourceHeight) {
-  const frame = PDF_LAYOUT_FRAME_MM[layoutName];
-  if (!frame || !sourceWidth || !sourceHeight) return 0;
-  return fitImageToFrame(sourceWidth, sourceHeight, frame.w, frame.h, 'cover').crop;
-}
-
-/* Haupteinstiegspunkt. `previousLayout` (optional) ist das zuletzt vergebene Layout beim
-   Kochbuch-Export (Punkt 52) — bei mehreren moeglichen Kandidaten wird eine Wiederholung
-   vermieden, damit aufeinanderfolgende Seiten nicht identisch wirken. */
-function selectPdfLayout(recipe, imageDims, previousLayout) {
-  if (!imageDims || !imageDims.width || !imageDims.height) return 'typography'; // Punkt 49
-  const aspect = classifyAspectRatio(imageDims.width, imageDims.height);
-  const density = contentDensity(recipe);
-  // 45-48% Seitenbreite typische Bildframe-Breite in den Split-/Hero-Layouts -> grober Richtwert
-  // fuer die Aufloesungspruefung; bei "full-statement" ist das Bild praktisch seitenfuellend.
-  const resolutionOk = imageResolutionSufficientForFrame(imageDims.width, 210);
-  let candidates = candidateLayoutsForAspect(aspect, density, resolutionOk);
-  if (!candidates.length) candidates = ['hero'];
-
-  // Punkt 49: extremen Crop verwerfen, aber nie auf null Kandidaten enden — im Zweifel den mit
-  // dem geringsten Crop-Anteil behalten, statt gar kein Foto-Layout mehr anzubieten.
-  const withCrop = candidates.map((c) => ({ name: c, crop: cropFractionForLayout(c, imageDims.width, imageDims.height) }));
-  const acceptable = withCrop.filter((c) => c.crop <= MAX_ACCEPTABLE_CROP).map((c) => c.name);
-  candidates = acceptable.length ? acceptable : [withCrop.slice().sort((a, b) => a.crop - b.crop)[0].name];
-
-  const hash = pdfLayoutHash((recipe.id || '') + '|' + Math.round(density));
-  let choice = candidates[hash % candidates.length];
-  if (previousLayout && choice === previousLayout && candidates.length > 1) {
-    choice = candidates[(hash + 1) % candidates.length];
-  }
-  return choice;
 }
