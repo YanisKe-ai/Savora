@@ -77,8 +77,7 @@
 },
 "templateId": "bistro",
 "warnings": []
-},
-"px": "86059f24d30d133edcd62cc84318da080288e2a507bf93ec0a514a010b773559"
+}
 },
 "bistro/kurz-ohne-datum": {
 "layout": {
@@ -149,8 +148,7 @@
 },
 "templateId": "bistro",
 "warnings": []
-},
-"px": "8eb845e5bba12b33c7a80e1319299855b2b1141379a0dc6fe62cd2ec6ec0d630"
+}
 },
 "bistro/kurz-ohne-logo": {
 "layout": {
@@ -223,8 +221,7 @@
 },
 "templateId": "bistro",
 "warnings": []
-},
-"px": "798a96c0c8403c825c984b269bc1c46858d725d1ddacc4b728fd84779f030805"
+}
 },
 "bistro/lang": {
 "layout": {
@@ -238,8 +235,8 @@
 "key": "title",
 "lineHeightPx": 36.4,
 "lines": [
-"Die allerbesten Familienrezepte aus drei Generationen und",
-"vielen Ländern"
+"Die allerbesten Familienrezepte aus drei",
+"Generationen und vielen Ländern"
 ],
 "sizePx": 35,
 "w": 0.82,
@@ -250,14 +247,14 @@
 {
 "family": "'Roboto', system-ui, sans-serif",
 "fits": true,
-"h": 0.0245,
+"h": 0.0234,
 "ink": "#171717",
 "key": "slogan",
-"lineHeightPx": 27.5,
+"lineHeightPx": 26.25,
 "lines": [
 "Gesammelt über viele Jahre, mit Liebe weitergegeben und ergänzt"
 ],
-"sizePx": 22,
+"sizePx": 21,
 "w": 0.82,
 "weight": 400,
 "x": 0.09,
@@ -277,7 +274,7 @@
 "w": 0.82,
 "weight": 700,
 "x": 0.09,
-"y": 0.2513
+"y": 0.2502
 }
 ],
 "date": {
@@ -305,8 +302,7 @@
 },
 "templateId": "bistro",
 "warnings": []
-},
-"px": "27b41f0edc351d93259f365a1f964f308c3de621f4138c7ea4bfa1c355160099"
+}
 },
 "bistro/langes-wort": {
 "layout": {
@@ -315,15 +311,16 @@
 {
 "family": "'Sofia Sans Extra Condensed', 'Arial Narrow', sans-serif",
 "fits": true,
-"h": 0.1037,
+"h": 0.15,
 "ink": "#171717",
 "key": "title",
-"lineHeightPx": 58.24,
+"lineHeightPx": 56.16,
 "lines": [
-"Donaudampfschifffahrtsgesellschaft",
-"skapitänsmützenfabrikantenverband"
+"Donaudampfschifffahrtsgesellschaf",
+"tskapitänsmützenfabrikantenverban",
+"d"
 ],
-"sizePx": 56,
+"sizePx": 54,
 "w": 0.82,
 "weight": 800,
 "x": 0.09,
@@ -355,8 +352,7 @@
 },
 "templateId": "bistro",
 "warnings": []
-},
-"px": "42625c8f2448d4f39d29c195e684a36adb815f4c6834473125864f421ef87780"
+}
 },
 "bistro/leer": {
 "layout": {
@@ -387,8 +383,7 @@
 },
 "templateId": "bistro",
 "warnings": []
-},
-"px": "087868fd01ba6d5a1194bcec31cdac533ab8105890d761e8678cccdacd832e21"
+}
 },
 "bistro/nur-name-lang": {
 "layout": {
@@ -436,8 +431,7 @@
 },
 "templateId": "bistro",
 "warnings": []
-},
-"px": "be5e018a75dd6b2aa1ce232b9f8a6531b3578e0da7703e340bb56659046f2e04"
+}
 },
 "bistro/nur-slogan-lang": {
 "layout": {
@@ -487,8 +481,7 @@
 },
 "templateId": "bistro",
 "warnings": []
-},
-"px": "1266d0635b846817fa331ea1d1ac1e4a6effa698255a9ae7f5e116edca230713"
+}
 },
 "bistro/nur-titel": {
 "layout": {
@@ -536,8 +529,7 @@
 },
 "templateId": "bistro",
 "warnings": []
-},
-"px": "6ac16f8de2b63cd1b54f5c31cb619efe0f26862a64db9e2f60a9d14ecec025e2"
+}
 },
 "bistro/zu-lang": {
 "layout": {
@@ -575,11 +567,10 @@
 "key": "name",
 "lineHeightPx": 16.9,
 "lines": [
-"NNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNN",
-"NNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNN",
-"NNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNN",
-"NNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNN",
-"NNNNNNNNNNNNNNNNNNNN"
+"NNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNN",
+"NNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNN",
+"NNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNN",
+"NNNNNNNNNNNN"
 ],
 "sizePx": 13,
 "w": 0.82,
@@ -622,8 +613,7 @@
 "message": "Der Name ist zu lang für dieses Titelblatt. Bitte kürzen (er passt nur in kleiner, nicht lesbarer Schrift)."
 }
 ]
-},
-"px": "ec0ec260c9011a5f948da58544892d940482b5bd2a3e2fc1c1b1ad3afa76d25b"
+}
 },
 "citrus/kurz": {
 "layout": {
@@ -703,8 +693,7 @@
 },
 "templateId": "citrus",
 "warnings": []
-},
-"px": "77f4a808ab201622dac7e713e294fabb8c14efc709ca4dd58ece5558ad025763"
+}
 },
 "citrus/kurz-ohne-datum": {
 "layout": {
@@ -775,8 +764,7 @@
 },
 "templateId": "citrus",
 "warnings": []
-},
-"px": "239b6a7de25d6bb55bc8f4790370e9302afb1d4a9b3b84a068e8ac8b61e01b8a"
+}
 },
 "citrus/kurz-ohne-logo": {
 "layout": {
@@ -849,8 +837,7 @@
 },
 "templateId": "citrus",
 "warnings": []
-},
-"px": "83af06cb0ee69fcbae304aaa8ae9286f038e67e0076f91e50760aae564c1d60a"
+}
 },
 "citrus/lang": {
 "layout": {
@@ -859,15 +846,15 @@
 {
 "family": "'Sofia Sans Extra Condensed', 'Arial Narrow', sans-serif",
 "fits": true,
-"h": 0.1037,
+"h": 0.0926,
 "ink": "#FFFFFF",
 "key": "title",
-"lineHeightPx": 58.24,
+"lineHeightPx": 52,
 "lines": [
 "Die allerbesten Familienrezepte aus",
 "drei Generationen und vielen Ländern"
 ],
-"sizePx": 56,
+"sizePx": 50,
 "w": 0.82,
 "weight": 800,
 "x": 0.09,
@@ -876,18 +863,19 @@
 {
 "family": "'Roboto', system-ui, sans-serif",
 "fits": true,
-"h": 0.0245,
+"h": 0.0485,
 "ink": "#FFFFFF",
 "key": "slogan",
 "lineHeightPx": 27.5,
 "lines": [
-"Gesammelt über viele Jahre, mit Liebe weitergegeben und ergänzt"
+"Gesammelt über viele Jahre, mit Liebe weitergegeben und",
+"ergänzt"
 ],
 "sizePx": 22,
 "w": 0.82,
 "weight": 400,
 "x": 0.09,
-"y": 0.2497
+"y": 0.2386
 },
 {
 "family": "'Roboto', system-ui, sans-serif",
@@ -903,7 +891,7 @@
 "w": 0.82,
 "weight": 700,
 "x": 0.09,
-"y": 0.2902
+"y": 0.3031
 }
 ],
 "date": {
@@ -931,8 +919,7 @@
 },
 "templateId": "citrus",
 "warnings": []
-},
-"px": "27f7436fb9eb873758e9ac4c784a637c03d6a770769fa2555125c976de965d1f"
+}
 },
 "citrus/langes-wort": {
 "layout": {
@@ -947,8 +934,8 @@
 "lineHeightPx": 78,
 "lines": [
 "Donaudampfschifffahrtsge",
-"sellschaftskapitänsmützen",
-"fabrikantenverband"
+"sellschaftskapitänsmütze",
+"nfabrikantenverband"
 ],
 "sizePx": 75,
 "w": 0.82,
@@ -982,8 +969,7 @@
 },
 "templateId": "citrus",
 "warnings": []
-},
-"px": "e4c600299ed164d174cce64079cd947bf29d5445facca53eacda4a0a2dbb7f4b"
+}
 },
 "citrus/leer": {
 "layout": {
@@ -1014,8 +1000,7 @@
 },
 "templateId": "citrus",
 "warnings": []
-},
-"px": "94a881d5dd8a0b5b224a17e20342bc354b4ae13844cb2eb7ce316287f989a6df"
+}
 },
 "citrus/nur-name-lang": {
 "layout": {
@@ -1063,8 +1048,7 @@
 },
 "templateId": "citrus",
 "warnings": []
-},
-"px": "67040c43a50f0f998ee9e33b861b3ada85ed01b90320143f4011034a31ec6914"
+}
 },
 "citrus/nur-slogan-lang": {
 "layout": {
@@ -1114,8 +1098,7 @@
 },
 "templateId": "citrus",
 "warnings": []
-},
-"px": "70350acf22049af978e3205cd0ea3504109ec8e9fa30ea01b870ec510cd67121"
+}
 },
 "citrus/nur-titel": {
 "layout": {
@@ -1163,8 +1146,7 @@
 },
 "templateId": "citrus",
 "warnings": []
-},
-"px": "9a27d15c4ca3cd22adc5254fb7a289c9d98290d17b28ac4c12d3e604f2ea1f73"
+}
 },
 "citrus/zu-lang": {
 "layout": {
@@ -1202,11 +1184,10 @@
 "key": "name",
 "lineHeightPx": 16.9,
 "lines": [
-"NNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNN",
-"NNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNN",
-"NNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNN",
-"NNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNN",
-"NNNNNNNNNNNNNNNNNNNN"
+"NNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNN",
+"NNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNN",
+"NNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNN",
+"NNNNNNNNNNNN"
 ],
 "sizePx": 13,
 "w": 0.82,
@@ -1249,8 +1230,7 @@
 "message": "Der Name ist zu lang für dieses Titelblatt. Bitte kürzen (er passt nur in kleiner, nicht lesbarer Schrift)."
 }
 ]
-},
-"px": "8eb49440bf979540429907d461e19b9c024fcadd61f157bd8fc032fb9b1c476c"
+}
 },
 "garten/kurz": {
 "layout": {
@@ -1330,8 +1310,7 @@
 },
 "templateId": "garten",
 "warnings": []
-},
-"px": "4774e21830680b906d1b0ad7ad2345ce3e221916eca06756c56240248d875e0b"
+}
 },
 "garten/kurz-ohne-datum": {
 "layout": {
@@ -1402,8 +1381,7 @@
 },
 "templateId": "garten",
 "warnings": []
-},
-"px": "af287bf1293b34975e38d08f3946b1e344ab93785033fbaccef29fd6e10b4eba"
+}
 },
 "garten/kurz-ohne-logo": {
 "layout": {
@@ -1476,8 +1454,7 @@
 },
 "templateId": "garten",
 "warnings": []
-},
-"px": "5a7ec382c8a5b38be379e4a7072e9879af87f23f7aa8a842660e8654f46c388a"
+}
 },
 "garten/lang": {
 "layout": {
@@ -1503,14 +1480,14 @@
 {
 "family": "'Roboto', system-ui, sans-serif",
 "fits": true,
-"h": 0.0245,
+"h": 0.0234,
 "ink": "#171717",
 "key": "slogan",
-"lineHeightPx": 27.5,
+"lineHeightPx": 26.25,
 "lines": [
 "Gesammelt über viele Jahre, mit Liebe weitergegeben und ergänzt"
 ],
-"sizePx": 22,
+"sizePx": 21,
 "w": 0.82,
 "weight": 400,
 "x": 0.09,
@@ -1530,7 +1507,7 @@
 "w": 0.82,
 "weight": 700,
 "x": 0.09,
-"y": 0.2698
+"y": 0.2687
 }
 ],
 "date": {
@@ -1558,8 +1535,7 @@
 },
 "templateId": "garten",
 "warnings": []
-},
-"px": "9955116ad33ee0f8bc84d0c8d03239741bdfce0578d737caef5214367554b2ce"
+}
 },
 "garten/langes-wort": {
 "layout": {
@@ -1573,9 +1549,9 @@
 "key": "title",
 "lineHeightPx": 66.56,
 "lines": [
-"Donaudampfschifffahrtsgesells",
-"chaftskapitänsmützenfabrikant",
-"enverband"
+"Donaudampfschifffahrtsgesell",
+"schaftskapitänsmützenfabrika",
+"ntenverband"
 ],
 "sizePx": 64,
 "w": 0.82,
@@ -1609,8 +1585,7 @@
 },
 "templateId": "garten",
 "warnings": []
-},
-"px": "1fa51d6dc007fa1b95e87632ee691f2cb34b6294b921098843fe1d34e34b2388"
+}
 },
 "garten/leer": {
 "layout": {
@@ -1641,8 +1616,7 @@
 },
 "templateId": "garten",
 "warnings": []
-},
-"px": "defbcfcc233f144b28cf4e1b880bc12973c7669b0943dbedb14c46ee65e6e047"
+}
 },
 "garten/nur-name-lang": {
 "layout": {
@@ -1690,8 +1664,7 @@
 },
 "templateId": "garten",
 "warnings": []
-},
-"px": "ce61ebce1cf40a97d901ceee6b5eab852289015eaf9d136b9f50c3d9da380446"
+}
 },
 "garten/nur-slogan-lang": {
 "layout": {
@@ -1741,8 +1714,7 @@
 },
 "templateId": "garten",
 "warnings": []
-},
-"px": "52a9c8090134df81555ddc38200af7fad476153b38492d1f40573a71ecd0f8f8"
+}
 },
 "garten/nur-titel": {
 "layout": {
@@ -1790,8 +1762,7 @@
 },
 "templateId": "garten",
 "warnings": []
-},
-"px": "8daafa83064ce3bda9389187241ad979aac079d4141610a1d16f31f35c15b006"
+}
 },
 "garten/zu-lang": {
 "layout": {
@@ -1829,11 +1800,10 @@
 "key": "name",
 "lineHeightPx": 16.9,
 "lines": [
-"NNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNN",
-"NNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNN",
-"NNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNN",
-"NNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNN",
-"NNNNNNNNNNNNNNNNNNNN"
+"NNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNN",
+"NNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNN",
+"NNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNN",
+"NNNNNNNNNNNN"
 ],
 "sizePx": 13,
 "w": 0.82,
@@ -1876,8 +1846,7 @@
 "message": "Der Name ist zu lang für dieses Titelblatt. Bitte kürzen (er passt nur in kleiner, nicht lesbarer Schrift)."
 }
 ]
-},
-"px": "f648f695446b1e1f73d482268a530395a8185fa7998d7a074da1d176669a755e"
+}
 },
 "lieblingsbuch/kurz": {
 "layout": {
@@ -1957,8 +1926,7 @@
 },
 "templateId": "lieblingsbuch",
 "warnings": []
-},
-"px": "eea57969e7cec888e4abda704df638d80e4aae861d89b0747eeb2ca16590fa04"
+}
 },
 "lieblingsbuch/kurz-ohne-datum": {
 "layout": {
@@ -2029,8 +1997,7 @@
 },
 "templateId": "lieblingsbuch",
 "warnings": []
-},
-"px": "53e46c03d2cde1f7157f712723ac2bea4153f5933f8fe56fadf282b12a2f1cae"
+}
 },
 "lieblingsbuch/kurz-ohne-logo": {
 "layout": {
@@ -2103,8 +2070,7 @@
 },
 "templateId": "lieblingsbuch",
 "warnings": []
-},
-"px": "0b591f9e19a281a5b786994c02b8769ef647702758bafd8c05a4d0ef4ab99390"
+}
 },
 "lieblingsbuch/lang": {
 "layout": {
@@ -2113,16 +2079,16 @@
 {
 "family": "'Sofia Sans Extra Condensed', 'Arial Narrow', sans-serif",
 "fits": true,
-"h": 0.1417,
+"h": 0.125,
 "ink": "#FFFFFF",
 "key": "title",
-"lineHeightPx": 53.04,
+"lineHeightPx": 46.8,
 "lines": [
 "Die allerbesten Familienrezepte",
 "aus drei Generationen und",
 "vielen Ländern"
 ],
-"sizePx": 51,
+"sizePx": 45,
 "w": 0.64,
 "weight": 800,
 "x": 0.27,
@@ -2136,14 +2102,14 @@
 "key": "slogan",
 "lineHeightPx": 37.5,
 "lines": [
-"Gesammelt über viele Jahre, mit Liebe",
-"weitergegeben und ergänzt"
+"Gesammelt über viele Jahre, mit",
+"Liebe weitergegeben und ergänzt"
 ],
 "sizePx": 30,
 "w": 0.64,
 "weight": 400,
 "x": 0.27,
-"y": 0.2877
+"y": 0.271
 },
 {
 "family": "'Roboto', system-ui, sans-serif",
@@ -2159,7 +2125,7 @@
 "w": 0.64,
 "weight": 700,
 "x": 0.27,
-"y": 0.3705
+"y": 0.3538
 }
 ],
 "date": {
@@ -2187,8 +2153,7 @@
 },
 "templateId": "lieblingsbuch",
 "warnings": []
-},
-"px": "6dbf78fa95aaa068bf8a276fd035e77270bc2cfef637d0d1c3592787d0aac9ff"
+}
 },
 "lieblingsbuch/langes-wort": {
 "layout": {
@@ -2203,9 +2168,9 @@
 "lineHeightPx": 75.92,
 "lines": [
 "Donaudampfschifffah",
-"rtsgesellschaftskapit",
-"änsmützenfabrikante",
-"nverband"
+"rtsgesellschaftskap",
+"itänsmützenfabrikan",
+"tenverband"
 ],
 "sizePx": 73,
 "w": 0.64,
@@ -2239,8 +2204,7 @@
 },
 "templateId": "lieblingsbuch",
 "warnings": []
-},
-"px": "23338218995fd32369c5e87198f3f8aa4366ca774dda28fbb09fa5bca144713a"
+}
 },
 "lieblingsbuch/leer": {
 "layout": {
@@ -2271,8 +2235,7 @@
 },
 "templateId": "lieblingsbuch",
 "warnings": []
-},
-"px": "e974d3d0d1763568bf3912aa2e39eb581f972d6360a04b3f197e36d478b246d3"
+}
 },
 "lieblingsbuch/nur-name-lang": {
 "layout": {
@@ -2321,8 +2284,7 @@
 },
 "templateId": "lieblingsbuch",
 "warnings": []
-},
-"px": "71666b08b632ab71bd370f88de7cdfe444ea49fc62f615e4197be6df08395de0"
+}
 },
 "lieblingsbuch/nur-slogan-lang": {
 "layout": {
@@ -2336,9 +2298,9 @@
 "key": "slogan",
 "lineHeightPx": 37.5,
 "lines": [
-"Gesammelt über viele Jahre, mit Liebe",
-"weitergegeben und von Hand ergänzt,",
-"Seite für Seite"
+"Gesammelt über viele Jahre, mit",
+"Liebe weitergegeben und von Hand",
+"ergänzt, Seite für Seite"
 ],
 "sizePx": 30,
 "w": 0.64,
@@ -2372,8 +2334,7 @@
 },
 "templateId": "lieblingsbuch",
 "warnings": []
-},
-"px": "383f586dd97854e621ead252abcade39ae6bb1567b8fe748a1c512480204f103"
+}
 },
 "lieblingsbuch/nur-titel": {
 "layout": {
@@ -2421,8 +2382,7 @@
 },
 "templateId": "lieblingsbuch",
 "warnings": []
-},
-"px": "1e456a5cf3b4704d19106883f7f8ed6d0f3dccf4db549352261d8f4cce4849fc"
+}
 },
 "lieblingsbuch/zu-lang": {
 "layout": {
@@ -2457,18 +2417,16 @@
 },
 {
 "family": "'Roboto', system-ui, sans-serif",
-"fits": false,
-"h": 0.0635,
+"fits": true,
+"h": 0.0602,
 "ink": "#FFFFFF",
 "key": "name",
 "lineHeightPx": 16.9,
 "lines": [
-"NNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNN",
-"NNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNN",
-"NNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNN",
-"NNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNN",
-"NNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNN",
-"NNNNNNNNNNNNNNNNNNNNNNNNN"
+"NNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNN",
+"NNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNN",
+"NNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNN",
+"NNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNN"
 ],
 "sizePx": 13,
 "w": 0.64,
@@ -2505,14 +2463,9 @@
 {
 "key": "title",
 "message": "Der Titel ist zu lang für dieses Titelblatt. Bitte kürzen (er passt nur in kleiner, nicht lesbarer Schrift)."
-},
-{
-"key": "name",
-"message": "Der Name ist zu lang für dieses Titelblatt. Bitte kürzen (er passt nur in kleiner, nicht lesbarer Schrift)."
 }
 ]
-},
-"px": "0c0a8e323ada29bba471d8b378e19ffd0514e762e0c8f96e696ff2dd24e7c88d"
+}
 },
 "nachtkueche/kurz": {
 "layout": {
@@ -2592,8 +2545,7 @@
 },
 "templateId": "nachtkueche",
 "warnings": []
-},
-"px": "48c169679a58b13ab8b5fc37eec85c3f22a244553215cef7a886384422dca1ad"
+}
 },
 "nachtkueche/kurz-ohne-datum": {
 "layout": {
@@ -2664,8 +2616,7 @@
 },
 "templateId": "nachtkueche",
 "warnings": []
-},
-"px": "92b358c4122abc44892d36ec529fdf0deb17d83bd01641fb1167089c314b71bc"
+}
 },
 "nachtkueche/kurz-ohne-logo": {
 "layout": {
@@ -2738,8 +2689,7 @@
 },
 "templateId": "nachtkueche",
 "warnings": []
-},
-"px": "a15a11da4204bcb6c2709c7d6e2ca3b07e44ac5f2775655501f9bcb6549d24f4"
+}
 },
 "nachtkueche/lang": {
 "layout": {
@@ -2748,15 +2698,16 @@
 {
 "family": "'Sofia Sans Extra Condensed', 'Arial Narrow', sans-serif",
 "fits": true,
-"h": 0.1037,
+"h": 0.1445,
 "ink": "#FFFFFF",
 "key": "title",
-"lineHeightPx": 58.24,
+"lineHeightPx": 54.08,
 "lines": [
-"Die allerbesten Familienrezepte aus",
-"drei Generationen und vielen Ländern"
+"Die allerbesten Familienrezepte",
+"aus drei Generationen und vielen",
+"Ländern"
 ],
-"sizePx": 56,
+"sizePx": 52,
 "w": 0.82,
 "weight": 800,
 "x": 0.09,
@@ -2777,7 +2728,7 @@
 "w": 0.82,
 "weight": 400,
 "x": 0.09,
-"y": 0.2497
+"y": 0.2905
 },
 {
 "family": "'Roboto', system-ui, sans-serif",
@@ -2793,7 +2744,7 @@
 "w": 0.82,
 "weight": 700,
 "x": 0.09,
-"y": 0.3325
+"y": 0.3733
 }
 ],
 "date": {
@@ -2821,8 +2772,7 @@
 },
 "templateId": "nachtkueche",
 "warnings": []
-},
-"px": "7673cfa33b3d201618eeb3a21484e40bbff7163f8e6996684220ef910341194e"
+}
 },
 "nachtkueche/langes-wort": {
 "layout": {
@@ -2831,16 +2781,16 @@
 {
 "family": "'Sofia Sans Extra Condensed', 'Arial Narrow', sans-serif",
 "fits": true,
-"h": 0.2306,
+"h": 0.2167,
 "ink": "#FFFFFF",
 "key": "title",
-"lineHeightPx": 86.32,
+"lineHeightPx": 81.12,
 "lines": [
-"Donaudampfschifffahrts",
-"gesellschaftskapitänsmü",
-"tzenfabrikantenverband"
+"Donaudampfschifffahrtsg",
+"esellschaftskapitänsmüt",
+"zenfabrikantenverband"
 ],
-"sizePx": 83,
+"sizePx": 78,
 "w": 0.82,
 "weight": 800,
 "x": 0.09,
@@ -2872,8 +2822,7 @@
 },
 "templateId": "nachtkueche",
 "warnings": []
-},
-"px": "e1f24d633d2793b88c2c1521f968e714db3191095e9fd8b81ec31cc8541c4525"
+}
 },
 "nachtkueche/leer": {
 "layout": {
@@ -2904,8 +2853,7 @@
 },
 "templateId": "nachtkueche",
 "warnings": []
-},
-"px": "1ce0f7b909a603e480412523443c1b9d7415f3f67667096ddb563b2f5fb9194d"
+}
 },
 "nachtkueche/nur-name-lang": {
 "layout": {
@@ -2953,8 +2901,7 @@
 },
 "templateId": "nachtkueche",
 "warnings": []
-},
-"px": "c9ff1b09112a49187012ecef5b2894c966596a71a489feb230d246794b92d0a7"
+}
 },
 "nachtkueche/nur-slogan-lang": {
 "layout": {
@@ -3004,8 +2951,7 @@
 },
 "templateId": "nachtkueche",
 "warnings": []
-},
-"px": "0477433c8925c0104a349ca09efa1f072b9c2e7e3de4a980d7870c9b2c6312ff"
+}
 },
 "nachtkueche/nur-titel": {
 "layout": {
@@ -3053,8 +2999,7 @@
 },
 "templateId": "nachtkueche",
 "warnings": []
-},
-"px": "caf1a4438cb87b1b7360a254cba3355646d97cf6fadb876ff6843954e4353ea5"
+}
 },
 "nachtkueche/zu-lang": {
 "layout": {
@@ -3086,17 +3031,16 @@
 },
 {
 "family": "'Roboto', system-ui, sans-serif",
-"fits": false,
-"h": 0.0635,
+"fits": true,
+"h": 0.0602,
 "ink": "#FFFFFF",
 "key": "name",
 "lineHeightPx": 16.9,
 "lines": [
-"NNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNN",
-"NNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNN",
-"NNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNN",
-"NNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNN",
-"NNNNNNNNNNNNNNNNNNNN"
+"NNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNN",
+"NNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNN",
+"NNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNN",
+"NNNNNNNNNNNN"
 ],
 "sizePx": 13,
 "w": 0.82,
@@ -3133,14 +3077,9 @@
 {
 "key": "title",
 "message": "Der Titel ist zu lang für dieses Titelblatt. Bitte kürzen (er passt nur in kleiner, nicht lesbarer Schrift)."
-},
-{
-"key": "name",
-"message": "Der Name ist zu lang für dieses Titelblatt. Bitte kürzen (er passt nur in kleiner, nicht lesbarer Schrift)."
 }
 ]
-},
-"px": "e4b0d08c1fcb86cb1db5e0f6f55739901696686671439b0b2951ea16684510f6"
+}
 },
 "ofenglueck/kurz": {
 "layout": {
@@ -3220,8 +3159,7 @@
 },
 "templateId": "ofenglueck",
 "warnings": []
-},
-"px": "df4d23cd35f118fba1ddb9543baccb9662475a35caddd356a94fc3d7bd1ebe6e"
+}
 },
 "ofenglueck/kurz-ohne-datum": {
 "layout": {
@@ -3292,8 +3230,7 @@
 },
 "templateId": "ofenglueck",
 "warnings": []
-},
-"px": "8bf10300856ffa4cc3604ac1860f3a6048c671342e306e73a08918b21e79fab0"
+}
 },
 "ofenglueck/kurz-ohne-logo": {
 "layout": {
@@ -3366,8 +3303,7 @@
 },
 "templateId": "ofenglueck",
 "warnings": []
-},
-"px": "b281f19b13ae69fa370523218d774b7771734f41402700a91ef75ed0cd3fdd7b"
+}
 },
 "ofenglueck/lang": {
 "layout": {
@@ -3376,15 +3312,15 @@
 {
 "family": "'Sofia Sans Extra Condensed', 'Arial Narrow', sans-serif",
 "fits": true,
-"h": 0.1037,
+"h": 0.0926,
 "ink": "#171717",
 "key": "title",
-"lineHeightPx": 58.24,
+"lineHeightPx": 52,
 "lines": [
 "Die allerbesten Familienrezepte aus",
 "drei Generationen und vielen Ländern"
 ],
-"sizePx": 56,
+"sizePx": 50,
 "w": 0.82,
 "weight": 800,
 "x": 0.09,
@@ -3405,7 +3341,7 @@
 "w": 0.82,
 "weight": 400,
 "x": 0.09,
-"y": 0.2497
+"y": 0.2386
 },
 {
 "family": "'Roboto', system-ui, sans-serif",
@@ -3421,7 +3357,7 @@
 "w": 0.82,
 "weight": 700,
 "x": 0.09,
-"y": 0.3236
+"y": 0.3125
 }
 ],
 "date": {
@@ -3449,8 +3385,7 @@
 },
 "templateId": "ofenglueck",
 "warnings": []
-},
-"px": "970c3497f36adf13670371ee30d383ae71025ca1ca4a6206d6b24b60a6ba5d62"
+}
 },
 "ofenglueck/langes-wort": {
 "layout": {
@@ -3459,16 +3394,16 @@
 {
 "family": "'Sofia Sans Extra Condensed', 'Arial Narrow', sans-serif",
 "fits": true,
-"h": 0.2306,
+"h": 0.2167,
 "ink": "#171717",
 "key": "title",
-"lineHeightPx": 86.32,
+"lineHeightPx": 81.12,
 "lines": [
-"Donaudampfschifffahrts",
-"gesellschaftskapitänsmü",
-"tzenfabrikantenverband"
+"Donaudampfschifffahrtsg",
+"esellschaftskapitänsmüt",
+"zenfabrikantenverband"
 ],
-"sizePx": 83,
+"sizePx": 78,
 "w": 0.82,
 "weight": 800,
 "x": 0.09,
@@ -3500,8 +3435,7 @@
 },
 "templateId": "ofenglueck",
 "warnings": []
-},
-"px": "8fe9ccb507dc80de10575a2e49116995ee32e929c4aa00f8b71772f12405dbee"
+}
 },
 "ofenglueck/leer": {
 "layout": {
@@ -3532,8 +3466,7 @@
 },
 "templateId": "ofenglueck",
 "warnings": []
-},
-"px": "cb8a97552544da439e99b833744844ca0fd992aa86b7397c9ad0a841a5e57dd5"
+}
 },
 "ofenglueck/nur-name-lang": {
 "layout": {
@@ -3581,8 +3514,7 @@
 },
 "templateId": "ofenglueck",
 "warnings": []
-},
-"px": "46970281ae97adbd318894335e8f2c95f000161582f5ee83587499517d2f7753"
+}
 },
 "ofenglueck/nur-slogan-lang": {
 "layout": {
@@ -3632,8 +3564,7 @@
 },
 "templateId": "ofenglueck",
 "warnings": []
-},
-"px": "e7f2db5c0a4d30becb5c4d2a14b47085198c60f5dc773da5c9e7f219938e764e"
+}
 },
 "ofenglueck/nur-titel": {
 "layout": {
@@ -3681,8 +3612,7 @@
 },
 "templateId": "ofenglueck",
 "warnings": []
-},
-"px": "b1730891f495bd08c53b8f145cf55ce568853ec00d4493378bf8da49a16713d8"
+}
 },
 "ofenglueck/zu-lang": {
 "layout": {
@@ -3720,11 +3650,10 @@
 "key": "name",
 "lineHeightPx": 16.9,
 "lines": [
-"NNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNN",
-"NNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNN",
-"NNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNN",
-"NNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNN",
-"NNNNNNNNNNNNNNNNNNNN"
+"NNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNN",
+"NNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNN",
+"NNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNN",
+"NNNNNNNNNNNN"
 ],
 "sizePx": 13,
 "w": 0.82,
@@ -3767,8 +3696,7 @@
 "message": "Der Name ist zu lang für dieses Titelblatt. Bitte kürzen (er passt nur in kleiner, nicht lesbarer Schrift)."
 }
 ]
-},
-"px": "ea596dc5bf70e1032352de73019d04fed99527c05e7f6845c1632041dddfeeef"
+}
 },
 "pop/kurz": {
 "layout": {
@@ -3848,8 +3776,7 @@
 },
 "templateId": "pop",
 "warnings": []
-},
-"px": "fc96162e9457d9a2f23955e0016e8830dd69970f36e633206bf082be4f05c953"
+}
 },
 "pop/kurz-ohne-datum": {
 "layout": {
@@ -3920,8 +3847,7 @@
 },
 "templateId": "pop",
 "warnings": []
-},
-"px": "82466d6dca891719f076bf1d07e2d3efad9c6a915099fef2e5540aa1a9f2cb66"
+}
 },
 "pop/kurz-ohne-logo": {
 "layout": {
@@ -3994,8 +3920,7 @@
 },
 "templateId": "pop",
 "warnings": []
-},
-"px": "72b412e589b490e1b709b6533c30768514594a5008294486574685f5074043d7"
+}
 },
 "pop/lang": {
 "layout": {
@@ -4004,15 +3929,15 @@
 {
 "family": "'Sofia Sans Extra Condensed', 'Arial Narrow', sans-serif",
 "fits": true,
-"h": 0.1037,
+"h": 0.0926,
 "ink": "#171717",
 "key": "title",
-"lineHeightPx": 58.24,
+"lineHeightPx": 52,
 "lines": [
 "Die allerbesten Familienrezepte aus",
 "drei Generationen und vielen Ländern"
 ],
-"sizePx": 56,
+"sizePx": 50,
 "w": 0.82,
 "weight": 800,
 "x": 0.09,
@@ -4033,7 +3958,7 @@
 "w": 0.82,
 "weight": 400,
 "x": 0.09,
-"y": 0.2497
+"y": 0.2386
 },
 {
 "family": "'Roboto', system-ui, sans-serif",
@@ -4049,7 +3974,7 @@
 "w": 0.82,
 "weight": 700,
 "x": 0.09,
-"y": 0.3258
+"y": 0.3147
 }
 ],
 "date": {
@@ -4077,8 +4002,7 @@
 },
 "templateId": "pop",
 "warnings": []
-},
-"px": "bbbea38b3736964b212a32f4dbea37617138306e6a52029ee2793c44efbb2b06"
+}
 },
 "pop/langes-wort": {
 "layout": {
@@ -4087,16 +4011,16 @@
 {
 "family": "'Sofia Sans Extra Condensed', 'Arial Narrow', sans-serif",
 "fits": true,
-"h": 0.2306,
+"h": 0.2167,
 "ink": "#171717",
 "key": "title",
-"lineHeightPx": 86.32,
+"lineHeightPx": 81.12,
 "lines": [
-"Donaudampfschifffahrts",
-"gesellschaftskapitänsmü",
-"tzenfabrikantenverband"
+"Donaudampfschifffahrtsg",
+"esellschaftskapitänsmüt",
+"zenfabrikantenverband"
 ],
-"sizePx": 83,
+"sizePx": 78,
 "w": 0.82,
 "weight": 800,
 "x": 0.09,
@@ -4128,8 +4052,7 @@
 },
 "templateId": "pop",
 "warnings": []
-},
-"px": "56f549ab81ad6f7fe814aac553d041d7f453af34c6a979362194e21faa04faae"
+}
 },
 "pop/leer": {
 "layout": {
@@ -4160,8 +4083,7 @@
 },
 "templateId": "pop",
 "warnings": []
-},
-"px": "b55c3e78a6be7059b5bac0f3ac81751b15c282aaec2efa842333312f0cbeff16"
+}
 },
 "pop/nur-name-lang": {
 "layout": {
@@ -4209,8 +4131,7 @@
 },
 "templateId": "pop",
 "warnings": []
-},
-"px": "0aa07aef572ad4ab1252cf25ad3eb4fc8473a6fc3bf09a7a5162e8b8f6ceaac6"
+}
 },
 "pop/nur-slogan-lang": {
 "layout": {
@@ -4260,8 +4181,7 @@
 },
 "templateId": "pop",
 "warnings": []
-},
-"px": "72662bfe7b0b61fa9bfa65869d7429abf169dce528a975c8953f405f1b906a95"
+}
 },
 "pop/nur-titel": {
 "layout": {
@@ -4309,8 +4229,7 @@
 },
 "templateId": "pop",
 "warnings": []
-},
-"px": "5ef534cdfb17af601e54832c195035964de9dbf536fe25078f3f9df8bd06510f"
+}
 },
 "pop/zu-lang": {
 "layout": {
@@ -4348,11 +4267,10 @@
 "key": "name",
 "lineHeightPx": 16.9,
 "lines": [
-"NNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNN",
-"NNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNN",
-"NNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNN",
-"NNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNN",
-"NNNNNNNNNNNNNNNNNNNN"
+"NNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNN",
+"NNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNN",
+"NNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNN",
+"NNNNNNNNNNNN"
 ],
 "sizePx": 13,
 "w": 0.82,
@@ -4395,8 +4313,7 @@
 "message": "Der Name ist zu lang für dieses Titelblatt. Bitte kürzen (er passt nur in kleiner, nicht lesbarer Schrift)."
 }
 ]
-},
-"px": "1ce146cd1cc198874e4580068e1a2059539757b8a73fc935040c3552ce3c4d35"
+}
 },
 "salbei/kurz": {
 "layout": {
@@ -4476,8 +4393,7 @@
 },
 "templateId": "salbei",
 "warnings": []
-},
-"px": "bd8420894cafd29710101d8a967f42e66edb006a67a00055ec85279c320300de"
+}
 },
 "salbei/kurz-ohne-datum": {
 "layout": {
@@ -4548,8 +4464,7 @@
 },
 "templateId": "salbei",
 "warnings": []
-},
-"px": "8f0d1034b148af0c886c4466c0bf51cb5f3ae0c407de070d273bd26ef612842b"
+}
 },
 "salbei/kurz-ohne-logo": {
 "layout": {
@@ -4622,8 +4537,7 @@
 },
 "templateId": "salbei",
 "warnings": []
-},
-"px": "2c90b42a4829e26d73e740e65248eb94835d4754e39a65976ba33b41e4a1a01f"
+}
 },
 "salbei/lang": {
 "layout": {
@@ -4637,8 +4551,8 @@
 "key": "title",
 "lineHeightPx": 46.8,
 "lines": [
-"Die allerbesten Familienrezepte aus drei",
-"Generationen und vielen Ländern"
+"Die allerbesten Familienrezepte aus",
+"drei Generationen und vielen Ländern"
 ],
 "sizePx": 45,
 "w": 0.8,
@@ -4704,8 +4618,7 @@
 },
 "templateId": "salbei",
 "warnings": []
-},
-"px": "56837e1665c8f0df2e5ed8759bce1e246b4adb0ef2846c49894cd2c744991be2"
+}
 },
 "salbei/langes-wort": {
 "layout": {
@@ -4719,9 +4632,9 @@
 "key": "title",
 "lineHeightPx": 66.56,
 "lines": [
-"Donaudampfschifffahrtsgesells",
-"chaftskapitänsmützenfabrikan",
-"tenverband"
+"Donaudampfschifffahrtsgesel",
+"lschaftskapitänsmützenfabri",
+"kantenverband"
 ],
 "sizePx": 64,
 "w": 0.8,
@@ -4755,8 +4668,7 @@
 },
 "templateId": "salbei",
 "warnings": []
-},
-"px": "8f28c7f14a99cdbeb9a5521d41dd0f025eb48789c30060c9f5a5c27a34b7610b"
+}
 },
 "salbei/leer": {
 "layout": {
@@ -4787,8 +4699,7 @@
 },
 "templateId": "salbei",
 "warnings": []
-},
-"px": "af54a0051c89d9a8b9139decb148de604bfa52f4b3b19fe27ad8e01f9b7b0441"
+}
 },
 "salbei/nur-name-lang": {
 "layout": {
@@ -4836,8 +4747,7 @@
 },
 "templateId": "salbei",
 "warnings": []
-},
-"px": "184066973d8bc3a1d96f3ff81e77db01a10870b50de999327b697699c3fff9d0"
+}
 },
 "salbei/nur-slogan-lang": {
 "layout": {
@@ -4887,8 +4797,7 @@
 },
 "templateId": "salbei",
 "warnings": []
-},
-"px": "2f65f7970213f040b876dc5836eb0070db6a9c024eeec68e392d8bdd0340d0ce"
+}
 },
 "salbei/nur-titel": {
 "layout": {
@@ -4936,8 +4845,7 @@
 },
 "templateId": "salbei",
 "warnings": []
-},
-"px": "d3fb6bed40f340eb243aad50facdf3a5860d671d07df7dfed88543d1feeb44aa"
+}
 },
 "salbei/zu-lang": {
 "layout": {
@@ -4951,14 +4859,15 @@
 "key": "title",
 "lineHeightPx": 35.36,
 "lines": [
-"Lorem ipsum Lorem ipsum Lorem ipsum Lorem ipsum Lorem",
-"ipsum Lorem ipsum Lorem ipsum Lorem ipsum Lorem ipsum",
-"Lorem ipsum Lorem ipsum Lorem ipsum Lorem ipsum Lorem",
-"ipsum Lorem ipsum Lorem ipsum Lorem ipsum Lorem ipsum",
-"Lorem ipsum Lorem ipsum Lorem ipsum Lorem ipsum Lorem",
-"ipsum Lorem ipsum Lorem ipsum Lorem ipsum Lorem ipsum",
-"Lorem ipsum Lorem ipsum Lorem ipsum Lorem ipsum Lorem",
-"ipsum Lorem ipsum Lorem ipsum Lorem ipsum Lorem ipsum",
+"Lorem ipsum Lorem ipsum Lorem ipsum Lorem ipsum",
+"Lorem ipsum Lorem ipsum Lorem ipsum Lorem ipsum",
+"Lorem ipsum Lorem ipsum Lorem ipsum Lorem ipsum",
+"Lorem ipsum Lorem ipsum Lorem ipsum Lorem ipsum",
+"Lorem ipsum Lorem ipsum Lorem ipsum Lorem ipsum",
+"Lorem ipsum Lorem ipsum Lorem ipsum Lorem ipsum",
+"Lorem ipsum Lorem ipsum Lorem ipsum Lorem ipsum",
+"Lorem ipsum Lorem ipsum Lorem ipsum Lorem ipsum",
+"Lorem ipsum Lorem ipsum Lorem ipsum Lorem ipsum",
 "Lorem ipsum Lorem ipsum Lorem ipsum Lorem ipsum"
 ],
 "sizePx": 34,
@@ -4975,11 +4884,10 @@
 "key": "name",
 "lineHeightPx": 16.9,
 "lines": [
-"NNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNN",
-"NNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNN",
-"NNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNN",
-"NNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNN",
-"NNNNNNNNNNNNNNNNNNNNNNNN"
+"NNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNN",
+"NNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNN",
+"NNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNN",
+"NNNNNNNNNNNNNNNNNNNNN"
 ],
 "sizePx": 13,
 "w": 0.8,
@@ -5022,8 +4930,7 @@
 "message": "Der Name ist zu lang für dieses Titelblatt. Bitte kürzen (er passt nur in kleiner, nicht lesbarer Schrift)."
 }
 ]
-},
-"px": "835160096a9547613e391fc58876af7880d7debf138d2b694f1545fbe7b18412"
+}
 },
 "sonnenkueche/kurz": {
 "layout": {
@@ -5103,8 +5010,7 @@
 },
 "templateId": "sonnenkueche",
 "warnings": []
-},
-"px": "4d954d419ea179d1b40c5fb136a6ea8e46831f5f1191deb3515f3c4d14ff402f"
+}
 },
 "sonnenkueche/kurz-ohne-datum": {
 "layout": {
@@ -5175,8 +5081,7 @@
 },
 "templateId": "sonnenkueche",
 "warnings": []
-},
-"px": "5452382868366bd81612db80ef3e99349e523bcd51af25f17654424063a720c0"
+}
 },
 "sonnenkueche/kurz-ohne-logo": {
 "layout": {
@@ -5249,8 +5154,7 @@
 },
 "templateId": "sonnenkueche",
 "warnings": []
-},
-"px": "9e9b9d497e451ca4915634aa76cbbd1a2ee9fe31c876364882de9778c9284aa8"
+}
 },
 "sonnenkueche/lang": {
 "layout": {
@@ -5259,15 +5163,15 @@
 {
 "family": "'Sofia Sans Extra Condensed', 'Arial Narrow', sans-serif",
 "fits": true,
-"h": 0.1037,
+"h": 0.0926,
 "ink": "#171717",
 "key": "title",
-"lineHeightPx": 58.24,
+"lineHeightPx": 52,
 "lines": [
 "Die allerbesten Familienrezepte aus",
 "drei Generationen und vielen Ländern"
 ],
-"sizePx": 56,
+"sizePx": 50,
 "w": 0.82,
 "weight": 800,
 "x": 0.09,
@@ -5288,7 +5192,7 @@
 "w": 0.82,
 "weight": 400,
 "x": 0.09,
-"y": 0.2497
+"y": 0.2386
 },
 {
 "family": "'Roboto', system-ui, sans-serif",
@@ -5304,7 +5208,7 @@
 "w": 0.82,
 "weight": 700,
 "x": 0.09,
-"y": 0.3192
+"y": 0.308
 }
 ],
 "date": {
@@ -5332,8 +5236,7 @@
 },
 "templateId": "sonnenkueche",
 "warnings": []
-},
-"px": "5fddd2b0baae4ab72a7915a685434b6da80e9bea14395290fadb70582e74eb66"
+}
 },
 "sonnenkueche/langes-wort": {
 "layout": {
@@ -5342,16 +5245,16 @@
 {
 "family": "'Sofia Sans Extra Condensed', 'Arial Narrow', sans-serif",
 "fits": true,
-"h": 0.2278,
+"h": 0.2167,
 "ink": "#171717",
 "key": "title",
-"lineHeightPx": 85.28,
+"lineHeightPx": 81.12,
 "lines": [
-"Donaudampfschifffahrts",
-"gesellschaftskapitänsmü",
-"tzenfabrikantenverband"
+"Donaudampfschifffahrtsg",
+"esellschaftskapitänsmüt",
+"zenfabrikantenverband"
 ],
-"sizePx": 82,
+"sizePx": 78,
 "w": 0.82,
 "weight": 800,
 "x": 0.09,
@@ -5383,8 +5286,7 @@
 },
 "templateId": "sonnenkueche",
 "warnings": []
-},
-"px": "ca18db4668c72f923ed422a7bd2e7c312acd57aa12dcb4e057b7fc0cb87c76c4"
+}
 },
 "sonnenkueche/leer": {
 "layout": {
@@ -5415,8 +5317,7 @@
 },
 "templateId": "sonnenkueche",
 "warnings": []
-},
-"px": "14fc6055cc5f82c75563bc97306bd69346325c1be593aa7970f8498527b3fd01"
+}
 },
 "sonnenkueche/nur-name-lang": {
 "layout": {
@@ -5464,8 +5365,7 @@
 },
 "templateId": "sonnenkueche",
 "warnings": []
-},
-"px": "d8637911959c78cb45487f174db4dd356c03d7465491e7ba2a32fde33945d2dd"
+}
 },
 "sonnenkueche/nur-slogan-lang": {
 "layout": {
@@ -5515,8 +5415,7 @@
 },
 "templateId": "sonnenkueche",
 "warnings": []
-},
-"px": "2e1b1170632632c032cbaacac3130b9490c21ae3fd05fb1310e8246b3696e23b"
+}
 },
 "sonnenkueche/nur-titel": {
 "layout": {
@@ -5564,8 +5463,7 @@
 },
 "templateId": "sonnenkueche",
 "warnings": []
-},
-"px": "d4635f694ce388853705e074ca6a21c772565d07fc05734aa16c1102823a8b38"
+}
 },
 "sonnenkueche/zu-lang": {
 "layout": {
@@ -5603,11 +5501,10 @@
 "key": "name",
 "lineHeightPx": 16.9,
 "lines": [
-"NNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNN",
-"NNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNN",
-"NNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNN",
-"NNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNN",
-"NNNNNNNNNNNNNNNNNNNN"
+"NNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNN",
+"NNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNN",
+"NNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNN",
+"NNNNNNNNNNNN"
 ],
 "sizePx": 13,
 "w": 0.82,
@@ -5650,8 +5547,7 @@
 "message": "Der Name ist zu lang für dieses Titelblatt. Bitte kürzen (er passt nur in kleiner, nicht lesbarer Schrift)."
 }
 ]
-},
-"px": "ddb6c193403749ac0772e11a6a368cbb8bd5b18c0e84084ddddbeed4e941a4cf"
+}
 },
 "tomate/kurz": {
 "layout": {
@@ -5731,8 +5627,7 @@
 },
 "templateId": "tomate",
 "warnings": []
-},
-"px": "038610ae04e93b8d25300718f1e06b55bddb49534c84e89cee3cb9afccca5c66"
+}
 },
 "tomate/kurz-ohne-datum": {
 "layout": {
@@ -5803,8 +5698,7 @@
 },
 "templateId": "tomate",
 "warnings": []
-},
-"px": "f310b37eda98fa5d92b9a0cfa432accd52d64e33b872c72e8aacb56dbf55d0f3"
+}
 },
 "tomate/kurz-ohne-logo": {
 "layout": {
@@ -5877,8 +5771,7 @@
 },
 "templateId": "tomate",
 "warnings": []
-},
-"px": "5d8112134b47af361ac66f4a89bb68577dee9472403611c37389acf463965a40"
+}
 },
 "tomate/lang": {
 "layout": {
@@ -5887,16 +5780,17 @@
 {
 "family": "'Sofia Sans Extra Condensed', 'Arial Narrow', sans-serif",
 "fits": true,
-"h": 0.1834,
+"h": 0.2257,
 "ink": "#171717",
 "key": "title",
-"lineHeightPx": 68.64,
+"lineHeightPx": 63.44,
 "lines": [
-"Die allerbesten Familienrezepte",
-"aus drei Generationen und",
-"vielen Ländern"
+"Die allerbesten",
+"Familienrezepte aus drei",
+"Generationen und vielen",
+"Ländern"
 ],
-"sizePx": 66,
+"sizePx": 61,
 "w": 0.82,
 "weight": 800,
 "x": 0.09,
@@ -5917,7 +5811,7 @@
 "w": 0.82,
 "weight": 400,
 "x": 0.09,
-"y": 0.3294
+"y": 0.3717
 },
 {
 "family": "'Roboto', system-ui, sans-serif",
@@ -5933,7 +5827,7 @@
 "w": 0.82,
 "weight": 700,
 "x": 0.09,
-"y": 0.4122
+"y": 0.4545
 }
 ],
 "date": {
@@ -5961,8 +5855,7 @@
 },
 "templateId": "tomate",
 "warnings": []
-},
-"px": "b1f46119f1950925d54ed33b19f7084b8fcfffd3a2a539769428ec6ab024346c"
+}
 },
 "tomate/langes-wort": {
 "layout": {
@@ -5977,9 +5870,9 @@
 "lineHeightPx": 97.76,
 "lines": [
 "Donaudampfschifffah",
-"rtsgesellschaftskapit",
-"änsmützenfabrikante",
-"nverband"
+"rtsgesellschaftskap",
+"itänsmützenfabrikan",
+"tenverband"
 ],
 "sizePx": 94,
 "w": 0.82,
@@ -6013,8 +5906,7 @@
 },
 "templateId": "tomate",
 "warnings": []
-},
-"px": "1e27d52a05fb8d1ce9a6107142d0b5848fd1dc5312f34a9d8d87d027cd1f8628"
+}
 },
 "tomate/leer": {
 "layout": {
@@ -6045,8 +5937,7 @@
 },
 "templateId": "tomate",
 "warnings": []
-},
-"px": "82ad8975e9fd02bd1c1a9451282d8f36252a3ef0db3068691b4ca4ca1c0f4a32"
+}
 },
 "tomate/nur-name-lang": {
 "layout": {
@@ -6094,8 +5985,7 @@
 },
 "templateId": "tomate",
 "warnings": []
-},
-"px": "11d22d83956e5b7e70b407d8120647ed12bea96c620f713a1bddfdc1ef18f9da"
+}
 },
 "tomate/nur-slogan-lang": {
 "layout": {
@@ -6145,8 +6035,7 @@
 },
 "templateId": "tomate",
 "warnings": []
-},
-"px": "a82f5f802abdeb512dea9a74a9fbabaa0e893739f46c5e39ea0d0729dbcc638c"
+}
 },
 "tomate/nur-titel": {
 "layout": {
@@ -6194,8 +6083,7 @@
 },
 "templateId": "tomate",
 "warnings": []
-},
-"px": "b103378ac11f9b313d83ad787a2aa3f470a73de6f696315a5c01ba85d89d07ce"
+}
 },
 "tomate/zu-lang": {
 "layout": {
@@ -6228,18 +6116,17 @@
 {
 "family": "'Roboto', system-ui, sans-serif",
 "fits": true,
-"h": 0.081,
+"h": 0.0741,
 "ink": "#171717",
 "key": "name",
-"lineHeightPx": 18.2,
+"lineHeightPx": 20.8,
 "lines": [
-"NNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNN",
-"NNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNN",
-"NNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNN",
-"NNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNN",
-"NNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNN"
+"NNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNN",
+"NNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNN",
+"NNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNN",
+"NNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNN"
 ],
-"sizePx": 14,
+"sizePx": 16,
 "w": 0.82,
 "weight": 700,
 "x": 0.09,
@@ -6276,7 +6163,6 @@
 "message": "Der Titel ist zu lang für dieses Titelblatt. Bitte kürzen (er passt nur in kleiner, nicht lesbarer Schrift)."
 }
 ]
-},
-"px": "267ce4ac915488c8e2846994978d9c5bd95be3b60a6f5b14df928e127617d42c"
+}
 }
 }
