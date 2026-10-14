@@ -833,6 +833,7 @@ async function handleActionV2(action, id, el, e) {
       return true;
     }
     case 'cb-page-style': {
+      id = pdfNormTpl(id);   // pdf-ui.js: alte IDs A/B/C -> pur/prise-pop
       if (!PDF_TEMPLATES[id]) return true;
       const cfg = getCookbookConfig();
       cfg.pdfTemplate = id;

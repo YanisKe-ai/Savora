@@ -78,6 +78,7 @@ function backupRecipeFingerprint(r) {
 /* Rezept-IDs einer gesicherten Kochbuch-Konfiguration auf die neuen IDs abbilden (nicht aufloesbare Rezepte entfallen) */
 function backupMapCookbookConfig(config, recipeIdMap) {
   const cfg = JSON.parse(JSON.stringify(config || {}));
+  cookbookNormalizeConfigTemplate(cfg);   // alte Stil-ID einer aelteren Sicherung (A/B/C) -> pur/prise-pop, sonst bleibt alles wie gesichert
   if (Array.isArray(cfg.items)) cfg.items = cfg.items.map(it => ({ ...it, recipeId: recipeIdMap[it.recipeId] })).filter(it => it.recipeId);
   if (cfg.coverRecipeId) cfg.coverRecipeId = recipeIdMap[cfg.coverRecipeId] || '';
   return cfg;

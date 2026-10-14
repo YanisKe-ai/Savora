@@ -1098,7 +1098,7 @@ function cookbookStepSelect(cfg) {
       </section>`;
 }
 function cookbookPageStyleChoice(cfg) {
-  const cur = cfg.pdfTemplate && PDF_TEMPLATES[cfg.pdfTemplate] ? cfg.pdfTemplate : pdfDefaultTemplateId();
+  const cur = pdfNormTpl(cfg.pdfTemplate || pdfDefaultTemplateId());   // alte IDs A/B/C gelten als pur/prise-pop
   return `<div class="pdf-tpl-choice" role="radiogroup" aria-label="Seitenstil der Rezepte">
       ${Object.values(PDF_TEMPLATES).map(t => `<button type="button" role="radio" aria-checked="${cur === t.id}" class="pdf-tpl-opt ${cur === t.id ? 'active' : ''}" data-action="cb-page-style" data-id="${escapeAttr(t.id)}"><span class="pdf-tpl-swatch pdf-tpl-swatch-${t.id.toLowerCase()}" aria-hidden="true"></span><b>${t.name}</b><small>${t.hint}</small></button>`).join('')}
     </div>`;
@@ -1128,7 +1128,7 @@ function cookbookStepPreview(cfg) {
   const warnings = cookbookWarnings(cfg);
   const cv = cfg.cover || coverSanitizeConfig(null, true);
   const layout = coverLayout({ templateId: cv.templateId, title: cfg.title, name: cfg.author, slogan: cfg.subtitle, date: cv.date, showDate: cv.showDate, logo: cfg.showLogo !== false });
-  const tpl = pdfTemplateById(cfg.pdfTemplate || pdfDefaultTemplateId());
+  const tpl = pdfTemplateById(pdfNormTpl(cfg.pdfTemplate || pdfDefaultTemplateId()));
   const tplName = (coverTemplateById(cv.templateId) || {}).name || '';
   const n = cfg.items.length;
   return `

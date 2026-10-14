@@ -301,7 +301,9 @@ async function cloudApplyRemote(row) {
       // Kochbuch-Projekte nur uebernehmen, wenn der Wert ein lesbares Projekt-Objekt ist (nie einen kaputten Stand einspielen)
       const valid = row.id !== 'cookbooks' || (() => { try { return !!cookbookSanitizeStore(JSON.parse(row.data.value)); } catch (e) { return false; } })();
       if (lsKey && valid && row.data && typeof row.data.value === 'string') {
-        cloudOrigSetItem.call(localStorage, lsKey, row.data.value);
+        // Stil-IDs von aelteren Geraeten (A/B/C) auf pur/prise-pop abbilden, bevor sie lokal landen
+        const value = row.id === 'cookbooks' ? cookbookNormalizeStoreText(row.data.value, true) : row.id === 'cookbookConfig' ? cookbookNormalizeStoreText(row.data.value, false) : row.data.value;
+        cloudOrigSetItem.call(localStorage, lsKey, value);
         if (row.id === 'cookbookTitle') state.cookbookTitle = row.data.value;
         if (row.id === 'senderName') state.senderName = row.data.value;
       }

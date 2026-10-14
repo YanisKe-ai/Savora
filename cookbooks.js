@@ -20,6 +20,29 @@ let _cookbookMemoryStore = null;   // nur wenn der Speicher nicht beschreibbar i
 function cookbookNewId() { return 'cb_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 7); }
 function cookbookCleanName(s) { return String(s == null ? '' : s).replace(/\s+/g, ' ').trim().slice(0, COOKBOOK_NAME_MAX); }
 
+/* ---------- Stil-IDs der Rezeptseiten (pdfTemplate) ----------
+   Alte IDs (A Klassisch, B Kraeftig, C Schlicht, leer, unbekannt) werden ueber pdfNormalizeTemplateId (pdf-templates.js) auf
+   «pur» oder «prise-pop» abgebildet. Nur das Feld pdfTemplate wird angefasst, nie ein anderes Feld. Idempotent. Fehlt das Feld,
+   bleibt es fehlend (dann gilt der Standard). Ohne die Funktion (Zwischenstand) bleibt alles unveraendert. */
+let _cookbookTplFixed = false;
+function cookbookNormalizeConfigTemplate(cfg) {
+  if (!cfg || typeof cfg !== 'object' || Array.isArray(cfg) || !('pdfTemplate' in cfg)) return false;
+  if (typeof pdfNormalizeTemplateId !== 'function') return false;
+  const n = pdfNormalizeTemplateId(cfg.pdfTemplate);
+  if (n === cfg.pdfTemplate) return false;
+  cfg.pdfTemplate = n;
+  return true;
+}
+/* Gespeicherter Text (Kochbuch-Projekte oder alte Einzelkonfiguration, z. B. aus der Cloud) mit normalisiertem Stil. Unlesbares bleibt unveraendert. */
+function cookbookNormalizeStoreText(text, isStore) {
+  if (typeof text !== 'string' || typeof pdfNormalizeTemplateId !== 'function') return text;
+  let data; try { data = JSON.parse(text); } catch (e) { return text; }
+  let changed = false;
+  if (isStore) { if (data && Array.isArray(data.books)) data.books.forEach((b) => { if (b && cookbookNormalizeConfigTemplate(b.config)) changed = true; }); }
+  else if (cookbookNormalizeConfigTemplate(data)) changed = true;
+  return changed ? JSON.stringify(data) : text;
+}
+
 /* Gueltiges Projekt-Objekt oder null (defensiv: auch Daten von anderen Geraeten oder aus Sicherungen) */
 function cookbookSanitizeStore(raw) {
   if (!raw || typeof raw !== 'object' || !Array.isArray(raw.books)) return null;
@@ -28,6 +51,7 @@ function cookbookSanitizeStore(raw) {
   raw.books.forEach((b) => {
     if (!b || typeof b !== 'object' || typeof b.id !== 'string' || !b.id || seen.has(b.id)) return;
     seen.add(b.id);
+    if (cookbookNormalizeConfigTemplate(b.config)) _cookbookTplFixed = true;
     const created = Number(b.createdAt) || 0;
     books.push({ ...b, name: cookbookCleanName(b.name) || COOKBOOK_DEFAULT_NAME, createdAt: created, updatedAt: Number(b.updatedAt) || created, config: b.config && typeof b.config === 'object' && !Array.isArray(b.config) ? b.config : {} });
   });
@@ -60,9 +84,10 @@ function cookbookMigrate() {
   const hadConfig = !!(legacy && typeof legacy === 'object');
   const book = {
     id: cookbookNewId(), name: cookbookCleanName(legacyTitle) || COOKBOOK_DEFAULT_NAME, createdAt: now, updatedAt: now,
-    config: hadConfig ? JSON.parse(JSON.stringify(legacy)) : {},
+    config: hadConfig ? JSON.parse(JSON.stringify(legacy)) : {},   // die alte Einzelkonfiguration bleibt unveraendert, die Kopie bekommt die neue Stil-ID
     migration: { v: COOKBOOK_PROJECTS_VERSION, at: new Date(now).toISOString(), source: 'savora-cookbook-config', titleSource: 'savora-cookbook-title', hadConfig },
   };
+  cookbookNormalizeConfigTemplate(book.config);
   const store = { v: COOKBOOK_PROJECTS_VERSION, activeId: book.id, books: [book] };
   cookbookWriteUnmarked(store);
   return store;
@@ -73,8 +98,13 @@ function cookbookStoreRead() {
   try { text = localStorage.getItem(COOKBOOK_PROJECTS_KEY); } catch (e) { text = null; }
   if (text !== null) {
     try { raw = JSON.parse(text); } catch (e) { raw = undefined; }
+    _cookbookTplFixed = false;
     const ok = cookbookSanitizeStore(raw);
-    if (ok) return ok;
+    if (ok) {
+      // alte Stil-ID gefunden: einmal still zurueckschreiben (ohne Abgleich-Markierung, damit ein neuerer Cloud-Stand nicht ueberholt wird)
+      if (_cookbookTplFixed) { _cookbookTplFixed = false; cookbookWriteUnmarked(ok); }
+      return ok;
+    }
     // vorhanden, aber unlesbar: Kopie sichern statt still ueberschreiben, dann neu aus der alten Konfiguration aufbauen
     try { localStorage.setItem(COOKBOOK_PROJECTS_KEY + '-defekt', text); } catch (e) { /* Speicher voll */ }
   }
@@ -118,7 +148,7 @@ function cookbookCoverId(book) {
 function cookbookNewConfig() {
   return {
     title: '', subtitle: '', author: '', chapters: [], items: [], chapterPages: false,
-    pdfTemplate: typeof pdfDefaultTemplateId === 'function' ? pdfDefaultTemplateId() : 'A',
+    pdfTemplate: typeof pdfDefaultTemplateId === 'function' ? pdfDefaultTemplateId() : 'pur',
     cover: { v: COVER_SCHEMA_VERSION, templateId: COVER_DEFAULT_ID, date: coverTodayKey(), showDate: true },   // heutiges Datum einmalig bei NEUEN Projekten
   };
 }
