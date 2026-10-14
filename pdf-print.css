@@ -198,3 +198,9 @@
 .pv-ing-col > .pdf-meas { display: grid !important; grid-column: 1 / -1; grid-template-columns: subgrid; }
 .pv-ing-col > .pdf-meas > .pv-ing-group, .pv-ing-col > .pdf-meas > .pv-label { grid-column: 1 / -1; }
 @supports not (grid-template-columns: subgrid) { .pv-ing-col > .pdf-meas { display: block !important; } }
+
+/* Zusatzbloecke unter der Zutatenliste (Seitenplanung, extrasPlacement 'column'): schmale Spalte, Naehrwertraster zweispaltig */
+.pv-extras-col { grid-column: 1 / -1; margin-top: 5mm; }
+.pv-extras-col .pv-nut-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.pv-tpl-a .pv-extras-col .pv-nutri, .pv-tpl-a .pv-extras-col .pv-tips, .pv-tpl-a .pv-extras-col .pv-notes { background: transparent; padding-left: 0; padding-right: 0; border-left: 0; }
+.pv-tpl-a .pv-extras-col .pv-nutri { border-top: var(--pv-hair) solid var(--pv-rule); padding-top: 3mm; padding-bottom: 0; }

@@ -281,11 +281,15 @@ function pvRecipePage(m, recipe, imgUrl, opts, nutritionDetail) {
   const ingHtml = (opts.ingUnits || pvIngredientUnits(m.ingredients)).map((u) => u.html).join('');
   const stepHtml = (opts.stepUnits || pvStepUnits(m.steps)).map((u) => u.html).join('');
   const single = !ingHtml;
+  let extras = opts.extras === false ? '' : pvExtrasHtml(m, nutritionDetail);
+  /* Seitenplanung (Gruppe Kern): extrasPlacement 'column' setzt die Zusatzbloecke unter die Zutatenliste (freier Platz der kuerzeren Spalte) */
+  const extrasInCol = !!(extras && opts.extrasPlacement === 'column' && ingHtml);
+  const colExtras = extrasInCol ? `<div class="pv-extras pv-extras-col">${extras}</div>` : '';
+  if (extrasInCol) extras = '';
   const body = `<div class="pv-body ${single ? 'pv-body-single' : ''}">
-      ${ingHtml ? `<aside class="${pvIngColClass(ingHtml)}"><div class="pv-label">Zutaten</div>${ingHtml}</aside>` : ''}
+      ${ingHtml ? `<aside class="${pvIngColClass(ingHtml)}"><div class="pv-label">Zutaten</div>${ingHtml}${colExtras}</aside>` : ''}
       ${stepHtml ? `<div class="pv-steps-col"><div class="pv-label">Zubereitung</div>${stepHtml}</div>` : ''}
     </div>`;
-  const extras = opts.extras === false ? '' : pvExtrasHtml(m, nutritionDetail);
   return `<section class="${cls}" lang="de" data-recipe-id="${pvEsc(m.id)}" data-page-kind="recipe">
     ${head}
     ${photoBand}

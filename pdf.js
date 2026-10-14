@@ -598,7 +598,7 @@ function pdfSimulate(inp, ingItems, stepItems, f, safety) {
   const R = pdfFillColumn(stepItems, inp.sh, bud(inp.chromeR), inp, true);
   const K = Math.max(L.length, R.length);
   const last = K - 1;
-  const body = Math.max(L[last] && L[last].length ? inp.chromeL + pdfPieceSum(L[last]) : 0, R[last] && R[last].length ? inp.chromeR + pdfPieceSum(R[last]) : 0);
+  const body = Math.max(L[last] && L[last].length ? inp.chromeL + pdfPieceSum(L[last]) : 0, R[last] && R[last].length ? inp.chromeR + pdfPieceSum(R[last]): 0);
   const avail = last === 0 ? availFirst : availCont;
   const extrasFit = !inp.extrasH || body + inp.extrasH <= f * avail + 1e-6;
   return { L, R, K, f, extrasFit };
@@ -608,14 +608,17 @@ function pdfSimulate(inp, ingItems, stepItems, f, safety) {
 function pdfSearchPlan(inp, ingItems, stepItems, safety) {
   const k1 = pdfSimulate(inp, ingItems, stepItems, 1, safety).K;
   for (let N = Math.max(2, k1); N <= k1 + 3; N++) {
-    const ok = (f) => { const s = pdfSimulate(inp, ingItems, stepItems, f, safety); return s.K <= N && s.extrasFit; };
-    if (!ok(1)) continue;
-    let lo = 0.2, hi = 1;
-    for (let i = 0; i < 16; i++) { const mid = (lo + hi) / 2; if (ok(mid)) hi = mid; else lo = mid; }
-    // kleinen Spielraum lassen: gleichmaessig, aber nicht auf den letzten Millimeter gerechnet
-    const sim = pdfSimulate(inp, ingItems, stepItems, Math.min(1, hi + 0.01), safety);
-    if (sim.K <= N && sim.extrasFit) return sim;
-    return pdfSimulate(inp, ingItems, stepItems, hi, safety);
+    // gueltig: mindestens zwei Seiten (Einseitiges scheiterte vorher), hoechstens N, Zusatzbloecke passen auf die letzte Seite.
+    // Bei sehr kurzem Ueberlauf (z. B. nur Zusatzbloecke) verteilt ein kleinerer Fuellgrad auch Zubereitung/Zutaten auf Seite 2.
+    const ok = (f) => { const s = pdfSimulate(inp, ingItems, stepItems, f, safety); return s.K >= 2 && s.K <= N && s.extrasFit; };
+    let hiF = null, loF = 0.2;
+    for (let f = 1; f >= 0.25; f -= 0.05) { if (ok(f)) { hiF = f; break; } loF = f; }
+    if (hiF === null) continue;
+    // untere Grenze (infeasible) und hiF (feasible) eingrenzen: moeglichst gleichmaessig
+    let lo = Math.max(0.2, hiF - 0.05), hi = hiF;
+    if (ok(lo)) { hi = lo; lo = 0.2; }
+    for (let i = 0; i < 14; i++) { const mid = (lo + hi) / 2; if (ok(mid)) hi = mid; else lo = mid; }
+    return pdfSimulate(inp, ingItems, stepItems, ok(Math.min(1, hi + 0.01)) ? Math.min(1, hi + 0.01) : hi, safety);
   }
   return null;
 }
@@ -742,6 +745,15 @@ async function buildRecipePdfPage(r, previousLayout, nutritionDetail, chapter) {
     if (pdfFits(html)) {
       const regular = i === 0;
       return { htmlPages: [html], layout: opts.photo + (opts.tight ? '-tight' : ''), tier: regular ? 1 : 2, pageCount: 1 };
+    }
+  }
+  /* Stufe 2b: Zusatzbloecke (Hinweise, Notizen, Naehrwerte, Quelle) in den freien Platz unter der Zutatenliste setzen,
+     bevor eine zweite Seite nur fuer sie entsteht. Nichts wird entfernt, Schrift bleibt gleich. */
+  if (pdfExtrasHtml(m, detail)) {
+    for (let i = 0; i < plans.length; i++) {
+      const opts = Object.assign({}, plans[i], { extrasPlacement: 'column' });
+      const html = pvRecipePage(m, r, photoOk ? imgUrl : null, opts, detail);
+      if (pdfFits(html)) return { htmlPages: [html], layout: opts.photo + (opts.tight ? '-tight' : '') + '-extras-column', tier: 2, pageCount: 1 };
     }
   }
   const multi = pdfPlanMultiPage(m, r, photoOk ? imgUrl : null, dims, detail);

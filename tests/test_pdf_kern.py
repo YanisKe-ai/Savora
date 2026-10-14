@@ -178,6 +178,29 @@ async def main():
         check('Ueberlanger Schritt: wird an Satzgrenzen geteilt, kein Wort geht verloren', all(sp['txt'].count(w) >= sp['full'].split(' ').count(w) for w in set(words)) and plan['fx_longstep']['n'] >= 2, str(plan['fx_longstep']['n']))
         check('Fortsetzungsstueck eines geteilten Schritts hat keine zweite Nummer', await page.evaluate("(pages) => pages.join('').includes('data-cont=\"1\"') && !/data-cont=\"1\"[^>]*><span class=\"pv-step-no\">\\d/.test(pages.join(''))", plan['fx_longstep']['pages']))
 
+        # ---------- 1b) Kurze Ueberlaeufe nur aus Zusatzbloecken vermeiden (Fall D) ----------
+        sweep = await page.evaluate("""async () => {
+          const nut = { nutrientsPerPortion: { energyKcal: 612, protein: 28.5, carbohydrates: 70, fat: 22, fiber: 3.2, sugars: 6, saturatedFat: 5.1, salt: 1.3 }, sourceDataVersions: {}, confidence: 'medium', unresolvedCount: 0 };
+          const orig = window.pdfNutritionForExport; window.pdfNutritionForExport = async () => nut;
+          const out = [];
+          for (const tpl of ['A', 'B', 'C']) { pdfSetContext(tpl, '', '', false);
+            for (const detail of ['compact', 'full']) for (const ni of [6, 12, 30]) for (let k = 8; k <= 26; k += 2) {
+              const r = Object.assign(emptyRecipe(), { id: 'fx_sw', title: 'Knapp', servings: 2, timeMinutes: 20, notes: 'Eine Notiz zum Rezept.', ingredients: Array.from({ length: ni }, (_, i) => ({ amount: String(i + 1), unit: 'g', name: 'Zutat ' + (i + 1) })), steps: [...Array.from({ length: k }, (_, i) => ({ text: 'Schritt ' + (i + 1) + ' wird erklaert. Danach folgt noch ein Satz mit etwas mehr Text zum Garen.' })), { text: 'Tipp: Gut verschlossen aufbewahren.' }] });
+              const res = await buildRecipePdfPage(r, null, detail);
+              const bad = res.htmlPages.length > 1 && res.htmlPages.slice(1).some((h) => !/class="pv-step"|class="pv-ing"/.test(h));
+              out.push({ tpl, detail, ni, k, n: res.htmlPages.length, layout: res.layout, bad });
+            } }
+          window.pdfNutritionForExport = orig; return out; }""")
+        badsw = [x for x in sweep if x['bad']]
+        check('Kein Rezept braucht eine Seite nur aus Zusatzbloecken (Stil A/B/C, kompakt und erweitert, %d Faelle)' % len(sweep), not badsw, str(badsw[:2]))
+        check('Zusatzbloecke unter der Zutatenliste ersparen mindestens einen zweiten Seite (extras-column)', any('extras-column' in x['layout'] for x in sweep), str(sorted({(x['tpl'], x['layout']) for x in sweep})[:6]))
+        check('Zwei Seiten bleiben dort, wo sie noetig sind', any(x['n'] >= 2 for x in sweep))
+        carbo = await page.evaluate("""async () => { const nut = { nutrientsPerPortion: { energyKcal: 612, protein: 28.5, carbohydrates: 70, fat: 22, fiber: 3.2, sugars: 6, saturatedFat: 5.1, salt: 1.3 }, sourceDataVersions: {}, confidence: 'medium', unresolvedCount: 0 };
+          window.pdfNutritionForExport = async () => nut; const out = {};
+          for (const tpl of ['A', 'B', 'C']) for (const d of ['compact', 'full']) { pdfSetContext(tpl, '', '', false); const r = state.recipes.find(x => x.id === 'fx_carbonara'); r.notes = 'Eine Notiz.'; const res = await buildRecipePdfPage(r, null, d); out[tpl + d] = [res.htmlPages.length, res.layout]; r.notes = ''; }
+          return out; }""")
+        check('Carbonara mit Notiz und Naehrwerten (kompakt/erweitert, A/B/C): eine Seite', all(v[0] == 1 for v in carbo.values()), str(carbo))
+
         # ---------- 2) Echte PDFs: Einzelrezept in allen Stilen ----------
         matrix = {'A': ids, 'B': ['fx_manti', 'fx_long40', 'fx_many', 'fx_triple', 'fx_sloppy'], 'C': ['fx_manti', 'fx_long40', 'fx_many', 'fx_triple', 'fx_carbonara']}
         for tpl, lst in matrix.items():
