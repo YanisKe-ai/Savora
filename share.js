@@ -285,7 +285,7 @@ function settingsShareView() {
       : friendsSec + profileSec + senderNameSectionHtml();
     body = `${offlineBanner}${tabs}<div id="tl-panel" role="tabpanel" aria-labelledby="tl-tab-${tab}" class="tl-panel">${panel}</div>`;
   }
-  return settingsDetailShell('Rezepte mit anderen teilen', `<div class="tl${wide ? ' tl--wide' : ''}${intro ? ' tl--intro' : ''}">${intro ? `<div class="tl-intro-grid"><div>${body}</div>${shareAsideHtml()}</div>` : body}${wide ? '' : senderNameSectionHtml()}</div>`) + shareSendModal() + sharePickModal();
+  return settingsDetailShell('Socialize', `<div class="tl${wide ? ' tl--wide' : ''}${intro ? ' tl--intro' : ''}">${intro ? `<div class="tl-intro-grid"><div>${body}</div>${shareAsideHtml()}</div>` : body}${wide ? '' : senderNameSectionHtml()}</div>`) + shareSendModal() + sharePickModal();
 }
 
 function shareFindInbox(id) { return share.inbox.find(x => x.id === id) || null; }

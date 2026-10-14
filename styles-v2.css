@@ -2150,7 +2150,7 @@ html.is-scrolled .home-head { box-shadow: 0 1px 0 rgba(37, 39, 32, .05), 0 8px 1
   .nutrition-segmented button.active::before, .uc-tab.is-active::before { border-color: CanvasText; }
 }
 
-/* Längere Seitentitel (z.B. «Darstellung und Einheiten», «Rezepte mit anderen teilen») dürfen auf zwei Zeilen umbrechen, statt mit «…» abgeschnitten zu werden */
+/* Längere Seitentitel (z.B. «Darstellung und Einheiten», «Socialize») dürfen auf zwei Zeilen umbrechen, statt mit «…» abgeschnitten zu werden */
 .topbar--sub .topbar-title { -webkit-line-clamp: 2; line-height: 1.15; overflow-wrap: anywhere; }
 
 /* ============================================================   Startseite als Rezeptliste (Handy, unter 768 px) und Navigation mit fünf Punkten
@@ -2246,7 +2246,7 @@ body.keyboard-open .home-add-bar { display: none; }
 .home-add-btn:active { transform: scale(0.97); }
 @media (prefers-reduced-motion: reduce) { .home-add-btn { transition: none; } .home-add-btn:active { transform: none; } }
 
-/* ===== Teilen überarbeitet: Posteingang, Freunde, Profil (Seite «Rezepte mit anderen teilen») ===== */
+/* ===== Teilen überarbeitet: Posteingang, Freunde, Profil (Seite «Socialize») ===== */
 .tl { display: block; max-width: 40rem; }
 .tl--wide, .tl--prev { max-width: none; }
 .tl-cols { display: flex; flex-direction: column; gap: 0; }

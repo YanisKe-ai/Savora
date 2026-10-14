@@ -1,4 +1,4 @@
-"""Teilen ueberarbeitet: Seite «Rezepte mit anderen teilen» (Handy zuerst, Tablet/Desktop in Spalten).
+"""Teilen ueberarbeitet: Seite «Socialize» (Handy zuerst, Tablet/Desktop in Spalten).
 Prueft pro Zustand nur das Noetige (ohne Konto, ohne Profil, ohne Freunde, mit Freunden, Anfrage, Posteingang), die Reihenfolge der Bereiche
 (Posteingang, Anfragen, Rezept senden, Freunde, Profil), Zaehler, eingeklappte Bereiche (und dass sie ein Neuzeichnen ueberleben),
 den Ablauf Rezept waehlen, Freund waehlen, senden, Fehlertexte ohne Internet, Vorschau (Entscheidung vor den Zutaten),
