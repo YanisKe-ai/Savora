@@ -231,9 +231,8 @@ function coverValidate(layout) {
   for (let i = 0; i < rects.length; i++) for (let j = i + 1; j < rects.length; j++) {
     const a = rects[i], b = rects[j];
     if (a.x < b.x + b.w - eps && b.x < a.x + a.w - eps && a.y < b.y + b.h - eps && b.y < a.y + a.h - eps) {
-      const la = (L[a.id] || a.id).toLowerCase().replace(/^d(er|ie|as) /, ''), lb = (L[b.id] || b.id);
-      add(b.id, 'overlap', `${lb} überlappt ${/^(Der|Die|Das) /.test(L[a.id] || '') ? L[a.id].replace(/^Der /, 'den ').replace(/^Die /, 'die ').replace(/^Das /, 'das ') : 'ein anderes Element'}. Verschiebe eines der beiden Felder.`);
-      void la;
+      const acc = { title: 'den Titel', subtitle: 'den Untertitel', name: 'den Namen', extra1: 'die weitere Zeile', date: 'das Datum', logo: 'das Logo' };
+      add(b.id, 'overlap', `${L[b.id] || 'Ein Feld'} überlappt ${acc[a.id] || 'ein anderes Feld'}. Verschiebe eines der beiden Felder.`);
     }
   }
   if (layout.mode === 'custom' && !layout.image && layout.bgColor && layout.readability !== 'gradient') {
