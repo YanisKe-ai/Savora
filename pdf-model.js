@@ -124,7 +124,9 @@ function pdfSplitIngredient(ing) {
 
   const c = typeof nutCleanIngredientName === 'function' ? nutCleanIngredientName(nameRaw) : { name: nameRaw, bracketText: '' };
   let name = c.name;
-  if (c.bracketText) notes.push(c.bracketText);
+  // Klammer mitten im Namen («Ei (gross), verquirlt»): Wortlaut und Reihenfolge erhalten, nur eine Klammer am Ende wird zur Notiz
+  if (c.bracketText && /^[^(]*[^\s(][^(]*\([^)]*\)\s*[,;]?\s*[^\s,;)][^)]*$/.test(nameRaw)) name = nameRaw;
+  else if (c.bracketText) notes.push(c.bracketText);
 
   // Altbestand: das Zutatenwort steht in der Einheit (Zwiebel, Knoblauchzehe, Ei, Handvoll), im Namen nur noch die Klammer
   if (!name && unit && !pdfIsMeasureUnit(unit)) { name = unit; unit = ''; }
@@ -191,6 +193,12 @@ function pdfTipHasContent(t) {
 function pdfSplitSteps(recipe) {
   const entries = stepEntries(recipe).map((e) => Object.assign({}, e, { text: String(e.text).trim() }));
   entries.forEach((e) => { e.kind = e.heading ? 'heading' : pdfClassifyStepText(e.text); });
+  // Feinschliff V2: steht die gespeicherte Quelle woertlich am Ende des letzten Schritts, nur in der Exportdarstellung entfernen
+  const lastStep = entries.filter((e) => e.kind === 'step').pop();
+  if (lastStep) {
+    const cut = pdfStripSourceTail(lastStep.text, pdfSourceStrings(recipe));
+    if (cut.removed) { if (cut.text) lastStep.text = cut.text; else lastStep.kind = 'source'; }
+  }
   const steps = []; const tips = []; const sources = [];
   for (let i = 0; i < entries.length; i++) {
     const e = entries[i];
@@ -222,6 +230,33 @@ function pdfSplitSteps(recipe) {
   return { steps, tips, sources };
 }
 
+/* Gespeicherte Quelle (Feld source) als exakte Vergleichstexte */
+function pdfSourceStrings(recipe) {
+  const rs = recipe && recipe.source;
+  if (!rs) return [];
+  if (typeof rs === 'string') return [rs.trim()].filter(Boolean);
+  return [String(rs.title || rs.name || '').trim(), String(rs.url || '').trim()].filter(Boolean);
+}
+/* Exakter Abgleich mit dem source-Feld (keine allgemeine Regel fuer Saetze mit «Quelle»): Endet der Text woertlich mit der
+   gespeicherten Quelle und steht sie klar abgesetzt (Beschriftung «Quelle:» davor oder Satzende davor), wird nur dieser
+   Schluss in der Darstellung weggelassen. Die Originaldaten bleiben unveraendert. */
+const PDF_SOURCE_LABEL_RE = /\b(quelle|source|rezept (von|nach))\s*[:\-–]?\s*$/i;
+function pdfStripSourceTail(text, srcs) {
+  const t = String(text || '').trim();
+  for (const src of srcs || []) {
+    if (src.length < 4) continue;
+    let body = t;
+    if (!body.endsWith(src) && /[.]$/.test(body) && !/[.]$/.test(src)) body = body.slice(0, -1).trimEnd();
+    if (!body.endsWith(src)) continue;
+    let rest = body.slice(0, body.length - src.length);
+    const labelled = PDF_SOURCE_LABEL_RE.test(rest);
+    rest = rest.replace(PDF_SOURCE_LABEL_RE, '').replace(/[\s·|–-]+$/, '').trim();
+    if (!rest) return { text: '', removed: true };
+    if (labelled || /[.!?]$/.test(rest)) return { text: rest, removed: true };
+  }
+  return { text: t, removed: false };
+}
+
 const PDF_URL_RE = /\bhttps?:\/\/[^\s<>"']+|\bwww\.[^\s<>"']+|\b[a-z0-9][a-z0-9-]*(?:\.[a-z0-9][a-z0-9-]*)*\.(?:ch|com|de|org|net|at|io|co|eu|info)\b(?:\/[^\s<>"']*)?/i;
 function pdfFindUrl(text) {
   const m = PDF_URL_RE.exec(String(text || ''));
@@ -247,7 +282,13 @@ function pdfSourceInfo(recipe, sourceSteps) {
       if (link) url = pdfFindUrl(link) || { text: link, href: link };
     }
   }
-  (sourceSteps || []).forEach((s) => parts.push(String(s).trim()));
+  // Als Schritt gespeicherte Quelle, die woertlich der gespeicherten Quelle entspricht, nur einmal ausgeben
+  const known = pdfSourceStrings(recipe);
+  (sourceSteps || []).forEach((s) => {
+    const t = String(s).trim(), bare = t.replace(/^\s*(quelle|source|rezept (von|nach))\s*[:\-–]?\s*/i, '').replace(/[.]$/, '').trim();
+    if (known.some((k) => k === t || k === bare)) return;
+    parts.push(t);
+  });
   const clean = parts.filter(Boolean);
   const source = clean.join(' · ');
   const sourceText = clean.map((p) => p.replace(/^\s*quelle\s*[:\-–]\s*/i, '')).filter(Boolean).join(' · ');

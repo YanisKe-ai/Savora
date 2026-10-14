@@ -409,7 +409,8 @@ def pruefe_ueberlappung(ex):
                     ox = min(r1[2], im['x'] + im['w']) - max(r1[0], im['x']); oy = min(r1[3], im['y'] + im['h']) - max(r1[1], im['y'])
                     if ox > 1.0 and oy > 1.2: out.append(F('text_auf_bild', i + 1, f'«{p["text"][:25]}» liegt auf dem Foto')); break
         for f in s.get('foot', []):
-            if f['r'] > 180 and f['b'] > 284: out.append(F('fuss_trifft_seitenzahl', i + 1, f'Fusszeilentext reicht bis {f["r"]} mm und stoesst an die Seitenzahl'))
+            # Planer V2: Seitenzahl «n / K» steht mittig (ab ca. 96 mm), im Kochbuch zusaetzlich «Seite X» rechts
+            if f['r'] > 92 and f['b'] > 284: out.append(F('fuss_trifft_seitenzahl', i + 1, f'Fusszeilentext reicht bis {f["r"]} mm und stoesst an die Seitenzahl in der Mitte'))
     return out
 
 def pruefe_schriftgroessen(ex, haupt_rx=r'ing|step|tip|note|para|text|body|lead|desc|toc-name', sekundaer_ausnahme_rx=r'^$'):
