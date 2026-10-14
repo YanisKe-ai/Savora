@@ -17,7 +17,7 @@ LAST = ['monkey', 'paket37_interaction', 'paket39', 'paket37_plan']            #
 QUICK_ENV = {'paket37_adapt': {'SAVORA_ADAPT_QUICK': '1'}}
 # Immer gesetzte Umgebung je Test. pdf_ausgabe: bekannte PDF-Fehler (Stand 0.72.0) gelten als «erwartet rot», bis alle Korrekturen zusammengefuehrt sind.
 # SCHARF SCHALTEN: diesen Eintrag loeschen, dann laeuft tests/test_pdf_ausgabe.py strikt (Beschreibung im Kopf dieser Testdatei).
-EXTRA_ENV = {'pdf_ausgabe': {'SAVORA_PDF_ERWARTE_FEHLER': '1'}}
+EXTRA_ENV = {}   # pdf_ausgabe ist scharf (strikt); fuer bekannte Fehler waere {'pdf_ausgabe': {'SAVORA_PDF_ERWARTE_FEHLER': '1'}} noetig
 BASE_PORT = int(os.environ.get("SAVORA_BASE_PORT", "8900"))
 
 args = sys.argv[1:]

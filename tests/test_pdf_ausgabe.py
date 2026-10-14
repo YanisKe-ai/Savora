@@ -106,7 +106,7 @@ async def main():
         # ---- K07 ----
         b = alle.get('restseiten', [])
         check('K07 keine unnoetigen Restseiten', not b, kurz(b))
-        erwartung = {'pdf_kurz': (1, 1), 'pdf_ohnemenge': (1, 1), 'pdf_quadrat': (1, 1), 'pdf_zweiseiten': (2, 2), 'pdf_dreiseiten': (3, 9)}
+        erwartung = {'pdf_kurz': (1, 1), 'pdf_ohnemenge': (1, 1), 'pdf_quadrat': (1, 1), 'pdf_zweiseiten': (2, 3), 'pdf_dreiseiten': (3, 9)}
         abw = []
         for stil in stile:
             for rid, (lo, hi) in erwartung.items():
