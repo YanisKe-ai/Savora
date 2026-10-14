@@ -33,7 +33,7 @@ async def main():
 
         # ---- 1. v1-Regression: Layouts der zehn Vorlagen pixel-/zahlengleich zum Stand origin/main (0.76.0)
         snap = json.load(open(os.path.join(TESTS, 'data', 'cover_v1_layouts.json')))
-        now = json.loads(await ev("() => JSON.stringify(COVER_TEMPLATES.flatMap(t => V1CASES.map((c, i) => ({ id: t.id, case: i, layout: coverLayout(Object.assign({templateId: t.id}, c), MEAS) }))))"))
+        now = json.loads(await ev("() => JSON.stringify(COVER_TEMPLATES.filter(t => ['pop','lieblingsbuch','tomate','salbei','nachtkueche','citrus','bistro','garten','sonnenkueche','ofenglueck'].includes(t.id)).flatMap(t => V1CASES.map((c, i) => ({ id: t.id, case: i, layout: coverLayout(Object.assign({templateId: t.id}, c), MEAS) }))))"))
         check('v1: 50 Layouts (10 Vorlagen x 5 Eingaben) identisch zum Schnappschuss', len(snap) == 50 and snap == now)
         same = await ev("() => COVER_TEMPLATES.every(t => V1CASES.every(c => { const a = coverLayout(Object.assign({templateId: t.id}, c), MEAS); const b = coverLayout(Object.assign({templateId: t.id, v2: coverModelFromLegacy({ cover: { v: 1, templateId: t.id } })}, c), MEAS); return JSON.stringify(a) === JSON.stringify(b); }))")
         check('Schlichte Vorlage mit v2-Modell nimmt den v1-Pfad (identisch)', same)
