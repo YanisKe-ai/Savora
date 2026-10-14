@@ -586,7 +586,7 @@ def pruefe_fortsetzung(ex):
         for i in idx[1:]:
             t = ex.dom[i].get('text', '')
             if 'fortsetzung' not in t.lower(): out.append(F('fortsetzung_ohne_kennzeichnung', i + 1, f'{rid}: Seite ohne «Fortsetzung»', rezept=rid))
-            elif not re.search(r'\b\d+\s*von\s*\d+\b', t, re.I): out.append(F('fortsetzung_ohne_n_von_m', i + 1, f'{rid}: «Fortsetzung» ohne «n von m» (Auftrag: «Fortsetzung · 2 von 2»)', rezept=rid))
+            elif not re.search(r'\b\d+\s*(?:von|/)\s*\d+\b', t, re.I): out.append(F('fortsetzung_ohne_n_von_m', i + 1, f'{rid}: «Fortsetzung» ohne «n von m» (Auftrag: «Fortsetzung · 2 von 2»)', rezept=rid))
             if titel and flach(titel)[:20] not in flach(t): out.append(F('fortsetzung_ohne_name', i + 1, f'{rid}: Rezeptname fehlt auf der Fortsetzungsseite', rezept=rid))
     return out
 

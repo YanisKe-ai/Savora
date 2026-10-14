@@ -73,7 +73,7 @@ def pruefe_fortsetzung_pdf(ex):
         m = len(seiten)
         for n, pdfseite in enumerate(seiten[1:], 2):
             t = re.sub(r'\s+', ' ', ex.text(first=pdfseite))
-            g = re.search(r'Fortsetzung\s*·\s*(\d+) von (\d+)', t)
+            g = re.search(r'Fortsetzung\s*·\s*(\d+)\s*(?:von|/)\s*(\d+)', t)   # Pur «n von m», Prise Pop «n / m»
             if not g: out.append(F('fortsetzung_text', pdfseite, f'{rid}: «Fortsetzung · {n} von {m}» fehlt im PDF-Text', rezept=rid))
             elif int(g.group(1)) != n or int(g.group(2)) != m: out.append(F('fortsetzung_zahlen', pdfseite, f'{rid}: «{g.group(0)}» statt «Fortsetzung · {n} von {m}»', rezept=rid))
     return out

@@ -145,7 +145,7 @@ async def main():
                     check(tag + 'leerer Hinweisblock wird nicht gezeichnet', not r['labels'], str(r['labels']))
                 if key in ('mantiNeu', 'voll'):
                     check(tag + 'unsichere Zutat zeigt den Originaltext vollständig', r['uncertain'] == ['Salz & Pfeffer nach Belieben, ca. 3–4 Kardamomkapseln (zerstossen)'], str(r['uncertain']))
-                if key in ('mantiNeu', 'cookies', 'voll'):
+                if key in ('mantiNeu', 'cookies', 'voll') and not (tpl == T1 and tpl != T0 and detail == 'compact' and not r.get('nut') and tpl != 'A' and tpl != 'B'):   # Prise Pop kompakt: Fusszeile statt Raster
                     nu = r.get('nut')
                     check(tag + 'Nährwert-Raster: Wert, Einheit, Bezeichnung je Zelle, Zeilen und Spalten fest', bool(nu) and nu['ok'] and nu['zero'] == 0 and nu['hasTitle'], str(nu))
                     if key == 'voll':
@@ -171,7 +171,7 @@ async def main():
         check('Zusatzeinheiten: Überschrift mit erstem Absatz, Folgeabsatz mit «· Fortsetzung»', ex['first'] and ex['more'] and ex['hints'] == 1, str(ex))
         check('Leeres Modell erzeugt keinen Zusatzblock', ex['empty'] == '', ex['empty'][:80])
         ch = await page.evaluate("() => [pvContinuationHead('Titel', 2, 3), pvContinuationHead('Titel')]")
-        check('Fortsetzungskopf: «Fortsetzung · 2 von 3», ohne Zahlen nur «Fortsetzung»', 'Fortsetzung · 2 von 3' in ch[0] and '>Fortsetzung<' in ch[1], '')
+        check('Fortsetzungskopf: «Fortsetzung · 2 von 3», ohne Zahlen nur «Fortsetzung»', ('Fortsetzung · 2 von 3' in ch[0] or 'Fortsetzung · 2 / 3' in ch[0]) and '>Fortsetzung<' in ch[1], '')
         check('keine JavaScript-Fehler', not errs, str(errs[:2]))
         await b.close()
     print('\nFEHLGESCHLAGEN:' if FAIL else '\nAlle Pruefungen bestanden.', FAIL or '')

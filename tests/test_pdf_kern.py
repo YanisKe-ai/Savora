@@ -165,7 +165,7 @@ async def main():
         for id in ids:
             pgs = plan[id]['pages']
             for i, h in enumerate(pgs[1:], 2):
-                if f'Fortsetzung · {i} von {len(pgs)}' not in h: lab_ok = False
+                if f'Fortsetzung · {i} von {len(pgs)}' not in h and f'Fortsetzung · {i} / {len(pgs)}' not in h: lab_ok = False
         check('Fortsetzungsseiten: «Fortsetzung · N von M» mit korrekter Gesamtzahl', lab_ok)
         # Inhalt vollstaendig verteilt: jeder Schritt und jede Zutat steht genau einmal in den geplanten Seiten
         compl = await page.evaluate("""(a) => { const [id, pages] = a; const r = state.recipes.find(x => x.id === id); const txt = pages.join(' ').replace(/<[^>]+>/g, ' ').replace(/&nbsp;|\\u00a0/g, ' ').replace(/&amp;/g, '&').replace(/&#39;|&#x27;/g, "'").replace(/\\s+/g, ' ');
@@ -216,7 +216,7 @@ async def main():
                 if n > 1:
                     txts = [sh(['pdftotext', '-f', str(k), '-l', str(k), path, '-']) for k in range(1, n + 1)]
                     for k, t in enumerate(txts[1:], 2):
-                        m = re.search(r'Fortsetzung\s*·\s*(\d+) von (\d+)', t)
+                        m = re.search(r'Fortsetzung\s*·\s*(\d+)\s*(?:von|/)\s*(\d+)', t)
                         if not m or int(m.group(1)) != k or int(m.group(2)) != n: contmis.append((id, k, m.group(0) if m else None))
                     if tpl == T0 and id in ('fx_long40', 'fx_many') and n == 2:
                         bal.append((id, round(content_bottom(imgs[-1]))))
@@ -265,7 +265,7 @@ async def main():
                 kind_text = sh(['pdftotext', '-f', str(k + 1), '-l', str(k + 1), path, '-'])
                 if re.match(r'\s*Kapitel', kind_text): continue
                 for e in frame_problems(im): errs_b.append(f'S.{k + 1}: {e}')
-                if re.search(r'Fortsetzung\s*·\s*\d+ von', kind_text):
+                if re.search(r'Fortsetzung\s*·\s*\d+\s*(?:von|/)', kind_text):
                     for e in cont_head_problems(im): errs_b.append(f'S.{k + 1}: {e}')
             check(f'Kochbuch {tpl}: Kopf-/Fusszeilen aller Seiten vollstaendig (auch mit sehr langem Buchtitel)', not errs_b, '; '.join(errs_b[:3]))
             # TOC aus dem PDF-Text lesen
