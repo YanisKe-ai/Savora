@@ -422,16 +422,29 @@ def pruefe_ueberschriften(ex):
         for c in s.get('emptyBlocks', []): out.append(F('leerer_kasten', i + 1, f'leerer Block «{c}»'))
     return out
 
-def pruefe_restseiten(ex, mm=RESTSEITE_MIN_MM):
-    """Letzte Seite eines mehrseitigen Rezepts nur mit wenigen Zeilen (Inhaltshoehe < mm oder <= 8 Textzeilen)."""
+SPARPLATZ_MM = 12   # Gewinn des engen Layouts (pv-tight) allein durch Abstaende, gemessen an Carbonara: Band 50 mm normal 374 mm, eng 362 mm
+BLOCKABSTAND_MM = 6   # Abstand, den ein weiterer Block auf der Seite davor zusaetzlich braucht (pv-extras margin)
+
+def pruefe_restseiten(ex, mm=RESTSEITE_MIN_MM, spar=SPARPLATZ_MM):
+    """Unnoetige Restseite: Die letzte Seite eines mehrseitigen Rezepts waere vermeidbar, wenn ihr Inhalt (ohne Kopfzeile) in den freien Platz
+       der vorletzten Seite plus Sparplatz (spar mm) passt (kein Sparplatz, wenn die Seite davor schon im engen Layout steht), oder sie hat nur sehr wenig Inhalt (<= 8 Zeilen oder < 25 mm).
+       Eine Restseite mit einem ganzen Block (z. B. Naehrwerte und Quelle, 57 mm), der auch nach engeren Abstaenden nicht auf die Seite davor passt, ist bewusst und wird nicht beanstandet.
+       mm bleibt als Obergrenze fuer «wenig Inhalt» (Standard 60 mm) nur zusammen mit der Bedingung, dass der Platz davor nicht reicht, nicht allein."""
     out = []; per = {}
     for i, s in enumerate(ex.dom):
         if s.get('recipeId'): per.setdefault(s['recipeId'], []).append(i)
     for rid, idx in per.items():
         if len(idx) < 2: continue
-        s = ex.dom[idx[-1]]; hoehe = s.get('cBot', 0) - s.get('cTop', 0)
-        if hoehe < mm or s.get('lineCount', 99) <= 8:
-            out.append(F('restseite', idx[-1] + 1, f'{rid}: letzte von {len(idx)} Seiten hat nur {s.get("lineCount")} Zeilen / {hoehe:.0f} mm Inhalt', rezept=rid))
+        last, prev = ex.dom[idx[-1]], ex.dom[idx[-2]]
+        starts = [b['y'] for b in last.get('blocks', []) if not b.get('foot') and b['y'] > 22]
+        hoehe = last.get('cBot', 0) - (min(starts) if starts else last.get('cTop', 0))
+        fuss = min([f['y'] for f in prev.get('foot', [])] or [285])
+        frei = fuss - 6 - prev.get('cBot', 0)
+        wenig = last.get('lineCount', 99) <= 8 or hoehe < 25
+        sp = 0 if 'pv-tight' in prev.get('cls', '') else spar   # ist die Seite davor schon im engen Layout (Stufe 2), gibt es keinen weiteren Sparplatz
+        vermeidbar = hoehe < mm and hoehe + BLOCKABSTAND_MM <= frei + sp
+        if wenig or vermeidbar:
+            out.append(F('restseite', idx[-1] + 1, f'{rid}: letzte von {len(idx)} Seiten hat {last.get("lineCount")} Zeilen / {hoehe:.0f} mm Inhalt, Platz davor {frei:.0f} mm (+{sp} mm sparbar, +{BLOCKABSTAND_MM} mm Blockabstand)', rezept=rid))
     return out
 
 def pruefe_bilder(ex, rezepte=None):
@@ -471,7 +484,12 @@ def erwartete_texte(rez):
     steps = [(s['text'].strip(), _tok(s['text'])) for s in rez['steps'] if s['text'].strip()]
     return ings, steps
 
-def _enthaelt(tokens, bag, fenster=60):
+def _seitenende(seite, n):
+    """Index des letzten Wortes der Seite n (oder des Dokuments)."""
+    import bisect
+    return bisect.bisect_right(seite, n) - 1
+
+def _enthaelt(tokens, bag, fenster=60, seite=None):
     """Alle Woerter in Reihenfolge (mit Luecken bis fenster Woerter, z. B. Fusszeile/Seitenwechsel dazwischen) im Dokument?
        Startpunkt ist das erste Vorkommen der ersten vier Woerter (die Zutatenspalte kann dieselben Woerter enthalten)."""
     starts = [0]
@@ -482,6 +500,8 @@ def _enthaelt(tokens, bag, fenster=60):
         pos = st; fehlt = []
         for t in tokens:
             j = pos; lim = min(len(bag), pos + fenster + 1)
+            if seite and pos < len(bag):   # ein kontrolliert geteilter Schritt darf auf der naechsten Seite weitergehen (dazwischen Kopfzeile und Zutatenspalte)
+                lim = max(lim, _seitenende(seite, seite[pos] + 1) + 1)
             while j < lim and bag[j] != t: j += 1
             if j < lim: pos = j + 1
             else: fehlt.append(t)
@@ -492,7 +512,9 @@ def _enthaelt(tokens, bag, fenster=60):
 def pruefe_text(ex, rezepte):
     """Textabgleich: alle Zutaten- und Schritt-Woerter des Rezepts stehen im extrahierten PDF-Text (pdftotext -raw), Schritte nicht doppelt, keine Platzhalter wie undefined/NaN."""
     out = []; roh = ex.text(raw=True)
-    bag = _tok(roh)
+    bag = []; seite = []
+    for n, pg in enumerate(roh.split('\f')):
+        t = _tok(pg); bag += t; seite += [n] * len(t)
     for m in re.finditer(r'\bundefined\b|\bNaN\b|\bnull\b|\[object|\bInfinity\b', roh):
         out.append(F('platzhalter_im_text', 0, f'Platzhalter «{m.group(0)}» im PDF-Text'))
     for rez in rezepte:
@@ -506,7 +528,7 @@ def pruefe_text(ex, rezepte):
         for roh_s, t in steps:
             if not t: continue
             if len(t) >= 6:
-                miss = _enthaelt(t, bag)
+                miss = _enthaelt(t, bag, seite=seite)
                 if len(miss) > 0: out.append(F('text_fehlt_schritt', 0, f'{rez["id"]}: Schritt «{roh_s[:40]}» unvollstaendig im PDF (fehlt: {miss[:3]})', rezept=rez['id']))
                 kopf = ' '.join(t[:8]); anz = ' '.join(bag).count(kopf)
                 if anz > 1: out.append(F('text_doppelt', 0, f'{rez["id"]}: Schritt «{roh_s[:40]}» {anz}-mal im PDF', rezept=rez['id']))
@@ -545,7 +567,7 @@ def pruefe_fortsetzung(ex):
         for i in idx[1:]:
             t = ex.dom[i].get('text', '')
             if 'fortsetzung' not in t.lower(): out.append(F('fortsetzung_ohne_kennzeichnung', i + 1, f'{rid}: Seite ohne «Fortsetzung»', rezept=rid))
-            elif not re.search(r'\b\d+\s*von\s*\d+\b', t): out.append(F('fortsetzung_ohne_n_von_m', i + 1, f'{rid}: «Fortsetzung» ohne «n von m» (Auftrag: «Fortsetzung · 2 von 2»)', rezept=rid))
+            elif not re.search(r'\b\d+\s*von\s*\d+\b', t, re.I): out.append(F('fortsetzung_ohne_n_von_m', i + 1, f'{rid}: «Fortsetzung» ohne «n von m» (Auftrag: «Fortsetzung · 2 von 2»)', rezept=rid))
             if titel and flach(titel)[:20] not in flach(t): out.append(F('fortsetzung_ohne_name', i + 1, f'{rid}: Rezeptname fehlt auf der Fortsetzungsseite', rezept=rid))
     return out
 
