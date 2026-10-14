@@ -292,7 +292,15 @@ function bindEvents() {
       const y = window.scrollY;
       requestAnimationFrame(() => { if (window.scrollY !== y) window.scrollTo(0, y); });
       clearTimeout(searchDebounceTimer);
-      searchDebounceTimer = setTimeout(() => renderKeepFocus('searchInput'), 120);
+      // IME (z.B. Japanisch, Akzente per Tottaste): waehrend der Komposition nicht neu aufbauen, sonst bricht sie ab;
+      // compositionend loest das Neuzeichnen aus. Treffer gleiten per FLIP (Bewegung M1), das Suchfeld selbst bewegt sich nicht.
+      if (e.isComposing) return;
+      searchDebounceTimer = setTimeout(() => motionFlipRecipes(() => renderKeepFocus('searchInput')), 120);
+    });
+    searchInput.addEventListener('compositionend', (e) => {
+      state.query = e.target.value;
+      clearTimeout(searchDebounceTimer);
+      searchDebounceTimer = setTimeout(() => motionFlipRecipes(() => renderKeepFocus('searchInput')), 120);
     });
   }
   const restoreInput = document.getElementById('restoreFileInput');
@@ -500,18 +508,18 @@ async function dispatchAction(action, id, el, e) {
       const r = state.recipes.find(x => x.id === id);
       r.favorite = !r.favorite;
       await dbPut(r);
-      render();
+      motionFlipRecipes(render);   // in «Favoriten» faellt die Karte weg, die anderen ruecken nach
       break;
     }
     case 'filter-tag':
       state.activeTag = null;
       state.activeFilters.tags.clear();
       if (el.dataset.tag) state.activeFilters.tags.add(el.dataset.tag);
-      render();
+      motionFlipRecipes(render);
       break;
     case 'toggle-fav-filter':
       state.favOnly = !state.favOnly;
-      render();
+      motionFlipRecipes(render);
       break;
     case 'open-filter-sheet':
       openModal({ type: 'filter-sheet' }, `[data-action="open-filter-sheet"]`);
@@ -520,13 +528,13 @@ async function dispatchAction(action, id, el, e) {
       const dim = el.dataset.dim, fid = el.dataset.id;
       const set = state.activeFilters[dim];
       if (set.has(fid)) set.delete(fid); else set.add(fid);
-      render();
+      motionFlipRecipes(render);
       break;
     }
     case 'remove-active-filter': {
       const dim = el.dataset.dim, fid = el.dataset.id;
       state.activeFilters[dim].delete(fid);
-      render();
+      motionFlipRecipes(render);
       break;
     }
     case 'clear-all-filters':
