@@ -30,7 +30,7 @@ async def main():
             'settings-sources': ['Schweizer Nährwertdatenbank', 'Open Food Facts', 'ODbL'],
             'settings-licenses': ['Roboto', 'jsPDF', 'html2canvas', 'Capacitor'],
             'settings-about': ['Version', 'Datenschutz', 'Lizenzen'],
-            'settings-help': ['Häufige Fragen', 'Kontakt'],
+            'settings-help': ['Rezepte', 'Kontakt'],
         }
         for view, words in pages.items():
             await page.evaluate(f"() => {{ state.view = '{view}'; render(); }}"); await page.wait_for_timeout(300)
@@ -47,7 +47,7 @@ async def main():
         n_ph = await page.evaluate("document.querySelectorAll('.legal-placeholder').length")
         print(f'HINWEIS Platzhalter sichtbar auf "Über Savora": {n_ph} (vor Veroeffentlichung LEGAL in legal.js ausfuellen)')
         # Navigation: Mehr > Ueber Savora > Lizenzen > zurueck
-        await page.evaluate("() => { state.view = 'settings'; render(); }")
+        await page.evaluate("() => { state.view = 'more'; render(); }")
         await page.evaluate("document.querySelector('[data-view=\"settings-about\"]').click()"); await page.wait_for_timeout(300)
         await page.evaluate("document.querySelector('[data-view=\"settings-sources\"]').click()"); await page.wait_for_timeout(300)
         await page.evaluate("document.querySelector('[data-view=\"settings-licenses\"]').click()"); await page.wait_for_timeout(300)

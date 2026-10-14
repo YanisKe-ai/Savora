@@ -1,44 +1,76 @@
 /* ---------- Views ---------- */
+/* Seiten, die der Router nur dann zeigt, wenn ihre Funktion geladen ist (settings-konto.js, share.js). Fehlt sie
+   noch (Zwischenstand), faellt die Route auf die bisherige Ansicht zurueck, statt den Router zu brechen. */
+function viewIfDefined(fn, fallback) {
+  return typeof fn === 'function' ? fn() : fallback();
+}
+
 function viewFor(view) {
   switch (view) {
     case 'home': return homeView();
     case 'detail': return detailView();
     case 'form': return formView();
     case 'cookmode': return cookModeView();
+    /* Mehr und Einstellungen */
+    case 'more': return moreView();
     case 'settings': return settingsView();
+    case 'settings-account': return viewIfDefined(typeof settingsAccountView === 'function' ? settingsAccountView : null, () => settingsDataView('sync'));
+    case 'settings-sync':
+    case 'settings-data': return viewIfDefined(typeof settingsSyncView === 'function' ? settingsSyncView : null, () => settingsDataView('sync'));
+    case 'settings-backup': return viewIfDefined(typeof settingsBackupView === 'function' ? settingsBackupView : null, () => settingsDataView('backup'));
+    case 'settings-offline': return viewIfDefined(typeof settingsOfflineView === 'function' ? settingsOfflineView : null, () => settingsDataView('backup'));
     case 'settings-display': return settingsDisplayView();
-    case 'settings-units': return settingsDisplayView();
-    case 'settings-profile': return settingsProfileView();
-    case 'settings-data': return settingsDataView('sync');
-    case 'settings-backup': return settingsDataView('backup');
+    case 'settings-cooking':
+    case 'settings-units':
+    case 'settings-nutrition': return settingsCookingView();
     case 'settings-help': return settingsHelpView();
     case 'settings-privacy': return settingsPrivacyView();
     case 'settings-terms': return settingsTermsView();
     case 'settings-sources': return settingsSourcesView();
     case 'settings-about': return settingsAboutView();
     case 'settings-licenses': return settingsLicensesView();
-    case 'settings-nutrition': return settingsDisplayView();
+    /* Freunde & Rezepte (share.js). Die alten Namen 'settings-share' und 'settings-profile' bleiben als Verweise gueltig. */
+    case 'friends':
+    case 'settings-share': return viewIfDefined(typeof friendsView === 'function' ? friendsView : null, () => settingsShareView());
+    case 'friends-profile':
+    case 'settings-profile': return viewIfDefined(typeof friendsProfileView === 'function' ? friendsProfileView : null, () => settingsProfileView());
+    case 'friends-add': return viewIfDefined(typeof friendsAddView === 'function' ? friendsAddView : null, () => settingsShareView());
+    case 'settings-share-preview': return typeof settingsSharePreviewView === 'function' ? settingsSharePreviewView() : viewIfDefined(typeof friendsView === 'function' ? friendsView : null, () => homeView());
     case 'paste-import': return pasteImportView();
     case 'shopping': return shoppingView();
     case 'mealplan': return mealplanView();
     case 'unitconverter': return unitConverterView();
     case 'cookbook': return cookbookDesignerView();
     case 'cookbooks': return cookbooksView();
-    case 'settings-sync': return settingsDataView('sync');
-    case 'friends': return friendsView();
-    case 'friends-profile': return typeof friendsProfileView === 'function' ? friendsProfileView() : friendsView();
-    case 'friends-add': return typeof friendsAddView === 'function' ? friendsAddView() : friendsView();
-    case 'settings-share': return friendsView();
-    case 'settings-share-preview': return settingsSharePreviewView();
     default: return homeView();
   }
 }
 
 
-// "Mehr" bleibt in der Tab-Leiste aktiv markiert, solange man sich in einer Settings-Detailseite
-// oder im davon erreichten Masseinheiten-Rechner befindet (Settings/Mehr-Redesign, Teil A).
+/* «Mehr» bleibt in der Navigation aktiv markiert auf allen Unterseiten dieser Gruppe: Mehr selbst, Einstellungen
+   mit allen Detailseiten, Freunde & Rezepte, Rechner, Hilfe, Über Savora und ihre Rechtstexte. */
 function isMoreSectionView(view) {
-  return view === 'settings' || view.indexOf('settings-') === 0 || view.indexOf('friends') === 0 || view === 'unitconverter' || view === 'cookbook';
+  view = String(view || '');
+  return view === 'more' || view === 'settings' || view.indexOf('settings-') === 0 || view.indexOf('friends') === 0 || view === 'unitconverter';
+}
+
+/* Die sechs Einstellungsseiten fuer die lokale Abschnittsnavigation neben den Details (Tablet und Desktop).
+   Alte Routen zaehlen zur jeweils neuen Seite. */
+const SETTINGS_SECTIONS = [
+  { group: 'Konto &amp; Daten', views: [
+    { view: 'settings-account', label: 'Mein Konto', also: [] },
+    { view: 'settings-sync', label: 'Geräteabgleich', also: ['settings-data'] },
+    { view: 'settings-backup', label: 'Sicherung &amp; Wiederherstellung', also: [] },
+  ] },
+  { group: 'App anpassen', views: [
+    { view: 'settings-display', label: 'Darstellung', also: [] },
+    { view: 'settings-cooking', label: 'Kochen &amp; Mengen', also: ['settings-units', 'settings-nutrition'] },
+    { view: 'settings-offline', label: 'Ohne Internet', also: [] },
+  ] },
+];
+function settingsSectionOf(view) {
+  for (const g of SETTINGS_SECTIONS) for (const v of g.views) if (v.view === view || v.also.indexOf(view) >= 0) return v.view;
+  return null;
 }
 
 
@@ -214,30 +246,65 @@ function renderStepWithTimers(text, stepIdx) {
 
 
 
-/* ---------- "Mehr" (frueher "Einstellungen") — Redesign, Teil A ----------
-   Ersetzt die Accordion-Wand durch klar gruppierte Zeilen (Settings Rows). Einstellungen,
-   Aktionen und Informationen stehen in eigenen Gruppen, nicht mehr gleichrangig nebeneinander.
-   Komplexere Bereiche oeffnen eine eigene Detailseite (eigener state.view-Eintrag) statt eines
-   aufklappbaren Bereichs — Zurueck-Navigation siehe onAction 'back' in ui.js. */
+/* ---------- «Mehr» und «Einstellungen» ----------
+   «Mehr» (Route 'more') bündelt zusätzliche Funktionen: Austauschen, Werkzeuge, Verwalten. Nur echte Präferenzen
+   und die Verwaltung liegen unter «Einstellungen» (Route 'settings'). Jede Zeile öffnet eine eigene Seite;
+   «Zurück» nutzt den Browserverlauf (siehe onAction 'back' in ui.js). Zeilen: Titel, darunter höchstens
+   ein bis zwei kurze Zeilen mit dem echten aktuellen Wert, Pfeil nur bei Navigation. */
+Object.assign(ICONS, {
+  user: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg>`,
+  sync: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 11a8 8 0 0 0-14.3-4.6L4 8.5"/><path d="M4 4v4.5h4.5"/><path d="M4 13a8 8 0 0 0 14.3 4.6L20 15.5"/><path d="M20 20v-4.5h-4.5"/></svg>`,
+  wifi: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5a10 10 0 0 1 14 0"/><path d="M8.5 16a5 5 0 0 1 7 0"/><circle cx="12" cy="19.5" r="1"/></svg>`,
+  pot: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 11h16v6a3 3 0 0 1-3 3H7a3 3 0 0 1-3-3z"/><path d="M2 11h2M20 11h2"/><path d="M9 7V5M15 7V5"/></svg>`,
+});
+
 function settingsRow(opts) {
-  const { icon, title, summary, view, action, danger } = opts;
+  const { icon, title, summary, view, action, danger, badge, nav } = opts;
   const attr = view ? `data-action="goto-view" data-view="${view}"` : `data-action="${action}"`;
+  const showArrow = !!(view || nav);
   return `<button type="button" class="settings-row ${danger ? 'settings-row-danger' : ''}" ${attr}>
     <span class="settings-row-icon" aria-hidden="true">${icon}</span>
-    <span class="settings-row-title">${title}</span>
-    ${summary ? `<span class="settings-row-summary">${escapeHtml(summary)}</span>` : ''}
-    <span class="settings-row-chevron" aria-hidden="true">${ICONS.chevronRight}</span>
+    <span class="settings-row-text">
+      <span class="settings-row-title">${title}</span>
+      ${summary ? `<span class="settings-row-summary">${escapeHtml(summary)}</span>` : ''}
+    </span>
+    ${badge ? `<span class="settings-row-badge">${escapeHtml(badge)}</span>` : ''}
+    ${showArrow ? `<span class="settings-row-chevron" aria-hidden="true">${ICONS.chevronRight}</span>` : ''}
   </button>`;
 }
 
 function settingsGroup(label, rowsHtml) {
   return `<div class="settings-group">
-    <div class="settings-group-title">${label}</div>
+    <h2 class="settings-group-title">${label}</h2>
     <div class="settings-group-card">${rowsHtml}</div>
   </div>`;
 }
 
+/* Lokale Abschnittsnavigation der sechs Einstellungsseiten. Sichtbar erst ab 900 px (CSS), auf dem Handy bleibt
+   die Seite einspaltig und «Zurück» führt zur Einstellungs-Übersicht. */
+function settingsSubnavHtml(current) {
+  return `<nav class="settings-subnav" aria-label="Einstellungen">${SETTINGS_SECTIONS.map(g => `
+    <div class="settings-subnav-group">
+      <div class="settings-subnav-title">${g.group}</div>
+      ${g.views.map(v => `<button type="button" class="settings-subnav-item${v.view === current ? ' active' : ''}" data-action="goto-view" data-view="${v.view}"${v.view === current ? ' aria-current="page"' : ''}>${v.label}</button>`).join('')}
+    </div>`).join('')}</nav>`;
+}
+
+/* Rahmen einer Detailseite: Kopf mit Zurück und Seitentitel (h1), Inhalt in begrenzter Breite. Gehört die Seite
+   zu den sechs Einstellungsseiten, steht ab 900 px die Abschnittsnavigation links daneben. */
 function settingsDetailShell(title, bodyHtml, cls) {
+  const sec = settingsSectionOf(state.view);
+  if (sec) {
+    const extra = cls ? ' ' + String(cls).replace(/\bsettings-page--cols\b/g, '').trim() : '';
+    return `
+      ${topbar(title, { back: true })}
+      <main class="has-tabbar settings-page settings-page--split${extra}">
+        ${settingsSubnavHtml(sec)}
+        <div class="settings-main">${bodyHtml}</div>
+      </main>
+      ${bottomNav()}
+    `;
+  }
   return `
     ${topbar(title, { back: true })}
     <main class="has-tabbar settings-page${cls ? ' ' + cls : ''}">${bodyHtml}</main>
@@ -245,38 +312,25 @@ function settingsDetailShell(title, bodyHtml, cls) {
   `;
 }
 
-/* Schnellschalter «Erscheinungsbild» auf der Seite «Mehr»: gleiche Optionen und gleiche Aktion wie unter «Darstellung und Einheiten». */
-function themeQuickRow(t) {
-  const opt = (id, label) => `<button type="button" class="theme-opt theme-opt--quick ${t === id ? 'active' : ''}" data-action="set-theme" data-theme="${id}" role="radio" aria-checked="${t === id}">${label}</button>`;
-  return `<div class="theme-quick">
-    <span class="theme-quick-label" id="themeQuickLabel">Erscheinungsbild</span>
-    <div class="theme-switch theme-quick-switch" role="radiogroup" aria-labelledby="themeQuickLabel">
-      ${opt('light', 'Hell')}${opt('dark', 'Dunkel')}${opt('auto', 'System')}
-    </div>
-  </div>`;
+/* «Mehr»: die Einstiegsseite der fünften Navigationsstelle. Der Zähler an «Freunde & Rezepte» kommt nur aus
+   echten Daten (share.count: neue empfangene Rezepte und Anfragen), nie aus Beispielzahlen. */
+function moreFriendsBadge() {
+  const n = (typeof share !== 'undefined' && share && Number(share.count)) || 0;
+  return n > 0 ? `${n} neu` : '';
 }
-
-function settingsView() {
-  const t = state.theme;
-  const themeLabel = t === 'light' ? 'Hell' : t === 'dark' ? 'Dunkel' : 'Wie dein Gerät';
-  const unitLabel = state.unitSystem === 'metric' ? 'Gramm und Milliliter' : 'US-Masse (Cups, Unzen)';
-
+function moreView() {
   return `
-    ${topbar('Einstellungen')}
-    <main class="has-tabbar settings-page settings-page--home">
-      ${pageTitle(isCompactNav() ? 'Mehr' : 'Einstellungen')}
-      ${settingsGroup('Deine Daten', [
-        settingsRow({ icon: ICONS.cloud, title: 'Konto und Sicherung', summary: cloudSettingsSummary(), view: 'settings-data' }),
-        settingsRow({ icon: ICONS.share, title: 'Freunde &amp; Rezepte', summary: friendsSummary(), view: 'friends' }),
-      ].join(''))}
-      ${settingsGroup('Darstellung', [
-        themeQuickRow(t),
-        settingsRow({ icon: ICONS.moon, title: 'Darstellung und Einheiten', summary: `${themeLabel}, ${unitLabel}`, view: 'settings-display' }),
-        settingsRow({ icon: ICONS.scale, title: 'Masseinheiten-Rechner', action: 'open-unitconverter' }),
-      ].join(''))}
-      ${settingsGroup('Hilfe &amp; Infos', [
-        settingsRow({ icon: ICONS.lifeBuoy, title: 'Hilfe erhalten', view: 'settings-help' }),
-        settingsRow({ icon: ICONS.info, title: 'Über Savora', view: 'settings-about' }),
+    ${topbar('Mehr')}
+    <main class="has-tabbar settings-page settings-page--list">
+      ${pageTitle('Mehr')}
+      ${settingsGroup('Austauschen',
+        settingsRow({ icon: ICONS.share, title: 'Freunde &amp; Rezepte', summary: 'Empfangene Rezepte und Kontakte', view: 'friends', badge: moreFriendsBadge() }))}
+      ${settingsGroup('Werkzeuge',
+        settingsRow({ icon: ICONS.scale, title: 'Einheiten umrechnen', summary: 'Gewicht, Volumen, Temperatur und Zutaten', view: 'unitconverter' }))}
+      ${settingsGroup('Verwalten', [
+        settingsRow({ icon: ICONS.settings, title: 'Einstellungen', summary: 'Konto, Daten und App anpassen', view: 'settings' }),
+        settingsRow({ icon: ICONS.lifeBuoy, title: 'Hilfe &amp; Kontakt', summary: 'Antworten und Unterstützung', view: 'settings-help' }),
+        settingsRow({ icon: ICONS.info, title: 'Über Savora', summary: 'Version, Datenschutz und Lizenzen', view: 'settings-about' }),
       ].join(''))}
     </main>
     ${bottomNav()}
@@ -284,61 +338,112 @@ function settingsView() {
   `;
 }
 
-/* Kopf eines Abschnitts auf einer zusammengelegten Seite: Überschrift und (optional) ein Satz, der
-   den Unterschied zum Nachbarabschnitt erklärt. */
+/* Kurze, echte Werte für die Untertitel der Einstellungen. */
+function settingsAccountSummary() {
+  if (typeof cloudSignedIn !== 'function' || !cloudSignedIn()) return 'Nicht angemeldet';
+  let email = '';
+  try { const s = cloudSession(); email = (s && s.user && s.user.email) || ''; } catch (e) { /* ohne E-Mail */ }
+  return email ? `Angemeldet als ${email}` : 'Angemeldet';
+}
+function settingsSyncSummary() {
+  if (typeof cloudSignedIn !== 'function' || !cloudSignedIn()) return 'Zum Abgleichen anmelden';
+  if (typeof cloud !== 'undefined' && cloud.syncing) return 'Wird abgeglichen …';
+  if (typeof cloud !== 'undefined' && cloud.lastError) return 'Abgleich fehlgeschlagen';
+  try { if (Object.keys(cloudQueue()).length) return 'Änderungen warten auf den Abgleich'; } catch (e) { /* unbekannt */ }
+  let last = null;
+  try { last = readJsonKey(CLOUD_LAST_KEY, null); } catch (e) { /* unbekannt */ }
+  if (!last) return 'Noch nicht abgeglichen';
+  return `Zuletzt abgeglichen: ${new Date(last).toLocaleString('de-CH', { day: 'numeric', month: 'numeric', hour: '2-digit', minute: '2-digit' })}`;
+}
+function settingsBackupSummary() {
+  if (!state.lastBackupAt) return 'Noch keine Sicherung heruntergeladen';
+  const d = new Date(state.lastBackupAt);
+  return isNaN(d) ? 'Noch keine Sicherung heruntergeladen' : `Letzte Sicherung: ${d.toLocaleDateString('de-CH', { day: 'numeric', month: 'long', year: 'numeric' })}`;
+}
+function settingsThemeLabel() {
+  return state.theme === 'light' ? 'Hell' : state.theme === 'dark' ? 'Dunkel' : 'Wie dein Gerät';
+}
+function settingsUnitLabel() {
+  return state.unitSystem === 'metric' ? 'Gramm und Milliliter' : 'US-Masse (Cups, Unzen)';
+}
+
+/* «Einstellungen»: genau sechs Seiten in zwei Gruppen. */
+function settingsView() {
+  const offline = (typeof navigator !== 'undefined' && navigator.onLine === false) ? 'Du bist gerade offline' : 'Verfügbarkeit prüfen';
+  const body = `
+      ${settingsGroup('Konto &amp; Daten', [
+        settingsRow({ icon: ICONS.user, title: 'Mein Konto', summary: settingsAccountSummary(), view: 'settings-account' }),
+        settingsRow({ icon: ICONS.sync, title: 'Geräteabgleich', summary: settingsSyncSummary(), view: 'settings-sync' }),
+        settingsRow({ icon: ICONS.download, title: 'Sicherung &amp; Wiederherstellung', summary: settingsBackupSummary(), view: 'settings-backup' }),
+      ].join(''))}
+      ${settingsGroup('App anpassen', [
+        settingsRow({ icon: ICONS.moon, title: 'Darstellung', summary: settingsThemeLabel(), view: 'settings-display' }),
+        settingsRow({ icon: ICONS.pot, title: 'Kochen &amp; Mengen', summary: `${settingsUnitLabel()}, Nährwerte ${state.showNutrition ? 'sichtbar' : 'ausgeblendet'}`, view: 'settings-cooking' }),
+        settingsRow({ icon: ICONS.wifi, title: 'Ohne Internet', summary: offline, view: 'settings-offline' }),
+      ].join(''))}`;
+  return `
+    ${topbar('Einstellungen', { back: true })}
+    <main class="has-tabbar settings-page settings-page--list">${body}</main>
+    ${bottomNav()}
+  `;
+}
+
+/* Kopf eines Abschnitts auf einer Seite: Überschrift und (optional) ein Satz. */
 function settingsSectionHead(title, lead) {
   return `<div class="settings-section-head"><h2 class="settings-section-h">${title}</h2>${lead ? `<p class="settings-section-lead">${lead}</p>` : ''}</div>`;
 }
 
-function settingsThemeBodyHtml() {
-  const t = state.theme;
-  return `
-    <div class="settings-group">
-      <div class="settings-group-card settings-group-card--padded">
-        <p class="settings-hint">Dunkel eignet sich besonders gut zum Kochen am Abend.</p>
-        <div class="theme-switch theme-switch--grid" role="radiogroup" aria-label="Helles oder dunkles Design">
-          <button class="theme-opt ${t === 'light' ? 'active' : ''}" data-action="set-theme" data-theme="light" role="radio" aria-checked="${t === 'light'}">${ICONS.sun} Hell</button>
-          <button class="theme-opt ${t === 'dark' ? 'active' : ''}" data-action="set-theme" data-theme="dark" role="radio" aria-checked="${t === 'dark'}">${ICONS.moon} Dunkel</button>
-          <button class="theme-opt ${t === 'auto' ? 'active' : ''}" data-action="set-theme" data-theme="auto" role="radio" aria-checked="${t === 'auto'}">${ICONS.auto} Wie dein Gerät</button>
-        </div>
-      </div>
-    </div>`;
-}
-
-function settingsUnitsBodyHtml() {
-  return `
-    <div class="settings-group">
-      <div class="settings-group-card settings-group-card--padded">
-        <p class="settings-hint">Beim Import aus Text rechnet Savora die Mengen in diese Einheiten um. Du kannst jede Menge danach selbst ändern.</p>
-        <div class="theme-switch" role="radiogroup" aria-label="Mengenangaben">
-          <button class="theme-opt ${state.unitSystem === 'metric' ? 'active' : ''}" data-action="set-unit-system" data-system="metric" role="radio" aria-checked="${state.unitSystem === 'metric'}">Gramm und Milliliter</button>
-          <button class="theme-opt ${state.unitSystem === 'imperial' ? 'active' : ''}" data-action="set-unit-system" data-system="imperial" role="radio" aria-checked="${state.unitSystem === 'imperial'}">US-Masse (Cups, Unzen)</button>
-        </div>
-      </div>
-    </div>`;
-}
-
-function settingsNutritionBodyHtml() {
-  return `
-    <div class="settings-group">
-      <div class="settings-group-card settings-group-card--padded">
-        <p class="settings-hint">Geschätzte Werte. Je nach Zutaten und Mengen können sie abweichen.</p>
-        <p class="settings-hint">Wenn du sie nicht brauchst, blendest du Reiter und PDF-Option aus. Berechnete Werte bleiben gespeichert und erscheinen wieder, sobald du sie einschaltest.</p>
-        <div class="theme-switch" role="radiogroup" aria-label="Nährwerte anzeigen">
-          <button class="theme-opt ${state.showNutrition ? 'active' : ''}" data-action="set-show-nutrition" data-value="1" role="radio" aria-checked="${state.showNutrition}">Anzeigen</button>
-          <button class="theme-opt ${!state.showNutrition ? 'active' : ''}" data-action="set-show-nutrition" data-value="0" role="radio" aria-checked="${!state.showNutrition}">Ausblenden</button>
-        </div>
-      </div>
-    </div>`;
-}
-
-/* Eine Seite «Anzeige» für Design, Mengenangaben und Nährwerte. Die alten Ansichtsnamen
-   'settings-units' und 'settings-nutrition' zeigen dieselbe Seite. */
+/* «Darstellung»: der einzige Ort für das Farbschema. Die Auswahl wirkt sofort (Aktion 'set-theme' in ui.js) und
+   bleibt unter THEME_KEY gespeichert. Der gewählte Eintrag ist durch Haken, fette Schrift und aria-checked
+   erkennbar, nicht nur durch die Farbe. */
 function settingsDisplayView() {
-  const body = settingsSectionHead('Helles oder dunkles Design') + settingsThemeBodyHtml()
-    + settingsSectionHead('Mengenangaben') + settingsUnitsBodyHtml()
-    + settingsSectionHead('Nährwerte') + settingsNutritionBodyHtml();
-  return settingsDetailShell('Darstellung und Einheiten', body, 'settings-page--cols');
+  const t = state.theme;
+  const opt = (id, label, icon) => `<button type="button" class="theme-opt ${t === id ? 'active' : ''}" data-action="set-theme" data-theme="${id}" role="radio" aria-checked="${t === id}">${icon}<span class="theme-opt-label">${label}</span>${t === id ? '<span class="theme-opt-state" aria-hidden="true">Ausgewählt</span>' : ''}</button>`;
+  const body = `
+    <div class="settings-group">
+      <h2 class="settings-group-title" id="themeLabel">Farbschema</h2>
+      <div class="settings-group-card settings-group-card--padded">
+        <div class="theme-switch theme-switch--stack" role="radiogroup" aria-labelledby="themeLabel">
+          ${opt('light', 'Hell', ICONS.sun)}${opt('dark', 'Dunkel', ICONS.moon)}${opt('auto', 'Wie dein Gerät', ICONS.auto)}
+        </div>
+        <p class="settings-hint settings-hint--top">Die Auswahl gilt sofort und bleibt auf diesem Gerät gespeichert. Bei «Wie dein Gerät» folgt Savora der Einstellung deines Geräts.</p>
+      </div>
+    </div>`;
+  return settingsDetailShell('Darstellung', body);
+}
+
+/* «Kochen & Mengen»: Einheiten beim Import und Nährwerte anzeigen.
+   Wirkung der Einheiten laut Code: autoConvertIngredient (units.js) rechnet beim Import neuer Rezepte aus Text
+   (recipe-import.js, parsers.js) und beim Umrechnen einer einzelnen Zutat im Rezeptformular. Gespeicherte Rezepte
+   werden nie rückwirkend verändert. «Nährwerte anzeigen» blendet nur die Anzeige (Reiter, PDF-Option) aus, die
+   gespeicherten Werte bleiben unangetastet. */
+function settingsCookingView() {
+  const on = !!state.showNutrition;
+  const unitOpt = (id, label) => `<button type="button" class="theme-opt ${state.unitSystem === id ? 'active' : ''}" data-action="set-unit-system" data-system="${id}" role="radio" aria-checked="${state.unitSystem === id}"><span class="theme-opt-label">${label}</span>${state.unitSystem === id ? '<span class="theme-opt-state" aria-hidden="true">Ausgewählt</span>' : ''}</button>`;
+  const body = `
+    <div class="settings-group">
+      <h2 class="settings-group-title" id="unitLabel">Einheiten beim Import</h2>
+      <div class="settings-group-card settings-group-card--padded">
+        <div class="theme-switch theme-switch--stack" role="radiogroup" aria-labelledby="unitLabel">
+          ${unitOpt('metric', 'Gramm und Milliliter')}${unitOpt('imperial', 'US-Masse (Cups, Unzen)')}
+        </div>
+        <p class="settings-hint settings-hint--top">Wird beim Import neuer Rezepte und beim Umrechnen einer Zutat im Rezeptformular verwendet. Gespeicherte Rezepte bleiben unverändert.</p>
+      </div>
+    </div>
+    <div class="settings-group">
+      <h2 class="settings-group-title">Anzeige</h2>
+      <div class="settings-group-card">
+        <div class="settings-switch-row">
+          <span class="settings-row-text">
+            <span class="settings-row-title" id="nutritionLabel">Nährwerte anzeigen</span>
+            <span class="settings-row-summary" id="nutritionDesc">In Rezepten und im PDF-Export. Gespeicherte Werte bleiben erhalten.</span>
+          </span>
+          <button type="button" class="switch" role="switch" aria-checked="${on}" aria-labelledby="nutritionLabel" aria-describedby="nutritionDesc" data-action="set-show-nutrition" data-value="${on ? '0' : '1'}"><span class="switch-state">${on ? 'An' : 'Aus'}</span><span class="switch-knob" aria-hidden="true"></span></button>
+        </div>
+      </div>
+      <p class="settings-hint settings-hint--note">Nährwerte sind geschätzte Werte. Je nach Zutaten und Mengen können sie abweichen.</p>
+    </div>`;
+  return settingsDetailShell('Kochen & Mengen', body);
 }
 
 /* Absendername: freiwillig, wird heute nirgends automatisch ausgegeben (weder PDF noch Teilen).
@@ -407,7 +512,7 @@ function settingsDataView(first) {
 
 
 function settingsHelpView() {
-  return settingsDetailShell('Hilfe erhalten', legalHelpHtml(), 'settings-page--cols');
+  return settingsDetailShell('Hilfe & Kontakt', legalHelpHtml());
 }
 function settingsPrivacyView() {
   return settingsDetailShell('Datenschutz', legalPrivacyHtml());
@@ -422,7 +527,7 @@ function settingsLicensesView() {
   return settingsDetailShell('Lizenzen', legalLicensesHtml());
 }
 function settingsAboutView() {
-  return settingsDetailShell('Über Savora', legalAboutHtml(), 'settings-page--cols');
+  return settingsDetailShell('Über Savora', legalAboutHtml());
 }
 /* Punkt 12/13: eigener, dedizierter Screen statt Accordion-Textarea in den Settings. Wird ueber
    die FAB (addMenuModal) erreicht, nicht ueber "Mehr". */

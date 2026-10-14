@@ -31,7 +31,7 @@ function legalPrivacyHtml() {
     <p class="legal-stand">Stand: ${escapeHtml(LEGAL.updated)}. Savora ist eine private Beta-Version.</p>
     ${legalSection('Kurz gesagt', legalList([
       'Ohne Anmeldung bleiben alle deine Daten auf diesem Gerät.',
-      'Nur wenn du dich unter „Einstellungen, Konto und Sicherung“ anmeldest, werden deine Inhalte mit deinen anderen Geräten abgeglichen.',
+      'Nur wenn du dich unter „Mehr, Einstellungen, Mein Konto“ anmeldest, werden deine Inhalte mit deinen anderen Geräten abgeglichen.',
       'Savora enthält keine Werbung, keine Tracker und keine Analyse-Dienste.',
     ]))}
     ${legalSection('Wer verantwortlich ist', `
@@ -49,9 +49,9 @@ function legalPrivacyHtml() {
     ${legalSection('Wozu die Daten dienen', `
       <p>Deine Daten werden nur bearbeitet, um dir Savora bereitzustellen: Speichern, Abgleichen und Anmelden. Die Synchronisation nutzt du freiwillig. Mit der Anmeldung stimmst du dieser Bearbeitung zu, du kannst dich jederzeit abmelden. Deine Daten werden nicht verkauft und nicht für Werbung verwendet. Empfänger sind ausschliesslich der Betreiber des Synchronisationsdienstes (siehe oben) und, nur für Barcodes, Open Food Facts.</p>`)}
     ${legalSection('Aufbewahrung und Löschung', `
-      <p>Daten in der Cloud bleiben, bis du sie löschst. Unter „Einstellungen, Konto und Sicherung“, „Konto und Cloud-Daten löschen“ entfernst du dein Konto und alle Cloud-Daten endgültig. Rezepte auf deinem Gerät bleiben dabei erhalten. Sie verschwinden erst, wenn du sie selbst löschst, die Browserdaten leerst oder die App deinstallierst.</p>`)}
+      <p>Daten in der Cloud bleiben, bis du sie löschst. Unter „Mehr, Einstellungen, Mein Konto“, „Konto und Cloud-Daten löschen“ entfernst du dein Konto und alle Cloud-Daten endgültig. Rezepte auf deinem Gerät bleiben dabei erhalten. Sie verschwinden erst, wenn du sie selbst löschst, die Browserdaten leerst oder die App deinstallierst.</p>`)}
     ${legalSection('Deine Rechte', `
-      <p>Du kannst Auskunft über deine Daten verlangen sowie deren Berichtigung und Löschung. Eine vollständige Kopie deiner Rezepte erstellst du selbst unter „Einstellungen, Konto und Sicherung“, „Sicherungskopie“. Schreib für alles Weitere an ${legalValue(LEGAL.email)}. Du kannst dich zusätzlich beim Eidgenössischen Datenschutz- und Öffentlichkeitsbeauftragten (EDÖB) beschweren.</p>`)}
+      <p>Du kannst Auskunft über deine Daten verlangen sowie deren Berichtigung und Löschung. Eine vollständige Kopie deiner Rezepte erstellst du selbst unter „Mehr, Einstellungen, Sicherung &amp; Wiederherstellung“. Schreib für alles Weitere an ${legalValue(LEGAL.email)}. Du kannst dich zusätzlich beim Eidgenössischen Datenschutz- und Öffentlichkeitsbeauftragten (EDÖB) beschweren.</p>`)}
     ${legalSection('Sicherheit', `
       <p>Die Übertragung zum Synchronisationsdienst ist verschlüsselt, und jedes Konto sieht nur seine eigenen Daten. Die Inhalte sind auf dem Server nicht zusätzlich Ende-zu-Ende verschlüsselt. Wähle deshalb ein Passwort, das du nirgends sonst verwendest.</p>`)}
     ${legalSection('Änderungen', `<p>Ändert sich etwas, passen wir diese Seite und das Datum oben an.</p>`)}`;
@@ -118,17 +118,33 @@ function legalLicensesHtml() {
 
 function legalHelpHtml() {
   const q = (title, body) => `<details class="faq"><summary>${title}</summary><p>${body}</p></details>`;
+  const group = (title, items) => legalSection(title, items.join(''));
   return `
-    ${legalSection('Kontakt', `<p>Fragen oder Rückmeldungen schickst du an ${legalValue(LEGAL.email)}. Bei einem Fehler hilft es, kurz zu schreiben, was du getan hast und was du erwartet hast.</p>`)}
-    ${legalSection('Häufige Fragen', [
-      q('Wo liegen meine Rezepte?', 'Auf diesem Gerät, im Speicher des Browsers oder der App. Ohne Anmeldung verlassen sie das Gerät nie.'),
-      q('Wie sichere ich meine Rezepte?', 'Unter „Einstellungen, Konto und Sicherung“, „Sicherungskopie“ speicherst du eine Datei mit deinen Rezepten. Bewahre sie an einem zweiten Ort auf, zum Beispiel in der Dateien-App oder per E-Mail an dich selbst.'),
-      q('Was bringt der Abgleich auf mehreren Geräten?', 'Deine Rezepte, Fotos, der Wochenplan und die Einkaufsliste sind auf allen Geräten gleich, auf denen du angemeldet bist. Das ist keine Sicherung: Was du löschst, verschwindet auf allen Geräten.'),
-      q('Warum kommt eine Timer-Meldung nur in der iOS-App?', 'Der Browser kann bei gesperrtem Telefon keine Meldung senden. Die iOS-App plant die Meldung auf dem Gerät und fragt beim ersten Timer nach der Erlaubnis.'),
-      q('Bleibt der Bildschirm im Kochmodus an?', 'Ja. Oben im Kochmodus steht „Bildschirm bleibt an“. Steht dort „Bildschirm kann ausgehen“, unterstützt dein Browser das nicht.'),
+    ${legalSection('Kontakt aufnehmen', `<p>Fragen oder Rückmeldungen schickst du an ${legalValue(LEGAL.email)}. Bei einem Fehler hilft es, kurz zu schreiben, was du getan hast und was du erwartet hast. Savora sendet nichts von selbst.</p>
+      <a class="ghost-btn help-contact-btn" href="mailto:${escapeAttr(LEGAL.email)}">Kontakt aufnehmen</a>`)}
+    ${group('Rezepte', [
+      q('Wie bringe ich ein Rezept in Savora?', 'Tippe auf das Plus. Du kannst ein Rezept von Hand eintragen, einen Text einfügen oder in der iOS-App ein Foto scannen. Du prüfst den Entwurf, bevor er gespeichert wird.'),
       q('Warum ändern sich Mengen, wenn ich Portionen ändere?', 'Savora rechnet immer vom Originalrezept aus. Die gespeicherten Mengen bleiben gleich, nur die Anzeige wird umgerechnet.'),
       q('Wie genau sind die Nährwerte?', 'Geschätzte Werte. Je nach Zutaten und Mengen können sie abweichen. Mehr dazu unter „Über Savora“, „Datenquellen und Lizenzen“.'),
-    ].join(''))}`;
+      q('Kann ich die Nährwerte ausblenden?', 'Ja, unter „Mehr, Einstellungen, Kochen &amp; Mengen“ mit „Nährwerte anzeigen“. Berechnete Werte bleiben gespeichert und erscheinen wieder, sobald du sie einschaltest.'),
+    ])}
+    ${group('Daten &amp; Geräte', [
+      q('Wo liegen meine Rezepte?', 'Auf diesem Gerät, im Speicher des Browsers oder der App. Ohne Anmeldung verlassen sie das Gerät nie.'),
+      q('Wie sichere ich meine Rezepte?', 'Unter „Mehr, Einstellungen, Sicherung &amp; Wiederherstellung“ lädst du eine Datei mit deinen Rezepten herunter. Bewahre sie an einem zweiten Ort auf, zum Beispiel in der Dateien-App oder per E-Mail an dich selbst.'),
+      q('Was bringt der Geräteabgleich?', 'Deine Rezepte, Fotos, der Wochenplan und die Einkaufsliste sind auf allen Geräten gleich, auf denen du angemeldet bist. Das ist keine Sicherung: Was du löschst, verschwindet auf allen Geräten.'),
+      q('Wie wechsle ich zwischen hell und dunkel?', 'Unter „Mehr, Einstellungen, Darstellung“ wählst du Hell, Dunkel oder „Wie dein Gerät“. Die Auswahl gilt sofort.'),
+      q('Läuft Savora ohne Internet?', 'Die App läuft ohne Internet. Wie viel auf diesem Gerät bereitliegt, siehst du unter „Mehr, Einstellungen, Ohne Internet“.'),
+    ])}
+    ${group('Kochen', [
+      q('Bleibt der Bildschirm im Kochmodus an?', 'Ja. Oben im Kochmodus steht „Bildschirm bleibt an“. Steht dort „Bildschirm kann ausgehen“, unterstützt dein Browser das nicht.'),
+      q('Warum kommt eine Timer-Meldung nur in der iOS-App?', 'Der Browser kann bei gesperrtem Telefon keine Meldung senden. Die iOS-App plant die Meldung auf dem Gerät und fragt beim ersten Timer nach der Erlaubnis.'),
+      q('Wo rechne ich Einheiten um?', 'Unter „Mehr, Einheiten umrechnen“ rechnest du Gewicht, Volumen und Temperatur um. Welche Einheiten Savora beim Import neuer Rezepte nutzt, stellst du unter „Mehr, Einstellungen, Kochen &amp; Mengen“ ein.'),
+    ])}
+    ${group('Freunde &amp; Teilen', [
+      q('Wie sende ich ein Rezept an einen Freund?', 'Du brauchst ein Konto und einen Freund in Savora. Wähle unter „Mehr, Freunde &amp; Rezepte“ ein Rezept und einen Freund. Gesendet wird erst, wenn du es bestätigst. Dein Original bleibt unverändert.'),
+      q('Was passiert mit einem Rezept, das ich bekomme?', 'Du siehst es zuerst an und übernimmst es danach selbst. Es wird nie automatisch zu deinen Rezepten hinzugefügt.'),
+      q('Kann ich ein Rezept als PDF teilen?', 'Ja, über den Export im Rezept oder im Kochbuch. Ein PDF lässt sich nicht als Sicherung in Savora einspielen.'),
+    ])}`;
 }
 
 function legalAboutHtml() {

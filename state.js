@@ -127,7 +127,12 @@ function prefersReducedMotion() {
 if ('scrollRestoration' in history) history.scrollRestoration = 'manual';
 const HISTORY_DRILLDOWN_VIEWS = new Set(['detail', 'form', 'cookmode', 'unitconverter', 'paste-import', 'cookbook']);
 function isHistoryDrilldownView(view) {
-  return HISTORY_DRILLDOWN_VIEWS.has(view) || view.indexOf('settings-') === 0 || view === 'friends' || view.indexOf('friends-') === 0;
+  return HISTORY_DRILLDOWN_VIEWS.has(view) || view === 'settings' || view.indexOf('settings-') === 0 || view.indexOf('friends') === 0;
+}
+/* Scrollposition merken: die fuenf Hauptseiten immer; Unterseiten von «Mehr» nur fuer den Rueckweg (Zurueck stellt
+   die Position wieder her, ein neuer Aufruf startet oben). */
+function remembersScroll(view) {
+  return (typeof TAB_VIEWS !== 'undefined' && TAB_VIEWS.includes(view)) || (typeof isMoreSectionView === 'function' && isMoreSectionView(view));
 }
 function navHistorySnapshot() {
   return { view: state.view, modalType: state.modal ? state.modal.type : null, activeRecipeId: state.activeRecipeId };
@@ -226,7 +231,7 @@ function render(skipHistoryPush) {
   const hasModal = !!state.modal;
   const focusFp = (!viewChanged && !(hasModal && !hadModal) && !(hadModal && !hasModal)) ? focusFingerprint(document.activeElement) : null;
 
-  if (viewChanged && prevView && !hadModal && typeof TAB_VIEWS !== 'undefined' && TAB_VIEWS.includes(prevView)) {
+  if (viewChanged && prevView && !hadModal && remembersScroll(prevView)) {
     scrollMemory[prevView] = window.scrollY;
   }
   // Waehrend der Hintergrund gesperrt ist, liest window.scrollY nur noch 0 (body ist fixed) —
@@ -247,7 +252,7 @@ function render(skipHistoryPush) {
     if (hasModal) return; // Hintergrund bleibt gesperrt, eigenes Scrollen ist hier nicht relevant
     if (!viewChanged) {
       if (preservedY !== null) window.scrollTo(0, preservedY);
-    } else if (typeof TAB_VIEWS !== 'undefined' && TAB_VIEWS.includes(state.view) && scrollMemory[state.view] != null) {
+    } else if (scrollMemory[state.view] != null && ((typeof TAB_VIEWS !== 'undefined' && TAB_VIEWS.includes(state.view)) || (skipHistoryPush && remembersScroll(state.view)))) {
       window.scrollTo(0, scrollMemory[state.view]);
     } else {
       window.scrollTo(0, 0);
@@ -264,6 +269,12 @@ function render(skipHistoryPush) {
     // nicht scrollbaren Seite operieren.
     if (!hasModal && hadModal) unlockBodyScroll();
     applyScroll();
+    // Nach einem Seitenwechsel innerhalb von «Mehr» steht der Fokus auf dem Seitentitel (Screenreader, Tastatur);
+    // der Titel scrollt dabei nicht.
+    if (viewChanged && !hasModal && !hadModal && typeof isMoreSectionView === 'function' && isMoreSectionView(state.view)) {
+      const h = App.querySelector('main h1, header h1');
+      if (h) { h.setAttribute('tabindex', '-1'); focusWithoutScroll(h); }
+    }
     // Faengt ein natives Browser-Verhalten ab, das NACH einem Klick auf ein gerade per
     // innerHTML entferntes/ersetztes Element eigenstaendig noch einmal scrollt.
     requestAnimationFrame(() => { applyScroll(); if (typeof updateScrollEdge === 'function') updateScrollEdge(); if (typeof coverFitPreviews === 'function') coverFitPreviews(); });
@@ -298,7 +309,7 @@ function render(skipHistoryPush) {
   const NO_TRANSITION_VIEWS = new Set(['form', 'cookmode']);
   // Richtung des Seitenwechsels: tiefer hinein = von rechts, zurueck = nach rechts hinaus, Reiter = Ueberblendung
   if (viewChanged) {
-    const depth = (v) => (['home', 'mealplan', 'shopping', 'cookbooks', 'settings'].includes(v) ? 0 : v === 'cookmode' ? 2 : 1);
+    const depth = (v) => (['home', 'mealplan', 'shopping', 'cookbooks', 'more'].includes(v) ? 0 : v === 'cookmode' ? 2 : 1);
     const a = depth(prevView || 'home'), b = depth(state.view);
     document.documentElement.dataset.navDir = b > a ? 'forward' : b < a ? 'back' : 'fade';
   }

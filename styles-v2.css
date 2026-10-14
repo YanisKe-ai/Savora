@@ -1645,7 +1645,6 @@ html { scrollbar-color: var(--border) transparent; }
 .settings-group-card { background: var(--card-bg); border: 1px solid var(--hairline); border-radius: var(--r-card); box-shadow: none; }
 .settings-row { min-height: 3.5rem; font-size: 1.0625rem; }
 .settings-row-title { font-weight: 500; }
-.settings-row-summary { font-size: 0.9375rem; max-width: 50%; }
 .settings-hint { font-size: 0.9375rem; }
 .theme-opt { font-size: 1rem; }
 
@@ -1747,7 +1746,6 @@ html { scrollbar-color: var(--border) transparent; }
 .today-link { display: inline-flex; align-items: center; }
 .shop-name, .shop-source, .cb-item-title, .cook-title-line { overflow-wrap: anywhere; min-width: 0; }
 .cook-title-line { max-width: 100%; }
-.settings-row-summary { white-space: normal; text-overflow: clip; overflow-wrap: anywhere; text-align: right; }
 
 /* Mindestschriften und Tippflaechen */
 .cb-step-no { width: 1.75rem; height: 1.75rem; font-size: 0.875rem; font-weight: 700; }
@@ -1785,8 +1783,6 @@ input[type="date"] { min-height: 3rem; }
 /* Rezeraster auf dem Handy: Spaltenzahl folgt der Schriftgroesse (zwei Spalten normal, eine bei sehr grosser Systemschrift) */
 @media (max-width: 719px) { .rgrid { grid-template-columns: repeat(auto-fill, minmax(min(100%, 9.5rem), 1fr)); } }
 
-/* Feinschliff (Paket 37): Zusammenfassung in Einstellungszeilen wird bei langen Titeln nie auf wenige Pixel gequetscht */
-.settings-row-summary { min-width: 5rem; flex: 0 1 auto; }
 
 /* Feinschliff (Paket 37): Umrechnungs-Reiter auf sehr schmalen Bildschirmen in zwei Reihen (kein Seitwaerts-Scrollen, auch bei breiteren Schriften) */
 @media (max-width: 359px) { .uc-tabs { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
@@ -1815,14 +1811,56 @@ html.is-scrolled .home-head { box-shadow: 0 1px 0 rgba(37, 39, 32, .05), 0 8px 1
 @media (prefers-reduced-motion: reduce) { .home-head { transition: none; } }
 @media (prefers-contrast: more) { html.is-scrolled .home-head { box-shadow: 0 1px 0 var(--text); } }
 /* Paket 38: Einstellungen entschlackt. Zusammengelegte Seiten haben Abschnittskopf mit Überschrift und einem Satz.
-   Zeilen der Hauptliste dürfen umbrechen (lange Zusammenfassung wie «Wie dein Gerät, Gramm und Milliliter»), nichts wird abgeschnitten. */
+   Die Zeilen der Listen stehen weiter unten im Block «Mehr und Einstellungen». */
 .settings-section-head { margin: 2rem 0 0.75rem 0.25rem; min-width: 0; }
 .settings-section-head:first-child { margin-top: 0.5rem; }
 .settings-section-h { font-family: var(--font-display); font-size: 1.25rem; font-weight: 700; line-height: 1.3; color: var(--text); margin: 0 0 0.25rem; overflow-wrap: anywhere; }
 .settings-section-lead { font-size: 0.9375rem; line-height: 1.5; color: var(--text-soft); margin: 0; overflow-wrap: anywhere; }
-.settings-row { padding-top: 0.5rem; padding-bottom: 0.5rem; }
-.settings-row-title { min-width: 0; flex: 1 1 7rem; overflow-wrap: anywhere; }
-.settings-row-summary { min-width: 0; max-width: 55%; flex: 0 1 auto; }
+/* ===== Mehr und Einstellungen (Navigation, Listen, Detailseiten) =====
+   Ruhige gruppierte Listen: Titel, darunter der echte aktuelle Wert (nie in einen schmalen rechten Bereich gequetscht).
+   Pfeil nur bei Navigation, Schalter für Ja/Nein, Knopf für Aktionen. Alle Zeilen und Tippflächen mindestens 44 px.
+   Ab 1100 px steht die Abschnittsnavigation der sechs Einstellungsseiten links neben dem Inhalt. */
+main.settings-page--list, main.settings-page--split { max-width: 40rem; }
+.settings-row { align-items: center; gap: 0.75rem; min-height: 3.5rem; padding: 0.75rem 1rem; }
+.settings-row-text, .settings-switch-row .settings-row-text { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 0.125rem; }
+.settings-row-title { flex: 0 1 auto; min-width: 0; font-weight: 600; line-height: 1.3; overflow-wrap: anywhere; }
+.settings-row-summary { max-width: none; min-width: 0; flex: 0 1 auto; font-size: 0.9375rem; line-height: 1.4; color: var(--text-soft); white-space: normal; overflow: visible; text-overflow: clip; overflow-wrap: anywhere; text-align: left; }
+.settings-row-badge { flex: none; min-width: 1.5rem; padding: 0.125rem 0.5rem; border-radius: 999px; background: var(--tomato); color: var(--on-tomato); font-size: 0.8125rem; font-weight: 700; line-height: 1.4; text-align: center; font-variant-numeric: tabular-nums; }
+.settings-switch-row { display: flex; align-items: center; gap: 1rem; min-height: 3.5rem; padding: 0.75rem 1rem; }
+.settings-hint--note { margin: 0.75rem 0.25rem 0; }
+h1[tabindex="-1"]:focus { outline: none; }
+
+/* Auswahlliste (Farbschema, Einheiten): eine Spalte, volle Zeilen, gewählter Eintrag mit Haken, Text und kräftigem Rahmen */
+.theme-switch--stack { display: grid; grid-template-columns: minmax(0, 1fr); gap: 0.5rem; }
+.theme-switch--stack .theme-opt { justify-content: flex-start; min-height: 2.75rem; padding: 0.5rem 1rem; text-align: left; border-width: 2px; }
+.theme-switch--stack .theme-opt.active { border-color: var(--tomato); font-weight: 700; }
+.theme-opt-label { flex: 1 1 auto; min-width: 0; overflow-wrap: anywhere; }
+.theme-opt-state { flex: none; font-size: 0.875rem; font-weight: 700; color: var(--text-soft); }
+
+/* Schalter (role="switch"): Text An/Aus zusätzlich zur Form, nie nur Farbe */
+.switch { flex: none; display: inline-flex; align-items: center; gap: 0.5rem; min-width: 2.75rem; min-height: 2.75rem; padding: 0; background: transparent; border: 0; color: var(--text); font: inherit; font-size: 0.9375rem; font-weight: 700; }
+.switch-knob { position: relative; flex: none; width: 3rem; height: 1.75rem; border-radius: 999px; background: var(--bg-sunken, var(--surface-soft)); border: 2px solid var(--text-soft); box-sizing: border-box; }
+.switch-knob::before { content: ''; position: absolute; top: 0.125rem; left: 0.125rem; width: 1.25rem; height: 1.25rem; border-radius: 50%; background: var(--text-soft); transition: transform 140ms var(--ease-out, ease-out); }
+.switch[aria-checked="true"] .switch-knob { background: var(--tomato); border-color: var(--tomato); }
+.switch[aria-checked="true"] .switch-knob::before { background: var(--on-tomato); transform: translateX(1.25rem); }
+.switch:focus-visible { outline: 3px solid var(--text); outline-offset: 2px; }
+@media (prefers-reduced-motion: reduce) { .switch-knob::before { transition: none; } }
+
+/* Abschnittsnavigation neben den Details (nur breite Bildschirme) */
+.settings-subnav { display: none; }
+@media (min-width: 1100px) {
+  html:not(#lp) body main.settings-page--split { max-width: calc(58rem + 2 * var(--lp-gutter)); display: grid; grid-template-columns: 14rem minmax(0, 40rem); column-gap: 3rem; align-items: start; }
+  html:not(#lp) body main.settings-page--list { max-width: calc(40rem + 2 * var(--lp-gutter)); }
+  .settings-subnav { display: block; position: sticky; top: 5rem; }
+  .settings-subnav-group + .settings-subnav-group { margin-top: 1.5rem; }
+  .settings-subnav-title { margin: 0 0 0.5rem 0.75rem; font-size: 0.9375rem; font-weight: 700; color: var(--text-soft); }
+  .settings-subnav-item { display: block; width: 100%; min-height: 2.75rem; padding: 0.5rem 0.75rem; border: 0; border-radius: 0.75rem; background: transparent; color: var(--text); font: inherit; font-size: 1rem; text-align: left; overflow-wrap: anywhere; }
+  .settings-subnav-item:hover { background: var(--surface-soft); }
+  .settings-subnav-item.active { background: var(--card-bg); box-shadow: inset 0.25rem 0 0 var(--tomato); font-weight: 700; }
+  .settings-subnav-item:focus-visible { outline: 3px solid var(--text); outline-offset: -3px; }
+  .settings-main > .settings-group:first-child .settings-group-title { margin-top: 0; }
+}
+.help-contact-btn { display: inline-flex; align-items: center; justify-content: center; margin-top: 0.75rem; min-height: 2.75rem; text-decoration: none; }
 
 /* =====================================================
    Wochenplan (Paket 41)
@@ -2076,21 +2114,8 @@ html.is-scrolled .home-head { box-shadow: 0 1px 0 rgba(37, 39, 32, .05), 0 8px 1
   .detail-col--info .detail-title-v2.is-long { font-size: 1.875rem; line-height: 1.15; }
   .detail-col--content .step-text, .detail-col--content .notes-text { max-width: 70ch; }
 
-  /* Einstellungen: Abschnitte als Raster mit zwei Spalten, Detailseiten in zwei Spalten */
   .settings-page { max-width: 1180px; }
-  .settings-page--home { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: 2.5rem; align-items: start; align-content: start; }
-  .settings-page--home > .page-title-row { grid-column: 1 / -1; }
-  .settings-page--home > .settings-group { margin-bottom: 0.5rem; }
-  .settings-page--home > .settings-group:nth-child(2) { grid-column: 1; grid-row: 2 / span 2; }
-  .settings-page--home > .settings-group:nth-child(3) { grid-column: 2; grid-row: 2; }
-  .settings-page--home > .settings-group:nth-child(4) { grid-column: 2; grid-row: 3; }
-  .settings-page--cols { column-count: 2; column-gap: 2.5rem; }
-  .settings-page--cols > * { break-inside: avoid; }
-  .settings-page--cols > .settings-section-head { break-after: avoid; }
-  .settings-page--cols > .settings-section-head { margin-top: 0; padding-top: 1.5rem; }
-  .settings-page--cols > .settings-section-head:first-child { padding-top: 0.5rem; }
-  .settings-page--cols > .settings-group { break-inside: avoid; }
-}
+                        }
 @media (min-width: 768px) and (max-width: 1023px) {
   .settings-page { max-width: 720px; }
 }
@@ -2226,11 +2251,6 @@ body.keyboard-open .home-add-bar { display: none; }
   body:has(.home-add-bar) .toast { bottom: calc(var(--nav-h) + var(--addbar-h) + 2.25rem + env(safe-area-inset-bottom, 0px)); }
 }
 
-/* Mehr auf dem Handy: Zusammenfassung unter den Titel statt den Titel mitten im Wort zu brechen */
-@media (max-width: 479px) {
-  .settings-page--home .settings-row { flex-wrap: wrap; row-gap: 0; }
-  .settings-page--home .settings-row-title { flex: 1 1 8rem; overflow-wrap: break-word; }
-  .settings-page--home .settings-row-summary { order: 4; flex: 1 0 100%; max-width: none; min-width: 0; text-align: left; padding-left: 2.25rem; padding-bottom: 0.25rem; }
 }
 
 /* Sehr schmale Handys (320 px): etwas kleinere Beschriftung der Navigation und der Ansichtsauswahl, damit nichts abgeschnitten wird oder umbricht (Linux-Schriften sind etwas breiter) */
@@ -2569,12 +2589,8 @@ mark.hl {
 
 @media (min-width: 1024px) {
   /* --- Einstellungen: Hauptliste und Unterseiten --- */
-  html:not(#lp) body .settings-page--home, html:not(#lp) body .settings-page--cols { column-gap: var(--lp-col-gap); }
-  html:not(#lp) body .settings-page--home > .settings-group { margin-bottom: 1rem; }
-  html:not(#lp) body .settings-section-head { margin-top: 2.5rem; }
-  html:not(#lp) body .settings-page--cols > .settings-section-head { padding-top: 0; }
-  html:not(#lp) body .settings-page--cols > .settings-section-head:first-child { margin-top: 0; padding-top: 0; }
-
+      html:not(#lp) body .settings-section-head { margin-top: 2.5rem; }
+    
   /* --- Rezeptdetail: zwei Spalten mit Luft, Lesetext auf angenehme Zeilenlänge --- */
   html:not(#lp) body .detail-main { padding-bottom: 4rem; }
   html:not(#lp) body .detail-main.has-hero, html:not(#lp) body .detail-cols { grid-template-columns: clamp(24rem, 34%, 34rem) minmax(0, 1fr); column-gap: var(--lp-col-gap); }
@@ -2688,10 +2704,6 @@ html.fs-more-below .bottom-nav::before, html.fs-more-below .home-add-bar::before
 .week-nav .week-today:disabled { visibility: hidden; }
 .week-nav .week-today:focus-visible { outline: 3px solid var(--text); outline-offset: 2px; }
 .plan-day.is-today { scroll-margin-top: 6rem; scroll-margin-bottom: 6rem; }
-.theme-quick { padding: 1rem; border-bottom: 1px solid var(--hairline); }
-.theme-quick-label { display: block; margin: 0 0 0.5rem; font-size: 0.9375rem; font-weight: 600; color: var(--text-soft); }
-.theme-quick-switch { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0.5rem; }
-.theme-opt--quick { min-width: 0; min-height: 2.75rem; padding: 0.5rem 0.25rem; overflow-wrap: anywhere; text-align: center; }
 @media (prefers-reduced-motion: reduce) { .week-nav .week-today { transition: none; } }
 
 /* ==========================================================================

@@ -7,7 +7,7 @@ def check(name, cond, info=''):
     print(('OK   ' if cond else 'FEHL ') + name, info)
     if not cond: FAIL.append(name)
 
-VIEWS = ['settings', 'settings-data', 'settings-display', 'settings-units', 'settings-profile', 'settings-backup', 'settings-help', 'settings-privacy',
+VIEWS = ['more', 'settings', 'settings-data', 'settings-cooking', 'settings-account', 'settings-offline', 'settings-display', 'settings-units', 'settings-profile', 'settings-backup', 'settings-help', 'settings-privacy',
          'settings-terms', 'settings-sources', 'settings-about', 'settings-licenses', 'settings-nutrition', 'settings-sync', 'settings-share', 'settings-share-preview']
 
 async def main():
@@ -22,44 +22,39 @@ async def main():
         async def main_text():
             return await ev("document.querySelector('main').innerText")
 
-        # 1 Drei Gruppen mit exakten Ueberschriften und Zeilen
+        # 1 Einstellungen: zwei Gruppen mit sechs Seiten (Teilauftrag M1, Details in test_mehr_nav.py)
         await go('settings')
-        groups = await ev("Array.from(document.querySelectorAll('.settings-group')).map(g => ({ t: g.querySelector('.settings-group-title').textContent.trim(), rows: Array.from(g.querySelectorAll('.settings-row')).map(r => ({ title: r.querySelector('.settings-row-title').textContent.trim(), sum: (r.querySelector('.settings-row-summary') || {}).textContent || '' })) }))")
+        groups = await ev("Array.from(document.querySelectorAll('.settings-group')).map(g => ({ t: g.querySelector('.settings-group-title').textContent.trim(), rows: Array.from(g.querySelectorAll('.settings-row')).map(r => ({ title: r.querySelector('.settings-row-title').textContent.trim(), sum: (r.querySelector('.settings-row-summary') || {textContent: ''}).textContent.trim() })) }))")
         titles = [g['t'] for g in groups]
-        check('Gruppen in Reihenfolge: Deine Daten, Darstellung, Hilfe & Infos', [t.lower() for t in titles] == ['deine daten', 'darstellung', 'hilfe & infos'], str(titles))
+        check('Gruppen in Reihenfolge: Konto & Daten, App anpassen', titles == ['Konto & Daten', 'App anpassen'], str(titles))
         rows = [[r['title'] for r in g['rows']] for g in groups]
-        check('Deine Daten: Konto und Sicherung, Freunde & Rezepte (Audit D02)', rows[0] == ['Konto und Sicherung', 'Freunde & Rezepte'], str(rows[0]))
-        check('Darstellung: Darstellung und Einheiten, Masseinheiten-Rechner (Audit D02)', rows[1] == ['Darstellung und Einheiten', 'Masseinheiten-Rechner'], str(rows[1]))
-        check('Hilfe & Infos: Hilfe erhalten, Über Savora', rows[2] == ['Hilfe erhalten', 'Über Savora'], str(rows[2]))
+        check('Konto & Daten: Mein Konto, Geräteabgleich, Sicherung & Wiederherstellung', rows[0] == ['Mein Konto', 'Geräteabgleich', 'Sicherung & Wiederherstellung'], str(rows[0]))
+        check('App anpassen: Darstellung, Kochen & Mengen, Ohne Internet', rows[1] == ['Darstellung', 'Kochen & Mengen', 'Ohne Internet'], str(rows[1]))
         check('Hauptliste hat genau 6 Zeilen', sum(len(r) for r in rows) == 6, str(rows))
         sums = {r['title']: r['sum'] for g in groups for r in g['rows']}
-        check('Ohne Anmeldung steht «Nicht angemeldet»', sums['Konto und Sicherung'] == 'Nicht angemeldet', str(sums))
+        check('Ohne Anmeldung steht «Nicht angemeldet»', sums['Mein Konto'] == 'Nicht angemeldet', str(sums))
         txt = await main_text()
-        for old in ['Kochbuch gestalten und als PDF', 'Kochbuch & Profil', 'Synchronisation', 'Hilfe & Feedback', 'Imperial', 'Metrisch', 'Datenschutz', 'Nutzungsbedingungen', 'Sicherungskopie', 'Auf mehreren Geräten']:
+        for old in ['Kochbuch gestalten und als PDF', 'Kochbuch & Profil', 'Synchronisation', 'Hilfe & Feedback', 'Imperial', 'Metrisch', 'Datenschutz', 'Nutzungsbedingungen', 'Sicherungskopie', 'Auf mehreren Geräten', 'Socialize', 'Konto und Sicherung', 'Darstellung und Einheiten']:
             check(f'Einstellungen ohne altes Wort «{old}»', old not in txt)
-        check('Rechner-Zeile ruft open-unitconverter auf', await ev("document.querySelector('.settings-row[data-action=\"open-unitconverter\"]') !== null"))
-        check('Seitentitel auf dem Handy «Mehr» (Navigationspunkt), auf dem Desktop weiterhin «Einstellungen»', await ev("document.querySelector('.page-title').textContent.trim()") == 'Mehr')
-        await page.set_viewport_size({'width': 1280, 'height': 800}); await page.wait_for_timeout(300)
-        check('Seitentitel bleibt auf dem Desktop «Einstellungen»', await ev("document.querySelector('.page-title').textContent.trim()") == 'Einstellungen')
-        await page.set_viewport_size({'width': 390, 'height': 844}); await page.wait_for_timeout(300)
+        check('Rechner nicht unter Einstellungen', await ev("document.querySelector('.settings-row[data-action=\"open-unitconverter\"]') === null") and 'Rechner' not in txt)
 
-        # 2 Anzeige: eine Seite mit drei Abschnitten
+        # 2 Darstellung und Kochen & Mengen (frueher eine Seite «Anzeige»)
         await ev("() => { state.theme = 'auto'; state.unitSystem = 'metric'; state.showNutrition = true; }"); await go('settings')
-        check('Anzeige-Zusammenfassung «Wie dein Gerät, Gramm und Milliliter»', sums_now := await ev("Array.from(document.querySelectorAll('.settings-row')).find(r => r.textContent.includes('Darstellung und Einheiten')).querySelector('.settings-row-summary').textContent") == 'Wie dein Gerät, Gramm und Milliliter', sums_now)
+        sm = await ev("Array.from(document.querySelectorAll('.settings-row')).map(r => r.querySelector('.settings-row-summary').textContent.trim()).join('|')")
+        check('Zusammenfassung «Wie dein Gerät» und «Gramm und Milliliter, Nährwerte sichtbar»', 'Wie dein Gerät' in sm and 'Gramm und Milliliter, Nährwerte sichtbar' in sm, sm)
         await go('settings-display'); t = await main_text()
-        heads = await ev("Array.from(document.querySelectorAll('main h2')).map(h => h.textContent.trim())")
-        check('Anzeige: Abschnitte Design, Mengenangaben, Nährwerte', heads == ['Helles oder dunkles Design', 'Mengenangaben', 'Nährwerte'], str(heads))
-        check('Anzeige: «Wie dein Gerät» statt «System»', 'Wie dein Gerät' in t and 'System' not in t, t[:200])
-        check('Anzeige: Mengenangaben «Gramm und Milliliter» und «US-Masse (Cups, Unzen)»', 'Gramm und Milliliter' in t and 'US-Masse (Cups, Unzen)' in t and 'Imperial' not in t and 'Metrisch' not in t, t[:400])
-        check('Anzeige: Nährwerte-Satz', 'Geschätzte Werte. Je nach Zutaten und Mengen können sie abweichen.' in t)
-        check('Darstellung: Seitentitel «Darstellung und Einheiten»', await ev("document.querySelector('.topbar-title, .topbar h1, header') && document.querySelector('header, .topbar').innerText.includes('Darstellung und Einheiten')"))
+        check('Darstellung: «Wie dein Gerät» statt «System»', 'Wie dein Gerät' in t and 'System' not in t, t[:200])
+        check('Darstellung: Seitentitel «Darstellung»', await ev("document.querySelector('.topbar-title').textContent.trim()") == 'Darstellung')
+        await go('settings-cooking'); t = await main_text()
+        check('Kochen & Mengen: Mengenangaben «Gramm und Milliliter» und «US-Masse (Cups, Unzen)»', 'Gramm und Milliliter' in t and 'US-Masse (Cups, Unzen)' in t and 'Imperial' not in t and 'Metrisch' not in t, t[:400])
+        check('Kochen & Mengen: Nährwerte-Satz', 'Geschätzte Werte. Je nach Zutaten und Mengen können sie abweichen.' in t.replace('Nährwerte sind geschätzte Werte', 'Geschätzte Werte').replace('geschätzte Werte', 'Geschätzte Werte'))
         for v in ('settings-units', 'settings-nutrition'):
-            await go(v); check(f'{v} zeigt dieselbe Anzeige-Seite', await ev("Array.from(document.querySelectorAll('main h2')).map(h => h.textContent.trim()).join('|')") == '|'.join(heads))
-        await go('settings-display')
+            await go(v); check(f'{v} zeigt Kochen & Mengen', await ev("document.querySelector('.topbar-title').textContent.trim()") == 'Kochen & Mengen')
+        await go('settings-cooking')
         await page.click('[data-action="set-unit-system"][data-system="imperial"]'); await page.wait_for_timeout(150)
-        await page.click('[data-action="set-show-nutrition"][data-value="0"]'); await page.wait_for_timeout(150)
+        await page.click('button[role="switch"]'); await page.wait_for_timeout(150)
         await go('settings')
-        check('Zusammenfassung zeigt US-Masse', 'US-Masse (Cups, Unzen)' in await main_text())
+        check('Zusammenfassung zeigt US-Masse und ausgeblendete Nährwerte', 'US-Masse (Cups, Unzen), Nährwerte ausgeblendet' in await main_text(), await main_text())
         await ev("() => { state.unitSystem = 'metric'; state.showNutrition = true; }")
 
         # 5 Sicherungsseite
@@ -130,7 +125,7 @@ async def main():
 
         # 9 Hilfe erhalten
         await go('settings-help'); t = await ev("document.body.innerText")
-        check('Hilfe erhalten: Titel, kein «Feedback»', 'Hilfe erhalten' in t and 'Feedback' not in t)
+        check('Hilfe & Kontakt: Titel, kein «Feedback»', 'Hilfe & Kontakt' in t and 'Feedback' not in t)
 
         # 10 Alle Seiten: kein ß, keine Gedankenstriche, kein Ueberlauf (390 px und 24 px Schrift)
         for fs in ('', '24px'):

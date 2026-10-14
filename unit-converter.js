@@ -149,7 +149,7 @@ function unitConverterView() {
       </div></div>`
     : '';
   return `
-    ${topbar('Masseinheiten-Rechner', { back: true })}
+    ${topbar('Einheiten umrechnen', { back: true })}
     <main class="has-tabbar uc-page">
       <div class="uc-tabs" role="tablist" aria-label="Art der Umrechnung">
         ${UC_TABS.map(t => `<button type="button" role="tab" class="uc-tab ${t.id === tab.id ? 'is-active' : ''}" aria-selected="${t.id === tab.id}" data-action="uc-tab" data-id="${escapeAttr(t.id)}">${t.label}</button>`).join('')}

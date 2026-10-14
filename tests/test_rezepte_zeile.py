@@ -77,7 +77,7 @@ async def main():
         for (w, h) in [(320, 640), (390, 844), (430, 932)]:
             b, ctx, page, errs = await new_page(p, w, h); ev = page.evaluate; tag = f'[{w}] '
             res = []
-            for v in ['home', 'mealplan', 'shopping', 'cookbooks', 'settings']:
+            for v in ['home', 'mealplan', 'shopping', 'cookbooks', 'more']:
                 await ev("(v) => { state.view = v; state.query = ''; state.searchOpen = false; state.modal = null; render(); window.scrollTo(0, 0); }", v); await page.wait_for_timeout(150)
                 res.append(await ev(HEAD))
             check(tag + 'Logo auf allen fuenf Seiten an gleicher Stelle, 168x56, zentriert, Titelhoehe gleich', all(abs(r['wmT'] - res[0]['wmT']) <= 0.5 and abs(r['wmW'] - 168) <= 0.5 and abs(r['wmH'] - 56) <= 0.5 and abs(r['wmMid'] - r['W'] / 2) <= 1 and abs(r['titleT'] - res[0]['titleT']) <= 1 for r in res), str([(round(r['wmT'], 1), round(r['titleT'], 1)) for r in res]))

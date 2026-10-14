@@ -31,6 +31,7 @@ QUICK = bool(os.environ.get('SAVORA_P42_QUICK'))
 PHONE_CHANGED_VIEWS = {'home', 'home-list', 'empty-home', 'detail-long', 'detail-photo', 'detail-short', 'settings', 'settings-data', 'settings-display', 'settings-share', 'settings-help',
                        'settings-about', 'mealplan', 'shopping', 'cookbooks', 'cookbook1', 'cookbook2', 'cookbook3', 'empty-shopping', 'empty-mealplan', 'empty-cookbooks'}
 def view_of(fname): return fname[:-4].split('-', 2)[2]
+BOUNDED_VIEWS = {'settings', 'settings-data', 'settings-display', 'settings-help', 'settings-about', 'more'}   # begrenzte Lesebreite (Teilauftrag M1)
 
 def same_pixels(a, b):
     ba, bb = open(a, 'rb').read(), open(b, 'rb').read()
@@ -124,7 +125,7 @@ async def layout_checks():
                     check(key + ': kein seitlicher Ueberlauf', m['scrollW'] <= m['W'] + 1, f"{m['scrollW']} > {m['W']}")
                     narrow_ok = name.startswith('empty-') or name in ('home',)
                     if not narrow_ok:
-                        check(key + ': Inhalt nutzt die Breite (mind. 60 %)', m['content'] >= 0.6 * m['avail'] or (w < 1024 and m['content'] >= 0.6 * min(m['avail'], 900)), f"{round(m['content'])} von {round(m['avail'])}")
+                        check(key + ': Inhalt nutzt die Breite (mind. 60 %; Mehr und Einstellungen sind bewusst auf Lesebreite begrenzt, 40 rem, mit Abschnittsnavigation 58 rem)', m['content'] >= 0.6 * m['avail'] or (w < 1024 and m['content'] >= 0.6 * min(m['avail'], 900)) or (name in BOUNDED_VIEWS and m['content'] >= 600), f"{round(m['content'])} von {round(m['avail'])}")
                     check(key + ': Hintergrund gesetzt (html = body oder Seitenleisten-Verlauf)', (m['hb'] == m['bb'] and m['hb'] != 'rgba(0, 0, 0, 0)') or 'linear-gradient' in m['hbi'], f"{m['hb']} / {m['bb']}")
                     if name.startswith('edit-'):
                         check(key + ': Schritt-Reiter vollstaendig sichtbar', m['stepClip'] == 0, str(m['stepClip']))

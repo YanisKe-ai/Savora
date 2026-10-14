@@ -132,8 +132,8 @@ async def main():
         # 6. B: Posteingang, Vorschau, noch nichts im Kochbuch
         n_b = await pb.evaluate("state.recipes.length")
         await pb.evaluate("shareCheckCount()"); await pb.wait_for_timeout(1000)
-        await pb.evaluate("() => { state.view = 'settings'; render(); }")
-        check('B: Einstellungen zeigen "1 neu"', '1 neues Rezept' in await text(pb, 'main'), (await text(pb, 'main'))[:200])
+        await pb.evaluate("() => { state.view = 'more'; render(); }")
+        check('B: Mehr zeigt "1 neu" an Freunde & Rezepte', '1 neu' in await text(pb, 'main'), (await text(pb, 'main'))[:200])
         await open_share(pb)
         inbox_t = await text(pb, 'main')
         check('B: Posteingang zeigt Absender, Titel und Nachricht', 'Yanis' in inbox_t and 'Probier das mal!' in inbox_t)
