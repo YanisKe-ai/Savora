@@ -63,12 +63,12 @@ async def main():
         vorher = await s.zustand()
         print('Naehrwerte-Status der Testrezepte:', s.naehrwerte_status)
         einzel = {}
-        stile = ['A'] if SCHNELL else ['A', 'B', 'C']
+        stile = [T0] if SCHNELL else list(TEMPLATE_IDS)
         BC_REZEPTE = {'pdf_sloppy', 'pdf_manti', 'pdf_carbonara', 'pdf_cookies', 'pdf_langtitel', 'pdf_vielezutaten', 'pdf_zweiseiten', 'pdf_dreiseiten', 'pdf_hochformat', 'pdf_kurz', 'pdf_notizen', 'pdf_langeeinheiten'}
         for stil in stile:
             for rid in haupt:
-                if stil != 'A' and rid not in BC_REZEPTE: continue
-                stufen = (['off', 'compact', 'full'] if stil == 'A' else ['compact']) if rez[rid].get('_nutri') else ['off']
+                if stil != T0 and rid not in BC_REZEPTE: continue
+                stufen = (['off', 'compact', 'full'] if stil == T0 else ['compact']) if rez[rid].get('_nutri') else ['off']
                 for nw in stufen:
                     ex = await s.single(rid, stil, nw)
                     check_ok = ex.pdf is not None
@@ -79,7 +79,7 @@ async def main():
         for stil in stile:
             ex = await s.book('ref', stil, 'compact'); ernte(ex, [rez[i] for i, _ in fx['books']['ref']['items']]); buecher[('ref', stil)] = ex
         if not SCHNELL:
-            ex = await s.book('gross', 'A', 'compact'); ernte(ex, [rez[i] for i, _ in fx['books']['gross']['items']]); buecher[('gross', 'A')] = ex
+            ex = await s.book('gross', T0, 'compact'); ernte(ex, [rez[i] for i, _ in fx['books']['gross']['items']]); buecher[('gross', T0)] = ex
         nachher = await s.zustand()
 
         def aus(kategorie, ids): return sammle(alle.get(kategorie, []), ids)
@@ -125,7 +125,7 @@ async def main():
         b = alle.get('inhaltsverzeichnis', [])
         check('K10 Inhaltsverzeichnis und Seitenzahlen stimmen mit den Seiten ueberein', not b, kurz(b))
         if not SCHNELL:
-            g = buecher[('gross', 'A')]
+            g = buecher[('gross', T0)]
             check('K10b langes Inhaltsverzeichnis (mehr als eine Seite) vorhanden und vollstaendig', sum(1 for d in g.dom if d.get('kind') == 'toc') >= 2 and sum(len(d.get('tocRows', [])) for d in g.dom) >= 44, str([sum(1 for d in g.dom if d.get('kind') == 'toc')]))
         # ---- E: gleicher Stil = gleiche Rezeptgestaltung ----
         diffs = []
@@ -139,7 +139,7 @@ async def main():
         # ---- Naehrwerte aus / kompakt / erweitert ----
         nw = []
         for rid in ('pdf_manti', 'pdf_carbonara'):
-            t = {lv: ' '.join(einzel[(rid, 'A', lv)].text().split()) for lv in ('off', 'compact', 'full')}
+            t = {lv: ' '.join(einzel[(rid, T0, lv)].text().split()) for lv in ('off', 'compact', 'full')}
             if re.search(r'Nährwerte|kcal', t['off']): nw.append(f'{rid}: «aus» zeigt Naehrwerte')
             if 'kcal' not in t['compact'] or re.search(r'Zucker|ges\. Fett', t['compact']): nw.append(f'{rid}: «kompakt» falsch')
             if not all(w in t['full'] for w in ('kcal', 'Zucker', 'Salz')): nw.append(f'{rid}: «erweitert» zeigt nicht alle Werte')
@@ -149,7 +149,7 @@ async def main():
         # ---- K12: Cover (alle Vorlagen) ----
         cov = []
         for vorlage in COVER_VORLAGEN:
-            ex = await s.book('ref', 'A', 'off', datei=f'cover_{vorlage}', ids=['pdf_kurz'], titel='Omas Rezepte', name='Die Muddi', slogan='Gesammelt seit 1928', cover=vorlage)
+            ex = await s.book('ref', T0, 'off', datei=f'cover_{vorlage}', ids=['pdf_kurz'], titel='Omas Rezepte', name='Die Muddi', slogan='Gesammelt seit 1928', cover=vorlage)
             if not ex.pdf: cov.append(f'{vorlage}: kein PDF'); continue
             t1 = flach(ex.text(first=1)); n = ex.seiten()
             if n < 3: cov.append(f'{vorlage}: nur {n} Seiten')
@@ -165,7 +165,7 @@ async def main():
                   ('lang2', dict(titel='Ein Kochbuchtitel, der ungewoehnlich lang ist und mehrere Zeilen braucht', name='Vorname Nachname und eine lange Zusatzangabe', slogan='Ein langer Slogan mit vielen Woertern, der ebenfalls umbrechen muss, ohne etwas zu ueberdecken', cover='bistro'))] if not SCHNELL else []
         for nm, kw in sonder:
             try:
-                ex = await s.book('ref', 'A', 'off', datei=f'cover_{nm}', ids=['pdf_kurz'], **kw)
+                ex = await s.book('ref', T0, 'off', datei=f'cover_{nm}', ids=['pdf_kurz'], **kw)
             except Exception as e:
                 if re.search(r'zu lang|kürzen', str(e)): print(f'     Info: {nm}: kontrollierter Abbruch mit Hinweis: {str(e).splitlines()[0][-110:]}'); continue   # erlaubt (Auftrag: kein abgeschnittener Text)
                 cov.append(f'{nm}: Export wirft {str(e)[:80]}'); continue
@@ -179,11 +179,11 @@ async def main():
                     if w.lower() not in t1: cov.append(f'{nm}: «{w}» fehlt (abgeschnitten?)')
         check('K12a alle 10 Covervorlagen und Sonderfaelle (leer, lang, ohne Logo/Datum) exportieren vollstaendig', not cov, str(cov[:4]))
         b = alle.get('raender', []) + alle.get('seitenzahl', [])
-        check('K12b alle Seitenstile (A, B, C) exportieren Einzelrezept und Kochbuch ohne Fehler', not alle.get('export_fehlgeschlagen') and all(buecher.get(('ref', st)) and buecher[('ref', st)].seiten() >= 5 for st in stile), str(alle.get('export_fehlgeschlagen', [])[:2]))
+        check('K12b alle Seitenstile (' + ', '.join(TEMPLATE_IDS) + ') exportieren Einzelrezept und Kochbuch ohne Fehler', not alle.get('export_fehlgeschlagen') and all(buecher.get(('ref', st)) and buecher[('ref', st)].seiten() >= 5 for st in stile), str(alle.get('export_fehlgeschlagen', [])[:2]))
 
         # ---- K09: Vorschau = Download (echte Oberflaeche) ----
-        ui = await vorschau_gleich_download(s)
-        check('K09 Vorschau und Download verwenden dieselben PDF-Bytes (Einzelrezept, Stil B, Naehrwerte erweitert)', ui['gleich'], ui['info'])
+        ui = await vorschau_gleich_download(s, T1, 'pdf_carbonara', 'full')
+        check('K09 Vorschau und Download verwenden dieselben PDF-Bytes (Einzelrezept, zweiter Stil, Naehrwerte erweitert)', ui['gleich'], ui['info'])
         check('K09b Seitenanzahl der Vorschau entspricht dem PDF', ui['seiten_ok'], ui['info'])
         # ---- K11: Daten bleiben ----
         check('K11 Export veraendert keine Rezepte, Zutaten, Schritte, Notizen, Bilder, Kategorien', vorher == nachher)
@@ -196,27 +196,6 @@ async def main():
     print('\nExporte und Seitenbilder:', OUTDIR)
     print('ERWARTET ROT (Stand 0.72.0):', ROT or 'keine')
     print('FEHLGESCHLAGEN:', FAIL or 'keine')
-
-
-async def vorschau_gleich_download(s):
-    """Echte Bedienung: Exportfenster oeffnen, Stil B und «Erweitert» waehlen, PDF erstellen, in der Vorschau «Herunterladen» klicken."""
-    page = s.page; info = {}
-    await page.evaluate("() => { state.activeRecipeId = 'pdf_carbonara'; state.view = 'detail'; render(); openModal({ type: 'pdf-export', target: 'single', recipeId: 'pdf_carbonara', stage: 'options', template: 'A', nutritionDetail: 'off' }); }")
-    await page.wait_for_selector('[data-action="pdf-export-build"]', timeout=10000)
-    await page.click('[data-action="pdf-export-set-template"][data-id="B"]')
-    if await page.query_selector('[data-action="pdf-export-set-detail"][data-level="full"]'): await page.click('[data-action="pdf-export-set-detail"][data-level="full"]')
-    await page.click('[data-action="pdf-export-build"]')
-    await page.wait_for_selector('[data-action="pdf-export-download"]', timeout=60000)
-    await page.wait_for_timeout(500)
-    h_vorschau = await page.evaluate("async () => { const b = state.modal.previewBlob; const u = new Uint8Array(await b.arrayBuffer()); const d = await crypto.subtle.digest('SHA-256', u); return [Array.from(new Uint8Array(d)).map(x => x.toString(16).padStart(2, '0')).join(''), b.pageCount || 0, state.modal.template, state.modal.nutritionDetail]; }")
-    async with page.expect_download(timeout=30000) as d:
-        await page.click('[data-action="pdf-export-download"]')
-    dl = await d.value; pfad = os.path.join(OUTDIR, 'ui_download.pdf'); await dl.save_as(pfad)
-    h_dl = hashlib.sha256(open(pfad, 'rb').read()).hexdigest()
-    n = pdfinfo(pfad)['seiten']; t = ' '.join(pdftext(pfad).split())
-    info = f'Vorschau {h_vorschau[0][:10]} Download {h_dl[:10]}, Stil {h_vorschau[2]}, Detail {h_vorschau[3]}, Seiten (Vorschau/Datei) {h_vorschau[1]}/{n}, «Zucker» im PDF: {"Zucker" in t}'
-    await page.evaluate("() => { state.modal = null; render(); }")
-    return {'gleich': h_vorschau[0] == h_dl and h_vorschau[2] == 'B' and h_vorschau[3] == 'full' and 'Zucker' in t, 'seiten_ok': h_vorschau[1] == n, 'info': info}
 
 
 asyncio.run(main())

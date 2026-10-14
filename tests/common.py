@@ -46,7 +46,11 @@ def old_checkout(commit=OLD_COMMIT):
     subprocess.run(['tar', '-x', '-C', dest], input=arc, check=True)
     return dest
 
-NO_SW = """Object.defineProperty(navigator, 'serviceWorker', { value: { register: () => Promise.reject(new Error('x')), addEventListener: () => {} } });"""
+# PDF-Stile (zentral, siehe auch tests/pdf_harness.py): SAVORA_PDF_IDS ueberschreibt die Liste (alter Code vor 0.75: SAVORA_PDF_IDS=A,B).
+# Im Browser stehen sie als window.__T0 / window.__T1 bereit (erster = Standardstil, letzter = zweiter Stil), damit JS-Schnipsel in Tests keine festen IDs brauchen.
+TEMPLATE_IDS = [x.strip() for x in os.environ.get('SAVORA_PDF_IDS', 'pur,prise-pop').split(',') if x.strip()]
+T0, T1 = TEMPLATE_IDS[0], TEMPLATE_IDS[-1]
+NO_SW = """Object.defineProperty(navigator, 'serviceWorker', { value: { register: () => Promise.reject(new Error('x')), addEventListener: () => {} } });""" + f" window.__T0 = {json.dumps(T0)}; window.__T1 = {json.dumps(T1)}; window.__TPLS = {json.dumps(TEMPLATE_IDS)};"
 async def open_ctx(p, w=390, h=844, motion="reduce"):
     browser = await p.chromium.launch()
     ctx = await browser.new_context(viewport={"width": w, "height": h}, accept_downloads=True, reduced_motion=motion, timezone_id="UTC")   # feste Zeitzone: Tests sind ueberall gleich reproduzierbar
