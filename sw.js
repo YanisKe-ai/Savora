@@ -13,7 +13,7 @@
    - Kontrollierter Update-Flow: kein automatisches skipWaiting. Ein neuer Worker wartet, bis
      die Seite per postMessage({type:'SKIP_WAITING'}) explizit zustimmt.
 */
-const SW_VERSION = 'v87-scharfess';
+const SW_VERSION = 'v88-coverfuenf';
 const CACHE_SHELL = 'savora-shell-' + SW_VERSION;
 const CACHE_RUNTIME = 'savora-runtime-' + SW_VERSION;
 const CACHE_DATA = 'savora-data-' + SW_VERSION;
@@ -35,6 +35,11 @@ const OPTIONAL_ASSETS = [
   './assets/covers/08-garten.png',
   './assets/covers/09-sonnenkueche.png',
   './assets/covers/10-ofenglueck.png',
+  './assets/covers/11-pasta-band.png',
+  './assets/covers/12-geschmacksschichten.png',
+  './assets/covers/13-scherenschnitt-tafel.png',
+  './assets/covers/14-eine-prise.png',
+  './assets/covers/15-tischrunde.png',
 ];
 const SHELL_ASSETS = [
   './',
@@ -93,6 +98,11 @@ const SHELL_ASSETS = [
   './assets/covers/thumbs/08-garten.jpg',
   './assets/covers/thumbs/09-sonnenkueche.jpg',
   './assets/covers/thumbs/10-ofenglueck.jpg',
+  './assets/covers/thumbs/11-pasta-band.jpg',
+  './assets/covers/thumbs/12-geschmacksschichten.jpg',
+  './assets/covers/thumbs/13-scherenschnitt-tafel.jpg',
+  './assets/covers/thumbs/14-eine-prise.jpg',
+  './assets/covers/thumbs/15-tischrunde.jpg',
   './utils.js',
   './validate.js',
   './legal.js',

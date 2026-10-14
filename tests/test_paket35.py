@@ -1,6 +1,6 @@
 """Paket 35 (Paket 37: Konfiguration liegt jetzt im aktiven Kochbuch-Projekt; Tests setzen die alte Einzelkonfiguration und loeschen die Projekte, damit die Migration sie neu uebernimmt; Cover-Bedienung liegt in Schritt 2 des Editors): neues Savora-Symbol und zehn Kochbuch-Titelblätter.
 Prüft Vorlagenliste, leere Eingaben, Datum (Zeitzonen, Format), Migration alter Konfigurationen, Layout (sichere Zonen,
-Umbruch, Warnungen), Lesbarkeit mit echten Pixeln, Escaping, Vorlagenwähler per Tastatur, echte PDF-Exporte aller zehn Vorlagen
+Umbruch, Warnungen), Lesbarkeit mit echten Pixeln, Escaping, Vorlagenwähler per Tastatur, echte PDF-Exporte aller fünfzehn Vorlagen
 (Text, Vergleich mit der Vorschau), Fehlerfälle, Offline-Export und unveränderte Bestandsdaten."""
 import asyncio, base64, json, os, subprocess, sys, tempfile
 os.environ.setdefault('SAVORA_TEST_PORT', '8969')
@@ -11,9 +11,11 @@ FAIL = []
 def check(name, cond, info=''):
     print(('OK   ' if cond else 'FEHL ') + name, info)
     if not cond: FAIL.append(name)
-IDS = ['pop', 'lieblingsbuch', 'tomate', 'salbei', 'nachtkueche', 'citrus', 'bistro', 'garten', 'sonnenkueche', 'ofenglueck']
+IDS = ['pop', 'lieblingsbuch', 'tomate', 'salbei', 'nachtkueche', 'citrus', 'bistro', 'garten', 'sonnenkueche', 'ofenglueck',
+       'savora-01-pasta-band', 'savora-02-geschmacksschichten', 'savora-03-scherenschnitt-tafel', 'savora-04-eine-prise', 'savora-05-tischrunde']
 COVERS = _os.path.join(ROOT, 'assets', 'covers')
-FILES = {'pop': '01-pop', 'lieblingsbuch': '02-lieblingsbuch', 'tomate': '03-tomate', 'salbei': '04-salbei', 'nachtkueche': '05-nachtkueche', 'citrus': '06-citrus', 'bistro': '07-bistro', 'garten': '08-garten', 'sonnenkueche': '09-sonnenkueche', 'ofenglueck': '10-ofenglueck'}
+FILES = {'pop': '01-pop', 'lieblingsbuch': '02-lieblingsbuch', 'tomate': '03-tomate', 'salbei': '04-salbei', 'nachtkueche': '05-nachtkueche', 'citrus': '06-citrus', 'bistro': '07-bistro', 'garten': '08-garten', 'sonnenkueche': '09-sonnenkueche', 'ofenglueck': '10-ofenglueck',
+         'savora-01-pasta-band': '11-pasta-band', 'savora-02-geschmacksschichten': '12-geschmacksschichten', 'savora-03-scherenschnitt-tafel': '13-scherenschnitt-tafel', 'savora-04-eine-prise': '14-eine-prise', 'savora-05-tischrunde': '15-tischrunde'}
 
 def lum(c):
     def f(v):
@@ -37,7 +39,7 @@ async def main():
 
         # ---------- 1. Vorlagen ----------
         ids = await ev("() => COVER_TEMPLATES.map(t => t.id)")
-        check('Genau die zehn Vorlagen (stabile IDs)', sorted(ids) == sorted(IDS) and len(ids) == 10, str(ids))
+        check('Genau die fünfzehn Vorlagen (stabile IDs)', sorted(ids) == sorted(IDS) and len(ids) == 15, str(ids))
         names = await ev("() => COVER_TEMPLATES.map(t => t.name)")
         check('Verständliche Namen', all(n for n in names) and 'Nachtküche' in names and 'Ofenglück' in names, str(names))
         check('Alle Hintergründe vorhanden und unverändert (Originalgrösse)', all(_os.path.exists(f'{COVERS}/{FILES[i]}.png') and Image.open(f'{COVERS}/{FILES[i]}.png').size[0] in (1054, 1055) for i in IDS))
@@ -81,7 +83,7 @@ async def main():
         await ev("() => localStorage.removeItem(COOKBOOK_CONFIG_KEY); localStorage.removeItem(COOKBOOK_PROJECTS_KEY)")
 
         # ---------- 5. Layout: sichere Zonen, Umbruch, Warnungen ----------
-        zones = await ev("() => COVER_TEMPLATES.map(t => ({ id: t.id, text: t.text, ink: t.ink, date: Object.assign({}, COVER_DATE_ZONE, t.date || {}) }))")
+        zones = await ev("() => COVER_TEMPLATES.map(t => ({ id: t.id, text: t.text, ink: t.ink, variant: t.logoVariant, box: Object.assign({}, COVER_LOGO_BOX, t.logo || {}), date: Object.assign({}, COVER_DATE_ZONE, t.date || {}) }))")
         logo_box = await ev("() => ({ box: COVER_LOGO_BOX, page: COVER_PAGE })")
         bad = []
         for z in zones:
@@ -90,7 +92,7 @@ async def main():
             for bl in Lz['blocks']:
                 if not (bl['x'] >= zz['x'] - 1e-6 and bl['x'] + bl['w'] <= zz['x'] + zz['w'] + 1e-6 and bl['y'] >= zz['y'] - 1e-6 and bl['y'] + bl['h'] <= zz['y'] + zz['h'] + 1e-6): bad.append((z['id'], bl['key']))
             if Lz['warnings']: bad.append((z['id'], 'warn'))
-            logo_bottom = logo_box['box']['y'] + logo_box['box']['w'] * logo_box['page']['w'] * (400 / 1200) / logo_box['page']['h']
+            logo_bottom = z['box']['y'] + z['box']['w'] * logo_box['page']['w'] * (400 / 1200) / logo_box['page']['h']
             if zz['y'] < logo_bottom - 1e-6: bad.append((z['id'], 'logo-overlap'))
         check('Alle Textblöcke liegen in den sicheren Zonen und überdecken die Wortmarke nicht', not bad, str(bad))
         short = await ev("() => coverLayout({ templateId: 'pop', title: 'Fein', date: '2026-10-09' })")
@@ -119,14 +121,15 @@ async def main():
             worst = min(contrast(c, ink) for c in cs)
             if ill > 0.002 or worst < 4.5: poor.append((z['id'], 'text', round(ill, 4), round(worst, 1)))
             d = z['date']; dw = 0.105
-            cs2 = region(d['x1'] - dw, d['y'], d['x1'], d['y'] + d['h'])
+            dx1 = d['x0'] + dw if d.get('align') == 'left' else d['x1']
+            cs2 = region(dx1 - dw, d['y'], dx1, d['y'] + d['h'])
             w2 = min(contrast(c, ink) for c in cs2)
             if w2 < 4.5: poor.append((z['id'], 'date', round(w2, 1)))
-            lb = logo_box['box']; lh = lb['w'] * logo_box['page']['w'] * (400 / 1200) / logo_box['page']['h']
+            lb = z['box']; lh = lb['w'] * logo_box['page']['w'] * (400 / 1200) / logo_box['page']['h']
             cs3 = region(lb['x'], lb['y'], lb['x'] + lb['w'], lb['y'] + lh)
-            w3 = min(contrast(c, hex2rgb('#F7F4EE' if z['ink'].upper() == '#FFFFFF' else '#252720')) for c in cs3)   # Wortmarke: Creme auf dunklen, Tinte auf hellen Titelblättern
+            w3 = min(contrast(c, hex2rgb('#F7F4EE' if z['variant'] == 'dark' else '#252720')) for c in cs3)   # Wortmarke: Creme auf dunklen, Tinte auf hellen Titelblättern
             if w3 < 4.5: poor.append((z['id'], 'logo', round(w3, 1)))
-        check('Text, Datum und Wortmarke sind auf allen zehn Hintergründen lesbar (>= 4,5:1, Illustration unberührt)', not poor, str(poor))
+        check('Text, Datum und Wortmarke sind auf allen fünfzehn Hintergründen lesbar (>= 4,5:1, Illustration unberührt)', not poor, str(poor))
 
         # ---------- 7. Sicherheit: Eingaben nur als Text ----------
         await ev("() => { window.__xss = 0; }")
@@ -144,7 +147,7 @@ async def main():
         # ---------- 9. Vorlagenwähler im Browser: Maus, Tastatur, Fokus, Scroll ----------
         await ev("() => { localStorage.removeItem(COOKBOOK_CONFIG_KEY); localStorage.removeItem(COOKBOOK_PROJECTS_KEY); state.cookbookStep = 2; state.view = 'cookbook'; render(); }"); await page.wait_for_timeout(1000)
         opts = await ev("() => Array.from(document.querySelectorAll('.cover-opt')).map(e => [e.dataset.id, e.getAttribute('role'), e.getAttribute('aria-checked')])")
-        check('Wähler zeigt zehn Vorschaubilder als Radiogruppe, genau eine aktiv', len(opts) == 10 and all(o[1] == 'radio' for o in opts) and sum(1 for o in opts if o[2] == 'true') == 1, str(opts[:2]))
+        check('Wähler zeigt fünfzehn Vorschaubilder als Radiogruppe, genau eine aktiv', len(opts) == 15 and all(o[1] == 'radio' for o in opts) and sum(1 for o in opts if o[2] == 'true') == 1, str(opts[:2]))
         await page.fill('#cbTitle', 'Testbuch ä'); await page.wait_for_timeout(300)
         focus_before = await ev("() => document.activeElement.id")
         check('Beim Tippen bleibt der Fokus im Feld und die Vorschau zeigt den Text sofort', focus_before == 'cbTitle' and 'Testbuch ä' in (await ev("() => document.querySelector('canvas.cv-canvas').dataset.layout")), focus_before)
@@ -191,11 +194,11 @@ async def main():
             sheets.append((tid, pdfim))
         check('PDF-Titelblatt gleicht der Vorschau (mittlere Abweichung < 8 von 255, starke Abweichung < 2,5 % der Pixel; Rasterer und Schrift-Rendering unterscheiden sich je Plattform)', all(d < 8 and s < 2.5 for _, d, s in diffs), str(diffs))
         # Kontaktbogen der tatsächlich exportierten Cover
-        sheet = Image.new('RGB', (5 * 400 + 60, 2 * 560 + 60), (236, 233, 226))
+        sheet = Image.new('RGB', (5 * 400 + 60, 3 * 570 + 40), (236, 233, 226))
         for k, (tid, im) in enumerate(sheets):
             t = im.resize((400, int(400 * 1123 / 794))); sheet.paste(t, (20 + (k % 5) * 410, 20 + (k // 5) * 570))
         out_sheet = _os.path.join(ROOT, 'docs', 'cover-kontaktbogen.jpg'); sheet.save(out_sheet, quality=88)
-        check('Kontaktbogen der zehn exportierten Cover erzeugt', _os.path.getsize(out_sheet) > 20000, out_sheet)
+        check('Kontaktbogen der fünfzehn exportierten Cover erzeugt', _os.path.getsize(out_sheet) > 20000, out_sheet)
 
         # Leere Eingaben im PDF: nur Datum
         await ev("() => { const c = getCookbookConfig(); c.title = ''; c.author = ''; c.subtitle = ''; c.cover.templateId = 'tomate'; saveCookbookConfig(c); }")
