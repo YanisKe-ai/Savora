@@ -407,3 +407,7 @@
 .pv-tpl-prise-pop .pv-ing[data-stack] .pv-ing-name { margin-top: 1.4mm; }
 .pv-tpl-prise-pop .pv-source-text, .pv-tpl-prise-pop .pv-url { line-height: 1.9; }
 .pv-tpl-prise-pop .pv-source { padding-bottom: 1mm; }
+
+/* Pur, Linux-Reserve (SAVORA_PDF_TEXT_SHIFT_MM=0.3): Fusszeile, Schritttexte und Hinweisabsaetze mit tieferer Textbox */
+.pv-tpl-pur .pv-foot span, .pv-tpl-pur .pv-step-text, .pv-tpl-pur .pv-extra p { font-family: 'Carlito Pur', 'Carlito', Calibri, 'Segoe UI', Arial, sans-serif; }
+.pv-tpl-pur .pv-extra p { margin-bottom: 2.8mm; }
