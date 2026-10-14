@@ -384,3 +384,8 @@
 .pv-tpl-pur .pv-source { position: relative; padding-bottom: 1.6mm; }
 .pv-tpl-pur .pv-source .pv-label, .pv-tpl-pur .pv-source-text { position: relative; }
 .pv-tpl-pur .pv-small { padding-bottom: 1mm; }
+
+/* Pur, Inhaltsverzeichnis (Kochbuch): einzeilige Eintraege mit tieferer Textbox (Unterlaengen im Raster), mehr Luft unten */
+.pv-tpl-pur .pv-toc-name, .pv-tpl-pur .pv-toc-pg, .pv-tpl-pur .pv-toc-chapter { font-family: 'Carlito Pur', 'Carlito', Calibri, 'Segoe UI', Arial, sans-serif; position: relative; }
+.pv-tpl-pur .pv-toc-row { padding-bottom: 2.6mm; }
+.pv-tpl-pur .pv-toc-chapter { padding-bottom: 1mm; }
