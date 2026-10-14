@@ -193,3 +193,8 @@
 .pdf-error-text { margin: 0 0 14px; }
 .pdf-info-line { margin: 4px 0 0; color: var(--text-soft, #765F8C); font-size: 13.5px; }
 @media (prefers-reduced-motion: no-preference) { .pdf-progress > span { transition: width .18s ease-out; } }
+
+/* Seitenplanung: der Mess-Wrapper (.pdf-meas) um jede Zutaten-Einheit nimmt am Zutatenraster teil, damit gemessen wird wie gedruckt */
+.pv-ing-col > .pdf-meas { display: grid !important; grid-column: 1 / -1; grid-template-columns: subgrid; }
+.pv-ing-col > .pdf-meas > .pv-ing-group, .pv-ing-col > .pdf-meas > .pv-label { grid-column: 1 / -1; }
+@supports not (grid-template-columns: subgrid) { .pv-ing-col > .pdf-meas { display: block !important; } }
