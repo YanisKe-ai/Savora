@@ -2,7 +2,7 @@
    Alle Angaben, die nur die verantwortliche Person kennt, stehen zentral in LEGAL. Solange ein Wert
    mit "[" beginnt, ist er ein Platzhalter und wird in der App farbig markiert angezeigt.
    Kein Rechtsrat: Vor einer oeffentlichen Veroeffentlichung von einer Fachperson pruefen lassen. */
-const APP_VERSION = '0.78.0';   // muss mit der Datei VERSION uebereinstimmen (Test: tests/test_paket2.py)
+const APP_VERSION = '0.78.1';   // muss mit der Datei VERSION uebereinstimmen (Test: tests/test_paket2.py)
 const LEGAL = {
   name: '[Name der verantwortlichen Person]',
   email: 'host.tool@outlook.com',
@@ -40,14 +40,13 @@ function legalPrivacyHtml() {
     ${legalSection('Welche Daten wo liegen', `
       <p><b>Auf deinem Gerät.</b> Rezepte mit Fotos, Notizen, Wochenplan, Einkaufsliste, Sammlungen, Kochfortschritt, Timer und Einstellungen liegen im Speicher des Browsers oder der App. Sie verlassen das Gerät nicht, solange du nicht angemeldet bist und keine Datei teilst.</p>
       <p><b>Mit Konto (auf mehreren Geräten).</b> Für die Anmeldung wird deine E-Mail-Adresse gespeichert, das Passwort nur in geschützter Form. Dazu kommen Rezepte, Fotos, Wochenplan, Einkaufsliste, Sammlungen, die Kochbuch-Auswahl und der Zeitpunkt der letzten Änderung. Nur dein Konto kann diese Daten lesen.</p>
-      <p><b>Barcode-Suche.</b> Suchst du ein Produkt per Barcode und die Schweizer Nährwertdatenbank hat keinen Treffer, wird die Nummer des Barcodes an Open Food Facts gesendet. Andere Rezeptdaten werden nicht übertragen. Der Dienst sieht dabei technisch bedingt deine IP-Adresse.</p>
-      <p><b>Kamera und Fotos.</b> Die Kamera wird nur zum Scannen eines Barcodes und für „Foto scannen“ genutzt. Bei „Foto scannen“ liest die Texterkennung von iOS den Text aus dem Bild. Das läuft auf deinem Gerät, Bilder werden weder gespeichert noch übertragen. Es entsteht nur der erkannte Text, den du prüfst.</p>
+      <p><b>Kamera und Fotos.</b> Die Kamera wird nur für „Foto scannen“ genutzt. Bei „Foto scannen“ liest die Texterkennung von iOS den Text aus dem Bild. Das läuft auf deinem Gerät, Bilder werden weder gespeichert noch übertragen. Es entsteht nur der erkannte Text, den du prüfst.</p>
       <p><b>Mitteilungen (iOS-App).</b> Die Timer-Meldungen werden auf deinem Gerät geplant. Es gibt keinen Push-Server.</p>
       <p><b>Teilen und Sicherung.</b> Erstellst du ein PDF oder eine Sicherungsdatei und gibst sie weiter, verlässt genau diese Datei dein Gerät.</p>`)}
     ${legalSection('Wo der Dienst betrieben wird', `
       <p>Für die Synchronisation nutzt Savora den Dienst Supabase. Die Daten liegen in der Region Zürich in der Schweiz. Anbieter ist Supabase, Inc. (USA), die Infrastruktur stammt von Amazon Web Services. Ein Zugriff des Anbieters aus dem Ausland lässt sich deshalb nicht völlig ausschliessen.</p>`)}
     ${legalSection('Wozu die Daten dienen', `
-      <p>Deine Daten werden nur bearbeitet, um dir Savora bereitzustellen: Speichern, Abgleichen und Anmelden. Die Synchronisation nutzt du freiwillig. Mit der Anmeldung stimmst du dieser Bearbeitung zu, du kannst dich jederzeit abmelden. Deine Daten werden nicht verkauft und nicht für Werbung verwendet. Empfänger sind ausschliesslich der Betreiber des Synchronisationsdienstes (siehe oben) und, nur für Barcodes, Open Food Facts.</p>`)}
+      <p>Deine Daten werden nur bearbeitet, um dir Savora bereitzustellen: Speichern, Abgleichen und Anmelden. Die Synchronisation nutzt du freiwillig. Mit der Anmeldung stimmst du dieser Bearbeitung zu, du kannst dich jederzeit abmelden. Deine Daten werden nicht verkauft und nicht für Werbung verwendet. Empfänger sind ausschliesslich der Betreiber des Synchronisationsdienstes (siehe oben).</p>`)}
     ${legalSection('Aufbewahrung und Löschung', `
       <p>Daten in der Cloud bleiben, bis du sie löschst. Unter „Mehr, Einstellungen, Mein Konto“, „Konto und Cloud-Daten löschen“ entfernst du dein Konto und alle Cloud-Daten endgültig. Rezepte auf deinem Gerät bleiben dabei erhalten. Sie verschwinden erst, wenn du sie selbst löschst, die Browserdaten leerst oder die App deinstallierst.</p>`)}
     ${legalSection('Deine Rechte', `
@@ -85,10 +84,8 @@ function legalSourcesHtml() {
     ${legalSection('Schweizer Nährwertdatenbank', `
       <p>Primärquelle für die meisten Zutaten. Herausgeber ist das Bundesamt für Lebensmittelsicherheit und Veterinärwesen (BLV), Quelle naehrwertdaten.ch, Version 7.1 mit 1216 Lebensmitteln. Die Daten sind technisch aufbereitet in Savora eingebettet und funktionieren offline.</p>`)}
     ${legalSection('Open Food Facts', `
-      <p>Wird nur genutzt, wenn du ein Produkt per Barcode scannst und es in der Schweizer Datenbank nicht vorkommt. Angaben von Open Food Facts stammen von Herstellern und Mitwirkenden und können lückenhaft oder ungenau sein. Benötigt eine Internetverbindung.</p>
+      <p>Savora ruft keine Daten mehr von Open Food Facts ab. Produkte, die du früher darüber zugeordnet hast, bleiben mit ihren gespeicherten Werten erhalten (nur für bereits zugeordnete Produkte). Die Angaben stammen von Herstellern und Mitwirkenden und können lückenhaft oder ungenau sein.</p>
       <p>© Open Food Facts und Mitwirkende, openfoodfacts.org. Die Datenbank steht unter der Open Database License (ODbL) 1.0, die einzelnen Inhalte unter der Database Contents License.</p>`)}
-    ${legalSection('USDA FoodData Central', `
-      <p>Als weitere Quelle vorbereitet, aber deaktiviert. Eine sichere Anbindung braucht einen eigenen Server, der den Zugangsschlüssel schützt. Sie wird erst aktiviert, wenn ein solcher Server existiert.</p>`)}
     ${legalSection('Eigene Angaben', `
       <p>Von dir erfasste eigene Lebensmittel und von dir bestätigte Zuordnungen haben Vorrang vor automatischen Treffern aus den Datenbanken.</p>`)}
     ${legalSection('Wichtig', `
