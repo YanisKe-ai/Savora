@@ -322,6 +322,9 @@ async def main():
             if name == 'text-mehrzeilig':
                 n = next((x['lines'] for x in res['pre']['boxes'] if x['id'] == 'title'), 0)
                 if n < 2: res['probs'].append(('Titel nicht mehrzeilig', n))
+            if name in ('farbe-tomate-textflaeche', 'farbe-dunkel-hell', 'farbe-eigene-verlauf', 'text-kurz-leere-felder'):
+                ur = [w for w in res['pre'].get('warnings', []) if w.startswith('unreadable')]
+                if ur: res['probs'].append(('Standardgestaltung ist schwer lesbar (automatische Schriftfarbe passt nicht zur Lesbarkeitsflaeche)', ur))
             if name == 'text-kurz-leere-felder':
                 ids = [x['id'] for x in res['pre']['boxes']]
                 if ids != ['title']: res['probs'].append(('leere optionale Felder erzeugen Elemente', ids))
