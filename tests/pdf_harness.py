@@ -8,6 +8,10 @@ Was es kann
   - automatische Pruefungen (Funktionen pruefe_*), jeweils Liste von Befunden {id, seite, text}
 
 Umgebungsvariablen: SAVORA_TEST_PORT (Standard 16500), SAVORA_TEST_OUT (Ausgabeordner).
+  SAVORA_PDF_IDS=A,B            Stil-Liste (alter Code vor 0.75)
+  SAVORA_PDF_TEXT_SHIFT_MM=0.15 Linux-Simulation (gemessen auf 85798bb: 0.15 reproduziert «Quelle: sichtbare Tinte 5 px, erwartet 10 px» wie die CI, 0.3 ca. 130 Befunde, 2 extrem): der Text jeder Druckseite wird im Klon fuer html2canvas um diesen Betrag nach unten versetzt (position:relative; top),
+                                Layout und DOM-Messung bleiben unveraendert. Zeigt lokal die K01a-Befunde der CI (Text sitzt dort tiefer, Unterlaengen werden abgeschnitten).
+                                Beispiel: SAVORA_PDF_TEXT_SHIFT_MM=0.15 SAVORA_TEST_PORT=25900 python tests/test_pdf_ausgabe.py
 Benutzung als Programm:  python tests/pdf_harness.py <ausgabeordner> [stil ...]   (erzeugt die Baseline-Exporte samt Bildern und Befunden)
 Die Messung der Seiten passiert unmittelbar vor html2canvas (jede Seite einmal, im fertig geladenen Zustand mit Schriften und Bildern).
 Sollte eine spaetere Version die Rastermaschine austauschen, muss nur HOOK_JS angepasst werden."""
@@ -170,7 +174,22 @@ HOOK_JS = r"""() => {
   const install = () => {
     const orig = window.html2canvas;
     if (typeof orig !== 'function' || orig.__wrapped) return false;
-    const w = function (el, o) { if (cap.on) { try { cap.sections.push(analyze(el)); } catch (e) { cap.sections.push({ fehler: String(e), kind: 'fehler', blocks: [], words: [], clipped: [], images: [], headings: [], emptyBlocks: [], foot: [], tocRows: [], sig: {} }); } } return orig.apply(this, arguments); };
+    const w = function (el, o) { if (cap.on) { try { cap.sections.push(analyze(el)); } catch (e) { cap.sections.push({ fehler: String(e), kind: 'fehler', blocks: [], words: [], clipped: [], images: [], headings: [], emptyBlocks: [], foot: [], tocRows: [], sig: {} }); } }
+      // Simulation von Linux-Textmetriken (SAVORA_PDF_TEXT_SHIFT_MM): erst im Klon fuer html2canvas, also verschiebt sich nur das Rastern, nicht Layout und Messung
+      const shift = window.__pdfShiftMm || 0; let args = arguments;
+      if (shift && o) {
+        const own = o.onclone; const px = shift * MM;
+        args = [el, Object.assign({}, o, { onclone: function (d) {
+          if (own) own.apply(this, arguments);
+          d.querySelectorAll('*').forEach((e) => {
+            if (!Array.from(e.childNodes).some((n) => n.nodeType === 3 && n.textContent.trim())) return;
+            const cs = d.defaultView.getComputedStyle(e);
+            if (cs.position === 'static') { e.style.position = 'relative'; e.style.top = px + 'px'; }
+            else if (cs.top !== 'auto') e.style.top = ((parseFloat(cs.top) || 0) + px) + 'px';
+          });
+        } })];
+      }
+      return orig.apply(this, args); };
     w.__wrapped = true; window.html2canvas = w; return true;
   };
   cap.install = install;
@@ -215,10 +234,12 @@ class PdfSession:
     async def __aexit__(self, *a):
         await self.browser.close(); await self._pw.stop()
     async def seed(self, nur=None):
+        verschiebung = float(os.environ.get('SAVORA_PDF_TEXT_SHIFT_MM', '0') or 0)
         rez = [r for r in self.fx['recipes'] if not nur or r['id'] in nur]
         nutri = [r['id'] for r in rez if r.get('_nutri')]
         self.naehrwerte_status = await self.page.evaluate(SEED_JS, [rez, testbilder(), nutri])
         await self.page.evaluate(HOOK_JS)
+        await self.page.evaluate('(mm) => { window.__pdfShiftMm = mm; }', verschiebung)
         return self.naehrwerte_status
     async def zustand(self):
         """Fingerabdruck der Rezeptdaten (fuer die Datenerhalt-Pruefung)."""
