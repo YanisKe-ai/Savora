@@ -95,7 +95,8 @@ function pdfBuildModel(recipe, nutritionResult, opts) {
 
 /* ---------- Bausteine ---------- */
 
-function pvEsc(s) { return escapeHtml(String(s)); }
+/* Typografie: Zahl und Zeichen «%» bzw. «°C» bleiben zusammen (geschuetztes Leerzeichen), damit sie nicht getrennt umbrechen */
+function pvEsc(s) { return escapeHtml(String(s).replace(/(\d)[ \t]+(%|°\s?C\b)/g, '$1\u00A0$2')); }
 
 /* Zutatenzeile. Modell (neu): { amount (nur Menge + kurze Einheit), name, note, raw, uncertain }.
    Aelteres Modell: amount enthaelt Menge und Einheit, name die Zutat; note/raw fehlen (dann ohne).
