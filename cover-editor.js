@@ -466,7 +466,7 @@ function ceSyncOverlay() {
       fr.dataset.align = ceEff(id).align;
     } else {
       if (fr) fr.remove();
-      if (!hit) { ov.insertAdjacentHTML('afterbegin', `<button type="button" class="ce-hit" data-hit="${id}" aria-label="${CE_LABEL[id]} auswählen"></button>`); hit = ov.querySelector(`[data-hit="${id}"]`); }
+      if (!hit) { ov.insertAdjacentHTML('afterbegin', `<div class="ce-hit" data-hit="${id}" aria-hidden="true"></div>`); hit = ov.querySelector(`[data-hit="${id}"]`); }
       hit.style.cssText = st;
     }
   });
@@ -653,8 +653,6 @@ document.addEventListener('click', (e) => {
 document.addEventListener('click', (e) => {
   const hit = e.target.closest && e.target.closest('.ce-hit');
   if (hit && ceCtx(hit)) ceSelect(hit.dataset.hit, { focusFrame: e.detail === 0 });
-  const act = e.target.closest && e.target.closest('[data-action="ce-reset-confirm"]');
-  if (act) { ceResetCover(); closeModal(); }
 });
 function ceRefreshRange(id, prop) {
   const el = document.querySelector(`[data-ce-input="${prop}"][data-f="${id}"]`); if (!el) return;
@@ -679,7 +677,7 @@ document.addEventListener('input', (e) => {
 document.addEventListener('change', (e) => {
   const t = e.target; if (!t.matches || !ceCtx(t)) return;
   if (t.matches('[data-ce-file]')) { const f = t.files && t.files[0]; t.value = ''; ceImportImage(f); return; }
-  if (t.matches('[data-cb-field]')) { t.value = t.value.trim(); ceSetText(t.dataset.cbField, t.value, true); return; }
+  if (t.matches('[data-cb-field]')) { t.value = t.value.trim(); ceSetText(t.dataset.cbField, t.value, true); ceFlush(); return; }
   if (t.matches('[data-cb-cover-date]')) {
     const d = coverNormalizeDate(t.value);
     if (d) ceChange((m) => { m.date = d; }, { now: true }); else t.value = ce.model.date;   // leer oder ungueltig: bisheriges Datum bleibt

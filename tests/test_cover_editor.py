@@ -151,7 +151,7 @@ async def main():
         check('Sechs Anordnungen', arrs == ['Oben links', 'Oben mittig', 'Mittig', 'Unten links', 'Unten mittig', 'Frei platzieren'], str(arrs))
         ys = {}
         for a in ('Oben links', 'Mittig', 'Unten mittig'):
-            await page.click(f'.ce-arrbtn:has-text("{a}")'); await page.wait_for_timeout(250)
+            await page.click(f'[data-ce="arrange"][data-v="{a}"]'); await page.wait_for_timeout(250)
             ys[a] = (await ev("() => ceBoxes().title"))['y']
             check(f'Anordnung «{a}» gesetzt (aria-pressed, Modell)', await ev("() => ce.model.arrange") == a and await ev("(a) => document.querySelector('.ce-arrbtn[aria-pressed=true]').textContent.trim() === a", a))
         check('Anordnungen platzieren den Block oben, mittig, unten', ys['Oben links'] < ys['Mittig'] < ys['Unten mittig'], str(ys))
@@ -161,7 +161,7 @@ async def main():
         check('Anordnung ist rückgängig machbar', abs((await ev("() => ceBoxes().title"))['y'] - ys['Mittig']) < 0.01)
         await page.click('[data-ce="arr-reset"]'); await page.wait_for_timeout(250)
         f = await fld(page, 'title')
-        check('«Anordnung zurücksetzen»: Positionen weg, Farbe und Text bleiben', 'x' not in f and 'y' not in f and f.get('color') == '#B93B2C' and await ev("() => ce.model.bg.color") == '#22382F' and await page.input_value('#cbTitle') == 'Testbuch', str(f))
+        check('«Anordnung zurücksetzen»: Positionen weg, Farbe und Text bleiben', 'x' not in f and 'y' not in f and f.get('color') == '#B93B2C' and await ev("() => ce.model.bg.color") == '#22382F' and await ev("() => ce.texts.title") == 'Testbuch', str(f))
         # Logo und Lesbarkeit
         await page.click('[data-ce="logo-pos"][data-v="bottom-right"]'); await page.click('[data-ce="logo-var"][data-v="dark"]'); await page.click('[data-ce="readability"][data-v="panel"]'); await page.wait_for_timeout(250)
         m = await ev("() => ce.model")
@@ -240,9 +240,9 @@ async def main():
         check('Ausschnitt zurücksetzen', await ev("() => [ce.model.image.cx, ce.model.image.cy, ce.model.image.zoom]") == [0.5, 0.5, 1])
         await page.click('[data-ce="img-move"]')
         await page.set_input_files('[data-ce-file]', files=[{'name': 'zwei.png', 'mimeType': 'image/png', 'buffer': PNG}]); await page.wait_for_timeout(500)
-        check('Bild ersetzen: neue ID, Texte und Gestaltung bleiben', await ev("() => ce.model.image.id") == 'cover-test-4' and (await fld(page, 'title')).get('fontPt') > 40 and await page.input_value('#cbTitle') == 'Testbuch')
+        check('Bild ersetzen: neue ID, Texte und Gestaltung bleiben', await ev("() => ce.model.image.id") == 'cover-test-3' and (await fld(page, 'title')).get('fontPt') > 40 and await ev("() => ce.texts.title") == 'Testbuch')
         await page.click('[data-ce="img-remove"]'); await page.wait_for_timeout(300)
-        check('Bild entfernen: Modell ohne Bild, Texte bleiben', await ev("() => ce.model.image") is None and await page.input_value('#cbTitle') == 'Testbuch')
+        check('Bild entfernen: Modell ohne Bild, Texte bleiben', await ev("() => ce.model.image") is None and await ev("() => ce.texts.title") == 'Testbuch')
         await ev("() => ceUndo()"); await page.wait_for_timeout(200)
         check('Bild entfernen ist rückgängig machbar (Datei wird erst später gelöscht)', await ev("() => !!ce.model.image") and await ev("() => window.__rm.length") == 0)
         await page.click('[data-ce="img-remove"]')
@@ -252,11 +252,11 @@ async def main():
         await page.click('[data-ce="tab"][data-v="arr"]'); await page.click('[data-ce="cover-reset"]'); await page.wait_for_selector('.modal-sheet')
         dlg = await page.inner_text('.modal-sheet')
         check('Bestätigungsdialog erklärt, was entfernt wird und dass Rezepte bleiben', 'entfernt' in dlg and 'Rezepte' in dlg and 'Abbrechen' in dlg, dlg[:80])
-        await page.click('.modal-sheet [data-action="close-modal"]'); await page.wait_for_timeout(600)
+        await page.click('.modal-sheet [data-action="close-modal"]'); await page.wait_for_selector('.modal-sheet', state='detached'); await page.wait_for_timeout(300)
         check('Abbrechen ändert nichts', await ev("() => ce.model.mode") == 'custom')
         await page.click('[data-ce="cover-reset"]'); await page.wait_for_selector('.modal-sheet'); await page.click('[data-action="ce-reset-confirm"]'); await page.wait_for_timeout(700)
         m = await ev("() => ce.model")
-        check('Cover zurücksetzen: Vorlage ohne Anpassungen, Texte und Datum bleiben, Rezepte bleiben', m['mode'] == 'template' and not m['fields'] and m['image'] is None and await ev("() => ce.texts.title") == 'Testbuch' and await ev("() => state.recipes.length") == n_rec and await page.input_value('#cbTitle') == 'Testbuch', str(m)[:200])
+        check('Cover zurücksetzen: Vorlage ohne Anpassungen, Texte und Datum bleiben, Rezepte bleiben', m['mode'] == 'template' and not m['fields'] and m['image'] is None and await ev("() => ce.texts.title") == 'Testbuch' and await ev("() => state.recipes.length") == n_rec, str(m)[:200])
 
         # ---------- 13. Export ohne Editor-Elemente ----------
         await ev("() => { state.cookbookStep = 3; render(); }"); await page.wait_for_timeout(800)

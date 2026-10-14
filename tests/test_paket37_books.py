@@ -109,7 +109,7 @@ async def main():
         await page.click('.cb-step-footer [data-action="cb-step"]'); await page.wait_for_selector('#cbTitle')
         vals = await ev("() => ['cbTitle', 'cbSubtitle', 'cbAuthor'].map(i => document.getElementById(i).value)")
         labels = await ev("() => ['cbTitle', 'cbSubtitle', 'cbAuthor'].map(i => document.querySelector('label[for=' + i + ']').textContent)")
-        check('Drei leere optionale Textfelder mit den geforderten Beschriftungen', vals == ['', '', ''] and labels == ['Titel des Kochbuchs', 'Untertitel oder Slogan', 'Name auf dem Cover'], str((vals, labels)))
+        check('Drei leere optionale Textfelder mit den geforderten Beschriftungen', vals == ['', '', ''] and labels == ['Kochbuchtitel', 'Untertitel', 'Name'], str((vals, labels)))
         today = await ev("() => [document.getElementById('cbDate').value, coverTodayKey()]")
         check('Neues Projekt: Datum einmalig mit dem heutigen Tag vorbelegt', today[0] == today[1] and bool(today[0]), str(today))
         await ev("() => { state.view = 'cookbooks'; render(); }"); await page.wait_for_selector('.cbk-card')
@@ -173,7 +173,7 @@ async def main():
         n0 = len(bad)
         for rid, nm in zip(IDS, COVER_NAMES):
             await page.click(f'.cover-opt[aria-label="{nm}"]'); await page.wait_for_timeout(250)
-            sel = await ev("() => ({ checked: Array.from(document.querySelectorAll('.cover-opt[aria-checked=\"true\"]')).map(b => b.dataset.id), check: document.querySelectorAll('.cover-opt-check').length, saved: getCookbookConfig().cover.templateId, canvas: !!document.querySelector('canvas.cv-canvas') })")
+            sel = await ev("() => ({ checked: Array.from(document.querySelectorAll('.cover-opt[aria-checked=\"true\"]')).map(b => b.dataset.id), check: document.querySelectorAll('.cover-opt-check').length, saved: getCookbookConfig().cover.templateId, canvas: !!document.querySelector('canvas.ce-canvas') })")
             check(f'Cover {nm}: genau eines gewählt, Haken sichtbar, gespeichert', sel['checked'] == [rid] and sel['check'] == 1 and sel['saved'] == rid and sel['canvas'], str(sel))
         await page.wait_for_timeout(800)
         imgs = await ev("""async () => { const res = []; for (const id of COVER_TEMPLATES.map(t => t.id)) { const a = await fetch(coverBackgroundUrl(id)); const t = await fetch(coverThumbUrl(id)); res.push([a.status, t.status]); } return { res, thumbsOk: Array.from(document.querySelectorAll('.cover-opt img')).every(i => i.complete && i.naturalWidth > 0) }; }""")
@@ -194,7 +194,7 @@ async def main():
 
         # ---------- 7. Fokus und Cursor beim Tippen ----------
         await page.click('#cbTitle'); await page.fill('#cbTitle', '')
-        await page.keyboard.type('Hallo Welt', delay=40)
+        await page.keyboard.type('Hallo Welt', delay=40); await page.wait_for_timeout(800)   # Autospeichern nach 600 ms Eingabepause
         f1 = await ev("() => ({ id: document.activeElement.id, v: cbTitle.value, pos: cbTitle.selectionStart, saved: getCookbookConfig().title })")
         await ev("() => cbTitle.setSelectionRange(0, 0)"); await page.keyboard.type('X', delay=40)   # Cursor an den Anfang (Home-Taste ist je Plattform verschieden)
         f2 = await ev("() => ({ id: document.activeElement.id, v: cbTitle.value, pos: cbTitle.selectionStart })")

@@ -199,7 +199,7 @@ async def main():
           const cfg0 = cookbookGetRaw() || {};
           cookbookSetRaw(Object.assign({}, cfg0, { title: 'Testbuch', author: 'Tina Test', subtitle: 'Alles Gute', cover: Object.assign(coverModelSanitize({ v: 2, mode: 'custom', templateId: 'pop', date: '2026-10-09', bg: { color: '#252720' }, readability: 'panel', fields: { title: { y: 0.4 } } })) }));
           const cfg = getCookbookConfig(), html = coverPickerHtml(cfg), tmp = document.createElement('div'); tmp.innerHTML = html;
-          const fromView = JSON.parse(tmp.querySelector('canvas.cv-canvas').dataset.layout), direct = coverLayout(coverInputFromConfig(cfg));
+          const fromView = JSON.parse(JSON.stringify(ce.layout)), direct = coverLayout(coverInputFromConfig(cfg));
           const keep = cookbookGetRaw().cover.v;
           return { same: JSON.stringify(fromView) === JSON.stringify(JSON.parse(JSON.stringify(direct))), v: cfg.cover.v, mode: direct.mode, keep, y: direct.blocks[0].y, bg: direct.bgColor }; }""")
         check('Editor-Vorschau (coverPickerHtml) und Export nutzen dieselbe Layoutfunktion und liefern dasselbe Layout', r['same'] and r['v'] == 2 and r['mode'] == 'custom' and r['y'] == 0.4 and r['bg'] == '#252720', str(r))
