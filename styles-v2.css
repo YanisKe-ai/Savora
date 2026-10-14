@@ -2115,7 +2115,7 @@ h1[tabindex="-1"]:focus { outline: none; }
   .detail-col--content .step-text, .detail-col--content .notes-text { max-width: 70ch; }
 
   .settings-page { max-width: 1180px; }
-                        }
+}
 @media (min-width: 768px) and (max-width: 1023px) {
   .settings-page { max-width: 720px; }
 }
@@ -2249,8 +2249,6 @@ body.keyboard-open .home-add-bar { display: none; }
   .home-add-btn:active { background: var(--tomato-press); }
   @media (hover: hover) and (pointer: fine) { .home-add-btn:hover { background: var(--tomato-press); } }
   body:has(.home-add-bar) .toast { bottom: calc(var(--nav-h) + var(--addbar-h) + 2.25rem + env(safe-area-inset-bottom, 0px)); }
-}
-
 }
 
 /* Sehr schmale Handys (320 px): etwas kleinere Beschriftung der Navigation und der Ansichtsauswahl, damit nichts abgeschnitten wird oder umbricht (Linux-Schriften sind etwas breiter) */

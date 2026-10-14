@@ -129,7 +129,7 @@ async def main():
         await page.click(f'.rrow--phone:has(.rrow-title:text-is("{t2}")) .fav-toggle'); await page.wait_for_timeout(250)
         s1 = await ev("(t) => ({ view: state.view, fav: state.recipes.find(r => r.id === 'r_legacy_2').favorite, pressed: Array.from(document.querySelectorAll('.rrow--phone')).find(r => r.querySelector('.rrow-title').textContent.trim() === t).querySelector('.fav-toggle').getAttribute('aria-pressed') })", t2)
         check('Favoritenknopf setzt den Favoriten und oeffnet das Rezept nicht', s1['view'] == 'home' and s1['fav'] is True and s1['pressed'] == 'true', str(s1))
-        await page.click('.rrow--phone:nth-child(2) .fav-toggle'); await page.wait_for_timeout(250)
+        await page.click(f'.rrow--phone:has(.rrow-title:text-is("{t2}")) .fav-toggle'); await page.wait_for_timeout(250)   # wieder ueber den Titel: nach dem ersten Klick kann sich die Reihenfolge (gleiche Zeitstempel) aendern
         check('Favoritenknopf nimmt den Favoriten wieder zurueck', await ev("state.recipes.find(r => r.id === 'r_legacy_2').favorite") in (False, None, 0) or not await ev("state.recipes.find(r => r.id === 'r_legacy_2').favorite"))
         # Alle / Favoriten
         await page.select_option('#sortSelect', '__fav'); await page.wait_for_timeout(250)
