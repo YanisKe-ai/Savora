@@ -585,16 +585,17 @@ function pdfSimulate(inp, items, f, safety) {
 }
 
 /* Kleinsten Fuellgrad finden, bei dem alles auf N Seiten passt (gleichmaessige Verteilung). */
-function pdfSearchPlan(inp, items, safety) {
+function pdfSearchPlan(inp, items, safety, minFill) {
+  minFill = minFill || PDF_PLAN_MIN_FILL;
   const k1 = pdfSimulate(inp, items, 1, safety).K;
   for (let N = Math.max(2, k1); N <= k1 + 3; N++) {
     // gueltig: mindestens zwei Seiten (Einseitiges scheiterte vorher), hoechstens N
     const ok = (f) => { const s = pdfSimulate(inp, items, f, safety); return s.K >= 2 && s.K <= N; };
     let hiF = null;
-    for (let f = 1; f >= PDF_PLAN_MIN_FILL - 1e-9; f -= 0.05) { if (ok(f)) { hiF = f; break; } }
+    for (let f = 1; f >= minFill - 1e-9; f -= 0.05) { if (ok(f)) { hiF = f; break; } }
     if (hiF === null) continue;
-    let lo = Math.max(PDF_PLAN_MIN_FILL, hiF - 0.05), hi = hiF;
-    if (ok(lo)) { hi = lo; lo = PDF_PLAN_MIN_FILL; }
+    let lo = Math.max(minFill, hiF - 0.05), hi = hiF;
+    if (ok(lo)) { hi = lo; lo = minFill; }
     for (let i = 0; i < 14; i++) { const mid = (lo + hi) / 2; if (ok(mid)) hi = mid; else lo = mid; }
     return pdfSimulate(inp, items, ok(Math.min(1, hi + 0.01)) ? Math.min(1, hi + 0.01) : hi, safety);
   }
@@ -642,7 +643,10 @@ function pdfPlanMultiPage(m, recipe, imgUrl, dims, detail, plans) {
     const roomOnFirst = PAGE_HEIGHT_MM - inp.base0;
     if (roomOnFirst > 30) {
       for (let safety = 0; safety <= 12 && !result; safety += 2.5) {
-        const sim = pdfSearchPlan(inp, items, safety);
+        let sim = pdfSearchPlan(inp, items, safety);
+        // Letzte Seite fast leer (weniger als 30 % gefuellt)? Dann mit niedrigerem Fuellgrad gleichmaessiger verteilen
+        const lastFill = (s) => { const last = s.pages[s.pages.length - 1]; const cap = PAGE_HEIGHT_MM - safety - (s.K === 1 ? inp.base0 : inp.baseC); return cap > 0 ? last.used / cap : 1; };
+        if (sim && sim.K >= 2 && lastFill(sim) < 0.3) { const alt = pdfSearchPlan(inp, items, safety, 0.4); if (alt && alt.K === sim.K && lastFill(alt) > lastFill(sim)) sim = alt; }
         if (!sim || sim.K < 2) break;
         const html = pdfAssemble(ctx, sim, ingU);
         if (html.every((h) => pdfFits(h))) result = { html, tight, forced: false };
@@ -665,16 +669,18 @@ async function buildRecipePdfPage(r, previousLayout, nutritionDetail, chapter) {
   if (detail !== 'off') { try { result = await pdfNutritionForExport(r); } catch (e) { /* Nährwerte sind optional */ } }
   const m = pdfBuildModel(r, result, { chapter: chapter || '' });
   const photoOk = !!(imgUrl && dims);
+  // Bildzustand fuer die Oberflaeche: 'none' (kein Foto), 'ok', 'failed' (Foto gespeichert, aber nicht ladbar), 'lowres' (unter 100 dpi bei 60 mm)
+  const imageState = !imgUrl ? 'none' : !photoOk ? 'failed' : (!imageResolutionSufficientForFrame(dims.width, 60) ? 'lowres' : 'ok');
   const plans = pdfPhotoPlans(photoOk ? imgUrl : null, dims);
   for (let i = 0; i < plans.length; i++) {
     const opts = plans[i];
     const html = pvRecipePage(m, r, photoOk ? imgUrl : null, opts, detail);
     if (pdfFits(html)) {
-      return { htmlPages: [html], layout: (opts.frame ? 'photo' : 'text') + (opts.tight ? '-tight' : ''), tier: i === 0 ? 1 : 2, pageCount: 1 };
+      return { htmlPages: [html], layout: (opts.frame ? 'photo' : 'text') + (opts.tight ? '-tight' : ''), tier: i === 0 ? 1 : 2, pageCount: 1, imageState };
     }
   }
   const multi = pdfPlanMultiPage(m, r, photoOk ? imgUrl : null, dims, detail, plans);
-  return { htmlPages: multi.html, layout: 'long', tier: multi.tier, pageCount: multi.html.length };
+  return { htmlPages: multi.html, layout: 'long', tier: multi.tier, pageCount: multi.html.length, imageState };
 }
 
 /* Naehrwerte nur, wenn vollstaendig und aktuell berechnet (sonst weglassen statt Teilsummen zu drucken) */
@@ -727,13 +733,14 @@ async function pdfBuildSingleImpl(id, nutritionDetail, opts) {
     await ensurePdfLibs();   // Fehler (offline/Timeout) frueh und mit verstaendlicher Meldung
     await ensureFontsReadyForPdf();
     pdfCheckAbort(opts);
-    const { htmlPages } = await buildRecipePdfPage(r, null, nutritionDetail);
+    const { htmlPages, imageState } = await buildRecipePdfPage(r, null, nutritionDetail);
     pdfCheckAbort(opts);
     document.getElementById('printRoot').innerHTML = htmlPages.map((h, i) => (i === 0 ? pdfWrapTitle(h, r, '') : h)).join('');
     cleanupPdfMeasureProbe();
     const blob = await renderSectionsToPdf(Object.assign({}, opts, { title: r.title || 'Savora Rezept', subject: 'Rezept' }));
     if (!blob) return null;
     blob.plannedPages = htmlPages.length;
+    blob.imageIssues = imageState === 'failed' || imageState === 'lowres' ? [{ id: r.id, title: r.title || '', state: imageState }] : [];   // fuer die Anzeige im Dialog (Foto nicht ladbar / niedrige Aufloesung)
     return { blob, filename: `savora-${slugifyTitle(r.title)}.pdf` };
   } finally {
     const root = document.getElementById('printRoot'); if (root) root.innerHTML = '';
@@ -762,14 +769,16 @@ async function pdfBuildCookbookImpl(nutritionDetail, opts) {
 
     // 1) Planung aller Rezepte (Seitenzahlen stehen danach fest)
     const pagesByRecipeId = {};
+    const imageIssues = [];
     let previousLayout = null;
     for (let i = 0; i < recipes.length; i++) {
       pdfCheckAbort(opts);
       pdfProgress(opts, i, recipes.length, 'plan');
       await pdfYield();
       const r = recipes[i];
-      const { htmlPages, layout } = await buildRecipePdfPage(r, previousLayout, nutritionDetail, typeof pdfChapterNameFor === 'function' ? pdfChapterNameFor(cfg, r.id) : '');   // gleiche Kapitelangabe wie im Inhaltsverzeichnis
+      const { htmlPages, layout, imageState } = await buildRecipePdfPage(r, previousLayout, nutritionDetail, typeof pdfChapterNameFor === 'function' ? pdfChapterNameFor(cfg, r.id) : '');   // gleiche Kapitelangabe wie im Inhaltsverzeichnis
       pagesByRecipeId[r.id] = htmlPages;
+      if (imageState === 'failed' || imageState === 'lowres') imageIssues.push({ id: r.id, title: r.title || '', state: imageState });
       previousLayout = layout;
     }
     pdfCheckAbort(opts);
@@ -821,6 +830,7 @@ async function pdfBuildCookbookImpl(nutritionDetail, opts) {
     const blob = await renderSectionsToPdf(Object.assign({}, opts, { title: title || 'Savora Kochbuch', subject: 'Kochbuch', author }));
     if (!blob) return null;
     blob.plannedPages = planned;
+    blob.imageIssues = imageIssues;
     // Inhaltsverzeichnis gegen die tatsaechlichen Rezeptanfaenge pruefen (Planung und PDF muessen uebereinstimmen)
     const mismatch = built.rows.filter((row) => row.kind === 'recipe' && blob.recipeStart && blob.recipeStart[row.id] !== row.page);
     if (mismatch.length) console.warn('PDF: Inhaltsverzeichnis weicht von den Seiten ab', mismatch.map((x) => x.title));

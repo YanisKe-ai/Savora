@@ -3,7 +3,8 @@
    gemessen und gerastert (pdf.js). Fliesstext und Zutaten mindestens 10,5 pt, Sekundaertexte mindestens 8,5 pt.
    Schriften (alle lokal, kein Netz):
      Pur        Carlito (SIL OFL, metrisch kompatibel zu Calibri), vendor/fonts/carlito-*.woff2
-     Prise Pop  Lilita One (Titel) und Public Sans (Text), beide in styles.css eingebunden
+     Prise Pop  Lilita One (Titel) und Public Sans (Text), beide in styles.css eingebunden; Carlito als Ersatz fuer Zeichen,
+                die diese beiden (nur lateinisch-basis) nicht haben (z. B. ğ ş Ł)
    Der Unterschied zwischen den Stilen steckt nur in den Variablen unten und wenigen Schmuckregeln (Zutatenflaeche,
    Foto-Form, Zaehler, Hinweis-Flaeche), nicht in eigenen Seitenbauteilen. */
 @font-face { font-family: 'Carlito'; font-weight: 400; font-style: normal; font-display: swap; src: url(vendor/fonts/carlito-regular.woff2) format('woff2'); }
@@ -22,11 +23,11 @@
 .pv-tpl-prise-pop {
   --pv-bg: #FFFDF7; --pv-ink: #2B2420; --pv-accent: #C8321F; --pv-title-color: #C8321F; --pv-muted: #5F564E; --pv-rule: #F0DFA4;
   --pv-panel: #FFE07A; --pv-panel-r: 5mm; --pv-tip-bg: #E6DDF6; --pv-tip-ink: #2B2420; --pv-purple: #5A3E93; --pv-blob: #FFEBA3;
-  --pv-font: 'Public Sans', Roboto, Arial, sans-serif; --pv-title-font: 'Lilita One', 'Public Sans', Arial, sans-serif; --pv-title-weight: 400;
-  --pv-h-font: 'Lilita One', 'Public Sans', Arial, sans-serif; --pv-h-weight: 400; --pv-h-size: 17pt;
+  --pv-font: 'Public Sans', 'Carlito', Arial, sans-serif; --pv-title-font: 'Lilita One', 'Public Sans', 'Carlito', Arial, sans-serif; --pv-title-weight: 400;
+  --pv-h-font: 'Lilita One', 'Public Sans', 'Carlito', Arial, sans-serif; --pv-h-weight: 400; --pv-h-size: 17pt;
   --pv-tsize-s: 38pt; --pv-tsize-m: 33pt; --pv-tsize-l: 28pt; --pv-tsize-xl: 23pt;
   --pv-fs-body: 10.5pt; --pv-fs-ing: 10.5pt; --pv-lh: 1.42; --pv-fs-label: 13pt;
-  --pv-no-font: 'Lilita One', 'Public Sans', Arial, sans-serif; --pv-step-rule: #F0DFA4;
+  --pv-no-font: 'Lilita One', 'Public Sans', 'Carlito', Arial, sans-serif; --pv-step-rule: #F0DFA4;
 }
 
 .pv-page { width: 210mm; min-height: 297mm; box-sizing: border-box; position: relative; background: var(--pv-bg); color: var(--pv-ink);
@@ -131,7 +132,10 @@
 .pv-nut-cell b { font-size: 12pt; font-weight: 700; color: var(--pv-ink); white-space: nowrap; }
 .pv-nut-cell em { font-style: normal; font-size: var(--pv-fs-body); color: var(--pv-muted); white-space: nowrap; }
 .pv-nut-cell i { display: block; font-style: normal; font-size: var(--pv-fs-small); color: var(--pv-muted); margin-top: .3mm; overflow-wrap: normal; }
-.pv-extras-grid .pv-nut-grid { grid-template-columns: max-content max-content; justify-content: start; column-gap: 6mm; }
+.pv-extras-grid .pv-nut-grid { grid-template-columns: minmax(0, 1fr); gap: .8mm 0; }
+.pv-extras-grid .pv-nut-cell { display: flex; align-items: baseline; gap: 1.2mm; border-bottom: .4pt solid rgba(30, 42, 35, .12); padding-bottom: .5mm; }
+.pv-extras-grid .pv-nut-cell i { order: -1; flex: 1; margin: 0; font-size: 9.5pt; color: var(--pv-ink); }
+.pv-extras-grid .pv-nut-cell b { font-size: 10.5pt; } .pv-extras-grid .pv-nut-cell em { font-size: 9.5pt; }
 .pv-small { font-size: var(--pv-fs-small); color: var(--pv-muted); margin-top: 2.5mm; line-height: 1.35; }
 /* Quelle: Beschriftung getrennt vom Text, lange URLs brechen nur in der URL (anywhere), nie normale Woerter */
 .pv-source { display: grid; grid-template-columns: auto minmax(0, 1fr); column-gap: 3mm; align-items: baseline; font-size: var(--pv-fs-small); line-height: 1.35; color: var(--pv-muted); }
