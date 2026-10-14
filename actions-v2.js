@@ -822,11 +822,13 @@ async function handleActionV2(action, id, el, e) {
       return true;
     }
     case 'cb-step': {
+      // Bewegung M2 (motion-cover.js): Doppelklick auf Weiter/Zurueck ueberspringt keinen Schritt; Inhalt wechselt ruhig, Logik sofort
+      if (typeof motionStepIgnore === 'function' && motionStepIgnore(el, e)) return true;
       const n = Math.min(3, Math.max(1, parseInt(id, 10) || 1));
+      const from = Math.min(3, Math.max(1, parseInt(state.cookbookStep, 10) || 1));
       state.cookbookStep = n;
-      render();
-      window.scrollTo(0, 0);
-      const h = document.getElementById('cbStepTitle'); if (h) focusWithoutScroll(h);
+      const go = () => { render(); window.scrollTo(0, 0); const h = document.getElementById('cbStepTitle'); if (h) focusWithoutScroll(h); };
+      if (typeof motionCookbookStep === 'function' && state.view === 'cookbook') motionCookbookStep(from, n, go); else go();
       return true;
     }
 
