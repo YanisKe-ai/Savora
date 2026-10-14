@@ -82,8 +82,6 @@ const SHELL_ASSETS = [
   './nutrition-aliases.js',
   './nutrition-matcher.js',
   './nutrition-preparation.js',
-  './nutrition-off.js',
-  './nutrition-usda.js',
   './nutrition-calculator.js',
   './images.js',
   './quantity.js',

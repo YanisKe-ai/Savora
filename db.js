@@ -34,7 +34,7 @@ function openDB() {
          bleiben importierbar (siehe backup.js). */
       if (!db.objectStoreNames.contains('nutritionFoods')) {
         // Gecachte Lebensmittel aus allen Quellen (Schweizer DB, spaeter Open Food
-        // Facts/USDA). id ist praefixiert pro Quelle (z.B. "swiss-10533"), daher
+        // Facts). id ist praefixiert pro Quelle (z.B. "swiss-10533"), daher
         // global eindeutig.
         const foods = db.createObjectStore('nutritionFoods', { keyPath: 'id' });
         foods.createIndex('source', 'source');

@@ -204,7 +204,7 @@ function nutritionFoodCandidateRow(food, targetName) {
   return `<li>
     <button type="button" class="nutrition-candidate-item" data-action="nutrition-confirm-match" data-name="${escapeHtml(targetName)}" data-food-id="${escapeHtml(food.id)}" aria-label="${escapeHtml(food.name)} für ${escapeHtml(targetName)} übernehmen">
       <span class="nutrition-candidate-name">${escapeHtml(food.name)}</span>
-      <span class="nutrition-candidate-source">${food.source === 'custom' ? 'Eigenes Lebensmittel' : 'CH-Nährwertdatenbank'}</span>
+      <span class="nutrition-candidate-source">${food.source === 'custom' ? 'Eigenes Lebensmittel' : food.source === 'open-food-facts' ? 'Open Food Facts (früher zugeordnet)' : 'CH-Nährwertdatenbank'}</span>
     </button>
   </li>`;
 }
@@ -218,105 +218,12 @@ function nutritionSelectStage(recipe) {
       <input type="text" id="nutritionSearchInput" placeholder="Lebensmittel suchen …" value="${escapeHtml(state.nutritionSearchQuery || '')}" autocomplete="off">
     </div>
     ${results.length ? `<ul class="nutrition-match-list">${results.map((f) => nutritionFoodCandidateRow(f, target)).join('')}</ul>`
-      : `<p class="nutrition-empty-text">${state.nutritionSearchQuery ? 'Keine Treffer in deinen Lebensmitteln.' : 'Suchbegriff eingeben, Barcode scannen oder unten ein eigenes Lebensmittel anlegen.'}</p>`}
+      : `<p class="nutrition-empty-text">${state.nutritionSearchQuery ? 'Keine Treffer in deinen Lebensmitteln.' : 'Suchbegriff eingeben oder unten ein eigenes Lebensmittel anlegen.'}</p>`}
     <div class="nutrition-select-actions">
-      <button class="add-row-btn" data-action="nutrition-open-barcode" data-name="${escapeHtml(target)}">${ICONS.scale} Barcode scannen (Open Food Facts)</button>
       <button class="add-row-btn" data-action="nutrition-open-custom" data-name="${escapeHtml(target)}">${ICONS.plus} Eigenes Lebensmittel erstellen</button>
     </div>
     <div class="form-actions">
       <button class="ghost-btn" data-action="nutrition-back-to-match">Zurück</button>
-    </div>
-  `;
-}
-
-/* ---------- Barcode-Scan (Punkt 27) ---------- */
-let nutritionCameraStream = null;
-let nutritionCameraRAF = null;
-let nutritionBarcodeDetector = null;
-
-function nutritionCameraSupported() {
-  return typeof window.BarcodeDetector !== 'undefined';
-}
-
-function stopNutritionBarcodeCamera() {
-  if (nutritionCameraRAF) { cancelAnimationFrame(nutritionCameraRAF); nutritionCameraRAF = null; }
-  if (nutritionCameraStream) { nutritionCameraStream.getTracks().forEach((t) => t.stop()); nutritionCameraStream = null; }
-}
-
-async function lookupBarcodeAndRender(code) {
-  state.nutritionBarcodeStatus = 'looking-up';
-  render();
-  const { status, food } = await fetchOffProductByBarcode(code);
-  state.nutritionBarcodeStatus = status;
-  state.nutritionBarcodeProduct = food;
-  render();
-}
-
-async function startNutritionBarcodeCamera() {
-  const video = document.getElementById('nutritionBarcodeVideo');
-  if (!video || !nutritionCameraSupported()) return;
-  try {
-    nutritionCameraStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
-  } catch (err) {
-    showToast('Kamerazugriff nicht möglich — bitte Barcode manuell eingeben', 'error');
-    return;
-  }
-  video.srcObject = nutritionCameraStream;
-  await video.play().catch(() => {});
-  nutritionBarcodeDetector = nutritionBarcodeDetector || new window.BarcodeDetector({ formats: ['ean_13', 'ean_8', 'upc_a', 'upc_e'] });
-
-  const scanFrame = async () => {
-    if (!nutritionCameraStream) return; // Kamera inzwischen gestoppt (Modal geschlossen/gewechselt)
-    try {
-      const codes = await nutritionBarcodeDetector.detect(video);
-      if (codes.length) {
-        const value = codes[0].rawValue;
-        stopNutritionBarcodeCamera();
-        state.nutritionBarcodeInput = value;
-        await lookupBarcodeAndRender(value);
-        return;
-      }
-    } catch (err) { /* einzelner Frame darf fehlschlagen, naechster Versuch folgt */ }
-    nutritionCameraRAF = requestAnimationFrame(scanFrame);
-  };
-  nutritionCameraRAF = requestAnimationFrame(scanFrame);
-}
-
-function nutritionBarcodeStage() {
-  const supported = nutritionCameraSupported();
-  const status = state.nutritionBarcodeStatus;
-  const product = state.nutritionBarcodeProduct;
-  const statusMessages = {
-    'not-found': 'Kein Produkt mit diesem Barcode gefunden.',
-    offline: 'Keine Internetverbindung — Barcode-Suche nicht möglich.',
-    error: 'Open Food Facts ist momentan nicht erreichbar.',
-    invalid: 'Das sieht nicht nach einem gültigen Barcode aus (6–14 Ziffern).',
-  };
-  return `
-    <h2 class="modal-title" id="nutrition-modal-title">Barcode scannen</h2>
-    ${supported ? `
-      <div class="nutrition-camera-wrap">
-        <video id="nutritionBarcodeVideo" playsinline muted></video>
-      </div>
-      <button class="ghost-btn" data-action="nutrition-start-camera" style="width:100%;margin-bottom:12px;">${ICONS.scale} Kamera starten</button>
-    ` : `<p class="nutrition-hint-text">Dein Browser unterstützt keine automatische Barcode-Erkennung — bitte den Barcode manuell eingeben.</p>`}
-    <div class="field">
-      <label for="nutritionBarcodeManual">Barcode manuell eingeben</label>
-      <input type="text" inputmode="numeric" id="nutritionBarcodeManual" placeholder="z.B. 7612345678901" value="${escapeHtml(state.nutritionBarcodeInput || '')}">
-    </div>
-    <button class="primary-btn" data-action="nutrition-barcode-lookup" style="width:100%;justify-content:center;margin-bottom:14px;">Suchen</button>
-
-    ${status === 'looking-up' ? `<p class="nutrition-empty-text">Suche läuft …</p>` : ''}
-    ${statusMessages[status] ? `<p class="nutrition-hint-text">${statusMessages[status]}</p>` : ''}
-    ${status === 'found' && product ? `
-      <div class="nutrition-candidate-item" style="cursor:default;margin-bottom:14px;">
-        <span class="nutrition-candidate-name">${escapeHtml(product.name)}</span>
-        <span class="nutrition-candidate-source">${product.brand ? escapeHtml(product.brand) + ' · ' : ''}Open Food Facts</span>
-      </div>
-      <button class="primary-btn" data-action="nutrition-confirm-match" data-name="${escapeHtml(state.nutritionSelectTarget)}" data-food-id="${escapeHtml(product.id)}" style="width:100%;justify-content:center;margin-bottom:14px;">Übernehmen</button>
-    ` : ''}
-    <div class="form-actions">
-      <button class="ghost-btn" data-action="nutrition-close-barcode">Zurück</button>
     </div>
   `;
 }
@@ -359,7 +266,6 @@ function nutritionModal(recipe) {
   const stage = state.modal.stage || 'match';
   const inner = stage === 'select' ? nutritionSelectStage(recipe)
     : stage === 'custom' ? nutritionCustomStage()
-    : stage === 'barcode' ? nutritionBarcodeStage()
     : nutritionMatchStage(recipe);
   return `<div class="modal-backdrop" data-action="close-modal">
     <div class="modal-sheet" role="dialog" aria-modal="true" aria-labelledby="nutrition-modal-title" tabindex="-1" onclick="event.stopPropagation()">
