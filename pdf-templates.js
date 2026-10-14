@@ -187,10 +187,16 @@ function pvNutritionBox(result, detailLevel, pieces, basis, basisNote) {
 function pvSourceHtml(text, url) {
   const t = String(text || '').replace(/^\s*quelle\s*[:\-–]\s*/i, '').trim();
   const link = (u) => { const clean = u.replace(/[.,;:!?)\]]+$/, ''), tail = u.slice(clean.length); return `<a class="pv-url" href="${escapeHtml(clean)}" data-pdf-href="${escapeHtml(clean)}">${pvEsc(clean)}</a>${pvEsc(tail)}`; };
+  const u = String(url || '').trim();
+  const bare = u.replace(/^https?:\/\//i, '').replace(/\/+$/, '');
+  // Steht dieselbe Adresse im Text nur ohne «https://», wird genau diese Stelle zum Link (nicht doppelt ausgeben)
+  const bareAt = (/^https?:\/\//i.test(u) && bare && !/https?:\/\//i.test(t)) ? t.indexOf(bare) : -1;
+  if (bareAt >= 0) {
+    return (pvEsc(t.slice(0, bareAt)) + `<a class="pv-url" href="${escapeHtml(u)}" data-pdf-href="${escapeHtml(u)}">${pvEsc(bare)}</a>` + pvEsc(t.slice(bareAt + bare.length))).trim();
+  }
   let html = '', last = 0, m; const re = /https?:\/\/[^\s<>"']+/gi;
   while ((m = re.exec(t))) { html += pvEsc(t.slice(last, m.index)) + link(m[0]); last = m.index + m[0].length; }
   html += pvEsc(t.slice(last));
-  const u = String(url || '').trim();
   if (/^https?:\/\//i.test(u) && !t.includes(u)) html += (html ? ' ' : '') + link(u);
   return html.trim();
 }
