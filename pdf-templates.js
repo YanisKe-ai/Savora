@@ -47,14 +47,7 @@ function pdfAmountLine(i) {
   return raw ? raw + (unit ? ' ' + unit : '') : unit;
 }
 
-/* Hinweise/Quellen, die als Schritt gespeichert wurden, gehoeren nicht in die nummerierte Anleitung.
-   Nur eindeutige Anfaenge werden so behandelt (sonst bleibt es ein Schritt). */
-function pdfClassifyStepText(text) {
-  const t = String(text || '').trim();
-  if (/^(quelle|source|rezept (von|nach)|fotos?)\s*[:\-–]/i.test(t) || (/^quelle\b/i.test(t) && t.length < 140)) return 'source';
-  if (/^(tipp|tipps|küchentipp|hinweis|hinweise|aufbewahrung|aufbewahren|haltbarkeit|haltbar|einfrieren|vorbereiten\s*\/\s*einfrieren|vorbereiten und einfrieren|variante|varianten)\b/i.test(t)) return 'tip';
-  return 'step';
-}
+/* pdfClassifyStepText (Hinweise/Quellen als Schritt erkennen) steht jetzt in pdf-model.js. */
 
 function pdfFormatMinutes(m) {
   m = Math.round(Number(m) || 0);
@@ -63,38 +56,24 @@ function pdfFormatMinutes(m) {
   return h + ' Std.' + (r ? ' ' + r + ' Min.' : '');
 }
 
-function pdfBuildModel(recipe, nutritionResult) {
-  const groups = getIngredientGroups(recipe);
+/* Darstellungsmodell eines Rezepts (nur Anzeige, nichts wird veraendert). Die Aufbereitung steht in pdf-model.js.
+   opts.chapter: Name des Kochbuch-Kapitels des Nutzers (dieselbe Quelle wie das Inhaltsverzeichnis), nur im Kochbuch. */
+function pdfBuildModel(recipe, nutritionResult, opts) {
+  opts = opts || {};
+  const groups = pdfIngredientGroups(recipe);
   const showGroupTitles = groups.length > 1 || (groups[0] && groups[0].title !== 'Zutaten');
   const ingredients = [];
   groups.forEach((g) => {
     ingredients.push({ type: 'group', title: g.title, show: showGroupTitles, size: g.ingredients.length });
-    g.ingredients.forEach((i) => {
-      ingredients.push({ type: 'ing', group: g.title, amount: pdfAmountLine(i), name: String(i.name || '').trim() });
-    });
+    g.ingredients.forEach((i) => ingredients.push(Object.assign({ type: 'ing', group: g.title }, pdfSplitIngredient(i))));
   });
 
-  const steps = []; const tips = []; let source = '';
-  const entries = stepEntries(recipe);
-  entries.forEach((e, idx) => {
-    if (e.heading) {
-      // Zwischentitel nur zeichnen, wenn danach echter Inhalt folgt (sonst leere Ueberschrift)
-      const next = entries[idx + 1];
-      if (next && !next.heading) steps.push({ type: 'heading', text: String(e.text).trim().replace(/:$/, '') });
-      return;
-    }
-    const kind = pdfClassifyStepText(e.text);
-    if (kind === 'source') { source = source ? source + ' · ' + String(e.text).trim() : String(e.text).trim(); return; }
-    if (kind === 'tip') { tips.push(String(e.text).trim()); return; }
-    steps.push({ type: 'step', text: String(e.text).trim() });
-  });
-  let n = 0; steps.forEach((s) => { if (s.type === 'step') s.no = ++n; });
-
-  const rs = recipe.source;
-  const sourceField = rs ? (typeof rs === 'string' ? rs : (rs.title || rs.url || rs.name || '')) : '';
-  const catKey = (recipe.categoryTags || [])[0] || (recipe.tags || [])[0] || '';
-  const cat = catKey && typeof categoryLabelFor === 'function' ? categoryLabelFor(catKey) : catKey;   // interne Schluessel (baking) als deutsche Bezeichnung
+  const { steps, tips, sources } = pdfSplitSteps(recipe);
+  const src = pdfSourceInfo(recipe, sources);
+  const cat = pdfCategoryInfo(recipe, opts.chapter);
   const log = (recipe.cookLog || []).filter((x) => x && String(x.text || '').trim());
+  const notes = String(recipe.notes || '').trim();
+  const servings = pdfServingsInfo(recipe, steps.filter((s) => s.type === 'step').map((s) => s.text).concat(tips, notes ? [notes] : []));
   const facts = [];
   const sv = Number(recipe.servings) || 0;
   const pieces = servingMode(recipe) === 'pieces';
@@ -103,11 +82,15 @@ function pdfBuildModel(recipe, nutritionResult) {
   if (recipe.prepMinutes) facts.push({ label: 'Vorbereitungszeit', value: pdfFormatMinutes(recipe.prepMinutes) });
   if (recipe.restMinutes) facts.push({ label: 'Ruhen', value: pdfFormatMinutes(recipe.restMinutes) });
   if (recipe.cookMinutes) facts.push({ label: 'Garen/Backen', value: pdfFormatMinutes(recipe.cookMinutes) });
-  return {
-    id: recipe.id, title: String(recipe.title || 'Ohne Titel').trim(), category: cat, facts, ingredients, steps, tips,
-    source: [sourceField, source].filter(Boolean).join(' · '), notes: String(recipe.notes || '').trim(), log,
-    nutrition: nutritionResult || null, pieces,
+  const basis = pdfNutritionBasis(nutritionResult, pieces);
+  const m = {
+    id: recipe.id, title: String(recipe.title || 'Ohne Titel').trim(), category: cat.text, categoryKind: cat.kind, categoryAll: cat.all, facts, ingredients, steps, tips,
+    source: src.source, sourceText: src.sourceText, sourceUrl: src.sourceUrl, sourceUrlText: src.sourceUrlText, notes, log,
+    nutrition: nutritionResult || null, pieces, servings,
+    nutritionBasis: basis.basis, nutritionBasisLabel: basis.label, nutritionView: pdfNutritionView(nutritionResult), nutritionNote: pdfNutritionNote(nutritionResult, servings),
   };
+  m.warnings = pdfModelWarnings(m);
+  return m;
 }
 
 /* ---------- Bausteine ---------- */
