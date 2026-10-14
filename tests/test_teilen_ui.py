@@ -30,6 +30,8 @@ async def setup(page, profile, conns, inbox, ui='{}'):
       state.modal = null; state.view = 'settings-share'; render(); window.scrollTo(0,0); }}""")
     await page.wait_for_timeout(350)
 async def ev(page, js, *a): return await page.evaluate(js, *a)
+async def tab(page, t):
+    await page.evaluate("(t) => { share.ui.tab = t; render(); }", t); await page.wait_for_timeout(120)
 HEADS = "() => Array.from(document.querySelectorAll('main .tl-h')).filter(h => h.offsetParent !== null).map(h => h.textContent.trim())"
 SMALL_JS = """() => Array.from(document.querySelectorAll('main .tl button, main .tl summary, main .tl input, main .tl textarea, .modal-sheet button, .modal-sheet input:not([type=radio]), .modal-sheet label.share-person'))
   .filter(e => { const r = e.getBoundingClientRect(); return r.width > 0 && r.height > 0; })
@@ -75,15 +77,21 @@ async def main():
 
         # 4 Mit Freunden, Anfrage, Posteingang: Reihenfolge und Zaehler
         await setup(page, PROFILE, CONNS, INBOX)
+        check('Drei Reiter: Posteingang (2 neu), Senden, Freunde', await ev(page, "Array.from(document.querySelectorAll('.tl-tab')).map(b => b.textContent.replace(/\\d+$/, '').trim()).join('|')") == 'Posteingang|Senden|Freunde' and await ev(page, "document.querySelector('#tl-tab-inbox .tl-badge').getAttribute('aria-label')") == '2 neu')
         h = await ev(page, HEADS)
-        check('Reihenfolge: Posteingang, Anfragen, Rezept senden, Freunde, Mein Profil', [x.rstrip('0123456789') for x in h] == ['Posteingang', 'Anfragen', 'Rezept senden', 'Freunde', 'Mein Profil'], str(h))
-        check('Zaehler: je 1 neu bei Posteingang und Anfragen, lesbar benannt', await ev(page, "Array.from(document.querySelectorAll('.tl-badge')).map(b => b.getAttribute('aria-label')).join('|')") == '1 neu|1 neu')
-        check('Haupt-Knopf «Rezept senden» vorhanden', await ev(page, "!!document.querySelector('[data-action=share-pick-open]')"))
+        check('Startreiter Posteingang zeigt Anfragen und Posteingang', [x.rstrip('0123456789') for x in h] == ['Anfragen', 'Posteingang'], str(h))
+        await tab(page, 'send')
+        check('Reiter Senden: Haupt-Knopf «Rezept waehlen» vorhanden', await ev(page, "!!document.querySelector('[data-action=share-pick-open]')"))
+        await tab(page, 'friends')
+        h = await ev(page, HEADS)
+        check('Reiter Freunde: Freunde, Mein Profil', [x.rstrip('0123456789') for x in h][:2] == ['Freunde', 'Mein Profil'], str(h))
         check('Hinzufuegen, Verwalten und Profil sind eingeklappt', await ev(page, "Array.from(document.querySelectorAll('.tl-fold')).every(f => !f.open)"))
-        check('Freunde-Liste zeigt verbundene und wartende, Blockierte nur unter «verwalten»', 'Berta' in await ev(page, "document.querySelector('.tl-col:last-child').innerText") and 'wartet auf Bestätigung' in await ev(page, "document.body.innerText") and 'Fritz' not in await ev(page, "Array.from(document.querySelectorAll('.tl-list.tl-card')).map(e => e.innerText).join(' ')"))
+        check('Freunde-Liste zeigt verbundene und wartende, Blockierte nur unter «verwalten»', 'Berta' in await ev(page, "document.querySelector('#tl-panel').innerText") and 'wartet auf Bestätigung' in await ev(page, "document.body.innerText") and 'Fritz' not in await ev(page, "Array.from(document.querySelectorAll('.tl-sec .tl-list.tl-card')).map(l => l.innerText).join(' ')"))
+        await tab(page, 'inbox')
         names = await ev(page, "Array.from(document.querySelectorAll('main .tl button[data-action^=share-]')).filter(b => b.getBoundingClientRect().width > 0 && !b.textContent.trim()).length")
         check('Alle Knöpfe haben einen Namen', names == 0)
         check('Aktionsknoepfe nennen die Person (aria-label)', await ev(page, "Array.from(document.querySelectorAll('[data-action=share-respond]')).every(b => /Dora/.test(b.getAttribute('aria-label') || b.textContent)) && /Pasta/.test(document.querySelector('[data-action=share-open-preview]').getAttribute('aria-label'))"))
+        await tab(page, 'friends')
         # eingeklappte Bereiche ueberleben ein Neuzeichnen
         await page.evaluate("() => { const d = document.querySelector('.tl-fold[data-ui=manage]'); d.open = true; }"); await page.wait_for_timeout(100)
         await page.evaluate("() => render()"); await page.wait_for_timeout(200)
@@ -98,6 +106,7 @@ async def main():
 
         # 6 Senden in drei Schritten: Rezept waehlen, Freund waehlen, senden
         await setup(page, PROFILE, "[{handle:'berta', display_name:'Berta', state:'connected'},{handle:'carl_baut', display_name:'', state:'connected'}]", '[]')
+        await tab(page, 'send')
         await page.evaluate("() => document.querySelector('[data-action=share-pick-open]').click()"); await page.wait_for_selector('#sharePickQ'); await page.wait_for_timeout(300)
         check('Schritt 1: Dialog «Welches Rezept senden?» mit Suche und Liste', 'Welches Rezept senden' in await ev(page, "document.querySelector('.modal-sheet').innerText") and await ev(page, "document.querySelectorAll('.tl-pick').length") >= 3)
         await page.fill('#sharePickQ', 'Sloppy'); await page.wait_for_timeout(150)
@@ -141,6 +150,7 @@ async def main():
 
         # 8 Ohne Internet auf der Seite: Fehlertexte
         await setup(page, PROFILE, '[]', '[]')
+        await tab(page, 'friends')
         await ctx.set_offline(True)
         await page.fill('#shareTarget', '@berta'); await page.evaluate("() => document.querySelector('[data-action=share-connect]').click()"); await page.wait_for_timeout(700)
         check('Freund hinzufuegen ohne Internet: Fehlertext beim Feld', 'Keine Verbindung' in await ev(page, "document.getElementById('shareConnectError').textContent"))
@@ -158,8 +168,16 @@ async def main():
         order = await ev(page, "(() => { const a = document.querySelector('[data-action=share-accept]'), z = document.querySelector('.share-sub'); return !!(a.compareDocumentPosition(z) & Node.DOCUMENT_POSITION_FOLLOWING); })()")
         check('Vorschau: Uebernehmen und Ablehnen stehen vor den Zutaten, mit Erklaerung', order and 'Vorschau' in await ev(page, "document.querySelector('.share-preview-actions').innerText"))
 
+        check('Vorschau: dritter Weg «In Rezepte von Freunden behalten» vorhanden', await ev(page, "!!document.querySelector('[data-action=share-accept][data-mode=keep]')"))
+        n0 = await ev(page, "state.recipes.length")
+        await page.evaluate("() => document.querySelector('[data-action=share-accept][data-mode=keep]').click()"); await page.wait_for_timeout(1500)
+        kept = await ev(page, "state.recipes.filter(r => (r.collections || []).includes('friends')).map(r => r.title)")
+        check('Behalten: Rezept liegt in der Kategorie «Rezepte von Freunden»', await ev(page, "state.recipes.length") == n0 + 1 and kept == ['Pasta al Limone mit Ricotta'], str(kept))
+        check('Kategorie erscheint im Filter und filtert', await ev(page, "moreFilterOptions().some(o => o.id === 'friends' && o.label === 'Rezepte von Freunden') && recipesInCollection('friends', state.recipes).length === 1"))
+
         # 10 Tastatur und Fokus, Reduced Motion
         await setup(page, PROFILE, CONNS, INBOX)
+        await tab(page, 'friends')
         await page.keyboard.press('Tab'); 
         await page.evaluate("() => document.querySelector('.tl-fold[data-ui=add] > summary').focus()")
         await page.keyboard.press('Enter'); await page.wait_for_timeout(150)
@@ -177,13 +195,12 @@ async def main():
             for th in ['light', 'dark']:
                 await page.evaluate("(t) => { state.theme = t; applyTheme(); }", th)
                 for view in ['list', 'prev']:
-                    if view == 'list': await setup(page, PROFILE, CONNS, INBOX, "{add:true, manage:true, profile:true}")
+                    if view == 'list': await setup(page, PROFILE, CONNS, INBOX, "{add:true, manage:true, profile:true, tab:'friends'}")
                     else: await page.evaluate("() => { share.previewId = 's1'; state.view = 'settings-share-preview'; render(); }"); await page.wait_for_timeout(250)
                     ov = await ev(page, "(() => { const W = document.documentElement.clientWidth; return document.documentElement.scrollWidth - W; })()")
                     check(f'{w} px {th} {view}: kein horizontaler Ueberlauf', ov <= 0, f'{ov}')
             await setup(page, PROFILE, CONNS, INBOX)
-            cols = await ev(page, "(() => { const a = document.querySelector('.tl-col:first-child').getBoundingClientRect(), b = document.querySelector('.tl-col:last-child').getBoundingClientRect(); return Math.abs(a.top - b.top) < 40 && b.left > a.left + 100; })()")
-            check(f'{w} px: {"zwei Spalten" if w >= 1280 else "eine Spalte"}', cols == (w >= 1280) or (w == 820 and not cols))
+            check(f'{w} px: eine Spalte, Reiter nebeneinander und gross genug', await ev(page, "(() => { const t = Array.from(document.querySelectorAll('.tl-tab')).map(b => b.getBoundingClientRect()); return t.length === 3 && t.every(r => r.height >= 43.5 && Math.abs(r.top - t[0].top) < 2) && !document.querySelector('.tl-cols'); })()"))
         await page.evaluate("(t) => { state.theme = t; applyTheme(); }", 'light')
 
         check('Keine JS-Fehler', not errs, '; '.join(errs[:3]))
