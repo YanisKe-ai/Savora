@@ -72,7 +72,7 @@
 .pv-ing-panel { position: relative; background: var(--pv-panel); border-radius: var(--pv-panel-r); padding: 4mm 5mm 4mm; margin: 0 0 6mm; }
 .pv-tpl-prise-pop .pv-ing-panel { padding-bottom: 7mm; border-radius: 5mm 5mm 0 0; }
 .pv-wave { display: none; }
-.pv-tpl-prise-pop .pv-wave { display: block; position: absolute; left: 0; bottom: -.1mm; width: 100%; height: 3.6mm; }
+.pv-tpl-prise-pop .pv-wave { display: block; position: absolute; left: 0; bottom: -.1mm; width: 100%; height: 3.6mm; background: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='6' viewBox='0 0 100 6' preserveAspectRatio='none'%3E%3Cpath d='M0 6V3.2Q6.25 0.2 12.5 3.2T25 3.2T37.5 3.2T50 3.2T62.5 3.2T75 3.2T87.5 3.2T100 3.2V6Z' fill='%23FFFDF7'/%3E%3C/svg%3E") 0 0 / 100% 100% no-repeat; }   /* Wellenkante als Hintergrund, kein img: Rezeptfotos sind die einzigen Bilder der Seite */
 .pv-ing-cols { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); column-gap: 8mm; align-items: start; }
 .pv-ing-cols-1 { grid-template-columns: minmax(0, 1fr); }
 .pv-ing-col { display: grid; grid-template-columns: minmax(10mm, max-content) minmax(0, 1fr); column-gap: 3mm; align-content: start; min-width: 0; }

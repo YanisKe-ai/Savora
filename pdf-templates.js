@@ -197,9 +197,6 @@ function pvSplitCols(atoms) {
   if (best < 0) return [atoms, []];
   return [atoms.slice(0, best), atoms.slice(best)];
 }
-/* Wellenkante unter der Zutatenflaeche (Prise Pop): kleines lokales Vektorbild in der Seitenfarbe, als Bild eingebunden, weil
-   html2canvas Inline-SVG mit gestreckter Zeichenflaeche nicht zuverlaessig zeichnet. */
-const PV_WAVE_SRC = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="100" height="6" viewBox="0 0 100 6" preserveAspectRatio="none"><path d="M0 6V3.2Q6.25 0.2 12.5 3.2T25 3.2T37.5 3.2T50 3.2T62.5 3.2T75 3.2T87.5 3.2T100 3.2V6Z" fill="#FFFDF7"/></svg>');
 /* Zutatenflaeche einer Seite. units: Einheiten aus pvIngredientUnits (evtl. mit abgetrenntem Beginn einer Gruppe). */
 function pvIngPanel(units, label) {
   const atoms = [];
@@ -208,12 +205,12 @@ function pvIngPanel(units, label) {
   const cols = pvSplitCols(atoms);
   const colHtml = (list) => list.map((a, i) => (a.hasHead ? (a.idx === 0 ? pvIngUnit(a.head) : (i === 0 ? pvIngUnit(a.head, true) : '')) : '') + a.html).join('');
   const parts = cols.filter((c) => c.length).map((c) => colHtml(c));
-  const wave = PDF_CTX.tpl.wave ? `<img class="pv-wave" alt="" src="${PV_WAVE_SRC}">` : '';
-  return `<section class="pv-ing-panel"><h2 class="pv-h">${label || 'Zutaten'}</h2><div class="pv-ing-cols${parts.length === 1 ? ' pv-ing-cols-1' : ''}">${parts.map((h) => `<div class="${pvIngColClass(h)}">${h}</div>`).join('')}</div>${wave}</section>`;
+  const wave = PDF_CTX.tpl.wave ? '<i class="pv-wave" aria-hidden="true"></i>' : '';
+  return `<div class="pv-ing-panel"><h2 class="pv-h">${label || 'Zutaten'}</h2><div class="pv-ing-cols${parts.length === 1 ? ' pv-ing-cols-1' : ''}">${parts.map((h) => `<div class="${pvIngColClass(h)}">${h}</div>`).join('')}</div>${wave}</div>`;
 }
 function pvStepsHtml(units, label) {
   const html = units.map((u) => u.html).join('');
-  return html ? `<section class="pv-steps"><h2 class="pv-h">${label || 'Zubereitung'}</h2>${html}</section>` : '';
+  return html ? `<div class="pv-steps"><h2 class="pv-h">${label || 'Zubereitung'}</h2>${html}</div>` : '';
 }
 
 /* Naehrwerte: ein Raster fuer «Kompakt» und «Erweitert». Jede Zelle = Wert + Einheit, darunter die Bezeichnung.
@@ -309,6 +306,8 @@ function pvExtrasGroupHtml(units) {
   return `<div class="pv-extras">${body}</div>`;
 }
 
+function pvExtrasHtml(m, nutritionDetail) { return pvExtrasGroupHtml(pvExtrasUnits(m, nutritionDetail)); }
+
 function pvFooter() {
   const t = PDF_CTX;
   const left = [t.bookTitle, t.author].filter(Boolean).join('  /  ') || 'Savora';
@@ -365,6 +364,10 @@ function pvPage(ctx, pg) {
     ${pvExtrasGroupHtml(pg.extras)}
     ${pvFooter()}
   </section>`;
+}
+/* Fortsetzungsseite (Kurzform fuer Tests und Altaufrufer) */
+function pvContinuationPage(m, ingU, stepU, extrasHtml, tight, ingRight, n, total) {
+  return pvPage({ m, recipe: null, imgUrl: null, frame: null, tight: !!tight }, { first: false, n, total, ing: ingU || [], steps: stepU || [], extras: extrasHtml ? [{ key: 'x', html: extrasHtml }] : [] });
 }
 /* Komplettes einseitiges Rezept (Stufe 1 und 2 der Seitenplanung). opts: { frame, tight } */
 function pvRecipePage(m, recipe, imgUrl, opts, nutritionDetail) {

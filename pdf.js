@@ -185,7 +185,26 @@ function pdfFontDescentPx(cs) {
   _pdfDescentCache.set(key, d);
   return d;
 }
-function pdfAddTextLayer(pdf, section, mmPerPx) {
+/* Zeichen ausserhalb von WinAnsi (z. B. ş ğ Ł ı) kann die eingebaute PDF-Schrift (Helvetica) nicht darstellen. Fuer den unsichtbaren
+   Textlayer wird dann Carlito (TTF, lokal) in das PDF eingebettet, nur wenn solche Zeichen vorkommen. Fehlt die Datei (offline,
+   nicht im Cache), bleibt es bei Helvetica: die Seite sieht gleich aus, nur Suchen/Kopieren dieser Zeichen faellt aus. */
+const PDF_NON_WINANSI = /[^\u0000-ÿ€‚ƒ„…†‡ˆ‰Š‹ŒŽ‘’“”•–—˜™š›œžŸ]/;
+let _pdfUniFont = null;
+async function pdfLoadUnicodeFont(pdf, text) {
+  if (!PDF_NON_WINANSI.test(text)) return null;
+  try {
+    if (!_pdfUniFont) {
+      const buf = await (await fetch('vendor/fonts/carlito-regular.ttf')).arrayBuffer();
+      const u = new Uint8Array(buf); let s = '';
+      for (let i = 0; i < u.length; i += 8192) s += String.fromCharCode.apply(null, u.subarray(i, i + 8192));
+      _pdfUniFont = btoa(s);
+    }
+    pdf.addFileToVFS('Carlito-Regular.ttf', _pdfUniFont);
+    pdf.addFont('Carlito-Regular.ttf', 'CarlitoText', 'normal', 'Identity-H');
+    return 'CarlitoText';
+  } catch (e) { return null; }
+}
+function pdfAddTextLayer(pdf, section, mmPerPx, uniFont) {
   try {
     const secRect = section.getBoundingClientRect();
     const range = document.createRange();
@@ -215,8 +234,8 @@ function pdfAddTextLayer(pdf, section, mmPerPx) {
       if (line) { line.text += ' ' + w.t; line.right = w.x + w.w; }
       else lines.push({ text: w.t, x: w.x, y: w.y, right: w.x + w.w, fs: w.fs });
     });
-    pdf.setFont('helvetica', 'normal');
     lines.forEach((l) => {
+      pdf.setFont(uniFont && PDF_NON_WINANSI.test(l.text) ? uniFont : 'helvetica', 'normal');
       const sizePt = (l.fs * mmPerPx) / 0.3528;
       pdf.setFontSize(sizePt);
       const widthMm = (l.right - l.x) * mmPerPx;
@@ -300,6 +319,7 @@ async function renderSectionsToPdf(opts) {
   const tocLinks = [];          // [{ page, x, y, w, h, target }]
   const urlLinks = [];          // [{ page, url, x, y, w, h }]
   const skipNumbers = new Set();
+  const uniFont = await pdfLoadUnicodeFont(pdf, container.textContent || '');
   let sliced = 0;
 
   for (let si = 0; si < sections.length; si++) {
@@ -342,7 +362,7 @@ async function renderSectionsToPdf(opts) {
       const page = pdfComposePage(canvas, domW, domH, bg);
       pdf.addImage(page.toDataURL('image/jpeg', PDF_JPEG_QUALITY), 'JPEG', 0, 0, pageWidthMm, pageHeightMm);
       page.width = 0; page.height = 0;
-      pdfAddTextLayer(pdf, section, pageWidthMm / domWidth);
+      pdfAddTextLayer(pdf, section, pageWidthMm / domWidth, uniFont);
       secLinks.forEach((l) => urlLinks.push({ ...l, page: pageNo }));
     } else {
       // Sicherheitsnetz: nur falls eine Section trotz Vor-Pagination zu hoch ist (wird im Test als Fehler gewertet)
@@ -604,6 +624,13 @@ function pdfSearchPlan(inp, items, safety, minFill) {
 
 /* Verteilung in Seiten-HTML umsetzen (Gesamtzahl steht fest, damit «Fortsetzung · N von M» stimmt). */
 function pdfAssemble(ctx, sim, ingU) {
+  // Nie eine Seite nur aus Zusatzbloecken: der letzte Schritt der Vorseite wandert mit auf die letzte Seite
+  const pgs = sim.pages;
+  for (let guard = 0; guard < 4; guard++) {
+    const last = pgs[pgs.length - 1], prev = pgs[pgs.length - 2];
+    if (pgs.length < 2 || last.s.length || !last.e.length || !prev || prev.s.length < 2) break;
+    last.s.unshift(prev.s.pop());
+  }
   const K = sim.K;
   return sim.pages.map((pg, p) => pvPage(ctx, { first: p === 0, n: p + 1, total: K, ing: p === 0 ? ingU : [], steps: pg.s.map(pdfPieceUnit), extras: pg.e.map(pdfPieceUnit) }));
 }
