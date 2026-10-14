@@ -33,10 +33,10 @@ async def open_design(page):
         c.title = 'Sonntagsküche'; c.subtitle = 'Rezepte für jeden Tag'; c.author = 'Alex Muster'; saveCookbookConfig(c); state.cookbookStep = 2; state.view = 'cookbook'; render(); }""")
     await page.wait_for_selector('.ce-canvas'); await page.wait_for_timeout(600)
 
-async def tab_to(page, js_pred, limit=250):
-    """Drueckt Tab, bis das fokussierte Element js_pred erfuellt (nur Tastatur)."""
+async def tab_to(page, js_pred, limit=250, key='Tab'):
+    """Drueckt Tab (oder Shift+Tab), bis das fokussierte Element js_pred erfuellt (nur Tastatur)."""
     for i in range(limit):
-        await page.keyboard.press('Tab')
+        await page.keyboard.press(key)
         if await page.evaluate("(p) => { const a = document.activeElement; return !!a && (new Function('a', 'return ' + p))(a); }", js_pred): return i + 1
     return 0
 
@@ -54,11 +54,17 @@ async def main():
         n = await tab_to(page, "a.matches('.ce-modebtn[data-v=custom]')")
         await page.keyboard.press('Enter'); await page.wait_for_timeout(400)
         check('Tastatur: «Eigenes Cover» per Tab erreichbar und mit Enter gewaehlt', n > 0 and await ev("() => ce.model.mode") == 'custom', f'{n} Tabs')
-        n = await tab_to(page, "a.matches('.ce-hit[data-hit=title]')")
-        check('Tastatur: Titel auf der Vorschau per Tab erreichbar (Schaltflaeche mit Namen)', n > 0 and 'Kochbuchtitel' in (await ev("() => document.activeElement.getAttribute('aria-label')") or ''), f'{n} Tabs')
+        n = await tab_to(page, "a.matches('.ce-tab[aria-selected=true]')")
+        for _ in range(3):
+            if await ev("() => document.activeElement.dataset.v === 'text'"): break
+            await page.keyboard.press('ArrowRight'); await page.wait_for_timeout(150)
+        check('Tastatur: Reiter «Texte» per Tab und Pfeiltaste', n > 0 and await ev("() => ce.tab") == 'text', f'{n} Tabs')
+        n = await tab_to(page, "a.matches('[data-ce=select][data-f=title]')")
         await page.keyboard.press('Enter'); await page.wait_for_timeout(300)
+        check('Tastatur: «Gestalten» beim Kochbuchtitel per Tab/Enter waehlt den Titel aus (Rahmen erscheint)', n > 0 and await ev("() => ce.sel") == 'title' and await ev("() => !!document.querySelector('.ce-frame[data-fr=title]')"), f'{n} Tabs')
+        n = await tab_to(page, "a.matches('.ce-frame[data-fr=title]')", key='Shift+Tab')
         foc = await ev("() => document.activeElement.className + '|' + (document.activeElement.dataset.fr || '')")
-        check('Tastatur: Enter waehlt den Titel aus und setzt den Fokus auf den Auswahlrahmen', 'ce-frame' in foc and foc.endswith('|title'), foc)
+        check('Tastatur: Auswahlrahmen des Titels per Tastatur fokussierbar', n > 0 and 'ce-frame' in foc and foc.endswith('|title'), f'{foc} {n}')
         b0 = await ev("() => ceEff('title')"); u0 = await ev("() => ce.undo.length")
         for k in ('ArrowRight', 'ArrowRight', 'Shift+ArrowDown'): await page.keyboard.press(k)
         await page.wait_for_timeout(700)
