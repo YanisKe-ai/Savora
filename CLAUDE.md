@@ -24,7 +24,10 @@ Savora ist eine Vanilla-JS-PWA (persönliches Kochbuch), live über GitHub Pages
 8. **Auto-Fix-Meldungen zu altem Stand:** Head-Commit prüfen, bevor man «behebt»; bei altem Stand auf den neuen Lauf warten.
 9. **Fehler zuerst im Log lesen** (`gh api repos/YanisKe-ai/Savora/actions/jobs/<id>/logs --allow-escape-sequences`), dann beheben, nicht raten.
 10. **SW-Versionsname:** genau `v<Zahl>-<ein Wort aus a-z0-9>` (ein einziger Bindestrich, z. B. `v87-scharfess`); `test_shell` und `test_paket43` prüfen das.
-11. **Visuelle Treue:** Wenn der Nutzer Referenzbilder oder Code-Vorlagen liefert, diese 1:1 umsetzen und mit Vergleichsbild prüfen, bevor «fertig» gemeldet wird.
+11. **Ports:** nur 1024 bis 65535 verwenden (darüber startet der Testserver nicht); parallele Läufe mit Basisports mindestens 600 bis 1000 auseinander, sonst «Address already in use» (kein echter Testfehler, einzeln wiederholen).
+12. **Plattformabhängige Referenzbilder:** Pixel-Referenzen nie auf dem Mac erzeugen und auf Linux vergleichen; im selben Lauf gegen den alten Stand rendern (z. B. `git archive`) oder Layout-Schnappschüsse mit fester Messfunktion.
+13. **Feste Wartezeiten in Tests:** statt `wait_for_timeout(80)` auf den Zustand warten (`wait_for_function`); Linux-CI ist langsamer.
+14. **Visuelle Treue:** Wenn der Nutzer Referenzbilder oder Code-Vorlagen liefert, diese 1:1 umsetzen und mit Vergleichsbild prüfen, bevor «fertig» gemeldet wird.
 
 ## Zusammenarbeit (so arbeiten wir)
 - **Aufträge:** Der Nutzer liefert oft ZIP-Pakete (Prompt, Abnahmeliste, Referenzbilder, Code-Vorlagen). Immer in einen neuen leeren Ordner entpacken (nie ausführen ausser Referenz-HTML zur Ansicht), Prompt vollständig lesen, alle Bilder ansehen, Vorlagen verbindlich umsetzen (nicht neu interpretieren).
