@@ -468,7 +468,7 @@ function cookbookWarnings(cfg) {
   const byId = Object.fromEntries(state.recipes.map(r => [r.id, r]));
   if (!cfg.items.length) warnings.push({ level: 'error', text: 'Es ist noch kein Rezept ausgewählt.' });
   if (typeof coverLayout === 'function' && cfg.cover) {
-    coverLayout({ templateId: cfg.cover.templateId, title: cfg.title, name: cfg.author, slogan: cfg.subtitle, date: cfg.cover.date, showDate: cfg.cover.showDate, logo: cfg.showLogo !== false }).warnings.forEach(w => warnings.push({ level: 'error', text: 'Titelblatt: ' + w.message }));
+    coverLayout(coverInputFromConfig(cfg)).warnings.forEach(w => warnings.push({ level: (!w.kind || w.kind === 'cut' || w.kind === 'outside') ? 'error' : 'warn', text: 'Titelblatt: ' + w.message }));
   }
   if (cfg.items.length > 40) warnings.push({ level: 'warn', text: `Ein Kochbuch mit ${cfg.items.length} Rezepten braucht beim Erstellen einige Minuten und viel Speicher. Teile es bei Bedarf in mehrere Bücher auf.` });
   cfg.items.forEach(it => {
