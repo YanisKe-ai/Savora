@@ -69,34 +69,33 @@ async def main():
         # ---------- Schnellschalter ----------
         for (w, h) in SIZES:
             b, ctx, page, errs = await new_page(p, w, h); ev = page.evaluate; tag = f'[{w}] Schalter: '
-            await ev("() => { localStorage.setItem(THEME_KEY, 'light'); state.theme = 'light'; applyTheme(); state.view = 'settings'; render(); }")
-            await page.wait_for_selector('.theme-quick')
-            g = await ev("""() => { const o = [...document.querySelectorAll('.theme-opt--quick')]; return { labels: o.map(e => e.textContent.trim()), small: o.filter(e => { const r = e.getBoundingClientRect(); return r.height < 43.5 || r.width < 43.5; }).length, sw: document.documentElement.scrollWidth <= document.documentElement.clientWidth, clipped: o.filter(e => e.scrollWidth > e.clientWidth + 1).length, grp: document.querySelector('.theme-quick-switch').getAttribute('role'), row: !![...document.querySelectorAll('.settings-row-title')].find(e => e.textContent.includes('Darstellung und Einheiten')) }; }""")
-            check(tag + 'Drei Optionen Hell, Dunkel, System (seit 0.70.2); Radiogruppe; Zeile «Darstellung und Einheiten» bleibt', g['labels'] == ['Hell', 'Dunkel', 'System'] and g['grp'] == 'radiogroup' and g['row'], str(g))
+            await ev("() => { localStorage.setItem(THEME_KEY, 'light'); state.theme = 'light'; applyTheme(); state.view = 'settings-display'; render(); }")
+            await page.wait_for_selector('.theme-switch')
+            g = await ev("""() => { const o = [...document.querySelectorAll('.theme-opt')]; return { labels: o.map(e => e.querySelector('.theme-opt-label').textContent.trim()), small: o.filter(e => { const r = e.getBoundingClientRect(); return r.height < 43.5 || r.width < 43.5; }).length, sw: document.documentElement.scrollWidth <= document.documentElement.clientWidth, clipped: o.filter(e => e.scrollWidth > e.clientWidth + 1).length, grp: document.querySelector('.theme-switch').getAttribute('role'), row: !document.querySelector('.theme-quick') }; }""")
+            check(tag + 'Drei Optionen Hell, Dunkel, Wie dein Gerät (Seite Darstellung); Radiogruppe; kein Schnellschalter mehr auf Mehr', g['labels'] == ['Hell', 'Dunkel', 'Wie dein Gerät'] and g['grp'] == 'radiogroup' and g['row'], str(g))
             check(tag + 'Alle Flaechen mindestens 44 px, nichts abgeschnitten, kein Ueberlauf', g['small'] == 0 and g['clipped'] == 0 and g['sw'] and not await overflow_info(page), str(g))
             await ev("() => { document.documentElement.style.fontSize = '24px'; }")
-            g2 = await ev("() => ({ sw: document.documentElement.scrollWidth <= document.documentElement.clientWidth, small: [...document.querySelectorAll('.theme-opt--quick')].filter(e => e.getBoundingClientRect().height < 43.5).length })")
+            g2 = await ev("() => ({ sw: document.documentElement.scrollWidth <= document.documentElement.clientWidth, small: [...document.querySelectorAll('.theme-opt')].filter(e => e.getBoundingClientRect().height < 43.5).length })")
             check(tag + 'Systemschrift 24 px: kein Ueberlauf, 44 px', g2['sw'] and g2['small'] == 0, str(g2))
             await ev("() => { document.documentElement.style.fontSize = ''; }")
             if w in (390, 1440): await shot(page, f'mehr_{w}_hell.png')
-            for th, label in (('dark', 'Dunkel'), ('auto', 'System'), ('light', 'Hell')):
-                await page.click(f'.theme-opt--quick[data-theme="{th}"]'); await page.wait_for_timeout(250)
-                s = await ev("""() => { const a = document.querySelector('.theme-opt--quick.active'); return { th: state.theme, ls: localStorage.getItem(THEME_KEY), n: document.querySelectorAll('.theme-opt--quick.active').length, checked: document.querySelectorAll('.theme-opt--quick[aria-checked="true"]').length, hook: a ? getComputedStyle(a, '::before').content + '|' + getComputedStyle(a, '::before').display : null, foc: document.activeElement && document.activeElement.dataset.theme }; }""")
+            for th, label in (('dark', 'Dunkel'), ('auto', 'Wie dein Gerät'), ('light', 'Hell')):
+                await page.click(f'.theme-opt[data-theme="{th}"]'); await page.wait_for_timeout(250)
+                s = await ev("""() => { const a = document.querySelector('.theme-opt.active'); return { th: state.theme, ls: localStorage.getItem(THEME_KEY), n: document.querySelectorAll('.theme-opt.active').length, checked: document.querySelectorAll('.theme-opt[aria-checked="true"]').length, hook: a ? getComputedStyle(a, '::before').content + '|' + getComputedStyle(a, '::before').display : null, foc: document.activeElement && document.activeElement.dataset.theme }; }""")
                 check(tag + f'{label}: gespeichert, genau eine aktive Option mit Haken, Fokus bleibt', s['th'] == th and s['ls'] == th and s['n'] == 1 and s['checked'] == 1 and s['hook'] and s['hook'].startswith('""') and not s['hook'].endswith('none'), str(s))
                 if th == 'dark' and w in (390, 1440): await shot(page, f'mehr_{w}_dunkel.png')
             # bleibt nach Neuladen
-            await page.click('.theme-opt--quick[data-theme="dark"]'); await page.wait_for_timeout(250)
+            await page.click('.theme-opt[data-theme="dark"]'); await page.wait_for_timeout(250)
             await page.reload(); await page.wait_for_function("typeof state !== 'undefined' && document.getElementById('app').children.length > 0"); await page.wait_for_timeout(500)
-            await ev("() => { state.view = 'settings'; render(); }")
-            r = await ev("() => ({ th: state.theme, attr: document.documentElement.getAttribute('data-theme'), act: document.querySelector('.theme-opt--quick.active')?.dataset.theme })")
+            await ev("() => { state.view = 'settings-display'; render(); }")
+            r = await ev("() => ({ th: state.theme, attr: document.documentElement.getAttribute('data-theme'), act: document.querySelector('.theme-opt.active')?.dataset.theme })")
             check(tag + 'Dunkel bleibt nach Neuladen', r['th'] == 'dark' and r['attr'] == 'dark' and r['act'] == 'dark', str(r))
             # gleiche Wahl auf der Seite «Darstellung und Einheiten»
             await ev("() => { state.view = 'settings-display'; render(); }")
-            r = await ev("() => document.querySelector('.theme-switch--grid .theme-opt.active')?.dataset.theme")
+            r = await ev("() => document.querySelector('.theme-switch .theme-opt.active')?.dataset.theme")
             check(tag + 'Seite «Darstellung und Einheiten» zeigt dieselbe Wahl', r == 'dark', str(r))
-            await ev("() => { state.view = 'settings'; render(); }")
             # Tastatur
-            await ev("() => document.querySelector('.theme-opt--quick[data-theme=\"dark\"]').focus()")
+            await ev("() => document.querySelector('.theme-opt[data-theme=\"dark\"]').focus()")
             await page.keyboard.press('ArrowRight'); await page.wait_for_timeout(300)
             k = await ev("() => ({ th: state.theme, foc: document.activeElement.dataset.theme })")
             check(tag + 'Pfeil rechts waehlt System und behaelt den Fokus (seit 0.70.2 statt Schwarz)', k['th'] == 'auto' and k['foc'] == 'auto', str(k))

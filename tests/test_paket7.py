@@ -31,7 +31,7 @@ async def main():
         check('1280 px: Rezeptraster mit 4 Spalten', cols == 4, str(cols))
         labels = await page.evaluate("Array.from(document.querySelectorAll('.bottom-nav button')).map(b => b.querySelector('.nav-label').textContent)")
         # Paket 37: vier Hauptbereiche (Kochbuecher statt Einstellungen als Tab) plus „Einstellungen“ als eigener Eintrag unten
-        check('Seitenleiste: vier Bereiche und Einstellungen mit Text', labels == ['Rezepte', 'Wochenplan', 'Einkauf', 'Kochbücher', 'Einstellungen'], str(labels))
+        check('Seitenleiste: vier Bereiche und «Mehr» mit Text', labels == ['Rezepte', 'Wochenplan', 'Einkauf', 'Kochbücher', 'Mehr'], str(labels))
         bad = await page.evaluate("Array.from(document.querySelectorAll('.bottom-nav button')).filter(b => b.getBoundingClientRect().height < 43.5).length")
         check('Seitenleiste: Tippflächen mind. 44 px', bad == 0)
         await page.evaluate("document.querySelector('.bottom-nav [data-view=\"shopping\"]').click()"); await page.wait_for_timeout(300)

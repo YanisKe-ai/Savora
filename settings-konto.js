@@ -1,0 +1,1 @@
+/* Platzhalter (M1): die Ansichten fuer Konto, Geraeteabgleich, Sicherung und Ohne Internet liefert Teilauftrag M2 (settingsAccountView, settingsSyncView, settingsBackupView, settingsOfflineView). Beim Zusammenfuehren die Datei von M2 uebernehmen. */

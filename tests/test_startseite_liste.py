@@ -103,7 +103,7 @@ async def main():
             # Mehr
             await page.click('.bottom-nav button:nth-child(6)'); await page.wait_for_timeout(300)
             nv2 = await ev(NAV_JS); br2 = await ev(BRAND_JS); title = await ev("() => document.querySelector('.page-title').textContent.trim()")
-            check(tag + 'Mehr: Einstellungsseite, Punkt «Mehr» aktiv, Titel «Mehr»', await ev("state.view") == 'settings' and nv2['active'] == ['Mehr'] and title == 'Mehr', f"{nv2['active']} {title}")
+            check(tag + 'Mehr: Seite «Mehr», Punkt «Mehr» aktiv, Titel «Mehr»', await ev("state.view") == 'more' and nv2['active'] == ['Mehr'] and title == 'Mehr', f"{nv2['active']} {title}")
             check(tag + 'Mehr: Wortmarke zentriert, kein Zahnrad', abs(br2['mid'] - br2['W'] / 2) <= 1 and br2['kids'] == [], f"{br2['mid']} {br2['kids']}")
             sw = await ev("() => [document.documentElement.scrollWidth, document.documentElement.clientWidth]")
             check(tag + 'Kein horizontaler Ueberlauf (Mehr)', sw[0] <= sw[1], str(sw))
@@ -160,12 +160,12 @@ async def main():
         # ---------- C. Navigation ueber alle fuenf Punkte, Mehr-Unterseiten, History ----------
         await ev(STATE_RESET); await page.wait_for_timeout(200)
         h0 = await ev("history.length"); seen = []
-        for i, view in [(3, 'mealplan'), (4, 'shopping'), (5, 'cookbooks'), (6, 'settings'), (2, 'home')]:
+        for i, view in [(3, 'mealplan'), (4, 'shopping'), (5, 'cookbooks'), (6, 'more'), (2, 'home')]:
             await page.click(f'.bottom-nav button:nth-child({i})'); await page.wait_for_timeout(300)
             nv = await ev(NAV_JS); seen.append((view, await ev('state.view'), nv['active']))
             ov2 = [k for k in range(4) if nv['labelRects'][k]['r'] > nv['labelRects'][k + 1]['l'] - 1]
             check(f'Navigation mit aktivem Punkt {view}: Beschriftungen vollstaendig und ohne Ueberlappung', nv['clipped'] == 0 and not ov2, f"clipped={nv['clipped']} {nv['labelRects']}")
-        check('Alle fuenf Punkte fuehren zum richtigen Bereich, genau einer ist aktiv', [(a, b, len(c)) for a, b, c in seen] == [(v, v, 1) for v in ['mealplan', 'shopping', 'cookbooks', 'settings', 'home']], str(seen))
+        check('Alle fuenf Punkte fuehren zum richtigen Bereich, genau einer ist aktiv', [(a, b, len(c)) for a, b, c in seen] == [(v, v, 1) for v in ['mealplan', 'shopping', 'cookbooks', 'more', 'home']], str(seen))
         check('Wechsel zwischen den Punkten legt keine History-Eintraege an', await ev("history.length") == h0, f"{h0} -> {await ev('history.length')}")
         await page.click('.bottom-nav button:nth-child(6)'); await page.wait_for_timeout(250)
         h1 = await ev("history.length")
@@ -292,7 +292,7 @@ async def main():
             b, ctx, page, errs = await new_phone(p, w, h); ev = page.evaluate; tag = f'[{w}] '
             await ev(STATE_RESET); await page.wait_for_timeout(300)
             nv = await ev(NAV_JS)
-            exp_last = 'Einstellungen' if w >= 900 else 'Mehr'
+            exp_last = 'Mehr'
             check(tag + 'Navigation: genau fuenf Punkte, letzter «' + exp_last + '»', nv['n'] == 5 and nv['labels'][:4] == ['Rezepte', 'Wochenplan', 'Einkauf', 'Kochbücher'] and nv['labels'][4] == exp_last and nv['vis'], str(nv['labels']))
             check(tag + ('Seitenleiste links' if w >= 900 else 'untere Leiste') + ', keine doppelte Navigation', (nv['navRect']['l'] == 0 and nv['navRect']['w'] < 300 and nv['navRect']['h'] > h * 0.5) if w >= 900 else (nv['navRect']['b'] >= h - 1 and nv['navRect']['w'] >= w - 1), str(nv['navRect']))
             tb = await ev("""() => ({ layout: !!document.querySelector('.layout-toggle'), seg: !!document.querySelector('.seg'), addBar: !!document.querySelector('.home-add-bar'), plus: !!document.querySelector('.topbar [data-action="open-add-menu"]'), gear: !!document.querySelector('.icon-btn--settings, [aria-label="Einstellungen"]:not(.nav-settings)'), phoneRows: document.querySelectorAll('.rrow--phone').length,
@@ -301,7 +301,7 @@ async def main():
             check(tag + 'Kein horizontaler Ueberlauf', tb['sw'], str(await overflow_info(page)))
             await page.click('.bottom-nav button:nth-child(6)' if False else '.bottom-nav .nav-settings'); await page.wait_for_timeout(300)
             nv2 = await ev(NAV_JS); t2 = await ev("document.querySelector('.page-title').textContent.trim()")
-            check(tag + 'Zugang zu Einstellungen: Seite offen, Punkt aktiv, Titel ' + ('«Einstellungen»' if w >= 900 else '«Mehr»'), await ev("state.view") == 'settings' and nv2['active'] == [exp_last] and t2 == ('Einstellungen' if w >= 900 else 'Mehr'), f"{nv2['active']} {t2}")
+            check(tag + 'Zugang zu «Mehr»: Seite offen, Punkt aktiv, Titel «Mehr»', await ev("state.view") == 'more' and nv2['active'] == [exp_last] and t2 == 'Mehr', f"{nv2['active']} {t2}")
             await ctx.close(); await b.close()
 
         # ---------- J. Wechsel der Fenstergroesse an der Grenze 768 ----------

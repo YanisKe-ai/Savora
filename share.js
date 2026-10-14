@@ -48,7 +48,7 @@ async function shareRefresh() {
 function shareRerender() {
   const v = state.view || '';
   if (state.modal) return;
-  if (v !== 'settings-share' && v !== 'settings-share-preview' && v !== 'settings') return;
+  if (v !== 'settings-share' && v !== 'settings-share-preview' && v !== 'more') return;
   const a = document.activeElement;
   if (a && /^(INPUT|TEXTAREA)$/.test(a.tagName)) { share.dirty = true; return; }   // nie mitten in einer Eingabe neu zeichnen, wird danach nachgeholt
   share.dirty = false;
@@ -63,7 +63,7 @@ async function shareCheckCount() {
       showToast(n === 1 ? 'Neu: 1 Rezept oder Anfrage wartet auf dich' : `Neu: ${n} Rezepte oder Anfragen warten auf dich`, 'info');
       await shareRefresh();
     } else if (n !== share.count) share.count = n;
-    if (state.view === 'settings') shareRerender();
+    if (state.view === 'more') shareRerender();
   } catch (e) { /* offline oder abgemeldet: still */ }
 }
 function shareStartup() {
@@ -84,7 +84,7 @@ function shareHandleInviteLink() {
     sessionStorage.setItem(SHARE_INVITE_KEY, code.toUpperCase());
     setTimeout(() => {
       if (cloudSignedIn()) { state.view = 'settings-share'; render(); shareRefresh(); }
-      else showToast('Melde dich an (Einstellungen, Konto und Sicherung), um die Einladung anzunehmen.', 'info');
+      else showToast('Melde dich an (Mehr, Einstellungen, Mein Konto), um die Einladung anzunehmen.', 'info');
     }, 800);
   } catch (e) { /* ungueltige Adresse: ignorieren */ }
 }
@@ -285,7 +285,7 @@ function settingsShareView() {
       : friendsSec + profileSec + senderNameSectionHtml();
     body = `${offlineBanner}${tabs}<div id="tl-panel" role="tabpanel" aria-labelledby="tl-tab-${tab}" class="tl-panel">${panel}</div>`;
   }
-  return settingsDetailShell('Socialize', `<div class="tl${wide ? ' tl--wide' : ''}${intro ? ' tl--intro' : ''}">${intro ? `<div class="tl-intro-grid"><div>${body}</div>${shareAsideHtml()}</div>` : body}${wide ? '' : senderNameSectionHtml()}</div>`) + shareSendModal() + sharePickModal();
+  return settingsDetailShell('Freunde & Rezepte', `<div class="tl${wide ? ' tl--wide' : ''}${intro ? ' tl--intro' : ''}">${intro ? `<div class="tl-intro-grid"><div>${body}</div>${shareAsideHtml()}</div>` : body}${wide ? '' : senderNameSectionHtml()}</div>`) + shareSendModal() + sharePickModal();
 }
 
 function shareFindInbox(id) { return share.inbox.find(x => x.id === id) || null; }
