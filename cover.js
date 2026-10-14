@@ -29,7 +29,7 @@ const COVER_TEMPLATES = [
   { id: 'pop', name: 'Pop', file: 'pop', ink: COVER_DARK, logoVariant: 'light', text: { x: 0.09, y: 0.13, w: 0.82, h: 0.25 } },
   { id: 'lieblingsbuch', name: 'Lieblingsbuch', file: 'lieblingsbuch', ink: COVER_LIGHT, logoVariant: 'dark', text: { x: 0.27, y: 0.13, w: 0.64, h: 0.27 } },
   { id: 'tomate', name: 'Tomate', file: 'tomate', ink: COVER_DARK, logoVariant: 'light', text: { x: 0.09, y: 0.13, w: 0.82, h: 0.35 } },
-  { id: 'salbei', name: 'Salbei', file: 'salbei', ink: COVER_DARK, logoVariant: 'light', text: { x: 0.09, y: 0.13, w: 0.80, h: 0.18 }, date: { x1: 0.955, size: 11 } },
+  { id: 'salbei', name: 'Salbei', file: 'salbei', ink: COVER_DARK, logoVariant: 'light', text: { x: 0.09, y: 0.13, w: 0.80, h: 0.18 }, date: { x1: 0.955, size: 12 } },
   { id: 'nachtkueche', name: 'Nachtküche', file: 'nachtkueche', ink: COVER_LIGHT, logoVariant: 'dark', text: { x: 0.09, y: 0.13, w: 0.82, h: 0.27 } },
   { id: 'citrus', name: 'Citrus', file: 'citrus', ink: COVER_LIGHT, logoVariant: 'dark', text: { x: 0.09, y: 0.13, w: 0.82, h: 0.21 } },
   { id: 'bistro', name: 'Bistro', file: 'bistro', ink: COVER_DARK, logoVariant: 'light', text: { x: 0.09, y: 0.13, w: 0.82, h: 0.15 } },
@@ -152,12 +152,28 @@ function coverLayout(input, measure) {
   const blocks = [];
   if (present.length) {
     const z = tpl.text, gap = 0.016;
-    const totalW = present.reduce((a, k) => a + COVER_BLOCK_WEIGHTS[k], 0);
     const avail = z.h - gap * (present.length - 1);
+    // Hoehe gerecht verteilen: Ein Feld, das schon in voller Schriftgroesse weniger braucht als sein Anteil, gibt den Rest ab
+    // (langer Name bei kurzem Titel bekommt so den freien Platz statt in Mindestschrift zu landen).
+    const fits = {}, settled = {};
+    for (let round = 0; round < present.length; round++) {
+      const open = present.filter(k => !settled[k]);
+      const usedByS = present.reduce((a, k) => a + (settled[k] || 0), 0);
+      const totalW = open.reduce((a, k) => a + COVER_BLOCK_WEIGHTS[k], 0);
+      let changed = false;
+      open.forEach((k) => {
+        const h = (avail - usedByS) * COVER_BLOCK_WEIGHTS[k] / totalW;
+        fits[k] = coverFitBlock(k, texts[k], { w: z.w, h }, m);
+        if (fits[k].fits && fits[k].size === COVER_FONTS[k].max) { settled[k] = (fits[k].lines.length * fits[k].lh) / COVER_PAGE.h; changed = true; }
+      });
+      if (!changed) break;
+    }
+    const open2 = present.filter(k => !settled[k]);
+    const usedS = present.reduce((a, k) => a + (settled[k] || 0), 0), totalW2 = open2.reduce((a, k) => a + COVER_BLOCK_WEIGHTS[k], 0);
     let y = z.y;
     present.forEach((k) => {
-      const h = avail * COVER_BLOCK_WEIGHTS[k] / totalW;
-      const fit = coverFitBlock(k, texts[k], { w: z.w, h }, m);
+      const h = settled[k] != null ? settled[k] : (avail - usedS) * COVER_BLOCK_WEIGHTS[k] / totalW2;
+      const fit = settled[k] != null ? fits[k] : coverFitBlock(k, texts[k], { w: z.w, h }, m);
       const usedH = Math.min(h, (fit.lines.length * fit.lh) / COVER_PAGE.h);
       if (!fit.fits) warnings.push({ key: k, message: `${COVER_BLOCK_LABEL[k]} ist zu lang für dieses Titelblatt. Bitte kürzen (er passt nur in kleiner, nicht lesbarer Schrift).` });
       blocks.push({ key: k, lines: fit.lines, sizePx: fit.size, lineHeightPx: fit.lh, family: COVER_FONTS[k].family, weight: COVER_FONTS[k].weight, x: z.x, y, w: z.w, h: usedH, ink: tpl.ink, fits: fit.fits });
