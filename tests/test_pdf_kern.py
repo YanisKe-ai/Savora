@@ -155,7 +155,7 @@ async def main():
         print('Planung:', {k: (v['n'], v['tier']) for k, v in plan.items()})
         check('Stufe 1/2: kurze Rezepte einseitig', all(plan[i]['n'] == 1 for i in ('fx_carbonara', 'fx_cookies', 'fx_min', 'fx_badimg')) and plan['fx_manti']['n'] <= 2, str({i: plan[i]['n'] for i in ('fx_carbonara', 'fx_cookies', 'fx_manti', 'fx_min', 'fx_badimg')}))   # Pur setzt Manti (24 Zutaten, 14 Schritte, Foto) wie die Referenz auf zwei Seiten
         check('Stufe 3: langes Rezept (40 Zutaten) zwei bis drei Seiten (Pur nutzt 13 pt)', plan['fx_long40']['n'] in (2, 3) and plan['fx_long40']['tier'] >= 3, str((plan['fx_long40']['n'], plan['fx_long40']['tier'])))
-        check('Stufe 4: sehr langes Rezept mindestens dreiseitig', plan['fx_triple']['n'] >= 3 and plan['fx_triple']['tier'] == 4, str((plan['fx_triple']['n'], plan['fx_triple']['tier'])))
+        check('Stufe 4: sehr langes Rezept mindestens dreiseitig (Planer V2: tier 5 = drei und mehr Seiten)', plan['fx_triple']['n'] >= 3 and plan['fx_triple']['tier'] == 5, str((plan['fx_triple']['n'], plan['fx_triple']['tier'])))
         check('Ueberlauf-Rezept (Foto, 16 Zutaten, 14 Schritte): hoechstens vier Seiten', plan['fx_overflow']['n'] <= 4, str(plan['fx_overflow']['n']))
         for id in ids:
             bad = await page.evaluate(PY_ORPHAN, plan[id]['pages'])
@@ -176,7 +176,7 @@ async def main():
         sp = await page.evaluate("""(pages) => { const txt = pages.join(' ').replace(/<[^>]+>/g, ' ').replace(/\\s+/g, ' '); const r = state.recipes.find(x => x.id === 'fx_longstep'); return { full: String(r.steps[0].text).trim().replace(/\\s+/g, ' '), txt }; }""", plan['fx_longstep']['pages'])
         words = sp['full'].split(' ')
         check('Ueberlanger Schritt: wird an Satzgrenzen geteilt, kein Wort geht verloren', all(sp['txt'].count(w) >= sp['full'].split(' ').count(w) for w in set(words)) and plan['fx_longstep']['n'] >= 2, str(plan['fx_longstep']['n']))
-        check('Fortsetzungsstueck eines geteilten Schritts hat keine zweite Nummer', await page.evaluate("(pages) => pages.join('').includes('data-cont=\"1\"') && !/data-cont=\"1\"[^>]*><span class=\"pv-step-no\">\\d/.test(pages.join(''))", plan['fx_longstep']['pages']))
+        check('Fortsetzungsstueck eines geteilten Schritts behaelt die Schrittnummer und ist als Fortsetzung markiert (Planer V2)', await page.evaluate("(pages) => pages.join('').includes('data-cont=\"1\"') && /data-cont=\"1\"[^>]*><span class=\"pv-step-no\">\\d+<\\/span><span class=\"pv-step-text\"><span class=\"pv-cont\">Fortsetzung/.test(pages.join(''))", plan['fx_longstep']['pages']))
 
         # ---------- 1b) Kurze Ueberlaeufe nur aus Zusatzbloecken vermeiden (Fall D) ----------
         sweep = await page.evaluate("""async () => {

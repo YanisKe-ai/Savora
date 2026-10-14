@@ -1,7 +1,9 @@
 /* ---------- PDF-Seitenstile «Pur» und «Prise Pop» und Seitenaufbau ----------
    Genau zwei auswaehlbare Stile, eine gemeinsame Pipeline (Einzelrezept und Kochbuch) mit gemeinsamen Bausteinen:
-     pur        «Pur»        weiss, serifenlose Schrift (Carlito, Calibri-aehnlich), salbeigruene Zutatenflaeche. Standard.
-     prise-pop  «Prise Pop»  Tomatenrot, buttergelbe Zutatenflaeche mit Wellenkante, lavendelfarbene Hinweise.
+     pur        «Pur»        weiss, Public Sans (ruhige Grotesk), helle gruene Zutatenflaeche ohne Zellen, schlichte Nummern. Standard.
+     prise-pop  «Prise Pop»  Tomatenrot, gelbe Zutatenflaeche mit Wellenkante, Nummernkreise, lavendelfarbene Hinweise.
+   Verbindliche Gestaltung: Savora_PDF_Feinschliff_V2 (recipe-layout.css), Masse und Farben als Tokens in pdf-print.css.
+   Dichten (vom Seitenplaner in pdf.js gewaehlt, Attribut data-density der Seite): normal, compact, compact-columns.
    Unterschiede stecken nur in Design-Tokens (pdf-print.css) und wenigen Schmuckregeln, nicht in eigenen Renderern.
    Die fruehren Stil-IDs A, B, C gibt es nur noch als Zuordnung in pdfNormalizeTemplateId (A, C und unbekannt -> pur, B -> prise-pop).
    Die Seiten sind reines HTML (Klassen mit Praefix pv-), das in pdf.js gemessen, paginiert und gerastert wird. Nichts hier
@@ -12,10 +14,10 @@
    Seitenverhaeltnis des Fotos, das ganze Foto bleibt sichtbar). */
 
 const PDF_TEMPLATES = {
-  'pur': { id: 'pur', name: 'Pur', hint: 'Weiss und ruhig, serifenlose Schrift, spart Tinte beim Drucken. Standard.', cls: 'pv-tpl-pur', pageNo: [60, 66, 62], pageNoCenter: true,
-    fonts: ['400 11pt "Carlito"', '700 11pt "Carlito"', '700 29pt "Carlito"', '400 11pt "Carlito Pur"', '700 11pt "Carlito Pur"'], extrasSide: true, wave: false, inlineFacts: false },
-  'prise-pop': { id: 'prise-pop', name: 'Prise Pop', hint: 'Kräftige rote Titel, gelbe Zutatenfläche, freundlich und bunt.', cls: 'pv-tpl-prise-pop', pageNo: [200, 50, 31],
-    fonts: ['400 11pt "Carlito"', '700 11pt "Carlito"', '400 29pt "Lilita One"', '400 10.5pt "Public Sans"', '600 10.5pt "Public Sans"', '700 10.5pt "Public Sans"', '400 29pt "Lilita One Pop"', '400 10.5pt "Public Sans Pop"', '700 10.5pt "Public Sans Pop"'], extrasSide: false, wave: true, inlineFacts: true, pop: true },
+  'pur': { id: 'pur', name: 'Pur', hint: 'Weiss und ruhig, serifenlose Schrift, spart Tinte beim Drucken. Standard.', cls: 'pv-tpl-pur', pageNo: [37, 39, 32], pageNoCenter: true,
+    fonts: ['400 11pt "Public Sans"', '700 11pt "Public Sans"', '400 11pt "Public Sans Pur"', '600 11pt "Public Sans Pur"', '700 11pt "Public Sans Pur"', '700 30pt "Public Sans Pur"', '400 11pt "Carlito"'], extrasSide: false, wave: false, inlineFacts: true },
+  'prise-pop': { id: 'prise-pop', name: 'Prise Pop', hint: 'Kräftige rote Titel, gelbe Zutatenfläche, freundlich und bunt.', cls: 'pv-tpl-prise-pop', pageNo: [37, 39, 32], pageNoCenter: true,
+    fonts: ['400 11pt "Carlito"', '400 32pt "Lilita One"', '400 11pt "Public Sans"', '700 11pt "Public Sans"', '400 32pt "Lilita One Pop"', '400 11pt "Public Sans Pop"', '700 11pt "Public Sans Pop"'], extrasSide: false, wave: true, inlineFacts: true, pop: true },
 };
 const PDF_TEMPLATE_KEY = 'savora-pdf-template';
 
@@ -146,7 +148,7 @@ function pvIngAtoms(ingredients) {
   let gi = -1, head = null, idx = 0;
   ingredients.forEach((it) => {
     if (it.type === 'group') { gi++; head = it; idx = 0; return; }
-    atoms.push({ html: pvIngUnit(it), w: pvIngWeight(it), gi, head, idx: idx++, gSize: head ? head.size : 1, hasHead: !!(head && head.show) });
+    atoms.push({ html: pvIngUnit(it), it, w: pvIngWeight(it), gi, head, idx: idx++, gSize: head ? head.size : 1, hasHead: !!(head && head.show) });
   });
   return atoms;
 }
@@ -200,38 +202,52 @@ function pvSplitCols(atoms) {
   if (best < 0) return [atoms, []];
   return [atoms.slice(0, best), atoms.slice(best)];
 }
-/* Zutatenflaeche einer Seite. units: Einheiten aus pvIngredientUnits (evtl. mit abgetrenntem Beginn einer Gruppe). */
-function pvIngPanel(units, label) {
+/* Breite Gruppe (Layoutentscheidung des Adapters, nicht der Daten): bei ungerader Gruppenzahl ab drei nutzt die letzte Gruppe die
+   ganze Breite. Kurze Zeilen stehen dann in zwei ausgewogenen Spalten (oben nach unten, dann rechts), lange Zeilen einspaltig. */
+const PV_WIDE_ROW_CHARS = 46;   // ca. zwei Zeilen in der halben Breite
+function pvWideTwoCols(list) {
+  return list.every((a) => {
+    const it = a.it || {};
+    const txt = it.uncertain && it.raw ? String(it.raw) : String(it.name || '') + String(it.note || '');
+    return txt.length <= PV_WIDE_ROW_CHARS && String(it.amount || '').length <= PV_AMT_STACK_CHARS;
+  });
+}
+function pvWideGroupHtml(list, gi) {
+  const head = list[0].hasHead ? (list[0].idx === 0 ? pvIngUnit(list[0].head) : pvIngUnit(list[0].head, true)) : '';
+  const hasAmt = list.some((a) => /pv-ing-amt/.test(a.html));
+  if (!pvWideTwoCols(list) || list.length < 2) {
+    const h = head + list.map((a) => a.html).join('');
+    return `<div class="pp-group pp-wide${hasAmt ? '' : ' pv-ing-col-noamt'}" data-group="${gi}" data-fullwidth="1" data-onecol="1">${h}</div>`;
+  }
+  const half = Math.ceil(list.length / 2), r0 = head ? 2 : 1;
+  const rows = list.map((a, k) => {
+    const right = k >= half, row = r0 + (right ? k - half : k);
+    const col = hasAmt ? (right ? 4 : 1) : (right ? 3 : 1);
+    return a.html.replace(/^<div class="pv-ing"/, `<div class="pv-ing" style="grid-area:${row} / ${col} / auto / span ${hasAmt ? 2 : 1}"`);
+  }).join('');
+  return `<div class="pp-group pp-wide pp-wide-2${hasAmt ? '' : ' pv-ing-col-noamt'}" data-group="${gi}" data-fullwidth="1">${head}${rows}</div>`;
+}
+/* Zutatenflaeche einer Seite (beide Stile, gleiche Bausteine). units: Einheiten aus pvIngredientUnits (evtl. mit abgetrenntem
+   Beginn einer Gruppe). density: 'normal' | 'compact' | 'compact-columns' (drei Gruppenspalten, keine breite Gruppe). */
+function pvIngPanel(units, label, density) {
   const atoms = [];
   units.forEach((u) => (u.atoms || []).forEach((a) => atoms.push(a)));
   if (!atoms.length) return '';
   const colHtml = (list) => list.map((a, i) => (a.hasHead ? (a.idx === 0 ? pvIngUnit(a.head) : (i === 0 ? pvIngUnit(a.head, true) : '')) : '') + a.html).join('');
-  const wave = PDF_CTX.tpl.wave ? '<i class="pv-wave pv-wave-t" aria-hidden="true"></i><i class="pv-wave pv-wave-b" aria-hidden="true"></i>' : '';
-  if (PDF_CTX.tpl.pop) {
-    // Gruppen als Zellen eines zweispaltigen Rasters (Reihenfolge zeilenweise: Gruppe 1 | 2, darunter 3 | 4). Eine einzelne Gruppe wird auf zwei Zellen verteilt.
-    const gs = [];
-    atoms.forEach((a) => { const g = gs[gs.length - 1]; if (g && g.gi === a.gi) g.list.push(a); else gs.push({ gi: a.gi, list: [a] }); });
-    let cells = gs.map((g) => g.list);
-    if (cells.length === 1 && cells[0].length > 2) cells = pvSplitCols(cells[0]).filter((c) => c.length);
-    const cellHtml = cells.map((list) => { const h = colHtml(list); return `<div class="pp-group ${pvIngColClass(h)}">${h}</div>`; }).join('');
-    return `<div class="pv-ing-panel"><h2 class="pv-h">${label || 'Zutaten'}</h2><div class="pp-groups">${cellHtml}</div>${wave}</div>`;
-  }
-  if (PDF_CTX.tpl.id === 'pur') {
-    // Pur (Vorlage): mehrere Gruppen als Raster, zeilenweise Gruppe 1 | 2, darunter 3 | 4; bei ungerader Zahl steht die letzte Gruppe links.
-    const gs = [];
-    atoms.forEach((a) => { const g = gs[gs.length - 1]; if (g && g.gi === a.gi) g.list.push(a); else gs.push({ gi: a.gi, list: [a] }); });
-    if (gs.length >= 2) {
-      let rows = '';
-      for (let r = 0; r < gs.length; r += 2) {
-        const pair = gs.slice(r, r + 2).map((g) => { const h = colHtml(g.list); return `<div class="${pvIngColClass(h)}">${h}</div>`; });
-        rows += `<div class="pv-ing-cols pv-ing-row">${pair.join('')}</div>`;
-      }
-      return `<div class="pv-ing-panel"><h2 class="pv-h">${label || 'Zutaten'}</h2>${rows}</div>`;
-    }
-  }
-  const cols = pvSplitCols(atoms);
-  const parts = cols.filter((c) => c.length).map((c) => colHtml(c));
-  return `<div class="pv-ing-panel"><h2 class="pv-h">${label || 'Zutaten'}</h2><div class="pv-ing-cols${parts.length === 1 ? ' pv-ing-cols-1' : ''}">${parts.map((h) => `<div class="${pvIngColClass(h)}">${h}</div>`).join('')}</div>${wave}</div>`;
+  const wave = PDF_CTX.tpl.wave ? '<i class="pv-wave pv-wave-b" aria-hidden="true"></i>' : '';
+  // Gruppen als Zellen eines zweispaltigen Rasters (zeilenweise: Gruppe 1 | 2, darunter 3 | 4). Eine einzelne Gruppe wird auf zwei Zellen verteilt.
+  const gs = [];
+  atoms.forEach((a) => { const g = gs[gs.length - 1]; if (g && g.gi === a.gi) g.list.push(a); else gs.push({ gi: a.gi, list: [a] }); });
+  const cols3 = density === 'compact-columns' && gs.length >= 3;
+  let cells = gs.map((g) => ({ gi: g.gi, list: g.list }));
+  if (cells.length === 1 && cells[0].list.length > 2) cells = pvSplitCols(cells[0].list).filter((c) => c.length).map((list) => ({ gi: list[0].gi, list }));
+  const wideAt = !cols3 && cells.length >= 3 && cells.length % 2 === 1 ? cells.length - 1 : -1;
+  const cellHtml = cells.map((c, k) => {
+    if (k === wideAt) return pvWideGroupHtml(c.list, c.gi);
+    const h = colHtml(c.list);
+    return `<div class="pp-group ${pvIngColClass(h)}" data-group="${c.gi}">${h}</div>`;
+  }).join('');
+  return `<div class="pv-ing-panel"><h2 class="pv-h">${label || 'Zutaten'}</h2><div class="pp-groups${cols3 ? ' pv-ing-cols3' : ''}">${cellHtml}</div>${wave}</div>`;
 }
 function pvStepsHtml(units, label, deco) {
   const html = units.map((u) => u.html).join('');
@@ -310,7 +326,7 @@ function pvExtrasBlocks(m, nutritionDetail) {
 }
 function pvBlockHtml(b, paras, cont) {
   if (b.box) return `<div class="pv-extra">${b.box}</div>`;
-  return `<div class="pv-extra"><div class="${b.cls}"><div class="pv-label">${b.label}${cont ? ' <span class="pv-cont">· Fortsetzung</span>' : ''}</div>${(paras || b.paras).join('')}</div></div>`;
+  return `<div class="pv-extra"><div class="${b.cls}"><div class="pv-label">${b.label}${cont ? ' <span class="pv-cont">· Fortsetzung</span>' : ''}</div><div class="pv-extra-body">${(paras || b.paras).join('')}</div></div></div>`;
 }
 /* Einheiten fuer den Seitenumbruch: Ueberschrift und erster Absatz sind unteilbar; weitere Absaetze
    duerfen auf der naechsten Seite folgen. Beginnt eine Seite mit so einem Folgeabsatz, nimmt man contHtml
@@ -350,58 +366,53 @@ function pvFooter() {
   return `<footer class="pv-foot"><span>${pvEsc(left)}</span></footer>`;
 }
 
-/* Titelgroesse nach Laenge UND laengstem Wort (ein langes Wort darf nie mitten im Wort brechen muessen). Die Titel brechen
-   zwischen Woertern um, werden nie gestaucht und nie unter die kleinste Stufe verkleinert. */
+/* Titelgroesse: feste Groesse (Prise Pop 32 pt, Pur 30 pt, kompakt 28 pt). Lange Titel brechen zwischen Woertern um und der Kopf
+   waechst mit. Nur ein sehr langes EINZELNES Wort (das sonst mitten im Wort brechen muesste) bekommt eine kleinere Stufe. */
 function pvTitleClass(title) {
-  const len = title.length, word = Math.max.apply(null, title.split(/\s+/).map((w) => w.length).concat([0]));
-  const s0 = PDF_CTX.tpl.pop ? 13 : 16;   // Prise Pop: kraeftigere Titel, darum frueher eine Stufe kleiner
-  let step = len <= s0 ? 0 : len <= 28 ? 1 : len <= 46 ? 2 : 3;
-  if (word > 22) step = 3; else if (word > 17) step = Math.max(step, 2); else if (word > 13) step = Math.max(step, 1);
-  return ['pv-t-s', 'pv-t-m', 'pv-t-l', 'pv-t-xl'][step];
+  const word = Math.max.apply(null, String(title).split(/\s+/).map((w) => w.length).concat([0]));
+  return word > 22 ? 'pv-t-xl' : word > 16 ? 'pv-t-l' : 'pv-t-s';
 }
 
-/* Foto: der Rahmen hat exakt das Seitenverhaeltnis des Fotos (frame.w x frame.h in mm), dadurch zeigt object-fit: contain
-   das ganze Foto ohne Beschnitt und ohne Verzerrung. «Prise Pop» legt eine organische Farbform dahinter. */
+/* Foto: proportional in einer festen Box (normal 58 x 42 mm, kompakt 44 x 28 mm, frame.bw x frame.bh), object-fit: contain,
+   kein Beschnitt, keine Maske, keine Farbform dahinter. frame.w x frame.h hat das Seitenverhaeltnis des Fotos. */
 function pdfImgTag(imgUrl) {
   return `<img src="${escapeHtml(imgUrl)}" class="pdf-img-cover" style="object-fit:contain;object-position:50% 50%;" alt="">`;
 }
 function pvPhotoHtml(imgUrl, frame) {
-  return `<div class="pv-photo-wrap" style="height:${frame.bh || frame.h}mm"><i class="pv-blob" aria-hidden="true"></i><i class="pv-spark" aria-hidden="true"></i><div class="pv-photo" style="width:${frame.w}mm;height:${frame.h}mm">${pdfImgTag(imgUrl)}</div></div>`;
+  const bw = frame.bw || frame.w, bh = frame.bh || frame.h;
+  return `<div class="pv-photo-wrap" style="width:${bw}mm;height:${bh}mm"><div class="pv-photo" style="width:${frame.w}mm;height:${frame.h}mm">${pdfImgTag(imgUrl)}</div></div>`;
 }
 
-/* Kopf einer Fortsetzungsseite: Rezeptname links, «Fortsetzung · n von total» rechts. Die Zaehlung kommt aus pdf.js.
-   Zu lange Titel werden in pdf-layout.js (pdfClampText) auf zwei Zeilen begrenzt. */
-function pvPageOfText(n, total) { return PDF_CTX.tpl.pop ? `${n} / ${total}` : `${n} von ${total}`; }   // Prise Pop schreibt «1 / 2» wie in der Vorlage
+/* Kopf einer Fortsetzungsseite: kleiner Rezeptname links, dezente Marke «Fortsetzung · n / total» rechts (beide Stile).
+   Die Zaehlung kommt aus pdf.js. Zu lange Titel werden in pdf-layout.js (pdfClampText) auf zwei Zeilen begrenzt. */
+function pvPageOfText(n, total) { return `${n} / ${total}`; }
 function pvContinuationHead(title, n, total) {
   const label = n > 0 && total > 0 ? `Fortsetzung · ${pvPageOfText(n, total)}` : 'Fortsetzung';
   return `<header class="pv-cont-head"><span>${pvEsc(title)}</span><i>${label}</i></header>`;
 }
 
 /* ---------- Eine Rezeptseite (erste Seite und Fortsetzung, gleiche Bausteine) ----------
-   ctx: { m, recipe, imgUrl, frame:{w,h}|null, tight, detail }
-   pg:  { first, n, total, ing:[Einheiten], steps:[Einheiten], extras:[Einheiten] } */
-function pvHeadHtml(ctx, pg) {
-  const m = ctx.m, tpl = PDF_CTX.tpl;
+   ctx: { m, recipe, imgUrl, frame:{w,h,bw,bh}|null, tight, density, detail }
+   pg:  { first, n, total, ing:[Einheiten], steps:[Einheiten], extras:[Einheiten] }
+   Die Kategorie erscheint nicht mehr im PDF (Vorgabe V2: der Renderer zeigt sie nicht; die Daten bleiben unveraendert). */
+function pvDensity(ctx) {
+  const d = ctx && ctx.density;
+  return d === 'compact' || d === 'compact-columns' || d === 'normal' ? d : (ctx && ctx.tight ? 'compact' : 'normal');
+}
+function pvHeadHtml(ctx) {
+  const m = ctx.m;
   const photo = ctx.imgUrl && ctx.frame ? pvPhotoHtml(ctx.imgUrl, ctx.frame) : '';
-  const facts = !m.facts.length ? '' : tpl.inlineFacts
-    ? `<div class="pv-facts-line">${m.facts.map((f) => pvEsc(f.short)).join(' · ')}</div>`
-    : `<div class="pv-facts">${m.facts.map((f) => `<span class="pv-fact"><i>${pvEsc(f.label)}</i><b>${pvEsc(f.value)}</b></span>`).join('')}</div>`;
-  if (tpl.pop) {
-    const meta = m.facts.length ? `<p class="pp-meta">${m.facts.map((f) => `<span>${pvEsc(f.short)}</span>`).join('')}</p>` : '';
-    return `<header class="pv-head"><div class="pv-head-grid"><div class="pv-head-text"><h1 class="pv-title ${pvTitleClass(m.title)}">${pvEsc(m.title)}</h1>${meta}</div>${photo}</div></header>`;
-  }
-  const pageOf = pg.total > 1 ? `<span class="pv-pageof">${pvPageOfText(pg.n, pg.total)}</span>` : '';
-  const top = (m.category || pageOf) ? `<div class="pv-head-top"><span class="pv-cat">${pvEsc(m.category || '')}</span>${pageOf}</div>` : '';
-  return `<header class="pv-head">${top}<div class="pv-head-grid"><div class="pv-head-text"><h1 class="pv-title ${pvTitleClass(m.title)}">${pvEsc(m.title)}</h1>${facts}</div>${photo}</div></header>`;
+  const meta = m.facts.length ? `<p class="pp-meta">${m.facts.map((f) => `<span>${pvEsc(f.short)}</span>`).join('')}</p>` : '';
+  return `<header class="pv-head"><div class="pv-head-grid"><div class="pv-head-text"><h1 class="pv-title ${pvTitleClass(m.title)}">${pvEsc(m.title)}</h1>${meta}</div>${photo}</div></header>`;
 }
 function pvPage(ctx, pg) {
-  const tpl = PDF_CTX.tpl, m = ctx.m;
+  const tpl = PDF_CTX.tpl, m = ctx.m, density = pvDensity(ctx);
   const photoOn = !!(pg.first && ctx.imgUrl && ctx.frame);
-  const cls = ['pv-page', 'pv-recipe', pg.first ? '' : 'pv-cont-page', tpl.cls, ctx.tight ? 'pv-tight' : '', photoOn ? 'pv-photo-side' : 'pv-photo-none'].filter(Boolean).join(' ');
-  const head = pg.first ? pvHeadHtml(ctx, pg) : pvContinuationHead(m.title, pg.n, pg.total);
-  return `<section class="${cls}" lang="de" data-recipe-id="${pvEsc(m.id)}" data-page-kind="${pg.first ? 'recipe' : 'continuation'}">
+  const cls = ['pv-page', 'pv-recipe', pg.first ? '' : 'pv-cont-page', tpl.cls, density !== 'normal' ? 'pv-tight' : '', photoOn ? 'pv-photo-side' : 'pv-photo-none'].filter(Boolean).join(' ');
+  const head = pg.first ? pvHeadHtml(ctx) : pvContinuationHead(m.title, pg.n, pg.total);
+  return `<section class="${cls}" lang="de" data-recipe-id="${pvEsc(m.id)}" data-page-kind="${pg.first ? 'recipe' : 'continuation'}" data-density="${density}" data-continuation="${pg.first ? 'false' : 'true'}">
     ${head}
-    ${pvIngPanel(pg.ing || [], pg.first ? 'Zutaten' : 'Zutaten <span class="pv-cont">· Fortsetzung</span>')}
+    ${pvIngPanel(pg.ing || [], pg.first ? 'Zutaten' : 'Zutaten <span class="pv-cont">· Fortsetzung</span>', density)}
     ${pvStepsHtml(pg.steps || [], 'Zubereitung', !pg.first)}
     ${pvExtrasGroupHtml(pg.extras)}
     ${pvFooter()}
@@ -411,10 +422,10 @@ function pvPage(ctx, pg) {
 function pvContinuationPage(m, ingU, stepU, extrasHtml, tight, ingRight, n, total) {
   return pvPage({ m, recipe: null, imgUrl: null, frame: null, tight: !!tight }, { first: false, n, total, ing: ingU || [], steps: stepU || [], extras: extrasHtml ? [{ key: 'x', html: extrasHtml }] : [] });
 }
-/* Komplettes einseitiges Rezept (Stufe 1 und 2 der Seitenplanung). opts: { frame, tight } */
+/* Komplettes einseitiges Rezept (Einseiten-Kandidaten der Seitenplanung). opts: { frame, tight, density } */
 function pvRecipePage(m, recipe, imgUrl, opts, nutritionDetail) {
   opts = opts || {};
-  const ctx = { m, recipe, imgUrl: imgUrl || null, frame: opts.frame || null, tight: !!opts.tight, detail: nutritionDetail };
+  const ctx = { m, recipe, imgUrl: imgUrl || null, frame: opts.frame || null, tight: !!opts.tight, density: opts.density, detail: nutritionDetail };
   return pvPage(ctx, { first: true, n: 1, total: 1, ing: pvIngredientUnits(m.ingredients), steps: pvStepUnits(m.steps), extras: pvExtrasUnits(m, nutritionDetail) });
 }
 

@@ -7,13 +7,13 @@ import ast, os, re, sys
 HERE = os.path.dirname(os.path.abspath(__file__))
 SPECIAL = {'paket42', 'paket37_adapt'}
 # Laufzeit in Sekunden (Messung auf GitHub); unbekannte Tests zaehlen 10 s
-DAUER = {'pdf_stile': 270, 'mehr_konto': 240, 'pdf_ausgabe': 240, 'cover_pdf': 170, 'pdf_cover': 120, 'pdf_kern': 100, 'paket37_plan': 93, 'paket37_visual': 80,
-         'paket44': 75, 'laptop_platz': 73, 'mehr_nav': 65, 'a11y': 61, 'cover_editor': 60, 'monkey': 56, 'paket35': 52, 'startseite_liste': 49,
-         'paket39': 46, 'paket37_interaction': 45, 'cover_ablauf': 45, 'paket43': 44, 'paket36': 44, 'freunde': 40, 'feinschliff': 39, 'audit_b': 39,
-         'motion_m1': 30, 'sync': 30, 'paket37_books': 30, 'motion_m2': 30, 'flows': 28, 'pruefung': 27, 'visual': 26, 'titel_suche': 26,
-         'cover_neu': 25, 'pdf_scharfes_s': 25, 'pdf_dialog': 25, 'pdf_migration': 25, 'teilen_ui': 24, 'paket37_data': 22, 'audit_c': 22, 'rezepte_zeile': 21,
-         'aufraeumen': 20, 'cover_bild': 20, 'paket37_settings': 17, 'export': 15, 'pdfpreview': 14, 'ansicht_umschalter': 14, 'paket3': 13, 'paket33': 12,
-         'paket27': 12, 'audit_a': 12, 'pdf_vorlagen': 12, 'cover_modell': 12, 'pdf_daten': 9}
+DAUER = {'pdf_stile': 270, 'mehr_konto': 240, 'pdf_ausgabe': 240, 'cover_pdf': 170, 'pdf_planer_v2': 150, 'pdf_cover': 120, 'pdf_kern': 100, 'paket37_plan': 93,
+         'paket37_visual': 80, 'paket44': 75, 'laptop_platz': 73, 'mehr_nav': 65, 'a11y': 61, 'cover_editor': 60, 'monkey': 56, 'paket35': 52,
+         'startseite_liste': 49, 'paket39': 46, 'paket37_interaction': 45, 'cover_ablauf': 45, 'paket43': 44, 'paket36': 44, 'freunde': 40, 'feinschliff': 39,
+         'audit_b': 39, 'sync': 30, 'paket37_books': 30, 'motion_m1': 30, 'motion_m2': 30, 'flows': 28, 'pruefung': 27, 'visual': 26,
+         'titel_suche': 26, 'cover_neu': 25, 'pdf_scharfes_s': 25, 'pdf_gestaltung_v2': 25, 'pdf_dialog': 25, 'pdf_migration': 25, 'teilen_ui': 24, 'paket37_data': 22,
+         'audit_c': 22, 'rezepte_zeile': 21, 'aufraeumen': 20, 'cover_bild': 20, 'paket37_settings': 17, 'export': 15, 'pdfpreview': 14, 'ansicht_umschalter': 14,
+         'paket3': 13, 'paket33': 12, 'paket27': 12, 'audit_a': 12, 'pdf_vorlagen': 12, 'cover_modell': 12, 'pdf_daten': 9}
 def alle():
     src = open(os.path.join(HERE, 'run_all.py'), encoding='utf-8').read()
     return ast.literal_eval(re.search(r"^ALL = (\[.*?\])", src, re.M | re.S).group(1))
