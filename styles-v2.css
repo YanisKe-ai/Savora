@@ -299,6 +299,7 @@ button { -webkit-tap-highlight-color: transparent; }
 .cb-warn { font-size: 0.875rem; padding: 0.5rem 0.75rem; border-radius: var(--radius-s); background: var(--surface-soft); }
 .cb-warn--warn { background: var(--warning-bg); color: var(--warning-text); }
 .cb-warn--error { background: var(--danger-soft); color: var(--danger); }
+[data-cb-field][aria-invalid="true"] { border-color: var(--danger); }
 
 /* ---------- Gefuehrte Erfassung ---------- */
 .form-main { max-width: 760px; }

@@ -26,7 +26,7 @@ FIXTURE_PFAD = os.path.join(TESTS, 'fixtures', 'pdf_rezepte.json')
 # SAVORA_PDF_IDS=A,B erlaubt Laeufe gegen alten Code (vor 0.75).
 STILE = tuple(TEMPLATE_IDS)
 NAEHRWERT_STUFEN = ('off', 'compact', 'full')
-COVER_VORLAGEN = ['pop', 'lieblingsbuch', 'tomate', 'salbei', 'nachtkueche', 'citrus', 'bistro', 'garten', 'sonnenkueche', 'ofenglueck']
+COVER_VORLAGEN = ['pop', 'lieblingsbuch', 'tomate', 'salbei', 'nachtkueche', 'citrus', 'bistro', 'garten', 'sonnenkueche', 'ofenglueck', 'savora-01-pasta-band', 'savora-02-geschmacksschichten', 'savora-03-scherenschnitt-tafel', 'savora-04-eine-prise', 'savora-05-tischrunde']
 # Mindestgroessen (pt) auf A4 nach Auftrag: Haupttext 10, Sekundaertext 8,5
 MIN_HAUPT_PT, MIN_SEKUNDAER_PT = 10.0, 8.5
 RESTSEITE_MIN_MM = 60          # letzte Seite eines mehrseitigen Rezepts: mindestens so viel Inhaltshoehe (Heuristik, siehe README unten)

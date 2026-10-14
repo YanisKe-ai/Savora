@@ -1,0 +1,6168 @@
+{
+"bistro/kurz": {
+"layout": {
+"background": "assets/covers/07-bistro.png",
+"blocks": [
+{
+"family": "'Sofia Sans Extra Condensed', 'Arial Narrow', sans-serif",
+"fits": true,
+"h": 0.0656,
+"ink": "#171717",
+"key": "title",
+"lineHeightPx": 73.84,
+"lines": [
+"Fein"
+],
+"sizePx": 71,
+"w": 0.82,
+"weight": 800,
+"x": 0.09,
+"y": 0.13
+},
+{
+"family": "'Roboto', system-ui, sans-serif",
+"fits": true,
+"h": 0.0301,
+"ink": "#171717",
+"key": "slogan",
+"lineHeightPx": 33.75,
+"lines": [
+"Echt gut"
+],
+"sizePx": 27,
+"w": 0.82,
+"weight": 400,
+"x": 0.09,
+"y": 0.2116
+},
+{
+"family": "'Roboto', system-ui, sans-serif",
+"fits": true,
+"h": 0.0219,
+"ink": "#171717",
+"key": "name",
+"lineHeightPx": 24.7,
+"lines": [
+"Ana"
+],
+"sizePx": 19,
+"w": 0.82,
+"weight": 700,
+"x": 0.09,
+"y": 0.2576
+}
+],
+"date": {
+"family": "'Roboto', system-ui, sans-serif",
+"h": 0.03,
+"ink": "#171717",
+"sizePx": 13,
+"text": "09.10.2026",
+"weight": 500,
+"x1": 0.93,
+"y": 0.945
+},
+"ink": "#171717",
+"logo": {
+"h": 0.0636,
+"ink": "#252720",
+"variant": "light",
+"w": 0.27,
+"x": 0.65,
+"y": 0.05
+},
+"page": {
+"h": 1123,
+"w": 794
+},
+"templateId": "bistro",
+"warnings": []
+}
+},
+"bistro/kurz-ohne-datum": {
+"layout": {
+"background": "assets/covers/07-bistro.png",
+"blocks": [
+{
+"family": "'Sofia Sans Extra Condensed', 'Arial Narrow', sans-serif",
+"fits": true,
+"h": 0.0656,
+"ink": "#171717",
+"key": "title",
+"lineHeightPx": 73.84,
+"lines": [
+"Fein"
+],
+"sizePx": 71,
+"w": 0.82,
+"weight": 800,
+"x": 0.09,
+"y": 0.13
+},
+{
+"family": "'Roboto', system-ui, sans-serif",
+"fits": true,
+"h": 0.0301,
+"ink": "#171717",
+"key": "slogan",
+"lineHeightPx": 33.75,
+"lines": [
+"Echt gut"
+],
+"sizePx": 27,
+"w": 0.82,
+"weight": 400,
+"x": 0.09,
+"y": 0.2116
+},
+{
+"family": "'Roboto', system-ui, sans-serif",
+"fits": true,
+"h": 0.0219,
+"ink": "#171717",
+"key": "name",
+"lineHeightPx": 24.7,
+"lines": [
+"Ana"
+],
+"sizePx": 19,
+"w": 0.82,
+"weight": 700,
+"x": 0.09,
+"y": 0.2576
+}
+],
+"date": null,
+"ink": "#171717",
+"logo": {
+"h": 0.0636,
+"ink": "#252720",
+"variant": "light",
+"w": 0.27,
+"x": 0.65,
+"y": 0.05
+},
+"page": {
+"h": 1123,
+"w": 794
+},
+"templateId": "bistro",
+"warnings": []
+}
+},
+"bistro/kurz-ohne-logo": {
+"layout": {
+"background": "assets/covers/07-bistro.png",
+"blocks": [
+{
+"family": "'Sofia Sans Extra Condensed', 'Arial Narrow', sans-serif",
+"fits": true,
+"h": 0.0656,
+"ink": "#171717",
+"key": "title",
+"lineHeightPx": 73.84,
+"lines": [
+"Fein"
+],
+"sizePx": 71,
+"w": 0.82,
+"weight": 800,
+"x": 0.09,
+"y": 0.13
+},
+{
+"family": "'Roboto', system-ui, sans-serif",
+"fits": true,
+"h": 0.0301,
+"ink": "#171717",
+"key": "slogan",
+"lineHeightPx": 33.75,
+"lines": [
+"Echt gut"
+],
+"sizePx": 27,
+"w": 0.82,
+"weight": 400,
+"x": 0.09,
+"y": 0.2116
+},
+{
+"family": "'Roboto', system-ui, sans-serif",
+"fits": true,
+"h": 0.0219,
+"ink": "#171717",
+"key": "name",
+"lineHeightPx": 24.7,
+"lines": [
+"Ana"
+],
+"sizePx": 19,
+"w": 0.82,
+"weight": 700,
+"x": 0.09,
+"y": 0.2576
+}
+],
+"date": {
+"family": "'Roboto', system-ui, sans-serif",
+"h": 0.03,
+"ink": "#171717",
+"sizePx": 13,
+"text": "09.10.2026",
+"weight": 500,
+"x1": 0.93,
+"y": 0.945
+},
+"ink": "#171717",
+"logo": null,
+"page": {
+"h": 1123,
+"w": 794
+},
+"templateId": "bistro",
+"warnings": []
+}
+},
+"bistro/lang": {
+"layout": {
+"background": "assets/covers/07-bistro.png",
+"blocks": [
+{
+"family": "'Sofia Sans Extra Condensed', 'Arial Narrow', sans-serif",
+"fits": true,
+"h": 0.0648,
+"ink": "#171717",
+"key": "title",
+"lineHeightPx": 36.4,
+"lines": [
+"Die allerbesten Familienrezepte aus drei",
+"Generationen und vielen Ländern"
+],
+"sizePx": 35,
+"w": 0.82,
+"weight": 800,
+"x": 0.09,
+"y": 0.13
+},
+{
+"family": "'Roboto', system-ui, sans-serif",
+"fits": true,
+"h": 0.0234,
+"ink": "#171717",
+"key": "slogan",
+"lineHeightPx": 26.25,
+"lines": [
+"Gesammelt über viele Jahre, mit Liebe weitergegeben und ergänzt"
+],
+"sizePx": 21,
+"w": 0.82,
+"weight": 400,
+"x": 0.09,
+"y": 0.2108
+},
+{
+"family": "'Roboto', system-ui, sans-serif",
+"fits": true,
+"h": 0.0219,
+"ink": "#171717",
+"key": "name",
+"lineHeightPx": 24.7,
+"lines": [
+"Familie Müller-Lüdenscheidt aus dem Emmental"
+],
+"sizePx": 19,
+"w": 0.82,
+"weight": 700,
+"x": 0.09,
+"y": 0.2502
+}
+],
+"date": {
+"family": "'Roboto', system-ui, sans-serif",
+"h": 0.03,
+"ink": "#171717",
+"sizePx": 13,
+"text": "09.10.2026",
+"weight": 500,
+"x1": 0.93,
+"y": 0.945
+},
+"ink": "#171717",
+"logo": {
+"h": 0.0636,
+"ink": "#252720",
+"variant": "light",
+"w": 0.27,
+"x": 0.65,
+"y": 0.05
+},
+"page": {
+"h": 1123,
+"w": 794
+},
+"templateId": "bistro",
+"warnings": []
+}
+},
+"bistro/langes-wort": {
+"layout": {
+"background": "assets/covers/07-bistro.png",
+"blocks": [
+{
+"family": "'Sofia Sans Extra Condensed', 'Arial Narrow', sans-serif",
+"fits": true,
+"h": 0.15,
+"ink": "#171717",
+"key": "title",
+"lineHeightPx": 56.16,
+"lines": [
+"Donaudampfschifffahrtsgesellschaf",
+"tskapitänsmützenfabrikantenverban",
+"d"
+],
+"sizePx": 54,
+"w": 0.82,
+"weight": 800,
+"x": 0.09,
+"y": 0.13
+}
+],
+"date": {
+"family": "'Roboto', system-ui, sans-serif",
+"h": 0.03,
+"ink": "#171717",
+"sizePx": 13,
+"text": "09.10.2026",
+"weight": 500,
+"x1": 0.93,
+"y": 0.945
+},
+"ink": "#171717",
+"logo": {
+"h": 0.0636,
+"ink": "#252720",
+"variant": "light",
+"w": 0.27,
+"x": 0.65,
+"y": 0.05
+},
+"page": {
+"h": 1123,
+"w": 794
+},
+"templateId": "bistro",
+"warnings": []
+}
+},
+"bistro/leer": {
+"layout": {
+"background": "assets/covers/07-bistro.png",
+"blocks": [],
+"date": {
+"family": "'Roboto', system-ui, sans-serif",
+"h": 0.03,
+"ink": "#171717",
+"sizePx": 13,
+"text": "09.10.2026",
+"weight": 500,
+"x1": 0.93,
+"y": 0.945
+},
+"ink": "#171717",
+"logo": {
+"h": 0.0636,
+"ink": "#252720",
+"variant": "light",
+"w": 0.27,
+"x": 0.65,
+"y": 0.05
+},
+"page": {
+"h": 1123,
+"w": 794
+},
+"templateId": "bistro",
+"warnings": []
+}
+},
+"bistro/nur-name-lang": {
+"layout": {
+"background": "assets/covers/07-bistro.png",
+"blocks": [
+{
+"family": "'Roboto', system-ui, sans-serif",
+"fits": true,
+"h": 0.0255,
+"ink": "#171717",
+"key": "name",
+"lineHeightPx": 28.6,
+"lines": [
+"Familie Müller-Lüdenscheidt aus dem schönen Emmental"
+],
+"sizePx": 22,
+"w": 0.82,
+"weight": 700,
+"x": 0.09,
+"y": 0.13
+}
+],
+"date": {
+"family": "'Roboto', system-ui, sans-serif",
+"h": 0.03,
+"ink": "#171717",
+"sizePx": 13,
+"text": "09.10.2026",
+"weight": 500,
+"x1": 0.93,
+"y": 0.945
+},
+"ink": "#171717",
+"logo": {
+"h": 0.0636,
+"ink": "#252720",
+"variant": "light",
+"w": 0.27,
+"x": 0.65,
+"y": 0.05
+},
+"page": {
+"h": 1123,
+"w": 794
+},
+"templateId": "bistro",
+"warnings": []
+}
+},
+"bistro/nur-slogan-lang": {
+"layout": {
+"background": "assets/covers/07-bistro.png",
+"blocks": [
+{
+"family": "'Roboto', system-ui, sans-serif",
+"fits": true,
+"h": 0.1002,
+"ink": "#171717",
+"key": "slogan",
+"lineHeightPx": 37.5,
+"lines": [
+"Gesammelt über viele Jahre, mit Liebe",
+"weitergegeben und von Hand ergänzt, Seite für",
+"Seite"
+],
+"sizePx": 30,
+"w": 0.82,
+"weight": 400,
+"x": 0.09,
+"y": 0.13
+}
+],
+"date": {
+"family": "'Roboto', system-ui, sans-serif",
+"h": 0.03,
+"ink": "#171717",
+"sizePx": 13,
+"text": "09.10.2026",
+"weight": 500,
+"x1": 0.93,
+"y": 0.945
+},
+"ink": "#171717",
+"logo": {
+"h": 0.0636,
+"ink": "#252720",
+"variant": "light",
+"w": 0.27,
+"x": 0.65,
+"y": 0.05
+},
+"page": {
+"h": 1123,
+"w": 794
+},
+"templateId": "bistro",
+"warnings": []
+}
+},
+"bistro/nur-titel": {
+"layout": {
+"background": "assets/covers/07-bistro.png",
+"blocks": [
+{
+"family": "'Sofia Sans Extra Condensed', 'Arial Narrow', sans-serif",
+"fits": true,
+"h": 0.0963,
+"ink": "#171717",
+"key": "title",
+"lineHeightPx": 108.16,
+"lines": [
+"Sonntagsküche"
+],
+"sizePx": 104,
+"w": 0.82,
+"weight": 800,
+"x": 0.09,
+"y": 0.13
+}
+],
+"date": {
+"family": "'Roboto', system-ui, sans-serif",
+"h": 0.03,
+"ink": "#171717",
+"sizePx": 13,
+"text": "09.10.2026",
+"weight": 500,
+"x1": 0.93,
+"y": 0.945
+},
+"ink": "#171717",
+"logo": {
+"h": 0.0636,
+"ink": "#252720",
+"variant": "light",
+"w": 0.27,
+"x": 0.65,
+"y": 0.05
+},
+"page": {
+"h": 1123,
+"w": 794
+},
+"templateId": "bistro",
+"warnings": []
+}
+},
+"bistro/zu-lang": {
+"layout": {
+"background": "assets/covers/07-bistro.png",
+"blocks": [
+{
+"family": "'Sofia Sans Extra Condensed', 'Arial Narrow', sans-serif",
+"fits": false,
+"h": 0.1005,
+"ink": "#171717",
+"key": "title",
+"lineHeightPx": 35.36,
+"lines": [
+"Lorem ipsum Lorem ipsum Lorem ipsum Lorem ipsum Lorem",
+"ipsum Lorem ipsum Lorem ipsum Lorem ipsum Lorem ipsum",
+"Lorem ipsum Lorem ipsum Lorem ipsum Lorem ipsum Lorem",
+"ipsum Lorem ipsum Lorem ipsum Lorem ipsum Lorem ipsum",
+"Lorem ipsum Lorem ipsum Lorem ipsum Lorem ipsum Lorem",
+"ipsum Lorem ipsum Lorem ipsum Lorem ipsum Lorem ipsum",
+"Lorem ipsum Lorem ipsum Lorem ipsum Lorem ipsum Lorem",
+"ipsum Lorem ipsum Lorem ipsum Lorem ipsum Lorem ipsum",
+"Lorem ipsum Lorem ipsum Lorem ipsum Lorem ipsum"
+],
+"sizePx": 34,
+"w": 0.82,
+"weight": 800,
+"x": 0.09,
+"y": 0.13
+},
+{
+"family": "'Roboto', system-ui, sans-serif",
+"fits": false,
+"h": 0.0335,
+"ink": "#171717",
+"key": "name",
+"lineHeightPx": 16.9,
+"lines": [
+"NNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNN",
+"NNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNN",
+"NNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNN",
+"NNNNNNNNNNNN"
+],
+"sizePx": 13,
+"w": 0.82,
+"weight": 700,
+"x": 0.09,
+"y": 0.2465
+}
+],
+"date": {
+"family": "'Roboto', system-ui, sans-serif",
+"h": 0.03,
+"ink": "#171717",
+"sizePx": 13,
+"text": "09.10.2026",
+"weight": 500,
+"x1": 0.93,
+"y": 0.945
+},
+"ink": "#171717",
+"logo": {
+"h": 0.0636,
+"ink": "#252720",
+"variant": "light",
+"w": 0.27,
+"x": 0.65,
+"y": 0.05
+},
+"page": {
+"h": 1123,
+"w": 794
+},
+"templateId": "bistro",
+"warnings": [
+{
+"key": "title",
+"message": "Der Titel ist zu lang für dieses Titelblatt. Bitte kürzen (er passt nur in kleiner, nicht lesbarer Schrift)."
+},
+{
+"key": "name",
+"message": "Der Name ist zu lang für dieses Titelblatt. Bitte kürzen (er passt nur in kleiner, nicht lesbarer Schrift)."
+}
+]
+}
+},
+"citrus/kurz": {
+"layout": {
+"background": "assets/covers/06-citrus.png",
+"blocks": [
+{
+"family": "'Sofia Sans Extra Condensed', 'Arial Narrow', sans-serif",
+"fits": true,
+"h": 0.0963,
+"ink": "#FFFFFF",
+"key": "title",
+"lineHeightPx": 108.16,
+"lines": [
+"Fein"
+],
+"sizePx": 104,
+"w": 0.82,
+"weight": 800,
+"x": 0.09,
+"y": 0.13
+},
+{
+"family": "'Roboto', system-ui, sans-serif",
+"fits": true,
+"h": 0.0334,
+"ink": "#FFFFFF",
+"key": "slogan",
+"lineHeightPx": 37.5,
+"lines": [
+"Echt gut"
+],
+"sizePx": 30,
+"w": 0.82,
+"weight": 400,
+"x": 0.09,
+"y": 0.2423
+},
+{
+"family": "'Roboto', system-ui, sans-serif",
+"fits": true,
+"h": 0.0255,
+"ink": "#FFFFFF",
+"key": "name",
+"lineHeightPx": 28.6,
+"lines": [
+"Ana"
+],
+"sizePx": 22,
+"w": 0.82,
+"weight": 700,
+"x": 0.09,
+"y": 0.2917
+}
+],
+"date": {
+"family": "'Roboto', system-ui, sans-serif",
+"h": 0.03,
+"ink": "#FFFFFF",
+"sizePx": 13,
+"text": "09.10.2026",
+"weight": 500,
+"x1": 0.93,
+"y": 0.945
+},
+"ink": "#FFFFFF",
+"logo": {
+"h": 0.0636,
+"ink": "#F7F4EE",
+"variant": "dark",
+"w": 0.27,
+"x": 0.65,
+"y": 0.05
+},
+"page": {
+"h": 1123,
+"w": 794
+},
+"templateId": "citrus",
+"warnings": []
+}
+},
+"citrus/kurz-ohne-datum": {
+"layout": {
+"background": "assets/covers/06-citrus.png",
+"blocks": [
+{
+"family": "'Sofia Sans Extra Condensed', 'Arial Narrow', sans-serif",
+"fits": true,
+"h": 0.0963,
+"ink": "#FFFFFF",
+"key": "title",
+"lineHeightPx": 108.16,
+"lines": [
+"Fein"
+],
+"sizePx": 104,
+"w": 0.82,
+"weight": 800,
+"x": 0.09,
+"y": 0.13
+},
+{
+"family": "'Roboto', system-ui, sans-serif",
+"fits": true,
+"h": 0.0334,
+"ink": "#FFFFFF",
+"key": "slogan",
+"lineHeightPx": 37.5,
+"lines": [
+"Echt gut"
+],
+"sizePx": 30,
+"w": 0.82,
+"weight": 400,
+"x": 0.09,
+"y": 0.2423
+},
+{
+"family": "'Roboto', system-ui, sans-serif",
+"fits": true,
+"h": 0.0255,
+"ink": "#FFFFFF",
+"key": "name",
+"lineHeightPx": 28.6,
+"lines": [
+"Ana"
+],
+"sizePx": 22,
+"w": 0.82,
+"weight": 700,
+"x": 0.09,
+"y": 0.2917
+}
+],
+"date": null,
+"ink": "#FFFFFF",
+"logo": {
+"h": 0.0636,
+"ink": "#F7F4EE",
+"variant": "dark",
+"w": 0.27,
+"x": 0.65,
+"y": 0.05
+},
+"page": {
+"h": 1123,
+"w": 794
+},
+"templateId": "citrus",
+"warnings": []
+}
+},
+"citrus/kurz-ohne-logo": {
+"layout": {
+"background": "assets/covers/06-citrus.png",
+"blocks": [
+{
+"family": "'Sofia Sans Extra Condensed', 'Arial Narrow', sans-serif",
+"fits": true,
+"h": 0.0963,
+"ink": "#FFFFFF",
+"key": "title",
+"lineHeightPx": 108.16,
+"lines": [
+"Fein"
+],
+"sizePx": 104,
+"w": 0.82,
+"weight": 800,
+"x": 0.09,
+"y": 0.13
+},
+{
+"family": "'Roboto', system-ui, sans-serif",
+"fits": true,
+"h": 0.0334,
+"ink": "#FFFFFF",
+"key": "slogan",
+"lineHeightPx": 37.5,
+"lines": [
+"Echt gut"
+],
+"sizePx": 30,
+"w": 0.82,
+"weight": 400,
+"x": 0.09,
+"y": 0.2423
+},
+{
+"family": "'Roboto', system-ui, sans-serif",
+"fits": true,
+"h": 0.0255,
+"ink": "#FFFFFF",
+"key": "name",
+"lineHeightPx": 28.6,
+"lines": [
+"Ana"
+],
+"sizePx": 22,
+"w": 0.82,
+"weight": 700,
+"x": 0.09,
+"y": 0.2917
+}
+],
+"date": {
+"family": "'Roboto', system-ui, sans-serif",
+"h": 0.03,
+"ink": "#FFFFFF",
+"sizePx": 13,
+"text": "09.10.2026",
+"weight": 500,
+"x1": 0.93,
+"y": 0.945
+},
+"ink": "#FFFFFF",
+"logo": null,
+"page": {
+"h": 1123,
+"w": 794
+},
+"templateId": "citrus",
+"warnings": []
+}
+},
+"citrus/lang": {
+"layout": {
+"background": "assets/covers/06-citrus.png",
+"blocks": [
+{
+"family": "'Sofia Sans Extra Condensed', 'Arial Narrow', sans-serif",
+"fits": true,
+"h": 0.0926,
+"ink": "#FFFFFF",
+"key": "title",
+"lineHeightPx": 52,
+"lines": [
+"Die allerbesten Familienrezepte aus",
+"drei Generationen und vielen Ländern"
+],
+"sizePx": 50,
+"w": 0.82,
+"weight": 800,
+"x": 0.09,
+"y": 0.13
+},
+{
+"family": "'Roboto', system-ui, sans-serif",
+"fits": true,
+"h": 0.0485,
+"ink": "#FFFFFF",
+"key": "slogan",
+"lineHeightPx": 27.5,
+"lines": [
+"Gesammelt über viele Jahre, mit Liebe weitergegeben und",
+"ergänzt"
+],
+"sizePx": 22,
+"w": 0.82,
+"weight": 400,
+"x": 0.09,
+"y": 0.2386
+},
+{
+"family": "'Roboto', system-ui, sans-serif",
+"fits": true,
+"h": 0.0255,
+"ink": "#FFFFFF",
+"key": "name",
+"lineHeightPx": 28.6,
+"lines": [
+"Familie Müller-Lüdenscheidt aus dem Emmental"
+],
+"sizePx": 22,
+"w": 0.82,
+"weight": 700,
+"x": 0.09,
+"y": 0.3031
+}
+],
+"date": {
+"family": "'Roboto', system-ui, sans-serif",
+"h": 0.03,
+"ink": "#FFFFFF",
+"sizePx": 13,
+"text": "09.10.2026",
+"weight": 500,
+"x1": 0.93,
+"y": 0.945
+},
+"ink": "#FFFFFF",
+"logo": {
+"h": 0.0636,
+"ink": "#F7F4EE",
+"variant": "dark",
+"w": 0.27,
+"x": 0.65,
+"y": 0.05
+},
+"page": {
+"h": 1123,
+"w": 794
+},
+"templateId": "citrus",
+"warnings": []
+}
+},
+"citrus/langes-wort": {
+"layout": {
+"background": "assets/covers/06-citrus.png",
+"blocks": [
+{
+"family": "'Sofia Sans Extra Condensed', 'Arial Narrow', sans-serif",
+"fits": true,
+"h": 0.2084,
+"ink": "#FFFFFF",
+"key": "title",
+"lineHeightPx": 78,
+"lines": [
+"Donaudampfschifffahrtsge",
+"sellschaftskapitänsmütze",
+"nfabrikantenverband"
+],
+"sizePx": 75,
+"w": 0.82,
+"weight": 800,
+"x": 0.09,
+"y": 0.13
+}
+],
+"date": {
+"family": "'Roboto', system-ui, sans-serif",
+"h": 0.03,
+"ink": "#FFFFFF",
+"sizePx": 13,
+"text": "09.10.2026",
+"weight": 500,
+"x1": 0.93,
+"y": 0.945
+},
+"ink": "#FFFFFF",
+"logo": {
+"h": 0.0636,
+"ink": "#F7F4EE",
+"variant": "dark",
+"w": 0.27,
+"x": 0.65,
+"y": 0.05
+},
+"page": {
+"h": 1123,
+"w": 794
+},
+"templateId": "citrus",
+"warnings": []
+}
+},
+"citrus/leer": {
+"layout": {
+"background": "assets/covers/06-citrus.png",
+"blocks": [],
+"date": {
+"family": "'Roboto', system-ui, sans-serif",
+"h": 0.03,
+"ink": "#FFFFFF",
+"sizePx": 13,
+"text": "09.10.2026",
+"weight": 500,
+"x1": 0.93,
+"y": 0.945
+},
+"ink": "#FFFFFF",
+"logo": {
+"h": 0.0636,
+"ink": "#F7F4EE",
+"variant": "dark",
+"w": 0.27,
+"x": 0.65,
+"y": 0.05
+},
+"page": {
+"h": 1123,
+"w": 794
+},
+"templateId": "citrus",
+"warnings": []
+}
+},
+"citrus/nur-name-lang": {
+"layout": {
+"background": "assets/covers/06-citrus.png",
+"blocks": [
+{
+"family": "'Roboto', system-ui, sans-serif",
+"fits": true,
+"h": 0.0255,
+"ink": "#FFFFFF",
+"key": "name",
+"lineHeightPx": 28.6,
+"lines": [
+"Familie Müller-Lüdenscheidt aus dem schönen Emmental"
+],
+"sizePx": 22,
+"w": 0.82,
+"weight": 700,
+"x": 0.09,
+"y": 0.13
+}
+],
+"date": {
+"family": "'Roboto', system-ui, sans-serif",
+"h": 0.03,
+"ink": "#FFFFFF",
+"sizePx": 13,
+"text": "09.10.2026",
+"weight": 500,
+"x1": 0.93,
+"y": 0.945
+},
+"ink": "#FFFFFF",
+"logo": {
+"h": 0.0636,
+"ink": "#F7F4EE",
+"variant": "dark",
+"w": 0.27,
+"x": 0.65,
+"y": 0.05
+},
+"page": {
+"h": 1123,
+"w": 794
+},
+"templateId": "citrus",
+"warnings": []
+}
+},
+"citrus/nur-slogan-lang": {
+"layout": {
+"background": "assets/covers/06-citrus.png",
+"blocks": [
+{
+"family": "'Roboto', system-ui, sans-serif",
+"fits": true,
+"h": 0.1002,
+"ink": "#FFFFFF",
+"key": "slogan",
+"lineHeightPx": 37.5,
+"lines": [
+"Gesammelt über viele Jahre, mit Liebe",
+"weitergegeben und von Hand ergänzt, Seite für",
+"Seite"
+],
+"sizePx": 30,
+"w": 0.82,
+"weight": 400,
+"x": 0.09,
+"y": 0.13
+}
+],
+"date": {
+"family": "'Roboto', system-ui, sans-serif",
+"h": 0.03,
+"ink": "#FFFFFF",
+"sizePx": 13,
+"text": "09.10.2026",
+"weight": 500,
+"x1": 0.93,
+"y": 0.945
+},
+"ink": "#FFFFFF",
+"logo": {
+"h": 0.0636,
+"ink": "#F7F4EE",
+"variant": "dark",
+"w": 0.27,
+"x": 0.65,
+"y": 0.05
+},
+"page": {
+"h": 1123,
+"w": 794
+},
+"templateId": "citrus",
+"warnings": []
+}
+},
+"citrus/nur-titel": {
+"layout": {
+"background": "assets/covers/06-citrus.png",
+"blocks": [
+{
+"family": "'Sofia Sans Extra Condensed', 'Arial Narrow', sans-serif",
+"fits": true,
+"h": 0.0963,
+"ink": "#FFFFFF",
+"key": "title",
+"lineHeightPx": 108.16,
+"lines": [
+"Sonntagsküche"
+],
+"sizePx": 104,
+"w": 0.82,
+"weight": 800,
+"x": 0.09,
+"y": 0.13
+}
+],
+"date": {
+"family": "'Roboto', system-ui, sans-serif",
+"h": 0.03,
+"ink": "#FFFFFF",
+"sizePx": 13,
+"text": "09.10.2026",
+"weight": 500,
+"x1": 0.93,
+"y": 0.945
+},
+"ink": "#FFFFFF",
+"logo": {
+"h": 0.0636,
+"ink": "#F7F4EE",
+"variant": "dark",
+"w": 0.27,
+"x": 0.65,
+"y": 0.05
+},
+"page": {
+"h": 1123,
+"w": 794
+},
+"templateId": "citrus",
+"warnings": []
+}
+},
+"citrus/zu-lang": {
+"layout": {
+"background": "assets/covers/06-citrus.png",
+"blocks": [
+{
+"family": "'Sofia Sans Extra Condensed', 'Arial Narrow', sans-serif",
+"fits": false,
+"h": 0.1455,
+"ink": "#FFFFFF",
+"key": "title",
+"lineHeightPx": 35.36,
+"lines": [
+"Lorem ipsum Lorem ipsum Lorem ipsum Lorem ipsum Lorem",
+"ipsum Lorem ipsum Lorem ipsum Lorem ipsum Lorem ipsum",
+"Lorem ipsum Lorem ipsum Lorem ipsum Lorem ipsum Lorem",
+"ipsum Lorem ipsum Lorem ipsum Lorem ipsum Lorem ipsum",
+"Lorem ipsum Lorem ipsum Lorem ipsum Lorem ipsum Lorem",
+"ipsum Lorem ipsum Lorem ipsum Lorem ipsum Lorem ipsum",
+"Lorem ipsum Lorem ipsum Lorem ipsum Lorem ipsum Lorem",
+"ipsum Lorem ipsum Lorem ipsum Lorem ipsum Lorem ipsum",
+"Lorem ipsum Lorem ipsum Lorem ipsum Lorem ipsum"
+],
+"sizePx": 34,
+"w": 0.82,
+"weight": 800,
+"x": 0.09,
+"y": 0.13
+},
+{
+"family": "'Roboto', system-ui, sans-serif",
+"fits": false,
+"h": 0.0485,
+"ink": "#FFFFFF",
+"key": "name",
+"lineHeightPx": 16.9,
+"lines": [
+"NNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNN",
+"NNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNN",
+"NNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNN",
+"NNNNNNNNNNNN"
+],
+"sizePx": 13,
+"w": 0.82,
+"weight": 700,
+"x": 0.09,
+"y": 0.2915
+}
+],
+"date": {
+"family": "'Roboto', system-ui, sans-serif",
+"h": 0.03,
+"ink": "#FFFFFF",
+"sizePx": 13,
+"text": "09.10.2026",
+"weight": 500,
+"x1": 0.93,
+"y": 0.945
+},
+"ink": "#FFFFFF",
+"logo": {
+"h": 0.0636,
+"ink": "#F7F4EE",
+"variant": "dark",
+"w": 0.27,
+"x": 0.65,
+"y": 0.05
+},
+"page": {
+"h": 1123,
+"w": 794
+},
+"templateId": "citrus",
+"warnings": [
+{
+"key": "title",
+"message": "Der Titel ist zu lang für dieses Titelblatt. Bitte kürzen (er passt nur in kleiner, nicht lesbarer Schrift)."
+},
+{
+"key": "name",
+"message": "Der Name ist zu lang für dieses Titelblatt. Bitte kürzen (er passt nur in kleiner, nicht lesbarer Schrift)."
+}
+]
+}
+},
+"garten/kurz": {
+"layout": {
+"background": "assets/covers/08-garten.png",
+"blocks": [
+{
+"family": "'Sofia Sans Extra Condensed', 'Arial Narrow', sans-serif",
+"fits": true,
+"h": 0.0889,
+"ink": "#171717",
+"key": "title",
+"lineHeightPx": 99.84,
+"lines": [
+"Fein"
+],
+"sizePx": 96,
+"w": 0.82,
+"weight": 800,
+"x": 0.09,
+"y": 0.13
+},
+{
+"family": "'Roboto', system-ui, sans-serif",
+"fits": true,
+"h": 0.0334,
+"ink": "#171717",
+"key": "slogan",
+"lineHeightPx": 37.5,
+"lines": [
+"Echt gut"
+],
+"sizePx": 30,
+"w": 0.82,
+"weight": 400,
+"x": 0.09,
+"y": 0.2349
+},
+{
+"family": "'Roboto', system-ui, sans-serif",
+"fits": true,
+"h": 0.0255,
+"ink": "#171717",
+"key": "name",
+"lineHeightPx": 28.6,
+"lines": [
+"Ana"
+],
+"sizePx": 22,
+"w": 0.82,
+"weight": 700,
+"x": 0.09,
+"y": 0.2843
+}
+],
+"date": {
+"family": "'Roboto', system-ui, sans-serif",
+"h": 0.03,
+"ink": "#171717",
+"sizePx": 13,
+"text": "09.10.2026",
+"weight": 500,
+"x1": 0.93,
+"y": 0.945
+},
+"ink": "#171717",
+"logo": {
+"h": 0.0636,
+"ink": "#252720",
+"variant": "light",
+"w": 0.27,
+"x": 0.65,
+"y": 0.05
+},
+"page": {
+"h": 1123,
+"w": 794
+},
+"templateId": "garten",
+"warnings": []
+}
+},
+"garten/kurz-ohne-datum": {
+"layout": {
+"background": "assets/covers/08-garten.png",
+"blocks": [
+{
+"family": "'Sofia Sans Extra Condensed', 'Arial Narrow', sans-serif",
+"fits": true,
+"h": 0.0889,
+"ink": "#171717",
+"key": "title",
+"lineHeightPx": 99.84,
+"lines": [
+"Fein"
+],
+"sizePx": 96,
+"w": 0.82,
+"weight": 800,
+"x": 0.09,
+"y": 0.13
+},
+{
+"family": "'Roboto', system-ui, sans-serif",
+"fits": true,
+"h": 0.0334,
+"ink": "#171717",
+"key": "slogan",
+"lineHeightPx": 37.5,
+"lines": [
+"Echt gut"
+],
+"sizePx": 30,
+"w": 0.82,
+"weight": 400,
+"x": 0.09,
+"y": 0.2349
+},
+{
+"family": "'Roboto', system-ui, sans-serif",
+"fits": true,
+"h": 0.0255,
+"ink": "#171717",
+"key": "name",
+"lineHeightPx": 28.6,
+"lines": [
+"Ana"
+],
+"sizePx": 22,
+"w": 0.82,
+"weight": 700,
+"x": 0.09,
+"y": 0.2843
+}
+],
+"date": null,
+"ink": "#171717",
+"logo": {
+"h": 0.0636,
+"ink": "#252720",
+"variant": "light",
+"w": 0.27,
+"x": 0.65,
+"y": 0.05
+},
+"page": {
+"h": 1123,
+"w": 794
+},
+"templateId": "garten",
+"warnings": []
+}
+},
+"garten/kurz-ohne-logo": {
+"layout": {
+"background": "assets/covers/08-garten.png",
+"blocks": [
+{
+"family": "'Sofia Sans Extra Condensed', 'Arial Narrow', sans-serif",
+"fits": true,
+"h": 0.0889,
+"ink": "#171717",
+"key": "title",
+"lineHeightPx": 99.84,
+"lines": [
+"Fein"
+],
+"sizePx": 96,
+"w": 0.82,
+"weight": 800,
+"x": 0.09,
+"y": 0.13
+},
+{
+"family": "'Roboto', system-ui, sans-serif",
+"fits": true,
+"h": 0.0334,
+"ink": "#171717",
+"key": "slogan",
+"lineHeightPx": 37.5,
+"lines": [
+"Echt gut"
+],
+"sizePx": 30,
+"w": 0.82,
+"weight": 400,
+"x": 0.09,
+"y": 0.2349
+},
+{
+"family": "'Roboto', system-ui, sans-serif",
+"fits": true,
+"h": 0.0255,
+"ink": "#171717",
+"key": "name",
+"lineHeightPx": 28.6,
+"lines": [
+"Ana"
+],
+"sizePx": 22,
+"w": 0.82,
+"weight": 700,
+"x": 0.09,
+"y": 0.2843
+}
+],
+"date": {
+"family": "'Roboto', system-ui, sans-serif",
+"h": 0.03,
+"ink": "#171717",
+"sizePx": 13,
+"text": "09.10.2026",
+"weight": 500,
+"x1": 0.93,
+"y": 0.945
+},
+"ink": "#171717",
+"logo": null,
+"page": {
+"h": 1123,
+"w": 794
+},
+"templateId": "garten",
+"warnings": []
+}
+},
+"garten/lang": {
+"layout": {
+"background": "assets/covers/08-garten.png",
+"blocks": [
+{
+"family": "'Sofia Sans Extra Condensed', 'Arial Narrow', sans-serif",
+"fits": true,
+"h": 0.0833,
+"ink": "#171717",
+"key": "title",
+"lineHeightPx": 46.8,
+"lines": [
+"Die allerbesten Familienrezepte aus drei",
+"Generationen und vielen Ländern"
+],
+"sizePx": 45,
+"w": 0.82,
+"weight": 800,
+"x": 0.09,
+"y": 0.13
+},
+{
+"family": "'Roboto', system-ui, sans-serif",
+"fits": true,
+"h": 0.0234,
+"ink": "#171717",
+"key": "slogan",
+"lineHeightPx": 26.25,
+"lines": [
+"Gesammelt über viele Jahre, mit Liebe weitergegeben und ergänzt"
+],
+"sizePx": 21,
+"w": 0.82,
+"weight": 400,
+"x": 0.09,
+"y": 0.2293
+},
+{
+"family": "'Roboto', system-ui, sans-serif",
+"fits": true,
+"h": 0.0255,
+"ink": "#171717",
+"key": "name",
+"lineHeightPx": 28.6,
+"lines": [
+"Familie Müller-Lüdenscheidt aus dem Emmental"
+],
+"sizePx": 22,
+"w": 0.82,
+"weight": 700,
+"x": 0.09,
+"y": 0.2687
+}
+],
+"date": {
+"family": "'Roboto', system-ui, sans-serif",
+"h": 0.03,
+"ink": "#171717",
+"sizePx": 13,
+"text": "09.10.2026",
+"weight": 500,
+"x1": 0.93,
+"y": 0.945
+},
+"ink": "#171717",
+"logo": {
+"h": 0.0636,
+"ink": "#252720",
+"variant": "light",
+"w": 0.27,
+"x": 0.65,
+"y": 0.05
+},
+"page": {
+"h": 1123,
+"w": 794
+},
+"templateId": "garten",
+"warnings": []
+}
+},
+"garten/langes-wort": {
+"layout": {
+"background": "assets/covers/08-garten.png",
+"blocks": [
+{
+"family": "'Sofia Sans Extra Condensed', 'Arial Narrow', sans-serif",
+"fits": true,
+"h": 0.1778,
+"ink": "#171717",
+"key": "title",
+"lineHeightPx": 66.56,
+"lines": [
+"Donaudampfschifffahrtsgesell",
+"schaftskapitänsmützenfabrika",
+"ntenverband"
+],
+"sizePx": 64,
+"w": 0.82,
+"weight": 800,
+"x": 0.09,
+"y": 0.13
+}
+],
+"date": {
+"family": "'Roboto', system-ui, sans-serif",
+"h": 0.03,
+"ink": "#171717",
+"sizePx": 13,
+"text": "09.10.2026",
+"weight": 500,
+"x1": 0.93,
+"y": 0.945
+},
+"ink": "#171717",
+"logo": {
+"h": 0.0636,
+"ink": "#252720",
+"variant": "light",
+"w": 0.27,
+"x": 0.65,
+"y": 0.05
+},
+"page": {
+"h": 1123,
+"w": 794
+},
+"templateId": "garten",
+"warnings": []
+}
+},
+"garten/leer": {
+"layout": {
+"background": "assets/covers/08-garten.png",
+"blocks": [],
+"date": {
+"family": "'Roboto', system-ui, sans-serif",
+"h": 0.03,
+"ink": "#171717",
+"sizePx": 13,
+"text": "09.10.2026",
+"weight": 500,
+"x1": 0.93,
+"y": 0.945
+},
+"ink": "#171717",
+"logo": {
+"h": 0.0636,
+"ink": "#252720",
+"variant": "light",
+"w": 0.27,
+"x": 0.65,
+"y": 0.05
+},
+"page": {
+"h": 1123,
+"w": 794
+},
+"templateId": "garten",
+"warnings": []
+}
+},
+"garten/nur-name-lang": {
+"layout": {
+"background": "assets/covers/08-garten.png",
+"blocks": [
+{
+"family": "'Roboto', system-ui, sans-serif",
+"fits": true,
+"h": 0.0255,
+"ink": "#171717",
+"key": "name",
+"lineHeightPx": 28.6,
+"lines": [
+"Familie Müller-Lüdenscheidt aus dem schönen Emmental"
+],
+"sizePx": 22,
+"w": 0.82,
+"weight": 700,
+"x": 0.09,
+"y": 0.13
+}
+],
+"date": {
+"family": "'Roboto', system-ui, sans-serif",
+"h": 0.03,
+"ink": "#171717",
+"sizePx": 13,
+"text": "09.10.2026",
+"weight": 500,
+"x1": 0.93,
+"y": 0.945
+},
+"ink": "#171717",
+"logo": {
+"h": 0.0636,
+"ink": "#252720",
+"variant": "light",
+"w": 0.27,
+"x": 0.65,
+"y": 0.05
+},
+"page": {
+"h": 1123,
+"w": 794
+},
+"templateId": "garten",
+"warnings": []
+}
+},
+"garten/nur-slogan-lang": {
+"layout": {
+"background": "assets/covers/08-garten.png",
+"blocks": [
+{
+"family": "'Roboto', system-ui, sans-serif",
+"fits": true,
+"h": 0.1002,
+"ink": "#171717",
+"key": "slogan",
+"lineHeightPx": 37.5,
+"lines": [
+"Gesammelt über viele Jahre, mit Liebe",
+"weitergegeben und von Hand ergänzt, Seite für",
+"Seite"
+],
+"sizePx": 30,
+"w": 0.82,
+"weight": 400,
+"x": 0.09,
+"y": 0.13
+}
+],
+"date": {
+"family": "'Roboto', system-ui, sans-serif",
+"h": 0.03,
+"ink": "#171717",
+"sizePx": 13,
+"text": "09.10.2026",
+"weight": 500,
+"x1": 0.93,
+"y": 0.945
+},
+"ink": "#171717",
+"logo": {
+"h": 0.0636,
+"ink": "#252720",
+"variant": "light",
+"w": 0.27,
+"x": 0.65,
+"y": 0.05
+},
+"page": {
+"h": 1123,
+"w": 794
+},
+"templateId": "garten",
+"warnings": []
+}
+},
+"garten/nur-titel": {
+"layout": {
+"background": "assets/covers/08-garten.png",
+"blocks": [
+{
+"family": "'Sofia Sans Extra Condensed', 'Arial Narrow', sans-serif",
+"fits": true,
+"h": 0.0963,
+"ink": "#171717",
+"key": "title",
+"lineHeightPx": 108.16,
+"lines": [
+"Sonntagsküche"
+],
+"sizePx": 104,
+"w": 0.82,
+"weight": 800,
+"x": 0.09,
+"y": 0.13
+}
+],
+"date": {
+"family": "'Roboto', system-ui, sans-serif",
+"h": 0.03,
+"ink": "#171717",
+"sizePx": 13,
+"text": "09.10.2026",
+"weight": 500,
+"x1": 0.93,
+"y": 0.945
+},
+"ink": "#171717",
+"logo": {
+"h": 0.0636,
+"ink": "#252720",
+"variant": "light",
+"w": 0.27,
+"x": 0.65,
+"y": 0.05
+},
+"page": {
+"h": 1123,
+"w": 794
+},
+"templateId": "garten",
+"warnings": []
+}
+},
+"garten/zu-lang": {
+"layout": {
+"background": "assets/covers/08-garten.png",
+"blocks": [
+{
+"family": "'Sofia Sans Extra Condensed', 'Arial Narrow', sans-serif",
+"fits": false,
+"h": 0.123,
+"ink": "#171717",
+"key": "title",
+"lineHeightPx": 35.36,
+"lines": [
+"Lorem ipsum Lorem ipsum Lorem ipsum Lorem ipsum Lorem",
+"ipsum Lorem ipsum Lorem ipsum Lorem ipsum Lorem ipsum",
+"Lorem ipsum Lorem ipsum Lorem ipsum Lorem ipsum Lorem",
+"ipsum Lorem ipsum Lorem ipsum Lorem ipsum Lorem ipsum",
+"Lorem ipsum Lorem ipsum Lorem ipsum Lorem ipsum Lorem",
+"ipsum Lorem ipsum Lorem ipsum Lorem ipsum Lorem ipsum",
+"Lorem ipsum Lorem ipsum Lorem ipsum Lorem ipsum Lorem",
+"ipsum Lorem ipsum Lorem ipsum Lorem ipsum Lorem ipsum",
+"Lorem ipsum Lorem ipsum Lorem ipsum Lorem ipsum"
+],
+"sizePx": 34,
+"w": 0.82,
+"weight": 800,
+"x": 0.09,
+"y": 0.13
+},
+{
+"family": "'Roboto', system-ui, sans-serif",
+"fits": false,
+"h": 0.041,
+"ink": "#171717",
+"key": "name",
+"lineHeightPx": 16.9,
+"lines": [
+"NNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNN",
+"NNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNN",
+"NNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNN",
+"NNNNNNNNNNNN"
+],
+"sizePx": 13,
+"w": 0.82,
+"weight": 700,
+"x": 0.09,
+"y": 0.269
+}
+],
+"date": {
+"family": "'Roboto', system-ui, sans-serif",
+"h": 0.03,
+"ink": "#171717",
+"sizePx": 13,
+"text": "09.10.2026",
+"weight": 500,
+"x1": 0.93,
+"y": 0.945
+},
+"ink": "#171717",
+"logo": {
+"h": 0.0636,
+"ink": "#252720",
+"variant": "light",
+"w": 0.27,
+"x": 0.65,
+"y": 0.05
+},
+"page": {
+"h": 1123,
+"w": 794
+},
+"templateId": "garten",
+"warnings": [
+{
+"key": "title",
+"message": "Der Titel ist zu lang für dieses Titelblatt. Bitte kürzen (er passt nur in kleiner, nicht lesbarer Schrift)."
+},
+{
+"key": "name",
+"message": "Der Name ist zu lang für dieses Titelblatt. Bitte kürzen (er passt nur in kleiner, nicht lesbarer Schrift)."
+}
+]
+}
+},
+"lieblingsbuch/kurz": {
+"layout": {
+"background": "assets/covers/02-lieblingsbuch.png",
+"blocks": [
+{
+"family": "'Sofia Sans Extra Condensed', 'Arial Narrow', sans-serif",
+"fits": true,
+"h": 0.0963,
+"ink": "#FFFFFF",
+"key": "title",
+"lineHeightPx": 108.16,
+"lines": [
+"Fein"
+],
+"sizePx": 104,
+"w": 0.64,
+"weight": 800,
+"x": 0.27,
+"y": 0.13
+},
+{
+"family": "'Roboto', system-ui, sans-serif",
+"fits": true,
+"h": 0.0334,
+"ink": "#FFFFFF",
+"key": "slogan",
+"lineHeightPx": 37.5,
+"lines": [
+"Echt gut"
+],
+"sizePx": 30,
+"w": 0.64,
+"weight": 400,
+"x": 0.27,
+"y": 0.2423
+},
+{
+"family": "'Roboto', system-ui, sans-serif",
+"fits": true,
+"h": 0.0255,
+"ink": "#FFFFFF",
+"key": "name",
+"lineHeightPx": 28.6,
+"lines": [
+"Ana"
+],
+"sizePx": 22,
+"w": 0.64,
+"weight": 700,
+"x": 0.27,
+"y": 0.2917
+}
+],
+"date": {
+"family": "'Roboto', system-ui, sans-serif",
+"h": 0.03,
+"ink": "#FFFFFF",
+"sizePx": 13,
+"text": "09.10.2026",
+"weight": 500,
+"x1": 0.93,
+"y": 0.945
+},
+"ink": "#FFFFFF",
+"logo": {
+"h": 0.0636,
+"ink": "#F7F4EE",
+"variant": "dark",
+"w": 0.27,
+"x": 0.65,
+"y": 0.05
+},
+"page": {
+"h": 1123,
+"w": 794
+},
+"templateId": "lieblingsbuch",
+"warnings": []
+}
+},
+"lieblingsbuch/kurz-ohne-datum": {
+"layout": {
+"background": "assets/covers/02-lieblingsbuch.png",
+"blocks": [
+{
+"family": "'Sofia Sans Extra Condensed', 'Arial Narrow', sans-serif",
+"fits": true,
+"h": 0.0963,
+"ink": "#FFFFFF",
+"key": "title",
+"lineHeightPx": 108.16,
+"lines": [
+"Fein"
+],
+"sizePx": 104,
+"w": 0.64,
+"weight": 800,
+"x": 0.27,
+"y": 0.13
+},
+{
+"family": "'Roboto', system-ui, sans-serif",
+"fits": true,
+"h": 0.0334,
+"ink": "#FFFFFF",
+"key": "slogan",
+"lineHeightPx": 37.5,
+"lines": [
+"Echt gut"
+],
+"sizePx": 30,
+"w": 0.64,
+"weight": 400,
+"x": 0.27,
+"y": 0.2423
+},
+{
+"family": "'Roboto', system-ui, sans-serif",
+"fits": true,
+"h": 0.0255,
+"ink": "#FFFFFF",
+"key": "name",
+"lineHeightPx": 28.6,
+"lines": [
+"Ana"
+],
+"sizePx": 22,
+"w": 0.64,
+"weight": 700,
+"x": 0.27,
+"y": 0.2917
+}
+],
+"date": null,
+"ink": "#FFFFFF",
+"logo": {
+"h": 0.0636,
+"ink": "#F7F4EE",
+"variant": "dark",
+"w": 0.27,
+"x": 0.65,
+"y": 0.05
+},
+"page": {
+"h": 1123,
+"w": 794
+},
+"templateId": "lieblingsbuch",
+"warnings": []
+}
+},
+"lieblingsbuch/kurz-ohne-logo": {
+"layout": {
+"background": "assets/covers/02-lieblingsbuch.png",
+"blocks": [
+{
+"family": "'Sofia Sans Extra Condensed', 'Arial Narrow', sans-serif",
+"fits": true,
+"h": 0.0963,
+"ink": "#FFFFFF",
+"key": "title",
+"lineHeightPx": 108.16,
+"lines": [
+"Fein"
+],
+"sizePx": 104,
+"w": 0.64,
+"weight": 800,
+"x": 0.27,
+"y": 0.13
+},
+{
+"family": "'Roboto', system-ui, sans-serif",
+"fits": true,
+"h": 0.0334,
+"ink": "#FFFFFF",
+"key": "slogan",
+"lineHeightPx": 37.5,
+"lines": [
+"Echt gut"
+],
+"sizePx": 30,
+"w": 0.64,
+"weight": 400,
+"x": 0.27,
+"y": 0.2423
+},
+{
+"family": "'Roboto', system-ui, sans-serif",
+"fits": true,
+"h": 0.0255,
+"ink": "#FFFFFF",
+"key": "name",
+"lineHeightPx": 28.6,
+"lines": [
+"Ana"
+],
+"sizePx": 22,
+"w": 0.64,
+"weight": 700,
+"x": 0.27,
+"y": 0.2917
+}
+],
+"date": {
+"family": "'Roboto', system-ui, sans-serif",
+"h": 0.03,
+"ink": "#FFFFFF",
+"sizePx": 13,
+"text": "09.10.2026",
+"weight": 500,
+"x1": 0.93,
+"y": 0.945
+},
+"ink": "#FFFFFF",
+"logo": null,
+"page": {
+"h": 1123,
+"w": 794
+},
+"templateId": "lieblingsbuch",
+"warnings": []
+}
+},
+"lieblingsbuch/lang": {
+"layout": {
+"background": "assets/covers/02-lieblingsbuch.png",
+"blocks": [
+{
+"family": "'Sofia Sans Extra Condensed', 'Arial Narrow', sans-serif",
+"fits": true,
+"h": 0.125,
+"ink": "#FFFFFF",
+"key": "title",
+"lineHeightPx": 46.8,
+"lines": [
+"Die allerbesten Familienrezepte",
+"aus drei Generationen und",
+"vielen Ländern"
+],
+"sizePx": 45,
+"w": 0.64,
+"weight": 800,
+"x": 0.27,
+"y": 0.13
+},
+{
+"family": "'Roboto', system-ui, sans-serif",
+"fits": true,
+"h": 0.0668,
+"ink": "#FFFFFF",
+"key": "slogan",
+"lineHeightPx": 37.5,
+"lines": [
+"Gesammelt über viele Jahre, mit",
+"Liebe weitergegeben und ergänzt"
+],
+"sizePx": 30,
+"w": 0.64,
+"weight": 400,
+"x": 0.27,
+"y": 0.271
+},
+{
+"family": "'Roboto', system-ui, sans-serif",
+"fits": true,
+"h": 0.0255,
+"ink": "#FFFFFF",
+"key": "name",
+"lineHeightPx": 28.6,
+"lines": [
+"Familie Müller-Lüdenscheidt aus dem Emmental"
+],
+"sizePx": 22,
+"w": 0.64,
+"weight": 700,
+"x": 0.27,
+"y": 0.3538
+}
+],
+"date": {
+"family": "'Roboto', system-ui, sans-serif",
+"h": 0.03,
+"ink": "#FFFFFF",
+"sizePx": 13,
+"text": "09.10.2026",
+"weight": 500,
+"x1": 0.93,
+"y": 0.945
+},
+"ink": "#FFFFFF",
+"logo": {
+"h": 0.0636,
+"ink": "#F7F4EE",
+"variant": "dark",
+"w": 0.27,
+"x": 0.65,
+"y": 0.05
+},
+"page": {
+"h": 1123,
+"w": 794
+},
+"templateId": "lieblingsbuch",
+"warnings": []
+}
+},
+"lieblingsbuch/langes-wort": {
+"layout": {
+"background": "assets/covers/02-lieblingsbuch.png",
+"blocks": [
+{
+"family": "'Sofia Sans Extra Condensed', 'Arial Narrow', sans-serif",
+"fits": true,
+"h": 0.27,
+"ink": "#FFFFFF",
+"key": "title",
+"lineHeightPx": 75.92,
+"lines": [
+"Donaudampfschifffah",
+"rtsgesellschaftskap",
+"itänsmützenfabrikan",
+"tenverband"
+],
+"sizePx": 73,
+"w": 0.64,
+"weight": 800,
+"x": 0.27,
+"y": 0.13
+}
+],
+"date": {
+"family": "'Roboto', system-ui, sans-serif",
+"h": 0.03,
+"ink": "#FFFFFF",
+"sizePx": 13,
+"text": "09.10.2026",
+"weight": 500,
+"x1": 0.93,
+"y": 0.945
+},
+"ink": "#FFFFFF",
+"logo": {
+"h": 0.0636,
+"ink": "#F7F4EE",
+"variant": "dark",
+"w": 0.27,
+"x": 0.65,
+"y": 0.05
+},
+"page": {
+"h": 1123,
+"w": 794
+},
+"templateId": "lieblingsbuch",
+"warnings": []
+}
+},
+"lieblingsbuch/leer": {
+"layout": {
+"background": "assets/covers/02-lieblingsbuch.png",
+"blocks": [],
+"date": {
+"family": "'Roboto', system-ui, sans-serif",
+"h": 0.03,
+"ink": "#FFFFFF",
+"sizePx": 13,
+"text": "09.10.2026",
+"weight": 500,
+"x1": 0.93,
+"y": 0.945
+},
+"ink": "#FFFFFF",
+"logo": {
+"h": 0.0636,
+"ink": "#F7F4EE",
+"variant": "dark",
+"w": 0.27,
+"x": 0.65,
+"y": 0.05
+},
+"page": {
+"h": 1123,
+"w": 794
+},
+"templateId": "lieblingsbuch",
+"warnings": []
+}
+},
+"lieblingsbuch/nur-name-lang": {
+"layout": {
+"background": "assets/covers/02-lieblingsbuch.png",
+"blocks": [
+{
+"family": "'Roboto', system-ui, sans-serif",
+"fits": true,
+"h": 0.0509,
+"ink": "#FFFFFF",
+"key": "name",
+"lineHeightPx": 28.6,
+"lines": [
+"Familie Müller-Lüdenscheidt aus dem schönen",
+"Emmental"
+],
+"sizePx": 22,
+"w": 0.64,
+"weight": 700,
+"x": 0.27,
+"y": 0.13
+}
+],
+"date": {
+"family": "'Roboto', system-ui, sans-serif",
+"h": 0.03,
+"ink": "#FFFFFF",
+"sizePx": 13,
+"text": "09.10.2026",
+"weight": 500,
+"x1": 0.93,
+"y": 0.945
+},
+"ink": "#FFFFFF",
+"logo": {
+"h": 0.0636,
+"ink": "#F7F4EE",
+"variant": "dark",
+"w": 0.27,
+"x": 0.65,
+"y": 0.05
+},
+"page": {
+"h": 1123,
+"w": 794
+},
+"templateId": "lieblingsbuch",
+"warnings": []
+}
+},
+"lieblingsbuch/nur-slogan-lang": {
+"layout": {
+"background": "assets/covers/02-lieblingsbuch.png",
+"blocks": [
+{
+"family": "'Roboto', system-ui, sans-serif",
+"fits": true,
+"h": 0.1002,
+"ink": "#FFFFFF",
+"key": "slogan",
+"lineHeightPx": 37.5,
+"lines": [
+"Gesammelt über viele Jahre, mit",
+"Liebe weitergegeben und von Hand",
+"ergänzt, Seite für Seite"
+],
+"sizePx": 30,
+"w": 0.64,
+"weight": 400,
+"x": 0.27,
+"y": 0.13
+}
+],
+"date": {
+"family": "'Roboto', system-ui, sans-serif",
+"h": 0.03,
+"ink": "#FFFFFF",
+"sizePx": 13,
+"text": "09.10.2026",
+"weight": 500,
+"x1": 0.93,
+"y": 0.945
+},
+"ink": "#FFFFFF",
+"logo": {
+"h": 0.0636,
+"ink": "#F7F4EE",
+"variant": "dark",
+"w": 0.27,
+"x": 0.65,
+"y": 0.05
+},
+"page": {
+"h": 1123,
+"w": 794
+},
+"templateId": "lieblingsbuch",
+"warnings": []
+}
+},
+"lieblingsbuch/nur-titel": {
+"layout": {
+"background": "assets/covers/02-lieblingsbuch.png",
+"blocks": [
+{
+"family": "'Sofia Sans Extra Condensed', 'Arial Narrow', sans-serif",
+"fits": true,
+"h": 0.0963,
+"ink": "#FFFFFF",
+"key": "title",
+"lineHeightPx": 108.16,
+"lines": [
+"Sonntagsküche"
+],
+"sizePx": 104,
+"w": 0.64,
+"weight": 800,
+"x": 0.27,
+"y": 0.13
+}
+],
+"date": {
+"family": "'Roboto', system-ui, sans-serif",
+"h": 0.03,
+"ink": "#FFFFFF",
+"sizePx": 13,
+"text": "09.10.2026",
+"weight": 500,
+"x1": 0.93,
+"y": 0.945
+},
+"ink": "#FFFFFF",
+"logo": {
+"h": 0.0636,
+"ink": "#F7F4EE",
+"variant": "dark",
+"w": 0.27,
+"x": 0.65,
+"y": 0.05
+},
+"page": {
+"h": 1123,
+"w": 794
+},
+"templateId": "lieblingsbuch",
+"warnings": []
+}
+},
+"lieblingsbuch/zu-lang": {
+"layout": {
+"background": "assets/covers/02-lieblingsbuch.png",
+"blocks": [
+{
+"family": "'Sofia Sans Extra Condensed', 'Arial Narrow', sans-serif",
+"fits": false,
+"h": 0.1905,
+"ink": "#FFFFFF",
+"key": "title",
+"lineHeightPx": 35.36,
+"lines": [
+"Lorem ipsum Lorem ipsum Lorem ipsum Lorem",
+"ipsum Lorem ipsum Lorem ipsum Lorem ipsum",
+"Lorem ipsum Lorem ipsum Lorem ipsum Lorem",
+"ipsum Lorem ipsum Lorem ipsum Lorem ipsum",
+"Lorem ipsum Lorem ipsum Lorem ipsum Lorem",
+"ipsum Lorem ipsum Lorem ipsum Lorem ipsum",
+"Lorem ipsum Lorem ipsum Lorem ipsum Lorem",
+"ipsum Lorem ipsum Lorem ipsum Lorem ipsum",
+"Lorem ipsum Lorem ipsum Lorem ipsum Lorem",
+"ipsum Lorem ipsum Lorem ipsum Lorem ipsum",
+"Lorem ipsum Lorem ipsum Lorem ipsum Lorem",
+"ipsum Lorem ipsum"
+],
+"sizePx": 34,
+"w": 0.64,
+"weight": 800,
+"x": 0.27,
+"y": 0.13
+},
+{
+"family": "'Roboto', system-ui, sans-serif",
+"fits": true,
+"h": 0.0602,
+"ink": "#FFFFFF",
+"key": "name",
+"lineHeightPx": 16.9,
+"lines": [
+"NNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNN",
+"NNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNN",
+"NNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNN",
+"NNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNN"
+],
+"sizePx": 13,
+"w": 0.64,
+"weight": 700,
+"x": 0.27,
+"y": 0.3365
+}
+],
+"date": {
+"family": "'Roboto', system-ui, sans-serif",
+"h": 0.03,
+"ink": "#FFFFFF",
+"sizePx": 13,
+"text": "09.10.2026",
+"weight": 500,
+"x1": 0.93,
+"y": 0.945
+},
+"ink": "#FFFFFF",
+"logo": {
+"h": 0.0636,
+"ink": "#F7F4EE",
+"variant": "dark",
+"w": 0.27,
+"x": 0.65,
+"y": 0.05
+},
+"page": {
+"h": 1123,
+"w": 794
+},
+"templateId": "lieblingsbuch",
+"warnings": [
+{
+"key": "title",
+"message": "Der Titel ist zu lang für dieses Titelblatt. Bitte kürzen (er passt nur in kleiner, nicht lesbarer Schrift)."
+}
+]
+}
+},
+"nachtkueche/kurz": {
+"layout": {
+"background": "assets/covers/05-nachtkueche.png",
+"blocks": [
+{
+"family": "'Sofia Sans Extra Condensed', 'Arial Narrow', sans-serif",
+"fits": true,
+"h": 0.0963,
+"ink": "#FFFFFF",
+"key": "title",
+"lineHeightPx": 108.16,
+"lines": [
+"Fein"
+],
+"sizePx": 104,
+"w": 0.82,
+"weight": 800,
+"x": 0.09,
+"y": 0.13
+},
+{
+"family": "'Roboto', system-ui, sans-serif",
+"fits": true,
+"h": 0.0334,
+"ink": "#FFFFFF",
+"key": "slogan",
+"lineHeightPx": 37.5,
+"lines": [
+"Echt gut"
+],
+"sizePx": 30,
+"w": 0.82,
+"weight": 400,
+"x": 0.09,
+"y": 0.2423
+},
+{
+"family": "'Roboto', system-ui, sans-serif",
+"fits": true,
+"h": 0.0255,
+"ink": "#FFFFFF",
+"key": "name",
+"lineHeightPx": 28.6,
+"lines": [
+"Ana"
+],
+"sizePx": 22,
+"w": 0.82,
+"weight": 700,
+"x": 0.09,
+"y": 0.2917
+}
+],
+"date": {
+"family": "'Roboto', system-ui, sans-serif",
+"h": 0.03,
+"ink": "#FFFFFF",
+"sizePx": 13,
+"text": "09.10.2026",
+"weight": 500,
+"x1": 0.93,
+"y": 0.945
+},
+"ink": "#FFFFFF",
+"logo": {
+"h": 0.0636,
+"ink": "#F7F4EE",
+"variant": "dark",
+"w": 0.27,
+"x": 0.65,
+"y": 0.05
+},
+"page": {
+"h": 1123,
+"w": 794
+},
+"templateId": "nachtkueche",
+"warnings": []
+}
+},
+"nachtkueche/kurz-ohne-datum": {
+"layout": {
+"background": "assets/covers/05-nachtkueche.png",
+"blocks": [
+{
+"family": "'Sofia Sans Extra Condensed', 'Arial Narrow', sans-serif",
+"fits": true,
+"h": 0.0963,
+"ink": "#FFFFFF",
+"key": "title",
+"lineHeightPx": 108.16,
+"lines": [
+"Fein"
+],
+"sizePx": 104,
+"w": 0.82,
+"weight": 800,
+"x": 0.09,
+"y": 0.13
+},
+{
+"family": "'Roboto', system-ui, sans-serif",
+"fits": true,
+"h": 0.0334,
+"ink": "#FFFFFF",
+"key": "slogan",
+"lineHeightPx": 37.5,
+"lines": [
+"Echt gut"
+],
+"sizePx": 30,
+"w": 0.82,
+"weight": 400,
+"x": 0.09,
+"y": 0.2423
+},
+{
+"family": "'Roboto', system-ui, sans-serif",
+"fits": true,
+"h": 0.0255,
+"ink": "#FFFFFF",
+"key": "name",
+"lineHeightPx": 28.6,
+"lines": [
+"Ana"
+],
+"sizePx": 22,
+"w": 0.82,
+"weight": 700,
+"x": 0.09,
+"y": 0.2917
+}
+],
+"date": null,
+"ink": "#FFFFFF",
+"logo": {
+"h": 0.0636,
+"ink": "#F7F4EE",
+"variant": "dark",
+"w": 0.27,
+"x": 0.65,
+"y": 0.05
+},
+"page": {
+"h": 1123,
+"w": 794
+},
+"templateId": "nachtkueche",
+"warnings": []
+}
+},
+"nachtkueche/kurz-ohne-logo": {
+"layout": {
+"background": "assets/covers/05-nachtkueche.png",
+"blocks": [
+{
+"family": "'Sofia Sans Extra Condensed', 'Arial Narrow', sans-serif",
+"fits": true,
+"h": 0.0963,
+"ink": "#FFFFFF",
+"key": "title",
+"lineHeightPx": 108.16,
+"lines": [
+"Fein"
+],
+"sizePx": 104,
+"w": 0.82,
+"weight": 800,
+"x": 0.09,
+"y": 0.13
+},
+{
+"family": "'Roboto', system-ui, sans-serif",
+"fits": true,
+"h": 0.0334,
+"ink": "#FFFFFF",
+"key": "slogan",
+"lineHeightPx": 37.5,
+"lines": [
+"Echt gut"
+],
+"sizePx": 30,
+"w": 0.82,
+"weight": 400,
+"x": 0.09,
+"y": 0.2423
+},
+{
+"family": "'Roboto', system-ui, sans-serif",
+"fits": true,
+"h": 0.0255,
+"ink": "#FFFFFF",
+"key": "name",
+"lineHeightPx": 28.6,
+"lines": [
+"Ana"
+],
+"sizePx": 22,
+"w": 0.82,
+"weight": 700,
+"x": 0.09,
+"y": 0.2917
+}
+],
+"date": {
+"family": "'Roboto', system-ui, sans-serif",
+"h": 0.03,
+"ink": "#FFFFFF",
+"sizePx": 13,
+"text": "09.10.2026",
+"weight": 500,
+"x1": 0.93,
+"y": 0.945
+},
+"ink": "#FFFFFF",
+"logo": null,
+"page": {
+"h": 1123,
+"w": 794
+},
+"templateId": "nachtkueche",
+"warnings": []
+}
+},
+"nachtkueche/lang": {
+"layout": {
+"background": "assets/covers/05-nachtkueche.png",
+"blocks": [
+{
+"family": "'Sofia Sans Extra Condensed', 'Arial Narrow', sans-serif",
+"fits": true,
+"h": 0.1445,
+"ink": "#FFFFFF",
+"key": "title",
+"lineHeightPx": 54.08,
+"lines": [
+"Die allerbesten Familienrezepte",
+"aus drei Generationen und vielen",
+"Ländern"
+],
+"sizePx": 52,
+"w": 0.82,
+"weight": 800,
+"x": 0.09,
+"y": 0.13
+},
+{
+"family": "'Roboto', system-ui, sans-serif",
+"fits": true,
+"h": 0.0668,
+"ink": "#FFFFFF",
+"key": "slogan",
+"lineHeightPx": 37.5,
+"lines": [
+"Gesammelt über viele Jahre, mit Liebe",
+"weitergegeben und ergänzt"
+],
+"sizePx": 30,
+"w": 0.82,
+"weight": 400,
+"x": 0.09,
+"y": 0.2905
+},
+{
+"family": "'Roboto', system-ui, sans-serif",
+"fits": true,
+"h": 0.0255,
+"ink": "#FFFFFF",
+"key": "name",
+"lineHeightPx": 28.6,
+"lines": [
+"Familie Müller-Lüdenscheidt aus dem Emmental"
+],
+"sizePx": 22,
+"w": 0.82,
+"weight": 700,
+"x": 0.09,
+"y": 0.3733
+}
+],
+"date": {
+"family": "'Roboto', system-ui, sans-serif",
+"h": 0.03,
+"ink": "#FFFFFF",
+"sizePx": 13,
+"text": "09.10.2026",
+"weight": 500,
+"x1": 0.93,
+"y": 0.945
+},
+"ink": "#FFFFFF",
+"logo": {
+"h": 0.0636,
+"ink": "#F7F4EE",
+"variant": "dark",
+"w": 0.27,
+"x": 0.65,
+"y": 0.05
+},
+"page": {
+"h": 1123,
+"w": 794
+},
+"templateId": "nachtkueche",
+"warnings": []
+}
+},
+"nachtkueche/langes-wort": {
+"layout": {
+"background": "assets/covers/05-nachtkueche.png",
+"blocks": [
+{
+"family": "'Sofia Sans Extra Condensed', 'Arial Narrow', sans-serif",
+"fits": true,
+"h": 0.2167,
+"ink": "#FFFFFF",
+"key": "title",
+"lineHeightPx": 81.12,
+"lines": [
+"Donaudampfschifffahrtsg",
+"esellschaftskapitänsmüt",
+"zenfabrikantenverband"
+],
+"sizePx": 78,
+"w": 0.82,
+"weight": 800,
+"x": 0.09,
+"y": 0.13
+}
+],
+"date": {
+"family": "'Roboto', system-ui, sans-serif",
+"h": 0.03,
+"ink": "#FFFFFF",
+"sizePx": 13,
+"text": "09.10.2026",
+"weight": 500,
+"x1": 0.93,
+"y": 0.945
+},
+"ink": "#FFFFFF",
+"logo": {
+"h": 0.0636,
+"ink": "#F7F4EE",
+"variant": "dark",
+"w": 0.27,
+"x": 0.65,
+"y": 0.05
+},
+"page": {
+"h": 1123,
+"w": 794
+},
+"templateId": "nachtkueche",
+"warnings": []
+}
+},
+"nachtkueche/leer": {
+"layout": {
+"background": "assets/covers/05-nachtkueche.png",
+"blocks": [],
+"date": {
+"family": "'Roboto', system-ui, sans-serif",
+"h": 0.03,
+"ink": "#FFFFFF",
+"sizePx": 13,
+"text": "09.10.2026",
+"weight": 500,
+"x1": 0.93,
+"y": 0.945
+},
+"ink": "#FFFFFF",
+"logo": {
+"h": 0.0636,
+"ink": "#F7F4EE",
+"variant": "dark",
+"w": 0.27,
+"x": 0.65,
+"y": 0.05
+},
+"page": {
+"h": 1123,
+"w": 794
+},
+"templateId": "nachtkueche",
+"warnings": []
+}
+},
+"nachtkueche/nur-name-lang": {
+"layout": {
+"background": "assets/covers/05-nachtkueche.png",
+"blocks": [
+{
+"family": "'Roboto', system-ui, sans-serif",
+"fits": true,
+"h": 0.0255,
+"ink": "#FFFFFF",
+"key": "name",
+"lineHeightPx": 28.6,
+"lines": [
+"Familie Müller-Lüdenscheidt aus dem schönen Emmental"
+],
+"sizePx": 22,
+"w": 0.82,
+"weight": 700,
+"x": 0.09,
+"y": 0.13
+}
+],
+"date": {
+"family": "'Roboto', system-ui, sans-serif",
+"h": 0.03,
+"ink": "#FFFFFF",
+"sizePx": 13,
+"text": "09.10.2026",
+"weight": 500,
+"x1": 0.93,
+"y": 0.945
+},
+"ink": "#FFFFFF",
+"logo": {
+"h": 0.0636,
+"ink": "#F7F4EE",
+"variant": "dark",
+"w": 0.27,
+"x": 0.65,
+"y": 0.05
+},
+"page": {
+"h": 1123,
+"w": 794
+},
+"templateId": "nachtkueche",
+"warnings": []
+}
+},
+"nachtkueche/nur-slogan-lang": {
+"layout": {
+"background": "assets/covers/05-nachtkueche.png",
+"blocks": [
+{
+"family": "'Roboto', system-ui, sans-serif",
+"fits": true,
+"h": 0.1002,
+"ink": "#FFFFFF",
+"key": "slogan",
+"lineHeightPx": 37.5,
+"lines": [
+"Gesammelt über viele Jahre, mit Liebe",
+"weitergegeben und von Hand ergänzt, Seite für",
+"Seite"
+],
+"sizePx": 30,
+"w": 0.82,
+"weight": 400,
+"x": 0.09,
+"y": 0.13
+}
+],
+"date": {
+"family": "'Roboto', system-ui, sans-serif",
+"h": 0.03,
+"ink": "#FFFFFF",
+"sizePx": 13,
+"text": "09.10.2026",
+"weight": 500,
+"x1": 0.93,
+"y": 0.945
+},
+"ink": "#FFFFFF",
+"logo": {
+"h": 0.0636,
+"ink": "#F7F4EE",
+"variant": "dark",
+"w": 0.27,
+"x": 0.65,
+"y": 0.05
+},
+"page": {
+"h": 1123,
+"w": 794
+},
+"templateId": "nachtkueche",
+"warnings": []
+}
+},
+"nachtkueche/nur-titel": {
+"layout": {
+"background": "assets/covers/05-nachtkueche.png",
+"blocks": [
+{
+"family": "'Sofia Sans Extra Condensed', 'Arial Narrow', sans-serif",
+"fits": true,
+"h": 0.0963,
+"ink": "#FFFFFF",
+"key": "title",
+"lineHeightPx": 108.16,
+"lines": [
+"Sonntagsküche"
+],
+"sizePx": 104,
+"w": 0.82,
+"weight": 800,
+"x": 0.09,
+"y": 0.13
+}
+],
+"date": {
+"family": "'Roboto', system-ui, sans-serif",
+"h": 0.03,
+"ink": "#FFFFFF",
+"sizePx": 13,
+"text": "09.10.2026",
+"weight": 500,
+"x1": 0.93,
+"y": 0.945
+},
+"ink": "#FFFFFF",
+"logo": {
+"h": 0.0636,
+"ink": "#F7F4EE",
+"variant": "dark",
+"w": 0.27,
+"x": 0.65,
+"y": 0.05
+},
+"page": {
+"h": 1123,
+"w": 794
+},
+"templateId": "nachtkueche",
+"warnings": []
+}
+},
+"nachtkueche/zu-lang": {
+"layout": {
+"background": "assets/covers/05-nachtkueche.png",
+"blocks": [
+{
+"family": "'Sofia Sans Extra Condensed', 'Arial Narrow', sans-serif",
+"fits": false,
+"h": 0.1905,
+"ink": "#FFFFFF",
+"key": "title",
+"lineHeightPx": 35.36,
+"lines": [
+"Lorem ipsum Lorem ipsum Lorem ipsum Lorem ipsum Lorem",
+"ipsum Lorem ipsum Lorem ipsum Lorem ipsum Lorem ipsum",
+"Lorem ipsum Lorem ipsum Lorem ipsum Lorem ipsum Lorem",
+"ipsum Lorem ipsum Lorem ipsum Lorem ipsum Lorem ipsum",
+"Lorem ipsum Lorem ipsum Lorem ipsum Lorem ipsum Lorem",
+"ipsum Lorem ipsum Lorem ipsum Lorem ipsum Lorem ipsum",
+"Lorem ipsum Lorem ipsum Lorem ipsum Lorem ipsum Lorem",
+"ipsum Lorem ipsum Lorem ipsum Lorem ipsum Lorem ipsum",
+"Lorem ipsum Lorem ipsum Lorem ipsum Lorem ipsum"
+],
+"sizePx": 34,
+"w": 0.82,
+"weight": 800,
+"x": 0.09,
+"y": 0.13
+},
+{
+"family": "'Roboto', system-ui, sans-serif",
+"fits": true,
+"h": 0.0602,
+"ink": "#FFFFFF",
+"key": "name",
+"lineHeightPx": 16.9,
+"lines": [
+"NNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNN",
+"NNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNN",
+"NNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNN",
+"NNNNNNNNNNNN"
+],
+"sizePx": 13,
+"w": 0.82,
+"weight": 700,
+"x": 0.09,
+"y": 0.3365
+}
+],
+"date": {
+"family": "'Roboto', system-ui, sans-serif",
+"h": 0.03,
+"ink": "#FFFFFF",
+"sizePx": 13,
+"text": "09.10.2026",
+"weight": 500,
+"x1": 0.93,
+"y": 0.945
+},
+"ink": "#FFFFFF",
+"logo": {
+"h": 0.0636,
+"ink": "#F7F4EE",
+"variant": "dark",
+"w": 0.27,
+"x": 0.65,
+"y": 0.05
+},
+"page": {
+"h": 1123,
+"w": 794
+},
+"templateId": "nachtkueche",
+"warnings": [
+{
+"key": "title",
+"message": "Der Titel ist zu lang für dieses Titelblatt. Bitte kürzen (er passt nur in kleiner, nicht lesbarer Schrift)."
+}
+]
+}
+},
+"ofenglueck/kurz": {
+"layout": {
+"background": "assets/covers/10-ofenglueck.png",
+"blocks": [
+{
+"family": "'Sofia Sans Extra Condensed', 'Arial Narrow', sans-serif",
+"fits": true,
+"h": 0.0963,
+"ink": "#171717",
+"key": "title",
+"lineHeightPx": 108.16,
+"lines": [
+"Fein"
+],
+"sizePx": 104,
+"w": 0.82,
+"weight": 800,
+"x": 0.09,
+"y": 0.13
+},
+{
+"family": "'Roboto', system-ui, sans-serif",
+"fits": true,
+"h": 0.0334,
+"ink": "#171717",
+"key": "slogan",
+"lineHeightPx": 37.5,
+"lines": [
+"Echt gut"
+],
+"sizePx": 30,
+"w": 0.82,
+"weight": 400,
+"x": 0.09,
+"y": 0.2423
+},
+{
+"family": "'Roboto', system-ui, sans-serif",
+"fits": true,
+"h": 0.0255,
+"ink": "#171717",
+"key": "name",
+"lineHeightPx": 28.6,
+"lines": [
+"Ana"
+],
+"sizePx": 22,
+"w": 0.82,
+"weight": 700,
+"x": 0.09,
+"y": 0.2917
+}
+],
+"date": {
+"family": "'Roboto', system-ui, sans-serif",
+"h": 0.03,
+"ink": "#171717",
+"sizePx": 13,
+"text": "09.10.2026",
+"weight": 500,
+"x1": 0.93,
+"y": 0.945
+},
+"ink": "#171717",
+"logo": {
+"h": 0.0636,
+"ink": "#252720",
+"variant": "light",
+"w": 0.27,
+"x": 0.65,
+"y": 0.05
+},
+"page": {
+"h": 1123,
+"w": 794
+},
+"templateId": "ofenglueck",
+"warnings": []
+}
+},
+"ofenglueck/kurz-ohne-datum": {
+"layout": {
+"background": "assets/covers/10-ofenglueck.png",
+"blocks": [
+{
+"family": "'Sofia Sans Extra Condensed', 'Arial Narrow', sans-serif",
+"fits": true,
+"h": 0.0963,
+"ink": "#171717",
+"key": "title",
+"lineHeightPx": 108.16,
+"lines": [
+"Fein"
+],
+"sizePx": 104,
+"w": 0.82,
+"weight": 800,
+"x": 0.09,
+"y": 0.13
+},
+{
+"family": "'Roboto', system-ui, sans-serif",
+"fits": true,
+"h": 0.0334,
+"ink": "#171717",
+"key": "slogan",
+"lineHeightPx": 37.5,
+"lines": [
+"Echt gut"
+],
+"sizePx": 30,
+"w": 0.82,
+"weight": 400,
+"x": 0.09,
+"y": 0.2423
+},
+{
+"family": "'Roboto', system-ui, sans-serif",
+"fits": true,
+"h": 0.0255,
+"ink": "#171717",
+"key": "name",
+"lineHeightPx": 28.6,
+"lines": [
+"Ana"
+],
+"sizePx": 22,
+"w": 0.82,
+"weight": 700,
+"x": 0.09,
+"y": 0.2917
+}
+],
+"date": null,
+"ink": "#171717",
+"logo": {
+"h": 0.0636,
+"ink": "#252720",
+"variant": "light",
+"w": 0.27,
+"x": 0.65,
+"y": 0.05
+},
+"page": {
+"h": 1123,
+"w": 794
+},
+"templateId": "ofenglueck",
+"warnings": []
+}
+},
+"ofenglueck/kurz-ohne-logo": {
+"layout": {
+"background": "assets/covers/10-ofenglueck.png",
+"blocks": [
+{
+"family": "'Sofia Sans Extra Condensed', 'Arial Narrow', sans-serif",
+"fits": true,
+"h": 0.0963,
+"ink": "#171717",
+"key": "title",
+"lineHeightPx": 108.16,
+"lines": [
+"Fein"
+],
+"sizePx": 104,
+"w": 0.82,
+"weight": 800,
+"x": 0.09,
+"y": 0.13
+},
+{
+"family": "'Roboto', system-ui, sans-serif",
+"fits": true,
+"h": 0.0334,
+"ink": "#171717",
+"key": "slogan",
+"lineHeightPx": 37.5,
+"lines": [
+"Echt gut"
+],
+"sizePx": 30,
+"w": 0.82,
+"weight": 400,
+"x": 0.09,
+"y": 0.2423
+},
+{
+"family": "'Roboto', system-ui, sans-serif",
+"fits": true,
+"h": 0.0255,
+"ink": "#171717",
+"key": "name",
+"lineHeightPx": 28.6,
+"lines": [
+"Ana"
+],
+"sizePx": 22,
+"w": 0.82,
+"weight": 700,
+"x": 0.09,
+"y": 0.2917
+}
+],
+"date": {
+"family": "'Roboto', system-ui, sans-serif",
+"h": 0.03,
+"ink": "#171717",
+"sizePx": 13,
+"text": "09.10.2026",
+"weight": 500,
+"x1": 0.93,
+"y": 0.945
+},
+"ink": "#171717",
+"logo": null,
+"page": {
+"h": 1123,
+"w": 794
+},
+"templateId": "ofenglueck",
+"warnings": []
+}
+},
+"ofenglueck/lang": {
+"layout": {
+"background": "assets/covers/10-ofenglueck.png",
+"blocks": [
+{
+"family": "'Sofia Sans Extra Condensed', 'Arial Narrow', sans-serif",
+"fits": true,
+"h": 0.0926,
+"ink": "#171717",
+"key": "title",
+"lineHeightPx": 52,
+"lines": [
+"Die allerbesten Familienrezepte aus",
+"drei Generationen und vielen Ländern"
+],
+"sizePx": 50,
+"w": 0.82,
+"weight": 800,
+"x": 0.09,
+"y": 0.13
+},
+{
+"family": "'Roboto', system-ui, sans-serif",
+"fits": true,
+"h": 0.0579,
+"ink": "#171717",
+"key": "slogan",
+"lineHeightPx": 32.5,
+"lines": [
+"Gesammelt über viele Jahre, mit Liebe weitergegeben",
+"und ergänzt"
+],
+"sizePx": 26,
+"w": 0.82,
+"weight": 400,
+"x": 0.09,
+"y": 0.2386
+},
+{
+"family": "'Roboto', system-ui, sans-serif",
+"fits": true,
+"h": 0.0255,
+"ink": "#171717",
+"key": "name",
+"lineHeightPx": 28.6,
+"lines": [
+"Familie Müller-Lüdenscheidt aus dem Emmental"
+],
+"sizePx": 22,
+"w": 0.82,
+"weight": 700,
+"x": 0.09,
+"y": 0.3125
+}
+],
+"date": {
+"family": "'Roboto', system-ui, sans-serif",
+"h": 0.03,
+"ink": "#171717",
+"sizePx": 13,
+"text": "09.10.2026",
+"weight": 500,
+"x1": 0.93,
+"y": 0.945
+},
+"ink": "#171717",
+"logo": {
+"h": 0.0636,
+"ink": "#252720",
+"variant": "light",
+"w": 0.27,
+"x": 0.65,
+"y": 0.05
+},
+"page": {
+"h": 1123,
+"w": 794
+},
+"templateId": "ofenglueck",
+"warnings": []
+}
+},
+"ofenglueck/langes-wort": {
+"layout": {
+"background": "assets/covers/10-ofenglueck.png",
+"blocks": [
+{
+"family": "'Sofia Sans Extra Condensed', 'Arial Narrow', sans-serif",
+"fits": true,
+"h": 0.2167,
+"ink": "#171717",
+"key": "title",
+"lineHeightPx": 81.12,
+"lines": [
+"Donaudampfschifffahrtsg",
+"esellschaftskapitänsmüt",
+"zenfabrikantenverband"
+],
+"sizePx": 78,
+"w": 0.82,
+"weight": 800,
+"x": 0.09,
+"y": 0.13
+}
+],
+"date": {
+"family": "'Roboto', system-ui, sans-serif",
+"h": 0.03,
+"ink": "#171717",
+"sizePx": 13,
+"text": "09.10.2026",
+"weight": 500,
+"x1": 0.93,
+"y": 0.945
+},
+"ink": "#171717",
+"logo": {
+"h": 0.0636,
+"ink": "#252720",
+"variant": "light",
+"w": 0.27,
+"x": 0.65,
+"y": 0.05
+},
+"page": {
+"h": 1123,
+"w": 794
+},
+"templateId": "ofenglueck",
+"warnings": []
+}
+},
+"ofenglueck/leer": {
+"layout": {
+"background": "assets/covers/10-ofenglueck.png",
+"blocks": [],
+"date": {
+"family": "'Roboto', system-ui, sans-serif",
+"h": 0.03,
+"ink": "#171717",
+"sizePx": 13,
+"text": "09.10.2026",
+"weight": 500,
+"x1": 0.93,
+"y": 0.945
+},
+"ink": "#171717",
+"logo": {
+"h": 0.0636,
+"ink": "#252720",
+"variant": "light",
+"w": 0.27,
+"x": 0.65,
+"y": 0.05
+},
+"page": {
+"h": 1123,
+"w": 794
+},
+"templateId": "ofenglueck",
+"warnings": []
+}
+},
+"ofenglueck/nur-name-lang": {
+"layout": {
+"background": "assets/covers/10-ofenglueck.png",
+"blocks": [
+{
+"family": "'Roboto', system-ui, sans-serif",
+"fits": true,
+"h": 0.0255,
+"ink": "#171717",
+"key": "name",
+"lineHeightPx": 28.6,
+"lines": [
+"Familie Müller-Lüdenscheidt aus dem schönen Emmental"
+],
+"sizePx": 22,
+"w": 0.82,
+"weight": 700,
+"x": 0.09,
+"y": 0.13
+}
+],
+"date": {
+"family": "'Roboto', system-ui, sans-serif",
+"h": 0.03,
+"ink": "#171717",
+"sizePx": 13,
+"text": "09.10.2026",
+"weight": 500,
+"x1": 0.93,
+"y": 0.945
+},
+"ink": "#171717",
+"logo": {
+"h": 0.0636,
+"ink": "#252720",
+"variant": "light",
+"w": 0.27,
+"x": 0.65,
+"y": 0.05
+},
+"page": {
+"h": 1123,
+"w": 794
+},
+"templateId": "ofenglueck",
+"warnings": []
+}
+},
+"ofenglueck/nur-slogan-lang": {
+"layout": {
+"background": "assets/covers/10-ofenglueck.png",
+"blocks": [
+{
+"family": "'Roboto', system-ui, sans-serif",
+"fits": true,
+"h": 0.1002,
+"ink": "#171717",
+"key": "slogan",
+"lineHeightPx": 37.5,
+"lines": [
+"Gesammelt über viele Jahre, mit Liebe",
+"weitergegeben und von Hand ergänzt, Seite für",
+"Seite"
+],
+"sizePx": 30,
+"w": 0.82,
+"weight": 400,
+"x": 0.09,
+"y": 0.13
+}
+],
+"date": {
+"family": "'Roboto', system-ui, sans-serif",
+"h": 0.03,
+"ink": "#171717",
+"sizePx": 13,
+"text": "09.10.2026",
+"weight": 500,
+"x1": 0.93,
+"y": 0.945
+},
+"ink": "#171717",
+"logo": {
+"h": 0.0636,
+"ink": "#252720",
+"variant": "light",
+"w": 0.27,
+"x": 0.65,
+"y": 0.05
+},
+"page": {
+"h": 1123,
+"w": 794
+},
+"templateId": "ofenglueck",
+"warnings": []
+}
+},
+"ofenglueck/nur-titel": {
+"layout": {
+"background": "assets/covers/10-ofenglueck.png",
+"blocks": [
+{
+"family": "'Sofia Sans Extra Condensed', 'Arial Narrow', sans-serif",
+"fits": true,
+"h": 0.0963,
+"ink": "#171717",
+"key": "title",
+"lineHeightPx": 108.16,
+"lines": [
+"Sonntagsküche"
+],
+"sizePx": 104,
+"w": 0.82,
+"weight": 800,
+"x": 0.09,
+"y": 0.13
+}
+],
+"date": {
+"family": "'Roboto', system-ui, sans-serif",
+"h": 0.03,
+"ink": "#171717",
+"sizePx": 13,
+"text": "09.10.2026",
+"weight": 500,
+"x1": 0.93,
+"y": 0.945
+},
+"ink": "#171717",
+"logo": {
+"h": 0.0636,
+"ink": "#252720",
+"variant": "light",
+"w": 0.27,
+"x": 0.65,
+"y": 0.05
+},
+"page": {
+"h": 1123,
+"w": 794
+},
+"templateId": "ofenglueck",
+"warnings": []
+}
+},
+"ofenglueck/zu-lang": {
+"layout": {
+"background": "assets/covers/10-ofenglueck.png",
+"blocks": [
+{
+"family": "'Sofia Sans Extra Condensed', 'Arial Narrow', sans-serif",
+"fits": false,
+"h": 0.168,
+"ink": "#171717",
+"key": "title",
+"lineHeightPx": 35.36,
+"lines": [
+"Lorem ipsum Lorem ipsum Lorem ipsum Lorem ipsum Lorem",
+"ipsum Lorem ipsum Lorem ipsum Lorem ipsum Lorem ipsum",
+"Lorem ipsum Lorem ipsum Lorem ipsum Lorem ipsum Lorem",
+"ipsum Lorem ipsum Lorem ipsum Lorem ipsum Lorem ipsum",
+"Lorem ipsum Lorem ipsum Lorem ipsum Lorem ipsum Lorem",
+"ipsum Lorem ipsum Lorem ipsum Lorem ipsum Lorem ipsum",
+"Lorem ipsum Lorem ipsum Lorem ipsum Lorem ipsum Lorem",
+"ipsum Lorem ipsum Lorem ipsum Lorem ipsum Lorem ipsum",
+"Lorem ipsum Lorem ipsum Lorem ipsum Lorem ipsum"
+],
+"sizePx": 34,
+"w": 0.82,
+"weight": 800,
+"x": 0.09,
+"y": 0.13
+},
+{
+"family": "'Roboto', system-ui, sans-serif",
+"fits": false,
+"h": 0.056,
+"ink": "#171717",
+"key": "name",
+"lineHeightPx": 16.9,
+"lines": [
+"NNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNN",
+"NNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNN",
+"NNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNN",
+"NNNNNNNNNNNN"
+],
+"sizePx": 13,
+"w": 0.82,
+"weight": 700,
+"x": 0.09,
+"y": 0.314
+}
+],
+"date": {
+"family": "'Roboto', system-ui, sans-serif",
+"h": 0.03,
+"ink": "#171717",
+"sizePx": 13,
+"text": "09.10.2026",
+"weight": 500,
+"x1": 0.93,
+"y": 0.945
+},
+"ink": "#171717",
+"logo": {
+"h": 0.0636,
+"ink": "#252720",
+"variant": "light",
+"w": 0.27,
+"x": 0.65,
+"y": 0.05
+},
+"page": {
+"h": 1123,
+"w": 794
+},
+"templateId": "ofenglueck",
+"warnings": [
+{
+"key": "title",
+"message": "Der Titel ist zu lang für dieses Titelblatt. Bitte kürzen (er passt nur in kleiner, nicht lesbarer Schrift)."
+},
+{
+"key": "name",
+"message": "Der Name ist zu lang für dieses Titelblatt. Bitte kürzen (er passt nur in kleiner, nicht lesbarer Schrift)."
+}
+]
+}
+},
+"pop/kurz": {
+"layout": {
+"background": "assets/covers/01-pop.png",
+"blocks": [
+{
+"family": "'Sofia Sans Extra Condensed', 'Arial Narrow', sans-serif",
+"fits": true,
+"h": 0.0963,
+"ink": "#171717",
+"key": "title",
+"lineHeightPx": 108.16,
+"lines": [
+"Fein"
+],
+"sizePx": 104,
+"w": 0.82,
+"weight": 800,
+"x": 0.09,
+"y": 0.13
+},
+{
+"family": "'Roboto', system-ui, sans-serif",
+"fits": true,
+"h": 0.0334,
+"ink": "#171717",
+"key": "slogan",
+"lineHeightPx": 37.5,
+"lines": [
+"Echt gut"
+],
+"sizePx": 30,
+"w": 0.82,
+"weight": 400,
+"x": 0.09,
+"y": 0.2423
+},
+{
+"family": "'Roboto', system-ui, sans-serif",
+"fits": true,
+"h": 0.0255,
+"ink": "#171717",
+"key": "name",
+"lineHeightPx": 28.6,
+"lines": [
+"Ana"
+],
+"sizePx": 22,
+"w": 0.82,
+"weight": 700,
+"x": 0.09,
+"y": 0.2917
+}
+],
+"date": {
+"family": "'Roboto', system-ui, sans-serif",
+"h": 0.03,
+"ink": "#171717",
+"sizePx": 13,
+"text": "09.10.2026",
+"weight": 500,
+"x1": 0.93,
+"y": 0.945
+},
+"ink": "#171717",
+"logo": {
+"h": 0.0636,
+"ink": "#252720",
+"variant": "light",
+"w": 0.27,
+"x": 0.65,
+"y": 0.05
+},
+"page": {
+"h": 1123,
+"w": 794
+},
+"templateId": "pop",
+"warnings": []
+}
+},
+"pop/kurz-ohne-datum": {
+"layout": {
+"background": "assets/covers/01-pop.png",
+"blocks": [
+{
+"family": "'Sofia Sans Extra Condensed', 'Arial Narrow', sans-serif",
+"fits": true,
+"h": 0.0963,
+"ink": "#171717",
+"key": "title",
+"lineHeightPx": 108.16,
+"lines": [
+"Fein"
+],
+"sizePx": 104,
+"w": 0.82,
+"weight": 800,
+"x": 0.09,
+"y": 0.13
+},
+{
+"family": "'Roboto', system-ui, sans-serif",
+"fits": true,
+"h": 0.0334,
+"ink": "#171717",
+"key": "slogan",
+"lineHeightPx": 37.5,
+"lines": [
+"Echt gut"
+],
+"sizePx": 30,
+"w": 0.82,
+"weight": 400,
+"x": 0.09,
+"y": 0.2423
+},
+{
+"family": "'Roboto', system-ui, sans-serif",
+"fits": true,
+"h": 0.0255,
+"ink": "#171717",
+"key": "name",
+"lineHeightPx": 28.6,
+"lines": [
+"Ana"
+],
+"sizePx": 22,
+"w": 0.82,
+"weight": 700,
+"x": 0.09,
+"y": 0.2917
+}
+],
+"date": null,
+"ink": "#171717",
+"logo": {
+"h": 0.0636,
+"ink": "#252720",
+"variant": "light",
+"w": 0.27,
+"x": 0.65,
+"y": 0.05
+},
+"page": {
+"h": 1123,
+"w": 794
+},
+"templateId": "pop",
+"warnings": []
+}
+},
+"pop/kurz-ohne-logo": {
+"layout": {
+"background": "assets/covers/01-pop.png",
+"blocks": [
+{
+"family": "'Sofia Sans Extra Condensed', 'Arial Narrow', sans-serif",
+"fits": true,
+"h": 0.0963,
+"ink": "#171717",
+"key": "title",
+"lineHeightPx": 108.16,
+"lines": [
+"Fein"
+],
+"sizePx": 104,
+"w": 0.82,
+"weight": 800,
+"x": 0.09,
+"y": 0.13
+},
+{
+"family": "'Roboto', system-ui, sans-serif",
+"fits": true,
+"h": 0.0334,
+"ink": "#171717",
+"key": "slogan",
+"lineHeightPx": 37.5,
+"lines": [
+"Echt gut"
+],
+"sizePx": 30,
+"w": 0.82,
+"weight": 400,
+"x": 0.09,
+"y": 0.2423
+},
+{
+"family": "'Roboto', system-ui, sans-serif",
+"fits": true,
+"h": 0.0255,
+"ink": "#171717",
+"key": "name",
+"lineHeightPx": 28.6,
+"lines": [
+"Ana"
+],
+"sizePx": 22,
+"w": 0.82,
+"weight": 700,
+"x": 0.09,
+"y": 0.2917
+}
+],
+"date": {
+"family": "'Roboto', system-ui, sans-serif",
+"h": 0.03,
+"ink": "#171717",
+"sizePx": 13,
+"text": "09.10.2026",
+"weight": 500,
+"x1": 0.93,
+"y": 0.945
+},
+"ink": "#171717",
+"logo": null,
+"page": {
+"h": 1123,
+"w": 794
+},
+"templateId": "pop",
+"warnings": []
+}
+},
+"pop/lang": {
+"layout": {
+"background": "assets/covers/01-pop.png",
+"blocks": [
+{
+"family": "'Sofia Sans Extra Condensed', 'Arial Narrow', sans-serif",
+"fits": true,
+"h": 0.0926,
+"ink": "#171717",
+"key": "title",
+"lineHeightPx": 52,
+"lines": [
+"Die allerbesten Familienrezepte aus",
+"drei Generationen und vielen Ländern"
+],
+"sizePx": 50,
+"w": 0.82,
+"weight": 800,
+"x": 0.09,
+"y": 0.13
+},
+{
+"family": "'Roboto', system-ui, sans-serif",
+"fits": true,
+"h": 0.0601,
+"ink": "#171717",
+"key": "slogan",
+"lineHeightPx": 33.75,
+"lines": [
+"Gesammelt über viele Jahre, mit Liebe weitergegeben",
+"und ergänzt"
+],
+"sizePx": 27,
+"w": 0.82,
+"weight": 400,
+"x": 0.09,
+"y": 0.2386
+},
+{
+"family": "'Roboto', system-ui, sans-serif",
+"fits": true,
+"h": 0.0255,
+"ink": "#171717",
+"key": "name",
+"lineHeightPx": 28.6,
+"lines": [
+"Familie Müller-Lüdenscheidt aus dem Emmental"
+],
+"sizePx": 22,
+"w": 0.82,
+"weight": 700,
+"x": 0.09,
+"y": 0.3147
+}
+],
+"date": {
+"family": "'Roboto', system-ui, sans-serif",
+"h": 0.03,
+"ink": "#171717",
+"sizePx": 13,
+"text": "09.10.2026",
+"weight": 500,
+"x1": 0.93,
+"y": 0.945
+},
+"ink": "#171717",
+"logo": {
+"h": 0.0636,
+"ink": "#252720",
+"variant": "light",
+"w": 0.27,
+"x": 0.65,
+"y": 0.05
+},
+"page": {
+"h": 1123,
+"w": 794
+},
+"templateId": "pop",
+"warnings": []
+}
+},
+"pop/langes-wort": {
+"layout": {
+"background": "assets/covers/01-pop.png",
+"blocks": [
+{
+"family": "'Sofia Sans Extra Condensed', 'Arial Narrow', sans-serif",
+"fits": true,
+"h": 0.2167,
+"ink": "#171717",
+"key": "title",
+"lineHeightPx": 81.12,
+"lines": [
+"Donaudampfschifffahrtsg",
+"esellschaftskapitänsmüt",
+"zenfabrikantenverband"
+],
+"sizePx": 78,
+"w": 0.82,
+"weight": 800,
+"x": 0.09,
+"y": 0.13
+}
+],
+"date": {
+"family": "'Roboto', system-ui, sans-serif",
+"h": 0.03,
+"ink": "#171717",
+"sizePx": 13,
+"text": "09.10.2026",
+"weight": 500,
+"x1": 0.93,
+"y": 0.945
+},
+"ink": "#171717",
+"logo": {
+"h": 0.0636,
+"ink": "#252720",
+"variant": "light",
+"w": 0.27,
+"x": 0.65,
+"y": 0.05
+},
+"page": {
+"h": 1123,
+"w": 794
+},
+"templateId": "pop",
+"warnings": []
+}
+},
+"pop/leer": {
+"layout": {
+"background": "assets/covers/01-pop.png",
+"blocks": [],
+"date": {
+"family": "'Roboto', system-ui, sans-serif",
+"h": 0.03,
+"ink": "#171717",
+"sizePx": 13,
+"text": "09.10.2026",
+"weight": 500,
+"x1": 0.93,
+"y": 0.945
+},
+"ink": "#171717",
+"logo": {
+"h": 0.0636,
+"ink": "#252720",
+"variant": "light",
+"w": 0.27,
+"x": 0.65,
+"y": 0.05
+},
+"page": {
+"h": 1123,
+"w": 794
+},
+"templateId": "pop",
+"warnings": []
+}
+},
+"pop/nur-name-lang": {
+"layout": {
+"background": "assets/covers/01-pop.png",
+"blocks": [
+{
+"family": "'Roboto', system-ui, sans-serif",
+"fits": true,
+"h": 0.0255,
+"ink": "#171717",
+"key": "name",
+"lineHeightPx": 28.6,
+"lines": [
+"Familie Müller-Lüdenscheidt aus dem schönen Emmental"
+],
+"sizePx": 22,
+"w": 0.82,
+"weight": 700,
+"x": 0.09,
+"y": 0.13
+}
+],
+"date": {
+"family": "'Roboto', system-ui, sans-serif",
+"h": 0.03,
+"ink": "#171717",
+"sizePx": 13,
+"text": "09.10.2026",
+"weight": 500,
+"x1": 0.93,
+"y": 0.945
+},
+"ink": "#171717",
+"logo": {
+"h": 0.0636,
+"ink": "#252720",
+"variant": "light",
+"w": 0.27,
+"x": 0.65,
+"y": 0.05
+},
+"page": {
+"h": 1123,
+"w": 794
+},
+"templateId": "pop",
+"warnings": []
+}
+},
+"pop/nur-slogan-lang": {
+"layout": {
+"background": "assets/covers/01-pop.png",
+"blocks": [
+{
+"family": "'Roboto', system-ui, sans-serif",
+"fits": true,
+"h": 0.1002,
+"ink": "#171717",
+"key": "slogan",
+"lineHeightPx": 37.5,
+"lines": [
+"Gesammelt über viele Jahre, mit Liebe",
+"weitergegeben und von Hand ergänzt, Seite für",
+"Seite"
+],
+"sizePx": 30,
+"w": 0.82,
+"weight": 400,
+"x": 0.09,
+"y": 0.13
+}
+],
+"date": {
+"family": "'Roboto', system-ui, sans-serif",
+"h": 0.03,
+"ink": "#171717",
+"sizePx": 13,
+"text": "09.10.2026",
+"weight": 500,
+"x1": 0.93,
+"y": 0.945
+},
+"ink": "#171717",
+"logo": {
+"h": 0.0636,
+"ink": "#252720",
+"variant": "light",
+"w": 0.27,
+"x": 0.65,
+"y": 0.05
+},
+"page": {
+"h": 1123,
+"w": 794
+},
+"templateId": "pop",
+"warnings": []
+}
+},
+"pop/nur-titel": {
+"layout": {
+"background": "assets/covers/01-pop.png",
+"blocks": [
+{
+"family": "'Sofia Sans Extra Condensed', 'Arial Narrow', sans-serif",
+"fits": true,
+"h": 0.0963,
+"ink": "#171717",
+"key": "title",
+"lineHeightPx": 108.16,
+"lines": [
+"Sonntagsküche"
+],
+"sizePx": 104,
+"w": 0.82,
+"weight": 800,
+"x": 0.09,
+"y": 0.13
+}
+],
+"date": {
+"family": "'Roboto', system-ui, sans-serif",
+"h": 0.03,
+"ink": "#171717",
+"sizePx": 13,
+"text": "09.10.2026",
+"weight": 500,
+"x1": 0.93,
+"y": 0.945
+},
+"ink": "#171717",
+"logo": {
+"h": 0.0636,
+"ink": "#252720",
+"variant": "light",
+"w": 0.27,
+"x": 0.65,
+"y": 0.05
+},
+"page": {
+"h": 1123,
+"w": 794
+},
+"templateId": "pop",
+"warnings": []
+}
+},
+"pop/zu-lang": {
+"layout": {
+"background": "assets/covers/01-pop.png",
+"blocks": [
+{
+"family": "'Sofia Sans Extra Condensed', 'Arial Narrow', sans-serif",
+"fits": false,
+"h": 0.1755,
+"ink": "#171717",
+"key": "title",
+"lineHeightPx": 35.36,
+"lines": [
+"Lorem ipsum Lorem ipsum Lorem ipsum Lorem ipsum Lorem",
+"ipsum Lorem ipsum Lorem ipsum Lorem ipsum Lorem ipsum",
+"Lorem ipsum Lorem ipsum Lorem ipsum Lorem ipsum Lorem",
+"ipsum Lorem ipsum Lorem ipsum Lorem ipsum Lorem ipsum",
+"Lorem ipsum Lorem ipsum Lorem ipsum Lorem ipsum Lorem",
+"ipsum Lorem ipsum Lorem ipsum Lorem ipsum Lorem ipsum",
+"Lorem ipsum Lorem ipsum Lorem ipsum Lorem ipsum Lorem",
+"ipsum Lorem ipsum Lorem ipsum Lorem ipsum Lorem ipsum",
+"Lorem ipsum Lorem ipsum Lorem ipsum Lorem ipsum"
+],
+"sizePx": 34,
+"w": 0.82,
+"weight": 800,
+"x": 0.09,
+"y": 0.13
+},
+{
+"family": "'Roboto', system-ui, sans-serif",
+"fits": false,
+"h": 0.0585,
+"ink": "#171717",
+"key": "name",
+"lineHeightPx": 16.9,
+"lines": [
+"NNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNN",
+"NNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNN",
+"NNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNN",
+"NNNNNNNNNNNN"
+],
+"sizePx": 13,
+"w": 0.82,
+"weight": 700,
+"x": 0.09,
+"y": 0.3215
+}
+],
+"date": {
+"family": "'Roboto', system-ui, sans-serif",
+"h": 0.03,
+"ink": "#171717",
+"sizePx": 13,
+"text": "09.10.2026",
+"weight": 500,
+"x1": 0.93,
+"y": 0.945
+},
+"ink": "#171717",
+"logo": {
+"h": 0.0636,
+"ink": "#252720",
+"variant": "light",
+"w": 0.27,
+"x": 0.65,
+"y": 0.05
+},
+"page": {
+"h": 1123,
+"w": 794
+},
+"templateId": "pop",
+"warnings": [
+{
+"key": "title",
+"message": "Der Titel ist zu lang für dieses Titelblatt. Bitte kürzen (er passt nur in kleiner, nicht lesbarer Schrift)."
+},
+{
+"key": "name",
+"message": "Der Name ist zu lang für dieses Titelblatt. Bitte kürzen (er passt nur in kleiner, nicht lesbarer Schrift)."
+}
+]
+}
+},
+"salbei/kurz": {
+"layout": {
+"background": "assets/covers/04-salbei.png",
+"blocks": [
+{
+"family": "'Sofia Sans Extra Condensed', 'Arial Narrow', sans-serif",
+"fits": true,
+"h": 0.0889,
+"ink": "#171717",
+"key": "title",
+"lineHeightPx": 99.84,
+"lines": [
+"Fein"
+],
+"sizePx": 96,
+"w": 0.8,
+"weight": 800,
+"x": 0.09,
+"y": 0.13
+},
+{
+"family": "'Roboto', system-ui, sans-serif",
+"fits": true,
+"h": 0.0334,
+"ink": "#171717",
+"key": "slogan",
+"lineHeightPx": 37.5,
+"lines": [
+"Echt gut"
+],
+"sizePx": 30,
+"w": 0.8,
+"weight": 400,
+"x": 0.09,
+"y": 0.2349
+},
+{
+"family": "'Roboto', system-ui, sans-serif",
+"fits": true,
+"h": 0.0255,
+"ink": "#171717",
+"key": "name",
+"lineHeightPx": 28.6,
+"lines": [
+"Ana"
+],
+"sizePx": 22,
+"w": 0.8,
+"weight": 700,
+"x": 0.09,
+"y": 0.2843
+}
+],
+"date": {
+"family": "'Roboto', system-ui, sans-serif",
+"h": 0.03,
+"ink": "#171717",
+"sizePx": 12,
+"text": "09.10.2026",
+"weight": 500,
+"x1": 0.955,
+"y": 0.945
+},
+"ink": "#171717",
+"logo": {
+"h": 0.0636,
+"ink": "#252720",
+"variant": "light",
+"w": 0.27,
+"x": 0.65,
+"y": 0.05
+},
+"page": {
+"h": 1123,
+"w": 794
+},
+"templateId": "salbei",
+"warnings": []
+}
+},
+"salbei/kurz-ohne-datum": {
+"layout": {
+"background": "assets/covers/04-salbei.png",
+"blocks": [
+{
+"family": "'Sofia Sans Extra Condensed', 'Arial Narrow', sans-serif",
+"fits": true,
+"h": 0.0889,
+"ink": "#171717",
+"key": "title",
+"lineHeightPx": 99.84,
+"lines": [
+"Fein"
+],
+"sizePx": 96,
+"w": 0.8,
+"weight": 800,
+"x": 0.09,
+"y": 0.13
+},
+{
+"family": "'Roboto', system-ui, sans-serif",
+"fits": true,
+"h": 0.0334,
+"ink": "#171717",
+"key": "slogan",
+"lineHeightPx": 37.5,
+"lines": [
+"Echt gut"
+],
+"sizePx": 30,
+"w": 0.8,
+"weight": 400,
+"x": 0.09,
+"y": 0.2349
+},
+{
+"family": "'Roboto', system-ui, sans-serif",
+"fits": true,
+"h": 0.0255,
+"ink": "#171717",
+"key": "name",
+"lineHeightPx": 28.6,
+"lines": [
+"Ana"
+],
+"sizePx": 22,
+"w": 0.8,
+"weight": 700,
+"x": 0.09,
+"y": 0.2843
+}
+],
+"date": null,
+"ink": "#171717",
+"logo": {
+"h": 0.0636,
+"ink": "#252720",
+"variant": "light",
+"w": 0.27,
+"x": 0.65,
+"y": 0.05
+},
+"page": {
+"h": 1123,
+"w": 794
+},
+"templateId": "salbei",
+"warnings": []
+}
+},
+"salbei/kurz-ohne-logo": {
+"layout": {
+"background": "assets/covers/04-salbei.png",
+"blocks": [
+{
+"family": "'Sofia Sans Extra Condensed', 'Arial Narrow', sans-serif",
+"fits": true,
+"h": 0.0889,
+"ink": "#171717",
+"key": "title",
+"lineHeightPx": 99.84,
+"lines": [
+"Fein"
+],
+"sizePx": 96,
+"w": 0.8,
+"weight": 800,
+"x": 0.09,
+"y": 0.13
+},
+{
+"family": "'Roboto', system-ui, sans-serif",
+"fits": true,
+"h": 0.0334,
+"ink": "#171717",
+"key": "slogan",
+"lineHeightPx": 37.5,
+"lines": [
+"Echt gut"
+],
+"sizePx": 30,
+"w": 0.8,
+"weight": 400,
+"x": 0.09,
+"y": 0.2349
+},
+{
+"family": "'Roboto', system-ui, sans-serif",
+"fits": true,
+"h": 0.0255,
+"ink": "#171717",
+"key": "name",
+"lineHeightPx": 28.6,
+"lines": [
+"Ana"
+],
+"sizePx": 22,
+"w": 0.8,
+"weight": 700,
+"x": 0.09,
+"y": 0.2843
+}
+],
+"date": {
+"family": "'Roboto', system-ui, sans-serif",
+"h": 0.03,
+"ink": "#171717",
+"sizePx": 12,
+"text": "09.10.2026",
+"weight": 500,
+"x1": 0.955,
+"y": 0.945
+},
+"ink": "#171717",
+"logo": null,
+"page": {
+"h": 1123,
+"w": 794
+},
+"templateId": "salbei",
+"warnings": []
+}
+},
+"salbei/lang": {
+"layout": {
+"background": "assets/covers/04-salbei.png",
+"blocks": [
+{
+"family": "'Sofia Sans Extra Condensed', 'Arial Narrow', sans-serif",
+"fits": true,
+"h": 0.0833,
+"ink": "#171717",
+"key": "title",
+"lineHeightPx": 46.8,
+"lines": [
+"Die allerbesten Familienrezepte aus",
+"drei Generationen und vielen Ländern"
+],
+"sizePx": 45,
+"w": 0.8,
+"weight": 800,
+"x": 0.09,
+"y": 0.13
+},
+{
+"family": "'Roboto', system-ui, sans-serif",
+"fits": true,
+"h": 0.0234,
+"ink": "#171717",
+"key": "slogan",
+"lineHeightPx": 26.25,
+"lines": [
+"Gesammelt über viele Jahre, mit Liebe weitergegeben und ergänzt"
+],
+"sizePx": 21,
+"w": 0.8,
+"weight": 400,
+"x": 0.09,
+"y": 0.2293
+},
+{
+"family": "'Roboto', system-ui, sans-serif",
+"fits": true,
+"h": 0.0255,
+"ink": "#171717",
+"key": "name",
+"lineHeightPx": 28.6,
+"lines": [
+"Familie Müller-Lüdenscheidt aus dem Emmental"
+],
+"sizePx": 22,
+"w": 0.8,
+"weight": 700,
+"x": 0.09,
+"y": 0.2687
+}
+],
+"date": {
+"family": "'Roboto', system-ui, sans-serif",
+"h": 0.03,
+"ink": "#171717",
+"sizePx": 12,
+"text": "09.10.2026",
+"weight": 500,
+"x1": 0.955,
+"y": 0.945
+},
+"ink": "#171717",
+"logo": {
+"h": 0.0636,
+"ink": "#252720",
+"variant": "light",
+"w": 0.27,
+"x": 0.65,
+"y": 0.05
+},
+"page": {
+"h": 1123,
+"w": 794
+},
+"templateId": "salbei",
+"warnings": []
+}
+},
+"salbei/langes-wort": {
+"layout": {
+"background": "assets/covers/04-salbei.png",
+"blocks": [
+{
+"family": "'Sofia Sans Extra Condensed', 'Arial Narrow', sans-serif",
+"fits": true,
+"h": 0.1778,
+"ink": "#171717",
+"key": "title",
+"lineHeightPx": 66.56,
+"lines": [
+"Donaudampfschifffahrtsgesel",
+"lschaftskapitänsmützenfabri",
+"kantenverband"
+],
+"sizePx": 64,
+"w": 0.8,
+"weight": 800,
+"x": 0.09,
+"y": 0.13
+}
+],
+"date": {
+"family": "'Roboto', system-ui, sans-serif",
+"h": 0.03,
+"ink": "#171717",
+"sizePx": 12,
+"text": "09.10.2026",
+"weight": 500,
+"x1": 0.955,
+"y": 0.945
+},
+"ink": "#171717",
+"logo": {
+"h": 0.0636,
+"ink": "#252720",
+"variant": "light",
+"w": 0.27,
+"x": 0.65,
+"y": 0.05
+},
+"page": {
+"h": 1123,
+"w": 794
+},
+"templateId": "salbei",
+"warnings": []
+}
+},
+"salbei/leer": {
+"layout": {
+"background": "assets/covers/04-salbei.png",
+"blocks": [],
+"date": {
+"family": "'Roboto', system-ui, sans-serif",
+"h": 0.03,
+"ink": "#171717",
+"sizePx": 12,
+"text": "09.10.2026",
+"weight": 500,
+"x1": 0.955,
+"y": 0.945
+},
+"ink": "#171717",
+"logo": {
+"h": 0.0636,
+"ink": "#252720",
+"variant": "light",
+"w": 0.27,
+"x": 0.65,
+"y": 0.05
+},
+"page": {
+"h": 1123,
+"w": 794
+},
+"templateId": "salbei",
+"warnings": []
+}
+},
+"salbei/nur-name-lang": {
+"layout": {
+"background": "assets/covers/04-salbei.png",
+"blocks": [
+{
+"family": "'Roboto', system-ui, sans-serif",
+"fits": true,
+"h": 0.0255,
+"ink": "#171717",
+"key": "name",
+"lineHeightPx": 28.6,
+"lines": [
+"Familie Müller-Lüdenscheidt aus dem schönen Emmental"
+],
+"sizePx": 22,
+"w": 0.8,
+"weight": 700,
+"x": 0.09,
+"y": 0.13
+}
+],
+"date": {
+"family": "'Roboto', system-ui, sans-serif",
+"h": 0.03,
+"ink": "#171717",
+"sizePx": 12,
+"text": "09.10.2026",
+"weight": 500,
+"x1": 0.955,
+"y": 0.945
+},
+"ink": "#171717",
+"logo": {
+"h": 0.0636,
+"ink": "#252720",
+"variant": "light",
+"w": 0.27,
+"x": 0.65,
+"y": 0.05
+},
+"page": {
+"h": 1123,
+"w": 794
+},
+"templateId": "salbei",
+"warnings": []
+}
+},
+"salbei/nur-slogan-lang": {
+"layout": {
+"background": "assets/covers/04-salbei.png",
+"blocks": [
+{
+"family": "'Roboto', system-ui, sans-serif",
+"fits": true,
+"h": 0.1002,
+"ink": "#171717",
+"key": "slogan",
+"lineHeightPx": 37.5,
+"lines": [
+"Gesammelt über viele Jahre, mit Liebe",
+"weitergegeben und von Hand ergänzt, Seite für",
+"Seite"
+],
+"sizePx": 30,
+"w": 0.8,
+"weight": 400,
+"x": 0.09,
+"y": 0.13
+}
+],
+"date": {
+"family": "'Roboto', system-ui, sans-serif",
+"h": 0.03,
+"ink": "#171717",
+"sizePx": 12,
+"text": "09.10.2026",
+"weight": 500,
+"x1": 0.955,
+"y": 0.945
+},
+"ink": "#171717",
+"logo": {
+"h": 0.0636,
+"ink": "#252720",
+"variant": "light",
+"w": 0.27,
+"x": 0.65,
+"y": 0.05
+},
+"page": {
+"h": 1123,
+"w": 794
+},
+"templateId": "salbei",
+"warnings": []
+}
+},
+"salbei/nur-titel": {
+"layout": {
+"background": "assets/covers/04-salbei.png",
+"blocks": [
+{
+"family": "'Sofia Sans Extra Condensed', 'Arial Narrow', sans-serif",
+"fits": true,
+"h": 0.0963,
+"ink": "#171717",
+"key": "title",
+"lineHeightPx": 108.16,
+"lines": [
+"Sonntagsküche"
+],
+"sizePx": 104,
+"w": 0.8,
+"weight": 800,
+"x": 0.09,
+"y": 0.13
+}
+],
+"date": {
+"family": "'Roboto', system-ui, sans-serif",
+"h": 0.03,
+"ink": "#171717",
+"sizePx": 12,
+"text": "09.10.2026",
+"weight": 500,
+"x1": 0.955,
+"y": 0.945
+},
+"ink": "#171717",
+"logo": {
+"h": 0.0636,
+"ink": "#252720",
+"variant": "light",
+"w": 0.27,
+"x": 0.65,
+"y": 0.05
+},
+"page": {
+"h": 1123,
+"w": 794
+},
+"templateId": "salbei",
+"warnings": []
+}
+},
+"salbei/zu-lang": {
+"layout": {
+"background": "assets/covers/04-salbei.png",
+"blocks": [
+{
+"family": "'Sofia Sans Extra Condensed', 'Arial Narrow', sans-serif",
+"fits": false,
+"h": 0.123,
+"ink": "#171717",
+"key": "title",
+"lineHeightPx": 35.36,
+"lines": [
+"Lorem ipsum Lorem ipsum Lorem ipsum Lorem ipsum",
+"Lorem ipsum Lorem ipsum Lorem ipsum Lorem ipsum",
+"Lorem ipsum Lorem ipsum Lorem ipsum Lorem ipsum",
+"Lorem ipsum Lorem ipsum Lorem ipsum Lorem ipsum",
+"Lorem ipsum Lorem ipsum Lorem ipsum Lorem ipsum",
+"Lorem ipsum Lorem ipsum Lorem ipsum Lorem ipsum",
+"Lorem ipsum Lorem ipsum Lorem ipsum Lorem ipsum",
+"Lorem ipsum Lorem ipsum Lorem ipsum Lorem ipsum",
+"Lorem ipsum Lorem ipsum Lorem ipsum Lorem ipsum",
+"Lorem ipsum Lorem ipsum Lorem ipsum Lorem ipsum"
+],
+"sizePx": 34,
+"w": 0.8,
+"weight": 800,
+"x": 0.09,
+"y": 0.13
+},
+{
+"family": "'Roboto', system-ui, sans-serif",
+"fits": false,
+"h": 0.041,
+"ink": "#171717",
+"key": "name",
+"lineHeightPx": 16.9,
+"lines": [
+"NNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNN",
+"NNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNN",
+"NNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNN",
+"NNNNNNNNNNNNNNNNNNNNN"
+],
+"sizePx": 13,
+"w": 0.8,
+"weight": 700,
+"x": 0.09,
+"y": 0.269
+}
+],
+"date": {
+"family": "'Roboto', system-ui, sans-serif",
+"h": 0.03,
+"ink": "#171717",
+"sizePx": 12,
+"text": "09.10.2026",
+"weight": 500,
+"x1": 0.955,
+"y": 0.945
+},
+"ink": "#171717",
+"logo": {
+"h": 0.0636,
+"ink": "#252720",
+"variant": "light",
+"w": 0.27,
+"x": 0.65,
+"y": 0.05
+},
+"page": {
+"h": 1123,
+"w": 794
+},
+"templateId": "salbei",
+"warnings": [
+{
+"key": "title",
+"message": "Der Titel ist zu lang für dieses Titelblatt. Bitte kürzen (er passt nur in kleiner, nicht lesbarer Schrift)."
+},
+{
+"key": "name",
+"message": "Der Name ist zu lang für dieses Titelblatt. Bitte kürzen (er passt nur in kleiner, nicht lesbarer Schrift)."
+}
+]
+}
+},
+"sonnenkueche/kurz": {
+"layout": {
+"background": "assets/covers/09-sonnenkueche.png",
+"blocks": [
+{
+"family": "'Sofia Sans Extra Condensed', 'Arial Narrow', sans-serif",
+"fits": true,
+"h": 0.0963,
+"ink": "#171717",
+"key": "title",
+"lineHeightPx": 108.16,
+"lines": [
+"Fein"
+],
+"sizePx": 104,
+"w": 0.82,
+"weight": 800,
+"x": 0.09,
+"y": 0.13
+},
+{
+"family": "'Roboto', system-ui, sans-serif",
+"fits": true,
+"h": 0.0334,
+"ink": "#171717",
+"key": "slogan",
+"lineHeightPx": 37.5,
+"lines": [
+"Echt gut"
+],
+"sizePx": 30,
+"w": 0.82,
+"weight": 400,
+"x": 0.09,
+"y": 0.2423
+},
+{
+"family": "'Roboto', system-ui, sans-serif",
+"fits": true,
+"h": 0.0255,
+"ink": "#171717",
+"key": "name",
+"lineHeightPx": 28.6,
+"lines": [
+"Ana"
+],
+"sizePx": 22,
+"w": 0.82,
+"weight": 700,
+"x": 0.09,
+"y": 0.2917
+}
+],
+"date": {
+"family": "'Roboto', system-ui, sans-serif",
+"h": 0.03,
+"ink": "#171717",
+"sizePx": 13,
+"text": "09.10.2026",
+"weight": 500,
+"x1": 0.93,
+"y": 0.945
+},
+"ink": "#171717",
+"logo": {
+"h": 0.0636,
+"ink": "#252720",
+"variant": "light",
+"w": 0.27,
+"x": 0.65,
+"y": 0.05
+},
+"page": {
+"h": 1123,
+"w": 794
+},
+"templateId": "sonnenkueche",
+"warnings": []
+}
+},
+"sonnenkueche/kurz-ohne-datum": {
+"layout": {
+"background": "assets/covers/09-sonnenkueche.png",
+"blocks": [
+{
+"family": "'Sofia Sans Extra Condensed', 'Arial Narrow', sans-serif",
+"fits": true,
+"h": 0.0963,
+"ink": "#171717",
+"key": "title",
+"lineHeightPx": 108.16,
+"lines": [
+"Fein"
+],
+"sizePx": 104,
+"w": 0.82,
+"weight": 800,
+"x": 0.09,
+"y": 0.13
+},
+{
+"family": "'Roboto', system-ui, sans-serif",
+"fits": true,
+"h": 0.0334,
+"ink": "#171717",
+"key": "slogan",
+"lineHeightPx": 37.5,
+"lines": [
+"Echt gut"
+],
+"sizePx": 30,
+"w": 0.82,
+"weight": 400,
+"x": 0.09,
+"y": 0.2423
+},
+{
+"family": "'Roboto', system-ui, sans-serif",
+"fits": true,
+"h": 0.0255,
+"ink": "#171717",
+"key": "name",
+"lineHeightPx": 28.6,
+"lines": [
+"Ana"
+],
+"sizePx": 22,
+"w": 0.82,
+"weight": 700,
+"x": 0.09,
+"y": 0.2917
+}
+],
+"date": null,
+"ink": "#171717",
+"logo": {
+"h": 0.0636,
+"ink": "#252720",
+"variant": "light",
+"w": 0.27,
+"x": 0.65,
+"y": 0.05
+},
+"page": {
+"h": 1123,
+"w": 794
+},
+"templateId": "sonnenkueche",
+"warnings": []
+}
+},
+"sonnenkueche/kurz-ohne-logo": {
+"layout": {
+"background": "assets/covers/09-sonnenkueche.png",
+"blocks": [
+{
+"family": "'Sofia Sans Extra Condensed', 'Arial Narrow', sans-serif",
+"fits": true,
+"h": 0.0963,
+"ink": "#171717",
+"key": "title",
+"lineHeightPx": 108.16,
+"lines": [
+"Fein"
+],
+"sizePx": 104,
+"w": 0.82,
+"weight": 800,
+"x": 0.09,
+"y": 0.13
+},
+{
+"family": "'Roboto', system-ui, sans-serif",
+"fits": true,
+"h": 0.0334,
+"ink": "#171717",
+"key": "slogan",
+"lineHeightPx": 37.5,
+"lines": [
+"Echt gut"
+],
+"sizePx": 30,
+"w": 0.82,
+"weight": 400,
+"x": 0.09,
+"y": 0.2423
+},
+{
+"family": "'Roboto', system-ui, sans-serif",
+"fits": true,
+"h": 0.0255,
+"ink": "#171717",
+"key": "name",
+"lineHeightPx": 28.6,
+"lines": [
+"Ana"
+],
+"sizePx": 22,
+"w": 0.82,
+"weight": 700,
+"x": 0.09,
+"y": 0.2917
+}
+],
+"date": {
+"family": "'Roboto', system-ui, sans-serif",
+"h": 0.03,
+"ink": "#171717",
+"sizePx": 13,
+"text": "09.10.2026",
+"weight": 500,
+"x1": 0.93,
+"y": 0.945
+},
+"ink": "#171717",
+"logo": null,
+"page": {
+"h": 1123,
+"w": 794
+},
+"templateId": "sonnenkueche",
+"warnings": []
+}
+},
+"sonnenkueche/lang": {
+"layout": {
+"background": "assets/covers/09-sonnenkueche.png",
+"blocks": [
+{
+"family": "'Sofia Sans Extra Condensed', 'Arial Narrow', sans-serif",
+"fits": true,
+"h": 0.0926,
+"ink": "#171717",
+"key": "title",
+"lineHeightPx": 52,
+"lines": [
+"Die allerbesten Familienrezepte aus",
+"drei Generationen und vielen Ländern"
+],
+"sizePx": 50,
+"w": 0.82,
+"weight": 800,
+"x": 0.09,
+"y": 0.13
+},
+{
+"family": "'Roboto', system-ui, sans-serif",
+"fits": true,
+"h": 0.0534,
+"ink": "#171717",
+"key": "slogan",
+"lineHeightPx": 30,
+"lines": [
+"Gesammelt über viele Jahre, mit Liebe weitergegeben und",
+"ergänzt"
+],
+"sizePx": 24,
+"w": 0.82,
+"weight": 400,
+"x": 0.09,
+"y": 0.2386
+},
+{
+"family": "'Roboto', system-ui, sans-serif",
+"fits": true,
+"h": 0.0255,
+"ink": "#171717",
+"key": "name",
+"lineHeightPx": 28.6,
+"lines": [
+"Familie Müller-Lüdenscheidt aus dem Emmental"
+],
+"sizePx": 22,
+"w": 0.82,
+"weight": 700,
+"x": 0.09,
+"y": 0.308
+}
+],
+"date": {
+"family": "'Roboto', system-ui, sans-serif",
+"h": 0.03,
+"ink": "#171717",
+"sizePx": 13,
+"text": "09.10.2026",
+"weight": 500,
+"x1": 0.93,
+"y": 0.945
+},
+"ink": "#171717",
+"logo": {
+"h": 0.0636,
+"ink": "#252720",
+"variant": "light",
+"w": 0.27,
+"x": 0.65,
+"y": 0.05
+},
+"page": {
+"h": 1123,
+"w": 794
+},
+"templateId": "sonnenkueche",
+"warnings": []
+}
+},
+"sonnenkueche/langes-wort": {
+"layout": {
+"background": "assets/covers/09-sonnenkueche.png",
+"blocks": [
+{
+"family": "'Sofia Sans Extra Condensed', 'Arial Narrow', sans-serif",
+"fits": true,
+"h": 0.2167,
+"ink": "#171717",
+"key": "title",
+"lineHeightPx": 81.12,
+"lines": [
+"Donaudampfschifffahrtsg",
+"esellschaftskapitänsmüt",
+"zenfabrikantenverband"
+],
+"sizePx": 78,
+"w": 0.82,
+"weight": 800,
+"x": 0.09,
+"y": 0.13
+}
+],
+"date": {
+"family": "'Roboto', system-ui, sans-serif",
+"h": 0.03,
+"ink": "#171717",
+"sizePx": 13,
+"text": "09.10.2026",
+"weight": 500,
+"x1": 0.93,
+"y": 0.945
+},
+"ink": "#171717",
+"logo": {
+"h": 0.0636,
+"ink": "#252720",
+"variant": "light",
+"w": 0.27,
+"x": 0.65,
+"y": 0.05
+},
+"page": {
+"h": 1123,
+"w": 794
+},
+"templateId": "sonnenkueche",
+"warnings": []
+}
+},
+"sonnenkueche/leer": {
+"layout": {
+"background": "assets/covers/09-sonnenkueche.png",
+"blocks": [],
+"date": {
+"family": "'Roboto', system-ui, sans-serif",
+"h": 0.03,
+"ink": "#171717",
+"sizePx": 13,
+"text": "09.10.2026",
+"weight": 500,
+"x1": 0.93,
+"y": 0.945
+},
+"ink": "#171717",
+"logo": {
+"h": 0.0636,
+"ink": "#252720",
+"variant": "light",
+"w": 0.27,
+"x": 0.65,
+"y": 0.05
+},
+"page": {
+"h": 1123,
+"w": 794
+},
+"templateId": "sonnenkueche",
+"warnings": []
+}
+},
+"sonnenkueche/nur-name-lang": {
+"layout": {
+"background": "assets/covers/09-sonnenkueche.png",
+"blocks": [
+{
+"family": "'Roboto', system-ui, sans-serif",
+"fits": true,
+"h": 0.0255,
+"ink": "#171717",
+"key": "name",
+"lineHeightPx": 28.6,
+"lines": [
+"Familie Müller-Lüdenscheidt aus dem schönen Emmental"
+],
+"sizePx": 22,
+"w": 0.82,
+"weight": 700,
+"x": 0.09,
+"y": 0.13
+}
+],
+"date": {
+"family": "'Roboto', system-ui, sans-serif",
+"h": 0.03,
+"ink": "#171717",
+"sizePx": 13,
+"text": "09.10.2026",
+"weight": 500,
+"x1": 0.93,
+"y": 0.945
+},
+"ink": "#171717",
+"logo": {
+"h": 0.0636,
+"ink": "#252720",
+"variant": "light",
+"w": 0.27,
+"x": 0.65,
+"y": 0.05
+},
+"page": {
+"h": 1123,
+"w": 794
+},
+"templateId": "sonnenkueche",
+"warnings": []
+}
+},
+"sonnenkueche/nur-slogan-lang": {
+"layout": {
+"background": "assets/covers/09-sonnenkueche.png",
+"blocks": [
+{
+"family": "'Roboto', system-ui, sans-serif",
+"fits": true,
+"h": 0.1002,
+"ink": "#171717",
+"key": "slogan",
+"lineHeightPx": 37.5,
+"lines": [
+"Gesammelt über viele Jahre, mit Liebe",
+"weitergegeben und von Hand ergänzt, Seite für",
+"Seite"
+],
+"sizePx": 30,
+"w": 0.82,
+"weight": 400,
+"x": 0.09,
+"y": 0.13
+}
+],
+"date": {
+"family": "'Roboto', system-ui, sans-serif",
+"h": 0.03,
+"ink": "#171717",
+"sizePx": 13,
+"text": "09.10.2026",
+"weight": 500,
+"x1": 0.93,
+"y": 0.945
+},
+"ink": "#171717",
+"logo": {
+"h": 0.0636,
+"ink": "#252720",
+"variant": "light",
+"w": 0.27,
+"x": 0.65,
+"y": 0.05
+},
+"page": {
+"h": 1123,
+"w": 794
+},
+"templateId": "sonnenkueche",
+"warnings": []
+}
+},
+"sonnenkueche/nur-titel": {
+"layout": {
+"background": "assets/covers/09-sonnenkueche.png",
+"blocks": [
+{
+"family": "'Sofia Sans Extra Condensed', 'Arial Narrow', sans-serif",
+"fits": true,
+"h": 0.0963,
+"ink": "#171717",
+"key": "title",
+"lineHeightPx": 108.16,
+"lines": [
+"Sonntagsküche"
+],
+"sizePx": 104,
+"w": 0.82,
+"weight": 800,
+"x": 0.09,
+"y": 0.13
+}
+],
+"date": {
+"family": "'Roboto', system-ui, sans-serif",
+"h": 0.03,
+"ink": "#171717",
+"sizePx": 13,
+"text": "09.10.2026",
+"weight": 500,
+"x1": 0.93,
+"y": 0.945
+},
+"ink": "#171717",
+"logo": {
+"h": 0.0636,
+"ink": "#252720",
+"variant": "light",
+"w": 0.27,
+"x": 0.65,
+"y": 0.05
+},
+"page": {
+"h": 1123,
+"w": 794
+},
+"templateId": "sonnenkueche",
+"warnings": []
+}
+},
+"sonnenkueche/zu-lang": {
+"layout": {
+"background": "assets/covers/09-sonnenkueche.png",
+"blocks": [
+{
+"family": "'Sofia Sans Extra Condensed', 'Arial Narrow', sans-serif",
+"fits": false,
+"h": 0.1605,
+"ink": "#171717",
+"key": "title",
+"lineHeightPx": 35.36,
+"lines": [
+"Lorem ipsum Lorem ipsum Lorem ipsum Lorem ipsum Lorem",
+"ipsum Lorem ipsum Lorem ipsum Lorem ipsum Lorem ipsum",
+"Lorem ipsum Lorem ipsum Lorem ipsum Lorem ipsum Lorem",
+"ipsum Lorem ipsum Lorem ipsum Lorem ipsum Lorem ipsum",
+"Lorem ipsum Lorem ipsum Lorem ipsum Lorem ipsum Lorem",
+"ipsum Lorem ipsum Lorem ipsum Lorem ipsum Lorem ipsum",
+"Lorem ipsum Lorem ipsum Lorem ipsum Lorem ipsum Lorem",
+"ipsum Lorem ipsum Lorem ipsum Lorem ipsum Lorem ipsum",
+"Lorem ipsum Lorem ipsum Lorem ipsum Lorem ipsum"
+],
+"sizePx": 34,
+"w": 0.82,
+"weight": 800,
+"x": 0.09,
+"y": 0.13
+},
+{
+"family": "'Roboto', system-ui, sans-serif",
+"fits": false,
+"h": 0.0535,
+"ink": "#171717",
+"key": "name",
+"lineHeightPx": 16.9,
+"lines": [
+"NNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNN",
+"NNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNN",
+"NNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNN",
+"NNNNNNNNNNNN"
+],
+"sizePx": 13,
+"w": 0.82,
+"weight": 700,
+"x": 0.09,
+"y": 0.3065
+}
+],
+"date": {
+"family": "'Roboto', system-ui, sans-serif",
+"h": 0.03,
+"ink": "#171717",
+"sizePx": 13,
+"text": "09.10.2026",
+"weight": 500,
+"x1": 0.93,
+"y": 0.945
+},
+"ink": "#171717",
+"logo": {
+"h": 0.0636,
+"ink": "#252720",
+"variant": "light",
+"w": 0.27,
+"x": 0.65,
+"y": 0.05
+},
+"page": {
+"h": 1123,
+"w": 794
+},
+"templateId": "sonnenkueche",
+"warnings": [
+{
+"key": "title",
+"message": "Der Titel ist zu lang für dieses Titelblatt. Bitte kürzen (er passt nur in kleiner, nicht lesbarer Schrift)."
+},
+{
+"key": "name",
+"message": "Der Name ist zu lang für dieses Titelblatt. Bitte kürzen (er passt nur in kleiner, nicht lesbarer Schrift)."
+}
+]
+}
+},
+"tomate/kurz": {
+"layout": {
+"background": "assets/covers/03-tomate.png",
+"blocks": [
+{
+"family": "'Sofia Sans Extra Condensed', 'Arial Narrow', sans-serif",
+"fits": true,
+"h": 0.0963,
+"ink": "#171717",
+"key": "title",
+"lineHeightPx": 108.16,
+"lines": [
+"Fein"
+],
+"sizePx": 104,
+"w": 0.82,
+"weight": 800,
+"x": 0.09,
+"y": 0.13
+},
+{
+"family": "'Roboto', system-ui, sans-serif",
+"fits": true,
+"h": 0.0334,
+"ink": "#171717",
+"key": "slogan",
+"lineHeightPx": 37.5,
+"lines": [
+"Echt gut"
+],
+"sizePx": 30,
+"w": 0.82,
+"weight": 400,
+"x": 0.09,
+"y": 0.2423
+},
+{
+"family": "'Roboto', system-ui, sans-serif",
+"fits": true,
+"h": 0.0255,
+"ink": "#171717",
+"key": "name",
+"lineHeightPx": 28.6,
+"lines": [
+"Ana"
+],
+"sizePx": 22,
+"w": 0.82,
+"weight": 700,
+"x": 0.09,
+"y": 0.2917
+}
+],
+"date": {
+"family": "'Roboto', system-ui, sans-serif",
+"h": 0.03,
+"ink": "#171717",
+"sizePx": 13,
+"text": "09.10.2026",
+"weight": 500,
+"x1": 0.93,
+"y": 0.945
+},
+"ink": "#171717",
+"logo": {
+"h": 0.0636,
+"ink": "#252720",
+"variant": "light",
+"w": 0.27,
+"x": 0.65,
+"y": 0.05
+},
+"page": {
+"h": 1123,
+"w": 794
+},
+"templateId": "tomate",
+"warnings": []
+}
+},
+"tomate/kurz-ohne-datum": {
+"layout": {
+"background": "assets/covers/03-tomate.png",
+"blocks": [
+{
+"family": "'Sofia Sans Extra Condensed', 'Arial Narrow', sans-serif",
+"fits": true,
+"h": 0.0963,
+"ink": "#171717",
+"key": "title",
+"lineHeightPx": 108.16,
+"lines": [
+"Fein"
+],
+"sizePx": 104,
+"w": 0.82,
+"weight": 800,
+"x": 0.09,
+"y": 0.13
+},
+{
+"family": "'Roboto', system-ui, sans-serif",
+"fits": true,
+"h": 0.0334,
+"ink": "#171717",
+"key": "slogan",
+"lineHeightPx": 37.5,
+"lines": [
+"Echt gut"
+],
+"sizePx": 30,
+"w": 0.82,
+"weight": 400,
+"x": 0.09,
+"y": 0.2423
+},
+{
+"family": "'Roboto', system-ui, sans-serif",
+"fits": true,
+"h": 0.0255,
+"ink": "#171717",
+"key": "name",
+"lineHeightPx": 28.6,
+"lines": [
+"Ana"
+],
+"sizePx": 22,
+"w": 0.82,
+"weight": 700,
+"x": 0.09,
+"y": 0.2917
+}
+],
+"date": null,
+"ink": "#171717",
+"logo": {
+"h": 0.0636,
+"ink": "#252720",
+"variant": "light",
+"w": 0.27,
+"x": 0.65,
+"y": 0.05
+},
+"page": {
+"h": 1123,
+"w": 794
+},
+"templateId": "tomate",
+"warnings": []
+}
+},
+"tomate/kurz-ohne-logo": {
+"layout": {
+"background": "assets/covers/03-tomate.png",
+"blocks": [
+{
+"family": "'Sofia Sans Extra Condensed', 'Arial Narrow', sans-serif",
+"fits": true,
+"h": 0.0963,
+"ink": "#171717",
+"key": "title",
+"lineHeightPx": 108.16,
+"lines": [
+"Fein"
+],
+"sizePx": 104,
+"w": 0.82,
+"weight": 800,
+"x": 0.09,
+"y": 0.13
+},
+{
+"family": "'Roboto', system-ui, sans-serif",
+"fits": true,
+"h": 0.0334,
+"ink": "#171717",
+"key": "slogan",
+"lineHeightPx": 37.5,
+"lines": [
+"Echt gut"
+],
+"sizePx": 30,
+"w": 0.82,
+"weight": 400,
+"x": 0.09,
+"y": 0.2423
+},
+{
+"family": "'Roboto', system-ui, sans-serif",
+"fits": true,
+"h": 0.0255,
+"ink": "#171717",
+"key": "name",
+"lineHeightPx": 28.6,
+"lines": [
+"Ana"
+],
+"sizePx": 22,
+"w": 0.82,
+"weight": 700,
+"x": 0.09,
+"y": 0.2917
+}
+],
+"date": {
+"family": "'Roboto', system-ui, sans-serif",
+"h": 0.03,
+"ink": "#171717",
+"sizePx": 13,
+"text": "09.10.2026",
+"weight": 500,
+"x1": 0.93,
+"y": 0.945
+},
+"ink": "#171717",
+"logo": null,
+"page": {
+"h": 1123,
+"w": 794
+},
+"templateId": "tomate",
+"warnings": []
+}
+},
+"tomate/lang": {
+"layout": {
+"background": "assets/covers/03-tomate.png",
+"blocks": [
+{
+"family": "'Sofia Sans Extra Condensed', 'Arial Narrow', sans-serif",
+"fits": true,
+"h": 0.2257,
+"ink": "#171717",
+"key": "title",
+"lineHeightPx": 63.44,
+"lines": [
+"Die allerbesten",
+"Familienrezepte aus drei",
+"Generationen und vielen",
+"Ländern"
+],
+"sizePx": 61,
+"w": 0.82,
+"weight": 800,
+"x": 0.09,
+"y": 0.13
+},
+{
+"family": "'Roboto', system-ui, sans-serif",
+"fits": true,
+"h": 0.0668,
+"ink": "#171717",
+"key": "slogan",
+"lineHeightPx": 37.5,
+"lines": [
+"Gesammelt über viele Jahre, mit Liebe",
+"weitergegeben und ergänzt"
+],
+"sizePx": 30,
+"w": 0.82,
+"weight": 400,
+"x": 0.09,
+"y": 0.3717
+},
+{
+"family": "'Roboto', system-ui, sans-serif",
+"fits": true,
+"h": 0.0255,
+"ink": "#171717",
+"key": "name",
+"lineHeightPx": 28.6,
+"lines": [
+"Familie Müller-Lüdenscheidt aus dem Emmental"
+],
+"sizePx": 22,
+"w": 0.82,
+"weight": 700,
+"x": 0.09,
+"y": 0.4545
+}
+],
+"date": {
+"family": "'Roboto', system-ui, sans-serif",
+"h": 0.03,
+"ink": "#171717",
+"sizePx": 13,
+"text": "09.10.2026",
+"weight": 500,
+"x1": 0.93,
+"y": 0.945
+},
+"ink": "#171717",
+"logo": {
+"h": 0.0636,
+"ink": "#252720",
+"variant": "light",
+"w": 0.27,
+"x": 0.65,
+"y": 0.05
+},
+"page": {
+"h": 1123,
+"w": 794
+},
+"templateId": "tomate",
+"warnings": []
+}
+},
+"tomate/langes-wort": {
+"layout": {
+"background": "assets/covers/03-tomate.png",
+"blocks": [
+{
+"family": "'Sofia Sans Extra Condensed', 'Arial Narrow', sans-serif",
+"fits": true,
+"h": 0.3482,
+"ink": "#171717",
+"key": "title",
+"lineHeightPx": 97.76,
+"lines": [
+"Donaudampfschifffah",
+"rtsgesellschaftskap",
+"itänsmützenfabrikan",
+"tenverband"
+],
+"sizePx": 94,
+"w": 0.82,
+"weight": 800,
+"x": 0.09,
+"y": 0.13
+}
+],
+"date": {
+"family": "'Roboto', system-ui, sans-serif",
+"h": 0.03,
+"ink": "#171717",
+"sizePx": 13,
+"text": "09.10.2026",
+"weight": 500,
+"x1": 0.93,
+"y": 0.945
+},
+"ink": "#171717",
+"logo": {
+"h": 0.0636,
+"ink": "#252720",
+"variant": "light",
+"w": 0.27,
+"x": 0.65,
+"y": 0.05
+},
+"page": {
+"h": 1123,
+"w": 794
+},
+"templateId": "tomate",
+"warnings": []
+}
+},
+"tomate/leer": {
+"layout": {
+"background": "assets/covers/03-tomate.png",
+"blocks": [],
+"date": {
+"family": "'Roboto', system-ui, sans-serif",
+"h": 0.03,
+"ink": "#171717",
+"sizePx": 13,
+"text": "09.10.2026",
+"weight": 500,
+"x1": 0.93,
+"y": 0.945
+},
+"ink": "#171717",
+"logo": {
+"h": 0.0636,
+"ink": "#252720",
+"variant": "light",
+"w": 0.27,
+"x": 0.65,
+"y": 0.05
+},
+"page": {
+"h": 1123,
+"w": 794
+},
+"templateId": "tomate",
+"warnings": []
+}
+},
+"tomate/nur-name-lang": {
+"layout": {
+"background": "assets/covers/03-tomate.png",
+"blocks": [
+{
+"family": "'Roboto', system-ui, sans-serif",
+"fits": true,
+"h": 0.0255,
+"ink": "#171717",
+"key": "name",
+"lineHeightPx": 28.6,
+"lines": [
+"Familie Müller-Lüdenscheidt aus dem schönen Emmental"
+],
+"sizePx": 22,
+"w": 0.82,
+"weight": 700,
+"x": 0.09,
+"y": 0.13
+}
+],
+"date": {
+"family": "'Roboto', system-ui, sans-serif",
+"h": 0.03,
+"ink": "#171717",
+"sizePx": 13,
+"text": "09.10.2026",
+"weight": 500,
+"x1": 0.93,
+"y": 0.945
+},
+"ink": "#171717",
+"logo": {
+"h": 0.0636,
+"ink": "#252720",
+"variant": "light",
+"w": 0.27,
+"x": 0.65,
+"y": 0.05
+},
+"page": {
+"h": 1123,
+"w": 794
+},
+"templateId": "tomate",
+"warnings": []
+}
+},
+"tomate/nur-slogan-lang": {
+"layout": {
+"background": "assets/covers/03-tomate.png",
+"blocks": [
+{
+"family": "'Roboto', system-ui, sans-serif",
+"fits": true,
+"h": 0.1002,
+"ink": "#171717",
+"key": "slogan",
+"lineHeightPx": 37.5,
+"lines": [
+"Gesammelt über viele Jahre, mit Liebe",
+"weitergegeben und von Hand ergänzt, Seite für",
+"Seite"
+],
+"sizePx": 30,
+"w": 0.82,
+"weight": 400,
+"x": 0.09,
+"y": 0.13
+}
+],
+"date": {
+"family": "'Roboto', system-ui, sans-serif",
+"h": 0.03,
+"ink": "#171717",
+"sizePx": 13,
+"text": "09.10.2026",
+"weight": 500,
+"x1": 0.93,
+"y": 0.945
+},
+"ink": "#171717",
+"logo": {
+"h": 0.0636,
+"ink": "#252720",
+"variant": "light",
+"w": 0.27,
+"x": 0.65,
+"y": 0.05
+},
+"page": {
+"h": 1123,
+"w": 794
+},
+"templateId": "tomate",
+"warnings": []
+}
+},
+"tomate/nur-titel": {
+"layout": {
+"background": "assets/covers/03-tomate.png",
+"blocks": [
+{
+"family": "'Sofia Sans Extra Condensed', 'Arial Narrow', sans-serif",
+"fits": true,
+"h": 0.0963,
+"ink": "#171717",
+"key": "title",
+"lineHeightPx": 108.16,
+"lines": [
+"Sonntagsküche"
+],
+"sizePx": 104,
+"w": 0.82,
+"weight": 800,
+"x": 0.09,
+"y": 0.13
+}
+],
+"date": {
+"family": "'Roboto', system-ui, sans-serif",
+"h": 0.03,
+"ink": "#171717",
+"sizePx": 13,
+"text": "09.10.2026",
+"weight": 500,
+"x1": 0.93,
+"y": 0.945
+},
+"ink": "#171717",
+"logo": {
+"h": 0.0636,
+"ink": "#252720",
+"variant": "light",
+"w": 0.27,
+"x": 0.65,
+"y": 0.05
+},
+"page": {
+"h": 1123,
+"w": 794
+},
+"templateId": "tomate",
+"warnings": []
+}
+},
+"tomate/zu-lang": {
+"layout": {
+"background": "assets/covers/03-tomate.png",
+"blocks": [
+{
+"family": "'Sofia Sans Extra Condensed', 'Arial Narrow', sans-serif",
+"fits": false,
+"h": 0.2505,
+"ink": "#171717",
+"key": "title",
+"lineHeightPx": 35.36,
+"lines": [
+"Lorem ipsum Lorem ipsum Lorem ipsum Lorem ipsum Lorem",
+"ipsum Lorem ipsum Lorem ipsum Lorem ipsum Lorem ipsum",
+"Lorem ipsum Lorem ipsum Lorem ipsum Lorem ipsum Lorem",
+"ipsum Lorem ipsum Lorem ipsum Lorem ipsum Lorem ipsum",
+"Lorem ipsum Lorem ipsum Lorem ipsum Lorem ipsum Lorem",
+"ipsum Lorem ipsum Lorem ipsum Lorem ipsum Lorem ipsum",
+"Lorem ipsum Lorem ipsum Lorem ipsum Lorem ipsum Lorem",
+"ipsum Lorem ipsum Lorem ipsum Lorem ipsum Lorem ipsum",
+"Lorem ipsum Lorem ipsum Lorem ipsum Lorem ipsum"
+],
+"sizePx": 34,
+"w": 0.82,
+"weight": 800,
+"x": 0.09,
+"y": 0.13
+},
+{
+"family": "'Roboto', system-ui, sans-serif",
+"fits": true,
+"h": 0.0741,
+"ink": "#171717",
+"key": "name",
+"lineHeightPx": 20.8,
+"lines": [
+"NNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNN",
+"NNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNN",
+"NNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNN",
+"NNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNN"
+],
+"sizePx": 16,
+"w": 0.82,
+"weight": 700,
+"x": 0.09,
+"y": 0.3965
+}
+],
+"date": {
+"family": "'Roboto', system-ui, sans-serif",
+"h": 0.03,
+"ink": "#171717",
+"sizePx": 13,
+"text": "09.10.2026",
+"weight": 500,
+"x1": 0.93,
+"y": 0.945
+},
+"ink": "#171717",
+"logo": {
+"h": 0.0636,
+"ink": "#252720",
+"variant": "light",
+"w": 0.27,
+"x": 0.65,
+"y": 0.05
+},
+"page": {
+"h": 1123,
+"w": 794
+},
+"templateId": "tomate",
+"warnings": [
+{
+"key": "title",
+"message": "Der Titel ist zu lang für dieses Titelblatt. Bitte kürzen (er passt nur in kleiner, nicht lesbarer Schrift)."
+}
+]
+}
+}
+}

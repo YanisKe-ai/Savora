@@ -1,7 +1,7 @@
 """Paket 37 (Anpassung): Smartphone, Tablet und Desktop.
 Misst ueber alle geaenderten Ansichten x Breiten (360, 390, 768, 1024, 1280) x Darstellungen (Hell, Dunkel, «Wie dein Gerät» hell/dunkel)
 und mit grosser Systemschrift (24 px): seitlicher Ueberlauf, Tippflaechen >= 44 px, Text-Kontrast >= 4.5:1 (gross 3:1), kleinste Schrift >= 14 px,
-abgeschnittene Texte. Dazu: genau ein Weg zu «Mehr» je Breite, Cover-Auswahl (zehn Cover), sehr langer Titel/lange Zutatenliste, «Heute geplant».
+abgeschnittene Texte. Dazu: genau ein Weg zu «Mehr» je Breite, Cover-Auswahl (fünfzehn Cover), sehr langer Titel/lange Zutatenliste, «Heute geplant».
 Testdaten: tests/seed.js, erweitert per page.evaluate (nichts davon steht im Repo)."""
 import asyncio, sys, os, json
 os.environ.setdefault('SAVORA_TEST_PORT', '8852')
@@ -148,7 +148,7 @@ async def main():
                             return { n: o.length, on: on.length, check: on.every(x => !!x.querySelector('.cover-opt-check')), minw: Math.min(...o.map(x => x.getBoundingClientRect().width)), minh: Math.min(...o.map(x => x.getBoundingClientRect().height)),
                               names: o.every(x => x.querySelector('.cover-opt-name').textContent.trim().length > 0), cols: new Set(o.map(x => Math.round(x.getBoundingClientRect().left))).size,
                               sameSize: new Set(o.map(x => Math.round(x.getBoundingClientRect().width))).size } }""")
-                        check(f'[{w} {theme}] Cover-Auswahl: zehn Cover, eines klar markiert (Haken), gleich gross, mindestens 44 px', cv['n'] == 10 and cv['on'] == 1 and cv['check'] and cv['names'] and cv['minw'] >= 44 and cv['minh'] >= 44 and cv['sameSize'] == 1, str(cv))
+                        check(f'[{w} {theme}] Cover-Auswahl: fünfzehn Cover, eines klar markiert (Haken), gleich gross, mindestens 44 px', cv['n'] == 15 and cv['on'] == 1 and cv['check'] and cv['names'] and cv['minw'] >= 44 and cv['minh'] >= 44 and cv['sameSize'] == 1, str(cv))
                         check(f'[{w} {theme}] Cover-Auswahl: {"zwei" if w < 640 else "fuenf"} Spalten', cv['cols'] == (2 if w < 640 else 5), str(cv))
                     if name == 'home':
                         td = await page.evaluate("""() => { const s = document.querySelector('.today-planned'); if (!s) return null; const r = s.getBoundingClientRect(); return { links: s.querySelectorAll('.today-link').length, note: !!s.querySelector('.today-note'), right: Math.round(r.right), vw: innerWidth, label: s.querySelector('.today-label').textContent.trim() }; }""")
