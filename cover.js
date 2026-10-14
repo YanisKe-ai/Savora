@@ -75,6 +75,9 @@ function coverNormalizeDate(v) {
 function coverSanitizeConfig(raw, forceDate) {
   const c = raw && typeof raw === 'object' ? raw : {};
   const date = coverNormalizeDate(c.date);
+  if (c.v === 2 && typeof coverModelSanitize === 'function') {   // v2 bleibt v2 (kein stilles Zurueckstufen)
+    const m = coverModelSanitize(c); m.date = date || (forceDate ? coverTodayKey() : ''); return m;
+  }
   return {
     v: COVER_SCHEMA_VERSION,
     templateId: coverValidTemplateId(c.templateId),
@@ -87,7 +90,7 @@ function coverSanitizeConfig(raw, forceDate) {
 function coverEnsureConfig() {
   const cfg = cookbookGetRaw();   // aktives Kochbuch-Projekt
   const c = cfg && cfg.cover;
-  const ok = c && c.v === COVER_SCHEMA_VERSION && coverIsValidDateKey(c.date) && coverTemplateById(c.templateId);
+  const ok = c && (c.v === COVER_SCHEMA_VERSION || c.v === 2) && coverIsValidDateKey(c.date) && coverTemplateById(c.templateId);
   if (!ok) {
     // Nur das Titelblatt ergaenzen. Eine noch nie gespeicherte Auswahl (items) bleibt "alle Rezepte" und wird hier nicht eingefroren.
     const next = { ...(cfg || {}), cover: coverSanitizeConfig(c, !(c && coverIsValidDateKey(c.date))) };
@@ -144,6 +147,7 @@ const COVER_BLOCK_LABEL = { title: 'Der Titel', slogan: 'Der Untertitel', name: 
 /* Berechnet das gesamte Titelblatt. input: { title, name, slogan, date, showDate, templateId, logo }.
    measure ist austauschbar (Tests). Ergebnis ist rein beschreibend (Zahlen und Zeilen) und wird von Vorschau und Export gleich gezeichnet. */
 function coverLayout(input, measure) {
+  if (input && input.v2 && typeof coverModelIsPlainTemplate === 'function' && !coverModelIsPlainTemplate(coverModelSanitize(input.v2))) return coverLayoutV2(input, measure);
   const m = measure || coverMeasureDefault;
   const tpl = coverTemplateById(coverValidTemplateId(input && input.templateId));
   const texts = { title: coverCleanText(input && input.title), slogan: coverCleanText(input && input.slogan), name: coverCleanText(input && input.name) };
@@ -187,6 +191,120 @@ function coverLayout(input, measure) {
   return { templateId: tpl.id, page: COVER_PAGE, ink: tpl.ink, blocks, date, logo, warnings, background: coverBackgroundUrl(tpl.id) };
 }
 
+/* ---------- Layout v2 (Cover-Editor): freie Felder in A4-Anteilen, Schrift in pt, echte Zeilenumbrueche ----------
+   Vorlage ('template') = v1-Layout als Standard, nur Abweichungen aus model.fields werden angewendet. 'custom' = eigener Hintergrund. */
+const COVER_PT = 4 / 3, COVER_INCH_W = 210 / 25.4, COVER_V2_GAP = 0.016;
+const COVER_FIELD_LABEL = { title: 'Der Titel', subtitle: 'Der Untertitel', name: 'Der Name', extra1: 'Die weitere Zeile', date: 'Das Datum', logo: 'Das Logo', image: 'Das Bild' };
+function coverImageRects(img, iw, ih) {
+  const pageA = COVER_PAGE.w / COVER_PAGE.h, imgA = iw / ih;
+  if (img.fit === 'contain') {
+    const z = Math.min(1, Math.max(0.3, img.zoom || 1));
+    let dw, dh;
+    if (imgA > pageA) { dw = 1; dh = (COVER_PAGE.w / imgA) / COVER_PAGE.h; } else { dh = 1; dw = (COVER_PAGE.h * imgA) / COVER_PAGE.w; }
+    dw *= z; dh *= z;
+    const dx = Math.min(1 - dw, Math.max(0, (img.cx == null ? 0.5 : img.cx) - dw / 2)), dy = Math.min(1 - dh, Math.max(0, (img.cy == null ? 0.5 : img.cy) - dh / 2));
+    return { src: { x: 0, y: 0, w: iw, h: ih }, dst: { x: dx, y: dy, w: dw, h: dh }, ppi: iw / (dw * COVER_INCH_W) };
+  }
+  const z = Math.min(8, Math.max(1, img.zoom || 1));
+  let sw, sh;
+  if (imgA > pageA) { sh = ih; sw = ih * pageA; } else { sw = iw; sh = iw / pageA; }
+  sw /= z; sh /= z;
+  const sx = Math.min(iw - sw, Math.max(0, (img.cx == null ? 0.5 : img.cx) * iw - sw / 2)), sy = Math.min(ih - sh, Math.max(0, (img.cy == null ? 0.5 : img.cy) * ih - sh / 2));
+  return { src: { x: sx, y: sy, w: sw, h: sh }, dst: { x: 0, y: 0, w: 1, h: 1 }, ppi: sw / COVER_INCH_W };
+}
+function coverLayoutV2(input, measure) {
+  const m = measure || coverMeasureDefault;
+  const model = coverModelSanitize(input.v2), F = model.fields, custom = model.mode === 'custom';
+  const tpl = coverTemplateById(coverValidTemplateId(input.templateId || model.templateId));
+  const vis = (id) => !(F[id] && F[id].visible === false);
+  const own = (id, v) => (F[id] && typeof F[id].text === 'string') ? F[id].text : v;
+  const texts = { title: coverCleanText(own('title', input.title)), subtitle: coverCleanText(own('subtitle', input.slogan)), name: coverCleanText(own('name', input.name)), extra1: coverCleanText(own('extra1', '')) };
+  const ids = ['title', 'subtitle', 'name', 'extra1'].filter(id => texts[id] && vis(id));
+  const baseBy = {};
+  if (!custom) coverLayout({ templateId: tpl.id, title: ids.includes('title') ? texts.title : '', slogan: ids.includes('subtitle') ? texts.subtitle : '', name: ids.includes('name') ? texts.name : '', showDate: false, logo: false }, m)
+    .blocks.forEach(b => { baseBy[b.key === 'slogan' ? 'subtitle' : b.key] = b; });
+  const bg = custom ? model.bg.color : null, dark = '#252720';
+  let defInk;
+  if (!custom) defInk = tpl.ink;
+  else if (model.image) defInk = model.readability === 'panel' ? dark : (typeof input.imageLuma === 'number' && input.imageLuma < 0.5 ? COVER_PAPER : dark);
+  else defInk = coverContrast(dark, bg) >= coverContrast(COVER_PAPER, bg) ? dark : COVER_PAPER;
+  const logoH = COVER_LOGO_BOX.w * COVER_PAGE.w * (WORDMARK_BOX.h / WORDMARK_BOX.w) / COVER_PAGE.h;
+  let cursor = custom ? (model.logo.pos === 'bottom-right' ? 0.08 : 0.13) : tpl.text.y, flowChanged = false;
+  const blocks = [];
+  ids.forEach((id) => {
+    const o = F[id] || {}, d = COVER_FIELD_DEFAULTS[id], b0 = baseBy[id], meta = COVER_FONT_TABLE[o.font || d.font];
+    const sizePx = o.fontPt ? o.fontPt * COVER_PT : (b0 ? b0.sizePx : d.fontPt * COVER_PT);
+    const weight = o.font ? (o.font === 'Roboto' ? (d.font === 'Roboto' ? d.weight : 700) : meta.weight) : (b0 ? b0.weight : d.weight);
+    const lhr = o.font ? (o.font === 'Roboto' ? d.lh : meta.lh) : (b0 ? b0.lineHeightPx / b0.sizePx : d.lh);
+    const x = o.x != null ? o.x : (b0 ? b0.x : d.x), w = o.w != null ? o.w : (b0 ? b0.w : d.w);
+    const same = !!b0 && o.w == null && o.fontPt == null && !o.font;
+    const font = `${weight} ${sizePx}px ${meta.family}`;
+    const lines = same ? b0.lines : coverWrap(texts[id], w * COVER_PAGE.w, font, m);
+    const h = lines.length * sizePx * lhr / COVER_PAGE.h;
+    if (b0 && Math.abs(h - b0.h) > 1e-6) flowChanged = true;
+    const y = o.y != null ? o.y : ((b0 && !flowChanged) ? b0.y : cursor);
+    const align = o.align || 'left';
+    const tw = Math.min(w, Math.max(0, ...lines.map(l => m(l, font))) / COVER_PAGE.w);
+    const words = texts[id].split(/\s+/);
+    const split = words.some(wd => m(wd, font) > w * COVER_PAGE.w + 0.5);
+    const geoSet = o.x != null || o.y != null || o.w != null || o.fontPt != null || !!o.font;
+    blocks.push({ key: id === 'subtitle' ? 'slogan' : id, id, lines, sizePx, sizePt: sizePx / COVER_PT, lineHeightPx: sizePx * lhr, family: meta.family, weight, font: o.font || d.font, x, y, w, h,
+      ink: o.color || defInk, align, fits: (b0 && !geoSet) ? b0.fits : true, splitWord: split, tx: align === 'left' ? x : (align === 'center' ? x + (w - tw) / 2 : x + w - tw), tw });
+    cursor = y + h + COVER_V2_GAP;
+  });
+  // Datum
+  let date = null;
+  const dtext = input.showDate !== false && vis('date') ? coverFormatDate(input.date) : '';
+  if (dtext) {
+    const o = F.date || {}, dz = { ...COVER_DATE_ZONE, ...(tpl.date || {}) }, d = COVER_FIELD_DEFAULTS.date;
+    const sizePx = o.fontPt ? o.fontPt * COVER_PT : (custom ? d.fontPt * COVER_PT : dz.size);
+    const w = o.w != null ? o.w : d.w, x = o.x != null ? o.x : (custom ? d.x : dz.x1 - w), y = o.y != null ? o.y : (custom ? d.y : dz.y);
+    const align = o.align || 'right', meta = COVER_FONT_TABLE[o.font || 'Roboto'];
+    const weight = o.font && o.font !== 'Roboto' ? meta.weight : COVER_FONTS.date.weight;
+    const tw = m(dtext, `${weight} ${sizePx}px ${meta.family}`) / COVER_PAGE.w;
+    const ax = align === 'left' ? x : (align === 'center' ? x + w / 2 : x + w);
+    date = { text: dtext, sizePx, x1: ax, ax, align, y, h: Math.max(COVER_DATE_ZONE.h, sizePx * 1.25 / COVER_PAGE.h), w, tw, ink: o.color || defInk, family: meta.family, weight };
+  }
+  // Logo
+  let logo = null;
+  if (input.logo !== false) {
+    const pos = model.logo.pos;
+    let variant = model.logo.variant;
+    if (variant === 'auto') variant = custom ? coverLogoAuto(model, input.imageLuma) : (tpl.logoVariant === 'dark' ? 'light' : 'dark');
+    logo = { pos, x: pos === 'top-left' ? 0.08 : COVER_LOGO_BOX.x, y: pos === 'bottom-right' ? 0.93 - logoH : COVER_LOGO_BOX.y, w: COVER_LOGO_BOX.w, h: logoH, variant, ink: variant === 'light' ? COVER_WORDMARK_CREAM : COVER_WORDMARK_INK };
+  }
+  // Bild
+  let image = null;
+  if (custom && model.image) {
+    const im = model.image;
+    image = { id: im.id, fit: im.fit, cx: im.cx, cy: im.cy, zoom: im.zoom, src: null, dst: null, ppi: null };
+    if (im.w && im.h) Object.assign(image, coverImageRects(im, im.w, im.h));
+  }
+  // Lesbarkeit: Flaeche bzw. Verlauf je zusammenhaengender Textgruppe
+  const panels = [], gradients = [];
+  if (model.readability !== 'none' && blocks.length) {
+    const padX = 20 / COVER_PAGE.w, padY = 20 / COVER_PAGE.h;
+    const rects = blocks.map(b => ({ x: b.tx - padX, y: b.y - padY, x2: b.tx + b.tw + padX, y2: b.y + b.h + padY, ink: b.ink })).sort((a, b) => a.y - b.y);
+    const groups = [];
+    rects.forEach((r) => {
+      const g = groups.find(q => r.y <= q.y2 + 0.004 && r.x <= q.x2 && r.x2 >= q.x);
+      if (g) { g.x = Math.min(g.x, r.x); g.y = Math.min(g.y, r.y); g.x2 = Math.max(g.x2, r.x2); g.y2 = Math.max(g.y2, r.y2); g.light = g.light || coverLuminance(r.ink) > 0.5; } else groups.push({ ...r, light: coverLuminance(r.ink) > 0.5 });
+    });
+    groups.forEach((g) => {
+      if (model.readability === 'panel') {
+        const x = Math.max(0, g.x), y = Math.max(0, g.y), x2 = Math.min(1, g.x2), y2 = Math.min(1, g.y2);
+        panels.push({ x, y, w: x2 - x, h: y2 - y, r: 16 / COVER_PAGE.w, color: COVER_PAPER, alpha: 0.78 });
+      } else {
+        const up = (g.y + g.y2) / 2 > 0.5, y0 = up ? Math.max(0, g.y - 0.06) : 0, y1 = up ? 1 : Math.min(1, g.y2 + 0.06);
+        gradients.push({ x: 0, y: y0, w: 1, h: y1 - y0, from: g.light ? '#171717' : COVER_PAPER, alpha: 0.82, dir: up ? 'up' : 'down' });
+      }
+    });
+  }
+  const layout = { v: 2, mode: model.mode, templateId: tpl.id, page: COVER_PAGE, ink: defInk, bgColor: bg, blocks, date, logo, image, panels, gradients, readability: model.readability, warnings: [], background: custom ? null : coverBackgroundUrl(tpl.id) };
+  layout.warnings = coverValidate(layout);
+  return layout;
+}
+
 /* ---------- Savora-Wortmarke (Teigschrift, nur Pfad, viewBox 1200 x 400) als Vektor ----------
    Quelle: assets/logo/savora-wortmarke-light.svg (identischer Pfad in der dark-Variante, nur die Farbe unterscheidet sich).
    In der App steuert CSS die Farbe ueber data-theme (Hell rot #B93B2C, Dunkel creme #F7F4EE): kein Filter, kein Flackern. */
@@ -213,22 +331,42 @@ function coverDrawWordmark(ctx, x, y, widthPx, ink) {
   ctx.fillStyle = ink; ctx.fill(new Path2D(WORDMARK_PATH), 'evenodd');
   ctx.restore();
 }
-function coverDraw(ctx, layout, bgImg, scale) {
+function coverDraw(ctx, layout, bgImg, scale, userImg) {
   const W = layout.page.w * scale, H = layout.page.h * scale;
   ctx.save();
-  ctx.fillStyle = '#FFFFFF'; ctx.fillRect(0, 0, W, H);
+  ctx.fillStyle = layout.bgColor || '#FFFFFF'; ctx.fillRect(0, 0, W, H);
   if (bgImg) { const r = coverBgRect(layout.templateId, W, H); ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = 'high'; ctx.drawImage(bgImg, r.x, r.y, r.w, r.h); }
+  if (layout.image && userImg) {
+    // Seitenverhaeltnis des Quellrechtecks = Zielrechteck: das Bild wird nie gestreckt (bei fehlenden Pixelmassen aus dem echten Bild berechnet)
+    const nat = { w: userImg.naturalWidth || userImg.videoWidth || userImg.width, h: userImg.naturalHeight || userImg.videoHeight || userImg.height };
+    const r = layout.image.src && layout.image.dst ? layout.image : coverImageRects(layout.image, nat.w, nat.h);
+    ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = 'high';
+    ctx.drawImage(userImg, r.src.x, r.src.y, r.src.w, r.src.h, r.dst.x * W, r.dst.y * H, r.dst.w * W, r.dst.h * H);
+  }
+  (layout.gradients || []).forEach((g) => {
+    const gr = ctx.createLinearGradient(0, g.y * H, 0, (g.y + g.h) * H), top = g.dir === 'down';
+    const rgb = (a) => { const n = parseInt(g.from.slice(1), 16); return `rgba(${n >> 16},${(n >> 8) & 255},${n & 255},${a})`; };
+    gr.addColorStop(0, rgb(top ? g.alpha : 0)); gr.addColorStop(1, rgb(top ? 0 : g.alpha));
+    ctx.fillStyle = gr; ctx.fillRect(g.x * W, g.y * H, g.w * W, g.h * H);
+  });
+  (layout.panels || []).forEach((p) => {
+    const n = parseInt(p.color.slice(1), 16);
+    ctx.fillStyle = `rgba(${n >> 16},${(n >> 8) & 255},${n & 255},${p.alpha})`;
+    ctx.beginPath(); ctx.roundRect(p.x * W, p.y * H, p.w * W, p.h * H, p.r * W); ctx.fill();
+  });
   if (layout.logo) coverDrawWordmark(ctx, layout.logo.x * W, layout.logo.y * H, layout.logo.w * W, layout.logo.ink);
   const baseline = (top, lh, font) => { ctx.font = font; const m = ctx.measureText('Hg'); const fa = m.fontBoundingBoxAscent || m.actualBoundingBoxAscent, fd = m.fontBoundingBoxDescent || m.actualBoundingBoxDescent; return top + (lh - (fa + fd)) / 2 + fa; };
   ctx.textBaseline = 'alphabetic'; ctx.textAlign = 'left';
   layout.blocks.forEach((b) => {
     const size = b.sizePx * scale, lh = b.lineHeightPx * scale, font = `${b.weight} ${size}px ${b.family}`;
     ctx.fillStyle = b.ink;
-    b.lines.forEach((line, i) => { if (line) ctx.fillText(line, b.x * W, baseline(b.y * H + i * lh, lh, font) + 0); });
+    const ax = b.align === 'center' ? (b.x + b.w / 2) * W : (b.align === 'right' ? (b.x + b.w) * W : b.x * W);
+    ctx.textAlign = b.align || 'left';
+    b.lines.forEach((line, i) => { if (line) ctx.fillText(line, ax, baseline(b.y * H + i * lh, lh, font) + 0); });
   });
   if (layout.date) {
     const size = layout.date.sizePx * scale, font = `${layout.date.weight} ${size}px ${layout.date.family}`;
-    ctx.fillStyle = layout.date.ink; ctx.textAlign = 'right';
+    ctx.fillStyle = layout.date.ink; ctx.textAlign = layout.date.align || 'right';
     ctx.fillText(layout.date.text, layout.date.x1 * W, baseline(layout.date.y * H, layout.date.h * H, font));
   }
   ctx.restore();
@@ -236,11 +374,13 @@ function coverDraw(ctx, layout, bgImg, scale) {
 function coverLoadImage(url) {
   return new Promise((resolve, reject) => { const im = new Image(); im.onload = () => resolve(im); im.onerror = () => reject(coverError('Die Datei des gewählten Titelblatts konnte nicht geladen werden. Bitte wähle ein anderes Titelblatt.')); im.src = url; });
 }
-async function coverRenderCanvas(layout, scale, bgUrl) {
+async function coverRenderCanvas(layout, scale, bgUrl, userImg) {
   await coverEnsureFonts();
-  const img = await coverLoadImage(bgUrl || layout.background);
+  const img = (bgUrl || layout.background) ? await coverLoadImage(bgUrl || layout.background) : null;
+  if (layout.image && !userImg && typeof window.coverImageLoad === 'function') userImg = await window.coverImageLoad(layout.image.id);
+  if (layout.image && !userImg) throw coverError('Das Hintergrundbild des Titelblatts konnte nicht geladen werden. Bitte wähle das Bild neu oder entferne es.');
   const c = document.createElement('canvas'); c.width = Math.round(layout.page.w * scale); c.height = Math.round(layout.page.h * scale);
-  coverDraw(c.getContext('2d'), layout, img, scale);
+  coverDraw(c.getContext('2d'), layout, img, scale, userImg);
   return c;
 }
 
@@ -249,16 +389,22 @@ async function coverRenderCanvas(layout, scale, bgUrl) {
 function coverHtml(layout, imgUrl) {
   const esc = (s) => escapeHtml(String(s));
   const pct = (v) => (v * 100).toFixed(3) + '%';
-  const blocks = layout.blocks.map(b => `<div class="cv-block cv-${b.key}" style="left:${pct(b.x)};top:${pct(b.y)};width:${pct(b.w)};font:${b.weight} ${b.sizePx}px/${b.lineHeightPx}px ${b.family}">${b.lines.map(l => `<div class="cv-line">${l ? esc(l) : '&nbsp;'}</div>`).join('')}</div>`).join('');
-  const date = layout.date ? `<div class="cv-date" style="right:${pct(1 - layout.date.x1)};top:${pct(layout.date.y)};font:${layout.date.weight} ${layout.date.sizePx}px/1 ${layout.date.family}">${esc(layout.date.text)}</div>` : '';
+  const blocks = layout.blocks.map(b => `<div class="cv-block cv-${b.key}" style="left:${pct(b.x)};top:${pct(b.y)};width:${pct(b.w)};${b.align ? 'text-align:' + b.align + ';' : ''}font:${b.weight} ${b.sizePx}px/${b.lineHeightPx}px ${b.family}">${b.lines.map(l => `<div class="cv-line">${l ? esc(l) : '&nbsp;'}</div>`).join('')}</div>`).join('');
+  const date = layout.date ? `<div class="cv-date" style="${layout.date.align && layout.date.align !== 'right' ? 'left:' + pct(layout.date.ax) + ';' + (layout.date.align === 'center' ? 'transform:translateX(-50%);' : '') : 'right:' + pct(1 - layout.date.x1) + ';'}top:${pct(layout.date.y)};font:${layout.date.weight} ${layout.date.sizePx}px/1 ${layout.date.family}">${esc(layout.date.text)}</div>` : '';
   const logo = '';   // die Wortmarke ist reine Grafik (kein Text im PDF)
-  return `<section class="pv-page pv-cover pv-cover2" data-page-kind="cover" data-cover="${esc(layout.templateId)}">${imgUrl ? `<img class="cv-bg" src="${esc(imgUrl)}" alt="" style="left:0;top:0;width:100%;height:100%">` : ''}${logo}<div class="cv-textlayer">${blocks}${date}</div></section>`;
+  return `<section class="pv-page pv-cover pv-cover2" data-page-kind="cover" data-cover="${esc(layout.mode === 'custom' ? 'custom' : layout.templateId)}">${imgUrl ? `<img class="cv-bg" src="${esc(imgUrl)}" alt="" style="left:0;top:0;width:100%;height:100%">` : ''}${logo}<div class="cv-textlayer">${blocks}${date}</div></section>`;
 }
 
 function coverError(msg) { const e = new Error(msg); e.userMessage = msg; return e; }
 
 /* ---------- Schriften und Bilder bereitstellen (Vorschau und Export warten darauf) ---------- */
 let _coverFontsReady = false, _coverFontsPromise = null;
+/* Baloo 2 liegt lokal (baloo2.woff2), hat aber keine @font-face-Regel: hier registrieren (kein CSS-Konflikt) */
+async function coverLoadBaloo() {
+  if (!window.FontFace || !document.fonts) return;
+  if (!Array.from(document.fonts).some(f => f.family.replace(/['"]/g, '') === 'Baloo 2')) { const f = new FontFace('Baloo 2', 'url(baloo2.woff2)', { weight: '400 800', style: 'normal' }); document.fonts.add(f); try { await f.load(); } catch (e) { /* Ersatzschrift */ } }
+  await document.fonts.load("700 40px 'Baloo 2'");
+}
 function coverEnsureFonts() {
   if (_coverFontsPromise) return _coverFontsPromise;
   _coverFontsPromise = (async () => {
@@ -267,6 +413,7 @@ function coverEnsureFonts() {
         await Promise.all([
           document.fonts.load("800 40px 'Sofia Sans Extra Condensed'"), document.fonts.load("400 20px 'Roboto'"),
           document.fonts.load("500 13px 'Roboto'"), document.fonts.load("700 20px 'Roboto'"),
+          document.fonts.load("400 40px 'Lilita One'"), document.fonts.load("900 40px 'Archivo'"), coverLoadBaloo(),
         ]);
       }
     } catch (e) { /* document.fonts.ready bleibt die Untergrenze */ }

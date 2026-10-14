@@ -171,9 +171,80 @@ function coverLogoAuto(model, lumaHint) {
   return 'dark';
 }
 
-/* ---------- Anordnungen, Warnungen: GERUEST (Umsetzung folgt) ---------- */
-function coverApplyArrangement(model, name, input, measure) { return coverModelSanitize(model); }
-function coverValidate(layout) { return (layout && layout.warnings) || []; }
+/* ---------- Anordnungen: Block aus Titel, Untertitel, Name (und weiterer Zeile) nach gemessenen Hoehen ---------- */
+function coverBlockId(b) { return b.id || (b.key === 'slogan' ? 'subtitle' : b.key); }
+function coverApplyArrangement(model, name, input, measure) {
+  const m = coverModelSanitize(model);
+  if (!COVER_ARRANGEMENTS.includes(name)) return m;
+  const inp = Object.assign({}, input || {}, { v2: m });
+  const first = coverLayout(inp, measure);
+  const ids = first.blocks.map(coverBlockId);
+  if (name === 'Frei platzieren') {
+    first.blocks.forEach((b) => { m.fields[coverBlockId(b)] = Object.assign({}, m.fields[coverBlockId(b)], { x: coverRound(b.x), y: coverRound(b.y), w: coverRound(b.w) }); });
+    m.arrange = name;
+    return coverModelSanitize(m);
+  }
+  if (!ids.length) { m.arrange = name; return coverModelSanitize(m); }
+  const align = name.endsWith('mittig') || name === 'Mittig' ? 'center' : 'left';
+  ids.forEach((id) => { const f = Object.assign({}, m.fields[id], { x: 0.09, w: 0.82, align }); delete f.y; m.fields[id] = f; });
+  const lay = coverLayout(Object.assign({}, inp, { v2: coverModelSanitize(m) }), measure);
+  const gap = 0.016, H = lay.blocks.reduce((a, b) => a + b.h, 0) + gap * (lay.blocks.length - 1);
+  const logoBottom = m.logo.pos === 'bottom-right';
+  const topY = logoBottom ? 0.08 : 0.13;
+  const bottomLimit = logoBottom ? 0.84 : (lay.date && !logoBottom ? 0.91 : 0.93);
+  let y0;
+  if (name.startsWith('Oben')) y0 = topY;
+  else if (name === 'Mittig') y0 = Math.min(bottomLimit - H, Math.max(topY, (1 - H) / 2));
+  else y0 = bottomLimit - H;
+  let y = Math.max(0.02, y0);
+  lay.blocks.forEach((b) => { const id = coverBlockId(b); m.fields[id] = Object.assign({}, m.fields[id], { y: coverRound(y) }); y += b.h + gap; });
+  m.arrange = name;
+  return coverModelSanitize(m);
+}
+
+/* ---------- Pruefregeln ---------- */
+function coverValidate(layout) {
+  const out = [];
+  if (!layout) return out;
+  const eps = 0.002, L = COVER_FIELD_LABEL;
+  const add = (fieldId, kind, message) => out.push({ fieldId, kind, message });
+  const rects = [];
+  (layout.blocks || []).forEach((b) => {
+    const id = coverBlockId(b), lab = L[id] || 'Der Text';
+    if (b.splitWord) add(id, 'cut', `${lab} enthält ein Wort, das breiter ist als das Textfeld und mitten im Wort getrennt wird. Verbreitere das Textfeld, verkleinere die Schrift oder kürze den Text.`);
+    if (b.y + b.h > 1 + eps) add(id, 'cut', `${lab} ragt unten über die Seite hinaus und wird abgeschnitten. Kürze den Text, verkleinere die Schrift oder verbreitere das Textfeld.`);
+    else if (b.fits === false) add(id, 'cut', `${lab} ist zu lang für dieses Titelblatt. Bitte kürzen (er passt nur in kleiner, nicht lesbarer Schrift).`);
+    if (b.x < -eps || b.x + b.w > 1 + eps || b.y < -eps) add(id, 'outside', `${lab} liegt teilweise ausserhalb der Seite. Verschiebe das Textfeld oder mache es schmaler.`);
+    rects.push({ id, x: b.tx != null ? b.tx : b.x, y: b.y, w: b.tw != null ? b.tw : b.w, h: b.h });
+  });
+  const d = layout.date;
+  if (d) {
+    const dx = d.align === 'left' ? d.ax : (d.align === 'center' ? d.ax - d.tw / 2 : d.ax - d.tw);
+    if (dx < -eps || dx + d.tw > 1 + eps || d.y < -eps || d.y + d.h > 1 + eps) add('date', 'outside', `${L.date} liegt teilweise ausserhalb der Seite. Verschiebe es nach innen.`);
+    rects.push({ id: 'date', x: dx, y: d.y, w: d.tw, h: d.h });
+  }
+  const lg = layout.logo;
+  if (lg) {
+    if (lg.x < -eps || lg.x + lg.w > 1 + eps || lg.y < -eps || lg.y + lg.h > 1 + eps) add('logo', 'outside', `${L.logo} liegt teilweise ausserhalb der Seite.`);
+    rects.push({ id: 'logo', x: lg.x, y: lg.y, w: lg.w, h: lg.h });
+  }
+  for (let i = 0; i < rects.length; i++) for (let j = i + 1; j < rects.length; j++) {
+    const a = rects[i], b = rects[j];
+    if (a.x < b.x + b.w - eps && b.x < a.x + a.w - eps && a.y < b.y + b.h - eps && b.y < a.y + a.h - eps) {
+      const acc = { title: 'den Titel', subtitle: 'den Untertitel', name: 'den Namen', extra1: 'die weitere Zeile', date: 'das Datum', logo: 'das Logo' };
+      add(b.id, 'overlap', `${L[b.id] || 'Ein Feld'} überlappt ${acc[a.id] || 'ein anderes Feld'}. Verschiebe eines der beiden Felder.`);
+    }
+  }
+  if (layout.mode === 'custom' && !layout.image && layout.bgColor && layout.readability !== 'gradient') {
+    const bgc = layout.readability === 'panel' ? COVER_PAPER : layout.bgColor;
+    const texts = (layout.blocks || []).map(b => ({ id: coverBlockId(b), ink: b.ink })).concat(d ? [{ id: 'date', ink: d.ink }] : []);
+    texts.forEach(t => { if (coverContrast(t.ink, bgc) < 3) add(t.id, 'unreadable', 'Der Text ist hier schwer lesbar. Wähle eine andere Farbe oder aktiviere eine Textfläche.'); });
+  } else if (layout.readability === 'panel') {
+    (layout.blocks || []).forEach(b => { if (coverContrast(b.ink, COVER_PAPER) < 3) add(coverBlockId(b), 'unreadable', 'Der Text ist hier schwer lesbar. Wähle eine andere Farbe oder aktiviere eine Textfläche.'); });
+  }
+  if (layout.image && layout.image.ppi != null && layout.image.ppi < 150) add('image', 'lowres', `Das Bild hat nur etwa ${Math.round(layout.image.ppi)} ppi auf A4. Für den Druck möglicherweise unscharf.`);
+  return out;
+}
 function coverExportBlockers(layout) {
   if (!layout) return [];
   if (layout.v !== COVER_SCHEMA_V2) return (layout.warnings || []).map(w => ({ fieldId: w.key || '', kind: 'cut', message: w.message }));

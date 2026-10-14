@@ -1107,7 +1107,7 @@ function cookbookStepDesign(cfg) {
 function cookbookStepPreview(cfg) {
   const warnings = cookbookWarnings(cfg);
   const cv = cfg.cover || coverSanitizeConfig(null, true);
-  const layout = coverLayout({ templateId: cv.templateId, title: cfg.title, name: cfg.author, slogan: cfg.subtitle, date: cv.date, showDate: cv.showDate, logo: cfg.showLogo !== false });
+  const layout = coverLayout(coverInputFromConfig(cfg));
   const tpl = pdfTemplateById(cfg.pdfTemplate || pdfDefaultTemplateId());
   const tplName = (coverTemplateById(cv.templateId) || {}).name || '';
   const n = cfg.items.length;

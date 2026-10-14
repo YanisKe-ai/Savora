@@ -1,0 +1,3354 @@
+[
+{
+"case": 0,
+"id": "pop",
+"layout": {
+"background": "assets/covers/01-pop.png",
+"blocks": [],
+"date": {
+"family": "'Roboto', system-ui, sans-serif",
+"h": 0.03,
+"ink": "#171717",
+"sizePx": 13,
+"text": "09.10.2026",
+"weight": 500,
+"x1": 0.93,
+"y": 0.945
+},
+"ink": "#171717",
+"logo": {
+"h": 0.06363312555654498,
+"ink": "#252720",
+"variant": "light",
+"w": 0.27,
+"x": 0.65,
+"y": 0.05
+},
+"page": {
+"h": 1123,
+"w": 794
+},
+"templateId": "pop",
+"warnings": []
+}
+},
+{
+"case": 1,
+"id": "pop",
+"layout": {
+"background": "assets/covers/01-pop.png",
+"blocks": [
+{
+"family": "'Sofia Sans Extra Condensed', 'Arial Narrow', sans-serif",
+"fits": true,
+"h": 0.09260908281389137,
+"ink": "#171717",
+"key": "title",
+"lineHeightPx": 104,
+"lines": [
+"Mein Kochbuch"
+],
+"sizePx": 100,
+"w": 0.82,
+"weight": 800,
+"x": 0.09,
+"y": 0.13
+},
+{
+"family": "'Roboto', system-ui, sans-serif",
+"fits": true,
+"h": 0.033392698130008905,
+"ink": "#171717",
+"key": "slogan",
+"lineHeightPx": 37.5,
+"lines": [
+"Rezepte f\u00fcr jeden Tag"
+],
+"sizePx": 30,
+"w": 0.82,
+"weight": 400,
+"x": 0.09,
+"y": 0.23860908281389137
+},
+{
+"family": "'Roboto', system-ui, sans-serif",
+"fits": true,
+"h": 0.025467497773820125,
+"ink": "#171717",
+"key": "name",
+"lineHeightPx": 28.6,
+"lines": [
+"Anna Muster"
+],
+"sizePx": 22,
+"w": 0.82,
+"weight": 700,
+"x": 0.09,
+"y": 0.2880017809439003
+}
+],
+"date": {
+"family": "'Roboto', system-ui, sans-serif",
+"h": 0.03,
+"ink": "#171717",
+"sizePx": 13,
+"text": "09.10.2026",
+"weight": 500,
+"x1": 0.93,
+"y": 0.945
+},
+"ink": "#171717",
+"logo": {
+"h": 0.06363312555654498,
+"ink": "#252720",
+"variant": "light",
+"w": 0.27,
+"x": 0.65,
+"y": 0.05
+},
+"page": {
+"h": 1123,
+"w": 794
+},
+"templateId": "pop",
+"warnings": []
+}
+},
+{
+"case": 2,
+"id": "pop",
+"layout": {
+"background": "assets/covers/01-pop.png",
+"blocks": [
+{
+"family": "'Sofia Sans Extra Condensed', 'Arial Narrow', sans-serif",
+"fits": true,
+"h": 0.1083526268922529,
+"ink": "#171717",
+"key": "title",
+"lineHeightPx": 40.56,
+"lines": [
+"Ein sehr langer Titel mit vielen",
+"W\u00f6rtern der mehrere Zeilen",
+"braucht und fast nicht mehr passt"
+],
+"sizePx": 39,
+"w": 0.82,
+"weight": 800,
+"x": 0.09,
+"y": 0.13
+},
+{
+"family": "'Roboto', system-ui, sans-serif",
+"fits": true,
+"h": 0.06010685663401603,
+"ink": "#171717",
+"key": "slogan",
+"lineHeightPx": 33.75,
+"lines": [
+"Ein ebenfalls recht langer Untertitel \u00fcber",
+"\u00c4pfel, \u00d6l und \u00dcbergr\u00f6ssen"
+],
+"sizePx": 27,
+"w": 0.82,
+"weight": 400,
+"x": 0.09,
+"y": 0.2543526268922529
+},
+{
+"family": "'Roboto', system-ui, sans-serif",
+"fits": true,
+"h": 0.025467497773820125,
+"ink": "#171717",
+"key": "name",
+"lineHeightPx": 28.6,
+"lines": [
+"Anna-Maria von Muster-Beispiel"
+],
+"sizePx": 22,
+"w": 0.82,
+"weight": 700,
+"x": 0.09,
+"y": 0.33045948352626897
+}
+],
+"date": {
+"family": "'Roboto', system-ui, sans-serif",
+"h": 0.03,
+"ink": "#171717",
+"sizePx": 13,
+"text": "29.02.2024",
+"weight": 500,
+"x1": 0.93,
+"y": 0.945
+},
+"ink": "#171717",
+"logo": {
+"h": 0.06363312555654498,
+"ink": "#252720",
+"variant": "light",
+"w": 0.27,
+"x": 0.65,
+"y": 0.05
+},
+"page": {
+"h": 1123,
+"w": 794
+},
+"templateId": "pop",
+"warnings": []
+}
+},
+{
+"case": 3,
+"id": "pop",
+"layout": {
+"background": "assets/covers/01-pop.png",
+"blocks": [
+{
+"family": "'Sofia Sans Extra Condensed', 'Arial Narrow', sans-serif",
+"fits": true,
+"h": 0.24819234194122888,
+"ink": "#171717",
+"key": "title",
+"lineHeightPx": 69.68,
+"lines": [
+"Donaudampfschifffah",
+"rtsgesellschaftskap",
+"it\u00e4nsm\u00fctzenherstell",
+"er"
+],
+"sizePx": 67,
+"w": 0.82,
+"weight": 800,
+"x": 0.09,
+"y": 0.13
+}
+],
+"date": null,
+"ink": "#171717",
+"logo": null,
+"page": {
+"h": 1123,
+"w": 794
+},
+"templateId": "pop",
+"warnings": []
+}
+},
+{
+"case": 4,
+"id": "pop",
+"layout": {
+"background": "assets/covers/01-pop.png",
+"blocks": [
+{
+"family": "'Sofia Sans Extra Condensed', 'Arial Narrow', sans-serif",
+"fits": false,
+"h": 0.131272160608759,
+"ink": "#171717",
+"key": "title",
+"lineHeightPx": 35.36,
+"lines": [
+"Titel Titel Titel Titel Titel Titel",
+"Titel Titel Titel Titel Titel Titel",
+"Titel Titel Titel Titel Titel Titel",
+"Titel Titel Titel Titel Titel Titel",
+"Titel Titel Titel Titel Titel Titel",
+"Titel Titel Titel Titel Titel Titel",
+"Titel Titel Titel Titel Titel Titel",
+"Titel Titel Titel Titel Titel Titel",
+"Titel Titel Titel Titel Titel Titel",
+"Titel Titel Titel Titel Titel Titel"
+],
+"sizePx": 34,
+"w": 0.82,
+"weight": 800,
+"x": 0.09,
+"y": 0.13
+},
+{
+"family": "'Roboto', system-ui, sans-serif",
+"fits": true,
+"h": 0.06010685663401603,
+"ink": "#171717",
+"key": "slogan",
+"lineHeightPx": 33.75,
+"lines": [
+"S S S S S S S S S S S S S S S S S S S S S S S S",
+"S S S S S S S S S S S S S S S S"
+],
+"sizePx": 27,
+"w": 0.82,
+"weight": 400,
+"x": 0.09,
+"y": 0.277272160608759
+},
+{
+"family": "'Roboto', system-ui, sans-serif",
+"fits": true,
+"h": 0.025467497773820125,
+"ink": "#171717",
+"key": "name",
+"lineHeightPx": 28.6,
+"lines": [
+"N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N"
+],
+"sizePx": 22,
+"w": 0.82,
+"weight": 700,
+"x": 0.09,
+"y": 0.353379017242775
+}
+],
+"date": {
+"family": "'Roboto', system-ui, sans-serif",
+"h": 0.03,
+"ink": "#171717",
+"sizePx": 13,
+"text": "02.01.2026",
+"weight": 500,
+"x1": 0.93,
+"y": 0.945
+},
+"ink": "#171717",
+"logo": {
+"h": 0.06363312555654498,
+"ink": "#252720",
+"variant": "light",
+"w": 0.27,
+"x": 0.65,
+"y": 0.05
+},
+"page": {
+"h": 1123,
+"w": 794
+},
+"templateId": "pop",
+"warnings": [
+{
+"key": "title",
+"message": "Der Titel ist zu lang f\u00fcr dieses Titelblatt. Bitte k\u00fcrzen (er passt nur in kleiner, nicht lesbarer Schrift)."
+}
+]
+}
+},
+{
+"case": 0,
+"id": "lieblingsbuch",
+"layout": {
+"background": "assets/covers/02-lieblingsbuch.png",
+"blocks": [],
+"date": {
+"family": "'Roboto', system-ui, sans-serif",
+"h": 0.03,
+"ink": "#FFFFFF",
+"sizePx": 13,
+"text": "09.10.2026",
+"weight": 500,
+"x1": 0.93,
+"y": 0.945
+},
+"ink": "#FFFFFF",
+"logo": {
+"h": 0.06363312555654498,
+"ink": "#F7F4EE",
+"variant": "dark",
+"w": 0.27,
+"x": 0.65,
+"y": 0.05
+},
+"page": {
+"h": 1123,
+"w": 794
+},
+"templateId": "lieblingsbuch",
+"warnings": []
+}
+},
+{
+"case": 1,
+"id": "lieblingsbuch",
+"layout": {
+"background": "assets/covers/02-lieblingsbuch.png",
+"blocks": [
+{
+"family": "'Sofia Sans Extra Condensed', 'Arial Narrow', sans-serif",
+"fits": true,
+"h": 0.17780943900267143,
+"ink": "#FFFFFF",
+"key": "title",
+"lineHeightPx": 99.84,
+"lines": [
+"Mein",
+"Kochbuch"
+],
+"sizePx": 96,
+"w": 0.64,
+"weight": 800,
+"x": 0.27,
+"y": 0.13
+},
+{
+"family": "'Roboto', system-ui, sans-serif",
+"fits": true,
+"h": 0.033392698130008905,
+"ink": "#FFFFFF",
+"key": "slogan",
+"lineHeightPx": 37.5,
+"lines": [
+"Rezepte f\u00fcr jeden Tag"
+],
+"sizePx": 30,
+"w": 0.64,
+"weight": 400,
+"x": 0.27,
+"y": 0.32380943900267145
+},
+{
+"family": "'Roboto', system-ui, sans-serif",
+"fits": true,
+"h": 0.025467497773820125,
+"ink": "#FFFFFF",
+"key": "name",
+"lineHeightPx": 28.6,
+"lines": [
+"Anna Muster"
+],
+"sizePx": 22,
+"w": 0.64,
+"weight": 700,
+"x": 0.27,
+"y": 0.37320213713268036
+}
+],
+"date": {
+"family": "'Roboto', system-ui, sans-serif",
+"h": 0.03,
+"ink": "#FFFFFF",
+"sizePx": 13,
+"text": "09.10.2026",
+"weight": 500,
+"x1": 0.93,
+"y": 0.945
+},
+"ink": "#FFFFFF",
+"logo": {
+"h": 0.06363312555654498,
+"ink": "#F7F4EE",
+"variant": "dark",
+"w": 0.27,
+"x": 0.65,
+"y": 0.05
+},
+"page": {
+"h": 1123,
+"w": 794
+},
+"templateId": "lieblingsbuch",
+"warnings": []
+}
+},
+{
+"case": 2,
+"id": "lieblingsbuch",
+"layout": {
+"background": "assets/covers/02-lieblingsbuch.png",
+"blocks": [
+{
+"family": "'Sofia Sans Extra Condensed', 'Arial Narrow', sans-serif",
+"fits": true,
+"h": 0.14447016918967054,
+"ink": "#FFFFFF",
+"key": "title",
+"lineHeightPx": 40.56,
+"lines": [
+"Ein sehr langer Titel mit",
+"vielen W\u00f6rtern der mehrere",
+"Zeilen braucht und fast",
+"nicht mehr passt"
+],
+"sizePx": 39,
+"w": 0.64,
+"weight": 800,
+"x": 0.27,
+"y": 0.13
+},
+{
+"family": "'Roboto', system-ui, sans-serif",
+"fits": true,
+"h": 0.06010685663401603,
+"ink": "#FFFFFF",
+"key": "slogan",
+"lineHeightPx": 33.75,
+"lines": [
+"Ein ebenfalls recht langer Untertitel",
+"\u00fcber \u00c4pfel, \u00d6l und \u00dcbergr\u00f6ssen"
+],
+"sizePx": 27,
+"w": 0.64,
+"weight": 400,
+"x": 0.27,
+"y": 0.29047016918967056
+},
+{
+"family": "'Roboto', system-ui, sans-serif",
+"fits": true,
+"h": 0.025467497773820125,
+"ink": "#FFFFFF",
+"key": "name",
+"lineHeightPx": 28.6,
+"lines": [
+"Anna-Maria von Muster-Beispiel"
+],
+"sizePx": 22,
+"w": 0.64,
+"weight": 700,
+"x": 0.27,
+"y": 0.36657702582368656
+}
+],
+"date": {
+"family": "'Roboto', system-ui, sans-serif",
+"h": 0.03,
+"ink": "#FFFFFF",
+"sizePx": 13,
+"text": "29.02.2024",
+"weight": 500,
+"x1": 0.93,
+"y": 0.945
+},
+"ink": "#FFFFFF",
+"logo": {
+"h": 0.06363312555654498,
+"ink": "#F7F4EE",
+"variant": "dark",
+"w": 0.27,
+"x": 0.65,
+"y": 0.05
+},
+"page": {
+"h": 1123,
+"w": 794
+},
+"templateId": "lieblingsbuch",
+"warnings": []
+}
+},
+{
+"case": 3,
+"id": "lieblingsbuch",
+"layout": {
+"background": "assets/covers/02-lieblingsbuch.png",
+"blocks": [
+{
+"family": "'Sofia Sans Extra Condensed', 'Arial Narrow', sans-serif",
+"fits": true,
+"h": 0.24819234194122888,
+"ink": "#FFFFFF",
+"key": "title",
+"lineHeightPx": 69.68,
+"lines": [
+"Donaudampfschif",
+"ffahrtsgesellsc",
+"haftskapit\u00e4nsm\u00fc",
+"tzenhersteller"
+],
+"sizePx": 67,
+"w": 0.64,
+"weight": 800,
+"x": 0.27,
+"y": 0.13
+}
+],
+"date": null,
+"ink": "#FFFFFF",
+"logo": null,
+"page": {
+"h": 1123,
+"w": 794
+},
+"templateId": "lieblingsbuch",
+"warnings": []
+}
+},
+{
+"case": 4,
+"id": "lieblingsbuch",
+"layout": {
+"background": "assets/covers/02-lieblingsbuch.png",
+"blocks": [
+{
+"family": "'Sofia Sans Extra Condensed', 'Arial Narrow', sans-serif",
+"fits": false,
+"h": 0.13222222222222224,
+"ink": "#FFFFFF",
+"key": "title",
+"lineHeightPx": 35.36,
+"lines": [
+"Titel Titel Titel Titel Titel",
+"Titel Titel Titel Titel Titel",
+"Titel Titel Titel Titel Titel",
+"Titel Titel Titel Titel Titel",
+"Titel Titel Titel Titel Titel",
+"Titel Titel Titel Titel Titel",
+"Titel Titel Titel Titel Titel",
+"Titel Titel Titel Titel Titel",
+"Titel Titel Titel Titel Titel",
+"Titel Titel Titel Titel Titel",
+"Titel Titel Titel Titel Titel",
+"Titel Titel Titel Titel Titel"
+],
+"sizePx": 34,
+"w": 0.64,
+"weight": 800,
+"x": 0.27,
+"y": 0.13
+},
+{
+"family": "'Roboto', system-ui, sans-serif",
+"fits": true,
+"h": 0.0578806767586821,
+"ink": "#FFFFFF",
+"key": "slogan",
+"lineHeightPx": 32.5,
+"lines": [
+"S S S S S S S S S S S S S S S S S S S S",
+"S S S S S S S S S S S S S S S S S S S S"
+],
+"sizePx": 26,
+"w": 0.64,
+"weight": 400,
+"x": 0.27,
+"y": 0.27822222222222226
+},
+{
+"family": "'Roboto', system-ui, sans-serif",
+"fits": true,
+"h": 0.0439893143365984,
+"ink": "#FFFFFF",
+"key": "name",
+"lineHeightPx": 24.7,
+"lines": [
+"N N N N N N N N N N N N N N N N N N N N N N N N N N N",
+"N N N"
+],
+"sizePx": 19,
+"w": 0.64,
+"weight": 700,
+"x": 0.27,
+"y": 0.35210289898090436
+}
+],
+"date": {
+"family": "'Roboto', system-ui, sans-serif",
+"h": 0.03,
+"ink": "#FFFFFF",
+"sizePx": 13,
+"text": "02.01.2026",
+"weight": 500,
+"x1": 0.93,
+"y": 0.945
+},
+"ink": "#FFFFFF",
+"logo": {
+"h": 0.06363312555654498,
+"ink": "#F7F4EE",
+"variant": "dark",
+"w": 0.27,
+"x": 0.65,
+"y": 0.05
+},
+"page": {
+"h": 1123,
+"w": 794
+},
+"templateId": "lieblingsbuch",
+"warnings": [
+{
+"key": "title",
+"message": "Der Titel ist zu lang f\u00fcr dieses Titelblatt. Bitte k\u00fcrzen (er passt nur in kleiner, nicht lesbarer Schrift)."
+}
+]
+}
+},
+{
+"case": 0,
+"id": "tomate",
+"layout": {
+"background": "assets/covers/03-tomate.png",
+"blocks": [],
+"date": {
+"family": "'Roboto', system-ui, sans-serif",
+"h": 0.03,
+"ink": "#171717",
+"sizePx": 13,
+"text": "09.10.2026",
+"weight": 500,
+"x1": 0.93,
+"y": 0.945
+},
+"ink": "#171717",
+"logo": {
+"h": 0.06363312555654498,
+"ink": "#252720",
+"variant": "light",
+"w": 0.27,
+"x": 0.65,
+"y": 0.05
+},
+"page": {
+"h": 1123,
+"w": 794
+},
+"templateId": "tomate",
+"warnings": []
+}
+},
+{
+"case": 1,
+"id": "tomate",
+"layout": {
+"background": "assets/covers/03-tomate.png",
+"blocks": [
+{
+"family": "'Sofia Sans Extra Condensed', 'Arial Narrow', sans-serif",
+"fits": true,
+"h": 0.19262689225289403,
+"ink": "#171717",
+"key": "title",
+"lineHeightPx": 108.16,
+"lines": [
+"Mein",
+"Kochbuch"
+],
+"sizePx": 104,
+"w": 0.82,
+"weight": 800,
+"x": 0.09,
+"y": 0.13
+},
+{
+"family": "'Roboto', system-ui, sans-serif",
+"fits": true,
+"h": 0.033392698130008905,
+"ink": "#171717",
+"key": "slogan",
+"lineHeightPx": 37.5,
+"lines": [
+"Rezepte f\u00fcr jeden Tag"
+],
+"sizePx": 30,
+"w": 0.82,
+"weight": 400,
+"x": 0.09,
+"y": 0.33862689225289405
+},
+{
+"family": "'Roboto', system-ui, sans-serif",
+"fits": true,
+"h": 0.025467497773820125,
+"ink": "#171717",
+"key": "name",
+"lineHeightPx": 28.6,
+"lines": [
+"Anna Muster"
+],
+"sizePx": 22,
+"w": 0.82,
+"weight": 700,
+"x": 0.09,
+"y": 0.38801959038290296
+}
+],
+"date": {
+"family": "'Roboto', system-ui, sans-serif",
+"h": 0.03,
+"ink": "#171717",
+"sizePx": 13,
+"text": "09.10.2026",
+"weight": 500,
+"x1": 0.93,
+"y": 0.945
+},
+"ink": "#171717",
+"logo": {
+"h": 0.06363312555654498,
+"ink": "#252720",
+"variant": "light",
+"w": 0.27,
+"x": 0.65,
+"y": 0.05
+},
+"page": {
+"h": 1123,
+"w": 794
+},
+"templateId": "tomate",
+"warnings": []
+}
+},
+{
+"case": 2,
+"id": "tomate",
+"layout": {
+"background": "assets/covers/03-tomate.png",
+"blocks": [
+{
+"family": "'Sofia Sans Extra Condensed', 'Arial Narrow', sans-serif",
+"fits": true,
+"h": 0.19262689225289403,
+"ink": "#171717",
+"key": "title",
+"lineHeightPx": 54.08,
+"lines": [
+"Ein sehr langer Titel mit",
+"vielen W\u00f6rtern der",
+"mehrere Zeilen braucht",
+"und fast nicht mehr passt"
+],
+"sizePx": 52,
+"w": 0.82,
+"weight": 800,
+"x": 0.09,
+"y": 0.13
+},
+{
+"family": "'Roboto', system-ui, sans-serif",
+"fits": true,
+"h": 0.06678539626001781,
+"ink": "#171717",
+"key": "slogan",
+"lineHeightPx": 37.5,
+"lines": [
+"Ein ebenfalls recht langer Untertitel \u00fcber",
+"\u00c4pfel, \u00d6l und \u00dcbergr\u00f6ssen"
+],
+"sizePx": 30,
+"w": 0.82,
+"weight": 400,
+"x": 0.09,
+"y": 0.33862689225289405
+},
+{
+"family": "'Roboto', system-ui, sans-serif",
+"fits": true,
+"h": 0.025467497773820125,
+"ink": "#171717",
+"key": "name",
+"lineHeightPx": 28.6,
+"lines": [
+"Anna-Maria von Muster-Beispiel"
+],
+"sizePx": 22,
+"w": 0.82,
+"weight": 700,
+"x": 0.09,
+"y": 0.42141228851291185
+}
+],
+"date": {
+"family": "'Roboto', system-ui, sans-serif",
+"h": 0.03,
+"ink": "#171717",
+"sizePx": 13,
+"text": "29.02.2024",
+"weight": 500,
+"x1": 0.93,
+"y": 0.945
+},
+"ink": "#171717",
+"logo": {
+"h": 0.06363312555654498,
+"ink": "#252720",
+"variant": "light",
+"w": 0.27,
+"x": 0.65,
+"y": 0.05
+},
+"page": {
+"h": 1123,
+"w": 794
+},
+"templateId": "tomate",
+"warnings": []
+}
+},
+{
+"case": 3,
+"id": "tomate",
+"layout": {
+"background": "assets/covers/03-tomate.png",
+"blocks": [
+{
+"family": "'Sofia Sans Extra Condensed', 'Arial Narrow', sans-serif",
+"fits": true,
+"h": 0.3185752448797863,
+"ink": "#171717",
+"key": "title",
+"lineHeightPx": 89.44,
+"lines": [
+"Donaudampfschif",
+"ffahrtsgesellsc",
+"haftskapit\u00e4nsm\u00fc",
+"tzenhersteller"
+],
+"sizePx": 86,
+"w": 0.82,
+"weight": 800,
+"x": 0.09,
+"y": 0.13
+}
+],
+"date": null,
+"ink": "#171717",
+"logo": null,
+"page": {
+"h": 1123,
+"w": 794
+},
+"templateId": "tomate",
+"warnings": []
+}
+},
+{
+"case": 4,
+"id": "tomate",
+"layout": {
+"background": "assets/covers/03-tomate.png",
+"blocks": [
+{
+"family": "'Sofia Sans Extra Condensed', 'Arial Narrow', sans-serif",
+"fits": false,
+"h": 0.22574710596616201,
+"ink": "#171717",
+"key": "title",
+"lineHeightPx": 35.36,
+"lines": [
+"Titel Titel Titel Titel Titel Titel",
+"Titel Titel Titel Titel Titel Titel",
+"Titel Titel Titel Titel Titel Titel",
+"Titel Titel Titel Titel Titel Titel",
+"Titel Titel Titel Titel Titel Titel",
+"Titel Titel Titel Titel Titel Titel",
+"Titel Titel Titel Titel Titel Titel",
+"Titel Titel Titel Titel Titel Titel",
+"Titel Titel Titel Titel Titel Titel",
+"Titel Titel Titel Titel Titel Titel"
+],
+"sizePx": 34,
+"w": 0.82,
+"weight": 800,
+"x": 0.09,
+"y": 0.13
+},
+{
+"family": "'Roboto', system-ui, sans-serif",
+"fits": true,
+"h": 0.06678539626001781,
+"ink": "#171717",
+"key": "slogan",
+"lineHeightPx": 37.5,
+"lines": [
+"S S S S S S S S S S S S S S S S S S S S S S",
+"S S S S S S S S S S S S S S S S S S"
+],
+"sizePx": 30,
+"w": 0.82,
+"weight": 400,
+"x": 0.09,
+"y": 0.371747105966162
+},
+{
+"family": "'Roboto', system-ui, sans-serif",
+"fits": true,
+"h": 0.025467497773820125,
+"ink": "#171717",
+"key": "name",
+"lineHeightPx": 28.6,
+"lines": [
+"N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N"
+],
+"sizePx": 22,
+"w": 0.82,
+"weight": 700,
+"x": 0.09,
+"y": 0.4545325022261798
+}
+],
+"date": {
+"family": "'Roboto', system-ui, sans-serif",
+"h": 0.03,
+"ink": "#171717",
+"sizePx": 13,
+"text": "02.01.2026",
+"weight": 500,
+"x1": 0.93,
+"y": 0.945
+},
+"ink": "#171717",
+"logo": {
+"h": 0.06363312555654498,
+"ink": "#252720",
+"variant": "light",
+"w": 0.27,
+"x": 0.65,
+"y": 0.05
+},
+"page": {
+"h": 1123,
+"w": 794
+},
+"templateId": "tomate",
+"warnings": [
+{
+"key": "title",
+"message": "Der Titel ist zu lang f\u00fcr dieses Titelblatt. Bitte k\u00fcrzen (er passt nur in kleiner, nicht lesbarer Schrift)."
+}
+]
+}
+},
+{
+"case": 0,
+"id": "salbei",
+"layout": {
+"background": "assets/covers/04-salbei.png",
+"blocks": [],
+"date": {
+"family": "'Roboto', system-ui, sans-serif",
+"h": 0.03,
+"ink": "#171717",
+"sizePx": 12,
+"text": "09.10.2026",
+"weight": 500,
+"x1": 0.955,
+"y": 0.945
+},
+"ink": "#171717",
+"logo": {
+"h": 0.06363312555654498,
+"ink": "#252720",
+"variant": "light",
+"w": 0.27,
+"x": 0.65,
+"y": 0.05
+},
+"page": {
+"h": 1123,
+"w": 794
+},
+"templateId": "salbei",
+"warnings": []
+}
+},
+{
+"case": 1,
+"id": "salbei",
+"layout": {
+"background": "assets/covers/04-salbei.png",
+"blocks": [
+{
+"family": "'Sofia Sans Extra Condensed', 'Arial Narrow', sans-serif",
+"fits": true,
+"h": 0.08890471950133572,
+"ink": "#171717",
+"key": "title",
+"lineHeightPx": 99.84,
+"lines": [
+"Mein Kochbuch"
+],
+"sizePx": 96,
+"w": 0.8,
+"weight": 800,
+"x": 0.09,
+"y": 0.13
+},
+{
+"family": "'Roboto', system-ui, sans-serif",
+"fits": true,
+"h": 0.033392698130008905,
+"ink": "#171717",
+"key": "slogan",
+"lineHeightPx": 37.5,
+"lines": [
+"Rezepte f\u00fcr jeden Tag"
+],
+"sizePx": 30,
+"w": 0.8,
+"weight": 400,
+"x": 0.09,
+"y": 0.23490471950133573
+},
+{
+"family": "'Roboto', system-ui, sans-serif",
+"fits": true,
+"h": 0.025467497773820125,
+"ink": "#171717",
+"key": "name",
+"lineHeightPx": 28.6,
+"lines": [
+"Anna Muster"
+],
+"sizePx": 22,
+"w": 0.8,
+"weight": 700,
+"x": 0.09,
+"y": 0.28429741763134464
+}
+],
+"date": {
+"family": "'Roboto', system-ui, sans-serif",
+"h": 0.03,
+"ink": "#171717",
+"sizePx": 12,
+"text": "09.10.2026",
+"weight": 500,
+"x1": 0.955,
+"y": 0.945
+},
+"ink": "#171717",
+"logo": {
+"h": 0.06363312555654498,
+"ink": "#252720",
+"variant": "light",
+"w": 0.27,
+"x": 0.65,
+"y": 0.05
+},
+"page": {
+"h": 1123,
+"w": 794
+},
+"templateId": "salbei",
+"warnings": []
+}
+},
+{
+"case": 2,
+"id": "salbei",
+"layout": {
+"background": "assets/covers/04-salbei.png",
+"blocks": [
+{
+"family": "'Sofia Sans Extra Condensed', 'Arial Narrow', sans-serif",
+"fits": false,
+"h": 0.08354488788148627,
+"ink": "#171717",
+"key": "title",
+"lineHeightPx": 35.36,
+"lines": [
+"Ein sehr langer Titel mit vielen",
+"W\u00f6rtern der mehrere Zeilen braucht",
+"und fast nicht mehr passt"
+],
+"sizePx": 34,
+"w": 0.8,
+"weight": 800,
+"x": 0.09,
+"y": 0.13
+},
+{
+"family": "'Roboto', system-ui, sans-serif",
+"fits": true,
+"h": 0.020035618878005344,
+"ink": "#171717",
+"key": "slogan",
+"lineHeightPx": 22.5,
+"lines": [
+"Ein ebenfalls recht langer Untertitel \u00fcber \u00c4pfel, \u00d6l und \u00dcbergr\u00f6ssen"
+],
+"sizePx": 18,
+"w": 0.8,
+"weight": 400,
+"x": 0.09,
+"y": 0.22954488788148628
+},
+{
+"family": "'Roboto', system-ui, sans-serif",
+"fits": true,
+"h": 0.025467497773820125,
+"ink": "#171717",
+"key": "name",
+"lineHeightPx": 28.6,
+"lines": [
+"Anna-Maria von Muster-Beispiel"
+],
+"sizePx": 22,
+"w": 0.8,
+"weight": 700,
+"x": 0.09,
+"y": 0.26558050675949163
+}
+],
+"date": {
+"family": "'Roboto', system-ui, sans-serif",
+"h": 0.03,
+"ink": "#171717",
+"sizePx": 12,
+"text": "29.02.2024",
+"weight": 500,
+"x1": 0.955,
+"y": 0.945
+},
+"ink": "#171717",
+"logo": {
+"h": 0.06363312555654498,
+"ink": "#252720",
+"variant": "light",
+"w": 0.27,
+"x": 0.65,
+"y": 0.05
+},
+"page": {
+"h": 1123,
+"w": 794
+},
+"templateId": "salbei",
+"warnings": [
+{
+"key": "title",
+"message": "Der Titel ist zu lang f\u00fcr dieses Titelblatt. Bitte k\u00fcrzen (er passt nur in kleiner, nicht lesbarer Schrift)."
+}
+]
+}
+},
+{
+"case": 3,
+"id": "salbei",
+"layout": {
+"background": "assets/covers/04-salbei.png",
+"blocks": [
+{
+"family": "'Sofia Sans Extra Condensed', 'Arial Narrow', sans-serif",
+"fits": true,
+"h": 0.17503116651825468,
+"ink": "#171717",
+"key": "title",
+"lineHeightPx": 65.52,
+"lines": [
+"Donaudampfschifffahr",
+"tsgesellschaftskapit",
+"\u00e4nsm\u00fctzenhersteller"
+],
+"sizePx": 63,
+"w": 0.8,
+"weight": 800,
+"x": 0.09,
+"y": 0.13
+}
+],
+"date": null,
+"ink": "#171717",
+"logo": null,
+"page": {
+"h": 1123,
+"w": 794
+},
+"templateId": "salbei",
+"warnings": []
+}
+},
+{
+"case": 4,
+"id": "salbei",
+"layout": {
+"background": "assets/covers/04-salbei.png",
+"blocks": [
+{
+"family": "'Sofia Sans Extra Condensed', 'Arial Narrow', sans-serif",
+"fits": false,
+"h": 0.08222222222222221,
+"ink": "#171717",
+"key": "title",
+"lineHeightPx": 35.36,
+"lines": [
+"Titel Titel Titel Titel Titel Titel",
+"Titel Titel Titel Titel Titel Titel",
+"Titel Titel Titel Titel Titel Titel",
+"Titel Titel Titel Titel Titel Titel",
+"Titel Titel Titel Titel Titel Titel",
+"Titel Titel Titel Titel Titel Titel",
+"Titel Titel Titel Titel Titel Titel",
+"Titel Titel Titel Titel Titel Titel",
+"Titel Titel Titel Titel Titel Titel",
+"Titel Titel Titel Titel Titel Titel"
+],
+"sizePx": 34,
+"w": 0.8,
+"weight": 800,
+"x": 0.09,
+"y": 0.13
+},
+{
+"family": "'Roboto', system-ui, sans-serif",
+"fits": true,
+"h": 0.03784505788067676,
+"ink": "#171717",
+"key": "slogan",
+"lineHeightPx": 21.25,
+"lines": [
+"S S S S S S S S S S S S S S S S S S S S S S S S S S S S S S S S S S S S S",
+"S S S"
+],
+"sizePx": 17,
+"w": 0.8,
+"weight": 400,
+"x": 0.09,
+"y": 0.22822222222222222
+},
+{
+"family": "'Roboto', system-ui, sans-serif",
+"fits": true,
+"h": 0.024309884238646485,
+"ink": "#171717",
+"key": "name",
+"lineHeightPx": 27.3,
+"lines": [
+"N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N"
+],
+"sizePx": 21,
+"w": 0.8,
+"weight": 700,
+"x": 0.09,
+"y": 0.282067280102899
+}
+],
+"date": {
+"family": "'Roboto', system-ui, sans-serif",
+"h": 0.03,
+"ink": "#171717",
+"sizePx": 12,
+"text": "02.01.2026",
+"weight": 500,
+"x1": 0.955,
+"y": 0.945
+},
+"ink": "#171717",
+"logo": {
+"h": 0.06363312555654498,
+"ink": "#252720",
+"variant": "light",
+"w": 0.27,
+"x": 0.65,
+"y": 0.05
+},
+"page": {
+"h": 1123,
+"w": 794
+},
+"templateId": "salbei",
+"warnings": [
+{
+"key": "title",
+"message": "Der Titel ist zu lang f\u00fcr dieses Titelblatt. Bitte k\u00fcrzen (er passt nur in kleiner, nicht lesbarer Schrift)."
+}
+]
+}
+},
+{
+"case": 0,
+"id": "nachtkueche",
+"layout": {
+"background": "assets/covers/05-nachtkueche.png",
+"blocks": [],
+"date": {
+"family": "'Roboto', system-ui, sans-serif",
+"h": 0.03,
+"ink": "#FFFFFF",
+"sizePx": 13,
+"text": "09.10.2026",
+"weight": 500,
+"x1": 0.93,
+"y": 0.945
+},
+"ink": "#FFFFFF",
+"logo": {
+"h": 0.06363312555654498,
+"ink": "#F7F4EE",
+"variant": "dark",
+"w": 0.27,
+"x": 0.65,
+"y": 0.05
+},
+"page": {
+"h": 1123,
+"w": 794
+},
+"templateId": "nachtkueche",
+"warnings": []
+}
+},
+{
+"case": 1,
+"id": "nachtkueche",
+"layout": {
+"background": "assets/covers/05-nachtkueche.png",
+"blocks": [
+{
+"family": "'Sofia Sans Extra Condensed', 'Arial Narrow', sans-serif",
+"fits": true,
+"h": 0.09260908281389137,
+"ink": "#FFFFFF",
+"key": "title",
+"lineHeightPx": 104,
+"lines": [
+"Mein Kochbuch"
+],
+"sizePx": 100,
+"w": 0.82,
+"weight": 800,
+"x": 0.09,
+"y": 0.13
+},
+{
+"family": "'Roboto', system-ui, sans-serif",
+"fits": true,
+"h": 0.033392698130008905,
+"ink": "#FFFFFF",
+"key": "slogan",
+"lineHeightPx": 37.5,
+"lines": [
+"Rezepte f\u00fcr jeden Tag"
+],
+"sizePx": 30,
+"w": 0.82,
+"weight": 400,
+"x": 0.09,
+"y": 0.23860908281389137
+},
+{
+"family": "'Roboto', system-ui, sans-serif",
+"fits": true,
+"h": 0.025467497773820125,
+"ink": "#FFFFFF",
+"key": "name",
+"lineHeightPx": 28.6,
+"lines": [
+"Anna Muster"
+],
+"sizePx": 22,
+"w": 0.82,
+"weight": 700,
+"x": 0.09,
+"y": 0.2880017809439003
+}
+],
+"date": {
+"family": "'Roboto', system-ui, sans-serif",
+"h": 0.03,
+"ink": "#FFFFFF",
+"sizePx": 13,
+"text": "09.10.2026",
+"weight": 500,
+"x1": 0.93,
+"y": 0.945
+},
+"ink": "#FFFFFF",
+"logo": {
+"h": 0.06363312555654498,
+"ink": "#F7F4EE",
+"variant": "dark",
+"w": 0.27,
+"x": 0.65,
+"y": 0.05
+},
+"page": {
+"h": 1123,
+"w": 794
+},
+"templateId": "nachtkueche",
+"warnings": []
+}
+},
+{
+"case": 2,
+"id": "nachtkueche",
+"layout": {
+"background": "assets/covers/05-nachtkueche.png",
+"blocks": [
+{
+"family": "'Sofia Sans Extra Condensed', 'Arial Narrow', sans-serif",
+"fits": true,
+"h": 0.1083526268922529,
+"ink": "#FFFFFF",
+"key": "title",
+"lineHeightPx": 40.56,
+"lines": [
+"Ein sehr langer Titel mit vielen",
+"W\u00f6rtern der mehrere Zeilen",
+"braucht und fast nicht mehr passt"
+],
+"sizePx": 39,
+"w": 0.82,
+"weight": 800,
+"x": 0.09,
+"y": 0.13
+},
+{
+"family": "'Roboto', system-ui, sans-serif",
+"fits": true,
+"h": 0.06678539626001781,
+"ink": "#FFFFFF",
+"key": "slogan",
+"lineHeightPx": 37.5,
+"lines": [
+"Ein ebenfalls recht langer Untertitel \u00fcber",
+"\u00c4pfel, \u00d6l und \u00dcbergr\u00f6ssen"
+],
+"sizePx": 30,
+"w": 0.82,
+"weight": 400,
+"x": 0.09,
+"y": 0.2543526268922529
+},
+{
+"family": "'Roboto', system-ui, sans-serif",
+"fits": true,
+"h": 0.025467497773820125,
+"ink": "#FFFFFF",
+"key": "name",
+"lineHeightPx": 28.6,
+"lines": [
+"Anna-Maria von Muster-Beispiel"
+],
+"sizePx": 22,
+"w": 0.82,
+"weight": 700,
+"x": 0.09,
+"y": 0.3371380231522707
+}
+],
+"date": {
+"family": "'Roboto', system-ui, sans-serif",
+"h": 0.03,
+"ink": "#FFFFFF",
+"sizePx": 13,
+"text": "29.02.2024",
+"weight": 500,
+"x1": 0.93,
+"y": 0.945
+},
+"ink": "#FFFFFF",
+"logo": {
+"h": 0.06363312555654498,
+"ink": "#F7F4EE",
+"variant": "dark",
+"w": 0.27,
+"x": 0.65,
+"y": 0.05
+},
+"page": {
+"h": 1123,
+"w": 794
+},
+"templateId": "nachtkueche",
+"warnings": []
+}
+},
+{
+"case": 3,
+"id": "nachtkueche",
+"layout": {
+"background": "assets/covers/05-nachtkueche.png",
+"blocks": [
+{
+"family": "'Sofia Sans Extra Condensed', 'Arial Narrow', sans-serif",
+"fits": true,
+"h": 0.27,
+"ink": "#FFFFFF",
+"key": "title",
+"lineHeightPx": 75.92,
+"lines": [
+"Donaudampfschifff",
+"ahrtsgesellschaft",
+"skapit\u00e4nsm\u00fctzenhe",
+"rsteller"
+],
+"sizePx": 73,
+"w": 0.82,
+"weight": 800,
+"x": 0.09,
+"y": 0.13
+}
+],
+"date": null,
+"ink": "#FFFFFF",
+"logo": null,
+"page": {
+"h": 1123,
+"w": 794
+},
+"templateId": "nachtkueche",
+"warnings": []
+}
+},
+{
+"case": 4,
+"id": "nachtkueche",
+"layout": {
+"background": "assets/covers/05-nachtkueche.png",
+"blocks": [
+{
+"family": "'Sofia Sans Extra Condensed', 'Arial Narrow', sans-serif",
+"fits": false,
+"h": 0.14574710596616208,
+"ink": "#FFFFFF",
+"key": "title",
+"lineHeightPx": 35.36,
+"lines": [
+"Titel Titel Titel Titel Titel Titel",
+"Titel Titel Titel Titel Titel Titel",
+"Titel Titel Titel Titel Titel Titel",
+"Titel Titel Titel Titel Titel Titel",
+"Titel Titel Titel Titel Titel Titel",
+"Titel Titel Titel Titel Titel Titel",
+"Titel Titel Titel Titel Titel Titel",
+"Titel Titel Titel Titel Titel Titel",
+"Titel Titel Titel Titel Titel Titel",
+"Titel Titel Titel Titel Titel Titel"
+],
+"sizePx": 34,
+"w": 0.82,
+"weight": 800,
+"x": 0.09,
+"y": 0.13
+},
+{
+"family": "'Roboto', system-ui, sans-serif",
+"fits": true,
+"h": 0.06678539626001781,
+"ink": "#FFFFFF",
+"key": "slogan",
+"lineHeightPx": 37.5,
+"lines": [
+"S S S S S S S S S S S S S S S S S S S S S S",
+"S S S S S S S S S S S S S S S S S S"
+],
+"sizePx": 30,
+"w": 0.82,
+"weight": 400,
+"x": 0.09,
+"y": 0.2917471059661621
+},
+{
+"family": "'Roboto', system-ui, sans-serif",
+"fits": true,
+"h": 0.025467497773820125,
+"ink": "#FFFFFF",
+"key": "name",
+"lineHeightPx": 28.6,
+"lines": [
+"N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N"
+],
+"sizePx": 22,
+"w": 0.82,
+"weight": 700,
+"x": 0.09,
+"y": 0.3745325022261799
+}
+],
+"date": {
+"family": "'Roboto', system-ui, sans-serif",
+"h": 0.03,
+"ink": "#FFFFFF",
+"sizePx": 13,
+"text": "02.01.2026",
+"weight": 500,
+"x1": 0.93,
+"y": 0.945
+},
+"ink": "#FFFFFF",
+"logo": {
+"h": 0.06363312555654498,
+"ink": "#F7F4EE",
+"variant": "dark",
+"w": 0.27,
+"x": 0.65,
+"y": 0.05
+},
+"page": {
+"h": 1123,
+"w": 794
+},
+"templateId": "nachtkueche",
+"warnings": [
+{
+"key": "title",
+"message": "Der Titel ist zu lang f\u00fcr dieses Titelblatt. Bitte k\u00fcrzen (er passt nur in kleiner, nicht lesbarer Schrift)."
+}
+]
+}
+},
+{
+"case": 0,
+"id": "citrus",
+"layout": {
+"background": "assets/covers/06-citrus.png",
+"blocks": [],
+"date": {
+"family": "'Roboto', system-ui, sans-serif",
+"h": 0.03,
+"ink": "#FFFFFF",
+"sizePx": 13,
+"text": "09.10.2026",
+"weight": 500,
+"x1": 0.93,
+"y": 0.945
+},
+"ink": "#FFFFFF",
+"logo": {
+"h": 0.06363312555654498,
+"ink": "#F7F4EE",
+"variant": "dark",
+"w": 0.27,
+"x": 0.65,
+"y": 0.05
+},
+"page": {
+"h": 1123,
+"w": 794
+},
+"templateId": "citrus",
+"warnings": []
+}
+},
+{
+"case": 1,
+"id": "citrus",
+"layout": {
+"background": "assets/covers/06-citrus.png",
+"blocks": [
+{
+"family": "'Sofia Sans Extra Condensed', 'Arial Narrow', sans-serif",
+"fits": true,
+"h": 0.09260908281389137,
+"ink": "#FFFFFF",
+"key": "title",
+"lineHeightPx": 104,
+"lines": [
+"Mein Kochbuch"
+],
+"sizePx": 100,
+"w": 0.82,
+"weight": 800,
+"x": 0.09,
+"y": 0.13
+},
+{
+"family": "'Roboto', system-ui, sans-serif",
+"fits": true,
+"h": 0.033392698130008905,
+"ink": "#FFFFFF",
+"key": "slogan",
+"lineHeightPx": 37.5,
+"lines": [
+"Rezepte f\u00fcr jeden Tag"
+],
+"sizePx": 30,
+"w": 0.82,
+"weight": 400,
+"x": 0.09,
+"y": 0.23860908281389137
+},
+{
+"family": "'Roboto', system-ui, sans-serif",
+"fits": true,
+"h": 0.025467497773820125,
+"ink": "#FFFFFF",
+"key": "name",
+"lineHeightPx": 28.6,
+"lines": [
+"Anna Muster"
+],
+"sizePx": 22,
+"w": 0.82,
+"weight": 700,
+"x": 0.09,
+"y": 0.2880017809439003
+}
+],
+"date": {
+"family": "'Roboto', system-ui, sans-serif",
+"h": 0.03,
+"ink": "#FFFFFF",
+"sizePx": 13,
+"text": "09.10.2026",
+"weight": 500,
+"x1": 0.93,
+"y": 0.945
+},
+"ink": "#FFFFFF",
+"logo": {
+"h": 0.06363312555654498,
+"ink": "#F7F4EE",
+"variant": "dark",
+"w": 0.27,
+"x": 0.65,
+"y": 0.05
+},
+"page": {
+"h": 1123,
+"w": 794
+},
+"templateId": "citrus",
+"warnings": []
+}
+},
+{
+"case": 2,
+"id": "citrus",
+"layout": {
+"background": "assets/covers/06-citrus.png",
+"blocks": [
+{
+"family": "'Sofia Sans Extra Condensed', 'Arial Narrow', sans-serif",
+"fits": true,
+"h": 0.10279608192341942,
+"ink": "#FFFFFF",
+"key": "title",
+"lineHeightPx": 38.480000000000004,
+"lines": [
+"Ein sehr langer Titel mit vielen",
+"W\u00f6rtern der mehrere Zeilen braucht",
+"und fast nicht mehr passt"
+],
+"sizePx": 37,
+"w": 0.82,
+"weight": 800,
+"x": 0.09,
+"y": 0.13
+},
+{
+"family": "'Roboto', system-ui, sans-serif",
+"fits": true,
+"h": 0.048533068890148134,
+"ink": "#FFFFFF",
+"key": "slogan",
+"lineHeightPx": 27.5,
+"lines": [
+"Ein ebenfalls recht langer Untertitel \u00fcber \u00c4pfel, \u00d6l und",
+"\u00dcbergr\u00f6ssen"
+],
+"sizePx": 22,
+"w": 0.82,
+"weight": 400,
+"x": 0.09,
+"y": 0.24879608192341943
+},
+{
+"family": "'Roboto', system-ui, sans-serif",
+"fits": true,
+"h": 0.025467497773820125,
+"ink": "#FFFFFF",
+"key": "name",
+"lineHeightPx": 28.6,
+"lines": [
+"Anna-Maria von Muster-Beispiel"
+],
+"sizePx": 22,
+"w": 0.82,
+"weight": 700,
+"x": 0.09,
+"y": 0.31332915081356755
+}
+],
+"date": {
+"family": "'Roboto', system-ui, sans-serif",
+"h": 0.03,
+"ink": "#FFFFFF",
+"sizePx": 13,
+"text": "29.02.2024",
+"weight": 500,
+"x1": 0.93,
+"y": 0.945
+},
+"ink": "#FFFFFF",
+"logo": {
+"h": 0.06363312555654498,
+"ink": "#F7F4EE",
+"variant": "dark",
+"w": 0.27,
+"x": 0.65,
+"y": 0.05
+},
+"page": {
+"h": 1123,
+"w": 794
+},
+"templateId": "citrus",
+"warnings": []
+}
+},
+{
+"case": 3,
+"id": "citrus",
+"layout": {
+"background": "assets/covers/06-citrus.png",
+"blocks": [
+{
+"family": "'Sofia Sans Extra Condensed', 'Arial Narrow', sans-serif",
+"fits": true,
+"h": 0.18058771148708816,
+"ink": "#FFFFFF",
+"key": "title",
+"lineHeightPx": 67.60000000000001,
+"lines": [
+"Donaudampfschifffahr",
+"tsgesellschaftskapit",
+"\u00e4nsm\u00fctzenhersteller"
+],
+"sizePx": 65,
+"w": 0.82,
+"weight": 800,
+"x": 0.09,
+"y": 0.13
+}
+],
+"date": null,
+"ink": "#FFFFFF",
+"logo": null,
+"page": {
+"h": 1123,
+"w": 794
+},
+"templateId": "citrus",
+"warnings": []
+}
+},
+{
+"case": 4,
+"id": "citrus",
+"layout": {
+"background": "assets/covers/06-citrus.png",
+"blocks": [
+{
+"family": "'Sofia Sans Extra Condensed', 'Arial Narrow', sans-serif",
+"fits": false,
+"h": 0.10399943333603172,
+"ink": "#FFFFFF",
+"key": "title",
+"lineHeightPx": 35.36,
+"lines": [
+"Titel Titel Titel Titel Titel Titel",
+"Titel Titel Titel Titel Titel Titel",
+"Titel Titel Titel Titel Titel Titel",
+"Titel Titel Titel Titel Titel Titel",
+"Titel Titel Titel Titel Titel Titel",
+"Titel Titel Titel Titel Titel Titel",
+"Titel Titel Titel Titel Titel Titel",
+"Titel Titel Titel Titel Titel Titel",
+"Titel Titel Titel Titel Titel Titel",
+"Titel Titel Titel Titel Titel Titel"
+],
+"sizePx": 34,
+"w": 0.82,
+"weight": 800,
+"x": 0.09,
+"y": 0.13
+},
+{
+"family": "'Roboto', system-ui, sans-serif",
+"fits": true,
+"h": 0.048533068890148134,
+"ink": "#FFFFFF",
+"key": "slogan",
+"lineHeightPx": 27.5,
+"lines": [
+"S S S S S S S S S S S S S S S S S S S S S S S S S S S S S S",
+"S S S S S S S S S S"
+],
+"sizePx": 22,
+"w": 0.82,
+"weight": 400,
+"x": 0.09,
+"y": 0.24999943333603172
+},
+{
+"family": "'Roboto', system-ui, sans-serif",
+"fits": true,
+"h": 0.025467497773820125,
+"ink": "#FFFFFF",
+"key": "name",
+"lineHeightPx": 28.6,
+"lines": [
+"N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N"
+],
+"sizePx": 22,
+"w": 0.82,
+"weight": 700,
+"x": 0.09,
+"y": 0.31453250222617984
+}
+],
+"date": {
+"family": "'Roboto', system-ui, sans-serif",
+"h": 0.03,
+"ink": "#FFFFFF",
+"sizePx": 13,
+"text": "02.01.2026",
+"weight": 500,
+"x1": 0.93,
+"y": 0.945
+},
+"ink": "#FFFFFF",
+"logo": {
+"h": 0.06363312555654498,
+"ink": "#F7F4EE",
+"variant": "dark",
+"w": 0.27,
+"x": 0.65,
+"y": 0.05
+},
+"page": {
+"h": 1123,
+"w": 794
+},
+"templateId": "citrus",
+"warnings": [
+{
+"key": "title",
+"message": "Der Titel ist zu lang f\u00fcr dieses Titelblatt. Bitte k\u00fcrzen (er passt nur in kleiner, nicht lesbarer Schrift)."
+}
+]
+}
+},
+{
+"case": 0,
+"id": "bistro",
+"layout": {
+"background": "assets/covers/07-bistro.png",
+"blocks": [],
+"date": {
+"family": "'Roboto', system-ui, sans-serif",
+"h": 0.03,
+"ink": "#171717",
+"sizePx": 13,
+"text": "09.10.2026",
+"weight": 500,
+"x1": 0.93,
+"y": 0.945
+},
+"ink": "#171717",
+"logo": {
+"h": 0.06363312555654498,
+"ink": "#252720",
+"variant": "light",
+"w": 0.27,
+"x": 0.65,
+"y": 0.05
+},
+"page": {
+"h": 1123,
+"w": 794
+},
+"templateId": "bistro",
+"warnings": []
+}
+},
+{
+"case": 1,
+"id": "bistro",
+"layout": {
+"background": "assets/covers/07-bistro.png",
+"blocks": [
+{
+"family": "'Sofia Sans Extra Condensed', 'Arial Narrow', sans-serif",
+"fits": true,
+"h": 0.06555555555555555,
+"ink": "#171717",
+"key": "title",
+"lineHeightPx": 73.84,
+"lines": [
+"Mein Kochbuch"
+],
+"sizePx": 71,
+"w": 0.82,
+"weight": 800,
+"x": 0.09,
+"y": 0.13
+},
+{
+"family": "'Roboto', system-ui, sans-serif",
+"fits": true,
+"h": 0.030053428317008014,
+"ink": "#171717",
+"key": "slogan",
+"lineHeightPx": 33.75,
+"lines": [
+"Rezepte f\u00fcr jeden Tag"
+],
+"sizePx": 27,
+"w": 0.82,
+"weight": 400,
+"x": 0.09,
+"y": 0.21155555555555555
+},
+{
+"family": "'Roboto', system-ui, sans-serif",
+"fits": true,
+"h": 0.021851851851851848,
+"ink": "#171717",
+"key": "name",
+"lineHeightPx": 24.7,
+"lines": [
+"Anna Muster"
+],
+"sizePx": 19,
+"w": 0.82,
+"weight": 700,
+"x": 0.09,
+"y": 0.2576089838725636
+}
+],
+"date": {
+"family": "'Roboto', system-ui, sans-serif",
+"h": 0.03,
+"ink": "#171717",
+"sizePx": 13,
+"text": "09.10.2026",
+"weight": 500,
+"x1": 0.93,
+"y": 0.945
+},
+"ink": "#171717",
+"logo": {
+"h": 0.06363312555654498,
+"ink": "#252720",
+"variant": "light",
+"w": 0.27,
+"x": 0.65,
+"y": 0.05
+},
+"page": {
+"h": 1123,
+"w": 794
+},
+"templateId": "bistro",
+"warnings": []
+}
+},
+{
+"case": 2,
+"id": "bistro",
+"layout": {
+"background": "assets/covers/07-bistro.png",
+"blocks": [
+{
+"family": "'Sofia Sans Extra Condensed', 'Arial Narrow', sans-serif",
+"fits": false,
+"h": 0.06555555555555555,
+"ink": "#171717",
+"key": "title",
+"lineHeightPx": 35.36,
+"lines": [
+"Ein sehr langer Titel mit vielen",
+"W\u00f6rtern der mehrere Zeilen braucht und",
+"fast nicht mehr passt"
+],
+"sizePx": 34,
+"w": 0.82,
+"weight": 800,
+"x": 0.09,
+"y": 0.13
+},
+{
+"family": "'Roboto', system-ui, sans-serif",
+"fits": true,
+"h": 0.021148708815672306,
+"ink": "#171717",
+"key": "slogan",
+"lineHeightPx": 23.75,
+"lines": [
+"Ein ebenfalls recht langer Untertitel \u00fcber \u00c4pfel, \u00d6l und \u00dcbergr\u00f6ssen"
+],
+"sizePx": 19,
+"w": 0.82,
+"weight": 400,
+"x": 0.09,
+"y": 0.21155555555555555
+},
+{
+"family": "'Roboto', system-ui, sans-serif",
+"fits": true,
+"h": 0.021851851851851848,
+"ink": "#171717",
+"key": "name",
+"lineHeightPx": 24.7,
+"lines": [
+"Anna-Maria von Muster-Beispiel"
+],
+"sizePx": 19,
+"w": 0.82,
+"weight": 700,
+"x": 0.09,
+"y": 0.24870426437122786
+}
+],
+"date": {
+"family": "'Roboto', system-ui, sans-serif",
+"h": 0.03,
+"ink": "#171717",
+"sizePx": 13,
+"text": "29.02.2024",
+"weight": 500,
+"x1": 0.93,
+"y": 0.945
+},
+"ink": "#171717",
+"logo": {
+"h": 0.06363312555654498,
+"ink": "#252720",
+"variant": "light",
+"w": 0.27,
+"x": 0.65,
+"y": 0.05
+},
+"page": {
+"h": 1123,
+"w": 794
+},
+"templateId": "bistro",
+"warnings": [
+{
+"key": "title",
+"message": "Der Titel ist zu lang f\u00fcr dieses Titelblatt. Bitte k\u00fcrzen (er passt nur in kleiner, nicht lesbarer Schrift)."
+}
+]
+}
+},
+{
+"case": 3,
+"id": "bistro",
+"layout": {
+"background": "assets/covers/07-bistro.png",
+"blocks": [
+{
+"family": "'Sofia Sans Extra Condensed', 'Arial Narrow', sans-serif",
+"fits": true,
+"h": 0.15,
+"ink": "#171717",
+"key": "title",
+"lineHeightPx": 56.160000000000004,
+"lines": [
+"Donaudampfschifffahrtsge",
+"sellschaftskapit\u00e4nsm\u00fctze",
+"nhersteller"
+],
+"sizePx": 54,
+"w": 0.82,
+"weight": 800,
+"x": 0.09,
+"y": 0.13
+}
+],
+"date": null,
+"ink": "#171717",
+"logo": null,
+"page": {
+"h": 1123,
+"w": 794
+},
+"templateId": "bistro",
+"warnings": []
+}
+},
+{
+"case": 4,
+"id": "bistro",
+"layout": {
+"background": "assets/covers/07-bistro.png",
+"blocks": [
+{
+"family": "'Sofia Sans Extra Condensed', 'Arial Narrow', sans-serif",
+"fits": false,
+"h": 0.06555555555555555,
+"ink": "#171717",
+"key": "title",
+"lineHeightPx": 35.36,
+"lines": [
+"Titel Titel Titel Titel Titel Titel",
+"Titel Titel Titel Titel Titel Titel",
+"Titel Titel Titel Titel Titel Titel",
+"Titel Titel Titel Titel Titel Titel",
+"Titel Titel Titel Titel Titel Titel",
+"Titel Titel Titel Titel Titel Titel",
+"Titel Titel Titel Titel Titel Titel",
+"Titel Titel Titel Titel Titel Titel",
+"Titel Titel Titel Titel Titel Titel",
+"Titel Titel Titel Titel Titel Titel"
+],
+"sizePx": 34,
+"w": 0.82,
+"weight": 800,
+"x": 0.09,
+"y": 0.13
+},
+{
+"family": "'Roboto', system-ui, sans-serif",
+"fits": true,
+"h": 0.017809439002671415,
+"ink": "#171717",
+"key": "slogan",
+"lineHeightPx": 20,
+"lines": [
+"S S S S S S S S S S S S S S S S S S S S S S S S S S S S S S S S S S S S S S S S"
+],
+"sizePx": 16,
+"w": 0.82,
+"weight": 400,
+"x": 0.09,
+"y": 0.21155555555555555
+},
+{
+"family": "'Roboto', system-ui, sans-serif",
+"fits": true,
+"h": 0.021851851851851848,
+"ink": "#171717",
+"key": "name",
+"lineHeightPx": 24.7,
+"lines": [
+"N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N"
+],
+"sizePx": 19,
+"w": 0.82,
+"weight": 700,
+"x": 0.09,
+"y": 0.24536499455822697
+}
+],
+"date": {
+"family": "'Roboto', system-ui, sans-serif",
+"h": 0.03,
+"ink": "#171717",
+"sizePx": 13,
+"text": "02.01.2026",
+"weight": 500,
+"x1": 0.93,
+"y": 0.945
+},
+"ink": "#171717",
+"logo": {
+"h": 0.06363312555654498,
+"ink": "#252720",
+"variant": "light",
+"w": 0.27,
+"x": 0.65,
+"y": 0.05
+},
+"page": {
+"h": 1123,
+"w": 794
+},
+"templateId": "bistro",
+"warnings": [
+{
+"key": "title",
+"message": "Der Titel ist zu lang f\u00fcr dieses Titelblatt. Bitte k\u00fcrzen (er passt nur in kleiner, nicht lesbarer Schrift)."
+}
+]
+}
+},
+{
+"case": 0,
+"id": "garten",
+"layout": {
+"background": "assets/covers/08-garten.png",
+"blocks": [],
+"date": {
+"family": "'Roboto', system-ui, sans-serif",
+"h": 0.03,
+"ink": "#171717",
+"sizePx": 13,
+"text": "09.10.2026",
+"weight": 500,
+"x1": 0.93,
+"y": 0.945
+},
+"ink": "#171717",
+"logo": {
+"h": 0.06363312555654498,
+"ink": "#252720",
+"variant": "light",
+"w": 0.27,
+"x": 0.65,
+"y": 0.05
+},
+"page": {
+"h": 1123,
+"w": 794
+},
+"templateId": "garten",
+"warnings": []
+}
+},
+{
+"case": 1,
+"id": "garten",
+"layout": {
+"background": "assets/covers/08-garten.png",
+"blocks": [
+{
+"family": "'Sofia Sans Extra Condensed', 'Arial Narrow', sans-serif",
+"fits": true,
+"h": 0.08890471950133572,
+"ink": "#171717",
+"key": "title",
+"lineHeightPx": 99.84,
+"lines": [
+"Mein Kochbuch"
+],
+"sizePx": 96,
+"w": 0.82,
+"weight": 800,
+"x": 0.09,
+"y": 0.13
+},
+{
+"family": "'Roboto', system-ui, sans-serif",
+"fits": true,
+"h": 0.033392698130008905,
+"ink": "#171717",
+"key": "slogan",
+"lineHeightPx": 37.5,
+"lines": [
+"Rezepte f\u00fcr jeden Tag"
+],
+"sizePx": 30,
+"w": 0.82,
+"weight": 400,
+"x": 0.09,
+"y": 0.23490471950133573
+},
+{
+"family": "'Roboto', system-ui, sans-serif",
+"fits": true,
+"h": 0.025467497773820125,
+"ink": "#171717",
+"key": "name",
+"lineHeightPx": 28.6,
+"lines": [
+"Anna Muster"
+],
+"sizePx": 22,
+"w": 0.82,
+"weight": 700,
+"x": 0.09,
+"y": 0.28429741763134464
+}
+],
+"date": {
+"family": "'Roboto', system-ui, sans-serif",
+"h": 0.03,
+"ink": "#171717",
+"sizePx": 13,
+"text": "09.10.2026",
+"weight": 500,
+"x1": 0.93,
+"y": 0.945
+},
+"ink": "#171717",
+"logo": {
+"h": 0.06363312555654498,
+"ink": "#252720",
+"variant": "light",
+"w": 0.27,
+"x": 0.65,
+"y": 0.05
+},
+"page": {
+"h": 1123,
+"w": 794
+},
+"templateId": "garten",
+"warnings": []
+}
+},
+{
+"case": 2,
+"id": "garten",
+"layout": {
+"background": "assets/covers/08-garten.png",
+"blocks": [
+{
+"family": "'Sofia Sans Extra Condensed', 'Arial Narrow', sans-serif",
+"fits": false,
+"h": 0.08354488788148627,
+"ink": "#171717",
+"key": "title",
+"lineHeightPx": 35.36,
+"lines": [
+"Ein sehr langer Titel mit vielen",
+"W\u00f6rtern der mehrere Zeilen braucht und",
+"fast nicht mehr passt"
+],
+"sizePx": 34,
+"w": 0.82,
+"weight": 800,
+"x": 0.09,
+"y": 0.13
+},
+{
+"family": "'Roboto', system-ui, sans-serif",
+"fits": true,
+"h": 0.021148708815672306,
+"ink": "#171717",
+"key": "slogan",
+"lineHeightPx": 23.75,
+"lines": [
+"Ein ebenfalls recht langer Untertitel \u00fcber \u00c4pfel, \u00d6l und \u00dcbergr\u00f6ssen"
+],
+"sizePx": 19,
+"w": 0.82,
+"weight": 400,
+"x": 0.09,
+"y": 0.22954488788148628
+},
+{
+"family": "'Roboto', system-ui, sans-serif",
+"fits": true,
+"h": 0.025467497773820125,
+"ink": "#171717",
+"key": "name",
+"lineHeightPx": 28.6,
+"lines": [
+"Anna-Maria von Muster-Beispiel"
+],
+"sizePx": 22,
+"w": 0.82,
+"weight": 700,
+"x": 0.09,
+"y": 0.2666935966971586
+}
+],
+"date": {
+"family": "'Roboto', system-ui, sans-serif",
+"h": 0.03,
+"ink": "#171717",
+"sizePx": 13,
+"text": "29.02.2024",
+"weight": 500,
+"x1": 0.93,
+"y": 0.945
+},
+"ink": "#171717",
+"logo": {
+"h": 0.06363312555654498,
+"ink": "#252720",
+"variant": "light",
+"w": 0.27,
+"x": 0.65,
+"y": 0.05
+},
+"page": {
+"h": 1123,
+"w": 794
+},
+"templateId": "garten",
+"warnings": [
+{
+"key": "title",
+"message": "Der Titel ist zu lang f\u00fcr dieses Titelblatt. Bitte k\u00fcrzen (er passt nur in kleiner, nicht lesbarer Schrift)."
+}
+]
+}
+},
+{
+"case": 3,
+"id": "garten",
+"layout": {
+"background": "assets/covers/08-garten.png",
+"blocks": [
+{
+"family": "'Sofia Sans Extra Condensed', 'Arial Narrow', sans-serif",
+"fits": true,
+"h": 0.17780943900267143,
+"ink": "#171717",
+"key": "title",
+"lineHeightPx": 66.56,
+"lines": [
+"Donaudampfschifffahr",
+"tsgesellschaftskapit",
+"\u00e4nsm\u00fctzenhersteller"
+],
+"sizePx": 64,
+"w": 0.82,
+"weight": 800,
+"x": 0.09,
+"y": 0.13
+}
+],
+"date": null,
+"ink": "#171717",
+"logo": null,
+"page": {
+"h": 1123,
+"w": 794
+},
+"templateId": "garten",
+"warnings": []
+}
+},
+{
+"case": 4,
+"id": "garten",
+"layout": {
+"background": "assets/covers/08-garten.png",
+"blocks": [
+{
+"family": "'Sofia Sans Extra Condensed', 'Arial Narrow', sans-serif",
+"fits": false,
+"h": 0.08354488788148627,
+"ink": "#171717",
+"key": "title",
+"lineHeightPx": 35.36,
+"lines": [
+"Titel Titel Titel Titel Titel Titel",
+"Titel Titel Titel Titel Titel Titel",
+"Titel Titel Titel Titel Titel Titel",
+"Titel Titel Titel Titel Titel Titel",
+"Titel Titel Titel Titel Titel Titel",
+"Titel Titel Titel Titel Titel Titel",
+"Titel Titel Titel Titel Titel Titel",
+"Titel Titel Titel Titel Titel Titel",
+"Titel Titel Titel Titel Titel Titel",
+"Titel Titel Titel Titel Titel Titel"
+],
+"sizePx": 34,
+"w": 0.82,
+"weight": 800,
+"x": 0.09,
+"y": 0.13
+},
+{
+"family": "'Roboto', system-ui, sans-serif",
+"fits": true,
+"h": 0.03784505788067676,
+"ink": "#171717",
+"key": "slogan",
+"lineHeightPx": 21.25,
+"lines": [
+"S S S S S S S S S S S S S S S S S S S S S S S S S S S S S S S S S S S S S S",
+"S S"
+],
+"sizePx": 17,
+"w": 0.82,
+"weight": 400,
+"x": 0.09,
+"y": 0.22954488788148628
+},
+{
+"family": "'Roboto', system-ui, sans-serif",
+"fits": true,
+"h": 0.025467497773820125,
+"ink": "#171717",
+"key": "name",
+"lineHeightPx": 28.6,
+"lines": [
+"N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N"
+],
+"sizePx": 22,
+"w": 0.82,
+"weight": 700,
+"x": 0.09,
+"y": 0.28338994576216303
+}
+],
+"date": {
+"family": "'Roboto', system-ui, sans-serif",
+"h": 0.03,
+"ink": "#171717",
+"sizePx": 13,
+"text": "02.01.2026",
+"weight": 500,
+"x1": 0.93,
+"y": 0.945
+},
+"ink": "#171717",
+"logo": {
+"h": 0.06363312555654498,
+"ink": "#252720",
+"variant": "light",
+"w": 0.27,
+"x": 0.65,
+"y": 0.05
+},
+"page": {
+"h": 1123,
+"w": 794
+},
+"templateId": "garten",
+"warnings": [
+{
+"key": "title",
+"message": "Der Titel ist zu lang f\u00fcr dieses Titelblatt. Bitte k\u00fcrzen (er passt nur in kleiner, nicht lesbarer Schrift)."
+}
+]
+}
+},
+{
+"case": 0,
+"id": "sonnenkueche",
+"layout": {
+"background": "assets/covers/09-sonnenkueche.png",
+"blocks": [],
+"date": {
+"family": "'Roboto', system-ui, sans-serif",
+"h": 0.03,
+"ink": "#171717",
+"sizePx": 13,
+"text": "09.10.2026",
+"weight": 500,
+"x1": 0.93,
+"y": 0.945
+},
+"ink": "#171717",
+"logo": {
+"h": 0.06363312555654498,
+"ink": "#252720",
+"variant": "light",
+"w": 0.27,
+"x": 0.65,
+"y": 0.05
+},
+"page": {
+"h": 1123,
+"w": 794
+},
+"templateId": "sonnenkueche",
+"warnings": []
+}
+},
+{
+"case": 1,
+"id": "sonnenkueche",
+"layout": {
+"background": "assets/covers/09-sonnenkueche.png",
+"blocks": [
+{
+"family": "'Sofia Sans Extra Condensed', 'Arial Narrow', sans-serif",
+"fits": true,
+"h": 0.09260908281389137,
+"ink": "#171717",
+"key": "title",
+"lineHeightPx": 104,
+"lines": [
+"Mein Kochbuch"
+],
+"sizePx": 100,
+"w": 0.82,
+"weight": 800,
+"x": 0.09,
+"y": 0.13
+},
+{
+"family": "'Roboto', system-ui, sans-serif",
+"fits": true,
+"h": 0.033392698130008905,
+"ink": "#171717",
+"key": "slogan",
+"lineHeightPx": 37.5,
+"lines": [
+"Rezepte f\u00fcr jeden Tag"
+],
+"sizePx": 30,
+"w": 0.82,
+"weight": 400,
+"x": 0.09,
+"y": 0.23860908281389137
+},
+{
+"family": "'Roboto', system-ui, sans-serif",
+"fits": true,
+"h": 0.025467497773820125,
+"ink": "#171717",
+"key": "name",
+"lineHeightPx": 28.6,
+"lines": [
+"Anna Muster"
+],
+"sizePx": 22,
+"w": 0.82,
+"weight": 700,
+"x": 0.09,
+"y": 0.2880017809439003
+}
+],
+"date": {
+"family": "'Roboto', system-ui, sans-serif",
+"h": 0.03,
+"ink": "#171717",
+"sizePx": 13,
+"text": "09.10.2026",
+"weight": 500,
+"x1": 0.93,
+"y": 0.945
+},
+"ink": "#171717",
+"logo": {
+"h": 0.06363312555654498,
+"ink": "#252720",
+"variant": "light",
+"w": 0.27,
+"x": 0.65,
+"y": 0.05
+},
+"page": {
+"h": 1123,
+"w": 794
+},
+"templateId": "sonnenkueche",
+"warnings": []
+}
+},
+{
+"case": 2,
+"id": "sonnenkueche",
+"layout": {
+"background": "assets/covers/09-sonnenkueche.png",
+"blocks": [
+{
+"family": "'Sofia Sans Extra Condensed', 'Arial Narrow', sans-serif",
+"fits": true,
+"h": 0.1083526268922529,
+"ink": "#171717",
+"key": "title",
+"lineHeightPx": 40.56,
+"lines": [
+"Ein sehr langer Titel mit vielen",
+"W\u00f6rtern der mehrere Zeilen",
+"braucht und fast nicht mehr passt"
+],
+"sizePx": 39,
+"w": 0.82,
+"weight": 800,
+"x": 0.09,
+"y": 0.13
+},
+{
+"family": "'Roboto', system-ui, sans-serif",
+"fits": true,
+"h": 0.053428317008014245,
+"ink": "#171717",
+"key": "slogan",
+"lineHeightPx": 30,
+"lines": [
+"Ein ebenfalls recht langer Untertitel \u00fcber \u00c4pfel, \u00d6l",
+"und \u00dcbergr\u00f6ssen"
+],
+"sizePx": 24,
+"w": 0.82,
+"weight": 400,
+"x": 0.09,
+"y": 0.2543526268922529
+},
+{
+"family": "'Roboto', system-ui, sans-serif",
+"fits": true,
+"h": 0.025467497773820125,
+"ink": "#171717",
+"key": "name",
+"lineHeightPx": 28.6,
+"lines": [
+"Anna-Maria von Muster-Beispiel"
+],
+"sizePx": 22,
+"w": 0.82,
+"weight": 700,
+"x": 0.09,
+"y": 0.3237809439002671
+}
+],
+"date": {
+"family": "'Roboto', system-ui, sans-serif",
+"h": 0.03,
+"ink": "#171717",
+"sizePx": 13,
+"text": "29.02.2024",
+"weight": 500,
+"x1": 0.93,
+"y": 0.945
+},
+"ink": "#171717",
+"logo": {
+"h": 0.06363312555654498,
+"ink": "#252720",
+"variant": "light",
+"w": 0.27,
+"x": 0.65,
+"y": 0.05
+},
+"page": {
+"h": 1123,
+"w": 794
+},
+"templateId": "sonnenkueche",
+"warnings": []
+}
+},
+{
+"case": 3,
+"id": "sonnenkueche",
+"layout": {
+"background": "assets/covers/09-sonnenkueche.png",
+"blocks": [
+{
+"family": "'Sofia Sans Extra Condensed', 'Arial Narrow', sans-serif",
+"fits": true,
+"h": 0.18058771148708816,
+"ink": "#171717",
+"key": "title",
+"lineHeightPx": 67.60000000000001,
+"lines": [
+"Donaudampfschifffahr",
+"tsgesellschaftskapit",
+"\u00e4nsm\u00fctzenhersteller"
+],
+"sizePx": 65,
+"w": 0.82,
+"weight": 800,
+"x": 0.09,
+"y": 0.13
+}
+],
+"date": null,
+"ink": "#171717",
+"logo": null,
+"page": {
+"h": 1123,
+"w": 794
+},
+"templateId": "sonnenkueche",
+"warnings": []
+}
+},
+{
+"case": 4,
+"id": "sonnenkueche",
+"layout": {
+"background": "assets/covers/09-sonnenkueche.png",
+"blocks": [
+{
+"family": "'Sofia Sans Extra Condensed', 'Arial Narrow', sans-serif",
+"fits": false,
+"h": 0.11763579697239536,
+"ink": "#171717",
+"key": "title",
+"lineHeightPx": 35.36,
+"lines": [
+"Titel Titel Titel Titel Titel Titel",
+"Titel Titel Titel Titel Titel Titel",
+"Titel Titel Titel Titel Titel Titel",
+"Titel Titel Titel Titel Titel Titel",
+"Titel Titel Titel Titel Titel Titel",
+"Titel Titel Titel Titel Titel Titel",
+"Titel Titel Titel Titel Titel Titel",
+"Titel Titel Titel Titel Titel Titel",
+"Titel Titel Titel Titel Titel Titel",
+"Titel Titel Titel Titel Titel Titel"
+],
+"sizePx": 34,
+"w": 0.82,
+"weight": 800,
+"x": 0.09,
+"y": 0.13
+},
+{
+"family": "'Roboto', system-ui, sans-serif",
+"fits": true,
+"h": 0.053428317008014245,
+"ink": "#171717",
+"key": "slogan",
+"lineHeightPx": 30,
+"lines": [
+"S S S S S S S S S S S S S S S S S S S S S S S S S S S",
+"S S S S S S S S S S S S S"
+],
+"sizePx": 24,
+"w": 0.82,
+"weight": 400,
+"x": 0.09,
+"y": 0.26363579697239536
+},
+{
+"family": "'Roboto', system-ui, sans-serif",
+"fits": true,
+"h": 0.025467497773820125,
+"ink": "#171717",
+"key": "name",
+"lineHeightPx": 28.6,
+"lines": [
+"N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N"
+],
+"sizePx": 22,
+"w": 0.82,
+"weight": 700,
+"x": 0.09,
+"y": 0.3330641139804096
+}
+],
+"date": {
+"family": "'Roboto', system-ui, sans-serif",
+"h": 0.03,
+"ink": "#171717",
+"sizePx": 13,
+"text": "02.01.2026",
+"weight": 500,
+"x1": 0.93,
+"y": 0.945
+},
+"ink": "#171717",
+"logo": {
+"h": 0.06363312555654498,
+"ink": "#252720",
+"variant": "light",
+"w": 0.27,
+"x": 0.65,
+"y": 0.05
+},
+"page": {
+"h": 1123,
+"w": 794
+},
+"templateId": "sonnenkueche",
+"warnings": [
+{
+"key": "title",
+"message": "Der Titel ist zu lang f\u00fcr dieses Titelblatt. Bitte k\u00fcrzen (er passt nur in kleiner, nicht lesbarer Schrift)."
+}
+]
+}
+},
+{
+"case": 0,
+"id": "ofenglueck",
+"layout": {
+"background": "assets/covers/10-ofenglueck.png",
+"blocks": [],
+"date": {
+"family": "'Roboto', system-ui, sans-serif",
+"h": 0.03,
+"ink": "#171717",
+"sizePx": 13,
+"text": "09.10.2026",
+"weight": 500,
+"x1": 0.93,
+"y": 0.945
+},
+"ink": "#171717",
+"logo": {
+"h": 0.06363312555654498,
+"ink": "#252720",
+"variant": "light",
+"w": 0.27,
+"x": 0.65,
+"y": 0.05
+},
+"page": {
+"h": 1123,
+"w": 794
+},
+"templateId": "ofenglueck",
+"warnings": []
+}
+},
+{
+"case": 1,
+"id": "ofenglueck",
+"layout": {
+"background": "assets/covers/10-ofenglueck.png",
+"blocks": [
+{
+"family": "'Sofia Sans Extra Condensed', 'Arial Narrow', sans-serif",
+"fits": true,
+"h": 0.09260908281389137,
+"ink": "#171717",
+"key": "title",
+"lineHeightPx": 104,
+"lines": [
+"Mein Kochbuch"
+],
+"sizePx": 100,
+"w": 0.82,
+"weight": 800,
+"x": 0.09,
+"y": 0.13
+},
+{
+"family": "'Roboto', system-ui, sans-serif",
+"fits": true,
+"h": 0.033392698130008905,
+"ink": "#171717",
+"key": "slogan",
+"lineHeightPx": 37.5,
+"lines": [
+"Rezepte f\u00fcr jeden Tag"
+],
+"sizePx": 30,
+"w": 0.82,
+"weight": 400,
+"x": 0.09,
+"y": 0.23860908281389137
+},
+{
+"family": "'Roboto', system-ui, sans-serif",
+"fits": true,
+"h": 0.025467497773820125,
+"ink": "#171717",
+"key": "name",
+"lineHeightPx": 28.6,
+"lines": [
+"Anna Muster"
+],
+"sizePx": 22,
+"w": 0.82,
+"weight": 700,
+"x": 0.09,
+"y": 0.2880017809439003
+}
+],
+"date": {
+"family": "'Roboto', system-ui, sans-serif",
+"h": 0.03,
+"ink": "#171717",
+"sizePx": 13,
+"text": "09.10.2026",
+"weight": 500,
+"x1": 0.93,
+"y": 0.945
+},
+"ink": "#171717",
+"logo": {
+"h": 0.06363312555654498,
+"ink": "#252720",
+"variant": "light",
+"w": 0.27,
+"x": 0.65,
+"y": 0.05
+},
+"page": {
+"h": 1123,
+"w": 794
+},
+"templateId": "ofenglueck",
+"warnings": []
+}
+},
+{
+"case": 2,
+"id": "ofenglueck",
+"layout": {
+"background": "assets/covers/10-ofenglueck.png",
+"blocks": [
+{
+"family": "'Sofia Sans Extra Condensed', 'Arial Narrow', sans-serif",
+"fits": true,
+"h": 0.1083526268922529,
+"ink": "#171717",
+"key": "title",
+"lineHeightPx": 40.56,
+"lines": [
+"Ein sehr langer Titel mit vielen",
+"W\u00f6rtern der mehrere Zeilen",
+"braucht und fast nicht mehr passt"
+],
+"sizePx": 39,
+"w": 0.82,
+"weight": 800,
+"x": 0.09,
+"y": 0.13
+},
+{
+"family": "'Roboto', system-ui, sans-serif",
+"fits": true,
+"h": 0.0578806767586821,
+"ink": "#171717",
+"key": "slogan",
+"lineHeightPx": 32.5,
+"lines": [
+"Ein ebenfalls recht langer Untertitel \u00fcber \u00c4pfel,",
+"\u00d6l und \u00dcbergr\u00f6ssen"
+],
+"sizePx": 26,
+"w": 0.82,
+"weight": 400,
+"x": 0.09,
+"y": 0.2543526268922529
+},
+{
+"family": "'Roboto', system-ui, sans-serif",
+"fits": true,
+"h": 0.025467497773820125,
+"ink": "#171717",
+"key": "name",
+"lineHeightPx": 28.6,
+"lines": [
+"Anna-Maria von Muster-Beispiel"
+],
+"sizePx": 22,
+"w": 0.82,
+"weight": 700,
+"x": 0.09,
+"y": 0.328233303650935
+}
+],
+"date": {
+"family": "'Roboto', system-ui, sans-serif",
+"h": 0.03,
+"ink": "#171717",
+"sizePx": 13,
+"text": "29.02.2024",
+"weight": 500,
+"x1": 0.93,
+"y": 0.945
+},
+"ink": "#171717",
+"logo": {
+"h": 0.06363312555654498,
+"ink": "#252720",
+"variant": "light",
+"w": 0.27,
+"x": 0.65,
+"y": 0.05
+},
+"page": {
+"h": 1123,
+"w": 794
+},
+"templateId": "ofenglueck",
+"warnings": []
+}
+},
+{
+"case": 3,
+"id": "ofenglueck",
+"layout": {
+"background": "assets/covers/10-ofenglueck.png",
+"blocks": [
+{
+"family": "'Sofia Sans Extra Condensed', 'Arial Narrow', sans-serif",
+"fits": true,
+"h": 0.18058771148708816,
+"ink": "#171717",
+"key": "title",
+"lineHeightPx": 67.60000000000001,
+"lines": [
+"Donaudampfschifffahr",
+"tsgesellschaftskapit",
+"\u00e4nsm\u00fctzenhersteller"
+],
+"sizePx": 65,
+"w": 0.82,
+"weight": 800,
+"x": 0.09,
+"y": 0.13
+}
+],
+"date": null,
+"ink": "#171717",
+"logo": null,
+"page": {
+"h": 1123,
+"w": 794
+},
+"templateId": "ofenglueck",
+"warnings": []
+}
+},
+{
+"case": 4,
+"id": "ofenglueck",
+"layout": {
+"background": "assets/covers/10-ofenglueck.png",
+"blocks": [
+{
+"family": "'Sofia Sans Extra Condensed', 'Arial Narrow', sans-serif",
+"fits": false,
+"h": 0.12445397879057717,
+"ink": "#171717",
+"key": "title",
+"lineHeightPx": 35.36,
+"lines": [
+"Titel Titel Titel Titel Titel Titel",
+"Titel Titel Titel Titel Titel Titel",
+"Titel Titel Titel Titel Titel Titel",
+"Titel Titel Titel Titel Titel Titel",
+"Titel Titel Titel Titel Titel Titel",
+"Titel Titel Titel Titel Titel Titel",
+"Titel Titel Titel Titel Titel Titel",
+"Titel Titel Titel Titel Titel Titel",
+"Titel Titel Titel Titel Titel Titel",
+"Titel Titel Titel Titel Titel Titel"
+],
+"sizePx": 34,
+"w": 0.82,
+"weight": 800,
+"x": 0.09,
+"y": 0.13
+},
+{
+"family": "'Roboto', system-ui, sans-serif",
+"fits": true,
+"h": 0.0578806767586821,
+"ink": "#171717",
+"key": "slogan",
+"lineHeightPx": 32.5,
+"lines": [
+"S S S S S S S S S S S S S S S S S S S S S S S S S",
+"S S S S S S S S S S S S S S S"
+],
+"sizePx": 26,
+"w": 0.82,
+"weight": 400,
+"x": 0.09,
+"y": 0.2704539787905772
+},
+{
+"family": "'Roboto', system-ui, sans-serif",
+"fits": true,
+"h": 0.025467497773820125,
+"ink": "#171717",
+"key": "name",
+"lineHeightPx": 28.6,
+"lines": [
+"N N N N N N N N N N N N N N N N N N N N N N N N N N N N N N"
+],
+"sizePx": 22,
+"w": 0.82,
+"weight": 700,
+"x": 0.09,
+"y": 0.3443346555492593
+}
+],
+"date": {
+"family": "'Roboto', system-ui, sans-serif",
+"h": 0.03,
+"ink": "#171717",
+"sizePx": 13,
+"text": "02.01.2026",
+"weight": 500,
+"x1": 0.93,
+"y": 0.945
+},
+"ink": "#171717",
+"logo": {
+"h": 0.06363312555654498,
+"ink": "#252720",
+"variant": "light",
+"w": 0.27,
+"x": 0.65,
+"y": 0.05
+},
+"page": {
+"h": 1123,
+"w": 794
+},
+"templateId": "ofenglueck",
+"warnings": [
+{
+"key": "title",
+"message": "Der Titel ist zu lang f\u00fcr dieses Titelblatt. Bitte k\u00fcrzen (er passt nur in kleiner, nicht lesbarer Schrift)."
+}
+]
+}
+}
+]
