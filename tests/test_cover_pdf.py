@@ -316,6 +316,9 @@ async def main():
             ('text-umlaute-weitere-zeile', 'Grüsse aus Zürich', 'Crème brûlée, Käsespätzle & Röstì', 'Zoë Ñúñez', custom(fields={'extra1': {'text': 'Für alle Gäste am Tisch'}})),
             ('vorlage-mit-abweichung', T, S, A, {'v': 2, 'mode': 'template', 'templateId': 'salbei', 'date': '2026-10-09', 'showDate': True, 'fields': {'title': {'color': '#B93B2C', 'y': 0.3}}, 'logo': {'pos': 'top-right', 'variant': 'auto'}, 'readability': 'none', 'arrange': ''}),
         ]
+        if await ev("() => typeof pdfApplyTextTransform === 'function'"):   # Hotfix 0.77.1 (CSS-Grossschreibung von «ß» brach html2canvas): erst danach pruefbar
+            text_cases.append(('text-scharfes-s', 'Großmutters Strauß', 'Süßes und Gießen', 'Familie Weiß', custom()))
+        else: print('INFO Fall «ß» uebersprungen: pdfApplyTextTransform (Hotfix 0.77.1) noch nicht im Stand')
         for name, t, s, a, cov in text_cases:
             res, im = await export_case(page, name, t, s, a, cov)
             extra = ''
