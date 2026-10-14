@@ -13,7 +13,7 @@
    - Kontrollierter Update-Flow: kein automatisches skipWaiting. Ein neuer Worker wartet, bis
      die Seite per postMessage({type:'SKIP_WAITING'}) explizit zustimmt.
 */
-const SW_VERSION = 'v83-socialize';
+const SW_VERSION = 'v84-pdfstile';
 const CACHE_SHELL = 'savora-shell-' + SW_VERSION;
 const CACHE_RUNTIME = 'savora-runtime-' + SW_VERSION;
 const CACHE_DATA = 'savora-data-' + SW_VERSION;
@@ -127,6 +127,8 @@ const SHELL_ASSETS = [
   './share.js',
   './nutrition-ui.js',
   './app.js',
+  './vendor/fonts/carlito-regular.woff2',
+  './vendor/fonts/carlito-bold.woff2',
   './vendor/fonts/source-serif-4-400.woff2',
   './vendor/fonts/source-serif-4-400i.woff2',
   './vendor/fonts/source-serif-4-600.woff2',
