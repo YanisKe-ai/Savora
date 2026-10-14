@@ -10,11 +10,14 @@ zeitempfindlichen (Messungen in Millisekunden) allein, damit gleichzeitige Last 
 import concurrent.futures, os, subprocess, sys, tempfile, time
 HERE = os.path.dirname(os.path.abspath(__file__))
 # Reihenfolge ist wichtig: test_migration erzeugt old-backup.json, das test_flows importiert.
-ALL = ['migration', 'flows', 'sync', 'pruefung', 'visual', 'offline', 'native', 'paket1', 'paket2', 'paket3', 'paket4', 'a11y', 'theme', 'paket6', 'paket7', 'paket8', 'paket9', 'import', 'monkey', 'pdfpreview', 'units', 'shell', 'photoscan', 'restore', 'paket19', 'paket20', 'nutrition', 'export', 'recipecheck', 'paket24', 'nutrition_import', 'paket27', 'paket30', 'paket31', 'paket33', 'nutrition_range', 'recipe_json', 'paket34', 'paket35', 'paket36', 'paket37_data', 'paket37_import', 'paket37_settings', 'paket37_plan', 'paket37_books', 'paket37_visual', 'paket37_adapt','paket37_interaction', 'paket39', 'paket43', 'paket44', 'startseite_liste', 'paket42', 'audit_b', 'audit_a', 'audit_c', 'audit_nachtrag', 'naehrwerte_klammern', 'teilen_ui', 'titel_suche', 'feinschliff', 'laptop_platz', 'ansicht_umschalter', 'rezepte_zeile', 'heute_schalter', 'ohne_schwarz', 'markers']
+ALL = ['migration', 'flows', 'sync', 'pruefung', 'visual', 'offline', 'native', 'paket1', 'paket2', 'paket3', 'paket4', 'a11y', 'theme', 'paket6', 'paket7', 'paket8', 'paket9', 'import', 'monkey', 'pdfpreview', 'units', 'shell', 'photoscan', 'restore', 'paket19', 'paket20', 'nutrition', 'export', 'recipecheck', 'paket24', 'nutrition_import', 'paket27', 'paket30', 'paket31', 'paket33', 'nutrition_range', 'recipe_json', 'paket34', 'paket35', 'paket36', 'paket37_data', 'paket37_import', 'paket37_settings', 'paket37_plan', 'paket37_books', 'paket37_visual', 'paket37_adapt','paket37_interaction', 'paket39', 'paket43', 'paket44', 'startseite_liste', 'paket42', 'audit_b', 'audit_a', 'audit_c', 'audit_nachtrag', 'naehrwerte_klammern', 'teilen_ui', 'titel_suche', 'feinschliff', 'laptop_platz', 'ansicht_umschalter', 'rezepte_zeile', 'heute_schalter', 'ohne_schwarz', 'pdf_daten', 'pdf_vorlagen', 'pdf_cover', 'pdf_kern', 'pdf_ausgabe', 'markers']
 FIRST = ['migration', 'flows']                      # abhaengig: teilen sich den Ausgabeordner
 MOCK_CHAIN = ['sync', 'paket36']                    # beide nutzen den Test-Datenbank-Nachbau auf Port 8796: nie gleichzeitig
 LAST = ['monkey', 'paket37_interaction', 'paket39', 'paket37_plan']            # zeitempfindlich (Millisekunden-Messungen): allein laufen lassen
 QUICK_ENV = {'paket37_adapt': {'SAVORA_ADAPT_QUICK': '1'}}
+# Immer gesetzte Umgebung je Test. pdf_ausgabe: bekannte PDF-Fehler (Stand 0.72.0) gelten als «erwartet rot», bis alle Korrekturen zusammengefuehrt sind.
+# SCHARF SCHALTEN: diesen Eintrag loeschen, dann laeuft tests/test_pdf_ausgabe.py strikt (Beschreibung im Kopf dieser Testdatei).
+EXTRA_ENV = {}   # pdf_ausgabe ist scharf (strikt); fuer bekannte Fehler waere {'pdf_ausgabe': {'SAVORA_PDF_ERWARTE_FEHLER': '1'}} noetig
 BASE_PORT = int(os.environ.get("SAVORA_BASE_PORT", "8900"))
 
 args = sys.argv[1:]
@@ -39,6 +42,7 @@ def run_one(name, idx, shared_out=False):
     env['SAVORA_TEST_PORT'] = str(BASE_PORT + idx)
     env['SAVORA_TEST_OUT'] = os.path.join(OUT_BASE, 'shared' if shared_out else name)
     os.makedirs(env['SAVORA_TEST_OUT'], exist_ok=True)
+    env.update(EXTRA_ENV.get(name, {}))
     if quick: env.update(QUICK_ENV.get(name, {}))
     t = time.time()
     p = subprocess.run([sys.executable, os.path.join(HERE, f'test_{name}.py')], env=env, capture_output=True, text=True, timeout=1500)
@@ -56,6 +60,7 @@ if parallel <= 1 and not quick:
         print(f'\n===== test_{name}.py =====', flush=True)
         t = time.time()
         env = dict(os.environ)
+        env.update(EXTRA_ENV.get(name, {}))
         if name in QUICK_ENV and quick: env.update(QUICK_ENV[name])
         rc = subprocess.run([sys.executable, os.path.join(HERE, f'test_{name}.py')], env=env, timeout=1500).returncode
         results[name] = (rc, time.time() - t)

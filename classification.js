@@ -126,7 +126,9 @@ function textContainsWord(haystackLower, word) {
 
 function classifyMealAndDish(recipe) {
   const titleLower = (recipe.title || '').toLowerCase();
-  const ingredientNames = (recipe.ingredients || []).map((i) => (i.name || '').toLowerCase()).join(' ');
+  // Gruppenueberschriften ("Für die rote Butter-Sauce:") sind keine Zutaten und sagen nichts ueber die Gerichtsart des ganzen Rezepts
+  const ingredientNames = (recipe.ingredients || []).filter((i) => !(typeof isIngredientHeaderRow === 'function' && isIngredientHeaderRow(i)))
+    .map((i) => (i.name || '').toLowerCase()).join(' ');
   const stepsText = (recipe.steps || []).map((s) => (s.text || '').toLowerCase()).join(' ');
   const tagsLower = (recipe.tags || []).map((t) => t.toLowerCase());
 
@@ -136,7 +138,8 @@ function classifyMealAndDish(recipe) {
   // Bestaetigung mit mittlerer Sicherheit, wenn der Titel selbst nichts hergibt.
   for (const { id, words } of DISH_TYPE_KEYWORDS) {
     const inTitle = words.some((w) => textContainsWord(titleLower, w));
-    const inTagsOrIngredients = words.some((w) => tagsLower.includes(w) || textContainsWord(ingredientNames, w));
+    // "Sauce / Dip" als Gerichtsart nur aus Titel oder Tags: eine Zutat "Big-Mac-Sauce" macht aus Sloppy Joes keine Sauce
+    const inTagsOrIngredients = words.some((w) => tagsLower.includes(w) || (id !== 'sauce' && textContainsWord(ingredientNames, w)));
     if (inTitle) results.push({ id, confidence: 'high' });
     else if (inTagsOrIngredients) results.push({ id, confidence: 'medium' });
   }

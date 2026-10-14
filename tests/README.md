@@ -18,6 +18,7 @@ Alle Tests laufen mit Playwright (Python) gegen die echte App in einem Testbrows
 | `test_import.py` | Text-Import mit realistischen Rezepttexten, Timer-Erkennung |
 | `test_paket37_visual.py` | Neue visuelle Sprache: Schriftfamilien, kleinste Schrift, Tippflächen, Kontraste, Rezept ohne Foto, Startseite, Kochmodus, grosse Systemschrift, reduzierte Bewegung (Hell, Dunkel, Schwarz, 390 und 1280 px) |
 | `test_startseite_liste.py` | Handy-Startseite als Liste (unter 768 px) und Navigation mit fünf Punkten: Wortmarke zentriert, Zeilen, Favoriten, Aktionsknopf, Leerzustände, Filterdialog, 100 Rezepte, 320 bis 1440 px, Hell und Dunkel |
+| `test_pdf_ausgabe.py` | PDF-Ausgabe: erzeugt echte Einzelrezept- und Kochbuch-PDFs (Stile A/B/C, Naehrwerte aus/kompakt/erweitert, alle Cover), rendert jede Seite mit pdftoppm, liest den Text mit pdftotext und prueft die Abnahmekriterien 1 bis 12 des Auftrags «PDF-Export ueberarbeiten» (Kopf-/Fusszeilen, Ueberlappung, Bilder, Zutatenwoerter, Ueberschriften, Textabgleich, Restseiten, Fortsetzungsseiten, Inhaltsverzeichnis, Vorschau gleich Download, Daten unveraendert). Werkzeug: `tests/pdf_harness.py`, Testrezepte: `tests/fixtures/pdf_rezepte.json`. Braucht poppler (pdftoppm, pdftotext). Siehe unten «PDF-Pruefwerkzeug» |
 | `test_monkey.py` | Zufallstest: klickt wahllos durch die App, es darf kein Fehler auftreten |
 
 Regeln: Nicht ausgeführte Tests gelten nie als bestanden. Die Tests laufen mit fester Zeitzone (UTC), damit sie überall gleich sind.
@@ -28,3 +29,11 @@ Regeln: Nicht ausgeführte Tests gelten nie als bestanden. Die Tests laufen mit 
 - `python3 tests/run_all.py --schnell` ist zusaetzlich parallel und prueft den grossen Anpassungstest nur mit den wichtigsten Breiten und Darstellungen. Fuer die Entwicklung gedacht.
 - Auf GitHub laeuft immer die volle Reihe (`--parallel 3`).
 - Bei einzelnen Aenderungen reichen meist die dazu passenden Tests, zum Beispiel `python3 tests/run_all.py paket37_settings paket6`.
+
+## PDF-Pruefwerkzeug (tests/pdf_harness.py)
+
+- `python tests/pdf_harness.py <Ordner> [A B C]` erzeugt die Testexporte (PDFs, Seitenbilder `*_s-NN.png`, Kontaktboegen `*_bogen.png`, gemessene Seiten `*_dom.json`) und `befunde.json` (alle automatischen Pruefungen je Export). Dient als Vorher-Nachher-Vergleich.
+- In Python: `async with PdfSession(ordner) as s: ex = await s.single('pdf_manti', 'B', 'full')` bzw. `await s.book('ref', 'A', 'compact', cover='salbei', titel=..., name=..., slogan=...)`. `ex.render()`, `ex.text()`, `ex.info()`, `ex.kontaktbogen()` und die Funktionen `pruefe_*` liefern Befunde.
+- Gemessen wird der DOM jeder Druckseite unmittelbar vor `html2canvas` (je Seite einmal, nach dem Laden von Schriften und Bildern). Wird die Rastermaschine ersetzt, ist nur `HOOK_JS` anzupassen.
+- Die Nährwerte der Testrezepte werden mit der echten Berechnung erzeugt und, falls die Berechnung nicht «vollstaendig und aktuell» meldet, in der Test-Datenbank als vollstaendig markiert (nur Testdaten).
+- Ein Test, der scharf geschaltet werden soll (`SAVORA_PDF_ERWARTE_FEHLER`): Beschreibung im Kopf von `tests/test_pdf_ausgabe.py` und Eintrag `EXTRA_ENV` in `tests/run_all.py`.

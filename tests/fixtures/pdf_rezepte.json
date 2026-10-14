@@ -1,0 +1,3219 @@
+{
+ "_info": "Isolierte Testrezepte fuer tests/pdf_harness.py. _img: Testbild (landscape, portrait, square, wide, broken) wird zur Laufzeit mit Pillow erzeugt; _nutri: Naehrwerte berechnen. Das fehlerhafte Altmodell (Menge 1/2, Einheit Zwiebel, Name (fein geraspelt)) ist bewusst nachgebildet.",
+ "recipes": [
+  {
+   "id": "pdf_sloppy",
+   "title": "Sloppy Joe Buns",
+   "servings": 9,
+   "timeMinutes": 120,
+   "tags": [
+    "Backen"
+   ],
+   "categoryTags": [
+    "sauce"
+   ],
+   "diet": [],
+   "difficulty": "",
+   "notes": "",
+   "ingredients": [
+    {
+     "amount": "",
+     "unit": "",
+     "name": "Teig:"
+    },
+    {
+     "amount": "250",
+     "unit": "ml",
+     "name": "Milch, lauwarm"
+    },
+    {
+     "amount": "15",
+     "unit": "g",
+     "name": "Honig"
+    },
+    {
+     "amount": "7",
+     "unit": "g",
+     "name": "Trockenhefe"
+    },
+    {
+     "amount": "1",
+     "unit": "",
+     "name": "Ei (gross)"
+    },
+    {
+     "amount": "45",
+     "unit": "g",
+     "name": "Butter, ungesalzen"
+    },
+    {
+     "amount": "500",
+     "unit": "g",
+     "name": "Weissmehl"
+    },
+    {
+     "amount": "8",
+     "unit": "g",
+     "name": "Salz"
+    },
+    {
+     "amount": "",
+     "unit": "",
+     "name": "Sloppy-Joe-Füllung:"
+    },
+    {
+     "amount": "25",
+     "unit": "ml",
+     "name": "Olivenöl"
+    },
+    {
+     "amount": "600",
+     "unit": "g",
+     "name": "Rinderhackfleisch"
+    },
+    {
+     "amount": "4",
+     "unit": "g",
+     "name": "Salz"
+    },
+    {
+     "amount": "3",
+     "unit": "g",
+     "name": "Paprikapulver"
+    },
+    {
+     "amount": "2",
+     "unit": "g",
+     "name": "Knoblauchpulver"
+    },
+    {
+     "amount": "3",
+     "unit": "g",
+     "name": "Zwiebelpulver"
+    },
+    {
+     "amount": "3",
+     "unit": "g",
+     "name": "Cayennepfeffer"
+    },
+    {
+     "amount": "1 1/2",
+     "unit": "g",
+     "name": "schwarzer Pfeffer"
+    },
+    {
+     "amount": "100",
+     "unit": "g",
+     "name": "Ketchup"
+    },
+    {
+     "amount": "",
+     "unit": "",
+     "name": "Zum Füllen und Bestreichen:"
+    },
+    {
+     "amount": "",
+     "unit": "",
+     "name": "Käsescheiben (Cheddar oder Schmelzkäse)"
+    },
+    {
+     "amount": "",
+     "unit": "",
+     "name": "Big-Mac-Sauce"
+    },
+    {
+     "amount": "1",
+     "unit": "",
+     "name": "Ei (gross), verquirlt"
+    },
+    {
+     "amount": "",
+     "unit": "",
+     "name": "Sesam"
+    }
+   ],
+   "steps": [
+    {
+     "text": "Lauwarme Milch, Honig und Hefe in einer grossen Schüssel verrühren und 5 Minuten stehen lassen."
+    },
+    {
+     "text": "Ei und Butter dazugeben und gut vermischen. Mehl und Salz hinzufügen und den Teig 10 bis 12 Minuten glatt kneten."
+    },
+    {
+     "text": "Schüssel abdecken und den Teig an einem warmen Ort 1 Stunde gehen lassen, bis er sich verdoppelt hat."
+    },
+    {
+     "text": "Olivenöl in einer Pfanne bei mittlerer bis hoher Hitze erwärmen. Hackfleisch mit Salz, Paprika, Knoblauchpulver, Zwiebelpulver, Cayennepfeffer und schwarzem Pfeffer 7 bis 8 Minuten anbraten, bis es durchgegart und gebräunt ist."
+    },
+    {
+     "text": "Ketchup unterrühren, bis alles gut vermischt ist. Füllung vollständig auskühlen lassen."
+    },
+    {
+     "text": "Aufgegangenen Teig zusammendrücken, in 9 gleich grosse Stücke teilen und zu Kugeln formen."
+    },
+    {
+     "text": "Jede Kugel zu einem runden Fladen ausrollen."
+    },
+    {
+     "text": "In die Mitte jedes Fladens eine Käsescheibe legen, dann etwas Füllung und einen Löffel Burgersauce daraufgeben. Nach Wunsch noch mehr Käse."
+    },
+    {
+     "text": "Teig nach innen einschlagen und gut zusammendrücken, damit die Brötchen dicht sind."
+    },
+    {
+     "text": "Brötchen mit der Naht nach unten auf ein Blech mit Backpapier legen, mit verquirltem Ei bestreichen und mit Sesam bestreuen. 30 Minuten gehen lassen."
+    },
+    {
+     "text": "Im vorgeheizten Ofen bei 200 °C 12 bis 18 Minuten goldbraun backen."
+    },
+    {
+     "text": "Quelle: kookmutsjes.com"
+    }
+   ],
+   "_img": "landscape",
+   "_nutri": true
+  },
+  {
+   "id": "pdf_manti",
+   "title": "Türkische Manti",
+   "servings": 4,
+   "timeMinutes": 30,
+   "tags": [
+    "Hauptgang"
+   ],
+   "categoryTags": [
+    "sauce"
+   ],
+   "diet": [],
+   "difficulty": "",
+   "notes": "",
+   "ingredients": [
+    {
+     "amount": "",
+     "unit": "",
+     "name": "Für den Teig:"
+    },
+    {
+     "amount": "200",
+     "unit": "g",
+     "name": "Mehl (+ etwas Mehl zum Ausrollen)"
+    },
+    {
+     "amount": "75",
+     "unit": "ml",
+     "name": "Wasser"
+    },
+    {
+     "amount": "1/2",
+     "unit": "Ei",
+     "name": "(Ei verquirlen und die Hälfte nehmen)"
+    },
+    {
+     "amount": "1/4",
+     "unit": "EL",
+     "name": "(ca. 1 gestrichener TL) Salz"
+    },
+    {
+     "amount": "",
+     "unit": "",
+     "name": "Für die Füllung:"
+    },
+    {
+     "amount": "150",
+     "unit": "g",
+     "name": "Hackfleisch (Rind)"
+    },
+    {
+     "amount": "1/2",
+     "unit": "Zwiebel",
+     "name": "(fein geraspelt)"
+    },
+    {
+     "amount": "1/2",
+     "unit": "Knoblauchzehe",
+     "name": "(fein geraspelt)"
+    },
+    {
+     "amount": "1/2",
+     "unit": "Handvoll",
+     "name": "glatte Petersilie (sehr fein gehackt)"
+    },
+    {
+     "amount": "1/2",
+     "unit": "EL",
+     "name": "Olivenöl"
+    },
+    {
+     "amount": "1/2",
+     "unit": "TL",
+     "name": "Paprikapulver"
+    },
+    {
+     "amount": "1/2",
+     "unit": "TL",
+     "name": "Salz"
+    },
+    {
+     "amount": "",
+     "unit": "",
+     "name": "Pfeffer aus der Mühle"
+    },
+    {
+     "amount": "",
+     "unit": "",
+     "name": "Für die Joghurtsauce:"
+    },
+    {
+     "amount": "250",
+     "unit": "g",
+     "name": "türkischer oder griechischer Joghurt (10 % Fett)"
+    },
+    {
+     "amount": "1/2",
+     "unit": "Knoblauchzehe",
+     "name": "(fein gerieben)"
+    },
+    {
+     "amount": "1",
+     "unit": "Prise",
+     "name": "Salz"
+    },
+    {
+     "amount": "",
+     "unit": "",
+     "name": "Für die rote Butter-Sauce:"
+    },
+    {
+     "amount": "100",
+     "unit": "g",
+     "name": "Butter"
+    },
+    {
+     "amount": "1",
+     "unit": "EL",
+     "name": "Paprikapulver edelsüß"
+    },
+    {
+     "amount": "1/2",
+     "unit": "TL",
+     "name": "Paprikaflocken / Pul Biber"
+    },
+    {
+     "amount": "1/4",
+     "unit": "TL",
+     "name": "Salz"
+    },
+    {
+     "amount": "",
+     "unit": "",
+     "name": "Optional: 1–2 frische Minzblätter (fein gehackt)"
+    }
+   ],
+   "steps": [
+    {
+     "text": "Teig zubereiten:"
+    },
+    {
+     "text": "Mehl, Wasser, ein halbes verquirltes Ei und Salz gründlich zu einem festen, elastischen Nudelteig verkneten. Abgedeckt mit einem sauberen Küchentuch für 30 Minuten ruhen lassen."
+    },
+    {
+     "text": "Füllung zubereiten:"
+    },
+    {
+     "text": "Hackfleisch, Olivenöl, geraspelte Zwiebel, geraspelten Knoblauch, fein gehackte Petersilie sowie Paprikapulver, Salz und Pfeffer in eine Schüssel geben und gut vermengen."
+    },
+    {
+     "text": "Manti formen:"
+    },
+    {
+     "text": "Den Teig auf einer bemehlten Arbeitsfläche so dünn wie möglich ausrollen. Mit einem Pizzaschneider oder Messer in ca. 3 × 3 cm große Quadrate schneiden. Auf jedes Quadrat jeweils eine kleine Portion (ca. 1/4 TL) der Hackfleisch-Füllung setzen. Die vier Ecken in der Mitte zusammenführen und fest zusammendrücken, sodass kleine Päckchen entstehen."
+    },
+    {
+     "text": "Joghurtsauce:"
+    },
+    {
+     "text": "Joghurt, geriebenen Knoblauch und eine Prise Salz verrühren und beiseitestellen."
+    },
+    {
+     "text": "Manti kochen:"
+    },
+    {
+     "text": "Einen großen Topf mit Wasser zum Kochen bringen und ca. 1 EL Salz dazugeben. Die Manti hineingeben und für ca. 4–5 Minuten sprudelnd kochen lassen, bis sie an der Oberfläche schwimmen. Mit einem Schaumlöffel vorsichtig herausnehmen."
+    },
+    {
+     "text": "Rote Sauce zubereiten:"
+    },
+    {
+     "text": "Die Butter in einer kleinen Pfanne schmelzen. Paprikapulver, Paprikaflocken und Salz einrühren, bis die Sauce leicht aufschäumt, dann sofort vom Herd nehmen. (Wer mag, kann einen Teil mit fein gehackter Minze verfeinern)."
+    },
+    {
+     "text": "Anrichten:"
+    },
+    {
+     "text": "Joghurt auf tiefe Teller geben, die heißen Manti darauf verteilen und reichlich mit der roten Butter-Sauce beträufeln."
+    }
+   ],
+   "_img": "landscape",
+   "_nutri": true
+  },
+  {
+   "id": "pdf_carbonara",
+   "title": "Carbonara",
+   "servings": 2,
+   "timeMinutes": 10,
+   "tags": [
+    "Hauptgang"
+   ],
+   "categoryTags": [
+    "pasta"
+   ],
+   "diet": [],
+   "difficulty": "",
+   "notes": "Tipps für das perfekte Ergebnis",
+   "ingredients": [
+    {
+     "amount": "240",
+     "unit": "g",
+     "name": "Spaghetti (oder dünne lange Pasta)"
+    },
+    {
+     "amount": "100",
+     "unit": "g",
+     "name": "Pancetta oder Guanciale am Stück (alternativ Bauchspeck oder Bacon)"
+    },
+    {
+     "amount": "2",
+     "unit": "",
+     "name": "Eier (Größe M)"
+    },
+    {
+     "amount": "40",
+     "unit": "g",
+     "name": "Parmesan oder Grana Padano (frisch gerieben)"
+    },
+    {
+     "amount": "40",
+     "unit": "g",
+     "name": "Pecorino Romano (frisch gerieben)"
+    },
+    {
+     "amount": "",
+     "unit": "",
+     "name": "Salz (für das Nudelwasser)"
+    },
+    {
+     "amount": "",
+     "unit": "",
+     "name": "Schwarzer Pfeffer aus der Mühle"
+    }
+   ],
+   "steps": [
+    {
+     "text": "Speck vorbereiten:"
+    },
+    {
+     "text": "Den Speck in ca. 0,5–1 cm große Würfel schneiden. In einer Pfanne ohne zusätzliches Fett bei mittlerer Hitze sanft ausbraten, bis er knusprig ist. Anschließend beiseitestellen."
+    },
+    {
+     "text": "Pasta kochen:"
+    },
+    {
+     "text": "Die Spaghetti in reichlich kochendem Salzwasser nach Packungsangabe al dente (bissfest) kochen."
+    },
+    {
+     "text": "Ei-Käse-Mischung anrühren:"
+    },
+    {
+     "text": "Während die Pasta kocht, die Eier in einer Schüssel mit dem geriebenen Parmesan und Pecorino verquirlen. Nach Geschmack mit schwarzem Pfeffer aus der Mühle und eventuell einer kleinen Prise Salz würzen."
+    },
+    {
+     "text": "Cremig vollenden:"
+    },
+    {
+     "text": "Den Herd ausschalten und auf der noch warmen Herdplatte weiterarbeiten. Die Ei-Käse-Mischung zusammen mit etwas restlichem Nudelwasser zur Pasta in die Pfanne geben. Alles stetig schwenken und verrühren, bis sich das Ei nicht verfestigt (nicht stockt), sondern zusammen mit dem Käse und Nudelwasser eine samtige, cremige Sauce bildet. Bei Bedarf noch tröpfchenweise Kochwasser hinzufügen."
+    },
+    {
+     "text": "Richtige Temperatur: Der Herd muss ausgeschaltet sein, wenn das Ei hinzugefügt wird. Bei zu großer Hitze gerinnt das Ei und wird zu Rührei."
+    },
+    {
+     "text": "Nudelwasser ist Gold wert: Die Stärke im Kochwasser ist der Schlüssel für die Bindung und Cremigkeit der Sauce."
+    }
+   ],
+   "_img": "square",
+   "_nutri": true
+  },
+  {
+   "id": "pdf_cookies",
+   "title": "Chocolate Chip Cookies (Betty Bossi)",
+   "servings": 4,
+   "timeMinutes": 15,
+   "tags": [
+    "Dessert"
+   ],
+   "categoryTags": [
+    "baking"
+   ],
+   "diet": [],
+   "difficulty": "",
+   "notes": "",
+   "ingredients": [
+    {
+     "amount": "",
+     "unit": "",
+     "name": "Butter bräunen & Ofen vorheizen:"
+    },
+    {
+     "amount": "150",
+     "unit": "g",
+     "name": "Butter"
+    },
+    {
+     "amount": "150",
+     "unit": "g",
+     "name": "Rohzucker"
+    },
+    {
+     "amount": "100",
+     "unit": "g",
+     "name": "Zucker"
+    },
+    {
+     "amount": "1",
+     "unit": "Päckli",
+     "name": "Vanillezucker"
+    },
+    {
+     "amount": "2",
+     "unit": "",
+     "name": "Eier"
+    },
+    {
+     "amount": "150",
+     "unit": "g",
+     "name": "Mehl"
+    },
+    {
+     "amount": "150",
+     "unit": "g",
+     "name": "Halbweissmehl"
+    },
+    {
+     "amount": "2",
+     "unit": "Prisen",
+     "name": "Salz"
+    },
+    {
+     "amount": "1/2",
+     "unit": "TL",
+     "name": "Backpulver"
+    },
+    {
+     "amount": "1/2",
+     "unit": "TL",
+     "name": "Natron"
+    },
+    {
+     "amount": "300",
+     "unit": "g",
+     "name": "dunkle Schokolade oder Schokoladewürfeli"
+    }
+   ],
+   "steps": [
+    {
+     "text": "Butter bräunen & Ofen vorheizen:"
+    },
+    {
+     "text": "Den Ofen auf 180 °C Heissluft vorheizen. Die Butter in einer Pfanne warm werden lassen und köcheln, bis sie haselnussbraun ist. Anschliessend etwas abkühlen lassen."
+    },
+    {
+     "text": "Feuchte Zutaten schaumig rühren:"
+    },
+    {
+     "text": "Rohzucker, Zucker, Vanillezucker und Eier in einer Schüssel mischen. Die abgekühlte Butter dazugiessen und mit den Schwingbesen des Handrührgeräts rühren, bis die Masse heller ist."
+    },
+    {
+     "text": "Teig & Schokolade zusammenfügen:"
+    },
+    {
+     "text": "Mehl, Halbweissmehl, Salz, Backpulver und Natron mischen, unter die Eimasse rühren und rasch zu einem weichen Teig zusammenfügen (nicht kneten). Schokolade in kleine Würfeli schneiden und unter den Teig mischen."
+    },
+    {
+     "text": "Formen & Backen:"
+    },
+    {
+     "text": "Den Teig mithilfe eines Glacelöffels oder 2 Esslöffeln zu ca. 20 Kugeln formen. Mit genügend Abstand auf zwei mit Backpapier belegte Bleche verteilen."
+    },
+    {
+     "text": "Auskühlen:"
+    },
+    {
+     "text": "Im Ofen für ca. 15 Minuten backen. Herausnehmen und die Cookies auf einem Gitter auskühlen lassen."
+    },
+    {
+     "text": "Haltbarkeit: Gut verschlossen in einer Dose ca. 2 Wochen haltbar."
+    },
+    {
+     "text": "Vorbereiten / Einfrieren: Die ungebackenen Teigkugeln lassen sich in einem Gefrierbeutel ca. 1 Monat tiefkühlen. Die Cookies können noch tiefgekühlt gebacken werden – die Backzeit verlängert sich dadurch um ca. 5 Minuten."
+    }
+   ],
+   "_img": "portrait",
+   "_nutri": true
+  },
+  {
+   "id": "pdf_kurz",
+   "title": "Zitronenwasser",
+   "servings": 1,
+   "timeMinutes": 2,
+   "tags": [
+    "Getränk"
+   ],
+   "categoryTags": [],
+   "diet": [],
+   "difficulty": "",
+   "notes": "",
+   "ingredients": [
+    {
+     "amount": "1",
+     "unit": "",
+     "name": "Zitrone"
+    },
+    {
+     "amount": "3",
+     "unit": "dl",
+     "name": "Wasser"
+    }
+   ],
+   "steps": [
+    {
+     "text": "Zitrone auspressen und mit dem Wasser mischen."
+    }
+   ],
+   "_img": null
+  },
+  {
+   "id": "pdf_langtitel",
+   "title": "Sonntagsbraten nach Grossmutters Art mit geschmorten Zwiebeln, Rosmarinkartoffeln und einer kräftigen Rotweinsauce für die ganze Familie",
+   "servings": 6,
+   "timeMinutes": 185,
+   "tags": [
+    "Hauptgang"
+   ],
+   "categoryTags": [],
+   "diet": [],
+   "difficulty": "",
+   "notes": "",
+   "ingredients": [
+    {
+     "amount": "1.2",
+     "unit": "kg",
+     "name": "Rindsschmorbraten"
+    },
+    {
+     "amount": "800",
+     "unit": "g",
+     "name": "Kartoffeln, festkochend"
+    },
+    {
+     "amount": "3",
+     "unit": "",
+     "name": "Zwiebeln"
+    },
+    {
+     "amount": "2",
+     "unit": "dl",
+     "name": "Rotwein"
+    },
+    {
+     "amount": "2",
+     "unit": "Zweige",
+     "name": "Rosmarin"
+    }
+   ],
+   "steps": [
+    {
+     "text": "Braten rundum anbraten, mit Rotwein ablöschen und zugedeckt 2,5 Stunden schmoren."
+    },
+    {
+     "text": "Kartoffeln mit Rosmarin im Ofen rösten und zum Braten servieren."
+    }
+   ],
+   "_img": "landscape",
+   "_nutri": true
+  },
+  {
+   "id": "pdf_vielezutaten",
+   "title": "Festtagsmenü mit vielen Zutaten",
+   "servings": 8,
+   "timeMinutes": 150,
+   "tags": [
+    "Hauptgang"
+   ],
+   "categoryTags": [],
+   "diet": [],
+   "difficulty": "",
+   "notes": "",
+   "ingredients": [
+    {
+     "amount": "",
+     "unit": "",
+     "name": "Für den Teig:"
+    },
+    {
+     "amount": "100",
+     "unit": "g",
+     "name": "Mehl, fein"
+    },
+    {
+     "amount": "110",
+     "unit": "g",
+     "name": "Zucker, grob"
+    },
+    {
+     "amount": "120",
+     "unit": "g",
+     "name": "Butter, frisch"
+    },
+    {
+     "amount": "130",
+     "unit": "g",
+     "name": "Milch, gehackt"
+    },
+    {
+     "amount": "140",
+     "unit": "g",
+     "name": "Eier, weich"
+    },
+    {
+     "amount": "150",
+     "unit": "g",
+     "name": "Salz, kalt"
+    },
+    {
+     "amount": "160",
+     "unit": "g",
+     "name": "Olivenöl, lauwarm"
+    },
+    {
+     "amount": "170",
+     "unit": "g",
+     "name": "Kartoffeln, gesiebt"
+    },
+    {
+     "amount": "",
+     "unit": "",
+     "name": "Für die Füllung:"
+    },
+    {
+     "amount": "1",
+     "unit": "g",
+     "name": "Mehl, kalt mit sehr langer Bezeichnung (frisch gehackt, nach Belieben)"
+    },
+    {
+     "amount": "2",
+     "unit": "ml",
+     "name": "Zucker, lauwarm"
+    },
+    {
+     "amount": "3",
+     "unit": "EL",
+     "name": "Butter, gesiebt"
+    },
+    {
+     "amount": "4",
+     "unit": "TL",
+     "name": "Milch, in Würfeln"
+    },
+    {
+     "amount": "5",
+     "unit": "g",
+     "name": "Eier, nach Belieben mit sehr langer Bezeichnung (frisch gehackt, nach Belieben)"
+    },
+    {
+     "amount": "6",
+     "unit": "ml",
+     "name": "Salz, fein"
+    },
+    {
+     "amount": "7",
+     "unit": "EL",
+     "name": "Olivenöl, grob"
+    },
+    {
+     "amount": "",
+     "unit": "",
+     "name": "Für die Sauce:"
+    },
+    {
+     "amount": "1",
+     "unit": "g",
+     "name": "Zucker, gehackt mit sehr langer Bezeichnung (frisch gehackt, nach Belieben)"
+    },
+    {
+     "amount": "2",
+     "unit": "ml",
+     "name": "Butter, weich"
+    },
+    {
+     "amount": "3",
+     "unit": "EL",
+     "name": "Milch, kalt"
+    },
+    {
+     "amount": "4",
+     "unit": "TL",
+     "name": "Eier, lauwarm"
+    },
+    {
+     "amount": "5",
+     "unit": "g",
+     "name": "Salz, gesiebt mit sehr langer Bezeichnung (frisch gehackt, nach Belieben)"
+    },
+    {
+     "amount": "6",
+     "unit": "ml",
+     "name": "Olivenöl, in Würfeln"
+    },
+    {
+     "amount": "7",
+     "unit": "EL",
+     "name": "Kartoffeln, nach Belieben"
+    },
+    {
+     "amount": "",
+     "unit": "",
+     "name": "Für die Dekoration:"
+    },
+    {
+     "amount": "1",
+     "unit": "g",
+     "name": "Olivenöl, in Würfeln mit sehr langer Bezeichnung (frisch gehackt, nach Belieben)"
+    },
+    {
+     "amount": "2",
+     "unit": "ml",
+     "name": "Kartoffeln, nach Belieben"
+    },
+    {
+     "amount": "3",
+     "unit": "EL",
+     "name": "Karotten, fein"
+    },
+    {
+     "amount": "4",
+     "unit": "TL",
+     "name": "Zwiebeln, grob"
+    },
+    {
+     "amount": "5",
+     "unit": "g",
+     "name": "Reis, frisch mit sehr langer Bezeichnung (frisch gehackt, nach Belieben)"
+    },
+    {
+     "amount": "6",
+     "unit": "ml",
+     "name": "Haferflocken, gehackt"
+    },
+    {
+     "amount": "7",
+     "unit": "EL",
+     "name": "Tomaten, weich"
+    },
+    {
+     "amount": "",
+     "unit": "",
+     "name": "Zum Servieren:"
+    },
+    {
+     "amount": "1",
+     "unit": "g",
+     "name": "Zucker, gehackt mit sehr langer Bezeichnung (frisch gehackt, nach Belieben)"
+    },
+    {
+     "amount": "2",
+     "unit": "ml",
+     "name": "Butter, weich"
+    },
+    {
+     "amount": "3",
+     "unit": "EL",
+     "name": "Milch, kalt"
+    },
+    {
+     "amount": "4",
+     "unit": "TL",
+     "name": "Eier, lauwarm"
+    },
+    {
+     "amount": "5",
+     "unit": "g",
+     "name": "Salz, gesiebt mit sehr langer Bezeichnung (frisch gehackt, nach Belieben)"
+    },
+    {
+     "amount": "6",
+     "unit": "ml",
+     "name": "Olivenöl, in Würfeln"
+    },
+    {
+     "amount": "7",
+     "unit": "EL",
+     "name": "Kartoffeln, nach Belieben"
+    }
+   ],
+   "steps": [
+    {
+     "text": "Alle Zutaten bereitstellen und abwägen."
+    },
+    {
+     "text": "Den Teig herstellen und ruhen lassen."
+    },
+    {
+     "text": "Die Füllung kochen, abkühlen lassen und in den Teig einschlagen."
+    },
+    {
+     "text": "Sauce kochen und abschmecken."
+    },
+    {
+     "text": "Alles anrichten und dekorieren."
+    }
+   ],
+   "_img": "square",
+   "_nutri": true
+  },
+  {
+   "id": "pdf_langeeinheiten",
+   "title": "Lange Einheiten und Bezeichnungen",
+   "servings": 4,
+   "timeMinutes": 40,
+   "tags": [
+    "Hauptgang"
+   ],
+   "categoryTags": [],
+   "diet": [],
+   "difficulty": "",
+   "notes": "",
+   "ingredients": [
+    {
+     "amount": "1",
+     "unit": "Handvoll",
+     "name": "glatte Petersilie, grob gehackt"
+    },
+    {
+     "amount": "2",
+     "unit": "gehäufte Esslöffel",
+     "name": "Kapern"
+    },
+    {
+     "amount": "3",
+     "unit": "Bund",
+     "name": "Schnittlauch"
+    },
+    {
+     "amount": "1",
+     "unit": "Dose (400 g Abtropfgewicht)",
+     "name": "Kichererbsen"
+    },
+    {
+     "amount": "1",
+     "unit": "Messerspitze",
+     "name": "Cayennepfeffer"
+    },
+    {
+     "amount": "2",
+     "unit": "gestrichene Teelöffel",
+     "name": "Paprikapulver edelsüss"
+    },
+    {
+     "amount": "4",
+     "unit": "Zehen",
+     "name": "Knoblauch"
+    },
+    {
+     "amount": "1",
+     "unit": "Päckchen",
+     "name": "Vanillezucker"
+    },
+    {
+     "amount": "2",
+     "unit": "Scheiben",
+     "name": "Toastbrot"
+    },
+    {
+     "amount": "1",
+     "unit": "Prise",
+     "name": "Salz"
+    },
+    {
+     "amount": "",
+     "unit": "",
+     "name": "Hochfein vermahlenes Weizenmehl Typ 405 aus regionalem Anbau, gesiebt, zimmerwarm"
+    }
+   ],
+   "steps": [
+    {
+     "text": "Alles vermischen und 20 Minuten ziehen lassen."
+    },
+    {
+     "text": "Servieren."
+    }
+   ],
+   "_img": null
+  },
+  {
+   "id": "pdf_ohnemenge",
+   "title": "Zutaten ohne Menge",
+   "servings": 2,
+   "timeMinutes": 15,
+   "tags": [
+    "Beilage"
+   ],
+   "categoryTags": [],
+   "diet": [],
+   "difficulty": "",
+   "notes": "",
+   "ingredients": [
+    {
+     "amount": "",
+     "unit": "",
+     "name": "Salz"
+    },
+    {
+     "amount": "",
+     "unit": "",
+     "name": "Pfeffer aus der Mühle"
+    },
+    {
+     "amount": "",
+     "unit": "",
+     "name": "etwas frischer Thymian"
+    },
+    {
+     "amount": "",
+     "unit": "",
+     "name": "Olivenöl nach Belieben"
+    },
+    {
+     "amount": "",
+     "unit": "",
+     "name": "Zitronensaft"
+    },
+    {
+     "amount": "200",
+     "unit": "g",
+     "name": "Rucola"
+    }
+   ],
+   "steps": [
+    {
+     "text": "Alles vermengen und sofort servieren."
+    }
+   ],
+   "_img": null
+  },
+  {
+   "id": "pdf_zahlen",
+   "title": "Crème brûlée à la façon d’Éric & Söhne",
+   "servings": 6,
+   "timeMinutes": 75,
+   "tags": [
+    "Dessert"
+   ],
+   "categoryTags": [],
+   "diet": [],
+   "difficulty": "",
+   "notes": "",
+   "ingredients": [
+    {
+     "amount": "1/2",
+     "unit": "TL",
+     "name": "Vanilleschote, ausgekratzt"
+    },
+    {
+     "amount": "1/4",
+     "unit": "l",
+     "name": "Rahm (35 % Fett)"
+    },
+    {
+     "amount": "1 1/2",
+     "unit": "dl",
+     "name": "Vollmilch"
+    },
+    {
+     "amount": "2-3",
+     "unit": "",
+     "name": "Eigelb"
+    },
+    {
+     "amount": "0.75",
+     "unit": "dl",
+     "name": "Zucker"
+    },
+    {
+     "amount": "1,5",
+     "unit": "EL",
+     "name": "Rohrzucker zum Karamellisieren"
+    },
+    {
+     "amount": "200–300",
+     "unit": "g",
+     "name": "Beeren, gemischt"
+    },
+    {
+     "amount": "1.000",
+     "unit": "g",
+     "name": "Wasser für das Wasserbad"
+    },
+    {
+     "amount": "2",
+     "unit": "",
+     "name": "Eier <Grösse \"L\">"
+    },
+    {
+     "amount": "",
+     "unit": "",
+     "name": "Salz & Pfeffer"
+    },
+    {
+     "amount": "3 – 4",
+     "unit": "Stk.",
+     "name": "Löffelbiskuits"
+    }
+   ],
+   "steps": [
+    {
+     "text": "Rahm & Milch mit der Vanille aufkochen (ca. 85 °C), 10 Min. ziehen lassen – dann durch ein Sieb giessen."
+    },
+    {
+     "text": "Eigelb und Zucker verrühren, den Rahm unter Rühren dazugeben."
+    },
+    {
+     "text": "Im Wasserbad bei 150 °C ca. 40–45 Min. garen; kalt stellen, dann mit Rohrzucker bestreuen und abflammen."
+    }
+   ],
+   "_img": "square"
+  },
+  {
+   "id": "pdf_langerschritt",
+   "title": "Ein sehr langer Zubereitungsschritt",
+   "servings": 4,
+   "timeMinutes": 60,
+   "tags": [
+    "Hauptgang"
+   ],
+   "categoryTags": [],
+   "diet": [],
+   "difficulty": "",
+   "notes": "",
+   "ingredients": [
+    {
+     "amount": "500",
+     "unit": "g",
+     "name": "Rindfleisch"
+    },
+    {
+     "amount": "2",
+     "unit": "",
+     "name": "Zwiebeln"
+    },
+    {
+     "amount": "3",
+     "unit": "EL",
+     "name": "Öl"
+    }
+   ],
+   "steps": [
+    {
+     "text": "Das Fleisch in grosse Würfel schneiden und portionsweise im heissen Öl rundum kräftig anbraten. Die Zwiebeln dazugeben, bei mittlerer Hitze glasig dünsten und immer wieder umrühren, damit nichts anbrennt; falls der Bratensatz zu dunkel wird, einen Schuss Wasser nachgiessen und den Boden der Pfanne mit einem Holzlöffel ablösen. Die Zwiebeln dazugeben, bei mittlerer Hitze glasig dünsten und immer wieder umrühren, damit nichts anbrennt; falls der Bratensatz zu dunkel wird, einen Schuss Wasser nachgiessen und den Boden der Pfanne mit einem Holzlöffel ablösen. Die Zwiebeln dazugeben, bei mittlerer Hitze glasig dünsten und immer wieder umrühren, damit nichts anbrennt; falls der Bratensatz zu dunkel wird, einen Schuss Wasser nachgiessen und den Boden der Pfanne mit einem Holzlöffel ablösen. Die Zwiebeln dazugeben, bei mittlerer Hitze glasig dünsten und immer wieder umrühren, damit nichts anbrennt; falls der Bratensatz zu dunkel wird, einen Schuss Wasser nachgiessen und den Boden der Pfanne mit einem Holzlöffel ablösen. Die Zwiebeln dazugeben, bei mittlerer Hitze glasig dünsten und immer wieder umrühren, damit nichts anbrennt; falls der Bratensatz zu dunkel wird, einen Schuss Wasser nachgiessen und den Boden der Pfanne mit einem Holzlöffel ablösen. Die Zwiebeln dazugeben, bei mittlerer Hitze glasig dünsten und immer wieder umrühren, damit nichts anbrennt; falls der Bratensatz zu dunkel wird, einen Schuss Wasser nachgiessen und den Boden der Pfanne mit einem Holzlöffel ablösen. Die Zwiebeln dazugeben, bei mittlerer Hitze glasig dünsten und immer wieder umrühren, damit nichts anbrennt; falls der Bratensatz zu dunkel wird, einen Schuss Wasser nachgiessen und den Boden der Pfanne mit einem Holzlöffel ablösen. Die Zwiebeln dazugeben, bei mittlerer Hitze glasig dünsten und immer wieder umrühren, damit nichts anbrennt; falls der Bratensatz zu dunkel wird, einen Schuss Wasser nachgiessen und den Boden der Pfanne mit einem Holzlöffel ablösen. Die Zwiebeln dazugeben, bei mittlerer Hitze glasig dünsten und immer wieder umrühren, damit nichts anbrennt; falls der Bratensatz zu dunkel wird, einen Schuss Wasser nachgiessen und den Boden der Pfanne mit einem Holzlöffel ablösen. Zum Schluss abschmecken."
+    },
+    {
+     "text": "Servieren."
+    }
+   ],
+   "_img": "landscape"
+  },
+  {
+   "id": "pdf_vieleschritte",
+   "title": "Viele kurze Schritte",
+   "servings": 4,
+   "timeMinutes": 45,
+   "tags": [
+    "Hauptgang"
+   ],
+   "categoryTags": [],
+   "diet": [],
+   "difficulty": "",
+   "notes": "",
+   "ingredients": [
+    {
+     "amount": "4",
+     "unit": "",
+     "name": "Eier"
+    },
+    {
+     "amount": "200",
+     "unit": "g",
+     "name": "Mehl"
+    }
+   ],
+   "steps": [
+    {
+     "text": "Schritt 1: kurz und knapp."
+    },
+    {
+     "text": "Schritt 2: kurz und knapp."
+    },
+    {
+     "text": "Schritt 3: kurz und knapp."
+    },
+    {
+     "text": "Schritt 4: kurz und knapp."
+    },
+    {
+     "text": "Schritt 5: kurz und knapp."
+    },
+    {
+     "text": "Schritt 6: kurz und knapp."
+    },
+    {
+     "text": "Schritt 7: kurz und knapp."
+    },
+    {
+     "text": "Schritt 8: kurz und knapp."
+    },
+    {
+     "text": "Schritt 9: kurz und knapp."
+    },
+    {
+     "text": "Schritt 10: kurz und knapp."
+    },
+    {
+     "text": "Schritt 11: kurz und knapp."
+    },
+    {
+     "text": "Schritt 12: kurz und knapp."
+    },
+    {
+     "text": "Schritt 13: kurz und knapp."
+    },
+    {
+     "text": "Schritt 14: kurz und knapp."
+    },
+    {
+     "text": "Schritt 15: kurz und knapp."
+    },
+    {
+     "text": "Schritt 16: kurz und knapp."
+    },
+    {
+     "text": "Schritt 17: kurz und knapp."
+    },
+    {
+     "text": "Schritt 18: kurz und knapp."
+    },
+    {
+     "text": "Schritt 19: kurz und knapp."
+    },
+    {
+     "text": "Schritt 20: kurz und knapp."
+    },
+    {
+     "text": "Schritt 21: kurz und knapp."
+    },
+    {
+     "text": "Schritt 22: kurz und knapp."
+    },
+    {
+     "text": "Schritt 23: kurz und knapp."
+    },
+    {
+     "text": "Schritt 24: kurz und knapp."
+    },
+    {
+     "text": "Schritt 25: kurz und knapp."
+    },
+    {
+     "text": "Schritt 26: kurz und knapp."
+    },
+    {
+     "text": "Schritt 27: kurz und knapp."
+    },
+    {
+     "text": "Schritt 28: kurz und knapp."
+    },
+    {
+     "text": "Schritt 29: kurz und knapp."
+    },
+    {
+     "text": "Schritt 30: kurz und knapp."
+    }
+   ],
+   "_img": "portrait"
+  },
+  {
+   "id": "pdf_notizen",
+   "title": "Rezept mit langen Notizen und Quellen",
+   "servings": 4,
+   "timeMinutes": 30,
+   "tags": [
+    "Hauptgang"
+   ],
+   "categoryTags": [],
+   "diet": [],
+   "difficulty": "",
+   "notes": "Dieses Rezept haben wir über viele Jahre immer wieder verändert. Dieses Rezept haben wir über viele Jahre immer wieder verändert. Dieses Rezept haben wir über viele Jahre immer wieder verändert. Dieses Rezept haben wir über viele Jahre immer wieder verändert. Dieses Rezept haben wir über viele Jahre immer wieder verändert. Dieses Rezept haben wir über viele Jahre immer wieder verändert. Dieses Rezept haben wir über viele Jahre immer wieder verändert. Dieses Rezept haben wir über viele Jahre immer wieder verändert. Dieses Rezept haben wir über viele Jahre immer wieder verändert. Dieses Rezept haben wir über viele Jahre immer wieder verändert. Dieses Rezept haben wir über viele Jahre immer wieder verändert. Dieses Rezept haben wir über viele Jahre immer wieder verändert. Dieses Rezept haben wir über viele Jahre immer wieder verändert. Dieses Rezept haben wir über viele Jahre immer wieder verändert. Tipp für Gäste: am Vortag vorbereiten.",
+   "ingredients": [
+    {
+     "amount": "500",
+     "unit": "g",
+     "name": "Kürbis"
+    },
+    {
+     "amount": "1",
+     "unit": "",
+     "name": "Zwiebel"
+    },
+    {
+     "amount": "7",
+     "unit": "dl",
+     "name": "Gemüsebrühe"
+    }
+   ],
+   "steps": [
+    {
+     "text": "Kürbis würfeln, mit der Zwiebel andünsten, mit Brühe ablöschen und weich kochen."
+    },
+    {
+     "text": "Pürieren und abschmecken."
+    },
+    {
+     "text": "Hinweis: Die Suppe lässt sich gut einfrieren."
+    },
+    {
+     "text": "Quelle: https://www.beispiel-rezepte.example.ch/sammlungen/familienrezepte/herbst/kuerbissuppe-mit-sehr-langem-namen-und-vielen-zusaetzlichen-pfadteilen"
+    }
+   ],
+   "_img": "landscape",
+   "source": {
+    "title": "Rezeptsammlung",
+    "url": "https://www.beispiel-rezepte.example.ch/sammlungen/familienrezepte/herbst/kuerbissuppe-mit-sehr-langem-namen-und-vielen-zusaetzlichen-pfadteilen?utm_source=newsletter&utm_medium=email&utm_campaign=herbst2026"
+   }
+  },
+  {
+   "id": "pdf_bildkaputt",
+   "title": "Rezept mit fehlerhaftem Bild",
+   "servings": 2,
+   "timeMinutes": 20,
+   "tags": [
+    "Hauptgang"
+   ],
+   "categoryTags": [],
+   "diet": [],
+   "difficulty": "",
+   "notes": "",
+   "ingredients": [
+    {
+     "amount": "200",
+     "unit": "g",
+     "name": "Reis"
+    },
+    {
+     "amount": "4",
+     "unit": "dl",
+     "name": "Wasser"
+    }
+   ],
+   "steps": [
+    {
+     "text": "Reis waschen und im Wasser 12 Minuten köcheln lassen."
+    }
+   ],
+   "_img": "broken"
+  },
+  {
+   "id": "pdf_hochformat",
+   "title": "Hochformatfoto",
+   "servings": 4,
+   "timeMinutes": 30,
+   "tags": [
+    "Hauptgang"
+   ],
+   "categoryTags": [],
+   "diet": [],
+   "difficulty": "",
+   "notes": "",
+   "ingredients": [
+    {
+     "amount": "300",
+     "unit": "g",
+     "name": "Penne"
+    },
+    {
+     "amount": "1",
+     "unit": "Dose",
+     "name": "Tomaten"
+    },
+    {
+     "amount": "1",
+     "unit": "",
+     "name": "Zwiebel"
+    }
+   ],
+   "steps": [
+    {
+     "text": "Penne kochen."
+    },
+    {
+     "text": "Sauce zubereiten und mischen."
+    }
+   ],
+   "_img": "portrait",
+   "_nutri": true
+  },
+  {
+   "id": "pdf_quadrat",
+   "title": "Quadratisches Foto",
+   "servings": 4,
+   "timeMinutes": 30,
+   "tags": [
+    "Hauptgang"
+   ],
+   "categoryTags": [],
+   "diet": [],
+   "difficulty": "",
+   "notes": "",
+   "ingredients": [
+    {
+     "amount": "300",
+     "unit": "g",
+     "name": "Reis"
+    },
+    {
+     "amount": "2",
+     "unit": "",
+     "name": "Peperoni"
+    }
+   ],
+   "steps": [
+    {
+     "text": "Reis kochen."
+    },
+    {
+     "text": "Peperoni anbraten und mischen."
+    }
+   ],
+   "_img": "square"
+  },
+  {
+   "id": "pdf_querformat",
+   "title": "Querformatfoto sehr breit",
+   "servings": 4,
+   "timeMinutes": 30,
+   "tags": [
+    "Hauptgang"
+   ],
+   "categoryTags": [],
+   "diet": [],
+   "difficulty": "",
+   "notes": "",
+   "ingredients": [
+    {
+     "amount": "300",
+     "unit": "g",
+     "name": "Couscous"
+    },
+    {
+     "amount": "2",
+     "unit": "",
+     "name": "Rüebli"
+    }
+   ],
+   "steps": [
+    {
+     "text": "Couscous quellen lassen."
+    },
+    {
+     "text": "Rüebli raffeln und mischen."
+    }
+   ],
+   "_img": "wide"
+  },
+  {
+   "id": "pdf_zweiseiten",
+   "title": "Rezept mit zwei Seiten",
+   "servings": 6,
+   "timeMinutes": 120,
+   "tags": [
+    "Hauptgang"
+   ],
+   "categoryTags": [],
+   "diet": [],
+   "difficulty": "",
+   "notes": "Am besten schmeckt es am nächsten Tag.",
+   "ingredients": [
+    {
+     "amount": "",
+     "unit": "",
+     "name": "Teig:"
+    },
+    {
+     "amount": "50",
+     "unit": "g",
+     "name": "Kartoffeln, grob"
+    },
+    {
+     "amount": "75",
+     "unit": "g",
+     "name": "Karotten, frisch"
+    },
+    {
+     "amount": "100",
+     "unit": "g",
+     "name": "Zwiebeln, gehackt"
+    },
+    {
+     "amount": "125",
+     "unit": "g",
+     "name": "Reis, weich"
+    },
+    {
+     "amount": "150",
+     "unit": "g",
+     "name": "Haferflocken, kalt"
+    },
+    {
+     "amount": "175",
+     "unit": "g",
+     "name": "Tomaten, lauwarm"
+    },
+    {
+     "amount": "200",
+     "unit": "g",
+     "name": "Rahm, gesiebt"
+    },
+    {
+     "amount": "225",
+     "unit": "g",
+     "name": "Käse, in Würfeln"
+    },
+    {
+     "amount": "250",
+     "unit": "g",
+     "name": "Mehl, nach Belieben"
+    },
+    {
+     "amount": "275",
+     "unit": "g",
+     "name": "Zucker, fein"
+    },
+    {
+     "amount": "",
+     "unit": "",
+     "name": "Füllung:"
+    },
+    {
+     "amount": "1",
+     "unit": "EL",
+     "name": "Käse, frisch"
+    },
+    {
+     "amount": "2",
+     "unit": "EL",
+     "name": "Mehl, gehackt"
+    },
+    {
+     "amount": "3",
+     "unit": "EL",
+     "name": "Zucker, weich"
+    },
+    {
+     "amount": "4",
+     "unit": "EL",
+     "name": "Butter, kalt"
+    },
+    {
+     "amount": "5",
+     "unit": "EL",
+     "name": "Milch, lauwarm"
+    },
+    {
+     "amount": "6",
+     "unit": "EL",
+     "name": "Eier, gesiebt"
+    },
+    {
+     "amount": "7",
+     "unit": "EL",
+     "name": "Salz, in Würfeln"
+    },
+    {
+     "amount": "8",
+     "unit": "EL",
+     "name": "Olivenöl, nach Belieben"
+    },
+    {
+     "amount": "9",
+     "unit": "EL",
+     "name": "Kartoffeln, fein"
+    },
+    {
+     "amount": "10",
+     "unit": "EL",
+     "name": "Karotten, grob"
+    },
+    {
+     "amount": "11",
+     "unit": "EL",
+     "name": "Zwiebeln, frisch"
+    },
+    {
+     "amount": "12",
+     "unit": "EL",
+     "name": "Reis, gehackt"
+    },
+    {
+     "amount": "",
+     "unit": "",
+     "name": "Guss:"
+    },
+    {
+     "amount": "1",
+     "unit": "dl",
+     "name": "Olivenöl, gehackt"
+    },
+    {
+     "amount": "2",
+     "unit": "dl",
+     "name": "Kartoffeln, weich"
+    },
+    {
+     "amount": "3",
+     "unit": "dl",
+     "name": "Karotten, kalt"
+    },
+    {
+     "amount": "4",
+     "unit": "dl",
+     "name": "Zwiebeln, lauwarm"
+    },
+    {
+     "amount": "5",
+     "unit": "dl",
+     "name": "Reis, gesiebt"
+    },
+    {
+     "amount": "6",
+     "unit": "dl",
+     "name": "Haferflocken, in Würfeln"
+    }
+   ],
+   "steps": [
+    {
+     "text": "Schritt 1: Alles gründlich vermischen, ruhen lassen und anschliessend sorgfältig weiterverarbeiten, bis die Masse gleichmässig und geschmeidig ist. Alles gründlich vermischen, ruhen lassen und anschliessend sorgfältig weiterverarbeiten, bis die Masse gleichmässig und geschmeidig ist. "
+    },
+    {
+     "text": "Schritt 2: Alles gründlich vermischen, ruhen lassen und anschliessend sorgfältig weiterverarbeiten, bis die Masse gleichmässig und geschmeidig ist. Alles gründlich vermischen, ruhen lassen und anschliessend sorgfältig weiterverarbeiten, bis die Masse gleichmässig und geschmeidig ist. "
+    },
+    {
+     "text": "Schritt 3: Alles gründlich vermischen, ruhen lassen und anschliessend sorgfältig weiterverarbeiten, bis die Masse gleichmässig und geschmeidig ist. Alles gründlich vermischen, ruhen lassen und anschliessend sorgfältig weiterverarbeiten, bis die Masse gleichmässig und geschmeidig ist. "
+    },
+    {
+     "text": "Schritt 4: Alles gründlich vermischen, ruhen lassen und anschliessend sorgfältig weiterverarbeiten, bis die Masse gleichmässig und geschmeidig ist. Alles gründlich vermischen, ruhen lassen und anschliessend sorgfältig weiterverarbeiten, bis die Masse gleichmässig und geschmeidig ist. "
+    },
+    {
+     "text": "Schritt 5: Alles gründlich vermischen, ruhen lassen und anschliessend sorgfältig weiterverarbeiten, bis die Masse gleichmässig und geschmeidig ist. Alles gründlich vermischen, ruhen lassen und anschliessend sorgfältig weiterverarbeiten, bis die Masse gleichmässig und geschmeidig ist. "
+    },
+    {
+     "text": "Schritt 6: Alles gründlich vermischen, ruhen lassen und anschliessend sorgfältig weiterverarbeiten, bis die Masse gleichmässig und geschmeidig ist. Alles gründlich vermischen, ruhen lassen und anschliessend sorgfältig weiterverarbeiten, bis die Masse gleichmässig und geschmeidig ist. "
+    },
+    {
+     "text": "Schritt 7: Alles gründlich vermischen, ruhen lassen und anschliessend sorgfältig weiterverarbeiten, bis die Masse gleichmässig und geschmeidig ist. Alles gründlich vermischen, ruhen lassen und anschliessend sorgfältig weiterverarbeiten, bis die Masse gleichmässig und geschmeidig ist. "
+    },
+    {
+     "text": "Schritt 8: Alles gründlich vermischen, ruhen lassen und anschliessend sorgfältig weiterverarbeiten, bis die Masse gleichmässig und geschmeidig ist. Alles gründlich vermischen, ruhen lassen und anschliessend sorgfältig weiterverarbeiten, bis die Masse gleichmässig und geschmeidig ist. "
+    },
+    {
+     "text": "Schritt 9: Alles gründlich vermischen, ruhen lassen und anschliessend sorgfältig weiterverarbeiten, bis die Masse gleichmässig und geschmeidig ist. Alles gründlich vermischen, ruhen lassen und anschliessend sorgfältig weiterverarbeiten, bis die Masse gleichmässig und geschmeidig ist. "
+    },
+    {
+     "text": "Schritt 10: Alles gründlich vermischen, ruhen lassen und anschliessend sorgfältig weiterverarbeiten, bis die Masse gleichmässig und geschmeidig ist. Alles gründlich vermischen, ruhen lassen und anschliessend sorgfältig weiterverarbeiten, bis die Masse gleichmässig und geschmeidig ist. "
+    },
+    {
+     "text": "Schritt 11: Alles gründlich vermischen, ruhen lassen und anschliessend sorgfältig weiterverarbeiten, bis die Masse gleichmässig und geschmeidig ist. Alles gründlich vermischen, ruhen lassen und anschliessend sorgfältig weiterverarbeiten, bis die Masse gleichmässig und geschmeidig ist. "
+    }
+   ],
+   "_img": "landscape",
+   "_nutri": true
+  },
+  {
+   "id": "pdf_dreiseiten",
+   "title": "Rezept mit mehr als drei Seiten",
+   "servings": 10,
+   "timeMinutes": 300,
+   "tags": [
+    "Hauptgang"
+   ],
+   "categoryTags": [],
+   "diet": [],
+   "difficulty": "",
+   "notes": "Dieses Menü braucht Planung. Dieses Menü braucht Planung. Dieses Menü braucht Planung. Dieses Menü braucht Planung. Dieses Menü braucht Planung. Dieses Menü braucht Planung. Dieses Menü braucht Planung. Dieses Menü braucht Planung. Dieses Menü braucht Planung. Dieses Menü braucht Planung. Dieses Menü braucht Planung. Dieses Menü braucht Planung. ",
+   "ingredients": [
+    {
+     "amount": "",
+     "unit": "",
+     "name": "Komponente 1:"
+    },
+    {
+     "amount": "",
+     "unit": "",
+     "name": "Komponente 2:"
+    },
+    {
+     "amount": "20",
+     "unit": "g",
+     "name": "Kartoffeln, grob mit etwas längerem Namen"
+    },
+    {
+     "amount": "25",
+     "unit": "ml",
+     "name": "Karotten, frisch mit etwas längerem Namen"
+    },
+    {
+     "amount": "30",
+     "unit": "EL",
+     "name": "Zwiebeln, gehackt mit etwas längerem Namen"
+    },
+    {
+     "amount": "35",
+     "unit": "g",
+     "name": "Reis, weich mit etwas längerem Namen"
+    },
+    {
+     "amount": "40",
+     "unit": "ml",
+     "name": "Haferflocken, kalt mit etwas längerem Namen"
+    },
+    {
+     "amount": "45",
+     "unit": "EL",
+     "name": "Tomaten, lauwarm mit etwas längerem Namen"
+    },
+    {
+     "amount": "50",
+     "unit": "g",
+     "name": "Rahm, gesiebt mit etwas längerem Namen"
+    },
+    {
+     "amount": "55",
+     "unit": "ml",
+     "name": "Käse, in Würfeln mit etwas längerem Namen"
+    },
+    {
+     "amount": "60",
+     "unit": "EL",
+     "name": "Mehl, nach Belieben mit etwas längerem Namen"
+    },
+    {
+     "amount": "65",
+     "unit": "g",
+     "name": "Zucker, fein mit etwas längerem Namen"
+    },
+    {
+     "amount": "70",
+     "unit": "ml",
+     "name": "Butter, grob mit etwas längerem Namen"
+    },
+    {
+     "amount": "",
+     "unit": "",
+     "name": "Komponente 3:"
+    },
+    {
+     "amount": "20",
+     "unit": "g",
+     "name": "Käse, frisch mit etwas längerem Namen"
+    },
+    {
+     "amount": "25",
+     "unit": "ml",
+     "name": "Mehl, gehackt mit etwas längerem Namen"
+    },
+    {
+     "amount": "30",
+     "unit": "EL",
+     "name": "Zucker, weich mit etwas längerem Namen"
+    },
+    {
+     "amount": "35",
+     "unit": "g",
+     "name": "Butter, kalt mit etwas längerem Namen"
+    },
+    {
+     "amount": "40",
+     "unit": "ml",
+     "name": "Milch, lauwarm mit etwas längerem Namen"
+    },
+    {
+     "amount": "45",
+     "unit": "EL",
+     "name": "Eier, gesiebt mit etwas längerem Namen"
+    },
+    {
+     "amount": "50",
+     "unit": "g",
+     "name": "Salz, in Würfeln mit etwas längerem Namen"
+    },
+    {
+     "amount": "55",
+     "unit": "ml",
+     "name": "Olivenöl, nach Belieben mit etwas längerem Namen"
+    },
+    {
+     "amount": "60",
+     "unit": "EL",
+     "name": "Kartoffeln, fein mit etwas längerem Namen"
+    },
+    {
+     "amount": "65",
+     "unit": "g",
+     "name": "Karotten, grob mit etwas längerem Namen"
+    },
+    {
+     "amount": "70",
+     "unit": "ml",
+     "name": "Zwiebeln, frisch mit etwas längerem Namen"
+    },
+    {
+     "amount": "",
+     "unit": "",
+     "name": "Komponente 4:"
+    },
+    {
+     "amount": "20",
+     "unit": "g",
+     "name": "Olivenöl, gehackt mit etwas längerem Namen"
+    },
+    {
+     "amount": "25",
+     "unit": "ml",
+     "name": "Kartoffeln, weich mit etwas längerem Namen"
+    },
+    {
+     "amount": "30",
+     "unit": "EL",
+     "name": "Karotten, kalt mit etwas längerem Namen"
+    },
+    {
+     "amount": "35",
+     "unit": "g",
+     "name": "Zwiebeln, lauwarm mit etwas längerem Namen"
+    },
+    {
+     "amount": "40",
+     "unit": "ml",
+     "name": "Reis, gesiebt mit etwas längerem Namen"
+    },
+    {
+     "amount": "45",
+     "unit": "EL",
+     "name": "Haferflocken, in Würfeln mit etwas längerem Namen"
+    },
+    {
+     "amount": "50",
+     "unit": "g",
+     "name": "Tomaten, nach Belieben mit etwas längerem Namen"
+    },
+    {
+     "amount": "55",
+     "unit": "ml",
+     "name": "Rahm, fein mit etwas längerem Namen"
+    },
+    {
+     "amount": "60",
+     "unit": "EL",
+     "name": "Käse, grob mit etwas längerem Namen"
+    },
+    {
+     "amount": "65",
+     "unit": "g",
+     "name": "Mehl, frisch mit etwas längerem Namen"
+    },
+    {
+     "amount": "70",
+     "unit": "ml",
+     "name": "Zucker, gehackt mit etwas längerem Namen"
+    },
+    {
+     "amount": "",
+     "unit": "",
+     "name": "Komponente 5:"
+    },
+    {
+     "amount": "20",
+     "unit": "g",
+     "name": "Rahm, weich mit etwas längerem Namen"
+    },
+    {
+     "amount": "25",
+     "unit": "ml",
+     "name": "Käse, kalt mit etwas längerem Namen"
+    },
+    {
+     "amount": "30",
+     "unit": "EL",
+     "name": "Mehl, lauwarm mit etwas längerem Namen"
+    },
+    {
+     "amount": "35",
+     "unit": "g",
+     "name": "Zucker, gesiebt mit etwas längerem Namen"
+    },
+    {
+     "amount": "40",
+     "unit": "ml",
+     "name": "Butter, in Würfeln mit etwas längerem Namen"
+    },
+    {
+     "amount": "45",
+     "unit": "EL",
+     "name": "Milch, nach Belieben mit etwas längerem Namen"
+    },
+    {
+     "amount": "50",
+     "unit": "g",
+     "name": "Eier, fein mit etwas längerem Namen"
+    },
+    {
+     "amount": "55",
+     "unit": "ml",
+     "name": "Salz, grob mit etwas längerem Namen"
+    },
+    {
+     "amount": "60",
+     "unit": "EL",
+     "name": "Olivenöl, frisch mit etwas längerem Namen"
+    },
+    {
+     "amount": "65",
+     "unit": "g",
+     "name": "Kartoffeln, gehackt mit etwas längerem Namen"
+    },
+    {
+     "amount": "70",
+     "unit": "ml",
+     "name": "Karotten, weich mit etwas längerem Namen"
+    },
+    {
+     "amount": "",
+     "unit": "",
+     "name": "Komponente 6:"
+    },
+    {
+     "amount": "20",
+     "unit": "g",
+     "name": "Salz, kalt mit etwas längerem Namen"
+    },
+    {
+     "amount": "25",
+     "unit": "ml",
+     "name": "Olivenöl, lauwarm mit etwas längerem Namen"
+    },
+    {
+     "amount": "30",
+     "unit": "EL",
+     "name": "Kartoffeln, gesiebt mit etwas längerem Namen"
+    },
+    {
+     "amount": "35",
+     "unit": "g",
+     "name": "Karotten, in Würfeln mit etwas längerem Namen"
+    },
+    {
+     "amount": "40",
+     "unit": "ml",
+     "name": "Zwiebeln, nach Belieben mit etwas längerem Namen"
+    },
+    {
+     "amount": "45",
+     "unit": "EL",
+     "name": "Reis, fein mit etwas längerem Namen"
+    },
+    {
+     "amount": "50",
+     "unit": "g",
+     "name": "Haferflocken, grob mit etwas längerem Namen"
+    },
+    {
+     "amount": "55",
+     "unit": "ml",
+     "name": "Tomaten, frisch mit etwas längerem Namen"
+    },
+    {
+     "amount": "60",
+     "unit": "EL",
+     "name": "Rahm, gehackt mit etwas längerem Namen"
+    },
+    {
+     "amount": "65",
+     "unit": "g",
+     "name": "Käse, weich mit etwas längerem Namen"
+    },
+    {
+     "amount": "70",
+     "unit": "ml",
+     "name": "Mehl, kalt mit etwas längerem Namen"
+    },
+    {
+     "amount": "",
+     "unit": "",
+     "name": "Komponente 7:"
+    },
+    {
+     "amount": "20",
+     "unit": "g",
+     "name": "Tomaten, lauwarm mit etwas längerem Namen"
+    },
+    {
+     "amount": "25",
+     "unit": "ml",
+     "name": "Rahm, gesiebt mit etwas längerem Namen"
+    },
+    {
+     "amount": "30",
+     "unit": "EL",
+     "name": "Käse, in Würfeln mit etwas längerem Namen"
+    },
+    {
+     "amount": "35",
+     "unit": "g",
+     "name": "Mehl, nach Belieben mit etwas längerem Namen"
+    },
+    {
+     "amount": "40",
+     "unit": "ml",
+     "name": "Zucker, fein mit etwas längerem Namen"
+    },
+    {
+     "amount": "45",
+     "unit": "EL",
+     "name": "Butter, grob mit etwas längerem Namen"
+    },
+    {
+     "amount": "50",
+     "unit": "g",
+     "name": "Milch, frisch mit etwas längerem Namen"
+    },
+    {
+     "amount": "55",
+     "unit": "ml",
+     "name": "Eier, gehackt mit etwas längerem Namen"
+    },
+    {
+     "amount": "60",
+     "unit": "EL",
+     "name": "Salz, weich mit etwas längerem Namen"
+    },
+    {
+     "amount": "65",
+     "unit": "g",
+     "name": "Olivenöl, kalt mit etwas längerem Namen"
+    },
+    {
+     "amount": "70",
+     "unit": "ml",
+     "name": "Kartoffeln, lauwarm mit etwas längerem Namen"
+    }
+   ],
+   "steps": [
+    {
+     "text": "Schritt 1: Die Komponente sorgfältig zubereiten, abschmecken, abkühlen lassen und für das Anrichten bereitstellen; dabei auf die Temperatur achten. Die Komponente sorgfältig zubereiten, abschmecken, abkühlen lassen und für das Anrichten bereitstellen; dabei auf die Temperatur achten. Die Komponente sorgfältig zubereiten, abschmecken, abkühlen lassen und für das Anrichten bereitstellen; dabei auf die Temperatur achten. "
+    },
+    {
+     "text": "Schritt 2: Die Komponente sorgfältig zubereiten, abschmecken, abkühlen lassen und für das Anrichten bereitstellen; dabei auf die Temperatur achten. Die Komponente sorgfältig zubereiten, abschmecken, abkühlen lassen und für das Anrichten bereitstellen; dabei auf die Temperatur achten. Die Komponente sorgfältig zubereiten, abschmecken, abkühlen lassen und für das Anrichten bereitstellen; dabei auf die Temperatur achten. "
+    },
+    {
+     "text": "Schritt 3: Die Komponente sorgfältig zubereiten, abschmecken, abkühlen lassen und für das Anrichten bereitstellen; dabei auf die Temperatur achten. Die Komponente sorgfältig zubereiten, abschmecken, abkühlen lassen und für das Anrichten bereitstellen; dabei auf die Temperatur achten. Die Komponente sorgfältig zubereiten, abschmecken, abkühlen lassen und für das Anrichten bereitstellen; dabei auf die Temperatur achten. "
+    },
+    {
+     "text": "Schritt 4: Die Komponente sorgfältig zubereiten, abschmecken, abkühlen lassen und für das Anrichten bereitstellen; dabei auf die Temperatur achten. Die Komponente sorgfältig zubereiten, abschmecken, abkühlen lassen und für das Anrichten bereitstellen; dabei auf die Temperatur achten. Die Komponente sorgfältig zubereiten, abschmecken, abkühlen lassen und für das Anrichten bereitstellen; dabei auf die Temperatur achten. "
+    },
+    {
+     "text": "Schritt 5: Die Komponente sorgfältig zubereiten, abschmecken, abkühlen lassen und für das Anrichten bereitstellen; dabei auf die Temperatur achten. Die Komponente sorgfältig zubereiten, abschmecken, abkühlen lassen und für das Anrichten bereitstellen; dabei auf die Temperatur achten. Die Komponente sorgfältig zubereiten, abschmecken, abkühlen lassen und für das Anrichten bereitstellen; dabei auf die Temperatur achten. "
+    },
+    {
+     "text": "Schritt 6: Die Komponente sorgfältig zubereiten, abschmecken, abkühlen lassen und für das Anrichten bereitstellen; dabei auf die Temperatur achten. Die Komponente sorgfältig zubereiten, abschmecken, abkühlen lassen und für das Anrichten bereitstellen; dabei auf die Temperatur achten. Die Komponente sorgfältig zubereiten, abschmecken, abkühlen lassen und für das Anrichten bereitstellen; dabei auf die Temperatur achten. "
+    },
+    {
+     "text": "Schritt 7: Die Komponente sorgfältig zubereiten, abschmecken, abkühlen lassen und für das Anrichten bereitstellen; dabei auf die Temperatur achten. Die Komponente sorgfältig zubereiten, abschmecken, abkühlen lassen und für das Anrichten bereitstellen; dabei auf die Temperatur achten. Die Komponente sorgfältig zubereiten, abschmecken, abkühlen lassen und für das Anrichten bereitstellen; dabei auf die Temperatur achten. "
+    },
+    {
+     "text": "Schritt 8: Die Komponente sorgfältig zubereiten, abschmecken, abkühlen lassen und für das Anrichten bereitstellen; dabei auf die Temperatur achten. Die Komponente sorgfältig zubereiten, abschmecken, abkühlen lassen und für das Anrichten bereitstellen; dabei auf die Temperatur achten. Die Komponente sorgfältig zubereiten, abschmecken, abkühlen lassen und für das Anrichten bereitstellen; dabei auf die Temperatur achten. "
+    },
+    {
+     "text": "Schritt 9: Die Komponente sorgfältig zubereiten, abschmecken, abkühlen lassen und für das Anrichten bereitstellen; dabei auf die Temperatur achten. Die Komponente sorgfältig zubereiten, abschmecken, abkühlen lassen und für das Anrichten bereitstellen; dabei auf die Temperatur achten. Die Komponente sorgfältig zubereiten, abschmecken, abkühlen lassen und für das Anrichten bereitstellen; dabei auf die Temperatur achten. "
+    },
+    {
+     "text": "Schritt 10: Die Komponente sorgfältig zubereiten, abschmecken, abkühlen lassen und für das Anrichten bereitstellen; dabei auf die Temperatur achten. Die Komponente sorgfältig zubereiten, abschmecken, abkühlen lassen und für das Anrichten bereitstellen; dabei auf die Temperatur achten. Die Komponente sorgfältig zubereiten, abschmecken, abkühlen lassen und für das Anrichten bereitstellen; dabei auf die Temperatur achten. "
+    },
+    {
+     "text": "Schritt 11: Die Komponente sorgfältig zubereiten, abschmecken, abkühlen lassen und für das Anrichten bereitstellen; dabei auf die Temperatur achten. Die Komponente sorgfältig zubereiten, abschmecken, abkühlen lassen und für das Anrichten bereitstellen; dabei auf die Temperatur achten. Die Komponente sorgfältig zubereiten, abschmecken, abkühlen lassen und für das Anrichten bereitstellen; dabei auf die Temperatur achten. "
+    },
+    {
+     "text": "Schritt 12: Die Komponente sorgfältig zubereiten, abschmecken, abkühlen lassen und für das Anrichten bereitstellen; dabei auf die Temperatur achten. Die Komponente sorgfältig zubereiten, abschmecken, abkühlen lassen und für das Anrichten bereitstellen; dabei auf die Temperatur achten. Die Komponente sorgfältig zubereiten, abschmecken, abkühlen lassen und für das Anrichten bereitstellen; dabei auf die Temperatur achten. "
+    },
+    {
+     "text": "Schritt 13: Die Komponente sorgfältig zubereiten, abschmecken, abkühlen lassen und für das Anrichten bereitstellen; dabei auf die Temperatur achten. Die Komponente sorgfältig zubereiten, abschmecken, abkühlen lassen und für das Anrichten bereitstellen; dabei auf die Temperatur achten. Die Komponente sorgfältig zubereiten, abschmecken, abkühlen lassen und für das Anrichten bereitstellen; dabei auf die Temperatur achten. "
+    },
+    {
+     "text": "Schritt 14: Die Komponente sorgfältig zubereiten, abschmecken, abkühlen lassen und für das Anrichten bereitstellen; dabei auf die Temperatur achten. Die Komponente sorgfältig zubereiten, abschmecken, abkühlen lassen und für das Anrichten bereitstellen; dabei auf die Temperatur achten. Die Komponente sorgfältig zubereiten, abschmecken, abkühlen lassen und für das Anrichten bereitstellen; dabei auf die Temperatur achten. "
+    },
+    {
+     "text": "Schritt 15: Die Komponente sorgfältig zubereiten, abschmecken, abkühlen lassen und für das Anrichten bereitstellen; dabei auf die Temperatur achten. Die Komponente sorgfältig zubereiten, abschmecken, abkühlen lassen und für das Anrichten bereitstellen; dabei auf die Temperatur achten. Die Komponente sorgfältig zubereiten, abschmecken, abkühlen lassen und für das Anrichten bereitstellen; dabei auf die Temperatur achten. "
+    },
+    {
+     "text": "Schritt 16: Die Komponente sorgfältig zubereiten, abschmecken, abkühlen lassen und für das Anrichten bereitstellen; dabei auf die Temperatur achten. Die Komponente sorgfältig zubereiten, abschmecken, abkühlen lassen und für das Anrichten bereitstellen; dabei auf die Temperatur achten. Die Komponente sorgfältig zubereiten, abschmecken, abkühlen lassen und für das Anrichten bereitstellen; dabei auf die Temperatur achten. "
+    },
+    {
+     "text": "Schritt 17: Die Komponente sorgfältig zubereiten, abschmecken, abkühlen lassen und für das Anrichten bereitstellen; dabei auf die Temperatur achten. Die Komponente sorgfältig zubereiten, abschmecken, abkühlen lassen und für das Anrichten bereitstellen; dabei auf die Temperatur achten. Die Komponente sorgfältig zubereiten, abschmecken, abkühlen lassen und für das Anrichten bereitstellen; dabei auf die Temperatur achten. "
+    },
+    {
+     "text": "Schritt 18: Die Komponente sorgfältig zubereiten, abschmecken, abkühlen lassen und für das Anrichten bereitstellen; dabei auf die Temperatur achten. Die Komponente sorgfältig zubereiten, abschmecken, abkühlen lassen und für das Anrichten bereitstellen; dabei auf die Temperatur achten. Die Komponente sorgfältig zubereiten, abschmecken, abkühlen lassen und für das Anrichten bereitstellen; dabei auf die Temperatur achten. "
+    },
+    {
+     "text": "Schritt 19: Die Komponente sorgfältig zubereiten, abschmecken, abkühlen lassen und für das Anrichten bereitstellen; dabei auf die Temperatur achten. Die Komponente sorgfältig zubereiten, abschmecken, abkühlen lassen und für das Anrichten bereitstellen; dabei auf die Temperatur achten. Die Komponente sorgfältig zubereiten, abschmecken, abkühlen lassen und für das Anrichten bereitstellen; dabei auf die Temperatur achten. "
+    },
+    {
+     "text": "Schritt 20: Die Komponente sorgfältig zubereiten, abschmecken, abkühlen lassen und für das Anrichten bereitstellen; dabei auf die Temperatur achten. Die Komponente sorgfältig zubereiten, abschmecken, abkühlen lassen und für das Anrichten bereitstellen; dabei auf die Temperatur achten. Die Komponente sorgfältig zubereiten, abschmecken, abkühlen lassen und für das Anrichten bereitstellen; dabei auf die Temperatur achten. "
+    },
+    {
+     "text": "Schritt 21: Die Komponente sorgfältig zubereiten, abschmecken, abkühlen lassen und für das Anrichten bereitstellen; dabei auf die Temperatur achten. Die Komponente sorgfältig zubereiten, abschmecken, abkühlen lassen und für das Anrichten bereitstellen; dabei auf die Temperatur achten. Die Komponente sorgfältig zubereiten, abschmecken, abkühlen lassen und für das Anrichten bereitstellen; dabei auf die Temperatur achten. "
+    },
+    {
+     "text": "Schritt 22: Die Komponente sorgfältig zubereiten, abschmecken, abkühlen lassen und für das Anrichten bereitstellen; dabei auf die Temperatur achten. Die Komponente sorgfältig zubereiten, abschmecken, abkühlen lassen und für das Anrichten bereitstellen; dabei auf die Temperatur achten. Die Komponente sorgfältig zubereiten, abschmecken, abkühlen lassen und für das Anrichten bereitstellen; dabei auf die Temperatur achten. "
+    },
+    {
+     "text": "Schritt 23: Die Komponente sorgfältig zubereiten, abschmecken, abkühlen lassen und für das Anrichten bereitstellen; dabei auf die Temperatur achten. Die Komponente sorgfältig zubereiten, abschmecken, abkühlen lassen und für das Anrichten bereitstellen; dabei auf die Temperatur achten. Die Komponente sorgfältig zubereiten, abschmecken, abkühlen lassen und für das Anrichten bereitstellen; dabei auf die Temperatur achten. "
+    },
+    {
+     "text": "Schritt 24: Die Komponente sorgfältig zubereiten, abschmecken, abkühlen lassen und für das Anrichten bereitstellen; dabei auf die Temperatur achten. Die Komponente sorgfältig zubereiten, abschmecken, abkühlen lassen und für das Anrichten bereitstellen; dabei auf die Temperatur achten. Die Komponente sorgfältig zubereiten, abschmecken, abkühlen lassen und für das Anrichten bereitstellen; dabei auf die Temperatur achten. "
+    }
+   ],
+   "_img": "landscape",
+   "_nutri": true
+  },
+  {
+   "id": "pdf_mini01",
+   "title": "Kapitelrezept Nummer 01",
+   "servings": 3,
+   "timeMinutes": 11,
+   "tags": [
+    "Hauptgang"
+   ],
+   "categoryTags": [],
+   "diet": [],
+   "difficulty": "",
+   "notes": "",
+   "ingredients": [
+    {
+     "amount": "1",
+     "unit": "g",
+     "name": "Zutat A"
+    },
+    {
+     "amount": "1",
+     "unit": "EL",
+     "name": "Zutat B"
+    }
+   ],
+   "steps": [
+    {
+     "text": "Alles vermengen (1)."
+    },
+    {
+     "text": "Servieren."
+    }
+   ],
+   "_img": null
+  },
+  {
+   "id": "pdf_mini02",
+   "title": "Kapitelrezept Nummer 02",
+   "servings": 4,
+   "timeMinutes": 12,
+   "tags": [
+    "Hauptgang"
+   ],
+   "categoryTags": [],
+   "diet": [],
+   "difficulty": "",
+   "notes": "",
+   "ingredients": [
+    {
+     "amount": "2",
+     "unit": "g",
+     "name": "Zutat A"
+    },
+    {
+     "amount": "1",
+     "unit": "EL",
+     "name": "Zutat B"
+    }
+   ],
+   "steps": [
+    {
+     "text": "Alles vermengen (2)."
+    },
+    {
+     "text": "Servieren."
+    }
+   ],
+   "_img": null
+  },
+  {
+   "id": "pdf_mini03",
+   "title": "Kapitelrezept Nummer 03",
+   "servings": 5,
+   "timeMinutes": 13,
+   "tags": [
+    "Hauptgang"
+   ],
+   "categoryTags": [],
+   "diet": [],
+   "difficulty": "",
+   "notes": "",
+   "ingredients": [
+    {
+     "amount": "3",
+     "unit": "g",
+     "name": "Zutat A"
+    },
+    {
+     "amount": "1",
+     "unit": "EL",
+     "name": "Zutat B"
+    }
+   ],
+   "steps": [
+    {
+     "text": "Alles vermengen (3)."
+    },
+    {
+     "text": "Servieren."
+    }
+   ],
+   "_img": null
+  },
+  {
+   "id": "pdf_mini04",
+   "title": "Kapitelrezept Nummer 04",
+   "servings": 2,
+   "timeMinutes": 14,
+   "tags": [
+    "Hauptgang"
+   ],
+   "categoryTags": [],
+   "diet": [],
+   "difficulty": "",
+   "notes": "",
+   "ingredients": [
+    {
+     "amount": "4",
+     "unit": "g",
+     "name": "Zutat A"
+    },
+    {
+     "amount": "1",
+     "unit": "EL",
+     "name": "Zutat B"
+    }
+   ],
+   "steps": [
+    {
+     "text": "Alles vermengen (4)."
+    },
+    {
+     "text": "Servieren."
+    }
+   ],
+   "_img": null
+  },
+  {
+   "id": "pdf_mini05",
+   "title": "Kapitelrezept Nummer 05 mit einem besonders langen Titel für das Inhaltsverzeichnis, der fast eine ganze Zeile füllt",
+   "servings": 3,
+   "timeMinutes": 15,
+   "tags": [
+    "Hauptgang"
+   ],
+   "categoryTags": [],
+   "diet": [],
+   "difficulty": "",
+   "notes": "",
+   "ingredients": [
+    {
+     "amount": "5",
+     "unit": "g",
+     "name": "Zutat A"
+    },
+    {
+     "amount": "1",
+     "unit": "EL",
+     "name": "Zutat B"
+    }
+   ],
+   "steps": [
+    {
+     "text": "Alles vermengen (5)."
+    },
+    {
+     "text": "Servieren."
+    }
+   ],
+   "_img": null
+  },
+  {
+   "id": "pdf_mini06",
+   "title": "Kapitelrezept Nummer 06",
+   "servings": 4,
+   "timeMinutes": 16,
+   "tags": [
+    "Hauptgang"
+   ],
+   "categoryTags": [],
+   "diet": [],
+   "difficulty": "",
+   "notes": "",
+   "ingredients": [
+    {
+     "amount": "6",
+     "unit": "g",
+     "name": "Zutat A"
+    },
+    {
+     "amount": "1",
+     "unit": "EL",
+     "name": "Zutat B"
+    }
+   ],
+   "steps": [
+    {
+     "text": "Alles vermengen (6)."
+    },
+    {
+     "text": "Servieren."
+    }
+   ],
+   "_img": null
+  },
+  {
+   "id": "pdf_mini07",
+   "title": "Kapitelrezept Nummer 07",
+   "servings": 5,
+   "timeMinutes": 17,
+   "tags": [
+    "Hauptgang"
+   ],
+   "categoryTags": [],
+   "diet": [],
+   "difficulty": "",
+   "notes": "",
+   "ingredients": [
+    {
+     "amount": "7",
+     "unit": "g",
+     "name": "Zutat A"
+    },
+    {
+     "amount": "1",
+     "unit": "EL",
+     "name": "Zutat B"
+    }
+   ],
+   "steps": [
+    {
+     "text": "Alles vermengen (7)."
+    },
+    {
+     "text": "Servieren."
+    }
+   ],
+   "_img": null
+  },
+  {
+   "id": "pdf_mini08",
+   "title": "Kapitelrezept Nummer 08",
+   "servings": 2,
+   "timeMinutes": 18,
+   "tags": [
+    "Hauptgang"
+   ],
+   "categoryTags": [],
+   "diet": [],
+   "difficulty": "",
+   "notes": "",
+   "ingredients": [
+    {
+     "amount": "8",
+     "unit": "g",
+     "name": "Zutat A"
+    },
+    {
+     "amount": "1",
+     "unit": "EL",
+     "name": "Zutat B"
+    }
+   ],
+   "steps": [
+    {
+     "text": "Alles vermengen (8)."
+    },
+    {
+     "text": "Servieren."
+    }
+   ],
+   "_img": null
+  },
+  {
+   "id": "pdf_mini09",
+   "title": "Kapitelrezept Nummer 09",
+   "servings": 3,
+   "timeMinutes": 19,
+   "tags": [
+    "Hauptgang"
+   ],
+   "categoryTags": [],
+   "diet": [],
+   "difficulty": "",
+   "notes": "",
+   "ingredients": [
+    {
+     "amount": "9",
+     "unit": "g",
+     "name": "Zutat A"
+    },
+    {
+     "amount": "1",
+     "unit": "EL",
+     "name": "Zutat B"
+    }
+   ],
+   "steps": [
+    {
+     "text": "Alles vermengen (9)."
+    },
+    {
+     "text": "Servieren."
+    }
+   ],
+   "_img": null
+  },
+  {
+   "id": "pdf_mini10",
+   "title": "Kapitelrezept Nummer 10 mit einem besonders langen Titel für das Inhaltsverzeichnis, der fast eine ganze Zeile füllt",
+   "servings": 4,
+   "timeMinutes": 20,
+   "tags": [
+    "Hauptgang"
+   ],
+   "categoryTags": [],
+   "diet": [],
+   "difficulty": "",
+   "notes": "",
+   "ingredients": [
+    {
+     "amount": "10",
+     "unit": "g",
+     "name": "Zutat A"
+    },
+    {
+     "amount": "1",
+     "unit": "EL",
+     "name": "Zutat B"
+    }
+   ],
+   "steps": [
+    {
+     "text": "Alles vermengen (10)."
+    },
+    {
+     "text": "Servieren."
+    }
+   ],
+   "_img": null
+  },
+  {
+   "id": "pdf_mini11",
+   "title": "Kapitelrezept Nummer 11",
+   "servings": 5,
+   "timeMinutes": 21,
+   "tags": [
+    "Hauptgang"
+   ],
+   "categoryTags": [],
+   "diet": [],
+   "difficulty": "",
+   "notes": "",
+   "ingredients": [
+    {
+     "amount": "11",
+     "unit": "g",
+     "name": "Zutat A"
+    },
+    {
+     "amount": "1",
+     "unit": "EL",
+     "name": "Zutat B"
+    }
+   ],
+   "steps": [
+    {
+     "text": "Alles vermengen (11)."
+    },
+    {
+     "text": "Servieren."
+    }
+   ],
+   "_img": null
+  },
+  {
+   "id": "pdf_mini12",
+   "title": "Kapitelrezept Nummer 12",
+   "servings": 2,
+   "timeMinutes": 22,
+   "tags": [
+    "Hauptgang"
+   ],
+   "categoryTags": [],
+   "diet": [],
+   "difficulty": "",
+   "notes": "",
+   "ingredients": [
+    {
+     "amount": "12",
+     "unit": "g",
+     "name": "Zutat A"
+    },
+    {
+     "amount": "1",
+     "unit": "EL",
+     "name": "Zutat B"
+    }
+   ],
+   "steps": [
+    {
+     "text": "Alles vermengen (12)."
+    },
+    {
+     "text": "Servieren."
+    }
+   ],
+   "_img": null
+  },
+  {
+   "id": "pdf_mini13",
+   "title": "Kapitelrezept Nummer 13",
+   "servings": 3,
+   "timeMinutes": 23,
+   "tags": [
+    "Hauptgang"
+   ],
+   "categoryTags": [],
+   "diet": [],
+   "difficulty": "",
+   "notes": "",
+   "ingredients": [
+    {
+     "amount": "13",
+     "unit": "g",
+     "name": "Zutat A"
+    },
+    {
+     "amount": "1",
+     "unit": "EL",
+     "name": "Zutat B"
+    }
+   ],
+   "steps": [
+    {
+     "text": "Alles vermengen (13)."
+    },
+    {
+     "text": "Servieren."
+    }
+   ],
+   "_img": null
+  },
+  {
+   "id": "pdf_mini14",
+   "title": "Kapitelrezept Nummer 14",
+   "servings": 4,
+   "timeMinutes": 24,
+   "tags": [
+    "Hauptgang"
+   ],
+   "categoryTags": [],
+   "diet": [],
+   "difficulty": "",
+   "notes": "",
+   "ingredients": [
+    {
+     "amount": "14",
+     "unit": "g",
+     "name": "Zutat A"
+    },
+    {
+     "amount": "1",
+     "unit": "EL",
+     "name": "Zutat B"
+    }
+   ],
+   "steps": [
+    {
+     "text": "Alles vermengen (14)."
+    },
+    {
+     "text": "Servieren."
+    }
+   ],
+   "_img": null
+  },
+  {
+   "id": "pdf_mini15",
+   "title": "Kapitelrezept Nummer 15 mit einem besonders langen Titel für das Inhaltsverzeichnis, der fast eine ganze Zeile füllt",
+   "servings": 5,
+   "timeMinutes": 25,
+   "tags": [
+    "Hauptgang"
+   ],
+   "categoryTags": [],
+   "diet": [],
+   "difficulty": "",
+   "notes": "",
+   "ingredients": [
+    {
+     "amount": "15",
+     "unit": "g",
+     "name": "Zutat A"
+    },
+    {
+     "amount": "1",
+     "unit": "EL",
+     "name": "Zutat B"
+    }
+   ],
+   "steps": [
+    {
+     "text": "Alles vermengen (15)."
+    },
+    {
+     "text": "Servieren."
+    }
+   ],
+   "_img": null
+  },
+  {
+   "id": "pdf_mini16",
+   "title": "Kapitelrezept Nummer 16",
+   "servings": 2,
+   "timeMinutes": 26,
+   "tags": [
+    "Hauptgang"
+   ],
+   "categoryTags": [],
+   "diet": [],
+   "difficulty": "",
+   "notes": "",
+   "ingredients": [
+    {
+     "amount": "16",
+     "unit": "g",
+     "name": "Zutat A"
+    },
+    {
+     "amount": "1",
+     "unit": "EL",
+     "name": "Zutat B"
+    }
+   ],
+   "steps": [
+    {
+     "text": "Alles vermengen (16)."
+    },
+    {
+     "text": "Servieren."
+    }
+   ],
+   "_img": null
+  },
+  {
+   "id": "pdf_mini17",
+   "title": "Kapitelrezept Nummer 17",
+   "servings": 3,
+   "timeMinutes": 27,
+   "tags": [
+    "Hauptgang"
+   ],
+   "categoryTags": [],
+   "diet": [],
+   "difficulty": "",
+   "notes": "",
+   "ingredients": [
+    {
+     "amount": "17",
+     "unit": "g",
+     "name": "Zutat A"
+    },
+    {
+     "amount": "1",
+     "unit": "EL",
+     "name": "Zutat B"
+    }
+   ],
+   "steps": [
+    {
+     "text": "Alles vermengen (17)."
+    },
+    {
+     "text": "Servieren."
+    }
+   ],
+   "_img": null
+  },
+  {
+   "id": "pdf_mini18",
+   "title": "Kapitelrezept Nummer 18",
+   "servings": 4,
+   "timeMinutes": 28,
+   "tags": [
+    "Hauptgang"
+   ],
+   "categoryTags": [],
+   "diet": [],
+   "difficulty": "",
+   "notes": "",
+   "ingredients": [
+    {
+     "amount": "18",
+     "unit": "g",
+     "name": "Zutat A"
+    },
+    {
+     "amount": "1",
+     "unit": "EL",
+     "name": "Zutat B"
+    }
+   ],
+   "steps": [
+    {
+     "text": "Alles vermengen (18)."
+    },
+    {
+     "text": "Servieren."
+    }
+   ],
+   "_img": null
+  },
+  {
+   "id": "pdf_mini19",
+   "title": "Kapitelrezept Nummer 19",
+   "servings": 5,
+   "timeMinutes": 29,
+   "tags": [
+    "Hauptgang"
+   ],
+   "categoryTags": [],
+   "diet": [],
+   "difficulty": "",
+   "notes": "",
+   "ingredients": [
+    {
+     "amount": "19",
+     "unit": "g",
+     "name": "Zutat A"
+    },
+    {
+     "amount": "1",
+     "unit": "EL",
+     "name": "Zutat B"
+    }
+   ],
+   "steps": [
+    {
+     "text": "Alles vermengen (19)."
+    },
+    {
+     "text": "Servieren."
+    }
+   ],
+   "_img": null
+  },
+  {
+   "id": "pdf_mini20",
+   "title": "Kapitelrezept Nummer 20 mit einem besonders langen Titel für das Inhaltsverzeichnis, der fast eine ganze Zeile füllt",
+   "servings": 2,
+   "timeMinutes": 30,
+   "tags": [
+    "Hauptgang"
+   ],
+   "categoryTags": [],
+   "diet": [],
+   "difficulty": "",
+   "notes": "",
+   "ingredients": [
+    {
+     "amount": "20",
+     "unit": "g",
+     "name": "Zutat A"
+    },
+    {
+     "amount": "1",
+     "unit": "EL",
+     "name": "Zutat B"
+    }
+   ],
+   "steps": [
+    {
+     "text": "Alles vermengen (20)."
+    },
+    {
+     "text": "Servieren."
+    }
+   ],
+   "_img": null
+  },
+  {
+   "id": "pdf_mini21",
+   "title": "Kapitelrezept Nummer 21",
+   "servings": 3,
+   "timeMinutes": 31,
+   "tags": [
+    "Hauptgang"
+   ],
+   "categoryTags": [],
+   "diet": [],
+   "difficulty": "",
+   "notes": "",
+   "ingredients": [
+    {
+     "amount": "21",
+     "unit": "g",
+     "name": "Zutat A"
+    },
+    {
+     "amount": "1",
+     "unit": "EL",
+     "name": "Zutat B"
+    }
+   ],
+   "steps": [
+    {
+     "text": "Alles vermengen (21)."
+    },
+    {
+     "text": "Servieren."
+    }
+   ],
+   "_img": null
+  },
+  {
+   "id": "pdf_mini22",
+   "title": "Kapitelrezept Nummer 22",
+   "servings": 4,
+   "timeMinutes": 32,
+   "tags": [
+    "Hauptgang"
+   ],
+   "categoryTags": [],
+   "diet": [],
+   "difficulty": "",
+   "notes": "",
+   "ingredients": [
+    {
+     "amount": "22",
+     "unit": "g",
+     "name": "Zutat A"
+    },
+    {
+     "amount": "1",
+     "unit": "EL",
+     "name": "Zutat B"
+    }
+   ],
+   "steps": [
+    {
+     "text": "Alles vermengen (22)."
+    },
+    {
+     "text": "Servieren."
+    }
+   ],
+   "_img": null
+  },
+  {
+   "id": "pdf_mini23",
+   "title": "Kapitelrezept Nummer 23",
+   "servings": 5,
+   "timeMinutes": 33,
+   "tags": [
+    "Hauptgang"
+   ],
+   "categoryTags": [],
+   "diet": [],
+   "difficulty": "",
+   "notes": "",
+   "ingredients": [
+    {
+     "amount": "23",
+     "unit": "g",
+     "name": "Zutat A"
+    },
+    {
+     "amount": "1",
+     "unit": "EL",
+     "name": "Zutat B"
+    }
+   ],
+   "steps": [
+    {
+     "text": "Alles vermengen (23)."
+    },
+    {
+     "text": "Servieren."
+    }
+   ],
+   "_img": null
+  },
+  {
+   "id": "pdf_mini24",
+   "title": "Kapitelrezept Nummer 24",
+   "servings": 2,
+   "timeMinutes": 34,
+   "tags": [
+    "Hauptgang"
+   ],
+   "categoryTags": [],
+   "diet": [],
+   "difficulty": "",
+   "notes": "",
+   "ingredients": [
+    {
+     "amount": "24",
+     "unit": "g",
+     "name": "Zutat A"
+    },
+    {
+     "amount": "1",
+     "unit": "EL",
+     "name": "Zutat B"
+    }
+   ],
+   "steps": [
+    {
+     "text": "Alles vermengen (24)."
+    },
+    {
+     "text": "Servieren."
+    }
+   ],
+   "_img": null
+  },
+  {
+   "id": "pdf_mini25",
+   "title": "Kapitelrezept Nummer 25 mit einem besonders langen Titel für das Inhaltsverzeichnis, der fast eine ganze Zeile füllt",
+   "servings": 3,
+   "timeMinutes": 35,
+   "tags": [
+    "Hauptgang"
+   ],
+   "categoryTags": [],
+   "diet": [],
+   "difficulty": "",
+   "notes": "",
+   "ingredients": [
+    {
+     "amount": "25",
+     "unit": "g",
+     "name": "Zutat A"
+    },
+    {
+     "amount": "1",
+     "unit": "EL",
+     "name": "Zutat B"
+    }
+   ],
+   "steps": [
+    {
+     "text": "Alles vermengen (25)."
+    },
+    {
+     "text": "Servieren."
+    }
+   ],
+   "_img": null
+  },
+  {
+   "id": "pdf_mini26",
+   "title": "Kapitelrezept Nummer 26",
+   "servings": 4,
+   "timeMinutes": 36,
+   "tags": [
+    "Hauptgang"
+   ],
+   "categoryTags": [],
+   "diet": [],
+   "difficulty": "",
+   "notes": "",
+   "ingredients": [
+    {
+     "amount": "26",
+     "unit": "g",
+     "name": "Zutat A"
+    },
+    {
+     "amount": "1",
+     "unit": "EL",
+     "name": "Zutat B"
+    }
+   ],
+   "steps": [
+    {
+     "text": "Alles vermengen (26)."
+    },
+    {
+     "text": "Servieren."
+    }
+   ],
+   "_img": null
+  }
+ ],
+ "books": {
+  "ref": {
+   "title": "Omas Rezepte",
+   "subtitle": "Gesammelt seit 1928",
+   "author": "Die Muddi",
+   "chapters": [
+    {
+     "id": "c1",
+     "name": "Hauptgänge"
+    },
+    {
+     "id": "c2",
+     "name": "Dessert"
+    }
+   ],
+   "items": [
+    [
+     "pdf_sloppy",
+     "c1"
+    ],
+    [
+     "pdf_manti",
+     "c1"
+    ],
+    [
+     "pdf_carbonara",
+     "c1"
+    ],
+    [
+     "pdf_cookies",
+     "c2"
+    ]
+   ]
+  },
+  "gross": {
+   "title": "Das grosse Familienkochbuch",
+   "subtitle": "Alle Testrezepte",
+   "author": "Testperson",
+   "chapters": [
+    {
+     "id": "c1",
+     "name": "Alltag"
+    },
+    {
+     "id": "c2",
+     "name": "Feste"
+    },
+    {
+     "id": "c3",
+     "name": "Kleinigkeiten"
+    }
+   ],
+   "items": [
+    [
+     "pdf_sloppy",
+     "c1"
+    ],
+    [
+     "pdf_manti",
+     "c1"
+    ],
+    [
+     "pdf_carbonara",
+     "c1"
+    ],
+    [
+     "pdf_cookies",
+     "c1"
+    ],
+    [
+     "pdf_kurz",
+     "c1"
+    ],
+    [
+     "pdf_langtitel",
+     "c1"
+    ],
+    [
+     "pdf_vielezutaten",
+     "c2"
+    ],
+    [
+     "pdf_langeeinheiten",
+     "c1"
+    ],
+    [
+     "pdf_ohnemenge",
+     "c1"
+    ],
+    [
+     "pdf_zahlen",
+     "c2"
+    ],
+    [
+     "pdf_langerschritt",
+     "c1"
+    ],
+    [
+     "pdf_vieleschritte",
+     "c1"
+    ],
+    [
+     "pdf_notizen",
+     "c1"
+    ],
+    [
+     "pdf_hochformat",
+     "c1"
+    ],
+    [
+     "pdf_quadrat",
+     "c1"
+    ],
+    [
+     "pdf_querformat",
+     "c1"
+    ],
+    [
+     "pdf_zweiseiten",
+     "c2"
+    ],
+    [
+     "pdf_dreiseiten",
+     "c2"
+    ],
+    [
+     "pdf_mini01",
+     "c3"
+    ],
+    [
+     "pdf_mini02",
+     "c3"
+    ],
+    [
+     "pdf_mini03",
+     "c3"
+    ],
+    [
+     "pdf_mini04",
+     "c3"
+    ],
+    [
+     "pdf_mini05",
+     "c3"
+    ],
+    [
+     "pdf_mini06",
+     "c3"
+    ],
+    [
+     "pdf_mini07",
+     "c3"
+    ],
+    [
+     "pdf_mini08",
+     "c3"
+    ],
+    [
+     "pdf_mini09",
+     "c3"
+    ],
+    [
+     "pdf_mini10",
+     "c3"
+    ],
+    [
+     "pdf_mini11",
+     "c3"
+    ],
+    [
+     "pdf_mini12",
+     "c3"
+    ],
+    [
+     "pdf_mini13",
+     "c3"
+    ],
+    [
+     "pdf_mini14",
+     "c3"
+    ],
+    [
+     "pdf_mini15",
+     "c3"
+    ],
+    [
+     "pdf_mini16",
+     "c3"
+    ],
+    [
+     "pdf_mini17",
+     "c3"
+    ],
+    [
+     "pdf_mini18",
+     "c3"
+    ],
+    [
+     "pdf_mini19",
+     "c3"
+    ],
+    [
+     "pdf_mini20",
+     "c3"
+    ],
+    [
+     "pdf_mini21",
+     "c3"
+    ],
+    [
+     "pdf_mini22",
+     "c3"
+    ],
+    [
+     "pdf_mini23",
+     "c3"
+    ],
+    [
+     "pdf_mini24",
+     "c3"
+    ],
+    [
+     "pdf_mini25",
+     "c3"
+    ],
+    [
+     "pdf_mini26",
+     "c3"
+    ]
+   ]
+  }
+ }
+}
