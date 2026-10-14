@@ -272,11 +272,20 @@ function settingsShareView() {
       <hr class="tl-rule">
       ${shareProfileFields(p, 'Profil speichern', 'ghost-btn primary-btn--block')}
       <button class="text-btn" data-action="share-invite-reset">Neuen Einladungscode erzeugen</button>`;
-    const profileSec = shareSection('profile', 'Mein Profil', 0, shareFold('profile', 'Code und Profil', `<span class="share-handle">@${escapeHtml(p.handle)}</span>`, profileInner, !hasFriends && !outgoing.length));
+    const profileSec = shareSection('profile', 'Mein Profil', 0, shareFold('profile', 'Einladungscode und Profil', `<span class="share-handle">@${escapeHtml(p.handle)}</span>`, profileInner, !hasFriends && !outgoing.length));
 
-    body = `${offlineBanner}<div class="tl-cols"><div class="tl-col">${inboxSec}${reqSec}${sendSec}</div><div class="tl-col">${friendsSec}${profileSec}</div></div>`;
+    const newCount = share.inbox.length + incoming.length;
+    const tab = ['inbox', 'send', 'friends'].includes(share.ui.tab) ? share.ui.tab : (prefill ? 'friends' : newCount || hasFriends ? 'inbox' : 'friends');
+    const tabBtn = (id, label, count) => `<button type="button" role="tab" class="tl-tab" id="tl-tab-${id}" aria-selected="${tab === id}" aria-controls="tl-panel" data-action="share-tab" data-id="${id}">${label}${count ? `<span class="tl-badge" aria-label="${count} neu">${count}</span>` : ''}</button>`;
+    const tabs = `<div class="tl-tabs" role="tablist" aria-label="Teilen">${tabBtn('inbox', 'Posteingang', newCount)}${tabBtn('send', 'Senden', 0)}${tabBtn('friends', 'Freunde', 0)}</div>`;
+    const noFriendsSend = `<div class="tl-card tl-card--quiet"><p class="tl-lead">Zum Senden brauchst du einen Freund.</p><p class="tl-hint tl-hint--flush">Füge zuerst jemanden hinzu. Danach kannst du ihm Rezepte schicken.</p><button class="primary-btn" data-action="share-tab" data-id="friends">${SHARE_SVG.plus} Freund hinzufügen</button></div>`;
+    const panel = tab === 'inbox'
+      ? (reqSec + inboxSec || `<div class="tl-card tl-card--quiet"><p>Nichts Neues. Rezepte und Anfragen von Freunden erscheinen hier.</p></div>`)
+      : tab === 'send' ? (sendSec || noFriendsSend)
+      : friendsSec + profileSec + senderNameSectionHtml();
+    body = `${offlineBanner}${tabs}<div id="tl-panel" role="tabpanel" aria-labelledby="tl-tab-${tab}" class="tl-panel">${panel}</div>`;
   }
-  return settingsDetailShell('Rezepte mit anderen teilen', `<div class="tl${wide ? ' tl--wide' : ''}${intro ? ' tl--intro' : ''}">${intro ? `<div class="tl-intro-grid"><div>${body}</div>${shareAsideHtml()}</div>` : body}${senderNameSectionHtml()}</div>`) + shareSendModal() + sharePickModal();
+  return settingsDetailShell('Rezepte mit anderen teilen', `<div class="tl${wide ? ' tl--wide' : ''}${intro ? ' tl--intro' : ''}">${intro ? `<div class="tl-intro-grid"><div>${body}</div>${shareAsideHtml()}</div>` : body}${wide ? '' : senderNameSectionHtml()}</div>`) + shareSendModal() + sharePickModal();
 }
 
 function shareFindInbox(id) { return share.inbox.find(x => x.id === id) || null; }
@@ -370,6 +379,7 @@ async function shareCopy(text, okMsg) {
 
 async function handleShareAction(action, id, el) {
   switch (action) {
+    case 'share-tab': share.ui.tab = id; render(); return true;
     case 'share-refresh': share.error = null; await shareRefresh(); return true;
     case 'share-profile-save': {
       const h = (document.getElementById('shareHandle') || {}).value || '';

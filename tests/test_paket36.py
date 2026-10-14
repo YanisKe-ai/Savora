@@ -36,11 +36,11 @@ async def login(page, email):
 def add_user(email):
     M.USERS[email] = {'id': str(uuid.uuid4()), 'password': 'geheim-123', 'confirmed': True}
 async def open_share(page):
-    await page.evaluate("() => { if (document.activeElement) document.activeElement.blur(); state.modal = null; state.view = 'settings-share'; render(); }")
+    await page.evaluate("() => { if (document.activeElement) document.activeElement.blur(); state.modal = null; share.ui.tab = undefined; state.view = 'settings-share'; render(); }")
     await page.wait_for_timeout(900)
 async def open_manage(page):
     """«Freunde verwalten» ist eingeklappt (Entfernen, Entsperren): fuer Pruefungen dieser Knoepfe aufklappen."""
-    await page.evaluate("() => { share.ui.manage = true; render(); }"); await page.wait_for_timeout(200)
+    await page.evaluate("() => { share.ui.manage = true; share.ui.tab = 'friends'; render(); }"); await page.wait_for_timeout(200)
 async def text(page, sel='body'): return await page.evaluate("(s) => (document.querySelector(s) || {innerText: ''}).innerText", sel)
 async def make_profile(page, handle, name):
     await open_share(page)
