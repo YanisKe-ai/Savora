@@ -107,7 +107,9 @@ function candidateLayoutsForAspect(aspect, density, resolutionOk) {
    mm umrechenbar, ohne echtes Rendering/Druckvorschau zu brauchen (Punkt 39). */
 const MM_PX = 96 / 25.4;
 const PAGE_HEIGHT_MM = 297;
-const PAGE_FIT_TOLERANCE_MM = 2; // Rundungstoleranz, keine Ausrede fuer Ueberlauf
+/* Nur noch Subpixel-Rundung (0,3 mm). Vorher 2 mm: Seiten bis 299 mm galten als «passt», das Raster war
+   dann bis zu 2 mm hoeher als die A4-Seite und der untere Rand (Fusszeile) wurde im PDF abgeschnitten. */
+const PAGE_FIT_TOLERANCE_MM = 0.3;
 
 let _pdfProbeEl = null;
 function pdfMeasureProbe() {
@@ -122,16 +124,55 @@ function pdfMeasureProbe() {
   return _pdfProbeEl;
 }
 
-/* Muss erst NACH document.fonts.ready aufgerufen werden (Punkt 124-125) — sonst misst man mit
-   dem Fallback-Font, waehlt anhand dessen ein Layout, und der Text verschiebt sich, sobald Baloo 2
-   nachlaedt ("verbotener Ablauf", Punkt 125). Die Aufrufer in pdf.js stellen das sicher. */
-function measureSectionHeightMm(html) {
+/* Kopf-/Fusszeilentexte kontrolliert begrenzen statt per CSS-overflow abzuschneiden: hoechstens
+   maxLines Zeilen, sonst am Wortende mit «…» kuerzen (der vollstaendige Titel steht am Rezeptanfang). */
+function pdfClampText(el, maxLines) {
+  if (!el || !el.textContent) return;
+  const cs = getComputedStyle(el);
+  const lh = parseFloat(cs.lineHeight) || (parseFloat(cs.fontSize) || 12) * 1.3;
+  const limit = lh * maxLines + 1;
+  if (el.getBoundingClientRect().height <= limit) return;
+  const full = el.dataset.fullText || el.textContent;
+  el.dataset.fullText = full;
+  let lo = 1, hi = full.length, best = 1;
+  while (lo <= hi) {
+    const mid = (lo + hi) >> 1;
+    el.textContent = full.slice(0, mid).trimEnd() + '…';
+    if (el.getBoundingClientRect().height <= limit) { best = mid; lo = mid + 1; } else hi = mid - 1;
+  }
+  let cut = full.slice(0, best);
+  const sp = cut.lastIndexOf(' ');
+  if (sp > best * 0.6) cut = cut.slice(0, sp);
+  el.textContent = cut.replace(/[\s,.;:\/\-–·]+$/, '') + '…';
+  el.title = full;
+}
+function pdfClampFrameText(root) {
+  if (!root || !root.querySelectorAll) return;
+  root.querySelectorAll('.pv-foot span, .pv-cont-head > span').forEach((e) => pdfClampText(e, 2));
+}
+
+/* Hilfsfunktion: HTML in die Messfläche setzen, fn(Seitenelement) ausfuehren, Flaeche leeren. */
+function pdfWithProbe(html, fn) {
   const probe = pdfMeasureProbe();
   probe.innerHTML = html;
   const el = probe.firstElementChild;
-  const heightMm = el ? el.scrollHeight / MM_PX : 0;
-  probe.innerHTML = '';
-  return heightMm;
+  let out = null;
+  try { out = el ? fn(el, probe) : null; } finally { probe.innerHTML = ''; }
+  return out;
+}
+
+/* Muss erst NACH document.fonts.ready aufgerufen werden (Punkt 124-125) — sonst misst man mit
+   dem Fallback-Font, waehlt anhand dessen ein Layout, und der Text verschiebt sich, sobald Baloo 2
+   nachlaedt ("verbotener Ablauf", Punkt 125). Die Aufrufer in pdf.js stellen das sicher.
+   Gemessen wird die echte (gebrochene) Inhaltshoehe der Seite OHNE Mindesthoehe: Seitenrand oben, Inhalt
+   und der reservierte Fussbereich unten (padding-bottom). Passt sie in 297 mm, passt der Inhalt in den
+   Hauptbereich. Kein scrollHeight (ganzzahlig gerundet). */
+function measureSectionHeightMm(html) {
+  return pdfWithProbe(html, (el) => {
+    el.style.minHeight = '0';
+    pdfClampFrameText(el);
+    return el.getBoundingClientRect().height / MM_PX;
+  }) || 0;
 }
 
 function cleanupPdfMeasureProbe() {

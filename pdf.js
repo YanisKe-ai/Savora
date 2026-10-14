@@ -33,8 +33,9 @@ async function resolveRecipeImageDataUrl(r) {
 function getImageDimensions(dataUrl) {
   return new Promise((resolve) => {
     const img = new Image();
-    img.onload = () => resolve({ width: img.naturalWidth, height: img.naturalHeight });
-    img.onerror = () => resolve(null);
+    const t = setTimeout(() => resolve(null), 8000);   // haengt ein Bild, wird es weggelassen statt den Export aufzuhalten
+    img.onload = () => { clearTimeout(t); resolve(img.naturalWidth && img.naturalHeight ? { width: img.naturalWidth, height: img.naturalHeight } : null); };
+    img.onerror = () => { clearTimeout(t); resolve(null); };
     img.src = dataUrl;
   });
 }
@@ -116,23 +117,42 @@ function ensurePdfLibs() {
 /* Beim Oeffnen des Export-Fensters im Hintergrund anstossen; Fehler zeigt erst der eigentliche Export. */
 function pdfWarmUp() { ensurePdfLibs().catch(() => {}); }
 
-/* Rendert jedes direkte Kind von #printRoot als eigene PDF-Seite — randlos, echtes A4. Durch die
-   Pagination VOR dem Rendern (buildRecipePdfPage/buildLongRecipePages) passt jede Section bereits
-   auf eine Seite; die Slice-Schleife greift nur noch als Sicherheitsnetz, falls eine Section
-   (z.B. ein sehr langes Inhaltsverzeichnis) dennoch zu hoch geraet — dann lieber ein sauberer,
-   an sicheren Stellen gesetzter Schnitt als ein abgeschnittenes PDF. */
+/* ---------- Abbruch, Reihenfolge, Hilfen ---------- */
+
+/* Exporte laufen nacheinander (gemeinsame Messflaeche und #printRoot): ein zweiter Start wartet,
+   statt den ersten zu zerstoeren. */
+let _pdfChain = Promise.resolve();
+function pdfExclusive(fn) {
+  const run = _pdfChain.then(fn, fn);
+  _pdfChain = run.catch(() => {});
+  return run;
+}
+function pdfAbortError() { return Object.assign(new Error('abort'), { aborted: true }); }
+function pdfCheckAbort(opts) { if (opts && opts.signal && opts.signal.aborted) throw pdfAbortError(); }
+function pdfProgress(opts, done, total, label) { try { if (opts && typeof opts.onProgress === 'function') opts.onProgress({ done, total, label: label || '' }); } catch (e) { /* Anzeige ist ein Zusatz */ } }
+const pdfYield = () => new Promise((r) => setTimeout(r, 0));
+function pdfWithTimeout(promise, ms) {
+  let t; return Promise.race([promise, new Promise((resolve) => { t = setTimeout(() => resolve('timeout'), ms); })]).finally(() => clearTimeout(t));
+}
+
+/* ---------- Bilder rastern ---------- */
+
 /* F05: html2canvas beachtet object-fit nicht und zieht Fotos deshalb auf die Rahmengroesse (Manti
    wurde breit und flach). Darum wird jedes Foto VOR dem Rastern auf genau das Seitenverhaeltnis
    seines Rahmens zugeschnitten (wie object-fit: cover, mit Fokuspunkt). Danach passen Bild und
-   Rahmen exakt zusammen, es gibt nichts mehr zu verzerren. */
+   Rahmen exakt zusammen, es gibt nichts mehr zu verzerren. Ladefehler oder Zeitueberschreitung:
+   das Bild wird unsichtbar (kein defektes Symbol), der Export laeuft weiter. */
 async function pdfBakeCoverImages(section) {
   const imgs = Array.from(section.querySelectorAll('img.pdf-img-cover'));
   for (const img of imgs) {
     try {
-      if (!img.complete || !img.naturalWidth) await img.decode();
+      if (!img.complete || !img.naturalWidth) {
+        const r = await pdfWithTimeout(img.decode().then(() => 'ok', () => 'fail'), 6000);
+        if (r !== 'ok') throw new Error('img');
+      }
       const box = img.getBoundingClientRect();
       const bw = box.width, bh = box.height, nw = img.naturalWidth, nh = img.naturalHeight;
-      if (!bw || !bh || !nw || !nh) continue;
+      if (!bw || !bh || !nw || !nh) throw new Error('img-size');
       const pos = (img.style.objectPosition || '50% 50%').split(/\s+/).map((v) => parseFloat(v) / 100);
       const fx = isNaN(pos[0]) ? 0.5 : pos[0], fy = isNaN(pos[1]) ? 0.5 : pos[1];
       const frameRatio = bw / bh, imgRatio = nw / nh;
@@ -145,13 +165,31 @@ async function pdfBakeCoverImages(section) {
       c.getContext('2d').drawImage(img, sx, sy, sw, sh, 0, 0, cw, ch);
       img.src = c.toDataURL('image/jpeg', 0.92);
       img.style.objectFit = 'fill';
-      await img.decode();
-    } catch (e) { /* Bild bleibt wie es war; der Export bricht deshalb nicht ab */ }
+      await pdfWithTimeout(img.decode().catch(() => {}), 6000);
+    } catch (e) {
+      img.style.visibility = 'hidden';   // kein defektes Bildsymbol im PDF; der Rahmen bleibt als ruhige Flaeche
+      img.removeAttribute('src');
+    }
   }
 }
 
 /* F06: Unsichtbare Textebene ueber dem Seitenbild, damit das PDF durchsucht, kopiert und vorgelesen
-   werden kann. Die Optik bleibt das gerasterte Seitenbild; der Text liegt deckungsgleich darueber. */
+   werden kann. Die Optik bleibt das gerasterte Seitenbild; der Text liegt deckungsgleich darueber.
+   Grundlinie aus den echten Schriftmassen (fontBoundingBoxDescent) statt einer festen Schaetzung. */
+const _pdfDescentCache = new Map();
+function pdfFontDescentPx(cs) {
+  const key = cs.fontStyle + '|' + cs.fontWeight + '|' + cs.fontSize + '|' + cs.fontFamily;
+  if (_pdfDescentCache.has(key)) return _pdfDescentCache.get(key);
+  let d = (parseFloat(cs.fontSize) || 12) * 0.22;
+  try {
+    const ctx = document.createElement('canvas').getContext('2d');
+    ctx.font = `${cs.fontStyle} ${cs.fontWeight} ${cs.fontSize} ${cs.fontFamily}`;
+    const m = ctx.measureText('Hgy');
+    if (m && m.fontBoundingBoxDescent > 0) d = m.fontBoundingBoxDescent;
+  } catch (e) { /* Schaetzwert bleibt */ }
+  _pdfDescentCache.set(key, d);
+  return d;
+}
 function pdfAddTextLayer(pdf, section, mmPerPx) {
   try {
     const secRect = section.getBoundingClientRect();
@@ -166,12 +204,13 @@ function pdfAddTextLayer(pdf, section, mmPerPx) {
       const cs = el && getComputedStyle(el);
       if (!cs || cs.visibility === 'hidden' || cs.display === 'none' || parseFloat(cs.opacity) === 0) continue;
       const fs = parseFloat(cs.fontSize) || 12;
+      const desc = pdfFontDescentPx(cs);
       const re = /\S+/g; let m;
       while ((m = re.exec(txt))) {
         range.setStart(node, m.index); range.setEnd(node, m.index + m[0].length);
         const r = range.getBoundingClientRect();
         if (!r.width || !r.height) continue;
-        words.push({ t: m[0], x: r.left - secRect.left, y: r.bottom - secRect.top, w: r.width, fs });
+        words.push({ t: m[0], x: r.left - secRect.left, y: r.bottom - secRect.top - desc, w: r.width, fs });
       }
     }
     // Zu Zeilen zusammenfassen (gleiche Grundlinie, fortlaufend von links nach rechts)
@@ -185,12 +224,27 @@ function pdfAddTextLayer(pdf, section, mmPerPx) {
     lines.forEach((l) => {
       const sizePt = (l.fs * mmPerPx) / 0.3528;
       pdf.setFontSize(sizePt);
-      const baselineMm = (l.y - l.fs * 0.22) * mmPerPx;
       const widthMm = (l.right - l.x) * mmPerPx;
       const natural = pdf.getTextWidth(l.text) || widthMm;
-      pdf.text(l.text, l.x * mmPerPx, baselineMm, { renderingMode: 'invisible', horizontalScale: widthMm / natural });
+      pdf.text(l.text, l.x * mmPerPx, l.y * mmPerPx, { renderingMode: 'invisible', horizontalScale: widthMm / natural });
     });
   } catch (e) { /* Textebene ist ein Zusatz; Fehler duerfen den Export nicht verhindern */ }
+}
+
+/* Anklickbare Adressen: Elemente mit data-pdf-href (http, https, mailto) werden echte Link-Flaechen. */
+function pdfCollectUrlLinks(section, mmPerPx) {
+  const out = [];
+  try {
+    const secRect = section.getBoundingClientRect();
+    section.querySelectorAll('[data-pdf-href]').forEach((el) => {
+      const url = el.getAttribute('data-pdf-href') || '';
+      if (!/^(https?:\/\/|mailto:)/i.test(url)) return;
+      Array.from(el.getClientRects()).forEach((r) => {
+        if (r.width > 0.5 && r.height > 0.5) out.push({ url, x: (r.left - secRect.left) * mmPerPx, y: (r.top - secRect.top) * mmPerPx, w: r.width * mmPerPx, h: r.height * mmPerPx });
+      });
+    });
+  } catch (e) { /* Links sind ein Zusatz */ }
+  return out;
 }
 
 /* F06: echte, sichtbare Seitenzahlen (als Vektortext). Das Deckblatt eines Kochbuchs bleibt ohne Zahl. */
@@ -207,11 +261,35 @@ function pdfAddPageNumbers(pdf, skipPages) {
   }
 }
 
+/* Eine Seite rastern: Seite = exakt 297 mm hoch, Raster exakt im A4-Seitenverhaeltnis.
+   Ursache der angeschnittenen Raender (belegt in tests/test_pdf_kern.py): html2canvas rundet die
+   Rasterbreite auf ganze Pixel (2381,06 -> 2382, rechts blieb ein durchsichtiger, im JPEG schwarzer
+   Streifen), die Seite war bis 2 mm hoeher als A4 (Toleranz) und Kopf-/Fusszeile steckten in
+   overflow:hidden-Boxen, die den tiefer gesetzten Text anschnitten. Jetzt: feste Seitenhoehe,
+   deckende Seitenfarbe und Zielraster mit exakt gerundeter A4-Proportion. */
+async function pdfRasterizeSection(section, fitsPage) {
+  const cs = getComputedStyle(section);
+  const domW = section.getBoundingClientRect().width;
+  if (fitsPage) { section.style.minHeight = '297mm'; section.style.height = '297mm'; }
+  const domH = section.getBoundingClientRect().height;
+  const bg = cs.backgroundColor && !/rgba\(0, 0, 0, 0\)|transparent/.test(cs.backgroundColor) ? cs.backgroundColor : '#ffffff';
+  const canvas = await html2canvas(section, { scale: PDF_RENDER_SCALE, backgroundColor: bg, useCORS: true, logging: false, imageTimeout: 8000, windowWidth: Math.max(window.innerWidth || 0, 1100) });
+  return { canvas, domW, domH, bg };
+}
+function pdfComposePage(src, domW, domH, bg) {
+  const S = PDF_RENDER_SCALE;
+  const Wp = Math.round(domW * S), Hp = Math.round(Wp * 297 / 210);
+  const out = document.createElement('canvas'); out.width = Wp; out.height = Hp;
+  const g = out.getContext('2d'); g.fillStyle = bg; g.fillRect(0, 0, Wp, Hp);
+  g.drawImage(src, 0, 0, Math.min(src.width, domW * S), Math.min(src.height, domH * S), 0, 0, Wp, Hp);
+  return out;
+}
+
 /* Rendert jedes direkte Kind von #printRoot als eigene PDF-Seite (randlos, A4). Jede Section passt
    durch die Vor-Pagination auf eine Seite; die Schnittlogik unten ist nur Sicherheitsnetz.
-   Sammelt dabei Seitennummern der Rezeptanfaenge, die Klickflaechen des Inhaltsverzeichnisses und
-   die Lesezeichen (Outline). */
-async function renderSectionsToPdf() {
+   Sammelt dabei Seitennummern der Rezeptanfaenge, die Klickflaechen des Inhaltsverzeichnisses, die
+   Adress-Links und die Lesezeichen (Outline). opts: { signal, onProgress, title, subject, author }. */
+async function renderSectionsToPdf(opts) {
   const container = document.getElementById('printRoot');
   const sections = Array.from(container.children);
   if (!sections.length) return null;
@@ -225,12 +303,19 @@ async function renderSectionsToPdf() {
   const recipeStart = {};       // recipeId -> Seite (1-basiert)
   const recipeTitles = [];      // [{ id, title, chapter, page }]
   const tocLinks = [];          // [{ page, x, y, w, h, target }]
+  const urlLinks = [];          // [{ page, url, x, y, w, h }]
   const skipNumbers = new Set();
+  let sliced = 0;
 
-  for (const section of sections) {
+  for (let si = 0; si < sections.length; si++) {
+    pdfCheckAbort(opts);
+    const section = sections[si];
+    pdfProgress(opts, si, sections.length, 'render');
+    if (si) await pdfYield();   // Oberflaeche bleibt bedienbar, Abbruch und Fortschritt kommen an
     const domWidth = section.offsetWidth || 1;
     const sectionTop = section.getBoundingClientRect().top;
     const kind = section.dataset.pageKind || '';
+    pdfClampFrameText(section);
     const breakEls = Array.from(section.querySelectorAll('.pdf-safe-break'));
     const intervals = breakEls.map((el) => {
       const r = el.getBoundingClientRect();
@@ -244,23 +329,30 @@ async function renderSectionsToPdf() {
       const r = el.getBoundingClientRect();
       return { target: el.dataset.tocId, x: (r.left - section.getBoundingClientRect().left) * mmPerPx, y: (r.top - sectionTop) * mmPerPx, w: r.width * mmPerPx, h: r.height * mmPerPx };
     }) : [];
+    const secLinks = pdfCollectUrlLinks(section, mmPerPx);
 
     await pdfBakeCoverImages(section);
-    const canvas = await html2canvas(section, { scale: PDF_RENDER_SCALE, backgroundColor: null, useCORS: true });
+    const contentMm = section.scrollHeight / MM_PX;
+    const fitsPage = kind === 'cover' || section.getBoundingClientRect().height / MM_PX <= pageHeightMm + PAGE_FIT_TOLERANCE_MM;
+    const { canvas, domW, domH, bg } = await pdfRasterizeSection(section, fitsPage);
     const pxPerMm = canvas.width / pageWidthMm;
     const scale = canvas.width / domWidth;
     const pageHeightPx = pageHeightMm * pxPerMm;
 
     let pageNo;
-    if (canvas.height <= pageHeightPx + 2 * pxPerMm) {
+    if (fitsPage) {
       if (!firstPage) pdf.addPage();
       firstPage = false;
       pageNo = pdf.getNumberOfPages();
-      const imgData = canvas.toDataURL('image/jpeg', PDF_JPEG_QUALITY);
-      pdf.addImage(imgData, 'JPEG', 0, 0, pageWidthMm, canvas.height / pxPerMm);
+      const page = pdfComposePage(canvas, domW, domH, bg);
+      pdf.addImage(page.toDataURL('image/jpeg', PDF_JPEG_QUALITY), 'JPEG', 0, 0, pageWidthMm, pageHeightMm);
+      page.width = 0; page.height = 0;
       pdfAddTextLayer(pdf, section, pageWidthMm / domWidth);
+      secLinks.forEach((l) => urlLinks.push({ ...l, page: pageNo }));
     } else {
-      // Sicherheitsnetz: nur falls eine Section trotz Vor-Pagination zu hoch ist
+      // Sicherheitsnetz: nur falls eine Section trotz Vor-Pagination zu hoch ist (wird im Test als Fehler gewertet)
+      sliced++;
+      console.warn('PDF: Seite zu hoch, Sicherheitsschnitt', kind, Math.round(contentMm) + ' mm');
       const breakPointsPx = domBreakTops.map((t) => t * scale).sort((a, b) => a - b);
       const minSlicePx = 10 * pxPerMm;
       let cursor = 0; pageNo = null;
@@ -278,11 +370,13 @@ async function renderSectionsToPdf() {
         const sliceHeightPx = sliceEnd - cursor;
         const sliceCanvas = document.createElement('canvas');
         sliceCanvas.width = canvas.width; sliceCanvas.height = sliceHeightPx;
-        sliceCanvas.getContext('2d').drawImage(canvas, 0, cursor, canvas.width, sliceHeightPx, 0, 0, canvas.width, sliceHeightPx);
+        const sg = sliceCanvas.getContext('2d'); sg.fillStyle = bg; sg.fillRect(0, 0, canvas.width, sliceHeightPx);
+        sg.drawImage(canvas, 0, cursor, canvas.width, sliceHeightPx, 0, 0, canvas.width, sliceHeightPx);
         pdf.addImage(sliceCanvas.toDataURL('image/jpeg', PDF_JPEG_QUALITY), 'JPEG', 0, 0, pageWidthMm, sliceHeightPx / pxPerMm);
         cursor = sliceEnd;
       }
     }
+    canvas.width = 0; canvas.height = 0;
     if (kind === 'cover') skipNumbers.add(pageNo);
     if (kind === 'chapter') skipNumbers.add(pageNo);
     if (kind === 'recipe' && section.dataset.recipeId && !(section.dataset.recipeId in recipeStart)) {
@@ -300,6 +394,8 @@ async function renderSectionsToPdf() {
     if (!target) return;
     try { pdf.setPage(l.page); pdf.link(l.x, l.y, l.w, l.h, { pageNumber: target }); } catch (e) { /* Link ist ein Zusatz */ }
   });
+  // Adressen (Quellen): anklickbar
+  urlLinks.forEach((l) => { try { pdf.setPage(l.page); pdf.link(l.x, l.y, l.w, l.h, { url: l.url }); } catch (e) { /* Link ist ein Zusatz */ } });
   // Lesezeichen (Kapitel als Ueberordnung, wenn vorhanden)
   try {
     if (pdf.outline && recipeTitles.length) {
@@ -311,14 +407,21 @@ async function renderSectionsToPdf() {
       });
     }
   } catch (e) { /* Lesezeichen sind ein Zusatz */ }
-  pdf.setProperties({ title: (PDF_CTX && PDF_CTX.bookTitle) || 'Savora', creator: 'Savora' });
+  // Metadaten: Dokumenttitel (wird im Betrachter angezeigt), Sprache de-CH
+  try {
+    pdf.setProperties({ title: (opts && opts.title) || (PDF_CTX && PDF_CTX.bookTitle) || 'Savora', subject: (opts && opts.subject) || '', author: (opts && opts.author) || '', creator: 'Savora' });
+    if (typeof pdf.setLanguage === 'function') pdf.setLanguage('de-CH');
+    if (typeof pdf.viewerPreferences === 'function') pdf.viewerPreferences({ DisplayDocTitle: true });
+  } catch (e) { /* Metadaten sind ein Zusatz */ }
+  pdfProgress(opts, sections.length, sections.length, 'render');
   const out = pdf.output('blob');
-  try { out.pageCount = pdf.getNumberOfPages(); } catch (e) {}
+  try { out.pageCount = pdf.getNumberOfPages(); out.slicedPages = sliced; out.recipeStart = recipeStart; } catch (e) {}
   return out;
 }
 
 /* Startet den eigentlichen Dateidownload — getrennt von renderSectionsToPdf(), damit dazwischen
-   erst eine Vorschau gezeigt werden kann (Punkt 65/138-149). */
+   erst eine Vorschau gezeigt werden kann (Punkt 65/138-149). Es werden genau die Bytes der Vorschau
+   geschrieben (dasselbe Blob-Objekt). */
 function triggerPdfDownload(blob, filename) {
   if (SavoraNative.isNative) {   // iOS-App: "Herunterladen" gibt es nicht, das Teilen-Fenster bietet "In Dateien sichern"
     SavoraNative.shareFile(blob, filename, filename).catch((err) => {
@@ -333,7 +436,14 @@ function triggerPdfDownload(blob, filename) {
   setTimeout(() => URL.revokeObjectURL(url), 3000);
 }
 
-/* ---------- Seitenaufbau eines Rezepts (Vorlagen A/B/C) ---------- */
+/* ---------- Seitenplanung eines Rezepts (Vorlagen A/B/C) ----------
+   Deterministisch und anhand gemessener Inhalte (nach geladenen Schriften und Bildern):
+     Stufe 1  regulaeres einseitiges Layout (groesstes Foto, normale Abstaende)
+     Stufe 2  platzsparendes einseitiges Layout (kleineres Foto, engere Abstaende), nur wenn es wirklich
+              passt; Schrift bleibt unveraendert, es wird nichts entfernt
+     Stufe 3  zwei bewusst gestaltete Seiten, Inhalt ausbalanciert verteilt (nicht Seite 1 voll, Seite 2 Rest)
+     Stufe 4  drei oder mehr Seiten, gleiche Regeln
+   Die Seitenzahl steht damit VOR dem Rendern fest («Fortsetzung · N von M», Inhaltsverzeichnis). */
 
 /* Messen ohne die grossen Bild-Daten (Rahmen haben feste Groesse): schnell und Layout-neutral. */
 function pdfFits(html) {
@@ -358,64 +468,265 @@ function pdfPhotoPlans(imgUrl, dims, tplId) {
   ];
 }
 
-/* Lange Rezepte: Seite 1 mit Kopf und zwei Spalten, danach Fortsetzungsseiten. Zutaten und
-   Zubereitung werden Einheit fuer Einheit gefuellt und real nachgemessen; Zwischentitel bleiben
-   bei ihrem Inhalt, kleine Zutatenkomponenten zusammen. */
-function pdfLongPages(m, recipe, imgUrl, dims, detail, tight) {
-  const ingQ = pvIngredientUnits(m.ingredients).slice();
-  const stepQ = pvStepUnits(m.steps).slice();
-  const extras = pvExtrasHtml(m, detail);
-  const ar = dims ? dims.width / dims.height : 1.5;
-  const side = ar < 0.85 ? { w: 36, h: 48 } : (ar <= 1.15 ? { w: 40, h: 40 } : { w: 46, h: 33 });
-  // grobe Hoehenschaetzung je Einheit (Zeilen), damit beide Spalten gemeinsam leerlaufen
+const PDF_PLAN_EPS_MM = 0.3;
+
+function pdfPlainText(html) { return String(html || '').replace(/<[^>]+>/g, ''); }
+function pdfUnescape(s) { const t = document.createElement('textarea'); t.innerHTML = s; return t.value; }
+
+/* Sinnvolle Schnittstellen eines langen Schrittes: Satzenden (vor Grossbuchstabe/Zahl-Anfang), sonst
+   Komma/Semikolon. Rueckgabe: Zeichenpositionen, an denen geteilt werden darf. */
+function pdfSplitPoints(text) {
+  const pts = [];
+  const sentence = /[.!?]["»”)]*\s+(?=[A-ZÄÖÜ„«"0-9])/g; let m;
+  while ((m = sentence.exec(text))) pts.push(m.index + m[0].length);
+  if (pts.length < 1) { const soft = /[;,:]\s+/g; while ((m = soft.exec(text))) pts.push(m.index + m[0].length); }
+  return pts.filter((p) => p > 20 && p < text.length - 20);
+}
+
+/* Einheiten fuer die Planung vorbereiten. Zubereitungsschritte (Einzelschritt, evtl. mit Zwischentitel
+   davor) sind teilbar, alles andere nicht. */
+function pdfPrepareStepItems(m, units) {
+  return units.map((u) => {
+    const idx = u.html.indexOf('<div class="pv-step">');
+    const item = { u, split: false };
+    if (idx < 0 || u.html.indexOf('<div class="pv-step">', idx + 5) !== -1) return item;
+    const stepHtml = u.html.slice(idx);
+    const no = (stepHtml.match(/pv-step-no">(\d+)</) || [])[1];
+    const step = no ? (m.steps || []).find((s) => s.type === 'step' && String(s.no).padStart(2, '0') === no) : null;
+    if (!step) return item;
+    const text = String(step.text || '');
+    const pts = pdfSplitPoints(text);
+    if (!pts.length) return item;
+    return Object.assign(item, { split: true, head: u.html.slice(0, idx), step, text, pts });
+  });
+}
+function pdfStepChunkHtml(item, from, to, first) {
+  const chunk = item.text.slice(from, to).trim();
+  const html = pvStepUnits([Object.assign({}, item.step, { text: chunk })])[0].html;
+  return first ? (item.head || '') + html : html.replace(/(<span class="pv-step-no">)[^<]*(<\/span>)/, '$1$2').replace('<div class="pv-step">', '<div class="pv-step" data-cont="1">');
+}
+
+/* Bausteine der Seiten */
+function pdfPageHtml(ctx, pg, n, total, extrasHtml) {
+  if (pg.first) {
+    return pvRecipePage(ctx.m, ctx.recipe, ctx.imgUrl, { photo: ctx.imgUrl ? 'side' : 'none', side: ctx.side, tight: ctx.tight, ingUnits: pg.ing, stepUnits: pg.steps, extras: !!extrasHtml }, ctx.detail);
+  }
+  const html = pvContinuationPage(ctx.m, pg.ing, pg.steps, extrasHtml || '', ctx.tight, pg.ingRight || null, n, total);
+  return pdfContinuationLabel(html, n, total);
+}
+/* «Fortsetzung» -> «Fortsetzung · N von M» (nur wenn die Vorlage es nicht schon selbst tut) */
+function pdfContinuationLabel(html, n, total) {
+  return html.replace(/(<i>)Fortsetzung(<\/i>)/, `$1Fortsetzung · ${n} von ${total}$2`);
+}
+
+/* Platzhalter-Seiten fuer die Messung: bewusst ohne grosse Bilddaten */
+function pdfStripImg(html) { return html.replace(/src="data:[^"]+"/g, 'src=""'); }
+
+/* Messung der Einheiten im echten Spaltenkontext. Liefert Hoehen in mm je Zutaten-/Schritt-Einheit,
+   Spaltenrahmen (Beschriftung, Innenabstand), Seitenkopf (ohne Inhalt) und Hoehe des Zusatzblocks. */
+function pdfMeasurePlanInputs(ctx, ingQ, stepItems, extrasHtml) {
+  const meas = (u, k) => ({ ...u, html: `<div class="pdf-meas" data-k="${k}" style="display:flow-root">${u.html}</div>` });
+  const ingW = ingQ.map((u) => meas(u, 'i')), stepW = stepItems.map((it) => meas(it.u, 's'));
+  const firstEmpty = pdfStripImg(pdfPageHtml(ctx, { first: true, ing: [], steps: [] }, 1, 1, ''));
+  const contEmpty = pdfStripImg(pdfPageHtml(ctx, { first: false, ing: [], steps: [] }, 2, 2, ''));
+  const contFull = pdfStripImg(pdfPageHtml(ctx, { first: false, ing: ingW, steps: stepW }, 2, 2, ''));
+  const contExtras = extrasHtml ? pdfStripImg(pdfPageHtml(ctx, { first: false, ing: [], steps: [] }, 2, 2, extrasHtml)) : null;
+  const ohFirst = measureSectionHeightMm(firstEmpty), ohCont = measureSectionHeightMm(contEmpty);
+  const extrasH = contExtras ? Math.max(0, measureSectionHeightMm(contExtras) - ohCont) : 0;
+  const r = pdfWithProbe(contFull, (el) => {
+    const hs = (k) => Array.from(el.querySelectorAll(`.pdf-meas[data-k="${k}"]`)).map((n) => n.getBoundingClientRect().height / MM_PX);
+    const ih = hs('i'), sh = hs('s');
+    const colL = el.querySelector('.pv-ing-col'), colR = el.querySelector('.pv-steps-col');
+    const sum = (a) => a.reduce((x, y) => x + y, 0);
+    const body = el.querySelector('.pv-body');
+    const stepEl = el.querySelector('.pdf-meas[data-k="s"] .pv-step');
+    const stepTxt = stepEl && stepEl.querySelector('.pv-step-text');
+    const lh = stepTxt ? (parseFloat(getComputedStyle(stepTxt).lineHeight) || 0) / MM_PX : 0;
+    const mb = stepEl ? (parseFloat(getComputedStyle(stepEl).marginBottom) || 0) / MM_PX : 0;
+    return {
+      ih, sh,
+      chromeL: ingQ.length && colL ? Math.max(0, colL.getBoundingClientRect().height / MM_PX - sum(ih)) : 0,
+      chromeR: stepItems.length && colR ? Math.max(0, colR.getBoundingClientRect().height / MM_PX - sum(sh)) : 0,
+      lh: lh || 5.3, mb: mb || 3.5, body: body ? body.getBoundingClientRect().height / MM_PX : 0,
+    };
+  });
+  return Object.assign({ ohFirst, ohCont, extrasH }, r);
+}
+
+/* Spalte seitenweise fuellen: budgets[p] = verfuegbare Spaltenhoehe auf Seite p (die letzte Angabe gilt
+   fuer alle weiteren Seiten). Teilbare Schritte duerfen an Satzgrenzen geteilt werden, wenn der Schritt nicht
+   mehr hineinpasst, aber noch deutlich Platz bleibt, oder wenn er allein schon laenger als eine Seite ist.
+   Rueckgabe: Seiten als Listen von Stuecken { it, from, to, first, h, forced }. */
+function pdfFillColumn(items, heights, budgets, geom, canSplit) {
+  const pages = [[]]; let used = 0;
+  const cap = (p) => Math.max(0, budgets[Math.min(p, budgets.length - 1)]);
+  const lineCount = (textH, frac) => Math.max(1, Math.ceil((textH * frac) / geom.lh - 1e-9));
+  items.forEach((it, i) => {
+    let from = 0, h = heights[i];
+    let textH = Math.max(geom.lh, h - geom.mb);
+    for (let guard = 0; guard < 60; guard++) {
+      const p = pages.length - 1, c = cap(p), remaining = c - used;
+      const len = it.split ? it.text.length : 0;
+      if (used + h <= c + 1e-6) { pages[p].push({ it, from, to: len, first: from === 0, h }); used += h; return; }
+      if (canSplit && it.split && (used > 0 ? remaining >= Math.min(c * 0.2, geom.lh * 3 + geom.mb) : h > c)) {
+        const total = len - from; let best = -1, bestH = 0;
+        for (const pt of it.pts) {
+          if (pt - from < 20) continue;
+          if (len - pt < 20) break;
+          const hh = lineCount(textH, (pt - from) / total) * geom.lh + geom.mb;
+          if (hh <= remaining + 1e-6) { best = pt; bestH = hh; } else break;
+        }
+        if (best > 0) {
+          pages[p].push({ it, from, to: best, first: from === 0, h: bestH });
+          textH = lineCount(textH, (len - best) / total) * geom.lh; h = textH + geom.mb; from = best;
+          pages.push([]); used = 0; continue;
+        }
+      }
+      if (used === 0) { pages[p].push({ it, from, to: len, first: from === 0, h, forced: true }); used += h; return; }
+      pages.push([]); used = 0;
+    }
+  });
+  return pages;
+}
+const pdfPieceSum = (pg) => pg.reduce((a, x) => a + x.h, 0);
+
+/* Eine Verteilung fuer den Fuellgrad f (0 bis 1; 1 = Seite voll) simulieren. */
+function pdfSimulate(inp, ingItems, stepItems, f, safety) {
+  const availFirst = PAGE_HEIGHT_MM + PDF_PLAN_EPS_MM - safety - inp.ohFirst, availCont = PAGE_HEIGHT_MM + PDF_PLAN_EPS_MM - safety - inp.ohCont;
+  const bud = (chrome) => [f * availFirst - chrome, f * availCont - chrome];
+  const L = pdfFillColumn(ingItems, inp.ih, bud(inp.chromeL), inp, false);
+  const R = pdfFillColumn(stepItems, inp.sh, bud(inp.chromeR), inp, true);
+  const K = Math.max(L.length, R.length);
+  const last = K - 1;
+  const body = Math.max(L[last] && L[last].length ? inp.chromeL + pdfPieceSum(L[last]) : 0, R[last] && R[last].length ? inp.chromeR + pdfPieceSum(R[last]) : 0);
+  const avail = last === 0 ? availFirst : availCont;
+  const extrasFit = !inp.extrasH || body + inp.extrasH <= f * avail + 1e-6;
+  return { L, R, K, f, extrasFit };
+}
+
+/* Kleinsten Fuellgrad finden, bei dem alles auf N Seiten passt (gleichmaessige Verteilung). */
+function pdfSearchPlan(inp, ingItems, stepItems, safety) {
+  const k1 = pdfSimulate(inp, ingItems, stepItems, 1, safety).K;
+  for (let N = Math.max(2, k1); N <= k1 + 3; N++) {
+    const ok = (f) => { const s = pdfSimulate(inp, ingItems, stepItems, f, safety); return s.K <= N && s.extrasFit; };
+    if (!ok(1)) continue;
+    let lo = 0.2, hi = 1;
+    for (let i = 0; i < 16; i++) { const mid = (lo + hi) / 2; if (ok(mid)) hi = mid; else lo = mid; }
+    // kleinen Spielraum lassen: gleichmaessig, aber nicht auf den letzten Millimeter gerechnet
+    const sim = pdfSimulate(inp, ingItems, stepItems, Math.min(1, hi + 0.01), safety);
+    if (sim.K <= N && sim.extrasFit) return sim;
+    return pdfSimulate(inp, ingItems, stepItems, hi, safety);
+  }
+  return null;
+}
+
+/* Zutaten einer Seite ohne Zubereitung auf zwei Spalten verteilen */
+function pdfSplitIngColumns(pieces) {
+  if (pieces.length < 2) return { left: pieces, right: [] };
+  const total = pdfPieceSum(pieces); let acc = 0, cut = pieces.length - 1;
+  for (let i = 0; i < pieces.length; i++) { acc += pieces[i].h; if (acc >= total / 2) { cut = Math.min(pieces.length - 1, i + 1); break; } }
+  return { left: pieces.slice(0, cut), right: pieces.slice(cut) };
+}
+function pdfPieceUnit(p) {
+  const it = p.it;
+  if (!it.split) return it.u || it;
+  if (p.from === 0 && p.to === it.text.length) return it.u;
+  return { html: pdfStepChunkHtml(it, p.from, p.to, p.from === 0) };
+}
+
+/* Verteilung in Seiten-HTML umsetzen (Gesamtzahl steht fest, damit «Fortsetzung · N von M» stimmt). */
+function pdfAssemble(ctx, sim, extrasHtml) {
+  const K = sim.K;
+  const pages = [];
+  for (let p = 0; p < K; p++) {
+    const ing = (sim.L[p] || []).map(pdfPieceUnit), steps = (sim.R[p] || []).map(pdfPieceUnit);
+    pages.push({ first: p === 0, ing, steps, ingRight: null });
+  }
+  const aloneExtras = !!extrasHtml && !sim.extrasFit;
+  pages.forEach((pg, p) => {
+    if (p > 0 && !pg.steps.length && pg.ing.length > 1) {
+      const sp = pdfSplitIngColumns(sim.L[p]);
+      pg.ing = sp.left.map(pdfPieceUnit); pg.ingRight = sp.right.map(pdfPieceUnit);
+    }
+  });
+  const total = K + (aloneExtras ? 1 : 0);
+  const out = pages.map((pg, p) => pdfPageHtml(ctx, pg, p + 1, total, p === K - 1 && !aloneExtras ? extrasHtml : ''));
+  if (aloneExtras) out.push(pdfPageHtml(ctx, { first: false, ing: [], steps: [] }, K + 1, total, extrasHtml));
+  return out;
+}
+
+/* Rueckfall: Seite fuer Seite mit echter Messung fuellen (alte Methode, ohne Ausgleich). */
+function pdfLongPagesGreedy(ctx, ingQ, stepQ, extrasHtml) {
+  const { m, tight } = ctx;
+  const ingL = ingQ.slice(), stepL = stepQ.slice();
   const estIng = (u) => (u.html.match(/pv-ing"/g) || []).length * 1.9 + (u.html.match(/pv-ing-group/g) || []).length * 1.6 + (u.html.replace(/<[^>]+>/g, '').length / 26);
   const estStep = (u) => u.html.replace(/<[^>]+>/g, '').length / 62 + 1.1;
-  const firstOpts = (p, withExtras) => ({ photo: imgUrl ? 'side' : 'none', side, tight, ingUnits: p.ing, stepUnits: p.steps, extras: withExtras });
-  const htmlOf = (p, withExtras) => p.first
-    ? pvRecipePage(m, recipe, imgUrl, firstOpts(p, withExtras), detail)
-    : pvContinuationPage(m, p.ing, p.steps, withExtras ? extras : '', tight, p.ingRight);
-  const pages = [];
-  let guard = 0;
-  while ((ingQ.length || stepQ.length) && guard++ < 80) {
+  const htmlOf = (p, ex) => pdfStripImg(pdfPageHtml(ctx, p, p.first ? 1 : 2, 2, ex));
+  const pages = []; let guard = 0;
+  while ((ingL.length || stepL.length) && guard++ < 80) {
     const first = pages.length === 0;
-    const twoIngCols = !first && !stepQ.length && ingQ.length > 0;
+    const twoIngCols = !first && !stepL.length && ingL.length > 0;
     const cur = { first, ing: [], steps: [], ingRight: twoIngCols ? [] : null };
     const rightList = twoIngCols ? cur.ingRight : cur.steps;
-    const rightQ = twoIngCols ? ingQ : stepQ;
-    const leftQ = ingQ;
+    const rightQ = twoIngCols ? ingL : stepL, leftQ = ingL;
     let hL = 0, hR = 0, leftOpen = true, rightOpen = true;
-    const halfEst = twoIngCols ? ingQ.reduce((n, u) => n + estIng(u), 0) / 2 : 0;
-    const fits = () => pdfFits(htmlOf(cur, false));
-    // bei twoIngCols teilen sich beide Spalten dieselbe Warteschlange
+    const halfEst = twoIngCols ? ingL.reduce((n, u) => n + estIng(u), 0) / 2 : 0;
+    const fits = () => candidateFitsOnePage(htmlOf(cur, ''));
     while ((leftOpen && leftQ.length) || (rightOpen && rightQ.length)) {
       const canL = leftOpen && leftQ.length, canR = rightOpen && rightQ.length && !(twoIngCols && !leftQ.length);
       const pickLeft = canL && (twoIngCols ? (hL < halfEst || !canR) : (!canR || hL <= hR));
       if (pickLeft) {
         const u = leftQ[0]; cur.ing.push(u);
-        if (fits() || (cur.ing.length === 1 && !rightList.length)) { leftQ.shift(); hL += estIng(u); }
-        else { cur.ing.pop(); leftOpen = false; }
+        if (fits() || (cur.ing.length === 1 && !rightList.length)) { leftQ.shift(); hL += estIng(u); } else { cur.ing.pop(); leftOpen = false; }
       } else if (canR) {
         const u = rightQ[0]; rightList.push(u);
-        if (fits() || (rightList.length === 1 && !cur.ing.length)) { rightQ.shift(); hR += twoIngCols ? estIng(u) : estStep(u); }
-        else { rightList.pop(); rightOpen = false; }
+        if (fits() || (rightList.length === 1 && !cur.ing.length)) { rightQ.shift(); hR += twoIngCols ? estIng(u) : estStep(u); } else { rightList.pop(); rightOpen = false; }
       } else break;
     }
     pages.push(cur);
-    if (!cur.ing.length && !rightList.length) break;   // Sicherheitsnetz gegen Endlosschleife
+    if (!cur.ing.length && !rightList.length) break;
   }
-  // Zusatzbloecke (Hinweise, Notizen, Naehrwerte, Quelle) ans Ende der letzten Seite, sonst eigene Seite
   const last = pages[pages.length - 1];
-  let extrasOnOwnPage = false;
-  if (extras) {
-    last.extrasInline = pdfFits(htmlOf(last, true));
-    if (!last.extrasInline) extrasOnOwnPage = true;
-  }
-  const out = pages.map((p) => htmlOf(p, !!p.extrasInline));
-  if (extrasOnOwnPage) out.push(pvContinuationPage(m, [], [], extras, tight, null));
-  return { html: out, extrasAlone: extrasOnOwnPage };
+  const alone = !!extrasHtml && !candidateFitsOnePage(htmlOf(last, extrasHtml));
+  const total = pages.length + (alone ? 1 : 0);
+  const out = pages.map((pg, p) => pdfPageHtml(ctx, pg, p + 1, total, p === pages.length - 1 && !alone ? extrasHtml : ''));
+  if (alone) out.push(pdfPageHtml(ctx, { first: false, ing: [], steps: [] }, total, total, extrasHtml));
+  return { html: out, extrasAlone: alone };
 }
 
-/* Ergebnis: { htmlPages, layout }. Liefert IMMER Seiten mit dem kompletten Rezeptinhalt. */
+/* Zusatzbloecke (Hinweise, Notizen, Naehrwerte, Quelle) als HTML am Ende der letzten Seite */
+function pdfExtrasHtml(m, detail) { return pvExtrasHtml(m, detail); }
+
+/* Mehrseitige Planung (Stufe 3 und 4). Ergebnis: { html: [...], tier } */
+function pdfPlanMultiPage(m, recipe, imgUrl, dims, detail) {
+  const ar = dims ? dims.width / dims.height : 1.5;
+  const side = ar < 0.85 ? { w: 36, h: 48 } : (ar <= 1.15 ? { w: 40, h: 40 } : { w: 46, h: 33 });
+  const extrasHtml = pdfExtrasHtml(m, detail);
+  const variants = [];
+  [false, true].forEach((tight) => {
+    const ctx = { m, recipe, imgUrl, side, tight, detail };
+    const ingQ = pvIngredientUnits(m.ingredients), stepItems = pdfPrepareStepItems(m, pvStepUnits(m.steps));
+    const ingItems = ingQ.map((u) => ({ u }));
+    const inp = pdfMeasurePlanInputs(ctx, ingQ, stepItems, extrasHtml);
+    let result = null;
+    for (let safety = 0; safety <= 12 && !result; safety += 2.5) {
+      const sim = pdfSearchPlan(inp, ingItems, stepItems, safety);
+      if (!sim || sim.K < 2) break;
+      const html = pdfAssemble(ctx, sim, extrasHtml);
+      if (html.every((h) => pdfFits(h))) result = { html, tight, forced: false };
+    }
+    if (!result) {
+      const g = pdfLongPagesGreedy(ctx, ingQ, stepItems.map((x) => x.u), extrasHtml);
+      result = { html: g.html, tight, forced: true };
+    }
+    variants.push(result);
+  });
+  // weniger Seiten gewinnen; bei Gleichstand die normalen Abstaende
+  const best = variants.reduce((a, b) => (b.html.length < a.html.length ? b : a));
+  return { html: best.html, tier: best.html.length === 2 ? 3 : 4, tight: best.tight };
+}
+
+/* Ergebnis: { htmlPages, layout, tier, pageCount }. Liefert IMMER Seiten mit dem kompletten Rezeptinhalt. */
 async function buildRecipePdfPage(r, previousLayout, nutritionDetail) {
   const imgUrl = await resolveRecipeImageDataUrl(r);
   const dims = imgUrl ? await getImageDimensions(imgUrl) : null;
@@ -423,18 +734,18 @@ async function buildRecipePdfPage(r, previousLayout, nutritionDetail) {
   let result = null;
   if (detail !== 'off') { try { result = await pdfNutritionForExport(r); } catch (e) { /* Nährwerte sind optional */ } }
   const m = pdfBuildModel(r, result);
+  const photoOk = !!(imgUrl && dims);
   const plans = pdfPhotoPlans(imgUrl, dims, PDF_CTX.tpl.id);
-  for (const opts of plans) {
-    const html = pvRecipePage(m, r, imgUrl, opts, detail);
-    if (pdfFits(html)) return { htmlPages: [html], layout: opts.photo + (opts.tight ? '-tight' : '') };
+  for (let i = 0; i < plans.length; i++) {
+    const opts = plans[i];
+    const html = pvRecipePage(m, r, photoOk ? imgUrl : null, opts, detail);
+    if (pdfFits(html)) {
+      const regular = i === 0;
+      return { htmlPages: [html], layout: opts.photo + (opts.tight ? '-tight' : ''), tier: regular ? 1 : 2, pageCount: 1 };
+    }
   }
-  let long = pdfLongPages(m, r, imgUrl, dims, detail, false);
-  // Keine letzte Seite nur fuer einen kurzen Hinweis: mit engeren Abstaenden erneut versuchen
-  if (long.extrasAlone) {
-    const tightLong = pdfLongPages(m, r, imgUrl, dims, detail, true);
-    if (tightLong.html.length <= long.html.length) long = tightLong;
-  }
-  return { htmlPages: long.html, layout: 'long' };
+  const multi = pdfPlanMultiPage(m, r, photoOk ? imgUrl : null, dims, detail);
+  return { htmlPages: multi.html, layout: 'long', tier: multi.tier, pageCount: multi.html.length };
 }
 
 /* Naehrwerte nur, wenn vollstaendig und aktuell berechnet (sonst weglassen statt Teilsummen zu drucken) */
@@ -450,82 +761,144 @@ function pdfWrapTitle(html, r, chapter) {
   return html.replace('data-page-kind="recipe"', `data-page-kind="recipe" data-title="${escapeHtml(r.title || 'Ohne Titel')}" data-chapter="${escapeHtml(chapter || '')}"`);
 }
 
-/* Einzelrezept-PDF: gleiche Layoutlogik wie das Kochbuch. */
-async function buildSinglePdf(id, nutritionDetail, opts) {
+/* Inhaltsverzeichnis: Eintraege seitenweise nach GEMESSENER Hoehe verteilen (lange Titel brechen um und
+   brauchen mehr Platz). Die Seitenzahlen kommen aus der abgeschlossenen Seitenplanung. Kapitelzeilen bleiben
+   nie allein am Seitenende. Folgeseiten heissen «Inhalt · Fortsetzung». */
+function pdfTocPages(rows) {
+  if (!rows.length) return pvTocPages(rows);
+  const chunks = []; let cur = [];
+  const fits = (list) => { const h = pvTocPages(list.slice(0, 27))[0]; return candidateFitsOnePage(h); };
+  rows.forEach((row, i) => {
+    cur.push(row);
+    if (cur.length > 1 && (cur.length > 27 || !fits(cur))) {
+      let carry = [cur.pop()];
+      while (cur.length && cur[cur.length - 1].kind === 'chapter') carry.unshift(cur.pop());   // Kapitelzeile nicht allein am Seitenende
+      if (!cur.length) { cur = carry; carry = []; }
+      chunks.push(cur); cur = carry;
+    }
+  });
+  if (cur.length) chunks.push(cur);
+  return chunks.map((chunk, n) => {
+    const html = pvTocPages(chunk)[0];
+    return n === 0 ? html : html.replace(/(<h1 class="pv-toc-title">)Inhalt(<\/h1>)/, '$1Inhalt · Fortsetzung$2');
+  });
+}
+
+/* Einzelrezept-PDF: gleiche Layoutlogik wie das Kochbuch. opts: { template, signal, onProgress } */
+function buildSinglePdf(id, nutritionDetail, opts) {
+  return pdfExclusive(() => pdfBuildSingleImpl(id, nutritionDetail, opts));
+}
+async function pdfBuildSingleImpl(id, nutritionDetail, opts) {
   const r = state.recipes.find(x => x.id === id);
   if (!r) return null;
   const templateId = (opts && opts.template) || pdfDefaultTemplateId();
   pdfSetContext(templateId, '', '', false);
-  await ensurePdfLibs();   // Fehler (offline/Timeout) frueh und mit verstaendlicher Meldung
-  await ensureFontsReadyForPdf();
-  const { htmlPages } = await buildRecipePdfPage(r, null, nutritionDetail);
-  document.getElementById('printRoot').innerHTML = htmlPages.map((h, i) => (i === 0 ? pdfWrapTitle(h, r, '') : h)).join('');
-  cleanupPdfMeasureProbe();
-  const blob = await renderSectionsToPdf();
-  if (!blob) return null;
-  return { blob, filename: `savora-${slugifyTitle(r.title)}.pdf` };
+  try {
+    pdfProgress(opts, 0, 1, 'prepare');
+    await ensurePdfLibs();   // Fehler (offline/Timeout) frueh und mit verstaendlicher Meldung
+    await ensureFontsReadyForPdf();
+    pdfCheckAbort(opts);
+    const { htmlPages } = await buildRecipePdfPage(r, null, nutritionDetail);
+    pdfCheckAbort(opts);
+    document.getElementById('printRoot').innerHTML = htmlPages.map((h, i) => (i === 0 ? pdfWrapTitle(h, r, '') : h)).join('');
+    cleanupPdfMeasureProbe();
+    const blob = await renderSectionsToPdf(Object.assign({}, opts, { title: r.title || 'Savora Rezept', subject: 'Rezept' }));
+    if (!blob) return null;
+    blob.plannedPages = htmlPages.length;
+    return { blob, filename: `savora-${slugifyTitle(r.title)}.pdf` };
+  } finally {
+    const root = document.getElementById('printRoot'); if (root) root.innerHTML = '';
+    cleanupPdfMeasureProbe();
+  }
 }
 
 /* Gesamtes Kochbuch. Deckblatt, Inhaltsverzeichnis (nach der fertigen Pagination erzeugt, mit
    echten Seitenlinks), optionale Kapitelseiten, Rezepte. Auswahl und Reihenfolge kommen aus der
-   Kochbuch-Konfiguration. */
-async function buildCookbookPdf(nutritionDetail, opts) {
+   Kochbuch-Konfiguration. opts: { template, signal, onProgress } */
+function buildCookbookPdf(nutritionDetail, opts) {
+  return pdfExclusive(() => pdfBuildCookbookImpl(nutritionDetail, opts));
+}
+async function pdfBuildCookbookImpl(nutritionDetail, opts) {
   const cfg = getCookbookConfig();
   const sections = cookbookOrderedSections(cfg);
   const recipes = sections.flatMap(s => s.recipes);
   if (!recipes.length) return null;
-  await ensurePdfLibs();   // Fehler (offline/Timeout) frueh und mit verstaendlicher Meldung
-  const templateId = (opts && opts.template) || cfg.pdfTemplate || pdfDefaultTemplateId();
-  const title = cfg.title || '';   // leer = nichts drucken (kein unsichtbarer Standardtitel)
-  const author = cfg.author || '';
-  pdfSetContext(templateId, title, author, cfg.showLogo !== false);
-  await ensureFontsReadyForPdf();
+  try {
+    await ensurePdfLibs();   // Fehler (offline/Timeout) frueh und mit verstaendlicher Meldung
+    const templateId = (opts && opts.template) || cfg.pdfTemplate || pdfDefaultTemplateId();
+    const title = cfg.title || '';   // leer = nichts drucken (kein unsichtbarer Standardtitel)
+    const author = cfg.author || '';
+    pdfSetContext(templateId, title, author, cfg.showLogo !== false);
+    await ensureFontsReadyForPdf();
 
-  const pagesByRecipeId = {};
-  let previousLayout = null;
-  for (const r of recipes) {
-    const { htmlPages, layout } = await buildRecipePdfPage(r, previousLayout, nutritionDetail);
-    pagesByRecipeId[r.id] = htmlPages;
-    previousLayout = layout;
-  }
+    // 1) Planung aller Rezepte (Seitenzahlen stehen danach fest)
+    const pagesByRecipeId = {};
+    let previousLayout = null;
+    for (let i = 0; i < recipes.length; i++) {
+      pdfCheckAbort(opts);
+      pdfProgress(opts, i, recipes.length, 'plan');
+      await pdfYield();
+      const r = recipes[i];
+      const { htmlPages, layout } = await buildRecipePdfPage(r, previousLayout, nutritionDetail);
+      pagesByRecipeId[r.id] = htmlPages;
+      previousLayout = layout;
+    }
+    pdfCheckAbort(opts);
 
-  const hasChapters = sections.some(s => s.chapter);
-  const chapterPages = !!cfg.chapterPages && hasChapters;   // eigene Kapitelseiten nur auf Wunsch
-  const build = (firstBodyPage) => {
-    let page = firstBodyPage;
-    const rows = []; const body = [];
-    sections.forEach((s) => {
-      const chName = s.chapter ? s.chapter.name : (hasChapters ? 'Weitere Rezepte' : '');
-      if (hasChapters) rows.push({ kind: 'chapter', title: chName });
-      if (chapterPages) { body.push(pvChapterPage(chName)); page += 1; }
-      s.recipes.forEach((r) => {
-        rows.push({ kind: 'recipe', title: r.title || 'Ohne Titel', page, id: r.id });
-        const pages = pagesByRecipeId[r.id];
-        body.push(pages.map((h, i) => (i === 0 ? pdfWrapTitle(h, r, chName) : h)).join(''));
-        page += pages.length;
+    // 2) Inhaltsverzeichnis und Kapitel aus der fertigen Planung
+    const hasChapters = sections.some(s => s.chapter);
+    const chapterPages = !!cfg.chapterPages && hasChapters;   // eigene Kapitelseiten nur auf Wunsch
+    const build = (firstBodyPage) => {
+      let page = firstBodyPage;
+      const rows = []; const body = [];
+      sections.forEach((s) => {
+        const chName = s.chapter ? s.chapter.name : (hasChapters ? 'Weitere Rezepte' : '');
+        if (hasChapters) rows.push({ kind: 'chapter', title: chName });
+        if (chapterPages) { body.push(pvChapterPage(chName)); page += 1; }
+        s.recipes.forEach((r) => {
+          rows.push({ kind: 'recipe', title: r.title || 'Ohne Titel', page, id: r.id });
+          const pages = pagesByRecipeId[r.id];
+          body.push(pages.map((h, i) => (i === 0 ? pdfWrapTitle(h, r, chName) : h)).join(''));
+          page += pages.length;
+        });
       });
-    });
-    return { rows, body };
-  };
-  let built = build(3);
-  const tocCount = pvTocPages(built.rows).length;
-  if (tocCount !== 1) built = build(2 + tocCount);
-  const tocHtml = pvTocPages(built.rows).join('');
+      return { rows, body };
+    };
+    let built = build(3);
+    let tocPages = pdfTocPages(built.rows);
+    for (let guard = 0; guard < 4 && tocPages.length !== (guard === 0 ? 1 : built.tocCount); guard++) {
+      built = build(2 + tocPages.length); built.tocCount = tocPages.length;
+      const again = pdfTocPages(built.rows);
+      if (again.length === tocPages.length) { tocPages = again; break; }
+      tocPages = again;
+    }
+    const tocHtml = tocPages.join('');
 
-  // Titelblatt: eine Layoutdefinition fuer Vorschau und Export; zu lange Texte brechen den Export mit konkretem Hinweis ab
-  coverEnsureConfig();
-  const cfgNow = getCookbookConfig();
-  await coverEnsureFonts();
-  const layout = coverLayout({ templateId: cfgNow.cover.templateId, title: cfgNow.title, name: cfgNow.author, slogan: cfgNow.subtitle, date: cfgNow.cover.date, showDate: cfgNow.cover.showDate, logo: cfgNow.showLogo !== false });
-  if (layout.warnings.length) throw coverError(layout.warnings.map(w => w.message).join(' '));
-  const coverBg = await coverBackgroundDataUrl(layout.templateId);
-  // Gleiche Zeichenfunktion wie die Vorschau; Hintergrund in Originalaufloesung (1055 x 1491 px), Seite doppelt so fein fuer scharfe Schrift
-  const coverCanvas = await coverRenderCanvas(layout, 2, coverBg);
-  const cover = coverHtml(layout, coverCanvas.toDataURL('image/png'));
-  document.getElementById('printRoot').innerHTML = cover + tocHtml + built.body.join('');
-  cleanupPdfMeasureProbe();
-  const stamp = new Date().toISOString().slice(0, 10);
-  const blob = await renderSectionsToPdf();
-  if (!blob) return null;
-  return { blob, filename: `savora-kochbuch-${stamp}.pdf` };
+    // Titelblatt: eine Layoutdefinition fuer Vorschau und Export; zu lange Texte brechen den Export mit konkretem Hinweis ab
+    coverEnsureConfig();
+    const cfgNow = getCookbookConfig();
+    await coverEnsureFonts();
+    const layout = coverLayout({ templateId: cfgNow.cover.templateId, title: cfgNow.title, name: cfgNow.author, slogan: cfgNow.subtitle, date: cfgNow.cover.date, showDate: cfgNow.cover.showDate, logo: cfgNow.showLogo !== false });
+    if (layout.warnings.length) throw coverError(layout.warnings.map(w => w.message).join(' '));
+    const coverBg = await coverBackgroundDataUrl(layout.templateId);
+    // Gleiche Zeichenfunktion wie die Vorschau; Hintergrund in Originalaufloesung (1055 x 1491 px), Seite doppelt so fein fuer scharfe Schrift
+    const coverCanvas = await coverRenderCanvas(layout, 2, coverBg);
+    const cover = coverHtml(layout, coverCanvas.toDataURL('image/png'));
+    pdfCheckAbort(opts);
+    document.getElementById('printRoot').innerHTML = cover + tocHtml + built.body.join('');
+    cleanupPdfMeasureProbe();
+    const stamp = new Date().toISOString().slice(0, 10);
+    const planned = 1 + tocPages.length + built.body.reduce((n, h) => n + (h.match(/<section /g) || []).length, 0);
+    const blob = await renderSectionsToPdf(Object.assign({}, opts, { title: title || 'Savora Kochbuch', subject: 'Kochbuch', author }));
+    if (!blob) return null;
+    blob.plannedPages = planned;
+    // Inhaltsverzeichnis gegen die tatsaechlichen Rezeptanfaenge pruefen (Planung und PDF muessen uebereinstimmen)
+    const mismatch = built.rows.filter((row) => row.kind === 'recipe' && blob.recipeStart && blob.recipeStart[row.id] !== row.page);
+    if (mismatch.length) console.warn('PDF: Inhaltsverzeichnis weicht von den Seiten ab', mismatch.map((x) => x.title));
+    blob.tocMismatch = mismatch.length;
+    return { blob, filename: `savora-kochbuch-${stamp}.pdf` };
+  } finally {
+    const root = document.getElementById('printRoot'); if (root) root.innerHTML = '';
+    cleanupPdfMeasureProbe();
+  }
 }
