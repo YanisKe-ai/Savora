@@ -41,7 +41,15 @@ async def open_sheet(page):
     await page.click('[data-action="open-filter-sheet"]'); await page.wait_for_selector('.filter-sheet'); await page.wait_for_timeout(300)
 
 async def pick(page, dim, value):
-    await page.click(f'.fs-input[data-fs-dim="{dim}"][value="{value}"] >> xpath=..'); await page.wait_for_timeout(80)
+    # Auf langsamen Rechnern (Linux-CI) kann das Neuzeichnen nach dem Klick laenger als 80 ms dauern: warten, bis der Zustand umgeschaltet hat.
+    sel = f'.fs-input[data-fs-dim="{dim}"][value="{value}"]'
+    before = await page.evaluate("(s) => { const i = document.querySelector(s); return i ? i.checked : null; }", sel)
+    await page.click(sel + ' >> xpath=..')
+    try:
+        await page.wait_for_function("(a) => { const i = document.querySelector(a[0]); return i && i.checked !== a[1]; }", arg=[sel, before], timeout=3000)
+    except Exception:
+        pass   # Radio, das schon gewaehlt war, schaltet nicht um; die Pruefung danach entscheidet
+    await page.wait_for_timeout(80)
 
 async def main():
     async with async_playwright() as p:
