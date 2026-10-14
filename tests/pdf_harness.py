@@ -8,6 +8,10 @@ Was es kann
   - automatische Pruefungen (Funktionen pruefe_*), jeweils Liste von Befunden {id, seite, text}
 
 Umgebungsvariablen: SAVORA_TEST_PORT (Standard 16500), SAVORA_TEST_OUT (Ausgabeordner).
+  SAVORA_PDF_IDS=A,B            Stil-Liste (alter Code vor 0.75)
+  SAVORA_PDF_TEXT_SHIFT_MM=0.15 Linux-Simulation (gemessen auf 85798bb: 0.15 reproduziert «Quelle: sichtbare Tinte 5 px, erwartet 10 px» wie die CI, 0.3 ca. 130 Befunde, 2 extrem): der Text jeder Druckseite wird im Klon fuer html2canvas um diesen Betrag nach unten versetzt (position:relative; top),
+                                Layout und DOM-Messung bleiben unveraendert. Zeigt lokal die K01a-Befunde der CI (Text sitzt dort tiefer, Unterlaengen werden abgeschnitten).
+                                Beispiel: SAVORA_PDF_TEXT_SHIFT_MM=0.15 SAVORA_TEST_PORT=25900 python tests/test_pdf_ausgabe.py
 Benutzung als Programm:  python tests/pdf_harness.py <ausgabeordner> [stil ...]   (erzeugt die Baseline-Exporte samt Bildern und Befunden)
 Die Messung der Seiten passiert unmittelbar vor html2canvas (jede Seite einmal, im fertig geladenen Zustand mit Schriften und Bildern).
 Sollte eine spaetere Version die Rastermaschine austauschen, muss nur HOOK_JS angepasst werden."""
@@ -18,9 +22,11 @@ from common import *   # noqa: E402,F401  (startet den lokalen Webserver, liefer
 from PIL import Image, ImageDraw   # noqa: E402
 
 FIXTURE_PFAD = os.path.join(TESTS, 'fixtures', 'pdf_rezepte.json')
-STILE = ('A', 'B', 'C')
+# Zentrale Liste der PDF-Stile: TEMPLATE_IDS, T0 (erster/Standard), T1 (zweiter) kommen aus tests/common.py (dort wegen der Browser-Globals __T0/__T1) und stehen hier per Stern-Import bereit.
+# SAVORA_PDF_IDS=A,B erlaubt Laeufe gegen alten Code (vor 0.75).
+STILE = tuple(TEMPLATE_IDS)
 NAEHRWERT_STUFEN = ('off', 'compact', 'full')
-COVER_VORLAGEN = ['pop', 'lieblingsbuch', 'tomate', 'salbei', 'nachtkueche', 'citrus', 'bistro', 'garten', 'sonnenkueche', 'ofenglueck']
+COVER_VORLAGEN = ['pop', 'lieblingsbuch', 'tomate', 'salbei', 'nachtkueche', 'citrus', 'bistro', 'garten', 'sonnenkueche', 'ofenglueck', 'savora-01-pasta-band', 'savora-02-geschmacksschichten', 'savora-03-scherenschnitt-tafel', 'savora-04-eine-prise', 'savora-05-tischrunde']
 # Mindestgroessen (pt) auf A4 nach Auftrag: Haupttext 10, Sekundaertext 8,5
 MIN_HAUPT_PT, MIN_SEKUNDAER_PT = 10.0, 8.5
 RESTSEITE_MIN_MM = 60          # letzte Seite eines mehrseitigen Rezepts: mindestens so viel Inhaltshoehe (Heuristik, siehe README unten)
@@ -168,7 +174,22 @@ HOOK_JS = r"""() => {
   const install = () => {
     const orig = window.html2canvas;
     if (typeof orig !== 'function' || orig.__wrapped) return false;
-    const w = function (el, o) { if (cap.on) { try { cap.sections.push(analyze(el)); } catch (e) { cap.sections.push({ fehler: String(e), kind: 'fehler', blocks: [], words: [], clipped: [], images: [], headings: [], emptyBlocks: [], foot: [], tocRows: [], sig: {} }); } } return orig.apply(this, arguments); };
+    const w = function (el, o) { if (cap.on) { try { cap.sections.push(analyze(el)); } catch (e) { cap.sections.push({ fehler: String(e), kind: 'fehler', blocks: [], words: [], clipped: [], images: [], headings: [], emptyBlocks: [], foot: [], tocRows: [], sig: {} }); } }
+      // Simulation von Linux-Textmetriken (SAVORA_PDF_TEXT_SHIFT_MM): erst im Klon fuer html2canvas, also verschiebt sich nur das Rastern, nicht Layout und Messung
+      const shift = window.__pdfShiftMm || 0; let args = arguments;
+      if (shift && o) {
+        const own = o.onclone; const px = shift * MM;
+        args = [el, Object.assign({}, o, { onclone: function (d) {
+          if (own) own.apply(this, arguments);
+          d.querySelectorAll('*').forEach((e) => {
+            if (!Array.from(e.childNodes).some((n) => n.nodeType === 3 && n.textContent.trim())) return;
+            const cs = d.defaultView.getComputedStyle(e);
+            if (cs.position === 'static') { e.style.position = 'relative'; e.style.top = px + 'px'; }
+            else if (cs.top !== 'auto') e.style.top = ((parseFloat(cs.top) || 0) + px) + 'px';
+          });
+        } })];
+      }
+      return orig.apply(this, args); };
     w.__wrapped = true; window.html2canvas = w; return true;
   };
   cap.install = install;
@@ -196,7 +217,7 @@ class Export:
 
 
 class PdfSession:
-    """async with PdfSession(out) as s: await s.single('pdf_manti', 'A', 'compact') ..."""
+    """async with PdfSession(out) as s: await s.single('pdf_manti', T0, 'compact') ..."""
     def __init__(self, out=None, breite=1000, hoehe=900):
         self.out = out or os.path.join(OUT, 'pdf'); os.makedirs(self.out, exist_ok=True); self.w, self.h = breite, hoehe
         self.fx = lade_fixtures(); self.naehrwerte_status = {}; self.fehler = []
@@ -213,10 +234,12 @@ class PdfSession:
     async def __aexit__(self, *a):
         await self.browser.close(); await self._pw.stop()
     async def seed(self, nur=None):
+        verschiebung = float(os.environ.get('SAVORA_PDF_TEXT_SHIFT_MM', '0') or 0)
         rez = [r for r in self.fx['recipes'] if not nur or r['id'] in nur]
         nutri = [r['id'] for r in rez if r.get('_nutri')]
         self.naehrwerte_status = await self.page.evaluate(SEED_JS, [rez, testbilder(), nutri])
         await self.page.evaluate(HOOK_JS)
+        await self.page.evaluate('(mm) => { window.__pdfShiftMm = mm; }', verschiebung)
         return self.naehrwerte_status
     async def zustand(self):
         """Fingerabdruck der Rezeptdaten (fuer die Datenerhalt-Pruefung)."""
@@ -232,17 +255,20 @@ class PdfSession:
         pfad = os.path.join(self.out, name + '.pdf'); open(pfad, 'wb').write(base64.b64decode(b64))
         ex = Export(name, pfad, dom, time.time() - t, optionen); ex.dateiname = fn
         return ex
-    async def single(self, rezept_id, stil='A', naehrwerte='off', name=None):
+    async def single(self, rezept_id, stil=None, naehrwerte='off', name=None):
+        stil = stil or T0
         name = name or f'einzel_{rezept_id.replace("pdf_", "")}_{stil}_{naehrwerte}'
         return await self._erfasse("buildSinglePdf(a[0], a[1], { template: a[2] })", [rezept_id, naehrwerte, stil], name, dict(art='einzel', rezept=rezept_id, stil=stil, naehrwerte=naehrwerte))
-    async def konfiguriere_buch(self, buch='ref', stil='A', titel=None, name=None, slogan=None, logo=True, cover='pop', datum_zeigen=True, datum='2026-10-14', ids=None):
+    async def konfiguriere_buch(self, buch='ref', stil=None, titel=None, name=None, slogan=None, logo=True, cover='pop', datum_zeigen=True, datum='2026-10-14', ids=None):
+        stil = stil or T0
         b = self.fx['books'][buch]
         items = [{'recipeId': i, 'chapterId': c} for i, c in b['items']] if ids is None else [{'recipeId': i, 'chapterId': ''} for i in ids]
         cfg = dict(title=b['title'] if titel is None else titel, subtitle=b['subtitle'] if slogan is None else slogan, author=b['author'] if name is None else name,
                    pdfTemplate=stil, chapters=b['chapters'] if ids is None else [], items=items, showLogo=logo, chapterPages=False, cover=dict(v=1, templateId=cover, date=datum, showDate=datum_zeigen))
         await self.page.evaluate("(c) => saveCookbookConfig(c)", cfg)
-    async def book(self, buch='ref', stil='A', naehrwerte='off', datei=None, **kw):
+    async def book(self, buch='ref', stil=None, naehrwerte='off', datei=None, **kw):
         """kw: titel, name (Autor), slogan, logo, cover, datum_zeigen, datum, ids (nur diese Rezepte, ohne Kapitel). datei = Dateiname des PDFs."""
+        stil = stil or T0
         await self.konfiguriere_buch(buch, stil, **kw)
         name = datei or f'buch_{buch}_{stil}_{naehrwerte}'
         return await self._erfasse("buildCookbookPdf(a[0], { template: a[1] })", [naehrwerte, stil], name, dict(art='buch', buch=buch, stil=stil, naehrwerte=naehrwerte, **{k: v for k, v in kw.items()}))
@@ -463,15 +489,21 @@ def pruefe_bilder(ex, rezepte=None):
     return out
 
 _NORM = [(' ', ' '), ('­', ''), ('‑', '-'), ('’', "'"), ('‘', "'"), ('“', '"'), ('”', '"'), ('„', '"'), ('«', '"'), ('»', '"')]
+def _cp(t):
+    """Die unsichtbare Textebene der Raster-PDFs ist WinAnsi (cp1252): Zeichen wie ğ ı ş Ł stehen sichtbar korrekt im Bild, aber nicht im Textlayer.
+       Fuer den Textabgleich werden sie auf beiden Seiten entfernt (Bekannte Grenze, siehe Bericht); sichtbar geprueft wird per Bild."""
+    return t.encode('cp1252', 'ignore').decode('cp1252')
+
 def _tok(t):
     for a, b in _NORM: t = t.replace(a, b)
+    t = _cp(t)
     t = t.replace('1/2', '½').replace('1/4', '¼').replace('3/4', '¾').replace('1 ½', '1½')
     return [w for w in re.findall(r"[\wÀ-ÿ½¼¾]+", t.lower())]
 
 def flach(t):
     """Nur Buchstaben und Ziffern, klein: die Textebene setzt in grossen Schriften die Woerter ohne Leerzeichen («SloppyJoeBuns»)."""
     for a, b in _NORM: t = t.replace(a, b)
-    return re.sub(r'\W+', '', t.lower())
+    return re.sub(r'\W+', '', _cp(t).lower())
 
 def erwartete_texte(rez):
     """Zutaten- und Schritt-Texte eines Testrezepts als Wortlisten (Menge, Einheit und Name zusammen, Reihenfolge der Felder egal)."""
@@ -512,6 +544,7 @@ def _enthaelt(tokens, bag, fenster=60, seite=None):
 def pruefe_text(ex, rezepte):
     """Textabgleich: alle Zutaten- und Schritt-Woerter des Rezepts stehen im extrahierten PDF-Text (pdftotext -raw), Schritte nicht doppelt, keine Platzhalter wie undefined/NaN."""
     out = []; roh = ex.text(raw=True)
+    flat_doc = flach(roh)
     bag = []; seite = []
     for n, pg in enumerate(roh.split('\f')):
         t = _tok(pg); bag += t; seite += [n] * len(t)
@@ -529,14 +562,21 @@ def pruefe_text(ex, rezepte):
             if not t: continue
             if len(t) >= 6:
                 miss = _enthaelt(t, bag, seite=seite)
+                if miss:   # Textebene ohne Leerzeichen zwischen den Woertern (pdftotext liefert «LauwarmeMilch,Honig...»): Vergleich ueber die Buchstabenfolge, Anfang und Ende des Schritts
+                    fs = flach(roh_s)
+                    if len(fs) >= 20 and fs[:30] in flat_doc and fs[-30:] in flat_doc: miss = []
                 if len(miss) > 0: out.append(F('text_fehlt_schritt', 0, f'{rez["id"]}: Schritt «{roh_s[:40]}» unvollstaendig im PDF (fehlt: {miss[:3]})', rezept=rez['id']))
                 kopf = ' '.join(t[:8]); anz = ' '.join(bag).count(kopf)
                 if anz > 1: out.append(F('text_doppelt', 0, f'{rez["id"]}: Schritt «{roh_s[:40]}» {anz}-mal im PDF', rezept=rez['id']))
         notiz = rez.get('notes', '').strip()
         if notiz:
-            miss = _enthaelt(_tok(notiz)[:25], bag)
+            nt = _tok(notiz)[:25]; miss = _enthaelt(nt, bag, fenster=60 if len(nt) >= 4 else len(bag))   # kurze Notiz (unter 4 Woerter): kein Startanker, daher im ganzen Dokument suchen
+            fn = flach(notiz)
+            if miss and fn and fn[:30] in flat_doc: miss = []
             if miss: out.append(F('text_fehlt_notiz', 0, f'{rez["id"]}: Notiz unvollstaendig (fehlt: {miss[:3]})', rezept=rez['id']))
     return out
+
+def _ascii(t): return re.sub(r'[^a-z]+', '', t.lower())
 
 def pruefe_inhaltsverzeichnis(ex):
     """Seitenzahlen im Inhaltsverzeichnis gegen die tatsaechlichen Rezeptanfaenge (DOM-Reihenfolge = PDF-Seiten) und gegen den PDF-Text der Seite."""
@@ -554,7 +594,7 @@ def pruefe_inhaltsverzeichnis(ex):
     if n_rows < len(start): out.append(F('toc_unvollstaendig', 0, f'{n_rows} Verzeichniseintraege fuer {len(start)} Rezepte'))
     for rid, (seite, titel) in start.items():
         t = flach(ex.text(raw=True, first=seite))
-        if titel and flach(titel)[:20] not in t: out.append(F('toc_titel_nicht_auf_seite', seite, f'Titel «{titel[:30]}» steht nicht im Text von PDF-Seite {seite}'))
+        if titel and flach(titel)[:20] not in t and _ascii(titel)[:12] not in _ascii(ex.text(raw=True, first=seite)): out.append(F('toc_titel_nicht_auf_seite', seite, f'Titel «{titel[:30]}» steht nicht im Text von PDF-Seite {seite}'))
     return out
 
 def pruefe_fortsetzung(ex):
@@ -567,7 +607,7 @@ def pruefe_fortsetzung(ex):
         for i in idx[1:]:
             t = ex.dom[i].get('text', '')
             if 'fortsetzung' not in t.lower(): out.append(F('fortsetzung_ohne_kennzeichnung', i + 1, f'{rid}: Seite ohne «Fortsetzung»', rezept=rid))
-            elif not re.search(r'\b\d+\s*von\s*\d+\b', t, re.I): out.append(F('fortsetzung_ohne_n_von_m', i + 1, f'{rid}: «Fortsetzung» ohne «n von m» (Auftrag: «Fortsetzung · 2 von 2»)', rezept=rid))
+            elif not re.search(r'\b\d+\s*(?:von|/)\s*\d+\b', t, re.I): out.append(F('fortsetzung_ohne_n_von_m', i + 1, f'{rid}: «Fortsetzung» ohne «n von m» (Auftrag: «Fortsetzung · 2 von 2»)', rezept=rid))
             if titel and flach(titel)[:20] not in flach(t): out.append(F('fortsetzung_ohne_name', i + 1, f'{rid}: Rezeptname fehlt auf der Fortsetzungsseite', rezept=rid))
     return out
 
@@ -607,6 +647,28 @@ def alle_pruefungen(ex, rezepte=None):
     return r
 
 
+async def vorschau_gleich_download(s, stil=None, rezept='pdf_carbonara', stufe='full', erwarte_text='Zucker'):
+    """Echte Bedienung: Exportfenster oeffnen, Stil und Naehrwerte waehlen, PDF erstellen, in der Vorschau «Herunterladen» klicken.
+       Vergleicht die Bytes (SHA-256) von Vorschau und Download, Seitenzahl und gewaehlten Stil. Die Bedienelemente heissen
+       pdf-export-set-template (data-id = Stil), pdf-export-set-detail (data-level), pdf-export-build, pdf-export-download."""
+    stil = stil or T1; page = s.page
+    await page.evaluate("(id) => { state.activeRecipeId = id; state.view = 'detail'; render(); openModal({ type: 'pdf-export', target: 'single', recipeId: id, stage: 'options', template: window.__T0, nutritionDetail: 'off' }); }", rezept)
+    await page.wait_for_selector('[data-action="pdf-export-build"]', timeout=10000)
+    await page.click('[data-action="pdf-export-set-template"][data-id="' + stil + '"]')
+    if await page.query_selector('[data-action="pdf-export-set-detail"][data-level="' + stufe + '"]'): await page.click('[data-action="pdf-export-set-detail"][data-level="' + stufe + '"]')
+    await page.click('[data-action="pdf-export-build"]')
+    await page.wait_for_selector('[data-action="pdf-export-download"]', timeout=60000)
+    await page.wait_for_timeout(500)
+    h_vorschau = await page.evaluate("async () => { const b = state.modal.previewBlob; const u = new Uint8Array(await b.arrayBuffer()); const d = await crypto.subtle.digest('SHA-256', u); return [Array.from(new Uint8Array(d)).map(x => x.toString(16).padStart(2, '0')).join(''), b.pageCount || 0, state.modal.template, state.modal.nutritionDetail]; }")
+    async with page.expect_download(timeout=30000) as d:
+        await page.click('[data-action="pdf-export-download"]')
+    dl = await d.value; pfad = os.path.join(s.out, f'ui_download_{stil}_{stufe}.pdf'); await dl.save_as(pfad)
+    h_dl = hashlib.sha256(open(pfad, 'rb').read()).hexdigest()
+    n = pdfinfo(pfad)['seiten']; t = ' '.join(pdftext(pfad).split())
+    info = f'Vorschau {h_vorschau[0][:10]} Download {h_dl[:10]}, Stil {h_vorschau[2]}, Detail {h_vorschau[3]}, Seiten (Vorschau/Datei) {h_vorschau[1]}/{n}, «{erwarte_text}» im PDF: {erwarte_text in t}'
+    await page.evaluate("() => { state.modal = null; render(); }")
+    return {'gleich': h_vorschau[0] == h_dl and h_vorschau[2] == stil and h_vorschau[3] == stufe and (not erwarte_text or erwarte_text in t), 'seiten_ok': h_vorschau[1] == n, 'info': info, 'pdf': pfad}
+
 # ---------- Programm: Baseline-Exporte ----------
 async def _baseline(out, stile, buch_stile):
     os.makedirs(out, exist_ok=True)
@@ -623,7 +685,7 @@ async def _baseline(out, stile, buch_stile):
                     jobs.append(('einzel', rid, stil, nw))
         for stil in buch_stile:
             jobs.append(('buch', 'ref', stil, 'compact'))
-            if stil == 'A': jobs.append(('buch', 'gross', stil, 'compact'))
+            if stil == T0: jobs.append(('buch', 'gross', stil, 'compact'))
         for art, rid, stil, nw in jobs:
             try:
                 ex = await (s.single(rid, stil, nw) if art == 'einzel' else s.book(rid, stil, nw))

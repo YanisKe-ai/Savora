@@ -189,8 +189,20 @@ async def pdf_tests(p):
         px = img.load(); W, H = img.size
         dark = [(x, y) for y in range(H) for x in range(0, W) if px[x, y] < 20]
         if dark:
-            minx = min(d[0] for d in dark); maxx = max(d[0] for d in dark); miny = min(d[1] for d in dark); maxy = max(d[1] for d in dark)
-            ratios.append(round((maxx - minx + 1) / (maxy - miny + 1), 3))
+            # Auf der Seite gibt es auch dunkle Schrift (Titel). Der Kreis des Testfotos ist die groesste kreisfoermige dunkle Flaeche (Fuellgrad etwa pi/4); nur sie wird vermessen.
+            todo = set(dark); best = []
+            while todo:
+                seed = todo.pop(); comp = [seed]; stack = [seed]
+                while stack:
+                    cx, cy = stack.pop()
+                    for nb in ((cx + 1, cy), (cx - 1, cy), (cx, cy + 1), (cx, cy - 1)):
+                        if nb in todo: todo.discard(nb); comp.append(nb); stack.append(nb)
+                xs = [q[0] for q in comp]; ys = [q[1] for q in comp]; bw, bh = max(xs) - min(xs) + 1, max(ys) - min(ys) + 1
+                # Kreis/Ellipse: gefuellt etwa pi/4 der Begrenzungsbox; Buchstaben (Balken, Winkel) liegen deutlich darueber oder darunter
+                if min(bw, bh) >= 8 and 0.68 <= len(comp) / (bw * bh) <= 0.86 and len(comp) > len(best): best = comp
+            minx = min(d[0] for d in best); maxx = max(d[0] for d in best); miny = min(d[1] for d in best); maxy = max(d[1] for d in best)
+            if len(best) < 100: ratios.append(None)   # kein Kreis gefunden
+            else: ratios.append(round((maxx - minx + 1) / (maxy - miny + 1), 3))
         else: ratios.append(None)
     check('F05 Fotos im PDF unverzerrt (Kreis bleibt Kreis: quadratisch, hoch, quer)', all(r and 0.95 <= r <= 1.05 for r in ratios), str(ratios))
     if not have_backup:

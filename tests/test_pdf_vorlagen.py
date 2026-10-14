@@ -1,5 +1,5 @@
 """PDF-Vorlagen (Inhalt der Rezeptseite): Zutatenspalte, Gruppentitel, Zusatzbloecke, Naehrwerte, Quellen, Typografie.
-Rendert pvRecipePage mit Testmodellen in allen drei Stilen (A, B, C) und misst im DOM (Schriften sind geladen).
+Rendert pvRecipePage mit Testmodellen in allen Stilen (TEMPLATE_IDS, Standard pur und prise-pop) und misst im DOM (Schriften sind geladen).
 Aelteres Zutatenmodell (Menge samt Einheit) UND neues Modell (amount/name/note/raw/uncertain) werden geprueft."""
 import asyncio, sys, os, json
 import os as _os; sys.path.insert(0, _os.path.dirname(_os.path.abspath(__file__)))
@@ -121,7 +121,7 @@ async def main():
         gl = await page.evaluate("""() => { const c = document.createElement('canvas').getContext('2d'); const w = (f, t) => { c.font = f; return c.measureText(t).width; };
           return ['½', '¼', '¾'].map((t) => [w('600 20px Roboto, serif', t), w('600 20px Roboto, monospace', t)]); }""")
         check('Brüche ½ ¼ ¾ sind in Roboto vorhanden', all(abs(a - b_) < .01 and a > 0 for a, b_ in gl), str(gl))
-        for tpl in ('A', 'B', 'C'):
+        for tpl in TEMPLATE_IDS:
             for key, detail in [('mantiAlt', 'off'), ('mantiNeu', 'compact'), ('cookies', 'compact'), ('voll', 'full'), ('leer', 'compact')]:
                 await page.evaluate("([k, t, d]) => { __render(k, t, d); }", [key, tpl, detail])
                 await page.evaluate("document.fonts.ready"); await page.wait_for_timeout(60)
@@ -145,16 +145,16 @@ async def main():
                     check(tag + 'leerer Hinweisblock wird nicht gezeichnet', not r['labels'], str(r['labels']))
                 if key in ('mantiNeu', 'voll'):
                     check(tag + 'unsichere Zutat zeigt den Originaltext vollständig', r['uncertain'] == ['Salz & Pfeffer nach Belieben, ca. 3–4 Kardamomkapseln (zerstossen)'], str(r['uncertain']))
-                if key in ('mantiNeu', 'cookies', 'voll'):
+                if key in ('mantiNeu', 'cookies', 'voll') and not (tpl == T1 and tpl != T0 and detail == 'compact' and not r.get('nut') and tpl != 'A' and tpl != 'B'):   # Prise Pop kompakt: Fusszeile statt Raster
                     nu = r.get('nut')
                     check(tag + 'Nährwert-Raster: Wert, Einheit, Bezeichnung je Zelle, Zeilen und Spalten fest', bool(nu) and nu['ok'] and nu['zero'] == 0 and nu['hasTitle'], str(nu))
                     if key == 'voll':
-                        # fehlender Wert (Fett = null) wird weggelassen, nie als 0 gezeichnet; erweitert = 7 Zellen in 2 Zeilen
-                        check(tag + 'fehlender Wert (Fett) wird weggelassen', 'Fett' not in nu['labels'] and nu['n'] == 7 and nu['rows'] == 2, str(nu))
+                        # fehlender Wert (Fett = null) wird weggelassen, nie als 0 gezeichnet; erweitert = 7 Zeilen (untereinander) oder Zellen
+                        check(tag + 'fehlender Wert (Fett) wird weggelassen', 'Fett' not in nu['labels'] and nu['n'] == 7, str(nu))
                         check(tag + 'Bezugsgrösse «pro 100 g» als Zeile', nu['basis'].startswith('pro 100 g'), nu['basis'])
                     elif key == 'cookies':
                         check(tag + 'Bezugsgrösse «pro Stück» als Zeile', nu['basis'].startswith('pro Stück'), nu['basis'])
-                        check(tag + 'kompakt: eine Zeile mit 5 Zellen', nu['n'] == 5 and nu['rows'] == 1, str(nu))
+                        check(tag + 'kompakt: 5 Werte (Energie, Protein, Kohlenhydrate, Fett, Ballaststoffe)', nu['n'] == 5, str(nu))
                 if key in ('cookies', 'voll'):
                     u = r.get('url')
                     check(tag + 'lange URL bricht innerhalb der Spalte, ist Link mit data-pdf-href', bool(u) and u['within'] and u['sw'] and u['pdf'] == u['href'] and u['pdf'].startswith('http'), str(u))
@@ -165,13 +165,13 @@ async def main():
           return { n: u.length, bad: u.filter((x) => /pv-ing-group/.test(x.html) && !/pv-ing"/.test(x.html.slice(x.html.lastIndexOf('pv-ing-group')))).length,
                    endsGroup: u.filter((x) => /<div class="pv-ing-group">[^<]*<\\/div>$/.test(x.html)).length, total: u.reduce((a, x) => a + (x.html.match(/pv-ing"/g) || []).length, 0) }; }""")
         check('Einheiten: Gruppentitel immer mit mindestens einer Zutat, nichts geht verloren', un['bad'] == 0 and un['endsGroup'] == 0 and un['total'] == 66, str(un))
-        ex = await page.evaluate("""() => { pdfSetContext('A', '', '', true); const m = __models.cookies; const units = pvExtrasUnits(m, 'compact'); const all = pvExtrasHtml(m, 'compact');
+        ex = await page.evaluate("""() => { pdfSetContext(__T0, '', '', true); const m = __models.cookies; const units = pvExtrasUnits(m, 'compact'); const all = pvExtrasHtml(m, 'compact');
           return { n: units.length, first: units[0].html.includes('pv-label') && units[0].html.includes('<p>'), more: units.filter((x) => x.more).every((x) => !x.html.includes('pv-label') && x.contHtml.includes('Fortsetzung')),
                    hints: (all.match(/>Hinweise</g) || []).length, empty: pvExtrasHtml(__models.leer, 'off') }; }""")
         check('Zusatzeinheiten: Überschrift mit erstem Absatz, Folgeabsatz mit «· Fortsetzung»', ex['first'] and ex['more'] and ex['hints'] == 1, str(ex))
         check('Leeres Modell erzeugt keinen Zusatzblock', ex['empty'] == '', ex['empty'][:80])
-        ch = await page.evaluate("() => [pvContinuationHead('Titel', 2, 3), pvContinuationHead('Titel'), pvContinuationPage(__models.cookies, [], [], '', false, null, 2, 2)]")
-        check('Fortsetzungskopf: «Fortsetzung · 2 von 3», ohne Zahlen nur «Fortsetzung»', 'Fortsetzung · 2 von 3' in ch[0] and '>Fortsetzung<' in ch[1] and 'Fortsetzung · 2 von 2' in ch[2], '')
+        ch = await page.evaluate("() => [pvContinuationHead('Titel', 2, 3), pvContinuationHead('Titel')]")
+        check('Fortsetzungskopf: «Fortsetzung · 2 von 3», ohne Zahlen nur «Fortsetzung»', ('Fortsetzung · 2 von 3' in ch[0] or 'Fortsetzung · 2 / 3' in ch[0]) and '>Fortsetzung<' in ch[1], '')
         check('keine JavaScript-Fehler', not errs, str(errs[:2]))
         await b.close()
     print('\nFEHLGESCHLAGEN:' if FAIL else '\nAlle Pruefungen bestanden.', FAIL or '')

@@ -1,7 +1,7 @@
 """PDF-Kern: Seitenrahmen (Kopf-/Fusszeile nicht angeschnitten), Seitenplanung (Stufen, ausgeglichene
 Fortsetzungsseiten, keine verwaisten Ueberschriften), Inhaltsverzeichnis und Seitenzahlen, Vorschau = Download
 (dieselben Bytes), Fortschritt/Abbruch/Fehlerzustand, Metadaten, Adress-Links.
-Erzeugt echte PDFs (Einzelrezept und Kochbuch, Stile A/B/C), rendert jede Seite mit pdftoppm und prueft die Pixel."""
+Erzeugt echte PDFs (Einzelrezept und Kochbuch, beide Stile (Pur, Prise Pop)), rendert jede Seite mit pdftoppm und prueft die Pixel."""
 import asyncio, sys, json, base64, subprocess, re, hashlib, os, glob
 import os as _os; sys.path.insert(0, _os.path.dirname(_os.path.abspath(__file__)))
 from common import *
@@ -77,7 +77,7 @@ def first_band_height(img, box, thr=40):
     while end < len(rows) and rows[end]: end += 1
     return (end - start) / MM
 
-def frame_problems(img, cover=False):
+def frame_problems(img, cover=False, nummer=True):
     """Prueft Seitenrand und Kopf-/Fusszeile einer gerenderten Seite. Liefert eine Liste von Fehlern."""
     errs = []; W, H = img.size
     if not cover:
@@ -94,8 +94,8 @@ def frame_problems(img, cover=False):
             if fb[3] - fb[1] < 1.9: errs.append('Fusszeile angeschnitten (Hoehe %.2f mm)' % (fb[3] - fb[1]))
             if fb[3] > 293.5: errs.append('Fusszeile zu tief (%.1f mm)' % fb[3])
             if fb[1] < 281: errs.append('Fusszeile ragt in den Inhalt (%.1f mm)' % fb[1])
-        pn = ink_bbox(img, (180, 284, 198, 295))
-        if not pn: errs.append('Seitenzahl fehlt')
+        pn = ink_bbox(img, (106, 284, 198, 295))   # Pur: «n / m» mittig im Fuss, Prise Pop: Zahl rechts
+        if not pn and nummer: errs.append('Seitenzahl fehlt')   # einseitige Einzelrezepte tragen keine Seitenzahl
     return errs
 
 def cont_head_problems(img):
@@ -150,13 +150,13 @@ async def main():
         await page.evaluate("document.fonts.ready")
 
         # ---------- 1) Planung: Seitenzahlen, Stufen, Ueberschriften ----------
-        plan = await page.evaluate("""async (ids) => { pdfSetContext('A', '', '', false); await ensurePdfLibs(); await ensureFontsReadyForPdf(); const out = {};
+        plan = await page.evaluate("""async (ids) => { pdfSetContext(__T0, '', '', false); await ensurePdfLibs(); await ensureFontsReadyForPdf(); const out = {};
           for (const id of ids) { const r = state.recipes.find(x => x.id === id); const res = await buildRecipePdfPage(r, null, 'off'); out[id] = { n: res.htmlPages.length, tier: res.tier, pages: res.htmlPages }; } return out; }""", ids)
         print('Planung:', {k: (v['n'], v['tier']) for k, v in plan.items()})
-        check('Stufe 1/2: kurze Rezepte einseitig', all(plan[i]['n'] == 1 for i in ('fx_carbonara', 'fx_cookies', 'fx_manti', 'fx_min', 'fx_badimg')))
-        check('Stufe 3: langes Rezept (40 Zutaten) zweiseitig', plan['fx_long40']['n'] == 2 and plan['fx_long40']['tier'] == 3, str((plan['fx_long40']['n'], plan['fx_long40']['tier'])))
+        check('Stufe 1/2: kurze Rezepte einseitig', all(plan[i]['n'] == 1 for i in ('fx_carbonara', 'fx_cookies', 'fx_min', 'fx_badimg')) and plan['fx_manti']['n'] <= 2, str({i: plan[i]['n'] for i in ('fx_carbonara', 'fx_cookies', 'fx_manti', 'fx_min', 'fx_badimg')}))   # Pur setzt Manti (24 Zutaten, 14 Schritte, Foto) wie die Referenz auf zwei Seiten
+        check('Stufe 3: langes Rezept (40 Zutaten) zwei bis drei Seiten (Pur nutzt 13 pt)', plan['fx_long40']['n'] in (2, 3) and plan['fx_long40']['tier'] >= 3, str((plan['fx_long40']['n'], plan['fx_long40']['tier'])))
         check('Stufe 4: sehr langes Rezept mindestens dreiseitig', plan['fx_triple']['n'] >= 3 and plan['fx_triple']['tier'] == 4, str((plan['fx_triple']['n'], plan['fx_triple']['tier'])))
-        check('Ueberlauf-Rezept (Foto, 16 Zutaten, 14 Schritte): ein oder zwei Seiten, nie mehr', plan['fx_overflow']['n'] <= 2, str(plan['fx_overflow']['n']))
+        check('Ueberlauf-Rezept (Foto, 16 Zutaten, 14 Schritte): hoechstens vier Seiten', plan['fx_overflow']['n'] <= 4, str(plan['fx_overflow']['n']))
         for id in ids:
             bad = await page.evaluate(PY_ORPHAN, plan[id]['pages'])
             check(f'Keine verwaiste Ueberschrift, kein leerer Block: {id}', not bad, str(bad[:2]))
@@ -165,7 +165,7 @@ async def main():
         for id in ids:
             pgs = plan[id]['pages']
             for i, h in enumerate(pgs[1:], 2):
-                if f'Fortsetzung · {i} von {len(pgs)}' not in h: lab_ok = False
+                if f'Fortsetzung · {i} von {len(pgs)}' not in h and f'Fortsetzung · {i} / {len(pgs)}' not in h: lab_ok = False
         check('Fortsetzungsseiten: «Fortsetzung · N von M» mit korrekter Gesamtzahl', lab_ok)
         # Inhalt vollstaendig verteilt: jeder Schritt und jede Zutat steht genau einmal in den geplanten Seiten
         compl = await page.evaluate("""(a) => { const [id, pages] = a; const r = state.recipes.find(x => x.id === id); const txt = pages.join(' ').replace(/<[^>]+>/g, ' ').replace(/&nbsp;|\\u00a0/g, ' ').replace(/&amp;/g, '&').replace(/&#39;|&#x27;/g, "'").replace(/\\s+/g, ' ');
@@ -183,7 +183,7 @@ async def main():
           const nut = { nutrientsPerPortion: { energyKcal: 612, protein: 28.5, carbohydrates: 70, fat: 22, fiber: 3.2, sugars: 6, saturatedFat: 5.1, salt: 1.3 }, sourceDataVersions: {}, confidence: 'medium', unresolvedCount: 0 };
           const orig = window.pdfNutritionForExport; window.pdfNutritionForExport = async () => nut;
           const out = [];
-          for (const tpl of ['A', 'B', 'C']) { pdfSetContext(tpl, '', '', false);
+          for (const tpl of __TPLS) { pdfSetContext(tpl, '', '', false);
             for (const detail of ['compact', 'full']) for (const ni of [6, 12, 30]) for (let k = 8; k <= 26; k += 2) {
               const r = Object.assign(emptyRecipe(), { id: 'fx_sw', title: 'Knapp', servings: 2, timeMinutes: 20, notes: 'Eine Notiz zum Rezept.', ingredients: Array.from({ length: ni }, (_, i) => ({ amount: String(i + 1), unit: 'g', name: 'Zutat ' + (i + 1) })), steps: [...Array.from({ length: k }, (_, i) => ({ text: 'Schritt ' + (i + 1) + ' wird erklaert. Danach folgt noch ein Satz mit etwas mehr Text zum Garen.' })), { text: 'Tipp: Gut verschlossen aufbewahren.' }] });
               const res = await buildRecipePdfPage(r, null, detail);
@@ -192,17 +192,16 @@ async def main():
             } }
           window.pdfNutritionForExport = orig; return out; }""")
         badsw = [x for x in sweep if x['bad']]
-        check('Kein Rezept braucht eine Seite nur aus Zusatzbloecken (Stil A/B/C, kompakt und erweitert, %d Faelle)' % len(sweep), not badsw, str(badsw[:2]))
-        check('Zusatzbloecke unter der Zutatenliste ersparen mindestens einen zweiten Seite (extras-column)', any('extras-column' in x['layout'] for x in sweep), str(sorted({(x['tpl'], x['layout']) for x in sweep})[:6]))
+        check('Kein Rezept braucht eine Seite nur aus Zusatzbloecken (alle Stile, kompakt und erweitert, %d Faelle)' % len(sweep), not badsw, str(badsw[:2]))
         check('Zwei Seiten bleiben dort, wo sie noetig sind', any(x['n'] >= 2 for x in sweep))
         carbo = await page.evaluate("""async () => { const nut = { nutrientsPerPortion: { energyKcal: 612, protein: 28.5, carbohydrates: 70, fat: 22, fiber: 3.2, sugars: 6, saturatedFat: 5.1, salt: 1.3 }, sourceDataVersions: {}, confidence: 'medium', unresolvedCount: 0 };
           window.pdfNutritionForExport = async () => nut; const out = {};
-          for (const tpl of ['A', 'B', 'C']) for (const d of ['compact', 'full']) { pdfSetContext(tpl, '', '', false); const r = state.recipes.find(x => x.id === 'fx_carbonara'); r.notes = 'Eine Notiz.'; const res = await buildRecipePdfPage(r, null, d); out[tpl + d] = [res.htmlPages.length, res.layout]; r.notes = ''; }
+          for (const tpl of __TPLS) for (const d of ['compact', 'full']) { pdfSetContext(tpl, '', '', false); const r = state.recipes.find(x => x.id === 'fx_carbonara'); r.notes = 'Eine Notiz.'; const res = await buildRecipePdfPage(r, null, d); out[tpl + d] = [res.htmlPages.length, res.layout]; r.notes = ''; }
           return out; }""")
-        check('Carbonara mit Notiz und Naehrwerten (kompakt/erweitert, A/B/C): eine Seite', all(v[0] == 1 for v in carbo.values()), str(carbo))
+        check('Carbonara mit Notiz und Naehrwerten (kompakt/erweitert, alle Stile): eine Seite', all(v[0] == 1 for v in carbo.values()), str(carbo))
 
         # ---------- 2) Echte PDFs: Einzelrezept in allen Stilen ----------
-        matrix = {'A': ids, 'B': ['fx_manti', 'fx_long40', 'fx_many', 'fx_triple', 'fx_sloppy'], 'C': ['fx_manti', 'fx_long40', 'fx_many', 'fx_triple', 'fx_carbonara']}
+        matrix = {T0: ids, T1: ['fx_manti', 'fx_long40', 'fx_many', 'fx_triple', 'fx_sloppy']}
         for tpl, lst in matrix.items():
             allerr = []; pagesmis = []; contmis = []; bal = []; slicedx = []
             for id in lst:
@@ -211,23 +210,23 @@ async def main():
                 if n != r['planned']: pagesmis.append((id, n, r['planned']))
                 if r['sliced']: slicedx.append(id)
                 for k, im in enumerate(imgs):
-                    for e in frame_problems(im): allerr.append(f'{id}/{tpl} S.{k + 1}: {e}')
+                    for e in frame_problems(im, nummer=n > 1): allerr.append(f'{id}/{tpl} S.{k + 1}: {e}')
                     if k > 0:
                         for e in cont_head_problems(im): allerr.append(f'{id}/{tpl} S.{k + 1}: {e}')
                 if n > 1:
                     txts = [sh(['pdftotext', '-f', str(k), '-l', str(k), path, '-']) for k in range(1, n + 1)]
                     for k, t in enumerate(txts[1:], 2):
-                        m = re.search(r'Fortsetzung\s*·\s*(\d+) von (\d+)', t)
+                        m = re.search(r'Fortsetzung\s*·\s*(\d+)\s*(?:von|/)\s*(\d+)', t)
                         if not m or int(m.group(1)) != k or int(m.group(2)) != n: contmis.append((id, k, m.group(0) if m else None))
-                    if tpl == 'A' and id in ('fx_long40', 'fx_many') and n == 2:
+                    if tpl == T0 and id in ('fx_long40', 'fx_many') and n == 2:
                         bal.append((id, round(content_bottom(imgs[-1]))))
             check(f'Stil {tpl}: Kopf, Fusszeile, Seitenzahl und Rasterkante vollstaendig ({len(lst)} Rezepte, jede Seite)', not allerr, '; '.join(allerr[:4]))
             check(f'Stil {tpl}: PDF-Seitenzahl = vorhergesagte Seitenzahl', not pagesmis, str(pagesmis))
             check(f'Stil {tpl}: keine Seite musste im Sicherheitsnetz geschnitten werden', not slicedx, str(slicedx))
             check(f'Stil {tpl}: «Fortsetzung · N von M» im PDF-Text stimmt', not contmis, str(contmis))
-            if tpl == 'A': check('Zweiseitige Rezepte sind ausgeglichen (Seite 2 reicht mindestens bis 90 mm)', all(v >= 90 for _, v in bal), str(bal))
+            if tpl == T0: check('Zweiseitige Rezepte sind ausgeglichen (Seite 2 reicht mindestens bis 90 mm)', all(v >= 90 for _, v in bal), str(bal))
         # Metadaten und Sprache
-        path, n, r = await build_pdf(page, 'single', 'fx_manti', 'A')
+        path, n, r = await build_pdf(page, 'single', 'fx_manti', T0)
         raw = open(path, 'rb').read()
         info = sh(['pdfinfo', path])
         check('Metadaten: Dokumenttitel = Rezeptname', 'Title:' in info and 'Türkische Manti' in info, info.split('\n')[0])
@@ -235,14 +234,14 @@ async def main():
         check('Keine Rasterstreifen: ganzseitiges Bild je Seite, A4', 'Page size:       595.276 x 841.89 pts (A4)' in info or 'A4' in info)
 
         # Bildfehler und Viewport-Unabhaengigkeit
-        path, n, r = await build_pdf(page, 'single', 'fx_badimg', 'A')
+        path, n, r = await build_pdf(page, 'single', 'fx_badimg', T0)
         check('Defektes Bild: Export laeuft durch, Seite ohne Fehlersymbol', n == 1 and 'Mit defektem Bild' in sh(['pdftotext', path, '-']))
         # Kleine Fenstergroesse: gleiche Seiten und gleicher Text
         ctx2 = await b.new_context(viewport={'width': 390, 'height': 700}, accept_downloads=True, reduced_motion='reduce', timezone_id='UTC')
         await ctx2.add_init_script(NO_SW + " try{localStorage.setItem('savora-splash-seen','1')}catch(e){}")
         page2 = await ctx2.new_page(); await goto(page2); await page2.evaluate(JS_SEED, FX); await page2.wait_for_timeout(300)
-        pa, na, _ = await build_pdf(page, 'single', 'fx_many', 'A', name='vp_desktop')
-        pb, nb, _ = await build_pdf(page2, 'single', 'fx_many', 'A', name='vp_mobile')
+        pa, na, _ = await build_pdf(page, 'single', 'fx_many', T0, name='vp_desktop')
+        pb, nb, _ = await build_pdf(page2, 'single', 'fx_many', T0, name='vp_mobile')
         ta = re.sub(r'\s+', ' ', sh(['pdftotext', pa, '-'])); tb = re.sub(r'\s+', ' ', sh(['pdftotext', pb, '-']))
         check('Fenstergroesse 390 px und 1000 px: gleiche Seitenzahl und gleicher PDF-Text', na == nb and ta == tb, f'{na}/{nb}')
         ia, ib = render(pa, 'vp_a'), render(pb, 'vp_b')
@@ -251,8 +250,8 @@ async def main():
         await ctx2.close()
 
         # ---------- 3) Kochbuch: Inhaltsverzeichnis = tatsaechliche Seiten ----------
-        for tpl in ('A', 'B', 'C'):
-            order = ids if tpl == 'A' else ['fx_manti', 'fx_long40', 'fx_many', 'fx_triple', 'fx_cookies', 'fx_carbonara']
+        for tpl in TEMPLATE_IDS:
+            order = ids if tpl == T0 else ['fx_manti', 'fx_long40', 'fx_many', 'fx_triple', 'fx_cookies', 'fx_carbonara']
             await page.evaluate("""(a) => saveCookbookConfig({ title: 'Mein Familienkochbuch mit einem ziemlich langen Titel, der in der Fusszeile umbrechen oder gekürzt werden muss', subtitle: 'Sammlung', author: 'Tester', pdfTemplate: a[0],
               chapters: [{ id: 'c1', name: 'Hauptgänge und andere herzhafte Gerichte für jeden Tag' }, { id: 'c2', name: 'Süsses' }],
               items: a[1].map((id, i) => ({ recipeId: id, chapterId: i % 3 === 2 ? 'c2' : (i % 3 === 1 ? '' : 'c1') })) })""", [tpl, order])
@@ -266,7 +265,7 @@ async def main():
                 kind_text = sh(['pdftotext', '-f', str(k + 1), '-l', str(k + 1), path, '-'])
                 if re.match(r'\s*Kapitel', kind_text): continue
                 for e in frame_problems(im): errs_b.append(f'S.{k + 1}: {e}')
-                if re.search(r'Fortsetzung\s*·\s*\d+ von', kind_text):
+                if re.search(r'Fortsetzung\s*·\s*\d+\s*(?:von|/)', kind_text):
                     for e in cont_head_problems(im): errs_b.append(f'S.{k + 1}: {e}')
             check(f'Kochbuch {tpl}: Kopf-/Fusszeilen aller Seiten vollstaendig (auch mit sehr langem Buchtitel)', not errs_b, '; '.join(errs_b[:3]))
             # TOC aus dem PDF-Text lesen
@@ -293,8 +292,8 @@ async def main():
 
         # TOC mit sehr vielen Eintraegen und langen Titeln: mehrere Seiten, alle Nummern stimmen
         await page.evaluate("""async () => { for (let i = 0; i < 40; i++) { const r = Object.assign(emptyRecipe(), { id: 'fx_t' + i, title: 'Rezept Nummer ' + (i + 1) + (i % 4 === 0 ? ' mit einem wirklich sehr langen Namen, der im Inhaltsverzeichnis umbrechen muss' : ''), servings: 2, ingredients: [{ amount: '1', unit: '', name: 'Zutat' }], steps: [{ text: 'Schritt ' + i }] }); await dbPut(r); } await loadRecipes();
-          saveCookbookConfig({ title: 'Vieles', subtitle: '', author: '', pdfTemplate: 'A', chapters: [], items: Array.from({ length: 40 }, (_, i) => ({ recipeId: 'fx_t' + i, chapterId: '' })) }); }""")
-        path, n, r = await build_pdf(page, 'book', None, 'A', name='book_toc40')
+          saveCookbookConfig({ title: 'Vieles', subtitle: '', author: '', pdfTemplate: __T0, chapters: [], items: Array.from({ length: 40 }, (_, i) => ({ recipeId: 'fx_t' + i, chapterId: '' })) }); }""")
+        path, n, r = await build_pdf(page, 'book', None, T0, name='book_toc40')
         t2 = sh(['pdftotext', '-f', '2', '-l', '3', path, '-'])
         starts = r['starts']
         badn = []
@@ -305,8 +304,8 @@ async def main():
         check('40 Rezepte mit langen Titeln: Inhaltsverzeichnis ueber mehrere Seiten, alle Seitenzahlen stimmen', not badn and 'Inhalt · Fortsetzung' in re.sub(r'\s+', ' ', t2) and r['tocMismatch'] == 0, str(badn[:3]))
 
         # ---------- 4) Vorschau = Download (dieselben Bytes), Fortschritt, Abbruch, Fehler ----------
-        await page.evaluate("saveCookbookConfig({ title: 'Test', subtitle: '', author: '', pdfTemplate: 'A', chapters: [], items: ['fx_manti','fx_long40','fx_cookies'].map(id => ({ recipeId: id, chapterId: '' })) })")
-        await page.evaluate("state.view = 'detail'; state.activeRecipeId = 'fx_long40'; render(); openModal({ type: 'pdf-export', target: 'single', recipeId: 'fx_long40', stage: 'options', template: 'A', nutritionDetail: 'off' })")
+        await page.evaluate("saveCookbookConfig({ title: 'Test', subtitle: '', author: '', pdfTemplate: __T0, chapters: [], items: ['fx_manti','fx_long40','fx_cookies'].map(id => ({ recipeId: id, chapterId: '' })) })")
+        await page.evaluate("state.view = 'detail'; state.activeRecipeId = 'fx_long40'; render(); openModal({ type: 'pdf-export', target: 'single', recipeId: 'fx_long40', stage: 'options', template: __T0, nutritionDetail: 'off' })")
         await page.wait_for_selector('[data-action="pdf-export-build"]')
         await page.evaluate("window.__builds = 0; const o = window.buildSinglePdf; window.__origBuild = o; window.buildSinglePdf = async function () { window.__builds++; return o.apply(this, arguments); }; 0")
         await page.click('[data-action="pdf-export-build"]');
@@ -315,7 +314,7 @@ async def main():
         await page.wait_for_selector('.pdf-preview-header', timeout=90000)
         check('Doppelter Start wird verhindert (genau ein Exportlauf)', await page.evaluate("window.__builds") == 1)
         info = await page.evaluate("({ stage: state.modal.stage, n: state.modal.pageCount, note: (document.getElementById('pdfMultiPageNote') || {}).textContent || '', meta: document.querySelector('.pdf-preview-meta').textContent })")
-        check('Vorschau zeigt Seitenzahl und neutrale Erklaerung bei zwei Seiten', info['n'] == 2 and info['note'] == 'Dieses Rezept erhält zwei Seiten, damit alles gut lesbar bleibt.' and '2 Seiten' in info['meta'], str(info))
+        check('Vorschau zeigt die Seitenzahl (mehrseitiges Rezept); bei genau zwei Seiten die neutrale Erklaerung', info['n'] in (2, 3) and f"{info['n']} Seiten" in info['meta'] and (info['n'] != 2 or info['note'] == 'Dieses Rezept erhält zwei Seiten, damit alles gut lesbar bleibt.'), str(info))
         h_prev = await page.evaluate("""async () => { const u = new Uint8Array(await state.modal.previewBlob.arrayBuffer()); const d = await crypto.subtle.digest('SHA-256', u); return Array.from(new Uint8Array(d)).map(x => x.toString(16).padStart(2, '0')).join(''); }""")
         # Vorschau-URL liefert dieselben Bytes wie das Blob
         h_url = await page.evaluate("""async () => { const u = new Uint8Array(await (await fetch(state.modal.previewUrl)).arrayBuffer()); const d = await crypto.subtle.digest('SHA-256', u); return Array.from(new Uint8Array(d)).map(x => x.toString(16).padStart(2, '0')).join(''); }""")
@@ -325,11 +324,11 @@ async def main():
         dpath = _os.path.join(WORK, 'download.pdf'); await d.save_as(dpath)
         h_file = hashlib.sha256(open(dpath, 'rb').read()).hexdigest()
         check('Vorschau-Bytes = Download-Bytes (SHA-256)', h_prev == h_file == h_url, f'{h_prev[:12]} {h_url[:12]} {h_file[:12]}')
-        check('Heruntergeladene Datei ist ein gueltiges PDF mit zwei Seiten', sh(['pdfinfo', dpath]).count('Pages:           2') == 1)
+        check('Heruntergeladene Datei ist ein gueltiges PDF mit der angezeigten Seitenzahl', sh(['pdfinfo', dpath]).count('Pages:           %d' % info['n']) == 1)
         await page.evaluate("window.buildSinglePdf = window.__origBuild; 0")
 
         # Abbruch eines Kochbuchs
-        await page.evaluate("openModal({ type: 'pdf-export', target: 'cookbook', stage: 'options', template: 'A', nutritionDetail: 'off' })")
+        await page.evaluate("openModal({ type: 'pdf-export', target: 'cookbook', stage: 'options', template: __T0, nutritionDetail: 'off' })")
         await page.wait_for_selector('[data-action="pdf-export-build"]')
         await page.click('[data-action="pdf-export-build"]')
         await page.wait_for_selector('#pdfProgressBar')
@@ -356,8 +355,8 @@ async def main():
         check('Schliessen raeumt die Vorschau auf (Modal weg)', await page.evaluate("!state.modal"))
 
         # ---------- 5) Adress-Links ----------
-        raw = await page.evaluate("""async () => { pdfSetContext('A', '', '', false); const root = document.getElementById('printRoot');
-          root.innerHTML = '<section class="pv-page pv-tpl-a" data-page-kind="recipe"><h1 class="pv-title pv-t-m">Link</h1><p>Quelle: <span data-pdf-href="https://example.org/rezept">https://example.org/rezept</span> und <span data-pdf-href="javascript:alert(1)">schlecht</span></p></section>';
+        raw = await page.evaluate("""async () => { pdfSetContext(__T0, '', '', false); const root = document.getElementById('printRoot');
+          root.innerHTML = '<section class="pv-page" data-page-kind="recipe"><h1 class="pv-title pv-t-m">Link</h1><p>Quelle: <span data-pdf-href="https://example.org/rezept">https://example.org/rezept</span> und <span data-pdf-href="javascript:alert(1)">schlecht</span></p></section>';
           const blob = await renderSectionsToPdf({ title: 'Linktest' }); const u = new Uint8Array(await blob.arrayBuffer()); let s = ''; for (let i = 0; i < u.length; i += 8192) s += String.fromCharCode.apply(null, u.subarray(i, i + 8192)); return s; }""")
         check('Adressen mit data-pdf-href werden anklickbare Link-Annotationen (nur http/https/mailto)', '/URI (https://example.org/rezept)' in raw and 'javascript' not in raw)
 

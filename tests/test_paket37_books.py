@@ -1,6 +1,6 @@
 """Paket 37: Hauptnavigation (fuenf Punkte, «Mehr» statt Zahnrad im Kopf) und Kochbuch-Projekte.
 Prueft Navigation (Symbol und Beschriftung, Seitenleiste, Safe Area, Tastatur), Migration der alten Einzelkonfiguration,
-Anlegen/Umbenennen/Duplizieren/Loeschen, Wiederoeffnen, leere Textfelder, Datum, zehn Cover ohne 404, lange Titel, Fokus beim Tippen,
+Anlegen/Umbenennen/Duplizieren/Loeschen, Wiederoeffnen, leere Textfelder, Datum, fünfzehn Cover ohne 404, lange Titel, Fokus beim Tippen,
 echtes PDF, Sicherung und Wiederherstellung (auch alte Sicherung ohne Projekte)."""
 import asyncio, base64, json, os, subprocess, sys, tempfile
 os.environ.setdefault('SAVORA_TEST_PORT', '8970')
@@ -10,8 +10,8 @@ FAIL = []
 def check(name, cond, info=''):
     print(('OK   ' if cond else 'FEHL ') + name, info)
     if not cond: FAIL.append(name)
-IDS = ['pop', 'lieblingsbuch', 'tomate', 'salbei', 'nachtkueche', 'citrus', 'bistro', 'garten', 'sonnenkueche', 'ofenglueck']
-COVER_NAMES = ['Pop', 'Lieblingsbuch', 'Tomate', 'Salbei', 'Nachtküche', 'Citrus', 'Bistro', 'Garten', 'Sonnenküche', 'Ofenglück']
+IDS = ['pop', 'lieblingsbuch', 'tomate', 'salbei', 'nachtkueche', 'citrus', 'bistro', 'garten', 'sonnenkueche', 'ofenglueck', 'savora-01-pasta-band', 'savora-02-geschmacksschichten', 'savora-03-scherenschnitt-tafel', 'savora-04-eine-prise', 'savora-05-tischrunde']
+COVER_NAMES = ['Pop', 'Lieblingsbuch', 'Tomate', 'Salbei', 'Nachtküche', 'Citrus', 'Bistro', 'Garten', 'Sonnenküche', 'Ofenglück', 'Pasta-Band', 'Geschmacksschichten', 'Scherenschnitt-Tafel', 'Eine Prise', 'Tischrunde']
 
 def pdf_text(path, first=None, last=None):
     cmd = ['pdftotext', '-layout'] + (['-f', str(first), '-l', str(last)] if first else []) + [path, '-']
@@ -80,7 +80,7 @@ async def main():
             const raw2 = localStorage.getItem(COOKBOOK_PROJECTS_KEY); const s2 = cookbookStoreRead(); const raw3 = localStorage.getItem(COOKBOOK_PROJECTS_KEY);
             return { before, after: [localStorage.getItem(COOKBOOK_CONFIG_KEY), localStorage.getItem(COOKBOOK_TITLE_KEY)], n: s1.books.length, name: s1.books[0].name, cfg: s1.books[0].config, mig: s1.books[0].migration, v: s1.v, active: s1.activeId === s1.books[0].id, rawSame: raw2 === raw3, changed: raw1 !== raw2, rid }; }""", legacy)
         check('Migration: erstes Projekt mit Namen aus dem Kochbuchtitel, Version 1', mg['n'] == 1 and mg['name'] == 'Yanis Buch' and mg['v'] == 1 and mg['active'], str((mg['n'], mg['name'])))
-        check('Migration: Konfiguration vollständig übernommen (Titel, Slogan, Name, Stil, Kapitel, Auswahl, Titelblatt)', mg['cfg']['title'] == 'Altes Buch' and mg['cfg']['subtitle'] == 'Alter Slogan' and mg['cfg']['author'] == 'Alte Autorin' and mg['cfg']['pdfTemplate'] == 'B' and mg['cfg']['items'][0]['recipeId'] == mg['rid'] and mg['cfg']['chapters'][0]['name'] == 'Backen' and mg['cfg']['cover']['templateId'] == 'tomate' and mg['cfg']['cover']['date'] == '2024-02-29', json.dumps(mg['cfg'])[:160])
+        check('Migration: Konfiguration vollständig übernommen (Titel, Slogan, Name, Stil, Kapitel, Auswahl, Titelblatt)', mg['cfg']['title'] == 'Altes Buch' and mg['cfg']['subtitle'] == 'Alter Slogan' and mg['cfg']['author'] == 'Alte Autorin' and mg['cfg']['pdfTemplate'] in ('B', 'prise-pop') and mg['cfg']['items'][0]['recipeId'] == mg['rid'] and mg['cfg']['chapters'][0]['name'] == 'Backen' and mg['cfg']['cover']['templateId'] == 'tomate' and mg['cfg']['cover']['date'] == '2024-02-29', json.dumps(mg['cfg'])[:160])
         check('Migration: alte Schlüssel bleiben unverändert (auch nach späteren Änderungen im Projekt)', mg['before'] == mg['after'])
         check('Migration: Zeitmarke und Quelle im Projekt vermerkt', bool(mg['mig']) and mg['mig']['source'] == 'savora-cookbook-config' and 'T' in mg['mig']['at'], str(mg['mig']))
         check('Migration: zweiter Lauf ändert nichts, Speichern ändert nur das Projekt', mg['rawSame'] and mg['changed'])
@@ -149,7 +149,7 @@ async def main():
         await page.fill('#cbTitle', 'Täglich Äpfel & Öl'); await page.fill('#cbSubtitle', 'Aus Omas Küche'); await page.fill('#cbAuthor', 'Familie Müller')
         await page.click('.cover-opt[aria-label="Citrus"]'); await page.wait_for_timeout(300)
         await page.fill('#cbDate', '2025-05-17'); await page.dispatch_event('#cbDate', 'change')
-        await page.click('.pdf-tpl-opt[data-id="B"]'); await page.wait_for_timeout(300)
+        await page.click('.pdf-tpl-opt:nth-child(2)')   # zweiter Stil: früher B (Kräftig), jetzt Prise Pop; await page.wait_for_timeout(300)
         await ev("() => { state.view = 'cookbooks'; render(); }"); await page.wait_for_selector('.cbk-card')
         meta = await page.inner_text('.cbk-card:nth-child(2) .cbk-meta')
         check('Liste zeigt die Rezeptzahl des Buchs', f'{n_recipes} Rezepte' in meta, meta)
@@ -162,14 +162,14 @@ async def main():
         check('Wiederöffnen: Auswahl, Reihenfolge und Kapitel wie gespeichert', order2 == order and ch == ['Hauptgänge'], str((order2, ch)))
         await page.click('[data-action="cb-step"][data-id="2"]'); await page.wait_for_selector('#cbTitle')
         again = await ev("""() => ({ t: cbTitle.value, s: cbSubtitle.value, a: cbAuthor.value, d: cbDate.value, cover: document.querySelector('.cover-opt[aria-checked="true"]').dataset.id, style: document.querySelector('.pdf-tpl-opt[aria-checked="true"]').dataset.id })""")
-        check('Wiederöffnen: Texte, Titelblatt, Datum und Seitenstil wie gespeichert, Datum nicht auf heute gesetzt', again == {'t': 'Täglich Äpfel & Öl', 's': 'Aus Omas Küche', 'a': 'Familie Müller', 'd': '2025-05-17', 'cover': 'citrus', 'style': 'B'}, str(again))
+        check('Wiederöffnen: Texte, Titelblatt, Datum und Seitenstil wie gespeichert, Datum nicht auf heute gesetzt', again == {'t': 'Täglich Äpfel & Öl', 's': 'Aus Omas Küche', 'a': 'Familie Müller', 'd': '2025-05-17', 'cover': 'citrus', 'style': again['style']} and again['style'] in ('B', 'prise-pop'), str(again))
         names = await ev("() => Object.values(PDF_TEMPLATES).map(t => t.name)")
         txt = await page.inner_text('.cookbook-main')
-        check('Seitenstil mit verständlichen Namen, keine A/B/C-Bezeichnung in der Bedienung', names == ['Klassisch', 'Kräftig', 'Schlicht (zum Drucken)'] and 'A ·' not in txt and 'B ·' not in txt and 'C ·' not in txt and txt.count('Seitenstil') >= 1, str(names))
+        check('Seitenstil mit verständlichen Namen, keine A/B/C-Bezeichnung in der Bedienung', names in (['Klassisch', 'Kräftig', 'Schlicht (zum Drucken)'], ['Pur', 'Prise Pop']) and 'A ·' not in txt and 'B ·' not in txt and 'C ·' not in txt and txt.count('Seitenstil') >= 1, str(names))
 
-        # ---------- 5. Zehn Cover ohne fehlende Dateien, klare Auswahl ----------
+        # ---------- 5. Fünfzehn Cover ohne fehlende Dateien, klare Auswahl ----------
         radios = await ev("""() => Array.from(document.querySelectorAll('.cover-grid [role="radio"]')).map(b => ({ id: b.dataset.id, name: b.getAttribute('aria-label') }))""")
-        check('Genau zehn Cover mit Namen als Radiogruppe', [r['id'] for r in radios] == IDS and [r['name'] for r in radios] == COVER_NAMES, str(radios))
+        check('Genau fünfzehn Cover mit Namen als Radiogruppe', [r['id'] for r in radios] == IDS and [r['name'] for r in radios] == COVER_NAMES, str(radios))
         n0 = len(bad)
         for rid, nm in zip(IDS, COVER_NAMES):
             await page.click(f'.cover-opt[aria-label="{nm}"]'); await page.wait_for_timeout(250)
@@ -177,7 +177,7 @@ async def main():
             check(f'Cover {nm}: genau eines gewählt, Haken sichtbar, gespeichert', sel['checked'] == [rid] and sel['check'] == 1 and sel['saved'] == rid and sel['canvas'], str(sel))
         await page.wait_for_timeout(800)
         imgs = await ev("""async () => { const res = []; for (const id of COVER_TEMPLATES.map(t => t.id)) { const a = await fetch(coverBackgroundUrl(id)); const t = await fetch(coverThumbUrl(id)); res.push([a.status, t.status]); } return { res, thumbsOk: Array.from(document.querySelectorAll('.cover-opt img')).every(i => i.complete && i.naturalWidth > 0) }; }""")
-        check('Alle zehn Hintergründe und Vorschaubilder laden (kein 404)', all(a == 200 and t == 200 for a, t in imgs['res']) and imgs['thumbsOk'] and not [x for x in bad[n0:] if '/covers/' in x[1]], str(bad[n0:])[:200])
+        check('Alle fünfzehn Hintergründe und Vorschaubilder laden (kein 404)', all(a == 200 and t == 200 for a, t in imgs['res']) and imgs['thumbsOk'] and not [x for x in bad[n0:] if '/covers/' in x[1]], str(bad[n0:])[:200])
         # Keine Texte in den Hintergründen: Bilder sind unveränderte Originale (Grösse), Text kommt nur aus der Ebene
         L = await ev("() => coverLayout({ templateId: 'bistro', title: '', slogan: '', name: '', date: '2026-10-09', showDate: true, logo: true })")
         check('Ohne Texte: nur Symbol und Datum, nichts gedruckt', L['blocks'] == [] and L['logo'] and L['date']['text'] == '09.10.2026')
@@ -242,7 +242,7 @@ async def main():
         r2 = await restore()
         check('Mehrfaches Wiederherstellen verdoppelt keine Kochbücher', r2 == r1, str(r2))
         full = await ev("() => { const b = cookbookBooks().find(x => x.name === 'Weihnachtsbäckerei'); return [b.config.items.length, b.config.cover.date, b.config.pdfTemplate, b.config.chapters.length]; }")
-        check('Wiederhergestelltes Buch behält Auswahl, Datum, Seitenstil und Kapitel', full == [n_recipes, '2025-05-17', 'B', 1], str(full))
+        check('Wiederhergestelltes Buch behält Auswahl, Datum, Seitenstil und Kapitel', full[:2] == [n_recipes, '2025-05-17'] and full[2] in ('B', 'prise-pop') and full[3] == 1, str(full))
         # Alte Sicherung ohne Projekte
         old = await ev("""async () => { const rs = await dbGetAll(); localStorage.removeItem(COOKBOOK_PROJECTS_KEY); localStorage.removeItem(COOKBOOK_CONFIG_KEY); cookbookStoreRead();
           const bk = { app: 'savora', version: 3, schemaVersion: 4, recipes: rs, shopping: [], settings: { collections: [], cookbookConfig: { title: 'Aus alter Sicherung', subtitle: '', author: '', pdfTemplate: 'C', items: [{ recipeId: rs[0].id, chapterId: '' }], chapters: [] } } };
@@ -250,7 +250,7 @@ async def main():
           const s = cookbookStoreRead(); const first = s.books.map(b => [b.name, b.config.title, b.config.pdfTemplate, (b.config.items || []).length]);
           await restoreBackupFromFile(new File([window.__bk], 'old.json')); await new Promise(r => setTimeout(r, 400));
           return { first, again: cookbookStoreRead().books.length, rid: rs[0].id }; }""")
-        check('Alte Sicherung ohne Projekte wird übernommen (Migration), Auswahl auf vorhandene Rezepte abgebildet', len(old['first']) == 1 and old['first'][0][1] == 'Aus alter Sicherung' and old['first'][0][2] == 'C' and old['first'][0][3] == 1, str(old['first']))
+        check('Alte Sicherung ohne Projekte wird übernommen (Migration), Auswahl auf vorhandene Rezepte abgebildet', len(old['first']) == 1 and old['first'][0][1] == 'Aus alter Sicherung' and old['first'][0][2] in ('C', 'pur') and old['first'][0][3] == 1, str(old['first']))
         check('Alte Sicherung zweimal einspielen verdoppelt nichts', old['again'] == 1, str(old['again']))
         # Fremdwert aus dem Abgleich
         cloud = await ev("""() => { const before = localStorage.getItem(COOKBOOK_PROJECTS_KEY); const ok = !!cookbookSanitizeStore(JSON.parse(before)); return { ok, key: CLOUD_SETTING_KEYS.cookbooks === COOKBOOK_PROJECTS_KEY, old: CLOUD_SETTING_KEYS.cookbookConfig === COOKBOOK_CONFIG_KEY && CLOUD_SETTING_KEYS.cookbookTitle === COOKBOOK_TITLE_KEY, bad: cookbookSanitizeStore({ books: 'x' }) }; }""")

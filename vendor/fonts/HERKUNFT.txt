@@ -1,3 +1,8 @@
 Source Serif 4 (Adobe, SIL Open Font License 1.1)
 Bezogen ueber das npm-Paket @fontsource/source-serif-4 5.3.0, Teilmenge "latin" (enthaelt Umlaute, ss, Brueche wie 1/2 1/4 3/4).
-Verwendet nur fuer die Titel in den PDF-Vorlagen A (Warm Editorial) und C (Kuechenblatt). Lizenztext: LICENSE-source-serif-4.txt
+Wird von den PDF-Vorlagen nicht mehr verwendet (frueher Vorlagen A und C), die Dateien bleiben vorerst liegen. Lizenztext: LICENSE-source-serif-4.txt
+
+Carlito (tyPoland Lukasz Dziedzic, SIL Open Font License 1.1), metrisch kompatibel zu Calibri.
+Schnitte Regular und Bold (Version 1.103), am 14.10.2026 aus den vollstaendigen TTF-Dateien unveraendert ins WOFF2-Format
+umgepackt (nur Formatwechsel, keine Teilmenge, keine Aenderung an den Glyphen), damit der reservierte Name «Carlito» gueltig bleibt.
+Verwendet fuer den PDF-Seitenstil «Pur» (carlito-regular.woff2, carlito-bold.woff2). Lizenztext: LICENSE-carlito.txt

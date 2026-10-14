@@ -55,6 +55,7 @@ def _do_get(self):
 common._Handler.do_GET = _do_get
 
 def is_fullres(p): return p.startswith('/assets/covers/') and '/thumbs/' not in p and p.endswith('.png')
+N_COVER = len([f for f in os.listdir(os.path.join(ROOT, 'assets', 'covers')) if f.endswith('.png')])   # Vollaufloesung: alle Cover-PNGs (dynamisch)
 
 async def sw_ctx(p, w=390, h=844):
     b = await p.chromium.launch()
@@ -135,7 +136,7 @@ async def t_p01(p):
     hid = await page.evaluate("!document.querySelector('[data-action=\"konto-offline-prepare\"]')")
     check('P01 Knopf ist danach ausgeblendet', hid, str(hid))
     full = [r for r in REQ if is_fullres(r)]
-    check('P01 Vorbereitung hat Vollaufloesung geholt', len(set(full)) == 10, str(len(set(full))))
+    check('P01 Vorbereitung hat Vollaufloesung geholt', len(set(full)) == N_COVER, f'{len(set(full))} von {N_COVER}')
     # c) Offline: Start, Cover in Vollaufloesung, PDF-Export
     await c.set_offline(True)
     await page.reload(); await ready_app(page)
