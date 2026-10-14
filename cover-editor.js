@@ -243,7 +243,7 @@ function cePositionBlock(id) {
 function ceFieldControls(id) {
   const e = ceEff(id), rg = CE_PT_RANGE[id];
   return `<div class="ce-fbody">
-    <div class="ce-actions"><button type="button" class="ce-chip ce-chip--solid" data-ce="edit" data-f="${id}" data-k="edit-${id}">Text bearbeiten</button>${id === 'extra1' && ceTextOf('extra1') ? `<button type="button" class="ce-chip" data-ce="clear-extra" data-k="clear-extra">Zeile entfernen</button>` : ''}</div>
+    <div class="ce-actions"><button type="button" class="ce-chip" data-ce="edit" data-f="${id}" data-k="edit-${id}">Text bearbeiten</button>${id === 'extra1' && ceTextOf('extra1') ? `<button type="button" class="ce-chip" data-ce="clear-extra" data-k="clear-extra">Zeile entfernen</button>` : ''}</div>
     ${ceRange('fontPt', id, 'Schriftgrösse', rg[0], rg[1], 0.5, e.fontPt, 'pt', true)}
     <div class="ce-ctl"><span class="ce-lab">Textfarbe</span>${ceSwatches('text', e.color, id)}</div>
     <div class="ce-ctl"><span class="ce-lab">Ausrichtung</span>${ceSeg([['left', CE_ICON.alignleft, CE_ALIGN_LABEL.left], ['center', CE_ICON.aligncenter, CE_ALIGN_LABEL.center], ['right', CE_ICON.alignright, CE_ALIGN_LABEL.right]], e.align, `data-ce="align" data-f="${id}"`, 'Ausrichtung')}</div>
@@ -266,7 +266,7 @@ function ceFieldCard(id) {
   }
   const hint = id === 'title' && !ce.texts.title.trim() ? '<p class="ce-hint">Ohne Titel bleibt das Titelblatt leer.</p>' : '';
   return `<div class="ce-field ${sel ? 'is-sel' : ''}" data-f="${id}">
-    <div class="ce-fhead"><label for="${inputId}">${CE_LABEL[id]}</label><button type="button" class="ce-chip ${sel ? 'is-on' : ''}" data-ce="select" data-f="${id}" data-k="sel-${id}" aria-pressed="${sel}" aria-label="${CE_LABEL[id]} auf dem Titelblatt gestalten">${sel ? 'Ausgewählt' : 'Gestalten'}</button></div>
+    <div class="ce-fhead"><label for="${inputId}">${CE_LABEL[id]}</label>${sel ? `<span class="ce-badge" data-k="sel-${id}">Ausgewählt</span>` : `<button type="button" class="ce-chip" data-ce="select" data-f="${id}" data-k="sel-${id}" aria-label="${CE_LABEL[id]} auf dem Titelblatt gestalten">Gestalten</button>`}</div>
     ${input}${hint}${ceWarnItems([id])}
     ${sel ? ceFieldControls(id) : ''}
   </div>`;
@@ -410,6 +410,18 @@ function ceRenderAll() {
   else if (grid) { const cur = coverValidTemplateId(ce.model.templateId); grid.querySelectorAll('.cover-opt').forEach((b) => { const on = b.dataset.id === cur; b.classList.toggle('is-active', on); b.setAttribute('aria-checked', String(on)); const chk = b.querySelector('.cover-opt-check'); if (on && !chk) b.insertAdjacentHTML('beforeend', `<span class="cover-opt-check" aria-hidden="true">${ICONS.check}</span>`); if (!on && chk) chk.remove(); }); }
   ceRenderTabs(); ceRenderPanels(); ceRenderWarnings(); ceSyncOverlay(); cePaintSoon(); ceUpdateHistoryButtons(); ceSetStatus(ce.status);
   ceRestoreFocus(key);
+}
+
+/* Reiterwechsel: Reiter bleiben sichtbar (nie unter Kopfleiste oder angehefteter Vorschau), kurzes Einblenden ohne Bewegung */
+function ceRevealTabs() {
+  const t = document.querySelector('.ce-tabswrap'); if (!t) return;
+  const pad = parseInt(document.documentElement.style.scrollPaddingTop, 10) || 0, r = t.getBoundingClientRect();
+  if (r.top < pad) window.scrollBy(0, r.top - pad);
+}
+function ceFadePanel() {
+  const p = document.getElementById('cepanel');
+  if (!p || !p.animate || (window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches)) return;
+  p.animate([{ opacity: 0.4 }, { opacity: 1 }], { duration: 160, easing: 'cubic-bezier(0.23, 1, 0.32, 1)' });
 }
 
 /* ---------- Vorschau: Canvas ---------- */
@@ -611,7 +623,7 @@ document.addEventListener('click', (e) => {
       ceChange((m) => { m.mode = v === 'custom' ? 'custom' : 'template'; }, { now: true });
       ce.sel = null; ce.imgMove = false; ce.tab = v === 'custom' ? 'bg' : 'text'; ceRenderAll(); break;
     }
-    case 'tab': ce.tab = v; ce.imgMove = false; ceRenderTabs(); ceRenderPanels(); ceSyncOverlay(); break;
+    case 'tab': ce.tab = v; ce.imgMove = false; ceRenderTabs(); ceRenderPanels(); ceSyncOverlay(); ceRevealTabs(); ceFadePanel(); break;
     case 'template': ceChange((m) => { m.templateId = coverValidTemplateId(b.dataset.id); }, { now: true }); ceRenderAll(); break;
     case 'select': ceSelect(ce.sel === id ? null : id); break;
     case 'goto-warn': { const t = CE_FIELD_ORDER.includes(id) ? id : null; if (t) { ceSelect(t); const c = document.querySelector(`.ce-field[data-f="${t}"]`); if (c) c.scrollIntoView({ block: 'nearest' }); } else { ce.tab = id === 'image' ? 'bg' : 'arr'; ceRenderTabs(); ceRenderPanels(); } break; }
@@ -741,7 +753,8 @@ function ceSetScrollPad() {
   const root = ceRoot(), st = root && root.querySelector('.ce-stage');
   const sticky = st && getComputedStyle(st).position === 'sticky';
   const top = parseInt(root && root.style.getPropertyValue('--ce-top'), 10) || 0;
-  document.documentElement.style.scrollPaddingTop = root && sticky ? (top + st.getBoundingClientRect().height + 8) + 'px' : '';
+  const stacked = root && sticky && getComputedStyle(root.querySelector('.ce-body')).display !== 'grid';   // Handy/Tablet: Vorschau steht ueber den Bedienfeldern
+  document.documentElement.style.scrollPaddingTop = root ? (top + (stacked ? st.getBoundingClientRect().height : 0) + 8) + 'px' : '';
 }
 window.addEventListener('resize', () => { if (ceRoot()) { ceSetTop(); cePaintSoon(); } });
 
