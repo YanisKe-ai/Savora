@@ -15,7 +15,7 @@ const PDF_TEMPLATES = {
   'pur': { id: 'pur', name: 'Pur', hint: 'Weiss und ruhig, serifenlose Schrift, spart Tinte beim Drucken. Standard.', cls: 'pv-tpl-pur', pageNo: [60, 66, 62], pageNoCenter: true,
     fonts: ['400 11pt "Carlito"', '700 11pt "Carlito"', '700 29pt "Carlito"', '400 11pt "Carlito Pur"', '700 11pt "Carlito Pur"'], extrasSide: true, wave: false, inlineFacts: false },
   'prise-pop': { id: 'prise-pop', name: 'Prise Pop', hint: 'Kräftige rote Titel, gelbe Zutatenfläche, freundlich und bunt.', cls: 'pv-tpl-prise-pop', pageNo: [200, 50, 31],
-    fonts: ['400 11pt "Carlito"', '700 11pt "Carlito"', '400 29pt "Lilita One"', '400 10.5pt "Public Sans"', '600 10.5pt "Public Sans"', '700 10.5pt "Public Sans"'], extrasSide: false, wave: true, inlineFacts: true, pop: true },
+    fonts: ['400 11pt "Carlito"', '700 11pt "Carlito"', '400 29pt "Lilita One"', '400 10.5pt "Public Sans"', '600 10.5pt "Public Sans"', '700 10.5pt "Public Sans"', '400 29pt "Lilita One Pop"', '400 10.5pt "Public Sans Pop"', '700 10.5pt "Public Sans Pop"'], extrasSide: false, wave: true, inlineFacts: true, pop: true },
 };
 const PDF_TEMPLATE_KEY = 'savora-pdf-template';
 

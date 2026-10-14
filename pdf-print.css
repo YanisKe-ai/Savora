@@ -389,3 +389,21 @@
 .pv-tpl-pur .pv-toc-name, .pv-tpl-pur .pv-toc-pg, .pv-tpl-pur .pv-toc-chapter { font-family: 'Carlito Pur', 'Carlito', Calibri, 'Segoe UI', Arial, sans-serif; position: relative; }
 .pv-tpl-pur .pv-toc-row { padding-bottom: 2.6mm; }
 .pv-tpl-pur .pv-toc-chapter { padding-bottom: 1mm; }
+
+/* ===== Prise Pop: Zeilenmasse gegen tiefer gesetzten Text im Raster (Linux-Chromium/html2canvas) =====
+   Gleiche Massnahme wie bei «Carlito Pur»: dieselben Schriftdateien, nur mit angepassten Zeilenmassen. html2canvas setzt Text tiefer
+   als die Textbox des Browsers; mit hoeherer Ascent und tieferer Textbox (descent-override) liegt die sichtbare Tinte in der Box. */
+@font-face { font-family: 'Public Sans Pop'; font-weight: 100 900; font-style: normal; font-display: swap; ascent-override: 115.75%; descent-override: 50%; line-gap-override: 0%; src: url(public-sans.woff2) format('woff2'); }
+@font-face { font-family: 'Lilita One Pop'; font-weight: 400; font-style: normal; font-display: swap; ascent-override: 92.3%; descent-override: 50%; line-gap-override: 0%; src: url(lilita-one.woff2) format('woff2'); }
+.pv-tpl-prise-pop {
+  --pv-font: 'Public Sans Pop', 'Public Sans', 'Carlito', Arial, sans-serif;
+  --pv-title-font: 'Lilita One Pop', 'Lilita One', 'Public Sans', 'Carlito', Arial, sans-serif;
+  --pv-h-font: var(--pv-title-font); --pv-no-font: var(--pv-title-font);
+}
+.pv-tpl-prise-pop .pv-step-no { padding: 0; }
+/* Prise Pop: Abstaende dort, wo Zeilen verschiedener Textbloecke uebereinander stehen (die hoehere Textbox soll sich nicht ueberlappen) */
+.pv-tpl-prise-pop .pv-nut-cell i { margin-top: 1.4mm; }
+.pv-tpl-prise-pop .pv-nut-grid { row-gap: 3.2mm; }
+.pv-tpl-prise-pop .pv-ing[data-stack] .pv-ing-name { margin-top: 1.4mm; }
+.pv-tpl-prise-pop .pv-source-text, .pv-tpl-prise-pop .pv-url { line-height: 1.9; }
+.pv-tpl-prise-pop .pv-source { padding-bottom: 1mm; }
