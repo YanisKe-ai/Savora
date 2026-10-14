@@ -727,7 +727,7 @@ async function pdfBuildSingleImpl(id, nutritionDetail, opts) {
   const r = state.recipes.find(x => x.id === id);
   if (!r) return null;
   const templateId = (opts && opts.template) || pdfDefaultTemplateId();
-  pdfSetContext(templateId, '', '', false);
+  pdfSetContext(templateId, '', (opts && opts.author) || '', false);   // «Name im PDF» (Exportdialog), leer = nicht drucken
   try {
     pdfProgress(opts, 0, 1, 'prepare');
     await ensurePdfLibs();   // Fehler (offline/Timeout) frueh und mit verstaendlicher Meldung
@@ -763,7 +763,7 @@ async function pdfBuildCookbookImpl(nutritionDetail, opts) {
     await ensurePdfLibs();   // Fehler (offline/Timeout) frueh und mit verstaendlicher Meldung
     const templateId = (opts && opts.template) || cfg.pdfTemplate || pdfDefaultTemplateId();
     const title = cfg.title || '';   // leer = nichts drucken (kein unsichtbarer Standardtitel)
-    const author = cfg.author || '';
+    const author = opts && typeof opts.author === 'string' ? opts.author : (cfg.author || '');   // «Name im PDF» aus dem Exportdialog hat Vorrang (leer = nicht drucken)
     pdfSetContext(templateId, title, author, cfg.showLogo !== false, true);
     await ensureFontsReadyForPdf();
 
@@ -816,7 +816,7 @@ async function pdfBuildCookbookImpl(nutritionDetail, opts) {
     coverEnsureConfig();
     const cfgNow = getCookbookConfig();
     await coverEnsureFonts();
-    const layout = coverLayout({ templateId: cfgNow.cover.templateId, title: cfgNow.title, name: cfgNow.author, slogan: cfgNow.subtitle, date: cfgNow.cover.date, showDate: cfgNow.cover.showDate, logo: cfgNow.showLogo !== false });
+    const layout = coverLayout({ templateId: cfgNow.cover.templateId, title: cfgNow.title, name: author, slogan: cfgNow.subtitle, date: cfgNow.cover.date, showDate: cfgNow.cover.showDate, logo: cfgNow.showLogo !== false });
     if (layout.warnings.length) throw coverError(layout.warnings.map(w => w.message).join(' '));
     const coverBg = await coverBackgroundDataUrl(layout.templateId);
     // Gleiche Zeichenfunktion wie die Vorschau; Hintergrund in Originalaufloesung (1055 x 1491 px), Seite doppelt so fein fuer scharfe Schrift

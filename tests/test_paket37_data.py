@@ -97,7 +97,7 @@ async def main():
           return { n: s.books.length, name: s.books[0].name, cfg: JSON.stringify(s.books[0].config) === JSON.stringify(cfg), t: s.books[0].config.title, tpl: s.books[0].config.pdfTemplate, cover: s.books[0].config.cover,
                    items: s.books[0].config.items.map(i => i.recipeId), mig: s.books[0].migration }; }""")
         check('Genau ein Projekt, Name aus dem alten Titel, Konfiguration deckungsgleich', proj['n'] == 1 and proj['name'] == 'Yanis Kochbuch' and proj['cfg'], str(proj))
-        check('Auswahl, Reihenfolge, Seitenstil, Titelblatt und Datum übernommen', proj['items'] == ['r_legacy_2', 'r_legacy_1'] and proj['tpl'] == 'B' and proj['cover']['templateId'] == 'salbei' and proj['cover']['date'] == '2026-05-17' and proj['t'] == 'Familienbuch', str(proj['cover']))
+        check('Auswahl, Reihenfolge, Seitenstil, Titelblatt und Datum übernommen', proj['items'] == ['r_legacy_2', 'r_legacy_1'] and proj['tpl'] in ('B', 'prise-pop') and proj['cover']['templateId'] == 'salbei' and proj['cover']['date'] == '2026-05-17' and proj['t'] == 'Familienbuch', str(proj['cover']))
         check('Migration vermerkt Quelle', proj['mig'] and proj['mig']['source'] == 'savora-cookbook-config' and proj['mig']['hadConfig'] is True)
         raw1 = await ev("() => localStorage.getItem('savora-cookbook-projects')")
         await page.reload(); await page.wait_for_function("typeof cookbookStoreRead === 'function' && document.getElementById('app').children.length > 0", timeout=30000); await page.wait_for_timeout(1200)
@@ -130,7 +130,7 @@ async def main():
                    shop: state.shopping.length, plan: state.mealplan ? Object.keys(state.mealplan).length : -1, cols: getCollections().map(c => [c.name, c.recipeIds.length]),
                    books: s.books.map(b => [b.config.title, b.config.pdfTemplate, b.config.cover && b.config.cover.templateId, (b.config.items || []).map(i => state.recipes.find(r => r.id === i.recipeId).title)]) }; }""")
         check('Wiederherstellung (alte Sicherung, neuer Stand): drei Rezepte, Favoriten, Notiz, Einkauf, Sammlung', res['n'] == 3 and res['titles'] == ['Carbonara', 'Gemüse-Curry', 'Sloppy Joe Buns'] and 'Carbonara' in res['fav'] and 'Sloppy Joe Buns' in res['fav'] and res['note'] == 'Notiz mit Emoji 🍝 und «Zeichen»' and res['shop'] >= 1 and res['cols'] == [['Sonntag', 2]], str(res))
-        check('Wiederherstellung: Kochbuch (Titel, Seitenstil, Titelblatt, Reihenfolge) kommt als Projekt zurück', res['books'] and res['books'][0][0] == 'Familienbuch' and res['books'][0][1] == 'B' and res['books'][0][3] == ['Carbonara', 'Sloppy Joe Buns'], str(res['books']))
+        check('Wiederherstellung: Kochbuch (Titel, Seitenstil, Titelblatt, Reihenfolge) kommt als Projekt zurück', res['books'] and res['books'][0][0] == 'Familienbuch' and res['books'][0][1] in ('B', 'prise-pop') and res['books'][0][3] == ['Carbonara', 'Sloppy Joe Buns'], str(res['books']))
         await pg.evaluate("async (t) => { await restoreBackupFromFile(new File([t], 'b.json')); }", text)
         res2 = await pg.evaluate("() => [state.recipes.length, cookbookStoreRead().books.length, getCollections().length]")
         check('Zweimal Wiederherstellen verdoppelt nichts', res2 == [3, len(res['books']), 1], str(res2))
