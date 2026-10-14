@@ -45,9 +45,9 @@ async def main():
         await ev("() => { state.view = 'shopping'; render(); }"); await page.wait_for_timeout(300)
         await ev("() => document.querySelector('.bottom-nav .nav-settings').focus()")
         await page.keyboard.press('Enter'); await page.wait_for_timeout(500)
-        check('«Mehr» ist per Tastatur erreichbar und öffnet die Einstellungen', await ev("() => state.view") == 'settings')
+        check('«Mehr» ist per Tastatur erreichbar und öffnet die Seite «Mehr»', await ev("() => state.view") == 'more')
         act = await ev("() => Array.from(document.querySelectorAll('.bottom-nav button.active')).filter(b => b.getBoundingClientRect().height > 0).length")
-        check('In den Einstellungen ist nur «Mehr» aktiv (aria-current), kein anderer Haupt-Tab', act == 1 and await ev("() => Array.from(document.querySelectorAll('.bottom-nav button[aria-current=page] .nav-label')).map(e => e.textContent)") == ['Mehr'], str(act))
+        check('Auf «Mehr» ist nur «Mehr» aktiv (aria-current), kein anderer Haupt-Tab', act == 1 and await ev("() => Array.from(document.querySelectorAll('.bottom-nav button[aria-current=page] .nav-label')).map(e => e.textContent)") == ['Mehr'], str(act))
         await ev("() => { state.view = 'cookbook'; render(); }"); await page.wait_for_timeout(300)
         active = await ev("() => Array.from(document.querySelectorAll('.bottom-nav button.active .nav-label')).map(e => e.textContent)")
         check('Im Kochbuch-Editor ist „Kochbücher“ aktiv', active == ['Kochbücher'], str(active))
@@ -63,9 +63,9 @@ async def main():
         # Desktop: Seitenleiste
         await page.set_viewport_size({'width': 1280, 'height': 800}); await page.wait_for_timeout(400)
         side = await ev("""() => { const n = document.querySelector('.bottom-nav').getBoundingClientRect(); const bs = Array.from(document.querySelectorAll('.bottom-nav button')).map(b => ({ l: (b.querySelector('.nav-label') || {}).textContent, r: b.getBoundingClientRect() })); const last = bs[bs.length - 1], prev = bs[bs.length - 2]; return { left: n.left, w: n.width, h: n.height, labels: bs.map(b => b.l), gap: last.r.top - prev.r.bottom, settingsBottom: last.r.bottom }; }""")
-        check('Desktop: Seitenleiste links mit den vier Bereichen und „Einstellungen“ getrennt unten', side['left'] == 0 and 200 <= side['w'] <= 260 and side['labels'] == ['Rezepte', 'Wochenplan', 'Einkauf', 'Kochbücher', 'Einstellungen'] and side['gap'] > 100, str(side))
+        check('Desktop: Seitenleiste links mit den vier Bereichen und „Einstellungen“ getrennt unten', side['left'] == 0 and 200 <= side['w'] <= 260 and side['labels'] == ['Rezepte', 'Wochenplan', 'Einkauf', 'Kochbücher', 'Mehr'] and side['gap'] > 100, str(side))
         await ev("() => document.querySelector('.bottom-nav .nav-settings').click()"); await page.wait_for_timeout(400)
-        check('Seitenleiste: „Einstellungen“ öffnet die Einstellungen', await ev("() => state.view") == 'settings')
+        check('Seitenleiste: „Mehr“ öffnet die Seite «Mehr»', await ev("() => state.view") == 'more')
         await page.set_viewport_size({'width': 390, 'height': 844}); await page.wait_for_timeout(300)
 
         # ---------- 2. Migration ----------

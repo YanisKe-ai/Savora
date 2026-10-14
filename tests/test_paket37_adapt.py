@@ -1,7 +1,7 @@
 """Paket 37 (Anpassung): Smartphone, Tablet und Desktop.
 Misst ueber alle geaenderten Ansichten x Breiten (360, 390, 768, 1024, 1280) x Darstellungen (Hell, Dunkel, «Wie dein Gerät» hell/dunkel)
 und mit grosser Systemschrift (24 px): seitlicher Ueberlauf, Tippflaechen >= 44 px, Text-Kontrast >= 4.5:1 (gross 3:1), kleinste Schrift >= 14 px,
-abgeschnittene Texte. Dazu: genau ein Einstellungsweg je Breite, Cover-Auswahl (zehn Cover), sehr langer Titel/lange Zutatenliste, «Heute geplant».
+abgeschnittene Texte. Dazu: genau ein Weg zu «Mehr» je Breite, Cover-Auswahl (zehn Cover), sehr langer Titel/lange Zutatenliste, «Heute geplant».
 Testdaten: tests/seed.js, erweitert per page.evaluate (nichts davon steht im Repo)."""
 import asyncio, sys, os, json
 os.environ.setdefault('SAVORA_TEST_PORT', '8852')
@@ -78,7 +78,7 @@ JS_ALL = r"""() => {
   const sel = 'button, a[href], [role=button], [role=tab], [role=radio], [role=checkbox], summary, select, input:not([type=hidden]):not([type=checkbox]):not([type=radio]), textarea';
   for (const el of document.querySelectorAll('#app *')) {
     if (el.matches(sel)) {
-      if (el.closest('.sr-only') || el.matches('.sr-only,.timer-chip,.sheet-handle') || (el.tagName==='A' && el.closest('.source-line,.legal-card,p'))) {} else {
+      if (el.closest('.sr-only') || el.matches('.sr-only,.timer-chip,.sheet-handle,.kd-file-input') || (el.tagName==='A' && el.closest('.source-line,.legal-card,p'))) {} else {
       const cs = getComputedStyle(el); if (cs.visibility!=='hidden' && cs.display!=='none') { const r = el.getBoundingClientRect(); if ((r.width||r.height) && (r.width<43.5||r.height<43.5)) out.taps.push((el.className||el.tagName)+' '+Math.round(r.width)+'x'+Math.round(r.height)+' '+(el.getAttribute('aria-label')||el.textContent.trim().slice(0,18))); } }
     }
   }
@@ -141,8 +141,8 @@ async def main():
                     r = await scan(page, f'[{w} {theme}] {name}')
                     if name in TABS:
                         gear = [g for g in r['navs']['gear'] if 'icon-btn--settings' in g]; side = [g for g in r['navs']['gear'] if 'nav-settings' in g]
-                        want = (0, 1)   # kein Zahnrad im Kopf mehr: der Weg zu den Einstellungen ist «Mehr» (unten) bzw. «Einstellungen» (Seitenleiste)
-                        check(f'[{w} {theme}] {name}: genau ein Einstellungsweg ({"«Mehr» in der unteren Leiste" if w < 900 else "Seitenleiste"}), kein Zahnrad', (len(gear), len(side)) == want, str(r['navs']))
+                        want = (0, 1)   # kein Zahnrad im Kopf mehr: der Weg zu den Einstellungen ist «Mehr» (unten und in der Seitenleiste)
+                        check(f'[{w} {theme}] {name}: genau ein Weg zu «Mehr» ({"«Mehr» in der unteren Leiste" if w < 900 else "Seitenleiste"}), kein Zahnrad', (len(gear), len(side)) == want, str(r['navs']))
                     if name == 'cb2':
                         cv = await page.evaluate("""() => { const o = Array.from(document.querySelectorAll('.cover-opt')); const on = o.filter(x => x.getAttribute('aria-checked') === 'true');
                             return { n: o.length, on: on.length, check: on.every(x => !!x.querySelector('.cover-opt-check')), minw: Math.min(...o.map(x => x.getBoundingClientRect().width)), minh: Math.min(...o.map(x => x.getBoundingClientRect().height)),

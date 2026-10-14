@@ -172,13 +172,13 @@ async def main():
         await ev("() => { resetExtraFilters(); render(); }")
 
         # ---------- D02: Texte ----------
-        await ev("() => { state.view = 'settings'; render(); }"); await page.wait_for_timeout(250)
-        rows = await ev("() => Array.from(document.querySelectorAll('.settings-row-title, .settings-row b, .settings-row')).map(e => e.textContent.trim().replace(/\\s+/g, ' ')).join(' | ')")
-        check('D02 Einstellungen: «Darstellung und Einheiten», «Socialize»', 'Darstellung und Einheiten' in rows and 'Socialize' in rows and 'Freunde' not in rows.split('Rezepte von')[0], rows[:300])
+        await ev("() => { state.view = 'more'; render(); }"); await page.wait_for_timeout(250)
+        rows = await ev("() => Array.from(document.querySelectorAll('.settings-row-title')).map(e => e.textContent.trim()).join(' | ')")
+        check('D02 Mehr: «Freunde & Rezepte», «Einheiten umrechnen», kein «Socialize»', 'Freunde & Rezepte' in rows and 'Einheiten umrechnen' in rows and 'Socialize' not in rows, rows[:300])
         await ev("() => { state.view = 'settings-share'; render(); }"); await page.wait_for_timeout(200)
-        check('D02 Seitentitel «Socialize»', await ev("() => document.querySelector('.topbar-title').textContent.trim()") == 'Socialize')
+        check('D02 Seitentitel «Freunde & Rezepte»', await ev("() => document.querySelector('.topbar-title').textContent.trim()") == 'Freunde & Rezepte')
         await ev("() => { state.view = 'settings-display'; render(); }"); await page.wait_for_timeout(200)
-        check('D02 Seitentitel «Darstellung und Einheiten»', await ev("() => document.querySelector('.topbar-title').textContent.trim()") == 'Darstellung und Einheiten')
+        check('D02 Seitentitel «Darstellung»', await ev("() => document.querySelector('.topbar-title').textContent.trim()") == 'Darstellung')
         # Editor: Eigene Schlagwörter mit Beispiel
         await ev("() => { state.editingRecipe = emptyRecipe(); state.view = 'form'; state.formStep = 1; render(); }"); await page.wait_for_timeout(250)
         lab = await ev("() => { const l = document.querySelector('label[for=\"f-tag-new\"]'); const h = l.parentElement.querySelector('.field-hint'); return [l.textContent.trim(), h ? h.textContent.trim() : '', document.getElementById('f-tag-new').placeholder]; }")

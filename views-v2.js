@@ -29,23 +29,22 @@ Object.assign(ICONS, {
   bookOpen: `${SVG_OPEN}<path d="M2 5h7a3 3 0 0 1 3 3v12a2 2 0 0 0-2-2H2z"/><path d="M22 5h-7a3 3 0 0 0-3 3v12a2 2 0 0 1 2-2h8z"/></svg>`,
 });
 
-const TAB_VIEWS = ['home', 'mealplan', 'shopping', 'cookbooks', 'settings'];
+const TAB_VIEWS = ['home', 'mealplan', 'shopping', 'cookbooks', 'more'];
 const DAY_SHORT = ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So'];
 
 /* ---------- Navigation ----------
-   Genau fuenf Punkte: Rezepte, Wochenplan, Einkauf, Kochbuecher und Mehr (= die bestehende Einstellungsseite).
-   Bis 899 px liegt die Leiste unten (Handy und Tablet hochkant), ab 900 px als Seitenleiste, dort heisst der letzte Punkt «Einstellungen».
-   Ein Zahnrad im Kopf gibt es nicht mehr. «Mehr» bleibt auf allen Unterseiten der Einstellungen aktiv. */
+   Genau fuenf Punkte: Rezepte, Wochenplan, Einkauf, Kochbuecher und Mehr (Route 'more').
+   Bis 899 px liegt die Leiste unten (Handy und Tablet hochkant), ab 900 px als Seitenleiste; der letzte Punkt heisst ueberall «Mehr».
+   Ein Zahnrad im Kopf gibt es nicht mehr. «Mehr» bleibt auf allen Unterseiten (Einstellungen, Freunde & Rezepte, Rechner, Hilfe, Ueber Savora) aktiv. */
 function navTabActive(view) {
   const v = state.view;
   if (view === 'home') return v === 'home' || v === 'detail';
   if (view === 'cookbooks') return v === 'cookbooks' || v === 'cookbook';
-  if (view === 'settings') return isMoreSectionView(v) && v !== 'cookbook';
+  if (view === 'more') return isMoreSectionView(v);
   return v === view;
 }
 /* Handy-Layout (unter 768 px): Startseite als Rezeptliste. Tablet und Desktop behalten ihre bisherige Startseite. */
 const PHONE_QUERY = '(max-width: 767px)';
-function isCompactNav() { return !!(window.matchMedia && matchMedia('(max-width: 899px)').matches); }   // untere Leiste: der letzte Punkt heisst «Mehr», darueber «Einstellungen»
 function isPhoneLayout() { return !!(window.matchMedia && matchMedia(PHONE_QUERY).matches); }
 function bottomNav() {
   const tabs = [
@@ -53,7 +52,7 @@ function bottomNav() {
     { view: 'mealplan', icon: ICONS.calendar, label: 'Wochenplan' },
     { view: 'shopping', icon: ICONS.cart, label: 'Einkauf' },
     { view: 'cookbooks', icon: ICONS.books, label: 'Kochbücher' },
-    { view: 'settings', icon: ICONS.menu, label: isCompactNav() ? 'Mehr' : 'Einstellungen', cls: 'nav-settings' },
+    { view: 'more', icon: ICONS.menu, label: 'Mehr', cls: 'nav-settings' },
   ];
   const openCount = state.shopping.filter(i => !i.checked && !i.have).length;
   const btn = (t) => {

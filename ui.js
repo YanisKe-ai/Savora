@@ -473,7 +473,7 @@ async function dispatchAction(action, id, el, e) {
         console.error('Rezept speichern fehlgeschlagen', err);
         state.editingRecipeSnapshot = state.editingRecipeSnapshot || '__unsaved__';
         const full = err && (err.name === 'QuotaExceededError' || /quota|voll|full/i.test(String(err.message || '')));
-        showToast(full ? 'Nicht gespeichert: Der Speicher des Geräts ist voll. Deine Eingaben bleiben stehen. Lösche nicht benötigte Rezepte oder Bilder und tippe erneut auf „Speichern“.' : 'Nicht gespeichert. Deine Eingaben bleiben stehen. Tippe erneut auf „Speichern“. Hilft das nicht, erstelle unter Einstellungen eine Sicherung und lade die App neu.', 'error', true);
+        showToast(full ? 'Nicht gespeichert: Der Speicher des Geräts ist voll. Deine Eingaben bleiben stehen. Lösche nicht benötigte Rezepte oder Bilder und tippe erneut auf „Speichern“.' : 'Nicht gespeichert. Deine Eingaben bleiben stehen. Tippe erneut auf „Speichern“. Hilft das nicht, erstelle unter „Mehr, Einstellungen, Sicherung & Wiederherstellung“ eine Sicherung und lade die App neu.', 'error', true);
       } finally { state.savingRecipe = false; }
       break;
     }
@@ -716,7 +716,7 @@ async function dispatchAction(action, id, el, e) {
       break;
     }
     case 'open-settings':
-      state.view = 'settings';
+      state.view = 'more';
       render();
       break;
     case 'nav-tab':
@@ -839,7 +839,7 @@ async function dispatchAction(action, id, el, e) {
       const nextTheme = normalizeTheme(el.dataset.theme);
       const applyThemeChange = () => {
         state.theme = nextTheme;
-        localStorage.setItem(THEME_KEY, state.theme);
+        try { localStorage.setItem(THEME_KEY, state.theme); } catch (err) { showToast('Das Farbschema gilt jetzt, konnte aber nicht dauerhaft gespeichert werden.', 'error'); }
         applyTheme();
         render();
       };
@@ -873,7 +873,7 @@ async function dispatchAction(action, id, el, e) {
     }
     case 'set-unit-system':
       state.unitSystem = el.dataset.system;
-      localStorage.setItem(UNIT_KEY, state.unitSystem);
+      try { localStorage.setItem(UNIT_KEY, state.unitSystem); } catch (err) { showToast('Die Einstellung gilt jetzt, konnte aber nicht dauerhaft gespeichert werden.', 'error'); }
       render();
       break;
     case 'open-unitconverter':
