@@ -125,7 +125,7 @@ function pdfSplitIngredient(ing) {
   const c = typeof nutCleanIngredientName === 'function' ? nutCleanIngredientName(nameRaw) : { name: nameRaw, bracketText: '' };
   let name = c.name;
   // Klammer mitten im Namen («Ei (gross), verquirlt»): Wortlaut und Reihenfolge erhalten, nur eine Klammer am Ende wird zur Notiz
-  if (c.bracketText && /\)[^)]*\S[^)]*$/.test(nameRaw) && !/\)\s*$/.test(nameRaw)) name = nameRaw;
+  if (c.bracketText && /^[^(]*[^\s(][^(]*\([^)]*\)\s*[,;]?\s*[^\s,;)][^)]*$/.test(nameRaw)) name = nameRaw;
   else if (c.bracketText) notes.push(c.bracketText);
 
   // Altbestand: das Zutatenwort steht in der Einheit (Zwiebel, Knoblauchzehe, Ei, Handvoll), im Namen nur noch die Klammer
