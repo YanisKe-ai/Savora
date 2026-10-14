@@ -377,3 +377,10 @@
 .pv-tpl-pur .pv-ing-row + .pv-ing-row { border-top: .6pt solid rgba(30, 60, 40, .22); margin-top: 1mm; padding-top: 1mm; }
 .pv-tpl-pur .pv-ing-row .pv-ing-col:first-child:last-child { grid-column: 1; }
 .pv-tpl-pur.pv-page { padding-bottom: 25mm; }   /* Reserve: html2canvas setzt Text ca. 1,5 mm tiefer, zweizeilige Fusszeile beginnt bei 280,4 mm */
+
+/* Pur, kleine Texte: gleiche Massnahme wie bei den Zutatenzeilen (tiefere Textbox, damit Unterlaengen im Raster nicht aus der Box fallen; Linux-Chromium/html2canvas setzt Text noch tiefer) */
+.pv-tpl-pur .pv-source, .pv-tpl-pur .pv-source .pv-label, .pv-tpl-pur .pv-source-text, .pv-tpl-pur .pv-small, .pv-tpl-pur .pv-cont-head i, .pv-tpl-pur .pv-cat,
+.pv-tpl-pur .pv-extras-grid .pv-nut-cell i, .pv-tpl-pur .pv-extras-grid .pv-nut-cell b, .pv-tpl-pur .pv-extras-grid .pv-nut-cell em { font-family: 'Carlito Pur', 'Carlito', Calibri, 'Segoe UI', Arial, sans-serif; }
+.pv-tpl-pur .pv-source { position: relative; padding-bottom: 1.6mm; }
+.pv-tpl-pur .pv-source .pv-label, .pv-tpl-pur .pv-source-text { position: relative; }
+.pv-tpl-pur .pv-small { padding-bottom: 1mm; }
