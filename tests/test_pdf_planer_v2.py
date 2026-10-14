@@ -204,7 +204,7 @@ async def main():
             for n in range(3, 30):
                 await page.evaluate(SEED, [[mkq(n, '')], foto]); pq = await page.evaluate(PLAN, ['v2_hinweis', tpl])
                 if pq.get('n') != 1 or pq['density'] != 'normal': base_n = n - 1; break
-            tip = 'Dieser Hinweis ist der letzte Block. ' + ' '.join(['Er darf nie weggelassen werden.'] * 6)
+            tip = 'Dieser Hinweis ist der letzte Block. ' + ' '.join(['Er darf nie weggelassen werden.'] * 14)
             await page.evaluate(SEED, [[mkq(base_n, tip)], foto])
             path, r = await export(page, 'v2_hinweis', tpl, f'hinweis_{tpl}')
             k = seiten(path); t = flat(pdftext(path))
@@ -235,6 +235,12 @@ async def main():
             html_cont = await page.evaluate("""async ([id, tpl]) => { pdfSetContext(tpl, '', '', false); const r = state.recipes.find(x => x.id === id); const res = await buildRecipePdfPage(r, null, 'off'); cleanupPdfMeasureProbe();
                 return res.htmlPages.map(h => { const d = document.createElement('div'); d.innerHTML = h; return Array.from(d.querySelectorAll('.pv-step[data-cont="1"] .pv-step-no')).map(e => e.textContent); }); }""", ['v2_riesenschritt', tpl])
             check(f'[{tpl}] Riesenschritt: Folgeteile mit Schrittnummer 2 und «Fortsetzung»', any(x == ['2'] for x in html_cont[1:]), str(html_cont))
+
+            # --- nicht teilbarer Block laenger als eine Seite: Export stoppt mit verstaendlicher Meldung (nie abschneiden oder skalieren) ---
+            riesen_notiz = rezept('v2_riesennotiz', 'Riesige Notiz', ['Kochen.'], [('', 3)], tips=' '.join(['Diese Notiz ist ein einziger sehr langer Absatz ohne Umbruch'] * 260))
+            await page.evaluate(SEED, [[riesen_notiz], None])
+            p = await page.evaluate(PLAN, ['v2_riesennotiz', tpl])
+            check(f'[{tpl}] Ueberlanger Notizabsatz: Export stoppt mit Meldung', 'passt nicht ins PDF' in (p.get('error') or ''), str(p)[:200])
 
             # --- Kochbuch: rezeptlokale Zaehlung getrennt von der Buchseite ---
             await page.evaluate("(t) => saveCookbookConfig({ title: 'Planer V2', subtitle: '', author: '', pdfTemplate: t, chapters: [], items: [{ recipeId: 'v2_kurz', chapterId: '' }, { recipeId: 'v2_lang', chapterId: '' }], showLogo: false, chapterPages: false, cover: { v: 1, templateId: 'pop', date: '2026-10-14', showDate: false } })", tpl)
