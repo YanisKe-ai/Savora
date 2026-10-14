@@ -12,7 +12,7 @@ import asyncio, base64, io, json, os, re, shutil, subprocess, sys, tempfile
 os.environ.setdefault('SAVORA_TEST_PORT', '8995')
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from common import *
-from PIL import Image, ImageChops, ImageDraw, ImageStat
+from PIL import Image, ImageChops, ImageDraw, ImageFilter, ImageStat
 
 FAIL = []
 def check(name, cond, info=''):
@@ -24,7 +24,7 @@ DATA = os.path.join(TESTS, 'data')
 V1_CASES = [('tomate', 'Sonntagsküche', 'Rezepte für jeden Tag', 'Alex Muster'), ('pop', 'Familienrezepte aus drei Generationen', 'Gesammelt und weitergegeben', 'Familie Beispiel-Muster')]
 BEISPIELE = os.environ.get('SAVORA_COVER_BEISPIELE')
 W72, H72 = 595, 842
-TMP = tempfile.mkdtemp(prefix='savora-cover-pdf5-')
+TMP = os.environ.get('SAVORA_COVER_TMP') or tempfile.mkdtemp(prefix='savora-cover-pdf5-')
 LOG = []
 
 # ---------- Testbilder (selbst erzeugt, neutral): Flaeche + magenta Kreis in der Bildmitte ----------
@@ -70,7 +70,7 @@ async def ui_export(page):
     return base64.b64decode(r['b64']), None
 
 PREVIEW_JS = """async () => { await coverEnsureFonts(); const cfg = getCookbookConfig(); const L = coverLayout(coverInputFromConfig(cfg));
-  const bg = L.background ? await coverBackgroundDataUrl(L.templateId) : null; const c = await coverRenderCanvas(L, 1, bg);
+  const bg = L.background ? await coverBackgroundDataUrl(L.templateId) : null; const c = await coverRenderCanvas(L, 2, bg);   // gleiche Aufloesung wie der Export (feine Motive: sonst nur Abtastunterschiede)
   const B = coverExportBlockers(L);
   return { png: c.toDataURL('image/png'), blockers: B, warnings: L.warnings.map(w => w.kind + ':' + w.fieldId), image: L.image, mode: L.mode || 'v1',
     texts: L.blocks.map(b => b.lines.join(' ')).concat(L.date ? [L.date.text] : []),
@@ -85,6 +85,25 @@ def render_page1(pdf_path, out_png, dpi=72):
 def diff_stats(a, b):
     d = ImageChops.difference(a, b).convert('L'); h = d.histogram(); n = sum(h)
     return ImageStat.Stat(d).mean[0], sum(h[61:]) / n * 100
+TILE, TILE_MAX = 24, 14   # gemessen: normale Faelle hoechstens etwa 9, fehlendes Datum 26, Titel 2 px verschoben 29
+def tile_max(a, b):
+    """Groesste mittlere Abweichung einer 24-px-Kachel (nach leichter Unschaerfe), je Kachel mit dem besten Versatz von hoechstens 1 px
+    (PDF und Vorschau weichen oben um etwa 1 px bei 72 dpi ab, auch beim alten v1-Stand: Rundung, kein Fehler). Liefert (Wert, Lage)."""
+    ga, gb = a.filter(ImageFilter.GaussianBlur(1.2)).convert('L'), b.filter(ImageFilter.GaussianBlur(1.2)).convert('L')
+    shifted = {(dx, dy): ImageChops.difference(ga, ImageChops.offset(gb, -dx, -dy)) for dx in (-1, 0, 1) for dy in (-1, 0, 1)}
+    best = (0, None)
+    for y in range(2, ga.size[1] - TILE - 1, TILE // 2):
+        for x in range(2, ga.size[0] - TILE - 1, TILE // 2):
+            m = min(ImageStat.Stat(d.crop((x, y, x + TILE, y + TILE))).mean[0] for d in shifted.values())
+            if m > best[0]: best = (round(m, 1), (x, y))
+    return best
+def best_shift(a, b):
+    ga, gb = a.convert('L'), b.convert('L'); best = None
+    for dx in (-2, -1, 0, 1, 2):
+        for dy in (-2, -1, 0, 1, 2):
+            m = ImageStat.Stat(ImageChops.difference(ga.crop((4, 4, W72 - 4, H72 - 4)), gb.crop((4 + dx, 4 + dy, W72 - 4 + dx, H72 - 4 + dy)))).mean[0]
+            if best is None or m < best[0] - 1e-6: best = (m, dx, dy)
+    return (best[1], best[2])
 def color_bbox(im, rgb, tol=60):
     r, g, b = rgb
     px = im.load(); W, H = im.size; xs = []; ys = []
@@ -123,11 +142,18 @@ async def export_case(page, name, title, subtitle, author, cover, expect_block=F
     pdf_im = render_page1(path, os.path.join(TMP, name + '-p1'))
     res['png'] = os.path.join(TMP, name + '-p1.png')
     prev = png_from_dataurl(pre['png']).resize((W72, H72), Image.LANCZOS)
+    prev.save(os.path.join(TMP, name + '-vorschau.png'))
     if abs(pdf_im.size[0] - W72) > 1 or abs(pdf_im.size[1] - H72) > 1: P.append(('Groesse Titelseite', pdf_im.size))
     if pdf_im.size != (W72, H72): pdf_im = pdf_im.resize((W72, H72), Image.LANCZOS)   # pdftoppm rundet 595.28 pt auf 596 px
     mean, strong = diff_stats(prev, pdf_im)
-    res['mean'], res['strong'] = round(mean, 2), round(strong, 2)
-    if mean > 4 or strong > 1.5: P.append(('weicht von der Vorschau ab', round(mean, 2), round(strong, 2)))
+    # Die Seite geht als JPEG ins PDF (PDF_JPEG_QUALITY): feine Strichmotive (z. B. Scherenschnitt) rauschen. Mittelwert daher zusaetzlich
+    # nach leichter Unschaerfe (Rauschen weg, Verschiebungen, fehlende oder zusaetzliche Elemente bleiben sichtbar); starke Abweichungen roh.
+    mean_b, _ = diff_stats(prev.filter(ImageFilter.GaussianBlur(1.2)), pdf_im.filter(ImageFilter.GaussianBlur(1.2)))
+    shift = best_shift(prev, pdf_im)   # Gesamtversatz PDF gegen Vorschau (bekannt: etwa 1 px bei 72 dpi nach oben, auch beim alten v1-Stand)
+    if max(abs(shift[0]), abs(shift[1])) > 1: P.append(('Titelseite gegen Vorschau verschoben (px bei 72 dpi)', shift))
+    tile = tile_max(prev, pdf_im)   # ortlich: ein fehlendes Wort, Logo oder Datum faellt im Seitenmittel kaum auf, in seiner Kachel schon
+    res['mean'], res['strong'], res['mean_b'], res['tile'] = round(mean, 2), round(strong, 2), round(mean_b, 2), (tile, shift)
+    if mean_b > 3 or mean > 6 or strong > 1.5 or tile[0] > TILE_MAX: P.append(('weicht von der Vorschau ab', round(mean, 2), round(mean_b, 2), round(strong, 2), tile))
     if ImageStat.Stat(pdf_im.convert('L')).stddev[0] < 4: P.append(('leere Titelseite',))
     # Seitenkanten: Rasterbeschnitt/Versatz (Linux-Absicherung) - Randstreifen gleich der Vorschau
     for nm, box in (('oben', (0, 0, W72, 8)), ('unten', (0, H72 - 8, W72, H72)), ('links', (0, 0, 8, H72)), ('rechts', (W72 - 8, 0, W72, H72))):
@@ -226,7 +252,7 @@ async def main():
         # ---------- 1. Bestehendes Buch mit bisherigem Cover (v1): pixelgleich zum Stand vor dem Editor ----------
         for tid, t, s, a in V1_CASES:
             res, im = await export_case(page, f'v1-{tid}', t, s, a, {'v': 1, 'templateId': tid, 'date': '2026-10-09', 'showDate': True})
-            check(f'v1 «{tid}»: PDF ueber die Oberflaeche, Titelseite gleicht der Vorschau, Texte im Textlayer', not res['probs'], str(res['probs'][:4]) + f" mean={res.get('mean')}")
+            check(f'v1 «{tid}»: PDF ueber die Oberflaeche, Titelseite gleicht der Vorschau, Texte im Textlayer', not res['probs'], str(res['probs'][:4]) + f" mean={res.get('mean')}/{res.get('mean_b')} kachel={res.get('tile')}")
             if im is None: continue
             stored = Image.open(os.path.join(DATA, f'cover_v1_{tid}.png')).convert('RGB')
             m, st = diff_stats(stored, im)
@@ -299,7 +325,7 @@ async def main():
             if name == 'text-kurz-leere-felder':
                 ids = [x['id'] for x in res['pre']['boxes']]
                 if ids != ['title']: res['probs'].append(('leere optionale Felder erzeugen Elemente', ids))
-            check(f'{name}: PDF gleicht der Vorschau, keine Sperre, Texte vollstaendig im Textlayer, keine leere Seite', not res['probs'], str(res['probs'][:4]) + f" mean={res.get('mean')}")
+            check(f'{name}: PDF gleicht der Vorschau, keine Sperre, Texte vollstaendig im Textlayer, keine leere Seite', not res['probs'], str(res['probs'][:4]) + f" mean={res.get('mean')}/{res.get('mean_b')} kachel={res.get('tile')}")
 
         # ---------- 5. Alle sechs Anordnungen mit Logo-Positionen und -Varianten ----------
         combos = [('Oben links', 'bottom-right', 'dark', '#F7F4EE', None), ('Oben mittig', 'top-left', 'light', '#22382F', light_fields),
@@ -316,18 +342,18 @@ async def main():
                 box = (int(lg['x'] * W72), int(lg['y'] * H72), int((lg['x'] + lg['w']) * W72), int((lg['y'] + lg['h']) * H72))
                 if ImageStat.Stat(im.crop(box).convert('L')).stddev[0] < 20: res['probs'].append(('Wortmarke nicht sichtbar', box))
             if res['pre']['warnings']: res['probs'].append(('Warnungen', res['pre']['warnings']))
-            check(f'Anordnung «{arr}», Logo {lpos}/{lvar}: PDF gleicht der Vorschau, Wortmarke an ihrer Stelle, keine Warnung', not res['probs'], str(res['probs'][:4]) + f" mean={res.get('mean')}")
+            check(f'Anordnung «{arr}», Logo {lpos}/{lvar}: PDF gleicht der Vorschau, Wortmarke an ihrer Stelle, keine Warnung', not res['probs'], str(res['probs'][:4]) + f" mean={res.get('mean')}/{res.get('mean_b')} kachel={res.get('tile')}")
 
         # ---------- 6. Neue Vorlagen (Paket K1), sobald vorhanden ----------
         new_ids = await ev("() => COVER_TEMPLATES.map(t => t.id).slice(10)")
         if not new_ids: print('INFO Neue Vorlagen noch nicht vorhanden')
         for tid in new_ids:
             res, im = await export_case(page, f'vorlage-{tid}', T, S, A, {'v': 1, 'templateId': tid, 'date': '2026-10-09', 'showDate': True})
-            check(f'Neue Vorlage «{tid}»: PDF gleicht der Vorschau, Texte vollstaendig', not res['probs'], str(res['probs'][:4]) + f" mean={res.get('mean')}")
+            check(f'Neue Vorlage «{tid}»: PDF gleicht der Vorschau, Texte vollstaendig', not res['probs'], str(res['probs'][:4]) + f" mean={res.get('mean')}/{res.get('mean_b')} kachel={res.get('tile')}")
             cov = custom(fields={'title': {'color': '#B93B2C'}})
             cov.update({'mode': 'template', 'templateId': tid})
             res, im = await export_case(page, f'vorlage-{tid}-mittig', T, S, A, await arranged(ev, cov, 'Mittig', T, S, A))
-            check(f'Neue Vorlage «{tid}» mit Anordnung «Mittig» und eigener Titelfarbe', not res['probs'], str(res['probs'][:4]) + f" mean={res.get('mean')}")
+            check(f'Neue Vorlage «{tid}» mit Anordnung «Mittig» und eigener Titelfarbe', not res['probs'], str(res['probs'][:4]) + f" mean={res.get('mean')}/{res.get('mean_b')} kachel={res.get('tile')}")
 
         # ---------- 7. Export-Sperre: cut, outside, fehlendes Bild -> Meldung, kein PDF ----------
         blocks = [('sperre-wort', 'Donaudampfschifffahrtsgesellschaftskapitänsmützenhersteller', S, A, custom(fields={'title': {'fontPt': 90}}), 'Wort'),
