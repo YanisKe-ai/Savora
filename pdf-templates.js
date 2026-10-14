@@ -12,10 +12,10 @@
    Seitenverhaeltnis des Fotos, das ganze Foto bleibt sichtbar). */
 
 const PDF_TEMPLATES = {
-  'pur': { id: 'pur', name: 'Pur', hint: 'Weiss und ruhig, serifenlose Schrift, spart Tinte beim Drucken. Standard.', cls: 'pv-tpl-pur', pageNo: [31, 90, 58],
+  'pur': { id: 'pur', name: 'Pur', hint: 'Weiss und ruhig, serifenlose Schrift, spart Tinte beim Drucken. Standard.', cls: 'pv-tpl-pur', pageNo: [60, 66, 62], pageNoCenter: true,
     fonts: ['400 11pt "Carlito"', '700 11pt "Carlito"', '700 29pt "Carlito"'], extrasSide: true, wave: false, inlineFacts: false },
   'prise-pop': { id: 'prise-pop', name: 'Prise Pop', hint: 'Kräftige rote Titel, gelbe Zutatenfläche, freundlich und bunt.', cls: 'pv-tpl-prise-pop', pageNo: [200, 50, 31],
-    fonts: ['400 11pt "Carlito"', '700 11pt "Carlito"', '400 29pt "Lilita One"', '400 10.5pt "Public Sans"', '600 10.5pt "Public Sans"', '700 10.5pt "Public Sans"'], extrasSide: false, wave: true, inlineFacts: true },
+    fonts: ['400 11pt "Carlito"', '700 11pt "Carlito"', '400 29pt "Lilita One"', '400 10.5pt "Public Sans"', '600 10.5pt "Public Sans"', '700 10.5pt "Public Sans"'], extrasSide: false, wave: true, inlineFacts: true, pop: true },
 };
 const PDF_TEMPLATE_KEY = 'savora-pdf-template';
 
@@ -90,10 +90,11 @@ function pdfBuildModel(recipe, nutritionResult, opts) {
     if (pieces) addFact('Ergibt', sv + ' ' + yl, 'Ergibt ' + sv + ' ' + yl);
     else addFact(sv === 1 ? 'Portion' : 'Portionen', String(sv), sv + ' ' + (sv === 1 ? 'Portion' : 'Portionen'));
   }
-  if (recipe.timeMinutes) addFact('Gesamtzeit', pdfFormatMinutes(recipe.timeMinutes));
-  if (recipe.prepMinutes) addFact('Vorbereitungszeit', pdfFormatMinutes(recipe.prepMinutes));
-  if (recipe.restMinutes) addFact('Ruhen', pdfFormatMinutes(recipe.restMinutes));
-  if (recipe.cookMinutes) addFact('Garen/Backen', pdfFormatMinutes(recipe.cookMinutes));
+  const shortMin = (n) => (Math.round(Number(n) || 0) < 120 ? Math.round(Number(n) || 0) + ' Minuten' : pdfFormatMinutes(n));   // Kurzform fuer die Untertitelzeile («4 Portionen · 90 Minuten»)
+  if (recipe.timeMinutes) addFact('Gesamtzeit', pdfFormatMinutes(recipe.timeMinutes), shortMin(recipe.timeMinutes));
+  if (recipe.prepMinutes) addFact('Vorbereitungszeit', pdfFormatMinutes(recipe.prepMinutes), 'Vorbereitung ' + shortMin(recipe.prepMinutes));
+  if (recipe.restMinutes) addFact('Ruhen', pdfFormatMinutes(recipe.restMinutes), 'Ruhen ' + shortMin(recipe.restMinutes));
+  if (recipe.cookMinutes) addFact('Garen/Backen', pdfFormatMinutes(recipe.cookMinutes), 'Garen/Backen ' + shortMin(recipe.cookMinutes));
   const basis = pdfNutritionBasis(nutritionResult, pieces);
   const m = {
     id: recipe.id, title: String(recipe.title || 'Ohne Titel').trim(), category: cat.text, categoryKind: cat.kind, categoryAll: cat.all, facts, ingredients, steps, tips,
@@ -123,11 +124,12 @@ function pvIngUnit(it, cont) {
   const name = unsure ? String(it.raw).trim() : String(it.name == null ? '' : it.name).trim();
   let note = unsure ? '' : String(it.note || '').trim();
   if (note) note = /^\(/.test(note) ? ' ' + note : /^[,;]/.test(note) ? note : ', ' + note;
-  const attrs = (amount.length > PV_AMT_STACK_CHARS ? ' data-stack="1"' : '') + (unsure ? ' data-uncertain="1"' : '');
+  const attrs = (amount.length > PV_AMT_STACK_CHARS ? ' data-stack="1"' : '') + (unsure ? ' data-uncertain="1"' : '') + (!amount && !unsure ? ' data-noamt="1"' : '');
   return `<div class="pv-ing"${attrs}>${amount ? `<span class="pv-ing-amt">${pvEsc(amount)}</span>` : ''}<span class="pv-ing-name">${pvEsc(name)}${note ? `<span class="pv-ing-note">${pvEsc(note)}</span>` : ''}</span></div>`;
 }
-function pvStepUnit(s) {
+function pvStepUnit(s, title) {
   if (s.type === 'heading') return `<div class="pv-step-heading">${pvEsc(s.text)}</div>`;
+  if (title) return `<div class="pv-step"><span class="pv-step-no">${s.no}</span><span class="pv-step-body"><div class="pv-step-heading">${pvEsc(title.text)}</div><span class="pv-step-text">${pvEsc(s.text)}</span></span></div>`;   // Pur: Schrittname neben der Ziffer
   return `<div class="pv-step"><span class="pv-step-no">${s.no}</span><span class="pv-step-text">${pvEsc(s.text)}</span></div>`;
 }
 /* Spalte ohne jede Mengenangabe: keine leere Mengenspalte */
@@ -171,7 +173,8 @@ function pvStepUnits(steps) {
     if (s.type === 'heading') {
       let html = pvStepUnit(s); let j = i + 1;
       while (j < steps.length && steps[j].type === 'heading') { html += pvStepUnit(steps[j]); j++; }
-      if (j < steps.length) { html += pvStepUnit(steps[j]); i = j; } else i = j - 1;
+      if ((PDF_CTX.tpl.id === 'pur' || PDF_CTX.tpl.pop) && j === i + 1 && j < steps.length) { html = pvStepUnit(steps[j], s); i = j; }
+      else if (j < steps.length) { html += pvStepUnit(steps[j]); i = j; } else i = j - 1;
       units.push({ html });
     } else units.push({ html: pvStepUnit(s) });
   }
@@ -202,15 +205,24 @@ function pvIngPanel(units, label) {
   const atoms = [];
   units.forEach((u) => (u.atoms || []).forEach((a) => atoms.push(a)));
   if (!atoms.length) return '';
-  const cols = pvSplitCols(atoms);
   const colHtml = (list) => list.map((a, i) => (a.hasHead ? (a.idx === 0 ? pvIngUnit(a.head) : (i === 0 ? pvIngUnit(a.head, true) : '')) : '') + a.html).join('');
+  const wave = PDF_CTX.tpl.wave ? '<i class="pv-wave pv-wave-t" aria-hidden="true"></i><i class="pv-wave pv-wave-b" aria-hidden="true"></i>' : '';
+  if (PDF_CTX.tpl.pop) {
+    // Gruppen als Zellen eines zweispaltigen Rasters (Reihenfolge zeilenweise: Gruppe 1 | 2, darunter 3 | 4). Eine einzelne Gruppe wird auf zwei Zellen verteilt.
+    const gs = [];
+    atoms.forEach((a) => { const g = gs[gs.length - 1]; if (g && g.gi === a.gi) g.list.push(a); else gs.push({ gi: a.gi, list: [a] }); });
+    let cells = gs.map((g) => g.list);
+    if (cells.length === 1 && cells[0].length > 2) cells = pvSplitCols(cells[0]).filter((c) => c.length);
+    const cellHtml = cells.map((list) => { const h = colHtml(list); return `<div class="pp-group ${pvIngColClass(h)}">${h}</div>`; }).join('');
+    return `<div class="pv-ing-panel"><h2 class="pv-h">${label || 'Zutaten'}</h2><div class="pp-groups">${cellHtml}</div>${wave}</div>`;
+  }
+  const cols = pvSplitCols(atoms);
   const parts = cols.filter((c) => c.length).map((c) => colHtml(c));
-  const wave = PDF_CTX.tpl.wave ? '<i class="pv-wave" aria-hidden="true"></i>' : '';
   return `<div class="pv-ing-panel"><h2 class="pv-h">${label || 'Zutaten'}</h2><div class="pv-ing-cols${parts.length === 1 ? ' pv-ing-cols-1' : ''}">${parts.map((h) => `<div class="${pvIngColClass(h)}">${h}</div>`).join('')}</div>${wave}</div>`;
 }
-function pvStepsHtml(units, label) {
+function pvStepsHtml(units, label, deco) {
   const html = units.map((u) => u.html).join('');
-  return html ? `<div class="pv-steps"><h2 class="pv-h">${label || 'Zubereitung'}</h2>${html}</div>` : '';
+  return html ? `<div class="pv-steps"><h2 class="pv-h">${label || 'Zubereitung'}${deco ? '<i class="pv-tomato" aria-hidden="true"></i>' : ''}</h2>${html}</div>` : '';
 }
 
 /* Naehrwerte: ein Raster fuer «Kompakt» und «Erweitert». Jede Zelle = Wert + Einheit, darunter die Bezeichnung.
@@ -229,12 +241,21 @@ function pvNutritionBox(result, detailLevel, pieces, basis, basisNote) {
     if (v === null || v === undefined || v === '' || v === 'NaN') return '';
     return `<div class="pv-nut-cell"><b>${pvEsc(v)}</b> <em>${pvEsc(def.unit)}</em><i>${pvEsc(label || def.label)}</i></div>`;
   };
-  const cells = [cell('energyKcal', 'Energie'), cell('protein', 'Protein'), cell('carbohydrates', 'Kohlenhydrate'), cell('fat', 'Fett'), cell('fiber', 'Ballaststoffe')];
+  const cells = PDF_CTX.tpl.id === 'pur'   // Pur: Reihenfolge und Bezeichnung wie in der Vorlage (Energie, Fett, Kohlenhydrate, Eiweiss)
+    ? [cell('energyKcal', 'Energie'), cell('fat', 'Fett'), cell('carbohydrates', 'Kohlenhydrate'), cell('protein', 'Eiweiss'), cell('fiber', 'Ballaststoffe')]
+    : [cell('energyKcal', 'Energie'), cell('protein', 'Protein'), cell('carbohydrates', 'Kohlenhydrate'), cell('fat', 'Fett'), cell('fiber', 'Ballaststoffe')];
   if (detailLevel === 'full') cells.push(cell('sugars', 'Zucker'), cell('saturatedFat', 'ges. Fett'), cell('salt', 'Salz'));
   const shown = cells.filter(Boolean);
   if (!shown.length) return '';
   const cols = Math.min(shown.length, detailLevel === 'full' ? 4 : 5);
   const hint = `${pvEsc(nutritionSourceLabel(result.sourceDataVersions))}. Geschätzte Werte, je nach Zutaten und Mengen können sie abweichen. Keine medizinische Aussage.${result.rangeUsed ? ' Menge als Bereich angegeben, Ergebnis als Spanne.' : ''}${result.needsServings ? ' Es fehlt die Angabe, wie viel das Rezept ergibt: Pro-Portion-Werte erst nach Klärung.' : ''}${(result.approximations || []).length ? ' Angenähert: ' + pvEsc(result.approximations.map((a) => a.name).join(', ')) + '.' : ''}${(result.unquantified || []).length ? ' Ohne Mengenangabe nicht eingerechnet: ' + pvEsc(result.unquantified.join(', ')) + '.' : ''}${basisNote ? ' ' + pvEsc(basisNote) : ''}`;
+  if (PDF_CTX.tpl.pop && detailLevel !== 'full') {
+    const line = [['energyKcal', null], ['protein', 'Eiweiss'], ['carbohydrates', 'Kohlenhydrate'], ['fat', 'Fett'], ['fiber', 'Ballaststoffe']].map(([k, lab]) => {
+      const v = typeof nutValueText === 'function' ? nutValueText(result, total ? 'total' : 'portion', k) : null;
+      return v === null || v === undefined || v === '' || v === 'NaN' ? '' : pvEsc(v + '\u00a0' + NUTRIENT_KEYS[k].unit) + (lab ? ' ' + lab : '');
+    }).filter(Boolean).map((t) => `<span>${t}</span>`).join('');
+    return `<div class="pv-nutri pv-nutline" data-detail="compact"><div class="pv-nutline-row"><b>Nährwerte ${pvEsc(pvNutBasisText(result, pieces, basis))}</b>${line}</div><div class="pv-small">${hint}</div></div>`;
+  }
   return `<div class="pv-nutri" data-detail="${detailLevel === 'full' ? 'full' : 'compact'}"><div class="pv-label">Nährwerte</div><div class="pv-nut-basis">${pvEsc(pvNutBasisText(result, pieces, basis))} · geschätzt</div><div class="pv-nut-grid" style="--pv-nut-cols:${cols}">${shown.join('')}</div>
     <div class="pv-small">${hint}</div></div>`;
 }
@@ -300,8 +321,10 @@ function pvExtrasGroupHtml(units) {
   const src = list.find((u) => u.key === 'source');
   const leftLen = left.reduce((n, u) => n + u.html.replace(/<[^>]+>/g, '').length, 0);
   const side = !!(PDF_CTX.tpl.extrasSide && nut && left.length && leftLen <= 700 && list.length === left.length + 1 + (src ? 1 : 0));
+  let nutHtml = nut ? nut.html : '', nutHint = '';
+  if (side) { const mm = /<div class="pv-small">[\s\S]*?<\/div>/.exec(nutHtml); if (mm) { nutHint = mm[0]; nutHtml = nutHtml.replace(mm[0], ''); } }   // Pur: Hinweistext zu den Naehrwerten ueber die volle Breite statt in der schmalen Spalte
   const body = side
-    ? `<div class="pv-extras-grid"><div class="pv-extras-l">${left.map((u) => u.html).join('')}</div><div class="pv-extras-r">${nut.html}</div></div>${src ? src.html : ''}`
+    ? `<div class="pv-extras-grid"><div class="pv-extras-l">${left.map((u) => u.html).join('')}</div><div class="pv-extras-r">${nutHtml}</div></div>${nutHint ? `<div class="pv-extra pv-extras-hint">${nutHint}</div>` : ''}${src ? src.html : ''}`
     : list.map((u) => u.html).join('');
   return `<div class="pv-extras">${body}</div>`;
 }
@@ -318,7 +341,8 @@ function pvFooter() {
    zwischen Woertern um, werden nie gestaucht und nie unter die kleinste Stufe verkleinert. */
 function pvTitleClass(title) {
   const len = title.length, word = Math.max.apply(null, title.split(/\s+/).map((w) => w.length).concat([0]));
-  let step = len <= 14 ? 0 : len <= 26 ? 1 : len <= 44 ? 2 : 3;
+  const s0 = PDF_CTX.tpl.pop ? 13 : 16;   // Prise Pop: kraeftigere Titel, darum frueher eine Stufe kleiner
+  let step = len <= s0 ? 0 : len <= 28 ? 1 : len <= 46 ? 2 : 3;
   if (word > 22) step = 3; else if (word > 17) step = Math.max(step, 2); else if (word > 13) step = Math.max(step, 1);
   return ['pv-t-s', 'pv-t-m', 'pv-t-l', 'pv-t-xl'][step];
 }
@@ -329,13 +353,14 @@ function pdfImgTag(imgUrl) {
   return `<img src="${escapeHtml(imgUrl)}" class="pdf-img-cover" style="object-fit:contain;object-position:50% 50%;" alt="">`;
 }
 function pvPhotoHtml(imgUrl, frame) {
-  return `<div class="pv-photo-wrap"><i class="pv-blob" aria-hidden="true"></i><div class="pv-photo" style="width:${frame.w}mm;height:${frame.h}mm">${pdfImgTag(imgUrl)}</div></div>`;
+  return `<div class="pv-photo-wrap" style="height:${frame.bh || frame.h}mm"><i class="pv-blob" aria-hidden="true"></i><i class="pv-spark" aria-hidden="true"></i><div class="pv-photo" style="width:${frame.w}mm;height:${frame.h}mm">${pdfImgTag(imgUrl)}</div></div>`;
 }
 
 /* Kopf einer Fortsetzungsseite: Rezeptname links, «Fortsetzung · n von total» rechts. Die Zaehlung kommt aus pdf.js.
    Zu lange Titel werden in pdf-layout.js (pdfClampText) auf zwei Zeilen begrenzt. */
+function pvPageOfText(n, total) { return PDF_CTX.tpl.pop ? `${n} / ${total}` : `${n} von ${total}`; }   // Prise Pop schreibt «1 / 2» wie in der Vorlage
 function pvContinuationHead(title, n, total) {
-  const label = n > 0 && total > 0 ? `Fortsetzung · ${n} von ${total}` : 'Fortsetzung';
+  const label = n > 0 && total > 0 ? `Fortsetzung · ${pvPageOfText(n, total)}` : 'Fortsetzung';
   return `<header class="pv-cont-head"><span>${pvEsc(title)}</span><i>${label}</i></header>`;
 }
 
@@ -348,7 +373,11 @@ function pvHeadHtml(ctx, pg) {
   const facts = !m.facts.length ? '' : tpl.inlineFacts
     ? `<div class="pv-facts-line">${m.facts.map((f) => pvEsc(f.short)).join(' · ')}</div>`
     : `<div class="pv-facts">${m.facts.map((f) => `<span class="pv-fact"><i>${pvEsc(f.label)}</i><b>${pvEsc(f.value)}</b></span>`).join('')}</div>`;
-  const pageOf = pg.total > 1 ? `<span class="pv-pageof">${pg.n} von ${pg.total}</span>` : '';
+  if (tpl.pop) {
+    const meta = m.facts.length ? `<p class="pp-meta">${m.facts.map((f) => `<span>${pvEsc(f.short)}</span>`).join('')}</p>` : '';
+    return `<header class="pv-head"><div class="pv-head-grid"><div class="pv-head-text"><h1 class="pv-title ${pvTitleClass(m.title)}">${pvEsc(m.title)}</h1>${meta}</div>${photo}</div></header>`;
+  }
+  const pageOf = pg.total > 1 ? `<span class="pv-pageof">${pvPageOfText(pg.n, pg.total)}</span>` : '';
   const top = (m.category || pageOf) ? `<div class="pv-head-top"><span class="pv-cat">${pvEsc(m.category || '')}</span>${pageOf}</div>` : '';
   return `<header class="pv-head">${top}<div class="pv-head-grid"><div class="pv-head-text"><h1 class="pv-title ${pvTitleClass(m.title)}">${pvEsc(m.title)}</h1>${facts}</div>${photo}</div></header>`;
 }
@@ -360,7 +389,7 @@ function pvPage(ctx, pg) {
   return `<section class="${cls}" lang="de" data-recipe-id="${pvEsc(m.id)}" data-page-kind="${pg.first ? 'recipe' : 'continuation'}">
     ${head}
     ${pvIngPanel(pg.ing || [], pg.first ? 'Zutaten' : 'Zutaten <span class="pv-cont">· Fortsetzung</span>')}
-    ${pvStepsHtml(pg.steps || [], 'Zubereitung')}
+    ${pvStepsHtml(pg.steps || [], 'Zubereitung', !pg.first)}
     ${pvExtrasGroupHtml(pg.extras)}
     ${pvFooter()}
   </section>`;

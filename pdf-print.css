@@ -210,3 +210,160 @@
 .pdf-error-text { margin: 0 0 14px; }
 .pdf-info-line { margin: 4px 0 0; color: var(--text-soft, #765F8C); font-size: 13.5px; }
 @media (prefers-reduced-motion: no-preference) { .pdf-progress > span { transition: width .18s ease-out; } }
+
+/* ===== «Pur»: Treue zur Vorlage (bilder/01-Pur.png). Nur .pv-tpl-pur, Prise Pop bleibt unberuehrt. ===== */
+.pv-tpl-pur {
+  --pv-ink: #1B221E; --pv-title-color: #0F1712; --pv-accent: #1D5232; --pv-muted: #5B645F; --pv-rule: #6A726D; --pv-panel: #E9F1E6;
+  --pv-tsize-s: 46pt; --pv-tsize-m: 38pt; --pv-tsize-l: 30pt; --pv-tsize-xl: 24pt;
+  --pv-fs-body: 13pt; --pv-fs-ing: 12.5pt; --pv-lh: 1.38; --pv-h-size: 21pt; --pv-fs-label: 12pt;
+}
+.pv-tpl-pur.pv-page { padding-top: 14mm; }
+.pv-tpl-pur .pv-title { margin-bottom: 8.5mm; line-height: 1.12; }
+.pv-tpl-pur .pv-pageof { display: none; }
+.pv-tpl-pur .pv-head-top { margin-bottom: 1mm; }
+.pv-tpl-pur .pv-head { padding-bottom: 5mm; margin-bottom: 4mm; border-bottom: .8pt solid var(--pv-rule); }
+.pv-tpl-pur .pv-facts { row-gap: 2mm; }
+.pv-tpl-pur .pv-fact { padding: 0 9mm; border-left: .8pt solid #B5BBB7; line-height: 1.25; }
+.pv-tpl-pur .pv-fact:first-child { padding-left: 0; border-left: 0; }
+.pv-tpl-pur .pv-fact i { font-size: 12.5pt; color: var(--pv-ink); }
+.pv-tpl-pur .pv-fact b { font-size: 17pt; }
+.pv-tpl-pur .pv-photo { border-radius: 1.6mm; }
+.pv-tpl-pur .pv-head-grid { align-items: center; }
+.pv-tpl-pur .pv-h { margin-bottom: 3.5mm; }
+/* Zutaten: Salbeiflaeche, Tabellenoptik (Menge links in eigener Zelle, Name rechts) */
+.pv-tpl-pur .pv-ing-panel { padding: 3mm 4mm 2.4mm; margin: 0 0 5mm; border-radius: .8mm; }
+.pv-tpl-pur .pv-ing-cols { column-gap: 0; }
+.pv-tpl-pur .pv-ing-col { grid-template-columns: minmax(17mm, max-content) minmax(0, 1fr); column-gap: 0; padding-right: 3mm; }
+.pv-tpl-pur .pv-ing-col + .pv-ing-col { padding-right: 0; padding-left: 3mm; border-left: .6pt solid rgba(30, 60, 40, .18); }
+.pv-tpl-pur .pv-ing { padding: 0; border-bottom: .7mm solid var(--pv-panel); background: rgba(255, 255, 255, .6); display: flex; align-items: stretch; }
+.pv-tpl-pur .pv-ing-amt { flex: 0 0 21mm; box-sizing: border-box; }
+.pv-tpl-pur .pv-ing-name { flex: 1 1 0; }
+.pv-tpl-pur .pv-ing[data-stack], .pv-tpl-pur .pv-ing[data-uncertain] { display: block; }
+.pv-tpl-pur .pv-ing-amt { position: relative; font-weight: 400; padding: 0 2.5mm 2.3mm; line-height: 1.22; border-right: .7mm solid var(--pv-panel); }
+.pv-tpl-pur .pv-ing-name { position: relative; padding: 0 2.5mm 2.3mm; line-height: 1.22; }
+.pv-tpl-pur .pv-ing-note { color: var(--pv-ink); }
+.pv-tpl-pur .pv-ing[data-stack] .pv-ing-amt, .pv-tpl-pur .pv-ing[data-uncertain] .pv-ing-name { white-space: normal; }
+.pv-tpl-pur .pv-ing-group { position: relative; z-index: 1; font-size: 15pt; margin: 2mm 0 3.8mm; }
+@supports not (grid-template-columns: subgrid) { .pv-tpl-pur .pv-ing { grid-template-columns: minmax(17mm, max-content) minmax(0, 1fr); column-gap: 0; } }
+/* Zubereitung: grosse Ziffern, Schrittname fett daneben */
+.pv-tpl-pur .pv-steps { border-top: .8pt solid var(--pv-rule); padding-top: 3.5mm; }
+.pv-tpl-pur.pv-cont-page .pv-steps:first-of-type { border-top: 0; padding-top: 0; }
+.pv-tpl-pur .pv-step { grid-template-columns: 15mm minmax(0, 1fr); margin: 0 0 4.4mm; }
+.pv-tpl-pur .pv-step-no { font-size: 29pt; line-height: 1; padding-top: .2mm; }
+.pv-tpl-pur .pv-step-body { display: block; min-width: 0; }
+.pv-tpl-pur .pv-step-body .pv-step-heading { color: var(--pv-ink); font-size: 14.5pt; margin: 0 0 .6mm; }
+.pv-tpl-pur .pv-step-text { color: #3A423D; }
+.pv-tpl-pur .pv-step-body .pv-step-text { display: block; }
+.pv-tpl-pur .pv-step-heading { color: var(--pv-ink); font-size: 14.5pt; margin: 3mm 0 1.5mm; }
+/* Fussbereich: Linie, links Hinweise, rechts Naehrwerte als kleine Tabelle */
+.pv-tpl-pur .pv-extras { padding-top: 3mm; }
+.pv-tpl-pur .pv-extras-grid { border-top: .8pt solid var(--pv-rule); padding-top: 3mm; column-gap: 0; grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr); }
+.pv-tpl-pur .pv-extras-l { padding-right: 6mm; }
+.pv-tpl-pur .pv-extras-r { border-left: .6pt solid var(--pv-rule); padding-left: 6mm; }
+.pv-tpl-pur .pv-extras-grid .pv-tips, .pv-tpl-pur .pv-extras-grid .pv-notes, .pv-tpl-pur .pv-extras-grid .pv-nutri { border-top: 0; padding-top: 0; }
+.pv-tpl-pur .pv-extras-grid .pv-label { font-size: 12pt; margin-bottom: .8mm; }
+.pv-tpl-pur .pv-extras-grid .pv-extra p { font-size: 11pt; line-height: 1.35; color: #3A423D; }
+.pv-tpl-pur .pv-nutri .pv-label { display: inline; }
+.pv-tpl-pur .pv-nutri .pv-nut-basis { display: inline; font-size: 12pt; font-weight: 700; color: var(--pv-ink); margin: 0 0 0 1mm; }
+.pv-tpl-pur .pv-nutri .pv-nut-grid { margin-top: 1.2mm; }
+.pv-tpl-pur .pv-extras-grid .pv-nut-cell { border-bottom: 0; padding-bottom: 0; }
+.pv-tpl-pur .pv-extras-grid .pv-nut-cell i { flex: 0 0 46%; font-size: 10pt; color: #3A423D; }
+.pv-tpl-pur .pv-extras-grid .pv-nut-cell b { font-size: 10pt; font-weight: 400; color: #3A423D; }
+.pv-tpl-pur .pv-extras-grid .pv-nut-cell em { font-size: 10pt; color: #3A423D; }
+.pv-tpl-pur .pv-extras-grid + .pv-extra { margin-top: 2mm; }
+/* Fortsetzungsseite */
+.pv-tpl-pur .pv-cont-head { align-items: center; border-bottom: .8pt solid var(--pv-rule); padding-bottom: 4mm; margin-bottom: 5mm; }
+.pv-tpl-pur .pv-cont-head span { font-size: 34pt; line-height: 1.05; }
+.pv-tpl-pur .pv-cont-head i { font-weight: 400; font-size: 10.5pt; color: var(--pv-ink); }
+.pv-tpl-pur .pv-foot { left: 15mm; font-weight: 400; }
+
+/* ===== Prise Pop nach der verbindlichen Vorlage (Savora_PrisePop_Code: DESIGN_SPEC.md und prise-pop.css) =====
+   Masse physisch in mm/pt: Rand oben 14, seitlich 13 (unten 21 mm = 11 mm Rand plus unsere Fusszone), Papier #FFFDF7, Text #252720,
+   Tomatenrot #B93B2C, Zutatenflaeche #FFE181, Hinweise #E8DCF3, Trennlinie #E9CA83, Titel Lilita One 29 pt, Abschnittstitel 17 pt,
+   Fliesstext 10,5 pt/1,42, Zutaten 10 pt/1,35, Foto 58 x 42 mm (contain, Farbform dahinter), zwei Zutatenspalten (9 mm Abstand,
+   Mengenspalte 22 mm), Schrittkreis 10 mm, Hinweise mit 30-mm-Titelspalte. Nur Regeln mit .pv-tpl-prise-pop. */
+.pv-tpl-prise-pop {
+  --pv-bg: #FFFDF7; --pv-ink: #252720; --pv-accent: #B93B2C; --pv-title-color: #B93B2C; --pv-panel: #FFE181; --pv-line: #E9CA83;
+  --pv-tip-bg: #E8DCF3; --pv-purple: #593B7B; --pv-blob: #F6EAD6; --pv-muted: #5F564E;
+  --pv-fs-body: 10.5pt; --pv-fs-ing: 10pt; --pv-lh: 1.42; --pv-h-size: 17pt;
+  --pv-tsize-s: 29pt; --pv-tsize-m: 29pt; --pv-tsize-l: 26pt; --pv-tsize-xl: 22pt;
+}
+.pv-tpl-prise-pop.pv-page { padding: 14mm 13mm 21mm; gap: 5mm; }
+.pv-tpl-prise-pop.pv-tight { padding-top: 14mm; gap: 3.5mm; }
+.pv-tpl-prise-pop .pv-head { margin: 0; position: static; z-index: auto; }
+.pv-tpl-prise-pop .pv-head-grid { grid-template-columns: minmax(0, 1fr); column-gap: 5mm; align-items: center; min-height: 25mm; }
+.pv-tpl-prise-pop.pv-photo-side .pv-head-grid { grid-template-columns: minmax(0, 1fr) 58mm; min-height: 42mm; }
+.pv-tpl-prise-pop.pv-tight .pv-head-grid { min-height: 20mm; }
+.pv-tpl-prise-pop.pv-tight.pv-photo-side .pv-head-grid { min-height: 32mm; }
+.pv-tpl-prise-pop .pv-title { font-size: 29pt; line-height: 1.06; margin: 0 0 3mm; overflow-wrap: break-word; }
+.pv-tpl-prise-pop .pv-title.pv-t-l { font-size: 26pt; } .pv-tpl-prise-pop .pv-title.pv-t-xl { font-size: 22pt; }
+.pv-tpl-prise-pop.pv-tight .pv-title { font-size: 26pt; } .pv-tpl-prise-pop.pv-tight .pv-title.pv-t-xl { font-size: 22pt; }
+.pp-meta { display: flex; flex-wrap: wrap; gap: 1.5mm 5mm; margin: 0; font-size: 10pt; line-height: 1.4; }
+.pv-tpl-prise-pop .pv-photo-wrap { position: relative; width: 58mm; padding: 0; margin: 0; z-index: auto; display: grid; place-items: center; }
+.pv-tpl-prise-pop.pv-photo-side .pv-photo-wrap { margin: 0; }
+.pv-tpl-prise-pop .pv-photo-wrap .pv-blob { display: block; position: absolute; inset: 1mm -1mm; background: var(--pv-blob); border-radius: 49% 51% 42% 58% / 43% 48% 52% 57%; transform: rotate(-5deg); }
+.pv-tpl-prise-pop .pv-photo { position: relative; border-radius: 0; background: transparent; }
+.pv-tpl-prise-pop .pv-spark { display: none; }
+
+/* Ueberschriften */
+.pv-tpl-prise-pop .pv-h { font-size: 17pt; line-height: 1.15; margin: 0 0 3mm; color: var(--pv-accent); }
+.pv-tpl-prise-pop .pv-steps > .pv-h { display: flex; align-items: center; justify-content: space-between; gap: 5mm; position: static; margin-bottom: 3mm; }
+
+/* Zutatenflaeche */
+.pv-tpl-prise-pop .pv-ing-panel { background: var(--pv-panel); border-radius: 6mm 5mm 0 0; position: relative; padding: 5mm 6mm 2mm; margin: 0 0 4mm; z-index: auto; }
+.pv-tpl-prise-pop .pv-wave-t { display: none; }
+.pv-tpl-prise-pop .pv-wave-b { display: block; position: absolute; top: calc(100% - .2mm); bottom: auto; left: 0; right: 0; width: auto; height: 4.2mm; background: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='1000' height='28' viewBox='0 0 1000 28' preserveAspectRatio='none'%3E%3Cpath fill='%23FFE181' d='M0 0H1000V9C965 9 963 27 925 27S888 9 850 9 813 27 775 27 738 9 700 9 663 27 625 27 588 9 550 9 513 27 475 27 438 9 400 9 363 27 325 27 288 9 250 9 213 27 175 27 138 9 100 9 63 27 25 27 0 18 0 9Z'/%3E%3C/svg%3E") center top / 100% 100% no-repeat; }
+.pv-tpl-prise-pop .pp-groups { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); column-gap: 9mm; row-gap: 4mm; position: relative; }
+.pv-tpl-prise-pop .pp-group { position: relative; min-width: 0; break-inside: avoid; display: grid; grid-template-columns: 22mm minmax(0, 1fr); column-gap: 2mm; align-content: start; row-gap: 1.1mm; }
+.pv-tpl-prise-pop .pp-group.pv-ing-col-noamt { grid-template-columns: minmax(0, 1fr); }
+.pv-tpl-prise-pop .pp-group:nth-child(even)::before { content: ''; position: absolute; left: -4.5mm; top: 0; bottom: 0; border-left: .25mm solid #D8B85C; }
+.pv-tpl-prise-pop .pp-group:nth-child(n+3) { border-top: .25mm solid #D8B85C; padding-top: 3mm; }
+.pv-tpl-prise-pop .pp-group:nth-child(n+3)::before { top: 3mm; }
+.pv-tpl-prise-pop .pv-ing-group { font-size: 12.5pt; line-height: 1.2; margin: 0 0 .9mm; color: var(--pv-accent); }
+.pv-tpl-prise-pop .pv-ing-col > .pv-ing-group:first-child { margin-top: 0; }
+.pv-tpl-prise-pop .pv-ing { padding: 0; border: 0; font-size: 10pt; line-height: 1.35; }
+.pv-tpl-prise-pop .pv-ing-amt { font-weight: 700; color: var(--pv-ink); }
+.pv-tpl-prise-pop .pv-ing[data-noamt] .pv-ing-name { font-weight: 400; }
+.pv-tpl-prise-pop .pv-ing-note { color: var(--pv-muted); }
+
+/* Zubereitung */
+.pv-tpl-prise-pop .pv-steps { margin: 0; }
+.pv-tpl-prise-pop .pv-step { grid-template-columns: 11mm minmax(0, 1fr); column-gap: 3mm; margin: 0; padding: 3mm 0; border-bottom: .22mm solid var(--pv-line); }
+.pv-tpl-prise-pop .pv-steps > .pv-step:first-of-type, .pv-tpl-prise-pop .pv-steps > .pdf-meas:first-of-type > .pv-step { padding-top: 0; }
+.pv-tpl-prise-pop .pv-step:last-child { border-bottom: 0; padding-bottom: 0; }
+.pv-tpl-prise-pop.pv-tight .pv-step { padding-top: 2mm; padding-bottom: 2mm; margin: 0; }
+.pv-tpl-prise-pop .pv-step-no { width: 10mm; height: 10mm; border: .6mm solid var(--pv-accent); border-radius: 50%; font-size: 15pt; line-height: 1; padding: 0 0 .9mm; margin: 0; text-align: center; align-self: start; color: var(--pv-accent); }
+.pv-tpl-prise-pop .pv-step[data-cont] .pv-step-no { border-color: transparent; }
+.pv-tpl-prise-pop .pv-step-body { display: block; min-width: 0; }
+.pv-tpl-prise-pop .pv-step-body .pv-step-heading { font: 700 10.8pt/1.3 var(--pv-font); color: var(--pv-ink); margin: 0 0 1mm; }
+.pv-tpl-prise-pop .pv-step-body .pv-step-text { display: block; font-size: 10.5pt; }
+.pv-tpl-prise-pop .pv-step-heading { font: 700 10.8pt/1.3 var(--pv-font); color: var(--pv-ink); margin: 3mm 0 1.5mm; }
+.pv-tomato { display: none; }
+.pv-tpl-prise-pop .pv-tomato { display: block; position: static; flex: none; width: 20mm; height: 16mm; background: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='80' viewBox='0 0 100 80' fill='none' stroke='%23B93B2C' stroke-width='3.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M49 26C25 11 13 32 22 51c6 15 17 20 28 19 14 1 27-14 29-29 2-15-13-25-30-15Z'/%3E%3Cpath d='m49 26-12-9 11 2 1-12 5 12 10-3-9 10m-6 0 2 9m36-16 7-8m-7 20 10-1'/%3E%3C/svg%3E") center / 100% 100% no-repeat; }
+
+/* Hinweise: Lavendel, 30-mm-Titelspalte */
+.pv-tpl-prise-pop .pv-extras { margin-top: auto; padding-top: 0; }
+.pv-tpl-prise-pop .pv-extra { margin: 0 0 3mm; }
+.pv-tpl-prise-pop .pv-tips, .pv-tpl-prise-pop .pv-notes { background: var(--pv-tip-bg); border-radius: 5mm 7mm 4mm 6mm; padding: 3.5mm 5mm; display: grid; grid-template-columns: 30mm minmax(0, 1fr); column-gap: 3mm; border-top: 0; }
+.pv-tpl-prise-pop .pv-tips .pv-label, .pv-tpl-prise-pop .pv-notes .pv-label { grid-column: 1; grid-row: 1 / span 40; margin: 0; font-size: 14pt; line-height: 1.15; color: var(--pv-purple); }
+.pv-tpl-prise-pop .pv-tips .pv-label::after, .pv-tpl-prise-pop .pv-notes .pv-label::after { content: none; }
+.pv-tpl-prise-pop .pv-tips p, .pv-tpl-prise-pop .pv-notes p { grid-column: 2; font-size: 9.2pt; line-height: 1.4; margin: 0 0 1.2mm; }
+.pv-tpl-prise-pop .pv-tips p:last-child, .pv-tpl-prise-pop .pv-notes p:last-child { margin-bottom: 0; }
+.pv-tpl-prise-pop.pv-tight .pv-extra { margin-bottom: 2mm; }
+
+/* Naehrwerte und Quelle als Fussbereich: feine Linie, 8,5 pt */
+.pv-tpl-prise-pop .pv-nutri { border-top: .2mm solid #DED8CA; padding: 2mm 0 0; font-size: 8.5pt; line-height: 1.35; }
+.pv-tpl-prise-pop .pv-leaf { display: none; }
+.pv-tpl-prise-pop .pv-nutline-row { display: flex; flex-wrap: wrap; gap: 1mm 3mm; font-size: 8.5pt; line-height: 1.35; }
+.pv-tpl-prise-pop .pv-nutline-row b { font-weight: 700; margin: 0; }
+.pv-tpl-prise-pop .pv-nutri .pv-label { font: 700 8.5pt/1.35 var(--pv-font); color: var(--pv-ink); margin: 0 0 1mm; }
+.pv-tpl-prise-pop .pv-nutri .pv-small, .pv-tpl-prise-pop .pv-nutri .pv-nut-basis { font-size: 8.5pt; }
+.pv-tpl-prise-pop .pv-nutline .pv-small { margin-top: 1mm; }
+.pv-tpl-prise-pop .pv-nut-cell b { font-size: 10.5pt; }
+.pv-tpl-prise-pop .pv-source { padding-top: 1.5mm; }
+
+/* Fortsetzungskopf: Rezepttitel 15 pt und gelbe Seitenmarkierung */
+.pv-tpl-prise-pop .pv-cont-head { border: 0; padding: 0; margin: 0 0 2mm; align-items: flex-start; }
+.pv-tpl-prise-pop .pv-cont-head span { font-size: 15pt; line-height: 1.2; }
+.pv-tpl-prise-pop .pv-cont-head i { background: var(--pv-panel); color: var(--pv-ink); font-size: 8.5pt; font-weight: 400; line-height: 1.3; padding: 1.3mm 3mm; border-radius: 6mm; }
+.pv-tpl-prise-pop .pv-pageof, .pv-tpl-prise-pop .pv-head-top { display: none; }

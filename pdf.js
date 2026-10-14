@@ -274,7 +274,9 @@ function pdfAddPageNumbers(pdf, skipPages) {
     pdf.setFont('helvetica', 'bold');
     pdf.setFontSize(8.5);
     pdf.setTextColor(c[0], c[1], c[2]);
-    pdf.text((PDF_CTX && PDF_CTX.book ? 'Seite ' : '') + String(i), 195, 290.2, { align: 'right' });
+    const mid = !!(PDF_CTX && PDF_CTX.tpl && PDF_CTX.tpl.pageNoCenter && !PDF_CTX.book);   // «Pur», Einzelrezept: «1 / 2» mittig
+    if (mid) pdf.text(total > 1 ? i + ' / ' + total : String(i), 105, 290.2, { align: 'center' });
+    else pdf.text((PDF_CTX && PDF_CTX.book ? 'Seite ' : '') + String(i), 195, 290.2, { align: 'right' });
   }
 }
 
@@ -482,6 +484,11 @@ function pdfFrameFor(dims, box) {
 function pdfPhotoPlans(imgUrl, dims) {
   if (!imgUrl || !dims) return [{ frame: null }, { frame: null, tight: true }];
   const ar = dims.width / dims.height;
+  if (PDF_CTX.tpl.pop) {
+    // Prise Pop (Vorlage): Foto 58 x 42 mm, contain, Farbform dahinter; kompakt nur 32 mm hoch, dann kleiner. Rahmen im Seitenverhaeltnis des Fotos.
+    const mk = (bw, bh) => Object.assign(pdfFrameFor(dims, { w: bw, h: bh }), { bw: 58, bh });
+    return [{ frame: mk(58, 42) }, { frame: mk(58, 32), tight: true }, { frame: mk(46, 26), tight: true }];
+  }
   const boxes = ar < 0.85 ? [{ w: 48, h: 64 }, { w: 42, h: 56 }, { w: 36, h: 48 }, { w: 32, h: 42 }]
     : ar <= 1.15 ? [{ w: 58, h: 58 }, { w: 50, h: 50 }, { w: 42, h: 42 }, { w: 36, h: 36 }]
       : [{ w: 74, h: 54 }, { w: 64, h: 46 }, { w: 54, h: 40 }, { w: 46, h: 34 }];
@@ -653,6 +660,13 @@ function pdfLongPagesGreedy(ctx, ingU, stepItems, exItems) {
       if (!added || pdfFits(pvPage(ctx, Object.assign({ n: pages.length + 1, total: 9 }, cur)))) { queue.shift(); added++; } else { L[q.k].pop(); break; }
     }
     pages.push(cur);
+  }
+  // Nie eine Seite nur aus Zusatzbloecken: der letzte Schritt der Vorseite wandert mit auf die letzte Seite (wenn es dort passt)
+  for (let guard = 0; guard < 3; guard++) {
+    const last = pages[pages.length - 1], prev = pages[pages.length - 2];
+    if (!prev || last.steps.length || last.ing.length || !last.extras.length || prev.steps.length < 2) break;
+    const moved = prev.steps.pop(); last.steps.unshift(moved);
+    if (!pdfFits(pvPage(ctx, Object.assign({ n: pages.length, total: 9 }, last)))) { last.steps.shift(); prev.steps.push(moved); break; }
   }
   return pages.map((pg, p) => pvPage(ctx, Object.assign({ n: p + 1, total: pages.length }, pg)));
 }
