@@ -96,7 +96,7 @@ function ceBoxes() {
   (L.blocks || []).forEach((b) => { const id = b.id || (b.key === 'slogan' ? 'subtitle' : b.key); out[id] = { x: b.x, y: b.y, w: b.w, h: Math.max(b.h || 0, 0.02) }; });
   const d = L.date;
   if (d) {
-    const w = d.w || Math.min(0.4, 0.014 * (d.text || '').length + 0.02), h = Math.max(d.h || 0.03, 0.02);
+    const w = d.tw || d.w || Math.min(0.4, 0.014 * (d.text || '').length + 0.02), h = Math.max(d.h || 0.03, 0.02);
     const ax = d.ax != null ? d.ax : d.x1, al = d.align || 'right';
     out.date = { x: al === 'right' ? ax - w : al === 'center' ? ax - w / 2 : ax, y: d.y, w, h };
   }
@@ -187,12 +187,8 @@ function ceSaveNow() {
   }
 }
 function ceFlush() { if (ce.saveTimer) ceSaveNow(); }
-function ceFlushImages() {
-  if (!ce.pendingRemove.size || typeof coverImageRemove !== 'function') return;
-  const keep = new Set(); try { const c = cookbookGetRaw().cover; if (c && c.image) keep.add(c.image.id); } catch (e) { /* ohne Speicher: nichts loeschen */ return; }
-  ce.pendingRemove.forEach((id) => { if (!keep.has(id)) { try { Promise.resolve(coverImageRemove(id)).catch(() => {}); } catch (e) { /* ignorieren */ } } });
-  ce.pendingRemove.clear();
-}
+/* Bilder werden hier nie geloescht (Undo koennte die Referenz zurueckholen); Aufraeumen macht das manuelle coverImageGc() (cover-image.js). */
+function ceFlushImages() { /* bewusst leer */ }
 
 /* ---------- Texte (cfg.title / subtitle / author) ---------- */
 function ceSetText(key, value, final) {
@@ -287,6 +283,7 @@ function ceBgTab() {
     <input type="file" class="ce-file" data-ce-file accept="image/jpeg,image/png,image/webp" tabindex="-1" aria-hidden="true">
     ${im ? `<div class="ce-actions"><button type="button" class="ce-chip ce-chip--solid" data-ce="pick" data-k="pick" ${ce.imgBusy ? 'disabled' : ''}>Bild ersetzen</button><button type="button" class="ce-chip" data-ce="img-remove" data-k="img-remove">Bild entfernen</button></div>`
       : `<div class="ce-actions"><button type="button" class="ce-chip ce-chip--solid" data-ce="pick" data-k="pick" ${ce.imgBusy || !choose ? 'disabled' : ''}>${ce.imgBusy ? 'Bild wird geladen …' : 'Bild wählen'}</button></div>`}
+    ${typeof coverImageSyncNote === 'function' && coverImageSyncNote() ? `<p class="ce-hint">${ceEsc(coverImageSyncNote())}</p>` : ''}
     <p class="ce-error" role="alert" ${ce.imgError ? '' : 'hidden'}>${ceEsc(ce.imgError)}</p>
     <p class="ce-hint">JPEG, PNG oder WebP. HEIC-Fotos vom iPhone werden nicht unterstützt: Speichere sie vorher als JPEG. Das Bild bleibt auf diesem Gerät und wird nicht an Dritte gesendet.</p>
     ${im ? `<div class="ce-ctl"><span class="ce-lab">Darstellung</span>${ceSeg([['contain', 'Ganzes Bild anzeigen'], ['cover', 'Cover ausfüllen']], im.fit, 'data-ce="fit"', 'Darstellung des Bildes')}</div>
@@ -398,6 +395,7 @@ function ceRenderWarnings() {
     if (tmp.firstElementChild) { const anchor = card.querySelector('input[type=text], .ce-datebox, input[type=date]'); (anchor ? anchor.closest('.ce-datebox') || anchor : card.firstElementChild).after(tmp.firstElementChild); }
   });
   document.querySelectorAll('.ce-overlay [data-fr]').forEach((fr) => { fr.classList.toggle('is-warn', ceHasWarn(fr.dataset.fr)); });
+  ceSetScrollPad();
 }
 function ceHasWarn(id) { return ((ce.layout && ce.layout.warnings) || []).some(w => (w.fieldId || (w.key === 'slogan' ? 'subtitle' : w.key)) === id && (w.kind === 'cut' || w.kind === 'outside' || w.kind === 'overlap')); }
 function ceRenderAll() {
@@ -579,7 +577,6 @@ function ceResetArrangement() {
 }
 function ceResetCover() {
   ceCheckpoint(null);
-  const old = ce.model.image; if (old) ce.pendingRemove.add(old.id);
   ce.model = coverModelSanitize({ v: 2, mode: 'template', templateId: ce.model.templateId, date: ce.model.date, showDate: ce.model.showDate });
   ce.coverDirty = true; ce.sel = null; ce.imgMove = false; ce.tab = 'text';
   ceRelayout(); ceRenderAll(); ceScheduleSave(true);
@@ -594,7 +591,6 @@ async function ceImportImage(file) {
     const r = await coverImageImport(file, ce.bookId);
     const old = ce.model.image;
     ceChange((m) => { m.mode = 'custom'; m.image = { id: r.id, fit: old ? old.fit : 'cover', cx: 0.5, cy: 0.5, zoom: 1, w: r.w, h: r.h }; }, { panels: false, now: true });
-    if (old && old.id !== r.id) ce.pendingRemove.add(old.id);
   } catch (e) {
     ce.imgError = (e && e.userMessage) || 'Das Bild konnte nicht geladen werden. Versuche es mit einer JPEG- oder PNG-Datei.';
   } finally { ce.imgBusy = false; ceRenderPanels(); }
@@ -643,7 +639,7 @@ document.addEventListener('click', (e) => {
     case 'arr-reset': ceResetArrangement(); break;
     case 'cover-reset': openModal({ type: 'ce-reset' }, '[data-ce="cover-reset"]'); break;
     case 'pick': { const f = document.querySelector('[data-ce-file]'); if (f) f.click(); break; }
-    case 'img-remove': { const old = ce.model.image; ceChange((m) => { m.image = null; }, { panels: true, now: true }); if (old) ce.pendingRemove.add(old.id); ce.imgMove = false; ceSyncOverlay(); break; }
+    case 'img-remove': { ceChange((m) => { m.image = null; }, { panels: true, now: true }); ce.imgMove = false; ceSyncOverlay(); break; }
     case 'fit': ceChange((m) => { if (m.image) { m.image = { ...m.image, fit: v, cx: 0.5, cy: 0.5, zoom: 1 }; } }, { panels: true }); break;
     case 'img-move': ce.imgMove = !ce.imgMove; if (ce.imgMove) ce.sel = null; ceSyncOverlay(); ceRenderPanels(); break;
     case 'img-reset': ceChange((m) => { if (m.image) m.image = { ...m.image, cx: 0.5, cy: 0.5, zoom: 1 }; }, { panels: true }); break;
@@ -733,14 +729,28 @@ document.addEventListener('keydown', (e) => {
     e.preventDefault(); n.click(); const nn = document.getElementById(n.id); if (nn) nn.focus();
   }
 });
-window.addEventListener('pagehide', () => { ceFlush(); ceFlushImages(); });
+window.addEventListener('pagehide', () => { ceFlush(); });
 document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') ceFlush(); });
-window.addEventListener('resize', () => { if (ceRoot()) cePaintSoon(); });
+function ceSetTop() {
+  const root = ceRoot(); if (!root) return;
+  const tb = document.querySelector('.topbar'), pos = tb ? getComputedStyle(tb).position : '';
+  const top = (pos === 'sticky' || pos === 'fixed') ? Math.round(tb.getBoundingClientRect().height) : 0;
+  root.style.setProperty('--ce-top', top + 'px');
+  ceSetScrollPad();
+}
+/* Beim Fokussieren oder Scrollen zu einem Bedienelement soll es nicht unter der angehefteten Vorschau landen */
+function ceSetScrollPad() {
+  const root = ceRoot(), st = root && root.querySelector('.ce-stage');
+  const sticky = st && getComputedStyle(st).position === 'sticky';
+  const top = parseInt(root && root.style.getPropertyValue('--ce-top'), 10) || 0;
+  document.documentElement.style.scrollPaddingTop = root && sticky ? (top + st.getBoundingClientRect().height + 8) + 'px' : '';
+}
+window.addEventListener('resize', () => { if (ceRoot()) { ceSetTop(); cePaintSoon(); } });
 
 /* ---------- Anbindung an cover.js (Vorschau nach dem Zeichnen der Seite und bei fertigen Schriften) ---------- */
 (function () {
   const fit = coverFitPreviews;
-  coverFitPreviews = function () { fit(); if (ceRoot()) { ceEnsure(); ceRelayout(); ceRenderWarnings(); ceSyncOverlay(); cePaintSoon(); } };
+  coverFitPreviews = function () { fit(); if (!ceRoot()) document.documentElement.style.scrollPaddingTop = ''; if (ceRoot()) { ceSetTop(); ceEnsure(); ceRelayout(); ceRenderWarnings(); ceSyncOverlay(); cePaintSoon(); } };
   coverRefresh = function () { if (ceRoot()) { ceRelayout(); ceSyncOverlay(); cePaintSoon(); ceRenderWarnings(); } };
 })();
 
