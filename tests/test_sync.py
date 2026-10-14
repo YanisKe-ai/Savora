@@ -23,7 +23,7 @@ async def click(page, sel):
     await page.evaluate("(s) => { const e = document.querySelector(s); if (!e) throw new Error('fehlt ' + s); e.click(); }", sel)
     await page.wait_for_timeout(250)
 async def login(page, email, pw, signup=False):
-    await show(page, "() => { state.modal = null; state.view = 'settings-sync'; render(); }", '#cloudEmail')
+    await show(page, "() => { state.modal = null; state.view = 'settings-account'; render(); }", '#cloudEmail')
     if signup:
         await click(page, '[data-action="cloud-mode"][data-id="signup"]')
     await page.fill('#cloudEmail', email); await page.fill('#cloudPassword', pw)
@@ -45,8 +45,8 @@ async def main():
         bA, cA, pa, errA = await device(p, 'A')
         await pa.evaluate(open(SEED_PATH).read())
         # Geschlossene Testphase: kein Registrier-Link, Hinweis sichtbar; Konto wird "vom Admin" angelegt
-        await show(pa, "() => { state.view = 'settings-sync'; render(); }", '#cloudEmail')
-        no_signup = await pa.evaluate("!document.querySelector('[data-action=\"cloud-mode\"][data-id=\"signup\"]') && !!document.querySelector('.beta-note')")
+        await show(pa, "() => { state.view = 'settings-account'; render(); }", '#cloudEmail')
+        no_signup = await pa.evaluate("!document.querySelector('[data-action=\"cloud-mode\"][data-id=\"signup\"]') && !!document.querySelector('.kd-note')")
         check('Geschlossene Testphase: kein Registrier-Link, Hinweis sichtbar', no_signup)
         M.SIGNUP_DISABLED[0] = True
         err = await pa.evaluate("cloudAuthSignUp('fremd@example.test', 'geheim-123').then(() => 'ok', e => e.message)")
@@ -62,7 +62,8 @@ async def main():
         check('Erstabgleich laedt alles hoch', sum(1 for k, _ in r if k == 'recipe') == 3 and ('mealplan' in kinds) and ('shopping' in kinds) and ('setting', 'cookbookTitle') in r,
               f"{kinds} {len(r)} Zeilen")
         check('Fotos im privaten Speicher (voll + Vorschau)', f'{uid}/img_legacy_1' in M.OBJECTS and f'{uid}/img_legacy_1-thumb' in M.OBJECTS)
-        st = await pa.evaluate("document.getElementById('cloudStatus').textContent")
+        await show(pa, "() => { state.modal = null; state.view = 'settings-sync'; render(); }", '#kontoSyncLive')
+        st = await pa.evaluate("document.getElementById('kontoSyncLive').textContent")
         check('Status sichtbar', 'Zuletzt abgeglichen' in st, st)
 
         # Geraet B (Laptop, leer): anmelden und alles erhalten
@@ -128,18 +129,19 @@ async def main():
         check('Neues Rezept mit Foto von B auf A', imgA and await pa.evaluate("state.recipes.some(r => r.id === 'r_neu')"))
 
         # Passwort aendern auf B, danach Anmeldung nur noch mit neuem Passwort
-        await show(pb, "() => { state.modal = null; state.view = 'settings-sync'; render(); }", '#cloudNewPassword2')
-        await pb.fill('#cloudNewPassword', 'neues-pass-99'); await pb.fill('#cloudNewPassword2', 'anders-99')
-        await click(pb, '[data-action="cloud-save-password"]')
-        mismatch = await pb.evaluate("document.getElementById('cloudError').textContent")
-        await pb.fill('#cloudNewPassword', 'neues-pass-99'); await pb.fill('#cloudNewPassword2', 'neues-pass-99')
-        await click(pb, '[data-action="cloud-save-password"]'); await pb.wait_for_timeout(500)
+        await show(pb, "() => { state.modal = null; state.view = 'settings-account'; render(); }", '[data-action="konto-pw-open"]')
+        await click(pb, '[data-action="konto-pw-open"]'); await pb.wait_for_selector('#kontoPw2', timeout=5000)
+        await pb.fill('#kontoPw1', 'neues-pass-99'); await pb.fill('#kontoPw2', 'anders-99')
+        await click(pb, '[data-action="konto-pw-save"]')
+        mismatch = await pb.evaluate("document.getElementById('kontoPwError').textContent")
+        await pb.fill('#kontoPw1', 'neues-pass-99'); await pb.fill('#kontoPw2', 'neues-pass-99')
+        await click(pb, '[data-action="konto-pw-save"]'); await pb.wait_for_timeout(500)
         old_ok = await pa.evaluate("fetch(CLOUD_URL + '/auth/v1/token?grant_type=password', {method:'POST', headers:{apikey:CLOUD_KEY,'Content-Type':'application/json'}, body: JSON.stringify({email:'yanis@example.test', password:'geheim-123'})}).then(r => r.ok)")
         new_ok = await pa.evaluate("fetch(CLOUD_URL + '/auth/v1/token?grant_type=password', {method:'POST', headers:{apikey:CLOUD_KEY,'Content-Type':'application/json'}, body: JSON.stringify({email:'yanis@example.test', password:'neues-pass-99'})}).then(r => r.ok)")
         check('Passwort aendern (mit Wiederholungspruefung)', 'stimmen nicht' in mismatch and not old_ok and new_ok, mismatch)
 
         # Abmelden behaelt lokale Daten
-        await show(pb, "() => { state.view = 'settings-sync'; render(); }", '[data-action="cloud-sign-out"]')
+        await show(pb, "() => { state.modal = null; state.view = 'settings-account'; render(); }", '[data-action="cloud-sign-out"]')
         await sync(pb)   # erst abgleichen: sonst fragt die App wegen ausstehender Aenderungen nach (in der langsameren CI-Umgebung)
         pend = await pb.evaluate("Object.keys(JSON.parse(localStorage.getItem('savora-sync-queue')||'{}'))")
         await click(pb, '[data-action="cloud-sign-out"]')
@@ -149,9 +151,10 @@ async def main():
         check('Abmelden behaelt Daten auf dem Geraet', kept >= 3 and not await pb.evaluate("cloudSignedIn()"))
 
         # Konto loeschen auf A
-        await show(pa, "() => { state.modal = null; state.view = 'settings-sync'; render(); }", '[data-action="cloud-delete-account"]')
-        pa.once('dialog', lambda d: asyncio.ensure_future(d.accept('LÖSCHEN')))
-        await click(pa, '[data-action="cloud-delete-account"]')
+        await show(pa, "() => { state.modal = null; state.view = 'settings-account'; render(); }", '[data-action="konto-delete-open"]')
+        await click(pa, '[data-action="konto-delete-open"]'); await pa.wait_for_selector('#kontoDelConfirm', timeout=5000)
+        await pa.fill('#kontoDelConfirm', 'LÖSCHEN')
+        await click(pa, '[data-action="konto-delete-confirm"]')
         await pa.wait_for_timeout(1500)
         left = [k for k in M.RECORDS if k[0] == uid] + [k for k in M.OBJECTS if k.startswith(uid)]
         local = await pa.evaluate("state.recipes.length")

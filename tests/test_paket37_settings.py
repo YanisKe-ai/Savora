@@ -57,29 +57,28 @@ async def main():
         check('Zusammenfassung zeigt US-Masse und ausgeblendete Nährwerte', 'US-Masse (Cups, Unzen), Nährwerte ausgeblendet' in await main_text(), await main_text())
         await ev("() => { state.unitSystem = 'metric'; state.showNutrition = true; }")
 
-        # 5 Sicherungsseite
+        # 5 Sicherungsseite (Mehr, M2): Konto, Geräteabgleich und Sicherung sind getrennte Seiten
+        h2 = lambda: ev("Array.from(document.querySelectorAll('main h2')).map(h => h.textContent.trim())")
         await go('settings-backup'); t = await main_text()
-        h2 = await ev("Array.from(document.querySelectorAll('main h2')).map(h => h.textContent.trim())")
-        check('settings-backup: Sicherungskopie zuerst, dann Auf mehreren Geräten', h2 == ['Sicherungskopie', 'Auf mehreren Geräten'], str(h2))
+        hb = await h2()
+        check('settings-backup: Sicherung herunterladen zuerst, dann Sicherung importieren', hb == ['Sicherung herunterladen', 'Sicherung importieren'], str(hb))
+        await go('settings-account')
+        check('Mein Konto: Anmeldefelder auf der Kontoseite, kein Sicherungsknopf dort', await ev("!!document.getElementById('cloudEmail') && !document.querySelector('[data-action=export-backup]') && !document.getElementById('kontoRestoreInput')"))
+        await go('settings-backup')
+        check('Sicherung: Seitentitel «Sicherung & Wiederherstellung»', 'Sicherung & Wiederherstellung' in await ev("document.querySelector('header, .topbar').innerText"))
+        check('Sicherung: Beschreibung', 'Lade eine Kopie deiner Daten als Datei herunter.' in t)
+        btns = await ev("Array.from(document.querySelectorAll('[data-action=\"export-backup\"], [data-action=\"konto-import-pick\"]')).map(b => b.textContent.trim())")
+        check('Sicherung: Schaltflächen «Sicherung herunterladen» und «Sicherung importieren»', btns == ['Sicherung herunterladen', 'Sicherung importieren'], str(btns))
+        check('Sicherung: Erklärung vor dem Import auf der Seite', 'ergänzt' in t and 'nicht überschrieben' in t and 'nicht doppelt' in t and 'Erst nach deiner Bestätigung wird etwas übernommen' in t)
+        check('Sicherung: Abgleich ersetzt keine Sicherung (Unterschied erklärt)', 'Abgleich oder Sicherung?' in t and 'Sicherungsdatei bewahrt einen bestimmten Stand' in t)
+        check('Sicherung: PDF-Satz sachlich (PDF nicht importierbar)', 'PDF-Dateien sind zum Lesen und Drucken gedacht und lassen sich nicht importieren' in t and 'fertige PDF-Datei an' not in t)
         for v in ('settings-sync', 'settings-data'):
-            await go(v); h2 = await ev("Array.from(document.querySelectorAll('main h2')).map(h => h.textContent.trim())")
-            check(f'{v}: Auf mehreren Geräten zuerst, dann Sicherungskopie', h2 == ['Auf mehreren Geräten', 'Sicherungskopie'], str(h2))
-        check('Konto und Sicherung: Anmeldefelder und Sicherungs-Knopf auf einer Seite', await ev("!!document.getElementById('cloudEmail') && !!document.querySelector('[data-action=export-backup]') && !!document.getElementById('restoreFileInput')"))
-        check('Konto und Sicherung: Seitentitel', 'Konto und Sicherung' in await ev("document.querySelector('header, .topbar').innerText"))
-        await go('settings-backup'); t = await main_text()
-        check('Sicherung: Beschreibung', 'Speichere eine Kopie deiner Rezepte als Datei.' in t)
-        btns = await ev("Array.from(document.querySelectorAll('[data-action=\"export-backup\"], [data-action=\"trigger-restore\"]')).map(b => b.textContent.trim())")
-        check('Sicherung: Schaltflächen «Sicherung speichern» und «Aus Sicherung wiederherstellen»', btns == ['Sicherung speichern', 'Aus Sicherung wiederherstellen'], str(btns))
-        check('Sicherung: Erklärung vor dem Wiederherstellen auf der Seite', 'hinzugefügt' in t and 'nicht ersetzt' in t and 'nicht doppelt' in t)
-        check('Sicherung: Synchronisation nicht als Sicherung (Abgleich ersetzt keine Sicherung)', 'ersetzt keine Sicherung' in t and 'Auf mehreren Geräten' in t)
-        check('Sicherung: PDF-Satz sachlich (Freunde direkt in Savora, PDF nicht einspielbar)', 'Rezepte von Freunden kommen direkt in Savora an' in t and 'nicht in Savora einspielen' in t and 'fertige PDF-Datei an' not in t)
-        # Dialog beim Wiederherstellen
-        msgs = []
-        page.on('dialog', lambda d: (msgs.append(d.message), asyncio.ensure_future(d.dismiss())))
-        await page.click('[data-action="trigger-restore"]'); await page.wait_for_timeout(300)
-        check('Dialog erklärt das Wiederherstellen (hinzugefügt, nicht ersetzt)', len(msgs) == 1 and 'hinzugefügt' in msgs[0] and 'nicht ersetzt' in msgs[0] and 'Aus Sicherung wiederherstellen' in msgs[0], str(msgs))
+            await go(v)
+            check(f'{v}: kein Sicherungs-Knopf mit Anmeldefeldern vermischt', await ev("!document.querySelector('[data-action=export-backup]') || !document.getElementById('cloudEmail')"))
+        await go('settings-sync'); st = await main_text()
+        check('Geräteabgleich: Abgleich ersetzt keine Sicherung', 'ersetzt keine Sicherung' in st or 'Sicherung' in st, st[:200])
 
-        # 6 Reales Verhalten: Erklaerung stimmt mit Code ueberein
+        # 6 Reales Verhalten: Erklaerung stimmt mit Code ueberein (Import erst nach Bestätigung)
         n0 = await ev("state.recipes.length")
         before = await ev("JSON.stringify(state.recipes.map(r => [r.id, r.title, r.updatedAt]).sort())")
         existing = await ev("JSON.parse(JSON.stringify(state.recipes[0]))")
@@ -87,24 +86,24 @@ async def main():
         data = {'app': 'savora', 'version': 3, 'schemaVersion': 4, 'recipes': [existing, newr], 'shopping': []}
         path = OUT + '/p37-backup.json'; json.dump(data, open(path, 'w'))
         await go('settings-backup')
-        await page.set_input_files('#restoreFileInput', path); await page.wait_for_timeout(1500)
+        await page.set_input_files('#kontoRestoreInput', path)
+        await page.wait_for_selector('#kontoImportPanel .kd-panel', timeout=5000); await page.wait_for_timeout(300)
+        check('Vor der Bestätigung ist nichts verändert', await ev("state.recipes.length") == n0)
+        await page.click('[data-action="konto-import-go"]'); await page.wait_for_timeout(1500)
         n1 = await ev("state.recipes.length")
         after = await ev("JSON.stringify(state.recipes.filter(r => r.id !== 'r_p37_new').map(r => [r.id, r.title, r.updatedAt]).sort())")
-        check('Wiederherstellen ergänzt (+1), Gleiches nicht doppelt, nichts ersetzt oder gelöscht', n1 == n0 + 1 and after == before, f'{n0}->{n1}')
+        check('Import ergänzt (+1), Gleiches nicht doppelt, nichts ersetzt oder gelöscht', n1 == n0 + 1 and after == before, f'{n0}->{n1}')
         st = await ev("document.getElementById('backupStatus').innerText")
-        check('Statusmeldung nennt Ergebnis', '1 Rezept' in st and 'nicht doppelt' in st, st)
+        check('Statusmeldung nennt Ergebnis', '1 Rezept' in st and 'schon vorhanden' in st, st)
 
-        # 7 Name beim Teilen
-        await go('settings-profile'); t = await main_text()   # «Name beim Teilen» ist nicht mehr Teil von «Freunde & Rezepte»
-        check('Abschnitt «Name beim Teilen (freiwillig)» mit Hinweis', 'Name beim Teilen (freiwillig)' in t.replace('NAME BEIM TEILEN (FREIWILLIG)', 'Name beim Teilen (freiwillig)') and 'Wird nur gedruckt, wenn du ihn selbst im Kochbuch oder beim Teilen einschaltest.' in t, t[-300:])
-        await page.fill('#f-sender-name', 'Anna'); await page.click('[data-action="save-profile-fields"]'); await page.wait_for_timeout(200)
-        check('Name wird gespeichert', await ev("state.senderName === 'Anna' && localStorage.getItem(SENDER_NAME_KEY) === 'Anna'"))
+        # 7 Name beim Teilen: «settings-profile» führt seit «Mehr» zu Freunde & Rezepte (Profil), das Namensfeld steht nicht mehr auf einer Einstellungsseite
+        await go('settings-profile')
+        check('settings-profile führt zum Freunde-Profil, ohne altes Namensfeld', await ev("document.getElementById('f-sender-name') === null") and 'Profil' in await ev("document.querySelector('header, .topbar').innerText"))
+        await ev("() => { state.senderName = 'Anna'; localStorage.setItem(SENDER_NAME_KEY, 'Anna'); }")
         pm = await ev("JSON.stringify(pdfBuildModel(state.recipes[0], null))")
         check('Name erscheint nicht ungefragt im PDF-Modell', 'Anna' not in pm)
         check('Name erscheint nicht im Sendeinhalt', 'Anna' not in json.dumps(await ev("shareBuildPayload(state.recipes[0])")))
         await ev("() => { state.senderName = ''; localStorage.removeItem(SENDER_NAME_KEY); }")
-        await go('settings-profile')
-        check('Profilseite zeigt nur noch den Namen (kein Kochbuch-Titel)', 'Dein Name' in await main_text() and await ev("document.getElementById('f-cookbook-title') === null"))
 
         # 8 Rechtliches in Über Savora
         await go('settings-about')

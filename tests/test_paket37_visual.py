@@ -52,7 +52,7 @@ JS_TAPS = """() => {
   const bad = [];
   const sel = 'button, a[href], [role=button], [role=tab], [role=checkbox], summary, select, input:not([type=hidden]):not([type=checkbox]):not([type=radio]), textarea';
   for (const el of document.querySelectorAll('#app ' + sel.split(', ').join(', #app '))) {
-    if (el.closest('.sr-only') || el.matches('.sr-only')) continue;
+    if (el.closest('.sr-only') || el.matches('.sr-only, .kd-file-input')) continue;
     if (el.matches('.timer-chip, .sheet-handle') || (el.tagName === 'A' && el.closest('.source-line, .legal-card, p'))) continue;   // Zeitgeber im Fliesstext haben eine vergroesserte Trefferflaeche (::before), Textlinks stehen im Satz
     const cs = getComputedStyle(el); if (cs.visibility === 'hidden' || cs.display === 'none') continue;
     const r = el.getBoundingClientRect(); if (!r.width && !r.height) continue;

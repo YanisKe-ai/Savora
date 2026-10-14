@@ -41,7 +41,8 @@ async def device(p, name, motion='reduce', sw=False):
     await install(page)
     return browser, ctx, page, errs
 async def install(page):
-    await page.add_script_tag(path=KONTO_JS)
+    if not await page.evaluate("typeof settingsAccountView === 'function'"):
+        await page.add_script_tag(path=KONTO_JS)
     await page.evaluate(ROUTES)
 async def go(page, view, sel='.kd-page'):
     await page.evaluate("(v) => { state.modal = null; state.view = v; render(); }", view)
