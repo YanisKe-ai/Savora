@@ -7,7 +7,7 @@ import ast, os, re, sys
 HERE = os.path.dirname(os.path.abspath(__file__))
 SPECIAL = {'paket42', 'paket37_adapt'}
 # Laufzeit in Sekunden (Messung auf GitHub); unbekannte Tests zaehlen 10 s
-DAUER = {'cover_editor': 60, 'mehr_konto': 240, 'mehr_nav': 65, 'freunde': 40, 'pdf_ausgabe': 240, 'pdf_cover': 120, 'cover_modell': 12, 'pdf_kern': 100, 'paket37_plan': 93, 'paket37_visual': 80, 'paket44': 75, 'laptop_platz': 73, 'a11y': 61, 'monkey': 56, 'paket35': 52, 'startseite_liste': 49,
+DAUER = {'cover_editor': 60, 'mehr_konto': 240, 'mehr_nav': 65, 'freunde': 40, 'pdf_ausgabe': 240, 'pdf_cover': 150, 'cover_neu': 25, 'cover_pdf': 90, 'cover_modell': 12, 'pdf_kern': 100, 'paket37_plan': 93, 'paket37_visual': 80, 'paket44': 75, 'laptop_platz': 73, 'a11y': 61, 'monkey': 56, 'paket35': 52, 'startseite_liste': 49,
          'paket39': 46, 'paket37_interaction': 45, 'paket43': 44, 'paket36': 44, 'feinschliff': 39, 'audit_b': 39, 'sync': 30, 'paket37_books': 30,
          'flows': 28, 'pruefung': 27, 'visual': 26, 'titel_suche': 26, 'teilen_ui': 24, 'paket37_data': 22, 'audit_c': 22, 'rezepte_zeile': 21,
          'paket37_settings': 17, 'export': 15, 'pdfpreview': 14, 'ansicht_umschalter': 14, 'paket3': 13, 'paket33': 12, 'paket27': 12, 'audit_a': 12, 'cover_bild': 20, 'pdf_daten': 9, 'pdf_vorlagen': 12}

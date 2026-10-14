@@ -177,7 +177,7 @@ async def main():
             else:
                 for w in ('Kochbuchtitel', 'ungewoehnlich', 'Nachname', 'Slogan', 'ueberdecken'):
                     if w.lower() not in t1: cov.append(f'{nm}: «{w}» fehlt (abgeschnitten?)')
-        check('K12a alle 10 Covervorlagen und Sonderfaelle (leer, lang, ohne Logo/Datum) exportieren vollstaendig', not cov, str(cov[:4]))
+        check('K12a alle 15 Covervorlagen und Sonderfaelle (leer, lang, ohne Logo/Datum) exportieren vollstaendig', not cov, str(cov[:4]))
         b = alle.get('raender', []) + alle.get('seitenzahl', [])
         check('K12b alle Seitenstile (A, B, C) exportieren Einzelrezept und Kochbuch ohne Fehler', not alle.get('export_fehlgeschlagen') and all(buecher.get(('ref', st)) and buecher[('ref', st)].seiten() >= 5 for st in stile), str(alle.get('export_fehlgeschlagen', [])[:2]))
 
