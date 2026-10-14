@@ -103,12 +103,17 @@
 .pv-source-text { min-width: 0; overflow-wrap: break-word; word-break: normal; }
 .pv-url { color: inherit; text-decoration: underline; text-decoration-thickness: .4pt; text-underline-offset: .4mm; overflow-wrap: anywhere; word-break: normal; }
 
-/* Fusszeile (Seitenzahl setzt jsPDF als Text) */
-.pv-foot { position: absolute; left: 15mm; right: 30mm; bottom: 8.5mm; font-size: 7.5pt; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--pv-accent2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+/* Fusszeile (Seitenzahl setzt jsPDF als Text). Seitenrahmen: eigene reservierte Box unterhalb des
+   Hauptinhalts (Hauptinhalt endet 21 mm über dem Seitenrand, die Box liegt zwischen 282,5 und 291,5 mm).
+   Kein overflow:hidden und kein text-overflow: html2canvas setzt Text etwas tiefer als der Browser, ein
+   knapper Clip schnitt die Fusszeile an (Ursache, siehe tests/test_pdf_kern.py). Zu lange Titel werden in
+   pdf-layout.js (pdfClampText) auf zwei Zeilen begrenzt und mit … gekürzt. Pixelhoehe der Box genügt für zwei Zeilen. */
+.pv-foot { position: absolute; left: 15mm; right: 30mm; bottom: 5.5mm; height: 9mm; display: flex; align-items: flex-end; font-size: 8.5pt; line-height: 1.3; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--pv-accent2); overflow: visible; }
+.pv-foot span { display: block; max-width: 100%; white-space: normal; overflow-wrap: break-word; }
 .pv-tpl-c .pv-foot { color: var(--pv-muted); }
 
 /* Fortsetzungsseite */
-.pv-cont-head { display: flex; justify-content: space-between; align-items: baseline; gap: 6mm; font-size: 8.5pt; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: var(--pv-accent2); border-bottom: .6pt solid var(--pv-rule); padding-bottom: 2.5mm; margin: 0 0 7mm; }
+.pv-cont-head { display: flex; justify-content: space-between; align-items: baseline; gap: 6mm; font-size: 8.5pt; line-height: 1.4; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--pv-accent2); border-bottom: .6pt solid var(--pv-rule); padding-bottom: 2.5mm; margin: 0 0 7mm; overflow: visible; }
 .pv-cont-head i { font-style: normal; font-weight: 400; color: var(--pv-muted); }
 
 /* Kompakt: unkritische Abstände etwas enger (Schrift bleibt gleich gross) */
@@ -156,7 +161,7 @@
 .check-row { display: flex; align-items: center; gap: 10px; min-height: 44px; margin: 4px 0 10px; }
 .check-row input { width: 20px; height: 20px; }
 
-.pv-cont-head span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pv-cont-head span { min-width: 0; white-space: normal; overflow-wrap: break-word; }   /* Seitenrahmen: Titel bricht um (max. 2 Zeilen, pdf-layout.js), kein Clipping */
 .pv-cont-head i { flex: none; white-space: nowrap; }
 .pv-ing-col-2 { margin-top: 0; }
 .pv-body:has(.pv-ing-col-2) { grid-template-columns: 47.5% 47.5%; column-gap: 5%; }
@@ -170,3 +175,21 @@
 .pdf-pages .pdf-page-slot { width: calc(100% * var(--pdf-zoom, 1)); max-width: none; }
 .pv-step-text { white-space: pre-line; }
 #printRoot .pv-cover2 { position: relative; display: block; padding: 0; overflow: hidden; height: 297mm; }
+
+
+/* ===== Seitenrahmen (Gruppe «Kern»; Gruppe «Vorlagen» ändert hier nichts) =====
+   Rahmen jeder Rezeptseite, Reihenfolge von oben nach unten:
+     Kopfzone    16 mm Seitenrand (13 mm bei .pv-tight), Fortsetzungsseiten zeigen .pv-cont-head (max. 2 Zeilen)
+     Hauptinhalt Rest bis 276 mm (21 mm Fussbereich unten); nur gegen diesen Bereich wird gemessen und umbrochen
+     Fusszone    282,5 bis 291,5 mm: .pv-foot (links, max. 2 Zeilen) und Seitenzahl (rechts, jsPDF bei 195 mm / 290,2 mm)
+   Beim Rastern setzt pdf.js die Hoehe der Seite auf exakt 297 mm (Rundungsfehler ausgeschlossen). */
+#printRoot > .pv-page:not(.pv-cover2) { box-sizing: border-box; min-height: 297mm; }
+#printRoot > section { overflow: visible; }
+
+/* Export-Dialog: Fortschritt und Fehler (nur App-Oberfläche, nie in der Druckgestaltung) */
+.pdf-progress { height: 6px; border-radius: 3px; background: var(--border, #d9d3e6); overflow: hidden; margin: 14px 0 6px; }
+.pdf-progress > span { display: block; height: 100%; width: 0; background: var(--accent, #6E45A2); border-radius: 3px; }
+.pdf-progress-text { color: var(--text-soft, #765F8C); font-size: 13.5px; margin: 0 0 14px; min-height: 1.4em; }
+.pdf-error-text { margin: 0 0 14px; }
+.pdf-info-line { margin: 4px 0 0; color: var(--text-soft, #765F8C); font-size: 13.5px; }
+@media (prefers-reduced-motion: no-preference) { .pdf-progress > span { transition: width .18s ease-out; } }

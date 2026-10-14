@@ -1139,38 +1139,12 @@ async function dispatchAction(action, id, el, e) {
       state.modal.nutritionDetail = el.dataset.level;
       render();
       break;
-    case 'pdf-export-build': {
-      state.modal.stage = 'building';
-      render();
-      const m = state.modal;
-      let result = null;
-      try {
-        const opts = { template: m.template };
-        result = m.target === 'cookbook'
-          ? await buildCookbookPdf(m.nutritionDetail, opts)
-          : await buildSinglePdf(m.recipeId, m.nutritionDetail, opts);
-      } catch (err) {
-        console.warn('PDF-Erstellung fehlgeschlagen', err);
-        result = null;
-        m.errorText = err && err.userMessage ? err.userMessage : '';
-      }
-      // waehrend des Builds kann das Modal geschlossen/gewechselt worden sein: Ergebnis dann verwerfen
-      if (state.modal !== m) return;
-      if (!result) {
-        showToast(m.errorText ? m.errorText : 'PDF konnte nicht erstellt werden. Deine Rezepte sind unverändert.', 'error');
-        m.stage = 'options';
-        render();
-        break;
-      }
-      m.previewBlob = result.blob;
-      m.pageCount = result.blob.pageCount || 0;
-      m.zoom = 1;
-      m.filename = result.filename;
-      m.previewUrl = URL.createObjectURL(result.blob);
-      m.stage = 'preview';
-      render();
+    case 'pdf-export-build':
+      await pdfExportBuildAction();   // pdf-ui.js: erzeugen, Fortschritt, Abbruch, Fehlerzustand; Vorschau und Download nutzen dasselbe Blob
       break;
-    }
+    case 'pdf-export-cancel':
+      pdfExportCancelAction();
+      break;
     case 'pdf-export-back':
       revokePdfPreviewUrl();
       state.modal.previewUrl = null;
