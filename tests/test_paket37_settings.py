@@ -28,7 +28,7 @@ async def main():
         titles = [g['t'] for g in groups]
         check('Gruppen in Reihenfolge: Deine Daten, Darstellung, Hilfe & Infos', [t.lower() for t in titles] == ['deine daten', 'darstellung', 'hilfe & infos'], str(titles))
         rows = [[r['title'] for r in g['rows']] for g in groups]
-        check('Deine Daten: Konto und Sicherung, Rezepte mit anderen teilen (Audit D02)', rows[0] == ['Konto und Sicherung', 'Rezepte mit anderen teilen'], str(rows[0]))
+        check('Deine Daten: Konto und Sicherung, Socialize (Audit D02)', rows[0] == ['Konto und Sicherung', 'Socialize'], str(rows[0]))
         check('Darstellung: Darstellung und Einheiten, Masseinheiten-Rechner (Audit D02)', rows[1] == ['Darstellung und Einheiten', 'Masseinheiten-Rechner'], str(rows[1]))
         check('Hilfe & Infos: Hilfe erhalten, Über Savora', rows[2] == ['Hilfe erhalten', 'Über Savora'], str(rows[2]))
         check('Hauptliste hat genau 6 Zeilen', sum(len(r) for r in rows) == 6, str(rows))

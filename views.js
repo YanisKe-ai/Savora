@@ -264,7 +264,7 @@ function settingsView() {
       ${pageTitle(isCompactNav() ? 'Mehr' : 'Einstellungen')}
       ${settingsGroup('Deine Daten', [
         settingsRow({ icon: ICONS.cloud, title: 'Konto und Sicherung', summary: cloudSettingsSummary(), view: 'settings-data' }),
-        settingsRow({ icon: ICONS.share, title: 'Rezepte mit anderen teilen', summary: shareSettingsSummary(), view: 'settings-share' }),
+        settingsRow({ icon: ICONS.share, title: 'Socialize', summary: shareSettingsSummary(), view: 'settings-share' }),
       ].join(''))}
       ${settingsGroup('Darstellung', [
         themeQuickRow(t),
@@ -339,7 +339,7 @@ function settingsDisplayView() {
 }
 
 /* Absendername: freiwillig, wird heute nirgends automatisch ausgegeben (weder PDF noch Teilen).
-   Der Abschnitt steht in «Rezepte mit anderen teilen» und ist auch als eigene Seite erreichbar. */
+   Der Abschnitt steht in «Socialize» und ist auch als eigene Seite erreichbar. */
 function senderNameSectionHtml() {
   return `<div class="settings-group">
     <div class="settings-group-title">Name beim Teilen (freiwillig)</div>
@@ -384,7 +384,7 @@ function settingsBackupSectionHtml() {
         <button class="ghost-btn" data-action="trigger-restore">${ICONS.upload} Aus Sicherung wiederherstellen</button>
         <input type="file" id="restoreFileInput" accept="application/json" style="display:none;">
         <p class="settings-hint settings-hint--top">${RESTORE_EXPLAIN}</p>
-        <p class="settings-hint">Gedacht für Dateien, die du hier unter „Sicherung speichern“ gespeichert hast. Rezepte von Freunden kommen direkt in Savora an (unter „Rezepte mit anderen teilen“). Ein als PDF weitergegebenes Rezept lässt sich nicht in Savora einspielen.</p>
+        <p class="settings-hint">Gedacht für Dateien, die du hier unter „Sicherung speichern“ gespeichert hast. Rezepte von Freunden kommen direkt in Savora an (unter „Socialize“). Ein als PDF weitergegebenes Rezept lässt sich nicht in Savora einspielen.</p>
         <div id="backupStatus"></div>
       </div>
     </div>${typeof offlineSectionHtml === 'function' ? offlineSectionHtml() : ''}`;

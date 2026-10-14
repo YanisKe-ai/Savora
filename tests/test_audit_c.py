@@ -174,9 +174,9 @@ async def main():
         # ---------- D02: Texte ----------
         await ev("() => { state.view = 'settings'; render(); }"); await page.wait_for_timeout(250)
         rows = await ev("() => Array.from(document.querySelectorAll('.settings-row-title, .settings-row b, .settings-row')).map(e => e.textContent.trim().replace(/\\s+/g, ' ')).join(' | ')")
-        check('D02 Einstellungen: «Darstellung und Einheiten», «Rezepte mit anderen teilen»', 'Darstellung und Einheiten' in rows and 'Rezepte mit anderen teilen' in rows and 'Freunde' not in rows.split('Rezepte von')[0], rows[:300])
+        check('D02 Einstellungen: «Darstellung und Einheiten», «Socialize»', 'Darstellung und Einheiten' in rows and 'Socialize' in rows and 'Freunde' not in rows.split('Rezepte von')[0], rows[:300])
         await ev("() => { state.view = 'settings-share'; render(); }"); await page.wait_for_timeout(200)
-        check('D02 Seitentitel «Rezepte mit anderen teilen»', await ev("() => document.querySelector('.topbar-title').textContent.trim()") == 'Rezepte mit anderen teilen')
+        check('D02 Seitentitel «Socialize»', await ev("() => document.querySelector('.topbar-title').textContent.trim()") == 'Socialize')
         await ev("() => { state.view = 'settings-display'; render(); }"); await page.wait_for_timeout(200)
         check('D02 Seitentitel «Darstellung und Einheiten»', await ev("() => document.querySelector('.topbar-title').textContent.trim()") == 'Darstellung und Einheiten')
         # Editor: Eigene Schlagwörter mit Beispiel
