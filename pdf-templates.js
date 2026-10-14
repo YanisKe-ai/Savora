@@ -212,7 +212,7 @@ function pvExtrasBlocks(m, nutritionDetail) {
   const log = (m.log || []).filter((n) => n && String(n.text || '').trim());
   if (notes || log.length) out.push({ key: 'notes', cls: 'pv-notes', label: 'Notizen', paras: (notes ? [`<p>${pvEsc(notes)}</p>`] : []).concat(log.map((n) => `<p><b>${pvEsc(new Date(n.date).toLocaleDateString('de-CH'))}:</b> ${pvEsc(String(n.text).trim())}</p>`)) });
   if (m.nutrition && nutritionDetail && nutritionDetail !== 'off') {
-    const box = pvNutritionBox(m.nutrition, nutritionDetail, m.pieces, m.nutritionBasis, m.nutritionNote);
+    const box = pvNutritionBox(m.nutrition, nutritionDetail, m.pieces, m.nutritionBasisLabel || m.nutritionBasis, m.nutritionNote);
     if (box) out.push({ key: 'nutrition', box });
   }
   const src = pvSourceHtml(m.source, m.sourceUrl);
