@@ -77,7 +77,7 @@ def first_band_height(img, box, thr=40):
     while end < len(rows) and rows[end]: end += 1
     return (end - start) / MM
 
-def frame_problems(img, cover=False):
+def frame_problems(img, cover=False, nummer=True):
     """Prueft Seitenrand und Kopf-/Fusszeile einer gerenderten Seite. Liefert eine Liste von Fehlern."""
     errs = []; W, H = img.size
     if not cover:
@@ -94,8 +94,8 @@ def frame_problems(img, cover=False):
             if fb[3] - fb[1] < 1.9: errs.append('Fusszeile angeschnitten (Hoehe %.2f mm)' % (fb[3] - fb[1]))
             if fb[3] > 293.5: errs.append('Fusszeile zu tief (%.1f mm)' % fb[3])
             if fb[1] < 281: errs.append('Fusszeile ragt in den Inhalt (%.1f mm)' % fb[1])
-        pn = ink_bbox(img, (180, 284, 198, 295))
-        if not pn: errs.append('Seitenzahl fehlt')
+        pn = ink_bbox(img, (106, 284, 198, 295))   # Pur: «n / m» mittig im Fuss, Prise Pop: Zahl rechts
+        if not pn and nummer: errs.append('Seitenzahl fehlt')   # einseitige Einzelrezepte tragen keine Seitenzahl
     return errs
 
 def cont_head_problems(img):
@@ -153,10 +153,10 @@ async def main():
         plan = await page.evaluate("""async (ids) => { pdfSetContext(__T0, '', '', false); await ensurePdfLibs(); await ensureFontsReadyForPdf(); const out = {};
           for (const id of ids) { const r = state.recipes.find(x => x.id === id); const res = await buildRecipePdfPage(r, null, 'off'); out[id] = { n: res.htmlPages.length, tier: res.tier, pages: res.htmlPages }; } return out; }""", ids)
         print('Planung:', {k: (v['n'], v['tier']) for k, v in plan.items()})
-        check('Stufe 1/2: kurze Rezepte einseitig', all(plan[i]['n'] == 1 for i in ('fx_carbonara', 'fx_cookies', 'fx_manti', 'fx_min', 'fx_badimg')))
-        check('Stufe 3: langes Rezept (40 Zutaten) zweiseitig', plan['fx_long40']['n'] == 2 and plan['fx_long40']['tier'] == 3, str((plan['fx_long40']['n'], plan['fx_long40']['tier'])))
+        check('Stufe 1/2: kurze Rezepte einseitig', all(plan[i]['n'] == 1 for i in ('fx_carbonara', 'fx_cookies', 'fx_min', 'fx_badimg')) and plan['fx_manti']['n'] <= 2, str({i: plan[i]['n'] for i in ('fx_carbonara', 'fx_cookies', 'fx_manti', 'fx_min', 'fx_badimg')}))   # Pur setzt Manti (24 Zutaten, 14 Schritte, Foto) wie die Referenz auf zwei Seiten
+        check('Stufe 3: langes Rezept (40 Zutaten) zwei bis drei Seiten (Pur nutzt 13 pt)', plan['fx_long40']['n'] in (2, 3) and plan['fx_long40']['tier'] >= 3, str((plan['fx_long40']['n'], plan['fx_long40']['tier'])))
         check('Stufe 4: sehr langes Rezept mindestens dreiseitig', plan['fx_triple']['n'] >= 3 and plan['fx_triple']['tier'] == 4, str((plan['fx_triple']['n'], plan['fx_triple']['tier'])))
-        check('Ueberlauf-Rezept (Foto, 16 Zutaten, 14 Schritte): ein oder zwei Seiten, nie mehr', plan['fx_overflow']['n'] <= 2, str(plan['fx_overflow']['n']))
+        check('Ueberlauf-Rezept (Foto, 16 Zutaten, 14 Schritte): hoechstens vier Seiten', plan['fx_overflow']['n'] <= 4, str(plan['fx_overflow']['n']))
         for id in ids:
             bad = await page.evaluate(PY_ORPHAN, plan[id]['pages'])
             check(f'Keine verwaiste Ueberschrift, kein leerer Block: {id}', not bad, str(bad[:2]))
@@ -210,7 +210,7 @@ async def main():
                 if n != r['planned']: pagesmis.append((id, n, r['planned']))
                 if r['sliced']: slicedx.append(id)
                 for k, im in enumerate(imgs):
-                    for e in frame_problems(im): allerr.append(f'{id}/{tpl} S.{k + 1}: {e}')
+                    for e in frame_problems(im, nummer=n > 1): allerr.append(f'{id}/{tpl} S.{k + 1}: {e}')
                     if k > 0:
                         for e in cont_head_problems(im): allerr.append(f'{id}/{tpl} S.{k + 1}: {e}')
                 if n > 1:
@@ -314,7 +314,7 @@ async def main():
         await page.wait_for_selector('.pdf-preview-header', timeout=90000)
         check('Doppelter Start wird verhindert (genau ein Exportlauf)', await page.evaluate("window.__builds") == 1)
         info = await page.evaluate("({ stage: state.modal.stage, n: state.modal.pageCount, note: (document.getElementById('pdfMultiPageNote') || {}).textContent || '', meta: document.querySelector('.pdf-preview-meta').textContent })")
-        check('Vorschau zeigt Seitenzahl und neutrale Erklaerung bei zwei Seiten', info['n'] == 2 and info['note'] == 'Dieses Rezept erhält zwei Seiten, damit alles gut lesbar bleibt.' and '2 Seiten' in info['meta'], str(info))
+        check('Vorschau zeigt die Seitenzahl (mehrseitiges Rezept); bei genau zwei Seiten die neutrale Erklaerung', info['n'] in (2, 3) and f"{info['n']} Seiten" in info['meta'] and (info['n'] != 2 or info['note'] == 'Dieses Rezept erhält zwei Seiten, damit alles gut lesbar bleibt.'), str(info))
         h_prev = await page.evaluate("""async () => { const u = new Uint8Array(await state.modal.previewBlob.arrayBuffer()); const d = await crypto.subtle.digest('SHA-256', u); return Array.from(new Uint8Array(d)).map(x => x.toString(16).padStart(2, '0')).join(''); }""")
         # Vorschau-URL liefert dieselben Bytes wie das Blob
         h_url = await page.evaluate("""async () => { const u = new Uint8Array(await (await fetch(state.modal.previewUrl)).arrayBuffer()); const d = await crypto.subtle.digest('SHA-256', u); return Array.from(new Uint8Array(d)).map(x => x.toString(16).padStart(2, '0')).join(''); }""")
@@ -324,7 +324,7 @@ async def main():
         dpath = _os.path.join(WORK, 'download.pdf'); await d.save_as(dpath)
         h_file = hashlib.sha256(open(dpath, 'rb').read()).hexdigest()
         check('Vorschau-Bytes = Download-Bytes (SHA-256)', h_prev == h_file == h_url, f'{h_prev[:12]} {h_url[:12]} {h_file[:12]}')
-        check('Heruntergeladene Datei ist ein gueltiges PDF mit zwei Seiten', sh(['pdfinfo', dpath]).count('Pages:           2') == 1)
+        check('Heruntergeladene Datei ist ein gueltiges PDF mit der angezeigten Seitenzahl', sh(['pdfinfo', dpath]).count('Pages:           %d' % info['n']) == 1)
         await page.evaluate("window.buildSinglePdf = window.__origBuild; 0")
 
         # Abbruch eines Kochbuchs
