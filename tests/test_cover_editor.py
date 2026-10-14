@@ -49,7 +49,7 @@ async def main():
         # ---------- 1. Umschalter ----------
         st = await ev("() => Array.from(document.querySelectorAll('.ce-modebtn')).map(b => [b.textContent.trim(), b.getAttribute('aria-pressed')])")
         check('Umschalter «Vorlagen | Eigenes Cover» mit aria-pressed, Vorlagen aktiv', st == [['Vorlagen', 'true'], ['Eigenes Cover', 'false']], str(st))
-        check('Vorlagen: Raster mit zehn Motiven, Texte-Reiter zeigt die Eingabefelder', await ev("() => document.querySelectorAll('.cover-opt').length") == 10 and await page.is_visible('#cbTitle'))
+        check('Vorlagen: Raster mit allen Motiven, Texte-Reiter zeigt die Eingabefelder', await ev("() => document.querySelectorAll('.cover-opt').length === COVER_TEMPLATES.length") and await page.is_visible('#cbTitle'))
         await page.click('.cover-opt[aria-label="Citrus"]'); await page.wait_for_timeout(200)
         await page.click('[data-ce="mode"][data-v="custom"]'); await page.wait_for_timeout(300)
         check('Eigenes Cover: Reiter Hintergrund · Texte · Anordnung, kein Motivraster', await ev("() => Array.from(document.querySelectorAll('.ce-tab')).map(t => t.textContent)") == ['Hintergrund', 'Texte', 'Anordnung'] and await ev("() => document.querySelectorAll('.cover-opt').length") == 0)

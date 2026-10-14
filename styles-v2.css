@@ -2890,7 +2890,7 @@ main.settings-page.kd-page { max-width: 40rem; padding-bottom: 2rem; }
 .ce-frame { position: absolute; outline: 2px solid var(--tomato); outline-offset: 2px; border-radius: 0.25rem; cursor: move; min-width: 1.5rem; min-height: 1.5rem; }
 .ce-frame.is-warn { outline-style: dashed; outline-color: var(--danger); }
 .ce-frame:focus-visible { outline: 3px solid var(--text); box-shadow: 0 0 0 0.375rem var(--tomato); }
-.ce-tag { position: absolute; left: 0; bottom: 100%; margin-bottom: 0.25rem; padding: 0 0.5rem; border-radius: 0.5rem; background: var(--tomato); color: var(--on-tomato); font-size: 0.75rem; font-weight: 700; line-height: 1.25rem; white-space: nowrap; pointer-events: none; }
+.ce-tag { position: absolute; left: 0; bottom: 100%; margin-bottom: 0.25rem; padding: 0 0.5rem; border-radius: 0.5rem; background: var(--tomato); color: var(--on-tomato); font-size: 0.875rem; font-weight: 700; line-height: 1.25rem; white-space: nowrap; pointer-events: none; }
 .ce-grip { position: absolute; width: 1.5rem; height: 1.5rem; padding: 0; border: 0; border-radius: 50%; background: var(--tomato); color: var(--on-tomato); display: grid; place-items: center; touch-action: none; cursor: grab; }
 .ce-grip::after { content: ''; position: absolute; inset: -0.625rem; }
 .ce-grip svg { width: 0.875rem; height: 0.875rem; }
@@ -2914,12 +2914,12 @@ main.settings-page.kd-page { max-width: 40rem; padding-bottom: 2rem; }
 .ce-status { flex: 1 1 auto; min-width: 0; display: flex; align-items: center; justify-content: flex-end; gap: 0.5rem; font-size: 0.875rem; font-weight: 600; color: var(--text-soft); text-align: right; }
 .ce-status[data-state="error"] { color: var(--danger); }
 .ce-warnslot { width: min(100%, 28.75rem); }
-.ce-warnbar { display: block; width: 100%; padding: 0.5rem 0.75rem; border: 2px solid var(--danger); border-radius: 0.75rem; background: var(--danger-soft); color: var(--text); font: inherit; font-size: 0.8125rem; text-align: left; min-height: 2.75rem; }
+.ce-warnbar { display: block; width: 100%; padding: 0.5rem 0.75rem; border: 2px solid var(--danger); border-radius: 0.75rem; background: var(--danger-soft); color: var(--text); font: inherit; font-size: 0.875rem; text-align: left; min-height: 2.75rem; }
 .ce-warnbar-n { display: inline-block; min-width: 1.25rem; padding: 0 0.25rem; border-radius: 0.625rem; background: var(--danger); color: #fff; font-weight: 700; text-align: center; }
 .ce-side { display: grid; gap: 1rem; min-width: 0; align-content: start; }
 .ce-sec { display: grid; gap: 0.75rem; min-width: 0; }
 .ce-h { margin: 0; font-size: 1rem; font-weight: 700; color: var(--text); }
-.ce-hint { margin: 0; font-size: 0.8125rem; line-height: 1.4; color: var(--text-soft); }
+.ce-hint { margin: 0; font-size: 0.875rem; line-height: 1.4; color: var(--text-soft); }
 .ce-error { margin: 0; padding: 0.5rem 0.75rem; border-radius: 0.75rem; background: var(--danger-soft); color: var(--danger); font-size: 0.875rem; font-weight: 600; }
 .ce-error[hidden] { display: none; }
 .ce-tabs { display: flex; gap: 0.25rem; padding: 0.25rem; border-radius: 1rem; background: var(--surface-soft); }
@@ -2985,7 +2985,7 @@ main.settings-page.kd-page { max-width: 40rem; padding-bottom: 2rem; }
 .ce-exact { margin-top: 0.5rem; }
 .ce-exact summary { min-height: 2.75rem; display: flex; align-items: center; font-size: 0.875rem; font-weight: 600; cursor: pointer; }
 .ce-exact-row { display: flex; flex-wrap: wrap; gap: 0.75rem; }
-.ce-exact-row label { display: grid; gap: 0.25rem; font-size: 0.8125rem; font-weight: 600; color: var(--text-soft); }
+.ce-exact-row label { display: grid; gap: 0.25rem; font-size: 0.875rem; font-weight: 600; color: var(--text-soft); }
 .ce-exact-row input { width: 7rem; min-height: 2.75rem; }
 .ce-file { display: none; }
 .ce-sec--reset { padding-top: 0.5rem; border-top: 1px solid var(--border); }
@@ -3004,5 +3004,3 @@ main.settings-page.kd-page { max-width: 40rem; padding-bottom: 2rem; }
 .ce-out { min-width: 3.5rem; }
 .ce-step, .ce-nudge, .ce-cell, .ce-segbtn, .ce-tab { transition: transform 160ms ease-out; }
 @media (prefers-reduced-motion: reduce) { .ce-tab { transition: none; } }
-.ce-side .cover-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-@media (min-width: 640px) { .ce-side .cover-grid { grid-template-columns: repeat(auto-fill, minmax(6rem, 1fr)); } }

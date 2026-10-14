@@ -205,7 +205,7 @@ async def main():
         await ev("() => document.querySelector('.cover-opt[data-id=\"savora-03-scherenschnitt-tafel\"]').scrollIntoView()")
         await page.focus('.cover-opt[data-id="savora-03-scherenschnitt-tafel"]'); await page.wait_for_timeout(200)
         await page.keyboard.press('Enter'); await page.wait_for_timeout(400)
-        a = await ev("() => ({ id: document.activeElement.dataset.id, active: document.querySelector('.cover-opt.is-active').dataset.id, tpl: getCookbookConfig().cover.templateId, t: document.getElementById('cbTitle').value, s: document.getElementById('cbSubtitle').value, n: document.getElementById('cbAuthor').value, lay: document.querySelector('canvas.cv-canvas').dataset.layout })")
+        a = await ev("() => ({ id: document.activeElement.dataset.id, active: document.querySelector('.cover-opt.is-active').dataset.id, tpl: getCookbookConfig().cover.templateId, t: document.getElementById('cbTitle').value, s: document.getElementById('cbSubtitle').value, n: document.getElementById('cbAuthor').value, lay: JSON.stringify(ce.layout) })")
         check('Neues Cover per Tastatur gewaehlt: gespeichert, Fokus bleibt, Texte bleiben, Vorschau zeigt Titel', a['active'] == a['tpl'] == a['id'] == 'savora-03-scherenschnitt-tafel' and a['t'] == 'Mein Buch ä' and a['s'] == 'Untertitel' and a['n'] == 'Anna' and 'Mein Buch ä' in a['lay'], str(a)[:200])
         await page.keyboard.press('Tab'); await page.keyboard.press('Space'); await page.wait_for_timeout(400)
         a2 = await ev("() => ({ active: document.querySelector('.cover-opt.is-active').dataset.id, chk: document.querySelector('.cover-opt.is-active').getAttribute('aria-checked') })")
