@@ -35,9 +35,6 @@ const state = {
   nutritionSearchQuery: '',
   nutritionSearchResults: [],
   nutritionDetailMode: 'portion', // 'portion' | '100g' | 'total'
-  nutritionBarcodeStatus: 'idle', // 'idle' | 'looking-up' | 'found' | 'not-found' | 'offline' | 'error' | 'invalid'
-  nutritionBarcodeProduct: null,
-  nutritionBarcodeInput: '',
   // Filter-/Kategoriensystem (Master-Prompt Teil I): mehrere Dimensionen, innerhalb einer
   // Dimension ODER, zwischen Dimensionen UND (Punkt 107). Als Sets, damit Mehrfachauswahl
   // pro Dimension moeglich ist.
