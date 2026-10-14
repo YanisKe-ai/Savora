@@ -1,178 +1,228 @@
-/* ===== PDF-Seitenstile «Pur» und «Prise Pop» =====
-   Eine Pipeline, zwei Token-Saetze: alle Klassen mit Praefix pv-. Die Seiten werden ausserhalb des Bildschirms
-   gemessen und gerastert (pdf.js). Fliesstext und Zutaten mindestens 10,5 pt, Sekundaertexte mindestens 8,5 pt.
-   Schriften (alle lokal, kein Netz):
-     Pur        Carlito (SIL OFL, metrisch kompatibel zu Calibri), vendor/fonts/carlito-*.woff2
-     Prise Pop  Lilita One (Titel) und Public Sans (Text), beide in styles.css eingebunden; Carlito als Ersatz fuer Zeichen,
-                die diese beiden (nur lateinisch-basis) nicht haben (z. B. ğ ş Ł)
-   Der Unterschied zwischen den Stilen steckt nur in den Variablen unten und wenigen Schmuckregeln (Zutatenflaeche,
-   Foto-Form, Zaehler, Hinweis-Flaeche), nicht in eigenen Seitenbauteilen. */
+/* ===== PDF-Seitenstile «Pur» und «Prise Pop» (Feinschliff V2) =====
+   Verbindliche Gestaltung: Savora_PDF_Feinschliff_V2 recipe-layout.css, physisch in mm/pt uebertragen. Eine Pipeline, ein Satz
+   Bausteine (Klassen pv-, Zutatenraster pp-groups/pp-group), zwei Token-Saetze. Die Seiten werden ausserhalb des Bildschirms
+   gemessen und gerastert (pdf.js); kein overflow:hidden, keine Ellipsen, keine Skalierung.
+   Schriften (alle lokal, OFL, in styles.css bzw. hier eingebunden):
+     Pur        Public Sans (Titel 30 pt fett, Text 11 pt)
+     Prise Pop  Lilita One (Titel 32 pt, Ueberschriften, Nummern) und Public Sans (Text 11 pt)
+     Carlito    nur Ersatz fuer Zeichen ausserhalb von Latin-Basis (z. B. ğ ş Ł) und Textlayer in pdf.js
+   Linux-Reserve: html2canvas setzt Text tiefer als die Textbox des Browsers (auf Linux staerker). Darum laufen alle PDF-Texte ueber
+   Aliasschriften mit denselben Dateien und angepassten Zeilenmassen («Public Sans Pur», «Public Sans Pop», «Lilita One Pop»):
+   hoehere Ascent und tiefere Textbox, die sichtbare Tinte bleibt in der Box.
+   Dichten (data-density der Seite, gewaehlt vom Seitenplaner): normal, compact (Titel 28 pt, Foto 44 x 28 mm, engere Abstaende,
+   kleinere Kreise), compact-columns (zusaetzlich drei Zutatengruppenspalten). Fliesstext 11 pt / 1.45 und Zutaten 10.5 pt / 1.38
+   bleiben in allen Dichten gleich. */
 @font-face { font-family: 'Carlito'; font-weight: 400; font-style: normal; font-display: swap; src: url(vendor/fonts/carlito-regular.woff2) format('woff2'); }
 @font-face { font-family: 'Carlito'; font-weight: 700; font-style: normal; font-display: swap; src: url(vendor/fonts/carlito-bold.woff2) format('woff2'); }
+@font-face { font-family: 'Public Sans Pur'; font-weight: 100 900; font-style: normal; font-display: swap; ascent-override: 115.75%; descent-override: 50%; line-gap-override: 0%; src: url(public-sans.woff2) format('woff2'); }
+@font-face { font-family: 'Public Sans Pop'; font-weight: 100 900; font-style: normal; font-display: swap; ascent-override: 115.75%; descent-override: 50%; line-gap-override: 0%; src: url(public-sans.woff2) format('woff2'); }
+@font-face { font-family: 'Lilita One Pop'; font-weight: 400; font-style: normal; font-display: swap; ascent-override: 92.3%; descent-override: 50%; line-gap-override: 0%; src: url(lilita-one.woff2) format('woff2'); }
 
-/* ---------- Tokens ---------- */
+/* ---------- Tokens: Pur (Grundwerte) ---------- */
 .pv-page, .pv-tpl-pur {
-  --pv-bg: #FFFFFF; --pv-ink: #1E2A23; --pv-accent: #1F5A3A; --pv-title-color: #1E2A23; --pv-muted: #55625A; --pv-rule: #C9D2CB;
-  --pv-panel: #EEF4EC; --pv-panel-r: 1.2mm; --pv-tip-bg: transparent; --pv-tip-ink: #1E2A23;
-  --pv-font: 'Carlito', Calibri, 'Segoe UI', Arial, sans-serif; --pv-title-font: 'Carlito', Calibri, 'Segoe UI', Arial, sans-serif; --pv-title-weight: 700;
-  --pv-h-font: 'Carlito', Calibri, 'Segoe UI', Arial, sans-serif; --pv-h-weight: 700; --pv-h-size: 14.5pt;
-  --pv-tsize-s: 33pt; --pv-tsize-m: 29pt; --pv-tsize-l: 25pt; --pv-tsize-xl: 21pt;
-  --pv-fs-body: 11pt; --pv-fs-ing: 11pt; --pv-fs-small: 8.5pt; --pv-fs-label: 11pt; --pv-lh: 1.4;
-  --pv-no-font: var(--pv-font); --pv-step-rule: transparent;
+  --pv-bg: #FFFFFF; --pv-ink: #252720; --pv-accent: #2F4A37; --pv-title-color: #252720; --pv-muted: #5B6259;
+  --pv-rule: #DDE3D9; --pv-group-rule: #D5DDCF; --pv-foot-rule: #DED8CA;
+  --pv-panel: #F0F3ED; --pv-panel-r: 2mm; --pv-panel-pad: 5mm 6mm; --pv-panel-gap: 0mm;
+  --pv-tip-bg: #F0F3ED; --pv-tip-r: 2mm; --pv-tip-title: #2F4A37;
+  --pv-font: 'Public Sans Pur', 'Public Sans', 'Carlito', Arial, sans-serif;
+  --pv-title-font: var(--pv-font); --pv-title-weight: 700; --pv-title-lh: 1.12; --pv-tsize: 30pt;
+  --pv-h-font: var(--pv-font); --pv-h-weight: 700; --pv-h-size: 16pt; --pv-h-lh: 1.2;
+  --pv-group-font: var(--pv-font); --pv-group-weight: 700; --pv-group-size: 11.5pt; --pv-group-lh: 1.3;
+  --pv-no-font: var(--pv-font); --pv-no-weight: 700; --pv-no-size: 15pt;
+  --pv-tip-font: var(--pv-font); --pv-tip-weight: 700; --pv-tip-size: 11pt;
+  --pv-cont-font: var(--pv-font); --pv-cont-weight: 600; --pv-cont-size: 13pt; --pv-cont-color: var(--pv-accent);
+  --pv-badge-bg: transparent; --pv-badge-pad: 0;
+  --pv-fs-body: 11pt; --pv-lh: 1.45; --pv-fs-ing: 10.5pt; --pv-lh-ing: 1.38; --pv-fs-meta: 10.5pt; --pv-fs-small: 8.5pt;
+  --pv-fs-source: 9pt; --pv-fs-tip: 9pt; --pv-fs-label: 11pt;
+  --pv-amt-w: 22mm; --pv-step-no-w: 11mm; --pv-circle: 10mm;
 }
+/* ---------- Tokens: Prise Pop ---------- */
 .pv-tpl-prise-pop {
-  --pv-bg: #FFFDF7; --pv-ink: #2B2420; --pv-accent: #C8321F; --pv-title-color: #C8321F; --pv-muted: #5F564E; --pv-rule: #F0DFA4;
-  --pv-panel: #FFE07A; --pv-panel-r: 5mm; --pv-tip-bg: #E6DDF6; --pv-tip-ink: #2B2420; --pv-purple: #5A3E93; --pv-blob: #FFEBA3;
-  --pv-font: 'Public Sans', 'Carlito', Arial, sans-serif; --pv-title-font: 'Lilita One', 'Public Sans', 'Carlito', Arial, sans-serif; --pv-title-weight: 400;
-  --pv-h-font: 'Lilita One', 'Public Sans', 'Carlito', Arial, sans-serif; --pv-h-weight: 400; --pv-h-size: 17pt;
-  --pv-tsize-s: 38pt; --pv-tsize-m: 33pt; --pv-tsize-l: 28pt; --pv-tsize-xl: 23pt;
-  --pv-fs-body: 10.5pt; --pv-fs-ing: 10.5pt; --pv-lh: 1.42; --pv-fs-label: 13pt;
-  --pv-no-font: 'Lilita One', 'Public Sans', 'Carlito', Arial, sans-serif; --pv-step-rule: #F0DFA4;
+  --pv-bg: #FFFDF7; --pv-ink: #252720; --pv-accent: #B93B2C; --pv-title-color: #B93B2C; --pv-muted: #5F564E;
+  --pv-rule: #E9CA83; --pv-group-rule: #D8B85C;
+  --pv-panel: #FFE181; --pv-panel-r: 6mm 5mm 0 0; --pv-panel-pad: 5mm 6mm 3mm; --pv-panel-gap: 4mm;
+  --pv-tip-bg: #E8DCF3; --pv-tip-r: 5mm 7mm 4mm 6mm; --pv-tip-title: #593B7B;
+  --pv-font: 'Public Sans Pop', 'Public Sans', 'Carlito', Arial, sans-serif;
+  --pv-title-font: 'Lilita One Pop', 'Lilita One', 'Public Sans', 'Carlito', Arial, sans-serif; --pv-title-weight: 400; --pv-title-lh: 1.06; --pv-tsize: 32pt;
+  --pv-h-font: var(--pv-title-font); --pv-h-weight: 400; --pv-h-size: 17pt; --pv-h-lh: 1.15;
+  --pv-group-font: var(--pv-title-font); --pv-group-weight: 400; --pv-group-size: 12.5pt; --pv-group-lh: 1.2;
+  --pv-no-font: var(--pv-title-font); --pv-no-weight: 400; --pv-no-size: 15pt;
+  --pv-tip-font: var(--pv-title-font); --pv-tip-weight: 400; --pv-tip-size: 14pt;
+  --pv-cont-font: var(--pv-title-font); --pv-cont-weight: 400; --pv-cont-size: 15pt; --pv-cont-color: var(--pv-accent);
+  --pv-badge-bg: #FFE181; --pv-badge-pad: 1.3mm 3mm;
 }
+/* ---------- Tokens: Dichten (beide Stile) ----------
+   Abweichung von der Referenz: Prise-Pop-Zutatenflaeche unten 3 mm (Referenz 2 mm) bzw. kompakt 2,5 mm (Referenz 1 mm), weil html2canvas
+   die letzte Zeile tiefer setzt und die Welle sie sonst anschneidet. */
+.pv-recipe[data-density^="compact"] { --pv-tsize: 28pt; --pv-h-size: 15pt; --pv-step-no-w: 8mm; --pv-circle: 7.5mm; --pv-no-size: 12pt; }
+.pv-recipe[data-density^="compact"].pv-tpl-prise-pop { --pv-panel-pad: 3mm 4mm 2.5mm; --pv-panel-gap: 3mm; }
+.pv-recipe[data-density^="compact"].pv-tpl-pur { --pv-panel-pad: 3mm 4mm; }
+.pv-recipe[data-density="compact-columns"] { --pv-amt-w: 16mm; }
 
+/* ---------- Seite ---------- */
 .pv-page { width: 210mm; min-height: 297mm; box-sizing: border-box; position: relative; background: var(--pv-bg); color: var(--pv-ink);
-  font-family: var(--pv-font); font-size: var(--pv-fs-body); line-height: var(--pv-lh); padding: 15mm 15mm 21mm; overflow-wrap: break-word; hyphens: none; -webkit-hyphens: none;
+  font-family: var(--pv-font); font-size: var(--pv-fs-body); line-height: var(--pv-lh); padding: 14mm 13mm 21mm; overflow-wrap: break-word; hyphens: none; -webkit-hyphens: none;
   display: flex; flex-direction: column; }
 .pv-page > * { flex: none; }
+.pv-recipe { gap: 5mm; }
+.pv-recipe[data-density^="compact"] { gap: 3mm; }
+.pv-page * { box-sizing: border-box; }
 
-/* ---------- Titel, Kopf, Foto ---------- */
-.pv-cat { font-size: var(--pv-fs-small); font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: var(--pv-muted); }
-.pv-tpl-prise-pop .pv-cat { color: var(--pv-purple); }
-.pv-head-top { display: flex; justify-content: space-between; align-items: baseline; gap: 6mm; margin: 0 0 3mm; min-height: 4mm; }
-.pv-pageof { flex: none; font-size: var(--pv-fs-small); font-weight: 700; color: var(--pv-muted); white-space: nowrap; }
-.pv-tpl-prise-pop .pv-pageof { background: #FFE07A; color: var(--pv-ink); border-radius: 4mm; padding: .6mm 3.2mm; }
-.pv-title { font-family: var(--pv-title-font); font-weight: var(--pv-title-weight); color: var(--pv-title-color); margin: 0 0 3.5mm; line-height: 1.08; letter-spacing: 0; overflow-wrap: break-word; word-break: normal; }
-.pv-t-s { font-size: var(--pv-tsize-s); } .pv-t-m { font-size: var(--pv-tsize-m); } .pv-t-l { font-size: var(--pv-tsize-l); } .pv-t-xl { font-size: var(--pv-tsize-xl); }
-.pv-head { margin: 0 0 5mm; }
-.pv-head-grid { display: grid; grid-template-columns: minmax(0, 1fr); align-items: center; }
-.pv-photo-side .pv-head-grid { grid-template-columns: minmax(0, 1fr) auto; column-gap: 8mm; }
+/* ---------- Kopf: Titel, Metadaten, Foto ---------- */
+.pv-head { margin: 0; }
+.pv-head-grid { display: grid; grid-template-columns: minmax(0, 1fr); column-gap: 5mm; align-items: center; min-height: 25mm; }
+.pv-photo-side .pv-head-grid { grid-template-columns: minmax(0, 1fr) auto; min-height: 42mm; }
+.pv-recipe[data-density^="compact"] .pv-head-grid { column-gap: 4mm; min-height: 0; }
+.pv-recipe[data-density^="compact"].pv-photo-side .pv-head-grid { min-height: 28mm; }
 .pv-head-text { min-width: 0; }
-.pv-facts { display: flex; flex-wrap: wrap; column-gap: 0; row-gap: 2mm; margin: 0; }
-.pv-fact { display: block; line-height: 1.2; padding: 0 5mm; border-left: .6pt solid var(--pv-rule); }
-.pv-fact:first-child { padding-left: 0; border-left: 0; }
-.pv-fact i { display: block; font-style: normal; font-size: 10pt; color: var(--pv-muted); }
-.pv-fact b { display: block; font-size: 12.5pt; font-weight: 700; color: var(--pv-ink); }
-.pv-facts-line { font-size: 11pt; color: var(--pv-ink); line-height: 1.3; }
-.pv-photo-wrap { position: relative; flex: none; padding: 2.5mm; }
-.pv-photo { position: relative; overflow: hidden; background: #E7E7E3; }
+.pv-title { font-family: var(--pv-title-font); font-weight: var(--pv-title-weight); color: var(--pv-title-color); font-size: var(--pv-tsize); line-height: var(--pv-title-lh);
+  margin: 0 0 3mm; letter-spacing: 0; overflow-wrap: break-word; word-break: normal; }
+.pv-t-l { font-size: calc(var(--pv-tsize) * .84); } .pv-t-xl { font-size: calc(var(--pv-tsize) * .7); }
+.pv-recipe[data-density^="compact"] .pv-title { margin-bottom: 2mm; }
+.pp-meta { display: flex; flex-wrap: wrap; gap: 2mm 6mm; margin: 3mm 0 0; padding-top: 2mm; font-size: var(--pv-fs-meta); line-height: 1.4; }
+.pv-recipe[data-density^="compact"] .pp-meta { margin-top: 0; padding-top: 2mm; }
+.pv-photo-wrap { position: relative; flex: none; display: grid; place-items: center; margin: 0; padding: 0; }
+.pv-photo { position: relative; background: transparent; border-radius: 0; }
 .pv-photo img { display: block; width: 100%; height: 100%; object-fit: contain; }
-.pv-blob { display: none; }
-.pv-tpl-prise-pop .pv-blob { display: block; position: absolute; inset: 0 0 -1mm 0; background: var(--pv-blob); border-radius: 62% 38% 56% 44% / 48% 58% 42% 52%; }
-.pv-tpl-prise-pop .pv-photo { border-radius: 7mm; }
-.pv-tpl-pur .pv-photo { border-radius: 0; }
-.pv-tpl-pur .pv-photo-wrap { padding: 0; }
 
 /* ---------- Abschnittsueberschriften ---------- */
-.pv-h { font-family: var(--pv-h-font); font-weight: var(--pv-h-weight); font-size: var(--pv-h-size); color: var(--pv-accent); line-height: 1.15; margin: 0 0 2.5mm; break-after: avoid; }
+.pv-h { font-family: var(--pv-h-font); font-weight: var(--pv-h-weight); font-size: var(--pv-h-size); color: var(--pv-accent); line-height: var(--pv-h-lh); margin: 0 0 3mm; padding-bottom: 1.2mm; break-after: avoid; }
+/* padding-bottom: html2canvas setzt grosse Schrift rund 0,25 em tiefer als der Browser; so bleibt der sichtbare Abstand zur ersten Zeile wie in der Vorgabe */
+.pv-recipe[data-density^="compact"] .pv-h { margin-bottom: 1.2mm; }
 .pv-cont { font-weight: 400; color: var(--pv-muted); font-size: 9pt; font-family: var(--pv-font); }
-.pv-label { font-family: var(--pv-h-font); font-weight: var(--pv-h-weight); font-size: var(--pv-fs-label); color: var(--pv-ink); line-height: 1.2; margin: 0 0 1.5mm; break-after: avoid; }
-.pv-tpl-prise-pop .pv-label { color: var(--pv-purple); }
+.pv-label { font-family: var(--pv-tip-font); font-weight: var(--pv-tip-weight); font-size: var(--pv-fs-label); color: var(--pv-ink); line-height: 1.2; margin: 0 0 1.5mm; break-after: avoid; }
 
-/* ---------- Zutaten ---------- */
-.pv-ing-panel { position: relative; background: var(--pv-panel); border-radius: var(--pv-panel-r); padding: 4mm 5mm 4mm; margin: 0 0 6mm; }
-.pv-tpl-prise-pop .pv-ing-panel { padding-bottom: 7mm; border-radius: 5mm 5mm 0 0; }
+/* ---------- Zutaten: Flaeche, Gruppenraster, Zeilen ---------- */
+.pv-ing-panel { position: relative; background: var(--pv-panel); border-radius: var(--pv-panel-r); padding: var(--pv-panel-pad); margin: 0 0 var(--pv-panel-gap); }
 .pv-wave { display: none; }
-.pv-tpl-prise-pop .pv-wave { display: block; position: absolute; left: 0; bottom: -.1mm; width: 100%; height: 3.6mm; background: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='6' viewBox='0 0 100 6' preserveAspectRatio='none'%3E%3Cpath d='M0 6V3.2Q6.25 0.2 12.5 3.2T25 3.2T37.5 3.2T50 3.2T62.5 3.2T75 3.2T87.5 3.2T100 3.2V6Z' fill='%23FFFDF7'/%3E%3C/svg%3E") 0 0 / 100% 100% no-repeat; }   /* Wellenkante als Hintergrund, kein img: Rezeptfotos sind die einzigen Bilder der Seite */
-.pv-ing-cols { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); column-gap: 8mm; align-items: start; }
-.pv-ing-cols-1 { grid-template-columns: minmax(0, 1fr); }
-.pv-ing-col { display: grid; grid-template-columns: minmax(10mm, max-content) minmax(0, 1fr); column-gap: 3mm; align-content: start; min-width: 0; }
-.pv-ing-col-noamt { grid-template-columns: minmax(0, 1fr); }
-.pv-ing-col > .pv-ing-group { grid-column: 1 / -1; }
-/* Zutatenzeile: Menge (nie getrennt, nie mitten im Wort) + Name; alle Zeilen einer Spalte teilen sich die Mengenspalte (Subgrid) */
-.pv-ing { grid-column: 1 / -1; display: grid; grid-template-columns: subgrid; padding: 1.1mm 0; font-size: var(--pv-fs-ing); line-height: var(--pv-lh); border-bottom: .4pt solid rgba(30, 42, 35, .12); }
-.pv-tpl-prise-pop .pv-ing { border-bottom: 0; padding: .9mm 0; }
+/* Prise Pop: Wellenkante als lokale SVG (Hintergrund, kein img), haengt unter der Flaeche. Der viewBox hat ringsum einen durchsichtigen
+   Rand von einer Einheit: html2canvas zeichnet Hintergruende als Muster, sonst blutet die naechste Kachel als gelbe Linie an Rand und Seiten. */
+.pv-tpl-prise-pop .pv-wave-b { display: block; position: absolute; top: calc(100% - .2mm); left: 0; right: 0; height: 4.2mm; background: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='1002' height='30' viewBox='-1 -1 1002 30' preserveAspectRatio='none'%3E%3Cpath fill='%23FFE181' d='M0 0H1000V9C965 9 963 27 925 27S888 9 850 9 813 27 775 27 738 9 700 9 663 27 625 27 588 9 550 9 513 27 475 27 438 9 400 9 363 27 325 27 288 9 250 9 213 27 175 27 138 9 100 9 63 27 25 27 0 18 0 9Z'/%3E%3C/svg%3E") center top / 100% 100% no-repeat; }
+.pv-recipe[data-density^="compact"] .pv-wave-b { height: 3mm; }
+.pp-groups { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); column-gap: 9mm; row-gap: 4mm; position: relative; }
+.pv-recipe[data-density^="compact"] .pp-groups { column-gap: 8mm; row-gap: 2mm; }
+.pp-group { position: relative; min-width: 0; break-inside: avoid; display: grid; grid-template-columns: minmax(var(--pv-amt-w), max-content) minmax(0, 1fr); column-gap: 2mm; row-gap: 1.1mm; align-content: start; }
+.pv-recipe[data-density^="compact"] .pp-group { row-gap: .6mm; }
+.pp-group.pv-ing-col-noamt { grid-template-columns: minmax(0, 1fr); }
+/* feine Trennlinien: senkrecht zwischen den beiden Spalten, waagrecht ueber der zweiten Reihe */
+.pp-group:nth-child(even)::before { content: ''; position: absolute; left: -4.5mm; top: 0; bottom: 0; border-left: .25mm solid var(--pv-group-rule); }
+.pp-group:nth-child(n+3) { border-top: .25mm solid var(--pv-group-rule); padding-top: 3mm; }
+.pp-group:nth-child(n+3)::before { top: 3mm; }
+.pv-recipe[data-density^="compact"] .pp-group:nth-child(n+3) { padding-top: 2mm; }
+.pv-recipe[data-density^="compact"] .pp-group:nth-child(even)::before { left: -4mm; }
+/* breite Gruppe: ganze Breite, Zeilen in zwei ausgewogenen Spalten (Platzierung inline aus pdf-templates.js) oder einspaltig */
+.pp-group.pp-wide { grid-column: 1 / -1; }
+.pp-group.pp-wide::before { display: none; }
+.pp-group.pp-wide-2 { grid-template-columns: minmax(var(--pv-amt-w), max-content) minmax(0, 1fr) 5mm minmax(var(--pv-amt-w), max-content) minmax(0, 1fr); row-gap: 2mm; }
+.pp-group.pp-wide-2.pv-ing-col-noamt { grid-template-columns: minmax(0, 1fr) 5mm minmax(0, 1fr); }
+.pv-recipe[data-density^="compact"] .pp-group.pp-wide-2 { row-gap: 1mm; }
+/* drei Gruppenspalten (compact-columns): keine breite Gruppe, Trennlinie nur ueber einer zweiten Reihe */
+.pp-groups.pv-ing-cols3 { grid-template-columns: repeat(3, minmax(0, 1fr)); column-gap: 5mm; }
+.pp-groups.pv-ing-cols3 > .pp-group { column-gap: 1.5mm; }
+.pp-groups.pv-ing-cols3 .pv-ing[data-noamt] .pv-ing-name { grid-column: 1 / -1; }
+.pp-groups.pv-ing-cols3 > .pp-group::before { display: none; }
+.pp-groups.pv-ing-cols3 > .pp-group:nth-child(n+3) { border-top: 0; padding-top: 0; }
+.pp-groups.pv-ing-cols3 > .pp-group:nth-child(n+4) { border-top: .25mm solid var(--pv-group-rule); padding-top: 2mm; }
+.pv-ing-group { grid-column: 1 / -1; font-family: var(--pv-group-font); font-weight: var(--pv-group-weight); font-size: var(--pv-group-size); line-height: var(--pv-group-lh); color: var(--pv-accent); margin: 0 0 .9mm; break-after: avoid; }
+.pv-recipe[data-density^="compact"] .pv-ing-group { margin-bottom: .4mm; }
+/* Zutatenzeile: Menge (fett, nie umbrochen) und Name getrennt ausgerichtet; alle Zeilen einer Gruppe teilen die Mengenspalte (Subgrid).
+   Keine Zellkaestchen, keine Zebrazeilen, kein Tabellenraster. */
+.pv-ing { grid-column: 1 / -1; display: grid; grid-template-columns: subgrid; padding: 0; border: 0; background: transparent; font-size: var(--pv-fs-ing); line-height: var(--pv-lh-ing); break-inside: avoid; }
 .pv-ing-amt { grid-column: 1; font-weight: 700; color: var(--pv-ink); white-space: nowrap; overflow-wrap: normal; word-break: normal; font-variant-numeric: tabular-nums; }
 .pv-ing-name { grid-column: -2 / -1; min-width: 0; overflow-wrap: break-word; word-break: normal; hyphens: none; }
 .pv-ing-note { color: var(--pv-muted); }
-.pv-tpl-prise-pop .pv-ing-note { color: #5F564E; }
 .pv-ing[data-stack] .pv-ing-amt { grid-column: 1 / -1; white-space: normal; }
-.pv-ing[data-stack] .pv-ing-name { grid-column: 1 / -1; }
+.pv-ing[data-stack] .pv-ing-name { grid-column: 1 / -1; margin-top: 1.4mm; }
 .pv-ing[data-uncertain] .pv-ing-name { grid-column: 1 / -1; }
+.pp-group > .pdf-meas { display: grid !important; grid-column: 1 / -1; grid-template-columns: subgrid; }
 @supports not (grid-template-columns: subgrid) {
-  .pv-ing-col { display: block; }
-  .pv-ing { grid-template-columns: minmax(10mm, max-content) minmax(0, 1fr); column-gap: 3mm; }
-  .pv-ing-col-noamt .pv-ing { grid-template-columns: minmax(0, 1fr); }
+  .pp-group, .pp-group > .pdf-meas { display: block !important; }
+  .pv-ing { grid-template-columns: minmax(var(--pv-amt-w), max-content) minmax(0, 1fr); column-gap: 2mm; margin-bottom: 1.1mm; }
+  .pp-group.pv-ing-col-noamt .pv-ing { grid-template-columns: minmax(0, 1fr); }
 }
-.pv-ing-group { font-family: var(--pv-h-font); font-weight: var(--pv-h-weight); color: var(--pv-accent); margin: 2.5mm 0 .8mm; font-size: 12pt; line-height: 1.2; break-after: avoid; }
-.pv-tpl-prise-pop .pv-ing-group { font-size: 14pt; }
-.pv-ing-col > .pv-ing-group:first-child { margin-top: 0; }
-.pv-ing-col > .pdf-meas { display: grid !important; grid-column: 1 / -1; grid-template-columns: subgrid; }
-@supports not (grid-template-columns: subgrid) { .pv-ing-col > .pdf-meas { display: block !important; } }
 
 /* ---------- Zubereitung ---------- */
 .pv-steps { margin: 0; }
-.pv-step { display: grid; grid-template-columns: 11mm minmax(0, 1fr); margin: 0 0 3.6mm; line-height: var(--pv-lh); }
-.pv-step-no { font-family: var(--pv-no-font); font-weight: 700; color: var(--pv-accent); font-size: 17pt; line-height: 1; padding-top: .3mm; font-variant-numeric: tabular-nums; }
-.pv-tpl-prise-pop .pv-step-no { font-weight: 400; width: 8mm; height: 8mm; box-sizing: border-box; border: 1.3pt solid var(--pv-accent); border-radius: 50%; text-align: center; font-size: 12pt; line-height: 1; padding: .35mm 0 0; margin-top: .3mm; }
+.pv-steps > .pv-h { display: flex; align-items: center; justify-content: space-between; gap: 5mm; }
+.pv-step { display: grid; grid-template-columns: var(--pv-step-no-w) minmax(0, 1fr); column-gap: 3mm; margin: 0; padding: 3.5mm 0; border-bottom: .22mm solid var(--pv-rule); line-height: var(--pv-lh); }
+.pv-steps > .pv-step:first-of-type, .pv-steps > .pv-h + .pv-step, .pv-steps > .pdf-meas:first-of-type > .pv-step { padding-top: 0; }
+.pv-steps > .pv-step:last-child { border-bottom: 0; padding-bottom: 0; }
+.pv-cont-page .pv-step { padding-top: 4mm; padding-bottom: 4mm; }
+.pv-recipe[data-density^="compact"] .pv-step { column-gap: 2.5mm; padding-top: 1.8mm; padding-bottom: 1.8mm; }
+.pv-recipe[data-density^="compact"] .pv-steps > .pv-h + .pv-step { padding-top: 0; }
+.pv-recipe[data-density^="compact"] .pv-steps > .pv-step:last-child { padding-bottom: 0; }
+.pv-step-no { font-family: var(--pv-no-font); font-weight: var(--pv-no-weight); font-size: var(--pv-no-size); color: var(--pv-accent); line-height: 1; font-variant-numeric: tabular-nums; align-self: start; }
+/* Prise Pop: Nummernkreis (normal 10 mm, kompakt 7,5 mm), ein- und zweistellige Zahlen mittig */
+.pv-tpl-prise-pop .pv-step-no { width: var(--pv-circle); height: var(--pv-circle); border: .6mm solid var(--pv-accent); border-radius: 50%; display: flex; align-items: center; justify-content: center; line-height: 1; padding: 0 0 5mm; text-align: center; letter-spacing: -.02em; }
+/* html2canvas setzt die Ziffer im Kreis rund 0,45 em tiefer als der Browser (am PDF bei 300 dpi gemessen): Ausgleich ueber den
+   Innenabstand unten (verschiebt die zentrierte Ziffer um die Haelfte nach oben), damit sie im PDF mittig im Kreis steht */
+.pv-recipe[data-density^="compact"].pv-tpl-prise-pop .pv-step-no { padding-bottom: 4mm; }
+.pv-recipe[data-density^="compact"].pv-tpl-prise-pop .pv-step-no { border-width: .45mm; }
 .pv-tpl-prise-pop .pv-step[data-cont] .pv-step-no { border-color: transparent; }
-.pv-tpl-prise-pop .pv-step { margin-bottom: 2.4mm; padding-bottom: 2.2mm; border-bottom: .5pt solid var(--pv-step-rule); }
-.pv-step-text { white-space: pre-line; min-width: 0; overflow-wrap: break-word; }
-.pv-step-heading { font-family: var(--pv-h-font); font-weight: var(--pv-h-weight); color: var(--pv-accent); margin: 4mm 0 2mm; font-size: 12.5pt; line-height: 1.2; break-after: avoid; }
-.pv-tpl-prise-pop .pv-step-heading { font-size: 14pt; }
-.pv-steps > .pv-step-heading:first-of-type, .pv-steps > .pdf-meas:first-of-type > .pv-step-heading { margin-top: 0; }
+.pv-step-body { display: block; min-width: 0; }
+.pv-step-text { display: block; white-space: pre-line; min-width: 0; overflow-wrap: break-word; }
+.pv-step-heading { font: 700 11pt/1.3 var(--pv-font); color: var(--pv-ink); margin: 3mm 0 1.5mm; break-after: avoid; }
+.pv-step-body .pv-step-heading { margin: 0 0 1mm; }
+.pv-steps > .pv-step-heading:first-of-type, .pv-steps > .pv-h + .pv-step-heading, .pv-steps > .pdf-meas:first-of-type > .pv-step-heading { margin-top: 0; }
+/* kleines Tomatendekor nur auf Fortsetzungsseiten von Prise Pop */
+.pv-tomato { display: none; }
+.pv-tpl-prise-pop .pv-tomato { display: block; flex: none; width: 20mm; height: 16mm; background: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='80' viewBox='0 0 100 80' fill='none' stroke='%23B93B2C' stroke-width='3.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M49 26C25 11 13 32 22 51c6 15 17 20 28 19 14 1 27-14 29-29 2-15-13-25-30-15Z'/%3E%3Cpath d='m49 26-12-9 11 2 1-12 5 12 10-3-9 10m-6 0 2 9m36-16 7-8m-7 20 10-1'/%3E%3C/svg%3E") center / 100% 100% no-repeat; }
 
 /* ---------- Hinweise, Notizen, Naehrwerte, Quelle ---------- */
-.pv-extras { margin-top: auto; padding-top: 6mm; }
-.pv-extra { margin: 0 0 3.5mm; break-inside: avoid; }
+.pv-extras { margin-top: auto; padding-top: 0; }
+.pv-extra { margin: 0 0 3mm; break-inside: avoid; }
+.pv-recipe[data-density^="compact"] .pv-extra { margin-bottom: 2mm; }
 .pv-extra p { margin: 0 0 1.5mm; font-size: var(--pv-fs-body); line-height: var(--pv-lh); white-space: pre-line; }
-.pv-extra-more { margin-top: -2.5mm; }
-.pv-tips, .pv-notes { border-top: .6pt solid var(--pv-rule); padding-top: 2.5mm; }
-.pv-tpl-prise-pop .pv-tips, .pv-tpl-prise-pop .pv-notes { background: var(--pv-tip-bg); border-top: 0; border-radius: 5mm; padding: 3.5mm 6mm 2.5mm; }
+.pv-extra-more { margin-top: -2mm; }
+.pv-tips, .pv-notes { background: var(--pv-tip-bg); border-radius: var(--pv-tip-r); padding: 3.5mm 5mm; display: grid; grid-template-columns: 30mm minmax(0, 1fr); column-gap: 3mm; }
+.pv-recipe[data-density^="compact"] .pv-tips, .pv-recipe[data-density^="compact"] .pv-notes { padding: 2.5mm 4mm; }
+.pv-tips .pv-label, .pv-notes .pv-label { grid-column: 1; margin: 0; font-size: var(--pv-tip-size); line-height: 1.15; color: var(--pv-tip-title); }
+.pv-extra-body, .pv-tips > p, .pv-notes > p { grid-column: 2; min-width: 0; }
+.pv-tips p, .pv-notes p { font-size: var(--pv-fs-tip); line-height: 1.4; margin: 0 0 1.2mm; }
+.pv-tips p:last-child, .pv-notes p:last-child { margin-bottom: 0; }
 .pv-extras-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); column-gap: 9mm; align-items: start; }
-.pv-extras-grid .pv-extra { margin-bottom: 0; }
-.pv-extras-grid + .pv-extra, .pv-extras-grid { margin-bottom: 3.5mm; }
-/* Naehrwerte: ein Raster fuer kompakt und erweitert, Zellen brechen nie, fehlende Werte fehlen (nie 0) */
-.pv-nutri { border-top: .6pt solid var(--pv-rule); padding-top: 2.5mm; }
-.pv-tpl-prise-pop .pv-nutri { border-top: 0; padding-top: 0; }
-.pv-nutri .pv-label { margin-bottom: .6mm; }
-.pv-tpl-prise-pop .pv-nutri .pv-label { color: var(--pv-ink); font-size: 12pt; }
-.pv-nut-basis { font-size: var(--pv-fs-small); color: var(--pv-muted); margin: 0 0 2mm; }
-.pv-nut-grid { display: grid; grid-template-columns: repeat(var(--pv-nut-cols, 5), minmax(0, 1fr)); gap: 2mm 3mm; }
+/* Naehrwerte: duenne Linie, Raster mit festen Zellen (fehlende Werte fehlen, nie 0); Prise Pop kompakt als Zeile */
+.pv-nutri { border-top: .2mm solid var(--pv-foot-rule, #DED8CA); padding-top: 2mm; font-size: var(--pv-fs-small); line-height: 1.35; }
+.pv-nutri .pv-label { display: inline; font: 700 9pt/1.35 var(--pv-font); color: var(--pv-ink); margin: 0; }
+.pv-nut-basis { display: inline; font-size: 9pt; color: var(--pv-muted); margin: 0 0 0 1.5mm; }
+.pv-nut-grid { display: grid; grid-template-columns: repeat(var(--pv-nut-cols, 5), minmax(0, 1fr)); gap: 3.2mm 3mm; margin-top: 1.5mm; }
 .pv-nut-cell { min-width: 0; line-height: 1.25; break-inside: avoid; }
-.pv-nut-cell b { font-size: 12pt; font-weight: 700; color: var(--pv-ink); white-space: nowrap; }
-.pv-nut-cell em { font-style: normal; font-size: var(--pv-fs-body); color: var(--pv-muted); white-space: nowrap; }
-.pv-nut-cell i { display: block; font-style: normal; font-size: var(--pv-fs-small); color: var(--pv-muted); margin-top: .3mm; overflow-wrap: normal; }
-.pv-extras-grid .pv-nut-grid { grid-template-columns: minmax(0, 1fr); gap: .8mm 0; }
-.pv-extras-grid .pv-nut-cell { display: flex; align-items: baseline; gap: 1.2mm; border-bottom: .4pt solid rgba(30, 42, 35, .12); padding-bottom: .5mm; }
-.pv-extras-grid .pv-nut-cell i { order: -1; flex: 1; margin: 0; font-size: 9.5pt; color: var(--pv-ink); }
-.pv-extras-grid .pv-nut-cell b { font-size: 10.5pt; } .pv-extras-grid .pv-nut-cell em { font-size: 9.5pt; }
-.pv-small { font-size: var(--pv-fs-small); color: var(--pv-muted); margin-top: 2.5mm; line-height: 1.35; }
-/* Quelle: Beschriftung getrennt vom Text, lange URLs brechen nur in der URL (anywhere), nie normale Woerter */
-.pv-source { display: grid; grid-template-columns: auto minmax(0, 1fr); column-gap: 3mm; align-items: baseline; font-size: var(--pv-fs-small); line-height: 1.35; color: var(--pv-muted); }
-.pv-source .pv-label { margin: 0; font-size: var(--pv-fs-small); color: var(--pv-muted); font-family: var(--pv-font); font-weight: 700; }
+.pv-nut-cell b { font-size: 10.5pt; font-weight: 700; color: var(--pv-ink); white-space: nowrap; }
+.pv-nut-cell em { font-style: normal; font-size: 9pt; color: var(--pv-muted); white-space: nowrap; }
+.pv-nut-cell i { display: block; font-style: normal; font-size: var(--pv-fs-small); color: var(--pv-muted); margin-top: 1.4mm; overflow-wrap: normal; }
+.pv-nutline-row { display: flex; flex-wrap: wrap; gap: 1mm 3mm; font-size: var(--pv-fs-small); line-height: 1.35; }
+.pv-nutline-row b { font-weight: 700; margin: 0; }
+.pv-small { font-size: var(--pv-fs-small); color: var(--pv-muted); margin-top: 1.5mm; line-height: 1.35; padding-bottom: 1mm; }
+/* Quelle: eigener Bereich nach den Schritten, 9 pt, lange URLs brechen nur in der URL */
+.pv-source { display: grid; grid-template-columns: auto minmax(0, 1fr); column-gap: 2mm; align-items: baseline; font-size: var(--pv-fs-source); line-height: 1.4; color: var(--pv-ink); padding-bottom: 1mm; }
+.pv-source .pv-label { margin: 0; font: 700 var(--pv-fs-source)/1.4 var(--pv-font); color: var(--pv-ink); }
+.pv-source .pv-label::after { content: ':'; }
 .pv-source-text { min-width: 0; overflow-wrap: break-word; word-break: normal; }
+.pv-source-text, .pv-url { line-height: 1.9; }
 .pv-url { color: inherit; text-decoration: underline; text-decoration-thickness: .4pt; text-underline-offset: .4mm; overflow-wrap: anywhere; word-break: normal; }
 
-/* ---------- Fusszeile (Seitenzahl setzt jsPDF als Text) ----------
-   Seitenrahmen: eigene reservierte Box unterhalb des Hauptinhalts (Hauptinhalt endet 21 mm ueber dem Seitenrand, die Box liegt
-   zwischen 282,5 und 291,5 mm). Kein overflow:hidden und kein text-overflow: html2canvas setzt Text etwas tiefer als der Browser,
-   ein knapper Clip schnitt die Fusszeile an (siehe tests/test_pdf_kern.py). Zu lange Titel werden in pdf-layout.js (pdfClampText)
-   auf zwei Zeilen begrenzt und mit … gekuerzt. */
-.pv-foot { position: absolute; left: 15mm; right: 30mm; bottom: 5.5mm; height: 9mm; display: flex; align-items: flex-end; font-size: 8.5pt; line-height: 1.3; font-weight: 700; letter-spacing: .04em; color: var(--pv-muted); overflow: visible; }
-.pv-foot span { display: block; max-width: 100%; white-space: normal; overflow-wrap: break-word; }
+/* ---------- Fusszeile ----------
+   Feine Linie ueber die ganze Breite, links Buchtitel/Autor bzw. «Savora» (hoechstens 75 mm breit, max. 2 Zeilen ueber pdfClampText),
+   die Mitte bleibt frei: dort setzt pdf.js «n / K» als Vektortext (105 mm / 290,2 mm). Kein overflow:hidden (Text sitzt im Raster tiefer). */
+.pv-foot { position: absolute; left: 13mm; width: 75mm; bottom: 5.5mm; height: 9mm; display: flex; align-items: flex-end; font-size: 8.5pt; line-height: 1.3; font-weight: 400; color: var(--pv-muted); overflow: visible; }
+.pv-foot span { display: block; max-width: 100%; white-space: normal; overflow-wrap: break-word; padding-bottom: 1.1mm; }
+/* feine Linie ueber dem Fussbereich (Rezeptseiten), als Pseudo-Element: kein Text, kein Bild */
+.pv-recipe::after { content: ''; position: absolute; left: 13mm; right: 13mm; bottom: 14.5mm; border-top: .2mm solid var(--pv-foot-rule, #DED8CA); }
+.pv-tpl-prise-pop { --pv-foot-rule: #DED8CA; } .pv-tpl-pur { --pv-foot-rule: #DDE3D9; }
 
-/* ---------- Fortsetzungsseite ---------- */
-.pv-cont-head { display: flex; justify-content: space-between; align-items: baseline; gap: 6mm; line-height: 1.3; border-bottom: .6pt solid var(--pv-rule); padding-bottom: 2.5mm; margin: 0 0 6mm; overflow: visible; }
-.pv-cont-head span { min-width: 0; white-space: normal; overflow-wrap: break-word; font-family: var(--pv-title-font); font-weight: var(--pv-title-weight); font-size: 17pt; color: var(--pv-title-color); line-height: 1.15; }
-.pv-cont-head i { flex: none; white-space: nowrap; font-style: normal; font-size: var(--pv-fs-small); font-weight: 700; color: var(--pv-muted); }
-.pv-tpl-prise-pop .pv-cont-head { border-bottom: 0; padding-bottom: 0; margin-bottom: 5mm; align-items: center; }
-.pv-tpl-prise-pop .pv-cont-head span { font-size: 18pt; }
-.pv-tpl-prise-pop .pv-cont-head i { background: #FFE07A; color: var(--pv-ink); border-radius: 4mm; padding: .6mm 3.2mm; }
-
-/* Kompakt: unkritische Abstaende etwas enger (Schrift bleibt gleich gross) */
-.pv-tight { padding-top: 12mm; }
-.pv-tight .pv-step { margin-bottom: 2.4mm; } .pv-tight.pv-tpl-prise-pop .pv-step { margin-bottom: 1.6mm; padding-bottom: 1.4mm; }
-.pv-tight .pv-ing { padding-top: .7mm; padding-bottom: .7mm; } .pv-tight .pv-head { margin-bottom: 3.5mm; }
-.pv-tight .pv-ing-panel { margin-bottom: 4.5mm; padding-top: 3mm; } .pv-tight .pv-extras { padding-top: 4mm; }
+/* ---------- Fortsetzungsseite: kleiner Rezepttitel, dezente Marke ---------- */
+.pv-cont-head { display: flex; justify-content: space-between; align-items: baseline; gap: 6mm; margin: 0 0 -1mm; overflow: visible; }
+.pv-cont-head span { min-width: 0; white-space: normal; overflow-wrap: break-word; font-family: var(--pv-cont-font); font-weight: var(--pv-cont-weight); font-size: var(--pv-cont-size); color: var(--pv-cont-color); line-height: 1.2; }
+.pv-cont-head i { flex: none; white-space: nowrap; font-style: normal; font-size: 8.5pt; font-weight: 400; line-height: 1.3; color: var(--pv-ink); background: var(--pv-badge-bg); padding: var(--pv-badge-pad); border-radius: 6mm; }
 
 /* ---------- Inhaltsverzeichnis, Kapitel ---------- */
 .pv-toc { padding-top: 24mm; }
 .pv-toc-title { font-family: var(--pv-title-font); font-weight: var(--pv-title-weight); color: var(--pv-title-color); font-size: 28pt; margin: 0 0 9mm; line-height: 1.1; }
-.pv-toc-chapter { font-family: var(--pv-h-font); font-weight: var(--pv-h-weight); font-size: 12.5pt; color: var(--pv-accent); margin: 6mm 0 1mm; }
-.pv-toc-row { display: flex; align-items: baseline; gap: 3mm; padding: 1.9mm 0; font-size: 11pt; line-height: 1.35; }
-.pv-toc-name { flex: 0 1 auto; max-width: 78%; font-weight: 700; }
+.pv-toc-chapter { font-family: var(--pv-h-font); font-weight: var(--pv-h-weight); font-size: 12.5pt; color: var(--pv-accent); margin: 6mm 0 1mm; padding-bottom: 1mm; }
+.pv-toc-row { display: flex; align-items: baseline; gap: 3mm; padding: 1.9mm 0 2.6mm; font-size: 11pt; line-height: 1.35; }
+.pv-toc-name { flex: 0 1 auto; max-width: 78%; font-weight: 700; position: relative; }
 .pv-toc-dots { flex: 1 1 auto; border-bottom: .5pt dotted var(--pv-muted); min-width: 6mm; transform: translateY(-1mm); }
-.pv-toc-pg { flex: none; font-weight: 700; color: var(--pv-accent); font-variant-numeric: tabular-nums; }
+.pv-toc-pg { flex: none; font-weight: 700; color: var(--pv-accent); font-variant-numeric: tabular-nums; position: relative; }
 .pv-chapter { justify-content: center; padding: 30mm 24mm; }
 .pv-chapter-in { display: block; }
 .pv-chapter-title { font-family: var(--pv-title-font); font-weight: var(--pv-title-weight); color: var(--pv-title-color); font-size: 36pt; margin: 0 0 6mm; line-height: 1.1; }
@@ -184,8 +234,8 @@
 .pdf-tpl-opt b { font-size: 14.5px; } .pdf-tpl-opt small { grid-column: 2; color: var(--text-soft, #765F8C); font-size: 12.5px; }
 .pdf-tpl-opt .pdf-tpl-swatch { grid-row: 1 / 3; width: 34px; height: 44px; border-radius: 4px; border: 1px solid rgba(0,0,0,.15); }
 .pdf-tpl-opt.active { border-color: var(--accent, #6E45A2); box-shadow: 0 0 0 2px var(--accent-soft, rgba(110,69,162,.18)); }
-.pdf-tpl-swatch-pur { background: linear-gradient(180deg, #fff 18%, #1F5A3A 18%, #1F5A3A 24%, #EEF4EC 24%, #EEF4EC 58%, #fff 58%); }
-.pdf-tpl-swatch-prise-pop { background: linear-gradient(180deg, #FFFDF7 14%, #C8321F 14%, #C8321F 22%, #FFE07A 22%, #FFE07A 56%, #FFFDF7 56%, #FFFDF7 80%, #E6DDF6 80%); }
+.pdf-tpl-swatch-pur { background: linear-gradient(180deg, #fff 18%, #2F4A37 18%, #2F4A37 24%, #F0F3ED 24%, #F0F3ED 58%, #fff 58%); }
+.pdf-tpl-swatch-prise-pop { background: linear-gradient(180deg, #FFFDF7 14%, #B93B2C 14%, #B93B2C 22%, #FFE181 22%, #FFE181 56%, #FFFDF7 56%, #FFFDF7 80%, #E8DCF3 80%); }
 .check-row { display: flex; align-items: center; gap: 10px; min-height: 44px; margin: 4px 0 10px; }
 .check-row input { width: 20px; height: 20px; }
 .pdf-preview-meta { flex: 1; margin-left: 10px; color: var(--text-soft, #765F8C); font-size: 13.5px; }
@@ -196,9 +246,9 @@
 #printRoot .pv-cover2 { position: relative; display: block; padding: 0; overflow: hidden; height: 297mm; }
 
 /* Seitenrahmen, Reihenfolge von oben nach unten:
-     Kopfzone    15 mm Seitenrand (12 mm bei .pv-tight), Fortsetzungsseiten zeigen .pv-cont-head (max. 2 Zeilen)
+     Kopfzone    14 mm Seitenrand, Fortsetzungsseiten zeigen .pv-cont-head (max. 2 Zeilen)
      Hauptinhalt Rest bis 276 mm (21 mm Fussbereich unten); nur gegen diesen Bereich wird gemessen und umbrochen
-     Fusszone    282,5 bis 291,5 mm: .pv-foot (links, max. 2 Zeilen) und Seitenzahl (rechts, jsPDF bei 195 mm / 290,2 mm)
+     Fusszone    282,5 bis 291,5 mm: .pv-foot (links, max. 2 Zeilen) und Seitenzahl «n / K» (Mitte, jsPDF bei 105 mm / 290,2 mm)
    Beim Rastern setzt pdf.js die Hoehe der Seite auf exakt 297 mm (Rundungsfehler ausgeschlossen). */
 #printRoot > .pv-page:not(.pv-cover2) { box-sizing: border-box; min-height: 297mm; }
 #printRoot > section { overflow: visible; }
@@ -211,203 +261,3 @@
 .pdf-info-line { margin: 4px 0 0; color: var(--text-soft, #765F8C); font-size: 13.5px; }
 @media (prefers-reduced-motion: no-preference) { .pdf-progress > span { transition: width .18s ease-out; } }
 
-/* ===== «Pur»: Treue zur Vorlage (bilder/01-Pur.png). Nur .pv-tpl-pur, Prise Pop bleibt unberuehrt. =====
-   «Carlito Pur»: dieselben Schriftdateien, nur mit angepassten Zeilenmassen. html2canvas setzt Carlito-Text rund 1,5 mm tiefer als
-   die Textbox des Browsers; mit tieferer Textbox (descent-override) liegt die sichtbare Tinte wieder in der Box. */
-@font-face { font-family: 'Carlito Pur'; font-weight: 400; font-style: normal; font-display: swap; ascent-override: 95.2%; descent-override: 70%; line-gap-override: 0%; src: url(vendor/fonts/carlito-regular.woff2) format('woff2'); }
-@font-face { font-family: 'Carlito Pur'; font-weight: 700; font-style: normal; font-display: swap; ascent-override: 95.2%; descent-override: 70%; line-gap-override: 0%; src: url(vendor/fonts/carlito-bold.woff2) format('woff2'); }
-.pv-tpl-pur {
-  --pv-ink: #1B221E; --pv-title-color: #0F1712; --pv-accent: #1D5232; --pv-muted: #5B645F; --pv-rule: #6A726D; --pv-panel: #E9F1E6;
-  --pv-tsize-s: 44pt; --pv-tsize-m: 34pt; --pv-tsize-l: 30pt; --pv-tsize-xl: 24pt;
-  --pv-fs-body: 13pt; --pv-fs-ing: 12.5pt; --pv-lh: 1.38; --pv-h-size: 21pt; --pv-fs-label: 12pt;
-}
-.pv-tpl-pur.pv-page { padding-top: 14mm; }
-.pv-tpl-pur .pv-title { margin-bottom: 8.5mm; line-height: 1.12; }
-.pv-tpl-pur .pv-pageof { display: none; }
-.pv-tpl-pur .pv-head-top { margin-bottom: 1mm; }
-.pv-tpl-pur .pv-head { padding-bottom: 5mm; margin-bottom: 4mm; border-bottom: .8pt solid var(--pv-rule); }
-.pv-tpl-pur .pv-facts { row-gap: 2mm; }
-.pv-tpl-pur .pv-fact { padding: 0 9mm; border-left: .8pt solid #B5BBB7; line-height: 1.25; }
-.pv-tpl-pur .pv-fact:first-child { padding-left: 0; border-left: 0; }
-.pv-tpl-pur .pv-fact i { font-size: 12.5pt; color: var(--pv-ink); }
-.pv-tpl-pur .pv-fact b { font-size: 17pt; }
-.pv-tpl-pur .pv-photo { border-radius: 1.6mm; }
-.pv-tpl-pur .pv-head-grid { align-items: center; }
-.pv-tpl-pur .pv-h { margin-bottom: 3.5mm; }
-/* Zutaten: Salbeiflaeche, Tabellenoptik (Menge links in eigener Zelle, Name rechts) */
-.pv-tpl-pur .pv-ing-panel { padding: 3mm 4mm 2.4mm; margin: 0 0 5mm; border-radius: .8mm; }
-.pv-tpl-pur .pv-ing-cols { column-gap: 0; }
-.pv-tpl-pur .pv-ing-col { grid-template-columns: minmax(17mm, max-content) minmax(0, 1fr); column-gap: 0; padding-right: 3mm; }
-.pv-tpl-pur .pv-ing-col + .pv-ing-col { padding-right: 0; padding-left: 3mm; border-left: .6pt solid rgba(30, 60, 40, .18); }
-.pv-tpl-pur .pv-ing { padding: 0; border-bottom: .7mm solid var(--pv-panel); background: rgba(255, 255, 255, .6); }
-.pv-tpl-pur .pv-ing-amt { position: relative; font-weight: 400; padding: 0 2.5mm 2.3mm; line-height: 1.22; border-right: .7mm solid var(--pv-panel); }
-.pv-tpl-pur .pv-ing-name { position: relative; padding: 0 2.5mm 2.3mm; line-height: 1.22; }
-.pv-tpl-pur .pv-ing-note { color: var(--pv-ink); }
-.pv-tpl-pur .pv-ing[data-stack] .pv-ing-amt, .pv-tpl-pur .pv-ing[data-uncertain] .pv-ing-name { white-space: normal; }
-.pv-tpl-pur .pv-ing-group { position: relative; z-index: 1; font-size: 15pt; margin: 2mm 0 3.8mm; }
-@supports not (grid-template-columns: subgrid) { .pv-tpl-pur .pv-ing { grid-template-columns: minmax(17mm, max-content) minmax(0, 1fr); column-gap: 0; } }
-/* Zubereitung: grosse Ziffern, Schrittname fett daneben */
-.pv-tpl-pur .pv-steps { border-top: .8pt solid var(--pv-rule); padding-top: 3.5mm; }
-.pv-tpl-pur.pv-cont-page .pv-steps:first-of-type { border-top: 0; padding-top: 0; }
-.pv-tpl-pur .pv-step { grid-template-columns: 15mm minmax(0, 1fr); margin: 0 0 4.4mm; }
-.pv-tpl-pur .pv-step-no { font-size: 30pt; line-height: 1; padding-top: .2mm; }
-.pv-tpl-pur .pv-step-body { display: block; min-width: 0; }
-.pv-tpl-pur .pv-step-body .pv-step-heading { color: var(--pv-ink); font-size: 15pt; margin: 0 0 .6mm; }
-.pv-tpl-pur .pv-step-text { color: #3A423D; }
-.pv-tpl-pur .pv-step-body .pv-step-text { display: block; }
-.pv-tpl-pur .pv-step-heading { color: var(--pv-ink); font-size: 15pt; margin: 3mm 0 1.5mm; }
-/* Fussbereich: Linie, links Hinweise, rechts Naehrwerte als kleine Tabelle */
-.pv-tpl-pur .pv-extras { padding-top: 3mm; }
-.pv-tpl-pur .pv-extras-grid { border-top: .8pt solid var(--pv-rule); padding-top: 3mm; column-gap: 0; grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr); }
-.pv-tpl-pur .pv-extras-l { padding-right: 6mm; }
-.pv-tpl-pur .pv-extras-r { border-left: .6pt solid var(--pv-rule); padding-left: 6mm; }
-.pv-tpl-pur .pv-extras-grid .pv-tips, .pv-tpl-pur .pv-extras-grid .pv-notes, .pv-tpl-pur .pv-extras-grid .pv-nutri { border-top: 0; padding-top: 0; }
-.pv-tpl-pur .pv-extras-grid .pv-label { font-size: 12pt; margin-bottom: .8mm; }
-.pv-tpl-pur .pv-extras-grid .pv-extra p { font-size: 11pt; line-height: 1.35; color: #3A423D; }
-.pv-tpl-pur .pv-nutri .pv-label { display: inline; }
-.pv-tpl-pur .pv-nutri .pv-nut-basis { display: inline; font-size: 12pt; font-weight: 700; color: var(--pv-ink); margin: 0 0 0 1mm; }
-.pv-tpl-pur .pv-nutri .pv-nut-grid { margin-top: 1.2mm; }
-.pv-tpl-pur .pv-extras-grid .pv-nut-cell { border-bottom: 0; padding-bottom: 0; }
-.pv-tpl-pur .pv-extras-grid .pv-nut-cell i { flex: 0 0 46%; font-size: 10pt; color: #3A423D; }
-.pv-tpl-pur .pv-extras-grid .pv-nut-cell b { font-size: 10pt; font-weight: 400; color: #3A423D; }
-.pv-tpl-pur .pv-extras-grid .pv-nut-cell em { font-size: 10pt; color: #3A423D; }
-.pv-tpl-pur .pv-extras-grid + .pv-extra { margin-top: 2mm; }
-/* Fortsetzungsseite */
-.pv-tpl-pur .pv-cont-head { align-items: center; border-bottom: .8pt solid var(--pv-rule); padding-bottom: 4mm; margin-bottom: 5mm; }
-.pv-tpl-pur .pv-cont-head span { font-size: 34pt; line-height: 1.05; }
-.pv-tpl-pur .pv-cont-head i { font-weight: 400; font-size: 10.5pt; color: var(--pv-ink); }
-.pv-tpl-pur .pv-foot { left: 15mm; font-weight: 400; }
-
-/* ===== Prise Pop nach der verbindlichen Vorlage (Savora_PrisePop_Code: DESIGN_SPEC.md und prise-pop.css) =====
-   Masse physisch in mm/pt: Rand oben 14, seitlich 13 (unten 21 mm = 11 mm Rand plus unsere Fusszone), Papier #FFFDF7, Text #252720,
-   Tomatenrot #B93B2C, Zutatenflaeche #FFE181, Hinweise #E8DCF3, Trennlinie #E9CA83, Titel Lilita One 29 pt, Abschnittstitel 17 pt,
-   Fliesstext 10,5 pt/1,42, Zutaten 10 pt/1,35, Foto 58 x 42 mm (contain, Farbform dahinter), zwei Zutatenspalten (9 mm Abstand,
-   Mengenspalte 22 mm), Schrittkreis 10 mm, Hinweise mit 30-mm-Titelspalte. Nur Regeln mit .pv-tpl-prise-pop. */
-.pv-tpl-prise-pop {
-  --pv-bg: #FFFDF7; --pv-ink: #252720; --pv-accent: #B93B2C; --pv-title-color: #B93B2C; --pv-panel: #FFE181; --pv-line: #E9CA83;
-  --pv-tip-bg: #E8DCF3; --pv-purple: #593B7B; --pv-blob: #F6EAD6; --pv-muted: #5F564E;
-  --pv-fs-body: 10.5pt; --pv-fs-ing: 10pt; --pv-lh: 1.42; --pv-h-size: 17pt;
-  --pv-tsize-s: 29pt; --pv-tsize-m: 29pt; --pv-tsize-l: 26pt; --pv-tsize-xl: 22pt;
-}
-.pv-tpl-prise-pop.pv-page { padding: 14mm 13mm 21mm; gap: 5mm; }
-.pv-tpl-prise-pop.pv-tight { padding-top: 14mm; gap: 3.5mm; }
-.pv-tpl-prise-pop .pv-head { margin: 0; position: static; z-index: auto; }
-.pv-tpl-prise-pop .pv-head-grid { grid-template-columns: minmax(0, 1fr); column-gap: 5mm; align-items: center; min-height: 25mm; }
-.pv-tpl-prise-pop.pv-photo-side .pv-head-grid { grid-template-columns: minmax(0, 1fr) 58mm; min-height: 42mm; }
-.pv-tpl-prise-pop.pv-tight .pv-head-grid { min-height: 20mm; }
-.pv-tpl-prise-pop.pv-tight.pv-photo-side .pv-head-grid { min-height: 32mm; }
-.pv-tpl-prise-pop .pv-title { font-size: 29pt; line-height: 1.06; margin: 0 0 3mm; overflow-wrap: break-word; }
-.pv-tpl-prise-pop .pv-title.pv-t-l { font-size: 26pt; } .pv-tpl-prise-pop .pv-title.pv-t-xl { font-size: 22pt; }
-.pv-tpl-prise-pop.pv-tight .pv-title { font-size: 26pt; } .pv-tpl-prise-pop.pv-tight .pv-title.pv-t-xl { font-size: 22pt; }
-.pp-meta { display: flex; flex-wrap: wrap; gap: 1.5mm 5mm; margin: 0; font-size: 10pt; line-height: 1.4; }
-.pv-tpl-prise-pop .pv-photo-wrap { position: relative; width: 58mm; padding: 0; margin: 0; z-index: auto; display: grid; place-items: center; }
-.pv-tpl-prise-pop.pv-photo-side .pv-photo-wrap { margin: 0; }
-.pv-tpl-prise-pop .pv-photo-wrap .pv-blob { display: block; position: absolute; inset: 1mm -1mm; background: var(--pv-blob); border-radius: 49% 51% 42% 58% / 43% 48% 52% 57%; transform: rotate(-5deg); }
-.pv-tpl-prise-pop .pv-photo { position: relative; border-radius: 0; background: transparent; }
-.pv-tpl-prise-pop .pv-spark { display: none; }
-
-/* Ueberschriften */
-.pv-tpl-prise-pop .pv-h { font-size: 17pt; line-height: 1.15; margin: 0 0 3mm; color: var(--pv-accent); }
-.pv-tpl-prise-pop .pv-steps > .pv-h { display: flex; align-items: center; justify-content: space-between; gap: 5mm; position: static; margin-bottom: 3mm; }
-
-/* Zutatenflaeche */
-.pv-tpl-prise-pop .pv-ing-panel { background: var(--pv-panel); border-radius: 6mm 5mm 0 0; position: relative; padding: 5mm 6mm 2mm; margin: 0 0 4mm; z-index: auto; }
-.pv-tpl-prise-pop .pv-wave-t { display: none; }
-.pv-tpl-prise-pop .pv-wave-b { display: block; position: absolute; top: calc(100% - .2mm); bottom: auto; left: 0; right: 0; width: auto; height: 4.2mm; background: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='1000' height='28' viewBox='0 0 1000 28' preserveAspectRatio='none'%3E%3Cpath fill='%23FFE181' d='M0 0H1000V9C965 9 963 27 925 27S888 9 850 9 813 27 775 27 738 9 700 9 663 27 625 27 588 9 550 9 513 27 475 27 438 9 400 9 363 27 325 27 288 9 250 9 213 27 175 27 138 9 100 9 63 27 25 27 0 18 0 9Z'/%3E%3C/svg%3E") center top / 100% 100% no-repeat; }
-.pv-tpl-prise-pop .pp-groups { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); column-gap: 9mm; row-gap: 4mm; position: relative; }
-.pv-tpl-prise-pop .pp-group { position: relative; min-width: 0; break-inside: avoid; display: grid; grid-template-columns: 22mm minmax(0, 1fr); column-gap: 2mm; align-content: start; row-gap: 1.1mm; }
-.pv-tpl-prise-pop .pp-group.pv-ing-col-noamt { grid-template-columns: minmax(0, 1fr); }
-.pv-tpl-prise-pop .pp-group:nth-child(even)::before { content: ''; position: absolute; left: -4.5mm; top: 0; bottom: 0; border-left: .25mm solid #D8B85C; }
-.pv-tpl-prise-pop .pp-group:nth-child(n+3) { border-top: .25mm solid #D8B85C; padding-top: 3mm; }
-.pv-tpl-prise-pop .pp-group:nth-child(n+3)::before { top: 3mm; }
-.pv-tpl-prise-pop .pv-ing-group { font-size: 12.5pt; line-height: 1.2; margin: 0 0 .9mm; color: var(--pv-accent); }
-.pv-tpl-prise-pop .pv-ing-col > .pv-ing-group:first-child { margin-top: 0; }
-.pv-tpl-prise-pop .pv-ing { padding: 0; border: 0; font-size: 10pt; line-height: 1.35; }
-.pv-tpl-prise-pop .pv-ing-amt { font-weight: 700; color: var(--pv-ink); }
-.pv-tpl-prise-pop .pv-ing[data-noamt] .pv-ing-name { font-weight: 400; }
-.pv-tpl-prise-pop .pv-ing-note { color: var(--pv-muted); }
-
-/* Zubereitung */
-.pv-tpl-prise-pop .pv-steps { margin: 0; }
-.pv-tpl-prise-pop .pv-step { grid-template-columns: 11mm minmax(0, 1fr); column-gap: 3mm; margin: 0; padding: 3mm 0; border-bottom: .22mm solid var(--pv-line); }
-.pv-tpl-prise-pop .pv-steps > .pv-step:first-of-type, .pv-tpl-prise-pop .pv-steps > .pdf-meas:first-of-type > .pv-step { padding-top: 0; }
-.pv-tpl-prise-pop .pv-step:last-child { border-bottom: 0; padding-bottom: 0; }
-.pv-tpl-prise-pop.pv-tight .pv-step { padding-top: 2mm; padding-bottom: 2mm; margin: 0; }
-.pv-tpl-prise-pop .pv-step-no { width: 10mm; height: 10mm; border: .6mm solid var(--pv-accent); border-radius: 50%; font-size: 15pt; line-height: 1; padding: 0 0 .9mm; margin: 0; text-align: center; align-self: start; color: var(--pv-accent); }
-.pv-tpl-prise-pop .pv-step[data-cont] .pv-step-no { border-color: transparent; }
-.pv-tpl-prise-pop .pv-step-body { display: block; min-width: 0; }
-.pv-tpl-prise-pop .pv-step-body .pv-step-heading { font: 700 10.8pt/1.3 var(--pv-font); color: var(--pv-ink); margin: 0 0 1mm; }
-.pv-tpl-prise-pop .pv-step-body .pv-step-text { display: block; font-size: 10.5pt; }
-.pv-tpl-prise-pop .pv-step-heading { font: 700 10.8pt/1.3 var(--pv-font); color: var(--pv-ink); margin: 3mm 0 1.5mm; }
-.pv-tomato { display: none; }
-.pv-tpl-prise-pop .pv-tomato { display: block; position: static; flex: none; width: 20mm; height: 16mm; background: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='80' viewBox='0 0 100 80' fill='none' stroke='%23B93B2C' stroke-width='3.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M49 26C25 11 13 32 22 51c6 15 17 20 28 19 14 1 27-14 29-29 2-15-13-25-30-15Z'/%3E%3Cpath d='m49 26-12-9 11 2 1-12 5 12 10-3-9 10m-6 0 2 9m36-16 7-8m-7 20 10-1'/%3E%3C/svg%3E") center / 100% 100% no-repeat; }
-
-/* Hinweise: Lavendel, 30-mm-Titelspalte */
-.pv-tpl-prise-pop .pv-extras { margin-top: auto; padding-top: 0; }
-.pv-tpl-prise-pop .pv-extra { margin: 0 0 3mm; }
-.pv-tpl-prise-pop .pv-tips, .pv-tpl-prise-pop .pv-notes { background: var(--pv-tip-bg); border-radius: 5mm 7mm 4mm 6mm; padding: 3.5mm 5mm; display: grid; grid-template-columns: 30mm minmax(0, 1fr); column-gap: 3mm; border-top: 0; }
-.pv-tpl-prise-pop .pv-tips .pv-label, .pv-tpl-prise-pop .pv-notes .pv-label { grid-column: 1; grid-row: 1 / span 40; margin: 0; font-size: 14pt; line-height: 1.15; color: var(--pv-purple); }
-.pv-tpl-prise-pop .pv-tips .pv-label::after, .pv-tpl-prise-pop .pv-notes .pv-label::after { content: none; }
-.pv-tpl-prise-pop .pv-tips p, .pv-tpl-prise-pop .pv-notes p { grid-column: 2; font-size: 9.2pt; line-height: 1.4; margin: 0 0 1.2mm; }
-.pv-tpl-prise-pop .pv-tips p:last-child, .pv-tpl-prise-pop .pv-notes p:last-child { margin-bottom: 0; }
-.pv-tpl-prise-pop.pv-tight .pv-extra { margin-bottom: 2mm; }
-
-/* Naehrwerte und Quelle als Fussbereich: feine Linie, 8,5 pt */
-.pv-tpl-prise-pop .pv-nutri { border-top: .2mm solid #DED8CA; padding: 2mm 0 0; font-size: 8.5pt; line-height: 1.35; }
-.pv-tpl-prise-pop .pv-leaf { display: none; }
-.pv-tpl-prise-pop .pv-nutline-row { display: flex; flex-wrap: wrap; gap: 1mm 3mm; font-size: 8.5pt; line-height: 1.35; }
-.pv-tpl-prise-pop .pv-nutline-row b { font-weight: 700; margin: 0; }
-.pv-tpl-prise-pop .pv-nutri .pv-label { font: 700 8.5pt/1.35 var(--pv-font); color: var(--pv-ink); margin: 0 0 1mm; }
-.pv-tpl-prise-pop .pv-nutri .pv-small, .pv-tpl-prise-pop .pv-nutri .pv-nut-basis { font-size: 8.5pt; }
-.pv-tpl-prise-pop .pv-nutline .pv-small { margin-top: 1mm; }
-.pv-tpl-prise-pop .pv-nut-cell b { font-size: 10.5pt; }
-.pv-tpl-prise-pop .pv-source { padding-top: 1.5mm; }
-
-/* Fortsetzungskopf: Rezepttitel 15 pt und gelbe Seitenmarkierung */
-.pv-tpl-prise-pop .pv-cont-head { border: 0; padding: 0; margin: 0 0 2mm; align-items: flex-start; }
-.pv-tpl-prise-pop .pv-cont-head span { font-size: 15pt; line-height: 1.2; }
-.pv-tpl-prise-pop .pv-cont-head i { background: var(--pv-panel); color: var(--pv-ink); font-size: 8.5pt; font-weight: 400; line-height: 1.3; padding: 1.3mm 3mm; border-radius: 6mm; }
-.pv-tpl-prise-pop .pv-pageof, .pv-tpl-prise-pop .pv-head-top { display: none; }
-
-.pv-tpl-pur .pv-ing-amt, .pv-tpl-pur .pv-ing-name { font-family: 'Carlito Pur', 'Carlito', Calibri, 'Segoe UI', Arial, sans-serif; }
-.pv-tpl-pur .pv-ing[data-stack] .pv-ing-amt, .pv-tpl-pur .pv-ing[data-uncertain] .pv-ing-name { font-family: var(--pv-font); }
-.pv-tpl-pur .pv-ing[data-stack] .pv-ing-amt { padding-bottom: .2mm; border-right: 0; }
-
-/* Pur, Feinschliff: Gruppenraster zeilenweise, Schriftwirkung an die Vorlage angeglichen */
-.pv-tpl-pur .pv-ing-row + .pv-ing-row { border-top: .6pt solid rgba(30, 60, 40, .22); margin-top: 1mm; padding-top: 1mm; }
-.pv-tpl-pur .pv-ing-row .pv-ing-col:first-child:last-child { grid-column: 1; }
-.pv-tpl-pur.pv-page { padding-bottom: 25mm; }   /* Reserve: html2canvas setzt Text ca. 1,5 mm tiefer, zweizeilige Fusszeile beginnt bei 280,4 mm */
-
-/* Pur, kleine Texte: gleiche Massnahme wie bei den Zutatenzeilen (tiefere Textbox, damit Unterlaengen im Raster nicht aus der Box fallen; Linux-Chromium/html2canvas setzt Text noch tiefer) */
-.pv-tpl-pur .pv-source, .pv-tpl-pur .pv-source .pv-label, .pv-tpl-pur .pv-source-text, .pv-tpl-pur .pv-small, .pv-tpl-pur .pv-cont-head i, .pv-tpl-pur .pv-cat,
-.pv-tpl-pur .pv-extras-grid .pv-nut-cell i, .pv-tpl-pur .pv-extras-grid .pv-nut-cell b, .pv-tpl-pur .pv-extras-grid .pv-nut-cell em { font-family: 'Carlito Pur', 'Carlito', Calibri, 'Segoe UI', Arial, sans-serif; }
-.pv-tpl-pur .pv-source { position: relative; padding-bottom: 1.6mm; }
-.pv-tpl-pur .pv-source .pv-label, .pv-tpl-pur .pv-source-text { position: relative; }
-.pv-tpl-pur .pv-small { padding-bottom: 1mm; }
-
-/* Pur, Inhaltsverzeichnis (Kochbuch): einzeilige Eintraege mit tieferer Textbox (Unterlaengen im Raster), mehr Luft unten */
-.pv-tpl-pur .pv-toc-name, .pv-tpl-pur .pv-toc-pg, .pv-tpl-pur .pv-toc-chapter { font-family: 'Carlito Pur', 'Carlito', Calibri, 'Segoe UI', Arial, sans-serif; position: relative; }
-.pv-tpl-pur .pv-toc-row { padding-bottom: 2.6mm; }
-.pv-tpl-pur .pv-toc-chapter { padding-bottom: 1mm; }
-
-/* ===== Prise Pop: Zeilenmasse gegen tiefer gesetzten Text im Raster (Linux-Chromium/html2canvas) =====
-   Gleiche Massnahme wie bei «Carlito Pur»: dieselben Schriftdateien, nur mit angepassten Zeilenmassen. html2canvas setzt Text tiefer
-   als die Textbox des Browsers; mit hoeherer Ascent und tieferer Textbox (descent-override) liegt die sichtbare Tinte in der Box. */
-@font-face { font-family: 'Public Sans Pop'; font-weight: 100 900; font-style: normal; font-display: swap; ascent-override: 115.75%; descent-override: 50%; line-gap-override: 0%; src: url(public-sans.woff2) format('woff2'); }
-@font-face { font-family: 'Lilita One Pop'; font-weight: 400; font-style: normal; font-display: swap; ascent-override: 92.3%; descent-override: 50%; line-gap-override: 0%; src: url(lilita-one.woff2) format('woff2'); }
-.pv-tpl-prise-pop {
-  --pv-font: 'Public Sans Pop', 'Public Sans', 'Carlito', Arial, sans-serif;
-  --pv-title-font: 'Lilita One Pop', 'Lilita One', 'Public Sans', 'Carlito', Arial, sans-serif;
-  --pv-h-font: var(--pv-title-font); --pv-no-font: var(--pv-title-font);
-}
-.pv-tpl-prise-pop .pv-step-no { padding: 0; }
-/* Prise Pop: Abstaende dort, wo Zeilen verschiedener Textbloecke uebereinander stehen (die hoehere Textbox soll sich nicht ueberlappen) */
-.pv-tpl-prise-pop .pv-nut-cell i { margin-top: 1.4mm; }
-.pv-tpl-prise-pop .pv-nut-grid { row-gap: 3.2mm; }
-.pv-tpl-prise-pop .pv-ing[data-stack] .pv-ing-name { margin-top: 1.4mm; }
-.pv-tpl-prise-pop .pv-source-text, .pv-tpl-prise-pop .pv-url { line-height: 1.9; }
-.pv-tpl-prise-pop .pv-source { padding-bottom: 1mm; }
-
-/* Pur, Linux-Reserve (SAVORA_PDF_TEXT_SHIFT_MM=0.3): Fusszeile, Schritttexte und Hinweisabsaetze mit tieferer Textbox */
-.pv-tpl-pur .pv-foot span, .pv-tpl-pur .pv-step-text, .pv-tpl-pur .pv-extra p { font-family: 'Carlito Pur', 'Carlito', Calibri, 'Segoe UI', Arial, sans-serif; }
-.pv-tpl-pur .pv-extra p { margin-bottom: 2.8mm; }
