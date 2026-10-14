@@ -52,7 +52,7 @@ JS_TAPS = """() => {
   const bad = [];
   const sel = 'button, a[href], [role=button], [role=tab], [role=checkbox], summary, select, input:not([type=hidden]):not([type=checkbox]):not([type=radio]), textarea';
   for (const el of document.querySelectorAll('#app ' + sel.split(', ').join(', #app '))) {
-    if (el.closest('.sr-only') || el.matches('.sr-only')) continue;
+    if (el.closest('.sr-only') || el.matches('.sr-only, .kd-file-input')) continue;
     if (el.matches('.timer-chip, .sheet-handle') || (el.tagName === 'A' && el.closest('.source-line, .legal-card, p'))) continue;   // Zeitgeber im Fliesstext haben eine vergroesserte Trefferflaeche (::before), Textlinks stehen im Satz
     const cs = getComputedStyle(el); if (cs.visibility === 'hidden' || cs.display === 'none') continue;
     const r = el.getBoundingClientRect(); if (!r.width && !r.height) continue;
@@ -137,7 +137,7 @@ async def main():
                     firstRecipe: Math.round(document.querySelector('.rcard, .rrow').getBoundingClientRect().top), stripRow: (() => { const s = document.querySelector('.filter-bar'); if (!s) return null; const kids = Array.from(s.children).map(k => Math.round(k.getBoundingClientRect().top)); return Math.max(...kids) - Math.min(...kids); })() })""")
                 # Handy (unter 768 px): bewusst kein dauerhaftes Suchfeld mehr, sondern ein runder Suchknopf neben «Filter» (kein Knopf oben im Kopf); Tablet/Desktop: ein Suchfeld
                 check(tag + 'Startseite: genau eine Suche (Handy: runder Knopf «Suchen» neben dem Filter, sonst ein Suchfeld), kein Lupen-Knopf oben', ((home['search'] == 0 and home['fields'] == 0 and home['btn']) if w < 768 else (home['search'] == 1 and home['fields'] == 1)) and not home['lupe'], str(home))
-                check(tag + 'Startseite: kein Zahnrad mehr in der Kopfzeile, Einstellungen ueber «Mehr»/«Einstellungen» in der Navigation', not home['gear'] and home['more'] == ('Mehr' if w < 900 else 'Einstellungen'), str(home))
+                check(tag + 'Startseite: kein Zahnrad mehr in der Kopfzeile, Einstellungen ueber «Mehr»/«Einstellungen» in der Navigation', not home['gear'] and home['more'] == 'Mehr', str(home))
                 check(tag + 'Startseite: kein Zwischentitel "Alle Rezepte", kein "Zuletzt bearbeitet"', not home['allTitle'] and not home['recent'], str(home))
                 if w < 768:
                     # seit 0.71.0 (Handy): Titel «Alle Rezepte» ohne Pfeil links, Suchknopf rechts, Filter-Knopf in der Zeile darunter (neben dem Umschalter). Davor 0.70.0: statt Segment «Alle/Favoriten» eine Auswahl «Alle Rezepte» (select #viewSelect in .view-pick) links, Filter-Knopf und Suchknopf rechts davon, alles in einer Zeile

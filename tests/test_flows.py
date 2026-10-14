@@ -177,10 +177,11 @@ async def main():
         check('Einkaufsbereiche, Trennen, eigene Zutat mit Menge', 'Gemüse und Früchte' in sections and len(onion2) == 2 and oj and oj['amount'] == 2 and oj['unit'] == 'l', f"{sections}")
 
         # 13 Altes Backup importieren
-        await show(page, "() => { state.view = 'settings-backup'; render(); }", '#restoreFileInput')
+        await show(page, "() => { state.view = 'settings-backup'; render(); }", '#kontoRestoreInput')
         n0 = await page.evaluate("state.recipes.length")
-        await page.set_input_files('#restoreFileInput', OUT + '/old-backup.json')
-        await page.wait_for_timeout(1500)
+        await page.set_input_files('#kontoRestoreInput', OUT + '/old-backup.json')
+        await page.wait_for_selector('[data-action="konto-import-go"]', timeout=8000)
+        await page.click('[data-action="konto-import-go"]'); await page.wait_for_timeout(1500)
         n1 = await page.evaluate("state.recipes.length")
         # Unveraenderte Rezepte werden nicht doppelt angelegt; das in diesem Test bearbeitete Rezept (Gruppen) bleibt als Kopie erhalten.
         check('13 Altes Backup importierbar (unveränderte Rezepte übersprungen, bearbeitetes bleibt als Kopie)', n1 == n0 + 1, f"{n0} -> {n1}")
@@ -194,9 +195,10 @@ async def main():
         await ctx2.add_init_script(NO_SW)
         p2 = await ctx2.new_page()
         await goto(p2)
-        await show(p2, "() => { state.view = 'settings-backup'; render(); }", '#restoreFileInput')
-        await p2.set_input_files('#restoreFileInput', OUT + '/new-backup.json')
-        await p2.wait_for_timeout(2000)
+        await show(p2, "() => { state.view = 'settings-backup'; render(); }", '#kontoRestoreInput')
+        await p2.set_input_files('#kontoRestoreInput', OUT + '/new-backup.json')
+        await p2.wait_for_selector('[data-action="konto-import-go"]', timeout=8000)
+        await p2.click('[data-action="konto-import-go"]'); await p2.wait_for_timeout(2000)
         n2 = await p2.evaluate("state.recipes.length")
         plan2 = await p2.evaluate("dbGetAllMealplan().then(l => l.reduce((a, d) => a + (d.entries || d.recipeIds || []).length, 0))")
         imgs2 = await p2.evaluate("state.recipes.filter(r => r.image || r.imageId).length")

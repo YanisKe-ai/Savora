@@ -1,6 +1,6 @@
 """Laptop: Platz und Abstaende (ab 1024 px). Prueft bei 1024, 1280, 1440 und 1920 px (Hell) alle Hauptseiten mit Testdaten:
 kein horizontaler Ueberlauf, gleiche Seitenraender auf allen Seiten (mit Seitenleiste), Inhaltsbreite nutzt die Breite
-(mindestens 88 % des Platzes neben der Seitenleiste), gleiche Titelhoehe und Titelgroesse, Abstand Titel zum Inhalt in der
+(mindestens 88 % des Platzes neben der Seitenleiste; Mehr und Einstellungen sind bewusst auf Lesebreite begrenzt), gleiche Titelhoehe und Titelgroesse, Abstand Titel zum Inhalt in der
 Abstandsskala (24 bis 32 px), Raster mit genug Spalten und Karten, Editor und Import mit Haupt- und Seitenspalte.
 Das Handy und das Tablet (unter 1024 px) prueft test_paket42 (phones) pixelgenau."""
 import asyncio, sys, os
@@ -22,7 +22,7 @@ PAGES = {
     'mealplan': ("state.view='mealplan'", True),
     'shopping': ("state.view='shopping'", True),
     'cookbooks': ("state.view='cookbooks'", True),
-    'settings': ("state.view='settings'", True),
+    'more': ("state.view='more'", True),
     'settings-data': ("state.view='settings-data'", False),
     'settings-display': ("state.view='settings-display'", False),
     'detail': ("state.view='detail';state.activeRecipeId='r_legacy_1';state.detailTab='ingredients'", False),
@@ -69,7 +69,11 @@ async def main():
             # 1. kein horizontaler Ueberlauf
             for n, r in res.items(): check(tag + n + ': kein horizontaler Ueberlauf', r['sw'] <= r['W'], f"{r['sw']} > {r['W']}")
             # 2. gleiche Seitenraender (Seitenleiste vorhanden): links und rechts, auf allen Seiten gleich
-            navpages = [n for n in res if n not in NO_NAV]
+            BOUNDED = ('more', 'settings-data', 'settings-display')   # Mehr und Einstellungen: bewusst begrenzte, gut lesbare Breite (40 rem, mit Abschnittsnavigation 58 rem), mittig
+            navpages = [n for n in res if n not in NO_NAV and n not in BOUNDED]
+            for n in BOUNDED:
+                cwb = res[n]['right'] - res[n]['left']
+                check(tag + n + ': begrenzte Lesebreite (hoechstens 58 rem), mittig', cwb <= 929 and abs((res[n]['left'] - NAV) - (res[n]['W'] - res[n]['right'])) <= 2, f"{round(cwb)} L{round(res[n]['left'] - NAV)} R{round(res[n]['W'] - res[n]['right'])}")
             lefts = {n: round(res[n]['left'] - NAV, 1) for n in navpages}
             rights = {n: round(res[n]['W'] - res[n]['right'], 1) for n in navpages}
             check(tag + 'Seitenrand links auf allen Seiten gleich (' + str(round(gutter)) + ' px)', max(lefts.values()) - min(lefts.values()) <= 1 and abs(min(lefts.values()) - gutter) <= 1.5, str(lefts))
@@ -82,7 +86,7 @@ async def main():
                 cw = res[n]['right'] - res[n]['left']
                 check(tag + n + ': Inhaltsbreite mind. 85 % der Fensterbreite (ohne Seitenleiste)', cw >= 0.85 * w and res[n]['left'] >= gutter - 1, f"{round(cw)} von {w}, Rand {round(res[n]['left'])}")
             # 4. Titelhoehe und Titelgroesse gleich auf den Hauptseiten
-            tp = [n for n in ('home', 'home-list', 'mealplan', 'shopping', 'cookbooks', 'settings', 'empty-home', 'empty-shopping', 'empty-mealplan', 'empty-cookbooks') if res[n]['title']]
+            tp = [n for n in ('home', 'home-list', 'mealplan', 'shopping', 'cookbooks', 'more', 'empty-home', 'empty-shopping', 'empty-mealplan', 'empty-cookbooks') if res[n]['title']]
             tops = {n: round(res[n]['title']['top'], 1) for n in tp}; fss = {n: res[n]['title']['fs'] for n in tp}
             check(tag + 'Seitentitel auf allen Hauptseiten gleich hoch', max(tops.values()) - min(tops.values()) <= 1, str(tops))
             check(tag + 'Seitentitel auf allen Hauptseiten gleich gross (40 px)', set(fss.values()) == {40.0}, str(fss))

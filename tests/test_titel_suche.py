@@ -14,9 +14,9 @@ def check(name, cond, info=''):
 
 SHOTS = os.environ.get('SAVORA_SHOTS_DIR')
 PHONES = [(320, 640), (390, 844), (430, 932)]
-VIEWS = ['home', 'mealplan', 'shopping', 'cookbooks', 'settings']
-SEL = {'home': '.view-pick .inline-pick-text', 'mealplan': '.page-title', 'shopping': '.page-title', 'cookbooks': '.page-title', 'settings': '.page-title'}
-WORDS = {'home': 'Alle Rezepte', 'mealplan': 'Wochenplan', 'shopping': 'Einkaufsliste', 'cookbooks': 'Kochbücher', 'settings': 'Mehr'}
+VIEWS = ['home', 'mealplan', 'shopping', 'cookbooks', 'more']
+SEL = {'home': '.view-pick .inline-pick-text', 'mealplan': '.page-title', 'shopping': '.page-title', 'cookbooks': '.page-title', 'more': '.page-title'}
+WORDS = {'home': 'Alle Rezepte', 'mealplan': 'Wochenplan', 'shopping': 'Einkaufsliste', 'cookbooks': 'Kochbücher', 'more': 'Mehr'}
 MEASURE = """(args) => { const [v, sel] = args; state.view = v; state.query = ''; state.searchOpen = false; state.modal = null; render(); window.scrollTo(0, 0);
   const e = document.querySelector(sel); if (!e) return null; const r = document.createRange(); r.selectNodeContents(e); const q = r.getBoundingClientRect(); const cs = getComputedStyle(e);
   const row = e.closest('.page-title-row, .filter-bar').getBoundingClientRect(); const wm = document.querySelector('.top-wordmark').getBoundingClientRect();
@@ -57,11 +57,11 @@ async def main():
             # Favoriten-Ansicht: gleicher Titelort
             await ev(STATE_RESET); await ev("() => { state.favOnly = true; render(); }")
             fv = await ev("() => { const e = document.querySelector('.view-pick .inline-pick-text'); const r = document.createRange(); r.selectNodeContents(e); const q = r.getBoundingClientRect(); return { t: e.textContent.trim(), top: q.top, bottom: q.bottom }; }")
-            check(tag + 'Titel bleibt bei aktiven Favoriten «Alle Rezepte» (ohne Pfeil), auf gleicher Hoehe', fv['t'] == 'Alle Rezepte' and abs(fv['top'] - res['settings']['top']) <= 1 and abs(fv['bottom'] - res['settings']['bottom']) <= 1, str(fv))
+            check(tag + 'Titel bleibt bei aktiven Favoriten «Alle Rezepte» (ohne Pfeil), auf gleicher Hoehe', fv['t'] == 'Alle Rezepte' and abs(fv['top'] - res['more']['top']) <= 1 and abs(fv['bottom'] - res['more']['bottom']) <= 1, str(fv))
             await ev(STATE_RESET)
             # Mehrere Seiten wechseln: Titel verspringt nicht (Klick durch die Tabs)
             seq = []
-            for i, v in enumerate(['home', 'mealplan', 'shopping', 'cookbooks', 'settings']):
+            for i, v in enumerate(['home', 'mealplan', 'shopping', 'cookbooks', 'more']):
                 await page.click(f'.bottom-nav button:nth-child({i + 2})'); await page.wait_for_timeout(250)
                 seq.append(await ev("(s) => { const e = document.querySelector(s); const r = document.createRange(); r.selectNodeContents(e); return r.getBoundingClientRect().top; }", SEL[v]))
             check(tag + 'Beim Wechseln zwischen den Tabs verspringt der Titel nicht', max(seq) - min(seq) <= 1, str([round(t, 1) for t in seq]))
@@ -126,11 +126,11 @@ async def main():
         await page.keyboard.press('Escape'); await page.wait_for_timeout(200)
         dk = await ev("() => { const b = getComputedStyle(document.getElementById('searchBtn')); return { c: b.color, bg: b.backgroundColor }; }")
         check('Dunkel: aktiver Suchknopf lesbar (Kontrast Symbol zu Grund mindestens 4.5)', True, str(dk))
-        for v in ['mealplan', 'shopping', 'cookbooks', 'settings']:
+        for v in ['mealplan', 'shopping', 'cookbooks', 'more']:
             await ev("(v) => { state.view = v; render(); window.scrollTo(0, 0); }", v); await page.wait_for_timeout(150)
             await shot(page, v + '_dunkel.png')
         await ev("() => { state.theme = 'light'; applyTheme(); }"); await page.wait_for_timeout(200)
-        for v in ['mealplan', 'shopping', 'cookbooks', 'settings']:
+        for v in ['mealplan', 'shopping', 'cookbooks', 'more']:
             await ev("(v) => { state.view = v; render(); window.scrollTo(0, 0); }", v); await page.wait_for_timeout(150)
             await shot(page, v + '_hell.png')
         check('Keine Skriptfehler (Suche)', not errs, str(errs[:2]))

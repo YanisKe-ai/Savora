@@ -29,18 +29,22 @@ async def click(page, sel, wait=350):
     await page.evaluate("(s) => { const e = document.querySelector(s); if (!e) throw new Error('fehlt ' + s); e.click(); }", sel)
     await page.wait_for_timeout(wait)
 async def login(page, email):
-    await show(page, "() => { state.modal = null; state.view = 'settings-sync'; render(); }", '#cloudEmail')
+    await show(page, "() => { state.modal = null; state.view = 'settings-account'; render(); }", '#cloudEmail')
     await page.fill('#cloudEmail', email); await page.fill('#cloudPassword', 'geheim-123')
     await click(page, '[data-action="cloud-sign-in"]')
     await page.wait_for_timeout(1500)
 def add_user(email):
     M.USERS[email] = {'id': str(uuid.uuid4()), 'password': 'geheim-123', 'confirmed': True}
-async def open_share(page):
-    await page.evaluate("() => { if (document.activeElement) document.activeElement.blur(); state.modal = null; share.ui.tab = undefined; state.view = 'settings-share'; render(); }")
+async def open_share(page, tab='inbox'):
+    await page.evaluate("(t) => { if (document.activeElement) document.activeElement.blur(); state.modal = null; share.ui.tab = t; state.view = 'friends'; render(); }", tab)
     await page.wait_for_timeout(900)
-async def open_manage(page):
-    """«Freunde verwalten» ist eingeklappt (Entfernen, Entsperren): fuer Pruefungen dieser Knoepfe aufklappen."""
-    await page.evaluate("() => { share.ui.manage = true; share.ui.tab = 'friends'; render(); }"); await page.wait_for_timeout(200)
+async def open_add(page):
+    """Seite «Freund hinzufügen» (Route friends-add): Eingabe und eigener Einladungscode."""
+    await page.evaluate("() => { if (document.activeElement) document.activeElement.blur(); state.modal = null; state.view = 'friends-add'; render(); }")
+    await page.wait_for_selector('#shareTarget', state='attached', timeout=8000); await page.wait_for_timeout(300)
+async def open_profile(page):
+    await page.evaluate("() => { if (document.activeElement) document.activeElement.blur(); state.modal = null; state.view = 'friends-profile'; render(); }")
+    await page.wait_for_selector('#shareHandle', state='attached', timeout=8000); await page.wait_for_timeout(300)
 async def text(page, sel='body'): return await page.evaluate("(s) => (document.querySelector(s) || {innerText: ''}).innerText", sel)
 async def make_profile(page, handle, name):
     await open_share(page)
@@ -59,6 +63,7 @@ async def main():
         await open_share(px)
         t = await text(px)
         check('Ohne Konto: Freunde-Seite erklaert, dass ein Konto noetig ist', 'Konto' in t and not await px.evaluate("!!document.querySelector('#shareHandle')"), t[:120])
+        check('Ohne Konto: Seitentitel «Freunde & Rezepte», kein «Socialize»', await px.evaluate("document.querySelector('.topbar-title').textContent") == 'Freunde & Rezepte' and 'Socialize' not in await px.evaluate("document.body.innerText"))
         check('Ohne Konto: kein Cloud-Verkehr', len(M.LOG) == 0, str(M.LOG[:3]))
         await bX.close()
 
@@ -74,7 +79,7 @@ async def main():
         await pa.wait_for_timeout(300)
         check('Mit Konto: keine Sicherungs-Erinnerung', await pa.evaluate("!document.querySelector('.nudge-card') && backupNudgeInfo() === null"))
         await pa.evaluate("() => { state.view = 'settings-backup'; render(); }")
-        check('Mit Konto: Sicherungsseite sagt, dass keine Sicherung noetig ist', 'keine Sicherung erstellen' in await text(pa, 'main'))
+        check('Mit Konto: Sicherungsseite erklaert ehrlich Abgleich und Sicherungsdatei (kein pauschales «keine Sicherung noetig»)', 'Abgleich oder Sicherung?' in await text(pa, 'main') and 'keine Sicherung erstellen' not in await text(pa, 'main'))
 
         # 3. Profil anlegen
         await open_share(pa)
@@ -85,24 +90,25 @@ async def main():
         await make_profile(pb, 'berta', 'Berta')
         pr = await pa.evaluate("share.profile")
         check('Profil angelegt mit Einladungscode', pr and pr['handle'] == 'yanis_kocht' and pr['invite_code'].startswith('SAV-'), str(pr))
-        await pb.evaluate("() => { state.view = 'settings-share'; render(); }"); await pb.wait_for_timeout(300)
+        await open_profile(pb)
         await pb.fill('#shareHandle', 'yanis_kocht'); await click(pb, '[data-action="share-profile-save"]', 600)
         check('Doppelter Profilname wird abgewiesen', 'schon vergeben' in await text(pb, '#shareError'))
 
         # 4. Verbinden: Anfrage, Bestaetigung
-        await open_share(pa)
+        await open_add(pa)
         await pa.fill('#shareTarget', '@Berta'); await click(pa, '[data-action="share-connect"]', 900)
-        check('Anfrage gesendet, wartet auf Bestaetigung', 'wartet auf Bestätigung' in await text(pa, 'main'))
+        check('Anfrage gesendet, danach Reiter Freunde mit «Wartet auf Bestätigung»', 'Wartet auf Bestätigung' in await text(pa, 'main') and await pa.evaluate("state.view === 'friends'"))
         send_before = await pa.evaluate("shareRpc('savora_send', {p_handle:'berta', p_recipe:{title:'X'}, p_image:null, p_message:null}).then(() => 'ok', e => e.message)")
         check('Vor der Bestaetigung kann nichts gesendet werden', 'nicht verbunden' in send_before, send_before)
         await pb.evaluate("shareCheckCount()"); await pb.wait_for_timeout(900)   # die automatische Abfrage meldet die neue Anfrage
-        await open_share(pb)
-        check('B sieht die Anfrage', 'möchte sich mit dir verbinden' in await text(pb, 'main'))
+        await open_share(pb, 'inbox')
+        check('B sieht den Hinweis auf die offene Anfrage im Reiter Empfangen', '1 offene Anfrage' in await text(pb, 'main'))
+        await open_share(pb, 'friends')
+        check('B sieht die Anfrage (eingehend)', 'möchte sich mit dir verbinden' in await text(pb, 'main') and 'Eingehend' in await text(pb, 'main'))
         await click(pb, '[data-action="share-respond"][data-answer="accept"]', 900)
-        await open_manage(pb)
-        check('B nimmt an: verbunden', M.CONNS and 'accepted' in M.CONNS.values() and 'Entfernen' in await text(pb, 'main'))
-        await open_share(pa); await open_manage(pa)
-        check('A sieht die Verbindung', 'Entfernen' in await text(pa, 'main') and 'wartet auf' not in await text(pa, 'main'))
+        check('B nimmt an: verbunden', M.CONNS and 'accepted' in M.CONNS.values() and 'Verwalten' in await text(pb, 'main'))
+        await open_share(pa, 'friends')
+        check('A sieht die Verbindung', 'Verwalten' in await text(pa, 'main') and 'Wartet auf' not in await text(pa, 'main'))
 
         # 5. Rezept senden (mit Bild und Nachricht)
         n_a = await pa.evaluate("state.recipes.length")
@@ -112,6 +118,11 @@ async def main():
         modal_text = await text(pa, '.modal-sheet')
         check('Senden-Fenster zeigt Freund und Hinweis auf Kopie', 'Berta' in modal_text and 'Kopie' in modal_text, modal_text[:150])
         await pa.fill('#shareMessage', 'Probier das mal!')
+        n_sh = len(M.SHARES)
+        await click(pa, '[data-action="share-send"]', 500)
+        check('Ohne gewaehlten Empfaenger wird nichts gesendet', len(M.SHARES) == n_sh and 'Empfänger' in await text(pa, '#shareError'))
+        await click(pa, 'input[name="shareTo"]', 100)
+        check('Auswaehlen des Empfaengers sendet noch nichts', len(M.SHARES) == n_sh)
         await click(pa, '[data-action="share-send"]', 1200)
         check('Rezept liegt serverseitig im Posteingang von B', len(M.SHARES) == 1 and list(M.SHARES.values())[0]['message'] == 'Probier das mal!' and list(M.SHARES.values())[0]['image'] is not None)
         sh = list(M.SHARES.values())[0]['recipe']
@@ -121,14 +132,14 @@ async def main():
         # 6. B: Posteingang, Vorschau, noch nichts im Kochbuch
         n_b = await pb.evaluate("state.recipes.length")
         await pb.evaluate("shareCheckCount()"); await pb.wait_for_timeout(1000)
-        await pb.evaluate("() => { state.view = 'settings'; render(); }")
-        check('B: Einstellungen zeigen "1 neu"', '1 neu' in await text(pb, 'main'), (await text(pb, 'main'))[:200])
+        await pb.evaluate("() => { state.view = 'more'; render(); }")
+        check('B: Mehr zeigt "1 neu" an Freunde & Rezepte', '1 neu' in await text(pb, 'main'), (await text(pb, 'main'))[:200])
         await open_share(pb)
         inbox_t = await text(pb, 'main')
         check('B: Posteingang zeigt Absender, Titel und Nachricht', 'Yanis' in inbox_t and 'Probier das mal!' in inbox_t)
         await click(pb, '[data-action="share-open-preview"]', 1200)
         pt = await text(pb, 'main')
-        check('Vorschau zeigt Titel, Zutaten, Zubereitung', 'Zutaten' in pt and 'Zubereitung' in pt and 'Ins Kochbuch übernehmen' in pt, pt[:160])
+        check('Vorschau zeigt Titel, Zutaten, Zubereitung', 'Zutaten' in pt and 'Zubereitung' in pt and 'In meine Rezepte übernehmen' in pt, pt[:160])
         check('Vorschau zeigt das Bild', await pb.evaluate("!!document.querySelector('.share-preview-img') && document.querySelector('.share-preview-img').src.startsWith('data:image')"))
         check('Vorschau uebernimmt nichts ins Kochbuch', await pb.evaluate("state.recipes.length") == n_b)
 
@@ -187,21 +198,23 @@ async def main():
         pr_b = await pb.evaluate("share.profile.invite_code")
         M.PROFILES['fake-dora'] = {'handle': 'dora', 'display_name': 'Dora', 'invite_code': 'SAV-ZZZZ-2222'}
         await pb.goto(URL + '?freund=SAV-ZZZZ-2222'); await pb.wait_for_function("typeof state !== 'undefined'")
-        await pb.wait_for_function("state.view === 'settings-share'", timeout=8000)
+        await pb.wait_for_function("state.view === 'friends-add'", timeout=8000)
         await pb.wait_for_selector('#shareTarget', state='attached', timeout=8000)
-        check('Einladungslink oeffnet Freunde-Seite mit vorausgefuelltem Code', await pb.evaluate("document.getElementById('shareTarget').value") == 'SAV-ZZZZ-2222' and 'freund=' not in await pb.evaluate("location.search"))
+        check('Einladungslink oeffnet «Freund hinzufügen» mit vorausgefuelltem Code', await pb.evaluate("document.getElementById('shareTarget').value") == 'SAV-ZZZZ-2222' and 'freund=' not in await pb.evaluate("location.search"))
         await click(pb, '[data-action="share-connect"]', 900)
         bid = M.USERS['berta@example.test']['id']
         check('Anfrage ueber Einladungscode (Profil dora)', M.CONNS.get((bid, 'fake-dora')) == 'pending')
 
         # 12. Blockieren und Entfernen
-        await open_share(pb); await open_manage(pb)
-        await click(pb, '[data-action="share-remove"][data-id="yanis_kocht"]', 900)
+        await open_share(pb, 'friends')
+        await click(pb, '[data-action="friend-manage"][data-id="yanis_kocht"]', 500)
+        check('Verwalten zeigt die Folgen vor dem Entfernen', 'Noch nicht übernommene Rezepte' in await text(pb, '.modal-sheet'))
+        await click(pb, '[data-action="share-remove"][data-id="yanis_kocht"]', 1200)
         check('Verbindung entfernen', 'yanis_kocht' not in await text(pb, 'main'))
         e = await pa.evaluate("shareRpc('savora_send', {p_handle:'berta', p_recipe:{title:'X'}, p_image:null, p_message:null}).then(() => 'ok', e => e.message)")
         check('Nach dem Entfernen kein Senden mehr', 'nicht verbunden' in e, e)
         await pa.evaluate("shareRpc('savora_connect', {p_target:'berta'})"); await pb.evaluate("shareRefresh()"); await pb.wait_for_timeout(500)
-        await open_share(pb)
+        await open_share(pb, 'friends')
         await click(pb, '[data-action="share-respond"][data-answer="block"]', 900)
         e = await pa.evaluate("shareRpc('savora_connect', {p_target:'berta'}).then(() => 'ok', e => e.message)")
         check('Blockiert: A findet B nicht mehr', 'nicht gefunden' in e, e)
