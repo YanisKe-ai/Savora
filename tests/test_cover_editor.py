@@ -283,13 +283,35 @@ async def main():
         pv = await box(page, '.ce-preview'); f0 = await fld(page, 'title'); sy0 = await ev("() => window.scrollY")
         fb = await box(page, '.ce-frame[data-fr="title"]')
         mid = (pv['x'] + pv['w'] / 2, pv['y'] + pv['h'] * 0.7)
-        await cdp.send('Input.synthesizeScrollGesture', {'x': mid[0], 'y': mid[1], 'yDistance': -200, 'gestureSourceType': 'touch', 'speed': 800})
-        await page.wait_for_timeout(300)
-        # Wisch auf dem Rahmen selbst (ausserhalb der Griffe)
-        await cdp.send('Input.synthesizeScrollGesture', {'x': fb['x'] + fb['w'] / 2, 'y': fb['y'] + fb['h'] / 2, 'yDistance': -150, 'gestureSourceType': 'touch', 'speed': 800})
-        await page.wait_for_timeout(300)
-        f1 = await fld(page, 'title'); sy1 = await ev("() => window.scrollY")
-        check('Touch: Wischen über Vorschau und Rahmen scrollt die Seite und verschiebt kein Feld', f1 == f0 and sy1 != sy0, f'{f0} {f1} {sy0} {sy1}')
+        fmid = (fb['x'] + fb['w'] / 2, fb['y'] + fb['h'] / 2)   # Rahmen selbst (ausserhalb der Griffe)
+        # Was das Scrollen auf dem iPhone tatsaechlich verhindern koennte: touch-action ohne pan-y unter dem Finger (inkl. Vorfahren)
+        # oder ein abgebrochenes touchstart/touchmove. Beides wird direkt gemessen (plattformunabhaengig).
+        ta = await ev("""(pts) => pts.map(([x, y]) => { const bad = []; let e = document.elementFromPoint(x, y); const hit = e ? e.className : null;
+            while (e) { const t = getComputedStyle(e).touchAction; if (t === 'none' || (t !== 'auto' && t !== 'manipulation' && !/pan-y/.test(t))) bad.push(e.className + ':' + t); e = e.parentElement; } return { hit, bad }; })""", [mid, fmid])
+        check('Touch: unter Vorschau und Rahmen erlaubt touch-action das senkrechte Scrollen (kein none, kein pan-x allein)', all(not t['bad'] for t in ta) and all('ce-grip' not in str(t['hit']) for t in ta), str(ta))
+        await ev("""() => { window.__tp = []; for (const k of ['touchstart', 'touchmove']) window.addEventListener(k, (e) => { if (e.defaultPrevented) window.__tp.push(k); }, { passive: false }); }""")
+        async def swipe_synth(x, y, dist):
+            await cdp.send('Input.synthesizeScrollGesture', {'x': x, 'y': y, 'yDistance': dist, 'gestureSourceType': 'touch', 'speed': 800}); await page.wait_for_timeout(300)
+        async def swipe_touch(x, y, dist):   # Finger-Wisch aus einzelnen Touch-Ereignissen (wie beim Griff-Test unten, der auf Linux funktioniert)
+            await cdp.send('Input.dispatchTouchEvent', {'type': 'touchStart', 'touchPoints': [{'x': x, 'y': y}]})
+            for i in range(1, 11): await cdp.send('Input.dispatchTouchEvent', {'type': 'touchMove', 'touchPoints': [{'x': x, 'y': y + dist / 10 * i}]})
+            await cdp.send('Input.dispatchTouchEvent', {'type': 'touchEnd', 'touchPoints': []}); await page.wait_for_timeout(400)
+        # Auf dem Mac scrollt Input.synthesizeScrollGesture (touch); in der Linux-CI blieb die Seite damit stehen (179 -> 179), obwohl die App
+        # nichts blockiert. Daher zusaetzlich ein Finger-Wisch aus Touch-Ereignissen; je Methode zweite Messung: kein Feld verschoben.
+        moved = {}
+        for meth, fn in (('synthesizeScrollGesture', swipe_synth), ('dispatchTouchEvent', swipe_touch)):
+            await ev("() => window.scrollTo(0, 120)"); await page.wait_for_timeout(250)
+            pv = await box(page, '.ce-preview'); fb = await box(page, '.ce-frame[data-fr="title"]'); sa = await ev("() => window.scrollY")
+            await fn(pv['x'] + pv['w'] / 2, pv['y'] + pv['h'] * 0.7, -200)
+            sb = await ev("() => window.scrollY"); fb2 = await box(page, '.ce-frame[data-fr="title"]')
+            if fb2['y'] < 0 or fb2['y'] + fb2['h'] > 844: fb2 = fb   # Rahmen nicht mehr im Bild: an alter Stelle wischen (Seite zurueckgesetzt)
+            await fn(fb2['x'] + fb2['w'] / 2, fb2['y'] + fb2['h'] / 2, -150)
+            sc = await ev("() => window.scrollY"); fx = await fld(page, 'title')
+            moved[meth] = {'scroll': [sa, sb, sc], 'feld_unveraendert': fx == f0}
+            if sb == sa and sc == sb: print(f'INFO Touch: {meth} scrollt in diesem Browser nicht', [sa, sb, sc])
+        f1 = await fld(page, 'title'); tp = await ev("() => window.__tp")
+        scrolled = any(m['scroll'][1] > m['scroll'][0] or m['scroll'][2] > m['scroll'][1] for m in moved.values())
+        check('Touch: Wischen über Vorschau und Rahmen scrollt die Seite und verschiebt kein Feld', scrolled and f1 == f0 and all(m['feld_unveraendert'] for m in moved.values()) and not tp, f'{f0} {f1} {moved} abgebrochen={tp}')
         await ev("() => window.scrollTo(0, 0)"); await page.wait_for_timeout(300)
         g = await box(page, '.ce-grip--move'); pv = await box(page, '.ce-preview'); b0 = await ev("() => ceBoxes().title")
         gx, gy = g['x'] + g['w'] / 2, g['y'] + g['h'] / 2

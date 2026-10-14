@@ -3031,3 +3031,8 @@ main.settings-page.kd-page { max-width: 40rem; padding-bottom: 2rem; }
 .ce-chip.is-on { border-color: var(--text); box-shadow: inset 0 0 0 1px var(--text); }
 .ce-range input[type="range"] { accent-color: var(--text); }
 .ce-tabswrap, .ce-mode, .ce-field { scroll-margin-top: 0.5rem; }
+/* Cover-Editor: schmale Bildschirme mit grosser Systemschrift (360 px, 24 px) - die Spalte richtet sich nach der Seite, nicht nach dem breitesten Inhalt; Knopfreihen brechen um statt seitlich ueberzulaufen (Tippflaechen bleiben 44 px) */
+.cover-picker.ce { grid-template-columns: minmax(0, 1fr); }
+.ce-mode, .ce-tabs { flex-wrap: wrap; }
+.ce-status-text { min-width: 0; overflow-wrap: anywhere; }
+.cover-picker.ce label, .cover-picker.ce .ce-h { min-width: 0; overflow-wrap: anywhere; hyphens: auto; }

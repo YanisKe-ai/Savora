@@ -5,8 +5,8 @@ Logo-Positionen und -Varianten, Vorlage mit Abweichungen und (sobald vorhanden) 
 Je Fall: Titelseite mit pdftoppm -r 72 gerendert und mit dem Vorschau-Canvas (coverRenderCanvas, gleiches Layout) verglichen,
 keine leere Seite, kein Rasterbeschnitt an den Seitenkanten, keine Editor-Elemente im PDF, Textlayer (pdftotext) enthaelt alle Texte,
 Bildseitenverhaeltnis im PDF gemessen. Export-Sperre bei cut/outside und fehlendem Bild: Fehlermeldung, kein PDF.
-v1-Cover: pixelgleich zum Stand vor dem Editor (Referenzbilder tests/data/cover_v1_*.png aus Commit REF_COMMIT; wenn die Git-Historie
-da ist, zusaetzlich live gegen diesen Stand gerendert).
+v1-Cover: pixelgleich zum Stand vor dem Editor, live im selben Browser gegen Commit REF_COMMIT gerendert (braucht die Git-Historie);
+auf dem Mac zusaetzlich gegen die dort erzeugten Referenzbilder tests/data/cover_v1_*.png (Linux rastert Schrift anders).
 Neu erzeugen: SAVORA_COVER_REF_REGEN=1. Beispiel-PDFs: SAVORA_COVER_BEISPIELE=<Ordner>. Neutrale Testdaten."""
 import asyncio, base64, io, json, os, re, shutil, subprocess, sys, tempfile
 os.environ.setdefault('SAVORA_TEST_PORT', '8995')
@@ -54,13 +54,18 @@ async def setup_book(ev, title, subtitle, author, cover):
         c.title = a.title; c.subtitle = a.subtitle; c.author = a.author; c.showLogo = true; c.cover = a.cover; saveCookbookConfig(c); }""",
              {'title': title, 'subtitle': subtitle, 'author': author, 'cover': cover})
 
-async def ui_export(page):
-    """Echte Oberflaeche: Schritt 3 -> «PDF-Vorschau erstellen» -> «PDF erstellen». Liefert (pdf-bytes|None, fehlertext)."""
+async def ui_export(page, print_name=None, pdf_name=None):
+    """Echte Oberflaeche: Schritt 3 -> «PDF-Vorschau erstellen» -> «PDF erstellen». Liefert (pdf-bytes|None, fehlertext).
+    print_name/pdf_name: Haken «Name im PDF drucken» und Feld «Name im PDF» im Exportdialog wie ein Nutzer setzen (None = unveraendert)."""
     ev = page.evaluate
     await ev("() => { state.modal = null; state.view = 'cookbook'; state.cookbookStep = 3; render(); window.__c5cover = null; }")
     await page.wait_for_selector('[data-action="export-cookbook"]:not([disabled])', timeout=15000)
     await page.click('[data-action="export-cookbook"]')
     await page.wait_for_selector('[data-action="pdf-export-build"]', timeout=15000); await page.wait_for_timeout(150)
+    if print_name is not None:
+        await page.set_checked('#pdfNamePrint', print_name)
+    if pdf_name is not None:
+        await page.fill('#pdfNameInput', pdf_name)
     await page.click('[data-action="pdf-export-build"]')
     await page.wait_for_function("state.modal && (state.modal.stage === 'preview' || state.modal.stage === 'error')", timeout=90000)
     r = await ev("""async () => { const m = state.modal; if (m.stage === 'error') return { err: m.errorText || '', shown: (document.querySelector('.pdf-error-text') || {}).textContent || '' };
@@ -254,14 +259,37 @@ async def main():
             res, im = await export_case(page, f'v1-{tid}', t, s, a, {'v': 1, 'templateId': tid, 'date': '2026-10-09', 'showDate': True})
             check(f'v1 «{tid}»: PDF ueber die Oberflaeche, Titelseite gleicht der Vorschau, Texte im Textlayer', not res['probs'], str(res['probs'][:4]) + f" mean={res.get('mean')}/{res.get('mean_b')} kachel={res.get('tile')}")
             if im is None: continue
-            stored = Image.open(os.path.join(DATA, f'cover_v1_{tid}.png')).convert('RGB')
-            m, st = diff_stats(stored, im)
-            check(f'v1 «{tid}»: Titelseite gleicht dem gespeicherten Referenzbild (vor dem Editor)', m < 1.5 and st < 0.3, f'mean={m:.3f} stark={st:.3f}%')
+            # Hauptnachweis «altes Cover unveraendert»: derselbe Browser auf derselben Plattform rendert den Stand vor dem Editor
+            # (REF_COMMIT per git archive) und den heutigen Stand; beide PDFs muessen pixelgleich sein. Plattformunabhaengig,
+            # weil Schriftrasterung (Mac gegen Linux) auf beiden Seiten gleich ist. Dazu kommt der v1-Layout-Schnappschuss
+            # (test_cover_modell, cover_v1_layouts.json) und oben der Vergleich PDF gegen Vorschau-Canvas.
             if old:
                 m2, st2 = diff_stats(old[tid], im)
                 check(f'v1 «{tid}»: pixelgleich zum live gerenderten Stand {REF_COMMIT}', m2 < 0.2 and st2 < 0.02, f'mean={m2:.4f} stark={st2:.4f}%')
+            # Die gespeicherten Referenzbilder stammen vom Mac (Schriftrasterung macOS). Linux rastert Schrift anders
+            # (CI: mean 1.8, 0.8 % stark abweichende Pixel bei pixelgleichem Live-Vergleich), daher nur auf dem Mac vergleichen.
+            if sys.platform == 'darwin':
+                stored = Image.open(os.path.join(DATA, f'cover_v1_{tid}.png')).convert('RGB')
+                m, st = diff_stats(stored, im)
+                check(f'v1 «{tid}»: Titelseite gleicht dem gespeicherten Referenzbild (vor dem Editor, Mac)', m < 1.5 and st < 0.3, f'mean={m:.3f} stark={st:.3f}%')
+            elif not old:
+                check(f'v1 «{tid}»: Nachweis gegen den Stand vor dem Editor moeglich (volle Git-Historie noetig, fetch-depth 0)', False, REF_COMMIT)
             raw = await ev("() => cookbookGetRaw().cover")
             check(f'v1 «{tid}»: Export stuft die gespeicherte Konfiguration nicht auf v2 hoch', raw.get('v') == 1 and raw.get('templateId') == tid, str(raw))
+
+        # ---------- 1b. «Name im PDF» aus dem Exportdialog hat auf dem Cover Vorrang; Haken aus = kein Name ----------
+        for label, pn, nm, want, absent in (('Dialogname', True, 'Dialog Beispielname', 'DialogBeispielname', 'AlexMuster'),
+                                            ('Haken aus', False, None, None, 'AlexMuster')):
+            await setup_book(ev, 'Sonntagsküche', 'Rezepte für jeden Tag', 'Alex Muster', {'v': 1, 'templateId': 'tomate', 'date': '2026-10-09', 'showDate': True})
+            data, err = await ui_export(page, print_name=pn, pdf_name=nm)
+            flat = ''
+            if data:
+                pth = os.path.join(TMP, f'name-{pn}.pdf'); open(pth, 'wb').write(data)
+                flat = re.sub(r'\s+', '', subprocess.run(['pdftotext', '-f', '1', '-l', '1', pth, '-'], capture_output=True, text=True).stdout)
+            ok = bool(data) and (want is None or want in flat) and absent not in flat and 'Sonntagsküche' in flat
+            check(f'Cover: «Name im PDF» aus dem Exportdialog ({label}) steht auf der Titelseite bzw. fehlt', ok, str(err) if err else flat[:120])
+        raw = await ev("() => cookbookGetRaw().author")
+        check('Cover: Name aus dem Exportdialog aendert den gespeicherten Kochbuch-Namen nicht', raw == 'Alex Muster', str(raw))
 
         # ---------- 2. Eigene Bilder importieren (echter Import, Paket C4) ----------
         imgs = {}

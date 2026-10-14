@@ -1,6 +1,6 @@
 """Cover-Modell v2 (Paket C2): Migration, Anordnungen, Umbruch, Warnungen, Bildausschnitt, v1-Regression, gemeinsame Layoutfunktion.
 Funktionstests im Seitenkontext mit fester Messfunktion (plattformunabhaengig), dazu Pixelproben mit echtem Canvas."""
-import asyncio, json, os, sys
+import asyncio, json, os, re, sys
 os.environ.setdefault('SAVORA_TEST_PORT', '8982')
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from common import *
@@ -219,7 +219,7 @@ async def main():
         check('Editor-Vorschau (coverPickerHtml) und Export nutzen dieselbe Layoutfunktion und liefern dasselbe Layout', r['same'] and r['v'] == 2 and r['mode'] == 'custom' and r['y'] == 0.4 and r['bg'] == '#252720', str(r))
         src_pdf = open(os.path.join(ROOT, 'pdf.js'), encoding='utf-8').read(); src_view = open(os.path.join(ROOT, 'views-v2.js'), encoding='utf-8').read(); src_rm = open(os.path.join(ROOT, 'recipe-model.js'), encoding='utf-8').read()
         check('pdf.js, views-v2.js und recipe-model.js bauen die Eingabe aus coverInputFromConfig; Export prüft coverExportBlockers',
-              'coverLayout(coverInputFromConfig(cfgNow))' in src_pdf and 'coverExportBlockers(layout)' in src_pdf and src_view.count('coverLayout(coverInputFromConfig(cfg))') == 1 and 'coverInputFromConfig({' in open(os.path.join(ROOT, 'cover-editor.js'), encoding='utf-8').read() and 'coverInputFromConfig(cfg)' in src_rm)
+              re.search(r'coverLayout\(coverInputFromConfig\(cfgNow(, \{[^()]*\})?\)\)', src_pdf) is not None and 'coverExportBlockers(layout)' in src_pdf and src_view.count('coverLayout(coverInputFromConfig(cfg))') == 1 and 'coverInputFromConfig({' in open(os.path.join(ROOT, 'cover-editor.js'), encoding='utf-8').read() and 'coverInputFromConfig(cfg)' in src_rm)
         check('Cover-Text wird auf Canvas gezeichnet (kein html2canvas für sichtbaren Text): coverHtml legt Text nur unsichtbar ab', 'coverRenderCanvas(layout, 2, coverBg)' in src_pdf and 'cv-textlayer' in open(os.path.join(ROOT, 'cover.js'), encoding='utf-8').read())
         r = await ev("""async () => { const L = coverLayout(IN({ v2: mk({ readability: 'gradient' }) }), MEAS); const c = await coverRenderCanvas(L, 0.5); return [c.width, c.height]; }""")
         check('coverRenderCanvas ohne Vorlagenbild (eigener Hintergrund) liefert A4-Canvas', r == [397, 562], str(r))
