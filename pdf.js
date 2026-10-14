@@ -885,9 +885,10 @@ async function pdfBuildCookbookImpl(nutritionDetail, opts) {
     coverEnsureConfig();
     const cfgNow = getCookbookConfig();
     await coverEnsureFonts();
-    const layout = coverLayout({ templateId: cfgNow.cover.templateId, title: cfgNow.title, name: author, slogan: cfgNow.subtitle, date: cfgNow.cover.date, showDate: cfgNow.cover.showDate, logo: cfgNow.showLogo !== false });
-    if (layout.warnings.length) throw coverError(layout.warnings.map(w => w.message).join(' '));
-    const coverBg = await coverBackgroundDataUrl(layout.templateId);
+    const layout = coverLayout(coverInputFromConfig(cfgNow, { name: author }));   // «Name im PDF» aus dem Exportdialog
+    const blockers = coverExportBlockers(layout);   // nur abgeschnittener oder ausserhalb liegender Text sperrt den Export
+    if (blockers.length) throw coverError(blockers.map(w => w.message).join(' '));
+    const coverBg = layout.background ? await coverBackgroundDataUrl(layout.templateId) : null;
     // Gleiche Zeichenfunktion wie die Vorschau; Hintergrund in Originalaufloesung (1055 x 1491 px), Seite doppelt so fein fuer scharfe Schrift
     const coverCanvas = await coverRenderCanvas(layout, 2, coverBg);
     const cover = coverHtml(layout, coverCanvas.toDataURL('image/png'));
