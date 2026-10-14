@@ -211,7 +211,11 @@
 .pdf-info-line { margin: 4px 0 0; color: var(--text-soft, #765F8C); font-size: 13.5px; }
 @media (prefers-reduced-motion: no-preference) { .pdf-progress > span { transition: width .18s ease-out; } }
 
-/* ===== «Pur»: Treue zur Vorlage (bilder/01-Pur.png). Nur .pv-tpl-pur, Prise Pop bleibt unberuehrt. ===== */
+/* ===== «Pur»: Treue zur Vorlage (bilder/01-Pur.png). Nur .pv-tpl-pur, Prise Pop bleibt unberuehrt. =====
+   «Carlito Pur»: dieselben Schriftdateien, nur mit angepassten Zeilenmassen. html2canvas setzt Carlito-Text rund 1,5 mm tiefer als
+   die Textbox des Browsers; mit tieferer Textbox (descent-override) liegt die sichtbare Tinte wieder in der Box. */
+@font-face { font-family: 'Carlito Pur'; font-weight: 400; font-style: normal; font-display: swap; ascent-override: 95.2%; descent-override: 70%; line-gap-override: 0%; src: url(vendor/fonts/carlito-regular.woff2) format('woff2'); }
+@font-face { font-family: 'Carlito Pur'; font-weight: 700; font-style: normal; font-display: swap; ascent-override: 95.2%; descent-override: 70%; line-gap-override: 0%; src: url(vendor/fonts/carlito-bold.woff2) format('woff2'); }
 .pv-tpl-pur {
   --pv-ink: #1B221E; --pv-title-color: #0F1712; --pv-accent: #1D5232; --pv-muted: #5B645F; --pv-rule: #6A726D; --pv-panel: #E9F1E6;
   --pv-tsize-s: 46pt; --pv-tsize-m: 38pt; --pv-tsize-l: 30pt; --pv-tsize-xl: 24pt;
@@ -235,10 +239,7 @@
 .pv-tpl-pur .pv-ing-cols { column-gap: 0; }
 .pv-tpl-pur .pv-ing-col { grid-template-columns: minmax(17mm, max-content) minmax(0, 1fr); column-gap: 0; padding-right: 3mm; }
 .pv-tpl-pur .pv-ing-col + .pv-ing-col { padding-right: 0; padding-left: 3mm; border-left: .6pt solid rgba(30, 60, 40, .18); }
-.pv-tpl-pur .pv-ing { padding: 0; border-bottom: .7mm solid var(--pv-panel); background: rgba(255, 255, 255, .6); display: flex; align-items: stretch; }
-.pv-tpl-pur .pv-ing-amt { flex: 0 0 21mm; box-sizing: border-box; }
-.pv-tpl-pur .pv-ing-name { flex: 1 1 0; }
-.pv-tpl-pur .pv-ing[data-stack], .pv-tpl-pur .pv-ing[data-uncertain] { display: block; }
+.pv-tpl-pur .pv-ing { padding: 0; border-bottom: .7mm solid var(--pv-panel); background: rgba(255, 255, 255, .6); }
 .pv-tpl-pur .pv-ing-amt { position: relative; font-weight: 400; padding: 0 2.5mm 2.3mm; line-height: 1.22; border-right: .7mm solid var(--pv-panel); }
 .pv-tpl-pur .pv-ing-name { position: relative; padding: 0 2.5mm 2.3mm; line-height: 1.22; }
 .pv-tpl-pur .pv-ing-note { color: var(--pv-ink); }
@@ -367,3 +368,7 @@
 .pv-tpl-prise-pop .pv-cont-head span { font-size: 15pt; line-height: 1.2; }
 .pv-tpl-prise-pop .pv-cont-head i { background: var(--pv-panel); color: var(--pv-ink); font-size: 8.5pt; font-weight: 400; line-height: 1.3; padding: 1.3mm 3mm; border-radius: 6mm; }
 .pv-tpl-prise-pop .pv-pageof, .pv-tpl-prise-pop .pv-head-top { display: none; }
+
+.pv-tpl-pur .pv-ing-amt, .pv-tpl-pur .pv-ing-name { font-family: 'Carlito Pur', 'Carlito', Calibri, 'Segoe UI', Arial, sans-serif; }
+.pv-tpl-pur .pv-ing[data-stack] .pv-ing-amt, .pv-tpl-pur .pv-ing[data-uncertain] .pv-ing-name { font-family: var(--pv-font); }
+.pv-tpl-pur .pv-ing[data-stack] .pv-ing-amt { padding-bottom: .2mm; border-right: 0; }
