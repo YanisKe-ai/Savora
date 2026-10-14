@@ -1,6 +1,6 @@
 """Paket 37: Hauptnavigation (fuenf Punkte, «Mehr» statt Zahnrad im Kopf) und Kochbuch-Projekte.
 Prueft Navigation (Symbol und Beschriftung, Seitenleiste, Safe Area, Tastatur), Migration der alten Einzelkonfiguration,
-Anlegen/Umbenennen/Duplizieren/Loeschen, Wiederoeffnen, leere Textfelder, Datum, zehn Cover ohne 404, lange Titel, Fokus beim Tippen,
+Anlegen/Umbenennen/Duplizieren/Loeschen, Wiederoeffnen, leere Textfelder, Datum, fünfzehn Cover ohne 404, lange Titel, Fokus beim Tippen,
 echtes PDF, Sicherung und Wiederherstellung (auch alte Sicherung ohne Projekte)."""
 import asyncio, base64, json, os, subprocess, sys, tempfile
 os.environ.setdefault('SAVORA_TEST_PORT', '8970')
@@ -10,8 +10,8 @@ FAIL = []
 def check(name, cond, info=''):
     print(('OK   ' if cond else 'FEHL ') + name, info)
     if not cond: FAIL.append(name)
-IDS = ['pop', 'lieblingsbuch', 'tomate', 'salbei', 'nachtkueche', 'citrus', 'bistro', 'garten', 'sonnenkueche', 'ofenglueck']
-COVER_NAMES = ['Pop', 'Lieblingsbuch', 'Tomate', 'Salbei', 'Nachtküche', 'Citrus', 'Bistro', 'Garten', 'Sonnenküche', 'Ofenglück']
+IDS = ['pop', 'lieblingsbuch', 'tomate', 'salbei', 'nachtkueche', 'citrus', 'bistro', 'garten', 'sonnenkueche', 'ofenglueck', 'savora-01-pasta-band', 'savora-02-geschmacksschichten', 'savora-03-scherenschnitt-tafel', 'savora-04-eine-prise', 'savora-05-tischrunde']
+COVER_NAMES = ['Pop', 'Lieblingsbuch', 'Tomate', 'Salbei', 'Nachtküche', 'Citrus', 'Bistro', 'Garten', 'Sonnenküche', 'Ofenglück', 'Pasta-Band', 'Geschmacksschichten', 'Scherenschnitt-Tafel', 'Eine Prise', 'Tischrunde']
 
 def pdf_text(path, first=None, last=None):
     cmd = ['pdftotext', '-layout'] + (['-f', str(first), '-l', str(last)] if first else []) + [path, '-']
@@ -167,9 +167,9 @@ async def main():
         txt = await page.inner_text('.cookbook-main')
         check('Seitenstil mit verständlichen Namen, keine A/B/C-Bezeichnung in der Bedienung', names in (['Klassisch', 'Kräftig', 'Schlicht (zum Drucken)'], ['Pur', 'Prise Pop']) and 'A ·' not in txt and 'B ·' not in txt and 'C ·' not in txt and txt.count('Seitenstil') >= 1, str(names))
 
-        # ---------- 5. Zehn Cover ohne fehlende Dateien, klare Auswahl ----------
+        # ---------- 5. Fünfzehn Cover ohne fehlende Dateien, klare Auswahl ----------
         radios = await ev("""() => Array.from(document.querySelectorAll('.cover-grid [role="radio"]')).map(b => ({ id: b.dataset.id, name: b.getAttribute('aria-label') }))""")
-        check('Genau zehn Cover mit Namen als Radiogruppe', [r['id'] for r in radios] == IDS and [r['name'] for r in radios] == COVER_NAMES, str(radios))
+        check('Genau fünfzehn Cover mit Namen als Radiogruppe', [r['id'] for r in radios] == IDS and [r['name'] for r in radios] == COVER_NAMES, str(radios))
         n0 = len(bad)
         for rid, nm in zip(IDS, COVER_NAMES):
             await page.click(f'.cover-opt[aria-label="{nm}"]'); await page.wait_for_timeout(250)
@@ -177,7 +177,7 @@ async def main():
             check(f'Cover {nm}: genau eines gewählt, Haken sichtbar, gespeichert', sel['checked'] == [rid] and sel['check'] == 1 and sel['saved'] == rid and sel['canvas'], str(sel))
         await page.wait_for_timeout(800)
         imgs = await ev("""async () => { const res = []; for (const id of COVER_TEMPLATES.map(t => t.id)) { const a = await fetch(coverBackgroundUrl(id)); const t = await fetch(coverThumbUrl(id)); res.push([a.status, t.status]); } return { res, thumbsOk: Array.from(document.querySelectorAll('.cover-opt img')).every(i => i.complete && i.naturalWidth > 0) }; }""")
-        check('Alle zehn Hintergründe und Vorschaubilder laden (kein 404)', all(a == 200 and t == 200 for a, t in imgs['res']) and imgs['thumbsOk'] and not [x for x in bad[n0:] if '/covers/' in x[1]], str(bad[n0:])[:200])
+        check('Alle fünfzehn Hintergründe und Vorschaubilder laden (kein 404)', all(a == 200 and t == 200 for a, t in imgs['res']) and imgs['thumbsOk'] and not [x for x in bad[n0:] if '/covers/' in x[1]], str(bad[n0:])[:200])
         # Keine Texte in den Hintergründen: Bilder sind unveränderte Originale (Grösse), Text kommt nur aus der Ebene
         L = await ev("() => coverLayout({ templateId: 'bistro', title: '', slogan: '', name: '', date: '2026-10-09', showDate: true, logo: true })")
         check('Ohne Texte: nur Symbol und Datum, nichts gedruckt', L['blocks'] == [] and L['logo'] and L['date']['text'] == '09.10.2026')
