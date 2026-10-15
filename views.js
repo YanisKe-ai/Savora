@@ -42,6 +42,14 @@ function viewFor(view) {
     case 'unitconverter': return unitConverterView();
     case 'cookbook': return cookbookDesignerView();
     case 'cookbooks': return cookbooksView();
+    /* Rezeptbibliothek (library-views.js, library-publish.js). Fehlt eine Datei (z. B. alter Zwischenspeicher), bleibt die Startseite. */
+    case 'discover': return viewIfDefined(typeof discoverView === 'function' ? discoverView : null, () => homeView());
+    case 'lib-detail': return viewIfDefined(typeof libDetailView === 'function' ? libDetailView : null, () => homeView());
+    case 'lib-profile': return viewIfDefined(typeof libProfileView === 'function' ? libProfileView : null, () => homeView());
+    case 'lib-publish': return viewIfDefined(typeof libPublishView === 'function' ? libPublishView : null, () => homeView());
+    case 'lib-mine': return viewIfDefined(typeof libMineView === 'function' ? libMineView : null, () => moreView());
+    case 'lib-pubprofile': return viewIfDefined(typeof libPubProfileView === 'function' ? libPubProfileView : null, () => moreView());
+    case 'lib-mod': return viewIfDefined(typeof libModView === 'function' ? libModView : null, () => moreView());
     default: return homeView();
   }
 }
@@ -51,7 +59,7 @@ function viewFor(view) {
    mit allen Detailseiten, Freunde & Rezepte, Rechner, Hilfe, Über Savora und ihre Rechtstexte. */
 function isMoreSectionView(view) {
   view = String(view || '');
-  return view === 'more' || view === 'settings' || view.indexOf('settings-') === 0 || view.indexOf('friends') === 0 || view === 'unitconverter';
+  return view === 'more' || view === 'settings' || view.indexOf('settings-') === 0 || view.indexOf('friends') === 0 || view === 'unitconverter' || view === 'lib-mine' || view === 'lib-pubprofile' || view === 'lib-mod';
 }
 
 /* Die sechs Einstellungsseiten fuer die lokale Abschnittsnavigation neben den Details (Tablet und Desktop).
@@ -330,6 +338,7 @@ function moreView() {
       ${pageTitle('Mehr')}
       ${settingsGroup('Austauschen',
         settingsRow({ icon: ICONS.share, title: 'Freunde &amp; Rezepte', summary: moreFriendsSummary(), view: 'friends', badge: moreFriendsBadge() }))}
+      ${typeof libMoreRowsHtml === 'function' ? settingsGroup('Rezeptbibliothek', libMoreRowsHtml()) : ''}
       ${settingsGroup('Werkzeuge',
         settingsRow({ icon: ICONS.scale, title: 'Einheiten umrechnen', summary: 'Gewicht, Volumen, Temperatur und Zutaten', view: 'unitconverter' }))}
       ${settingsGroup('Verwalten', [

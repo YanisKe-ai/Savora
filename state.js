@@ -122,22 +122,28 @@ function prefersReducedMotion() {
    (siehe scrollMemory oben) — der Browser wuerde sich sonst mit einer eigenen, an dieser
    dynamisch aufgebauten Seite ohnehin nicht zuverlaessig treffenden Restauration einmischen. */
 if ('scrollRestoration' in history) history.scrollRestoration = 'manual';
-const HISTORY_DRILLDOWN_VIEWS = new Set(['detail', 'form', 'cookmode', 'unitconverter', 'paste-import', 'cookbook']);
+const HISTORY_DRILLDOWN_VIEWS = new Set(['detail', 'form', 'cookmode', 'unitconverter', 'paste-import', 'cookbook', 'lib-detail', 'lib-profile', 'lib-publish', 'lib-mine', 'lib-pubprofile', 'lib-mod']);
 function isHistoryDrilldownView(view) {
   return HISTORY_DRILLDOWN_VIEWS.has(view) || view === 'settings' || view.indexOf('settings-') === 0 || view.indexOf('friends') === 0;
 }
 /* Scrollposition merken: die fuenf Hauptseiten immer; Unterseiten von «Mehr» nur fuer den Rueckweg (Zurueck stellt
    die Position wieder her, ein neuer Aufruf startet oben). */
 function remembersScroll(view) {
+  if (view === 'discover' || view === 'lib-profile') return true;   // Rueckkehr zur Suche bzw. zum Profil an dieselbe Stelle
   return (typeof TAB_VIEWS !== 'undefined' && TAB_VIEWS.includes(view)) || (typeof isMoreSectionView === 'function' && isMoreSectionView(view));
 }
 function navHistorySnapshot() {
-  return { view: state.view, modalType: state.modal ? state.modal.type : null, activeRecipeId: state.activeRecipeId };
+  const snap = { view: state.view, modalType: state.modal ? state.modal.type : null, activeRecipeId: state.activeRecipeId };
+  // Rezeptbibliothek: nur IDs und kompakte Zustaende, nie Rezeptdaten (siehe library.js)
+  if (typeof libHistoryFields === 'function') Object.assign(snap, libHistoryFields());
+  return snap;
 }
+// Adresse passend zur Ansicht: ?rezept=<id> bzw. ?profil=<id> fuer Neuladen und Teilen (andere Parameter bleiben)
+function navHistoryUrl() { return typeof libUrlFor === 'function' ? libUrlFor(state.view) : undefined; }
 window.addEventListener('popstate', (e) => {
   if (state.view === 'form' && typeof isFormDirty === 'function' && isFormDirty()) {
     if (!window.confirm('Ungespeicherte Änderungen verwerfen?')) {
-      history.pushState(navHistorySnapshot(), '');
+      history.pushState(navHistorySnapshot(), '', navHistoryUrl());
       return;
     }
     if (typeof clearRecipeDraft === 'function') clearRecipeDraft();
@@ -155,6 +161,7 @@ window.addEventListener('popstate', (e) => {
     if (e.state) {
       state.view = e.state.view;
       state.activeRecipeId = e.state.activeRecipeId || null;
+      if (typeof libRestoreFromHistory === 'function') libRestoreFromHistory(e.state);
     } else {
       state.view = 'home';
     }
@@ -292,13 +299,18 @@ function render(skipHistoryPush) {
       if (hasModal && !hadModal) {
         history.pushState(navHistorySnapshot(), '');
       } else if (viewChanged) {
+        const url = navHistoryUrl();
         // Wechselt eine Aktion direkt aus einem offenen Modal in eine andere Ansicht (z.B.
         // Overflow-Menue -> Bearbeiten), wird der Modal-Eintrag ERSETZT statt ein weiterer
         // gestapelt: sonst braucht "Zurueck" danach zwei Schritte.
-        if (hadModal) history.replaceState(navHistorySnapshot(), '');
-        else if (isHistoryDrilldownView(state.view)) history.pushState(navHistorySnapshot(), '');
-        else history.replaceState(navHistorySnapshot(), '');
+        if (hadModal) history.replaceState(navHistorySnapshot(), '', url);
+        else if (isHistoryDrilldownView(state.view)) history.pushState(navHistorySnapshot(), '', url);
+        else history.replaceState(navHistorySnapshot(), '', url);
       }
+    } else if (viewChanged) {
+      // Zurueck/Vorwaerts: Adresse an die wiederhergestellte Ansicht anpassen (ohne neuen Eintrag)
+      const url = navHistoryUrl();
+      if (url && url !== location.pathname + location.search + location.hash) history.replaceState(history.state, '', url);
     }
   };
   // Formular und Kochmodus ohne View-Transition: der DOM-Tausch muss dort sofort und synchron
@@ -306,7 +318,7 @@ function render(skipHistoryPush) {
   const NO_TRANSITION_VIEWS = new Set(['form', 'cookmode']);
   // Richtung des Seitenwechsels: tiefer hinein = von rechts, zurueck = nach rechts hinaus, Reiter = Ueberblendung
   if (viewChanged) {
-    const depth = (v) => (['home', 'mealplan', 'shopping', 'cookbooks', 'more'].includes(v) ? 0 : v === 'cookmode' ? 2 : 1);
+    const depth = (v) => (['home', 'discover', 'mealplan', 'shopping', 'cookbooks', 'more'].includes(v) ? 0 : v === 'cookmode' ? 2 : 1);
     const a = depth(prevView || 'home'), b = depth(state.view);
     document.documentElement.dataset.navDir = b > a ? 'forward' : b < a ? 'back' : 'fade';
   }
