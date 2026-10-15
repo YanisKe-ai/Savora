@@ -114,7 +114,7 @@ function rpCountText(m) {
 /* Dialoggeruest mit Kopf (Titel, Untertitel, Schliessen), scrollbarem Inhalt und festem Fuss. */
 function rpSheetHtml({ id, title, sub, subId, body, foot, cls }) {
   return `<div class="modal-backdrop rp-backdrop" data-action="close-modal">
-    <div class="modal-sheet rp-sheet ${cls || ''}" role="dialog" aria-modal="true" aria-labelledby="${escapeAttr(id)}${subId ? ' ' + escapeAttr(subId) : ''}" tabindex="-1" onclick="event.stopPropagation()">
+    <div class="modal-sheet rp-sheet ${cls || ''}" role="dialog" aria-modal="true" aria-labelledby="${escapeAttr(id)}"${subId ? ` aria-describedby="${escapeAttr(subId)}"` : ''} tabindex="-1" onclick="event.stopPropagation()">
       <div class="sheet-handle" aria-hidden="true"></div>
       <div class="rp-head">
         <div class="rp-head-text"><h2 class="rp-title" id="${escapeAttr(id)}">${escapeHtml(title)}</h2>${sub ? `<p class="rp-sub"${subId ? ` id="${escapeAttr(subId)}"` : ''}>${escapeHtml(sub)}</p>` : ''}</div>

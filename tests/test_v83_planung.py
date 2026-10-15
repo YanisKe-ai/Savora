@@ -62,7 +62,7 @@ async def main():
         # ---------- Planungsdialog: Aufbau ----------
         await open_plan(page, dk)
         d = await ev("""() => { const s = document.querySelector('.modal-sheet'); const vis = sel => { const e = s.querySelector(sel); return !!e && e.getClientRects().length > 0; };
-          return { role: s.getAttribute('role'), modal: s.getAttribute('aria-modal'), title: document.getElementById('picker-modal-title').textContent, date: /\\d+\\. /.test(document.getElementById('picker-modal-date').textContent) && s.getAttribute('aria-labelledby') === 'picker-modal-title picker-modal-date',
+          return { role: s.getAttribute('role'), modal: s.getAttribute('aria-modal'), title: document.getElementById('picker-modal-title').textContent, date: /\\d+\\. /.test(document.getElementById('picker-modal-date').textContent) && s.getAttribute('aria-labelledby') === 'picker-modal-title' && s.getAttribute('aria-describedby') === 'picker-modal-date',
             close: vis('.rp-close[aria-label="Schliessen"]'), cancel: [...s.querySelectorAll('button')].some(b => b.textContent.trim() === 'Abbrechen'),
             search: vis('input[type=search]#rpSearch'), searchLabel: !!s.querySelector('label[for=rpSearch]'),
             note: !!s.querySelector('#planNoteInput'), quick: !!s.querySelector('[data-note=Reste]'), custom: !!s.querySelector('#planMealCustom'),
