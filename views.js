@@ -195,14 +195,14 @@ function importSummaryBanner(s, r) {
   const issues = s.issues || [];
   const has = (field, levels) => issues.some(x => x.field === field && (!levels || levels.includes(x.level)));
   // Teilzeiten bleiben getrennt stehen (nie addiert); gleiche Bezeichnungen wie in der Rezeptansicht
-  const partTimes = r ? [r.prepMinutes ? `Vorbereitungszeit ${r.prepMinutes} Min.` : '', r.restMinutes ? `Ruhen ${r.restMinutes} Min.` : '', r.cookMinutes ? `Garen/Backen ${r.cookMinutes} Min.` : ''].filter(Boolean) : [];
-  const yieldText = r && yieldKnown(r) ? servingLabel(r, r.servings) : '';
+  const partTimes = r ? [r.prepMinutes > 0 ? `Vorbereitung ${fmtMinutes(r.prepMinutes)}` : '', r.cookMinutes > 0 ? `Garen oder Backen ${fmtMinutes(r.cookMinutes)}` : '', r.restMinutes > 0 ? `Ruhen oder Abkühlen ${fmtMinutes(r.restMinutes)}` : ''].filter(Boolean) : [];
+  const yieldTxt = r && yieldKnown(r) ? yieldText(r, r.servings) : '';
   const rows = [
     row(s.titleFound ? 'ok' : 'missing', 'Titel', s.titleFound ? escapeHtml(r ? r.title : '') : 'Bitte eintragen.'),
     row(s.ingredientCount === 0 ? 'missing' : (has('ingredients') ? 'check' : 'ok'), 'Zutaten', `${s.ingredientCount} erkannt${s.groupCount ? `, ${s.groupCount} Gruppe${s.groupCount === 1 ? '' : 'n'}` : ''}${(s.noAmount || []).length ? `. Ohne Menge: ${escapeHtml(s.noAmount.join(', '))}` : ''}`),
     row(s.stepCount === 0 ? 'missing' : (has('steps') ? 'check' : 'ok'), 'Schritte', `${s.stepCount} erkannt${s.methodSteps ? `, davon ${s.methodSteps} mit alternativen Garmethoden` : ''}`),
-    row(s.servingsFound ? (has('servings') ? 'check' : 'ok') : 'missing', 'Ergibt', s.servingsFound ? escapeHtml(yieldText) : 'Nicht angegeben. Die Mengen bleiben wie im Original.'),
-    row(s.timeFound || partTimes.length ? 'ok' : 'missing', 'Zeit', s.timeFound ? `${r ? r.timeMinutes : ''} Min.${partTimes.length ? ` (${partTimes.join(', ')})` : ''}` : partTimes.length ? `${partTimes.join(', ')}. Keine Gesamtzeit angegeben, es wird nichts zusammengerechnet.` : 'Nicht angegeben, bleibt leer.'),
+    row(s.servingsFound ? (has('servings') ? 'check' : 'ok') : 'missing', 'Ergibt', s.servingsFound ? escapeHtml(yieldTxt) : 'Nicht angegeben. Die Mengen bleiben wie im Original.'),
+    row(s.timeFound || partTimes.length ? 'ok' : 'missing', 'Zeit', s.timeFound ? `Gesamtzeit ${r ? fmtMinutes(r.timeMinutes) : ''}${partTimes.length ? ` (${partTimes.join(', ')})` : ''}` : partTimes.length ? `${partTimes.join(', ')}. Keine Gesamtzeit angegeben, es wird nichts zusammengerechnet.` : 'Nicht angegeben, bleibt leer.'),
     r && r.source ? row('ok', 'Quelle', escapeHtml(String(r.source))) : '',
     s.notesFound ? row('ok', 'Notizen', 'Hinweise und Utensilien stehen in den Notizen, nicht in den Zutaten.') : '',
     s.dietFound ? row('check', 'Ernährung', 'Als Vorschlag erkannt, bitte gegenprüfen.') : '',
