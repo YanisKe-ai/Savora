@@ -72,7 +72,7 @@ async def main():
         shown = await ev("() => Array.from(document.querySelectorAll('.ing-amount')).map(e => e.innerText.replace(/\\s+/g, ' ').trim())")
         check('Rezeptansicht: Parmesan 125 g (nicht 0.13 kg), 1–2 EL', '125 g' in shown and '1–2 EL' in shown and '500 g' in shown and not any('kg' in s for s in shown), str(shown))
         head = await ev("() => document.body.innerText")
-        check('Rezeptansicht: Teilzeiten sichtbar, Quelle als Text', 'Vorbereitungszeit 15 Min.' in head and 'Garen/Backen 25 Min.' in head and 'Eigenes Testrezept für den App-Test' in head, '')
+        check('Rezeptansicht: Teilzeiten sichtbar, Quelle als Text', '15 Min. Vorbereitung' in head and '25 Min. Garen' in head and 'Eigenes Testrezept für den App-Test' in head, '')
         check('Rezeptansicht: Quelle ist kein kaputter Link', await ev("() => !Array.from(document.querySelectorAll('.source-line a')).some(a => !/^https?:/.test(a.getAttribute('href')))"))
         sc = await ev(f"() => {{ const r = state.recipes.find(x => x.id === '{rid}'); return realIngredients(r).map(i => scaledAmountLine(i, 2)); }}")
         check('Skalieren x2: 250 g Parmesan, 2–4 EL, 1000 g Kartoffeln', sc[1] == '250 g' and sc[2] == '2–4 EL' and sc[0] == '1000 g' and sc[3] == 'Salz nach Geschmack'.replace('Salz nach Geschmack', ''), str(sc))
@@ -98,7 +98,7 @@ async def main():
         ings = [x.replace(NB, ' ') for x in pdf['ings']]
         check('PDF: Kategorie auf Deutsch (Backen), kein Schlüssel "baking"', pdf['cat'] == 'Backen' and 'baking' not in pdf['text'], pdf['cat'])
         check('PDF: 125 g Parmesan, 1–2 EL, 500 g', '125 g|Parmesan' in ings and '1–2 EL|Olivenöl' in ings and '500 g|Kartoffeln' in ings, str(ings))
-        check('PDF: Teilzeiten, keine Gesamtzeit; Quelle als Text', any(f.startswith('Vorbereitungszeit=') for f in pdf['facts']) and not any(f.startswith('Zeit=') for f in pdf['facts']) and 'Eigenes Testrezept' in pdf['source'], str(pdf['facts']))
+        check('PDF: Teilzeiten, keine Gesamtzeit; Quelle als Text', any(f.startswith('Vorbereitung=') for f in pdf['facts']) and not any(f.startswith(('Zeit=', 'Gesamtzeit=')) for f in pdf['facts']) and 'Eigenes Testrezept' in pdf['source'], str(pdf['facts']))
         blob = await ev(f"""async () => {{ const res = await buildSinglePdf('{rid}', 'off'); return res && res.blob ? res.blob.size : 0; }}""")
         check('PDF wird erzeugt', blob > 3000, str(blob))
 

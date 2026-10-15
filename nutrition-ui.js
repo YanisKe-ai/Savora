@@ -45,6 +45,12 @@ function nutCoverageText(result) {
   if (!total) return 'Keine berechenbare Zutat';
   return `${result.matchedCount || 0} von ${total} Zutat${total === 1 ? '' : 'en'} berücksichtigt`;
 }
+// Farbe der Angabe folgt dem Anteil berücksichtigter Zutaten (nicht einer abstrakten Genauigkeitsstufe)
+function nutCoverageTone(result) {
+  const total = result.relevantCount || 0, ok = result.matchedCount || 0;
+  if (!total) return 'low';
+  return ok >= total ? 'high' : ok / total >= 0.75 ? 'medium' : 'low';
+}
 // Zusatzzeile bei Gesamtertrag: Bezug offenlegen, ohne eine Portion zu erfinden
 function nutBasisNote(recipe, result) {
   const info = typeof yieldInfo === 'function' ? yieldInfo(recipe) : null;
@@ -119,7 +125,7 @@ function nutritionCompactInner(recipe, result) {
     <h3 class="nutrition-basis-title">${escapeHtml(nutBasisHeading(recipe, result))}</h3>
     ${note ? `<p class="nutrition-basis-note">${escapeHtml(note)}</p>` : ''}
     <div class="nutrition-compact-heading">
-      <span class="nutrition-confidence-badge tone-${confidenceBadgeClass(result.confidence)}">${escapeHtml(nutCoverageText(result))}</span>
+      <span class="nutrition-confidence-badge nutrition-coverage tone-${nutCoverageTone(result)}">${escapeHtml(nutCoverageText(result))}</span>
       ${result.unresolvedCount > 0 ? `<button class="nutrition-review-link" data-action="nutrition-open-match" data-id="${escapeAttr(recipe.id)}">${result.unresolvedCount} Zutat${result.unresolvedCount === 1 ? '' : 'en'} prüfen</button>` : ''}
     </div>
     <div class="nutrition-compact-grid">${rows}</div>
@@ -368,7 +374,7 @@ function nutritionDetailModal(recipe, result) {
       <p class="nutrition-basis-title">${escapeHtml(modeHeading)}</p>
       ${note ? `<p class="nutrition-basis-note">${escapeHtml(note)}</p>` : ''}
       <div class="nutrition-confidence-line">
-        <span class="nutrition-confidence-badge tone-${confidenceBadgeClass(result.confidence)}">${escapeHtml(nutCoverageText(result))}</span>
+        <span class="nutrition-confidence-badge nutrition-coverage tone-${nutCoverageTone(result)}">${escapeHtml(nutCoverageText(result))}</span>
         <span class="nutrition-confidence-detail">${escapeHtml(result.confidenceDetail)}</span>
       </div>
       ${nutritionResultHints(result)}

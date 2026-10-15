@@ -73,7 +73,7 @@ SEED_JS = """async (arg) => {
       await recalculateAndStoreNutrition(r); let st = (await nutritionStatusFor(r)).status;
       if (st !== 'calculated') {   // nur Testdaten: Ergebnis als vollstaendig und aktuell markieren, damit der PDF-Export die Naehrwerte-Box zeichnet
         const res = await dbGetNutritionResult(r.id);
-        if (res && res.nutrientsPerPortion && res.nutrientsPerPortion.energyKcal) { res.ingredientHash = hashIngredientsForNutrition(r.ingredients, Number(r.servings) > 0 ? Number(r.servings) : 1); res.unresolvedCount = 0; res.relevantCount = Math.max(1, res.relevantCount || 0); await dbPutNutritionResult(res); st = (await nutritionStatusFor(r)).status + '*'; }
+        if (res && res.nutrientsPerPortion && res.nutrientsPerPortion.energyKcal) { res.ingredientHash = typeof nutritionHashFor === "function" ? nutritionHashFor(r) : hashIngredientsForNutrition(r.ingredients, Number(r.servings) > 0 ? Number(r.servings) : 1); res.unresolvedCount = 0; res.relevantCount = Math.max(1, res.relevantCount || 0); await dbPutNutritionResult(res); st = (await nutritionStatusFor(r)).status + '*'; }
       }
       status[id] = st;
     } catch (e) { status[id] = 'fehler: ' + e.message; }

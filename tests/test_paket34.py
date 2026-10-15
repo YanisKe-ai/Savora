@@ -152,7 +152,7 @@ async def main():
         await ev("""async () => { const r = parseFreeTextRecipe('Brei\\nZutaten\\n200 g Hafer\\nZubereitung\\n1. Kochen.'); r.id = 'r_unk34'; delete r._importSummary; delete r._import; await dbPut(r); await loadRecipes(); state.activeRecipeId = 'r_unk34'; state.view = 'detail'; render(); }""")
         await page.wait_for_timeout(800)
         unk = await ev("""() => { const rr = state.recipes.find(x => x.id === 'r_unk34');
-          return { servings: rr.servings, known: yieldKnown(rr), amounts: realIngredients(rr).map(i => scaledAmountText(i, servingsFactor(rr, currentServings(rr)))), hint: /Ergibt: nicht angegeben/.test(document.body.innerText), stepper: !!document.querySelector('[data-action="serv-inc"]'), sel: shoppingSelectionFor(rr, 4).map(s => s.amount) }; }""")
+          return { servings: rr.servings, known: yieldKnown(rr), amounts: realIngredients(rr).map(i => scaledAmountText(i, servingsFactor(rr, currentServings(rr)))), hint: /Ertrag unbekannt/.test(document.body.innerText), stepper: !!document.querySelector('[data-action="serv-inc"]'), sel: shoppingSelectionFor(rr, 4).map(s => s.amount) }; }""")
         check('Unbekannte Ausbeute: Originalmengen, kein Stepper, Hinweis, Einkauf unverändert', unk['servings'] == 0 and not unk['known'] and unk['amounts'] == ['200'] and unk['hint'] and not unk['stepper'] and unk['sel'] == [200], str(unk))
         nut2 = await ev("""async () => { const rr = state.recipes.find(x => x.id === 'r_unk34'); const n = await calculateRecipeNutrition(rr); return { needs: n.needsServings, per: n.nutrientsPerPortion.energyKcal }; }""")
         check('Unbekannte Ausbeute: keine Nährwerte pro Portion', nut2['needs'] is True and nut2['per'] is None, str(nut2))
