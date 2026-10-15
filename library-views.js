@@ -214,22 +214,24 @@ function discoverView() {
   const phone = typeof isPhoneLayout === 'function' && isPhoneLayout();
   const q = libDiscQuery();
   libScheduleBind();
-  return `
-    <div class="home-head lib-head ${phone ? 'home-head--phone' : ''}">
-      ${topbar('', { cls: 'topbar--home' + (phone ? ' topbar--center' : '') })}
-      <section class="home-head-body lib-head-body" aria-label="Suche und Filter">
-        ${phone ? `<h1 class="sr-only">Entdecken</h1><div class="filter-bar filter-bar--phone"><div class="view-pick"><span class="inline-pick-text">Entdecken</span></div></div>` : pageTitle('Entdecken', recipesSwitchHtml())}
-        <div class="search-field lib-search" role="search">
+  const search = `<div class="search-field lib-search" role="search">
           ${ICONS.search}
           <label for="libSearchInput" class="sr-only">Rezepte oder Zutaten suchen</label>
           <input class="search-input" id="libSearchInput" type="search" enterkeyhint="search" placeholder="Rezepte oder Zutaten suchen" value="${escapeAttr(q)}" autocomplete="off" spellcheck="false">
           <button type="button" class="lib-search-clear" data-action="lib-search-clear" aria-label="Suche löschen" ${q ? '' : 'hidden'}>${ICONS.x}</button>
         </div>
-        <div id="libQuick">${libQuickHtml()}</div>
+        <div id="libQuick">${libQuickHtml()}</div>`;
+  /* Handy: gleicher Aufbau wie «Meine Rezepte» (Titelzeile im Kopf, darunter der Umschalter an derselben Stelle,
+     dann Suche und Schnellfilter im Inhalt). Tablet und Desktop: Umschalter neben dem Titel. */
+  return `
+    <div class="home-head lib-head ${phone ? 'home-head--phone' : ''}">
+      ${topbar('', { cls: 'topbar--home' + (phone ? ' topbar--center' : '') })}
+      <section class="home-head-body lib-head-body" aria-label="${phone ? 'Entdecken' : 'Suche und Filter'}">
+        ${phone ? `<h1 class="sr-only">Entdecken</h1><div class="filter-bar filter-bar--phone lib-titlebar"><div class="view-pick"><span class="inline-pick-text">Entdecken</span></div></div>` : pageTitle('Entdecken', recipesSwitchHtml()) + search}
       </section>
     </div>
     <main class="has-tabbar home-main lib-main">
-      ${phone ? recipesSwitchHtml() : ''}
+      ${phone ? recipesSwitchHtml() + `<section class="lib-phone-search" aria-label="Suche und Filter">${search}</section>` : ''}
       <div id="libResults" class="lib-results">${libResultsHtml()}</div>
     </main>
     ${bottomNav()}
