@@ -3451,6 +3451,16 @@ body:has(.lp) .topbar--sub .topbar-title { overflow-wrap: normal; hyphens: auto;
 @media (max-width: 379px) { .lp-mod-meta div { grid-template-columns: minmax(0, 1fr); gap: 0; } }
 .lp-mod-item .lp-mod-actions { max-width: none; justify-content: flex-start; }
 .lp-avatar-row .lp-file-btn { display: inline-flex; align-items: center; justify-content: center; line-height: 1.2; }
+.lp-pick li + li { border-top: 1px solid var(--hairline, var(--border)); }
+.lp-pick-btn { display: grid; grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: "t c" "s c"; align-items: center; gap: 0 0.75rem; width: 100%; min-height: 56px; padding: 0.75rem 1rem; border: none; background: transparent; color: var(--text); font: inherit; text-align: left; transition: background var(--motion-fast) ease-out; }
+.lp-pick-btn .lp-row-title { grid-area: t; }
+.lp-pick-btn .lp-row-sub { grid-area: s; }
+.lp-pick-chev { grid-area: c; display: inline-flex; color: var(--text-soft); }
+.lp-pick-btn:disabled { opacity: 0.55; }
+@media (hover: hover) and (pointer: fine) { .lp-pick-btn:not(:disabled):hover { background: var(--surface-soft); } }
+.lp-preview-frame .hero { margin: 0 0 1rem; }
+.lp-preview-frame .lib-hero .lib-hero-media { border-radius: var(--radius-m); }
+.lp-preview-frame .lp-nophoto { margin-bottom: 0.75rem; }
 .lp-modal-subject { margin: 0 0 0.75rem; font-weight: 700; color: var(--text); overflow-wrap: anywhere; }
 @media (prefers-reduced-motion: reduce) {
   .lp-spinner { animation-duration: 2.4s; }
