@@ -3733,3 +3733,93 @@ body.keyboard-open .rp-foot { padding-bottom: 0.75rem; }
 .cbc-n { color: var(--muted, inherit); font-variant-numeric: tabular-nums; }
 .rp-sheet .shop-back-btn { margin-bottom: 0.5rem; }
 .rp-sheet #cbColList { margin-bottom: 1rem; }
+
+/* ===== v84 Rezept ===== */
+/* Eigene Sammlungen in der Rezeptansicht: Umriss-Pillen, bewusst anders als die gefuellten Merkmale (source-chip) */
+.col-tags { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem; margin: 0.75rem 0 0; }
+.col-tag { position: relative; display: inline-flex; align-items: center; gap: 0.5rem; min-height: 2.25rem; max-width: 100%; padding: 0.25rem 0.75rem; border: 1px solid var(--border); border-radius: var(--radius-pill, 999px); background: transparent; color: var(--text); font: inherit; font-size: 0.875rem; font-weight: 600; line-height: 1.25; cursor: pointer; transition: background-color 140ms var(--ease-out, ease-out), transform 100ms var(--ease-out, ease-out); }
+.col-tag::after { content: ''; position: absolute; inset: -0.25rem 0; }   /* Trefferflaeche 44 px */
+.col-tag[hidden], .col-tags-more[hidden], .pairing-more[hidden] { display: none; }
+.col-tag-name { min-width: 0; overflow-wrap: anywhere; text-align: left; }
+.col-tag:active { transform: scale(0.97); }
+.col-tag:focus-visible, .col-tags-more:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 2px; }
+.col-dot { flex: none; width: 0.625rem; height: 0.625rem; border-radius: 50%; background: var(--c, var(--text-soft)); }
+.col-tags-more { min-height: 2.75rem; padding: 0 0.5rem; font-size: 0.875rem; }
+@media (hover: hover) and (pointer: fine) { .col-tag:hover { background: var(--surface-soft); } }
+
+/* Dialog «Zu Sammlungen hinzufügen» */
+.rp-sheet--rcol .rp-item { gap: 0.75rem; }
+.rp-sheet--rcol .col-dot { width: 0.75rem; height: 0.75rem; }
+.rcol-new { margin: 0.75rem 0 0; }
+.rcol-new-btn, .link-note-toggle { display: inline-flex; align-items: center; gap: 0.5rem; padding: 0 0.25rem; font-size: 1rem; }
+.rcol-new-btn svg, .link-note-toggle svg { width: 1.125rem; height: 1.125rem; flex: none; }
+.rcol-add .inline-add { margin: 0; flex-wrap: wrap; }
+.rcol-add .inline-add input { flex: 1 1 10rem; min-height: 3rem; }
+.rcol-add .outline-btn--small { min-height: 3rem; }
+.rcol-err { margin: 0.5rem 0 0; color: var(--danger); }
+.rcol-use { min-height: 2.75rem; padding: 0 0.25rem; font-size: 0.875rem; }
+
+/* Dialog «Rezept verknüpfen» */
+.rp-row.is-linked { opacity: 0.7; }
+.rp-row.is-linked .rp-item { cursor: default; }
+.rp-row.is-linked .rp-input { cursor: default; }
+.link-note-toggle { margin: 0 0 0.5rem; }
+.link-note-field { margin: 0 0 0.75rem; }
+.link-note-field input { width: 100%; }
+.link-note-field label { display: block; margin: 0 0 0.25rem; font-size: 0.9375rem; font-weight: 700; }
+.link-note-field .fs-hint { margin: 0.25rem 0 0; }
+
+/* Abschnitt «Passt dazu» (nach den Reitern, nur wenn Verknüpfungen bestehen) */
+.pairing { margin: 1.5rem 0 0; }
+.pairing-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 0.25rem 0.75rem; }
+.pairing-head .section-title { min-width: 0; overflow-wrap: break-word; }
+.pairing-head .section-title { margin: 0; }
+.pairing-add { display: inline-flex; align-items: center; gap: 0.25rem; flex: none; }
+.pairing-add svg { width: 1.125rem; height: 1.125rem; }
+.pairing-list { list-style: none; display: grid; grid-template-columns: minmax(0, 1fr); gap: 0.5rem; margin: 0.75rem 0 0; padding: 0; }
+.pairing-card { display: flex; align-items: stretch; gap: 0.25rem; min-width: 0; border: 1px solid var(--border); border-radius: var(--r-card, 1rem); background: var(--card-bg); }
+.pairing-card[hidden] { display: none; }
+.pairing-main { flex: 1 1 auto; min-width: 0; display: flex; align-items: center; gap: 0.75rem; min-height: 4.5rem; padding: 0.5rem 0.25rem 0.5rem 0.5rem; border: 0; border-radius: var(--r-card, 1rem); background: none; color: var(--text); font: inherit; text-align: left; cursor: pointer; transition: transform 100ms var(--ease-out, ease-out); }
+button.pairing-main:active { transform: scale(0.98); }
+.pairing-main:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: -2px; }
+.pairing-img { flex: none; width: min(3.5rem, 18vw); height: min(3.5rem, 18vw); border-radius: var(--r-ctl, 0.75rem); object-fit: cover; background: var(--surface-soft); }
+.pairing-ph { display: inline-flex; align-items: center; justify-content: center; color: var(--text-soft); }
+.pairing-ph svg { width: 1.5rem; height: 1.5rem; opacity: 0.6; }
+.pairing-body { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 0.25rem; }
+.pairing-title { font-size: 1rem; font-weight: 700; line-height: 1.3; overflow-wrap: break-word; hyphens: auto; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.pairing-meta { display: inline-flex; align-items: center; gap: 0.25rem; font-size: 0.875rem; color: var(--text-soft); }
+.pairing-meta svg { width: 0.875rem; height: 0.875rem; flex: none; }
+.pairing-note { font-size: 0.875rem; line-height: 1.35; color: var(--text-soft); overflow-wrap: break-word; hyphens: auto; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.pairing-menu-btn { flex: none; align-self: center; width: 44px; height: 44px; min-width: 44px; margin: 0 0.25rem 0 0; }
+.pairing-card.is-off .pairing-main { cursor: default; opacity: 0.7; }
+.pairing-status { font-style: normal; }
+.pairing-more { margin: 0.5rem 0 0; min-height: 2.75rem; }
+@media (min-width: 768px) { .pairing-list { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (hover: hover) and (pointer: fine) { button.pairing-main:hover .pairing-title { text-decoration: underline; text-underline-offset: 0.15em; } }
+
+/* Kochmodus: «Passt dazu (N)» in der Titelzeile, Vorschau nur zum Lesen */
+.cook-links-btn { display: inline-flex; align-items: center; gap: 0.5rem; min-height: 2.75rem; padding: 0 0.75rem; border: 1px solid rgba(255, 255, 255, 0.28); border-radius: var(--radius-pill, 999px); background: transparent; color: inherit; font: inherit; font-size: 0.9375rem; font-weight: 600; cursor: pointer; }
+.cook-links-btn svg { width: 1rem; height: 1rem; flex: none; }
+.cook-links-btn:focus-visible { outline: 2px solid currentColor; outline-offset: 2px; }
+.cook-link-sheet { display: flex; flex-direction: column; max-height: min(92vh, 92dvh); padding: 0; overflow: hidden; }
+.cook-link-sheet .sheet-handle { flex: none; margin: 0.5rem auto 0; }
+.cook-link-sheet > .rp-head { flex: none; }
+.cook-link-sheet > .hint-line { margin: 0 1.25rem 0.5rem; }
+.cook-link-body { flex: 1 1 auto; min-height: 0; overflow-y: auto; overscroll-behavior: contain; padding: 0 1.25rem 1rem; }
+.cook-link-facts { margin: 0 0 0.5rem; color: var(--text-soft); font-size: 0.9375rem; }
+.cook-link-note { margin: 0 0 0.75rem; padding: 0.5rem 0.75rem; border-radius: var(--r-ctl, 0.75rem); background: var(--surface-soft); font-size: 0.9375rem; overflow-wrap: anywhere; }
+.cook-link-h { margin: 1rem 0 0.25rem; font-size: 1.0625rem; }
+.cook-link-group { margin: 0.75rem 0 0.25rem; font-size: 0.9375rem; color: var(--text-soft); }
+.cook-link-ings { list-style: none; margin: 0; padding: 0; }
+.cook-link-ings li { padding: 0.25rem 0; border-bottom: 1px solid var(--hairline, var(--border)); overflow-wrap: anywhere; }
+.cook-link-ings .ing-amount { font-weight: 700; }
+.cook-link-steps { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 0.75rem; }
+.cook-link-step { display: flex; gap: 0.75rem; align-items: flex-start; }
+.cook-link-step p { margin: 0; line-height: 1.5; overflow-wrap: anywhere; }
+.cook-link-heading { margin: 0.5rem 0 0; font-weight: 700; }
+.cook-link-actions { flex: none; margin: 0; padding: 0.75rem 1.25rem calc(0.75rem + env(safe-area-inset-bottom, 0px)); border-top: 1px solid var(--border); flex-wrap: wrap; }
+.cook-link-list { list-style: none; margin: 0; padding: 0 0.75rem 1rem; overflow-y: auto; }
+.cook-link-item { width: 100%; }
+.cook-link-item .picker-thumb { flex: none; width: 3rem; height: 2.5rem; border-radius: 0.5rem; object-fit: cover; }
+@media (prefers-reduced-motion: reduce) { .col-tag, .pairing-main { transition: none; } .col-tag:active, button.pairing-main:active { transform: none; } }
+@media (forced-colors: active) { .col-dot { forced-color-adjust: none; border: 1px solid CanvasText; } }

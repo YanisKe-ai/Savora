@@ -653,6 +653,7 @@ function detailView() {
         <button type="button" class="tool-action" data-action="open-share-menu" data-id="${escapeAttr(r.id)}" aria-haspopup="dialog">${ICONS.share}<span>Teilen</span></button>
       </div>
       ${source}
+      ${rcolTagsHtml(r)}
       ${conflictBox}
       <div class="detail-aside-ing" role="region" aria-label="Zutaten">${wide ? `<h2 class="sr-only">Zutaten</h2>` + ingHtml : ''}</div>
       </div><div class="detail-col detail-col--content">
@@ -660,6 +661,7 @@ function detailView() {
         ${tabs.map(t => `<button role="tab" id="tab-${t.id}" class="tab-v2 ${tab === t.id ? 'is-active' : ''}" aria-selected="${tab === t.id}" aria-controls="panel-${t.id}" tabindex="${tab === t.id ? '0' : '-1'}" data-action="set-detail-tab" data-id="${escapeAttr(t.id)}">${t.label}</button>`).join('')}
       </div>
       ${tabs.map(t => `<div class="tab-panel" id="panel-${t.id}" role="tabpanel" aria-labelledby="tab-${t.id}" ${tab === t.id ? '' : 'hidden'}><h2 class="sr-only">${t.label}</h2>${panelHtml[t.id]}</div>`).join('')}
+      ${pairingSectionHtml(r)}
       ${recipeCheckHtml(r)}
       </div></div>
     </main>
@@ -668,7 +670,8 @@ function detailView() {
     ${state.modal && state.modal.type === 'detail-menu' ? detailMenuModal(r) : ''}
     ${state.modal && state.modal.type === 'share-menu' ? shareMenuModal(r) : ''}
     ${state.modal && state.modal.type === 'note' ? noteModal(r) : ''}
-    ${state.modal && state.modal.type === 'collections' ? collectionsModal(r) : ''}
+    ${rcolModalHtml()}
+    ${linkModalsHtml(r)}
     ${state.modal && state.modal.type === 'shop-select' ? shopSelectModal() : ''}
     ${state.modal && state.modal.type === 'plan-recipe' ? planRecipeModal() : ''}
     ${nutritionModal(r)}
@@ -715,7 +718,8 @@ function detailMenuModal(r) {
     ${item('duplicate-recipe', ICONS.copy, 'Duplizieren')}
     ${item('export-pdf', ICONS.pdf, 'Als PDF exportieren')}
     ${item('add-to-cookbook', ICONS.bookOpen, 'Zum Kochbuch hinzufügen')}
-    ${item('open-collections-modal', ICONS.folder, 'Zu Sammlung hinzufügen')}
+    ${rcolMenuItemHtml(r)}
+    ${linksOk() ? item('link-open', ICONS.link, 'Rezept verknüpfen') : ''}
     ${item('open-plan-recipe', ICONS.calendar, 'Zum Wochenplan')}
     ${item('open-note-modal', ICONS.note, 'Notiz hinzufügen')}
     <p class="menu-group-title" role="presentation">Teilen</p>
@@ -731,21 +735,334 @@ function noteModal(r) {
     <p class="hint-line">Ohne Datum wird der Text an die allgemeine Rezeptnotiz angehängt.</p>
     <div class="form-actions"><button class="ghost-btn" data-action="close-modal">Abbrechen</button><button class="primary-btn" data-action="save-note" data-id="${escapeAttr(r.id)}">Speichern</button></div>`);
 }
-function collectionsModal(r) {
-  const cols = getCollections();
-  return sheet('col-title', 'Sammlungen', `
-    <div class="menu-list">
-      ${cols.length ? cols.map(c => {
-        const on = (r.collections || []).includes(c.id);
-        return `<button class="menu-item" data-action="toggle-recipe-collection" data-id="${escapeAttr(r.id)}" data-col="${escapeHtml(c.id)}" role="checkbox" aria-checked="${on}"><span class="check-box ${on ? 'is-on' : ''}" aria-hidden="true">${ICONS.check}</span><span>${escapeHtml(c.name)}</span></button>`;
-      }).join('') : '<p class="hint-line">Noch keine eigene Sammlung angelegt.</p>'}
-    </div>
-    <div class="inline-add">
-      <label for="newCollectionName" class="sr-only">Neue Sammlung</label>
-      <input id="newCollectionName" type="text" placeholder="Neue Sammlung, z.B. Sonntagsküche">
-      <button class="primary-btn" data-action="create-collection" data-id="${escapeAttr(r.id)}">Sammlung erstellen</button>
-    </div>`);
+/* ===== v84 Rezept: Sammlungen am Rezept und «Passt dazu» =====
+   Daten nur ueber org.js (orgCollections, orgCollectionIdsOf, orgSetMembership, orgCreateCollection, orgLinksOf,
+   orgLinkCreate, orgLinkNote, orgLinkRemove, orgUndo). Fehlt org.js, erscheinen die Teile nicht (typeof-Rueckfall).
+   Sammlungen sind privat und getrennt von den Rezeptmerkmalen (source-chip); Verknuepfungen sind kein Rezeptinhalt. */
+function orgOk() { return typeof orgCollections === 'function' && typeof orgCollectionIdsOf === 'function' && typeof orgSetMembership === 'function'; }
+function linksOk() { return typeof orgLinksOf === 'function' && typeof orgLinkCreate === 'function'; }
+function rcolSafeColor(c) { return String((c && c.color) || '').replace(/[^a-z0-9-]/gi, ''); }
+function rcolDotHtml(c) {
+  const col = rcolSafeColor(c);
+  return `<span class="col-dot" aria-hidden="true"${col ? ` style="--c: var(--org-c-${col})"` : ''}></span>`;
 }
+// Eigene Sammlungen eines Rezepts in der Reihenfolge der Sammlungsliste
+function rcolCollectionsOf(recipeId) {
+  if (!orgOk()) return [];
+  let ids;
+  try { ids = new Set(orgCollectionIdsOf(recipeId) || []); } catch (e) { return []; }
+  return (orgCollections() || []).filter(c => c && ids.has(c.id));
+}
+function rcolMenuItemHtml(r) {
+  if (!orgOk()) return '';
+  const cols = rcolCollectionsOf(r.id);
+  const hint = !cols.length ? '' : cols.length <= 2 ? 'In ' + cols.map(c => c.name).join(', ') : `In ${cols.length} Sammlungen`;
+  return `<button type="button" class="menu-item ${hint ? 'menu-item--hint' : ''}" data-action="rcol-open" data-id="${escapeAttr(r.id)}">${ICONS.folder}<span class="menu-item-text"><span>Zu Sammlungen hinzufügen</span>${hint ? `<span class="menu-item-hint">${escapeHtml(hint)}</span>` : ''}</span></button>`;
+}
+/* Rezeptansicht: dezente Umriss-Pillen (max. 3, dann «+ N weitere»), nie im PDF, Versand oder in der Bibliothek */
+const RCOL_TAGS_MAX = 3;
+function rcolTagsHtml(r) {
+  const cols = rcolCollectionsOf(r.id);
+  if (!cols.length) return '';
+  const more = cols.length - RCOL_TAGS_MAX;
+  return `<div class="col-tags" role="group" aria-label="Deine Sammlungen">${cols.map((c, i) => `<button type="button" class="col-tag" data-action="rcol-scope" data-id="${escapeAttr(c.id)}" aria-label="Sammlung ${escapeAttr(c.name)} öffnen"${i >= RCOL_TAGS_MAX ? ' hidden' : ''}>${rcolDotHtml(c)}<span class="col-tag-name">${escapeHtml(c.name)}</span></button>`).join('')}${more > 0 ? `<button type="button" class="text-btn col-tags-more" data-col-tags-more aria-expanded="false">+ ${more} weitere</button>` : ''}</div>`;
+}
+
+/* ---------- Dialog «Zu Sammlungen hinzufügen» (Modaltyp 'rcol', auch aus anderen Ansichten: openModal({ type: 'rcol', recipeId })) ----------
+   Entwurf im Modal (draft), gespeichert wird erst mit «Speichern». Suche filtert nur die Anzeige, Haken bleiben. */
+const RCOL_SEARCH_MIN = 6;
+function rcolModalState() {
+  const m = state.modal;
+  if (!m || m.type !== 'rcol') return null;
+  if (!Array.isArray(m.draft)) {
+    const cur = rcolCollectionsOf(m.recipeId).map(c => c.id);
+    m.orig = cur.slice(); m.draft = cur.slice(); m.query = m.query || '';
+    if (!(orgOk() && orgCollections().length)) m.newOpen = true;   // noch keine Sammlung: Feld gleich offen
+  }
+  return m;
+}
+function rcolVisible(m) {
+  const q = typeof searchNorm === 'function' ? searchNorm(m.query || '') : String(m.query || '').toLowerCase();
+  const all = orgOk() ? orgCollections() : [];
+  if (!q.trim()) return all;
+  const toks = q.split(' ').filter(Boolean);
+  return all.filter(c => { const hay = typeof searchNorm === 'function' ? searchNorm(c.name || '') : String(c.name || '').toLowerCase(); return toks.every(t => hay.includes(t)); });
+}
+function rcolListInnerHtml(m) {
+  const all = orgOk() ? orgCollections() : [];
+  if (!all.length) return `<li class="rp-empty rcol-empty"><p>Du hast noch keine Sammlung.</p></li>`;
+  const list = rcolVisible(m);
+  if (!list.length) return `<li class="rp-empty"><p><strong>Keine Sammlung gefunden für «${escapeHtml((m.query || '').trim())}».</strong></p><button type="button" class="outline-btn outline-btn--small" data-rcol-clear>Suche löschen</button></li>`;
+  const draft = new Set(m.draft);
+  return list.map(c => {
+    const on = draft.has(c.id);
+    return `<li class="rp-row ${on ? 'is-selected' : ''}"><label class="rp-item">
+      <input type="checkbox" class="rp-input" data-rcol-pick="${escapeAttr(c.id)}" ${on ? 'checked' : ''}>
+      ${rcolDotHtml(c)}
+      <span class="rp-item-text"><span class="rp-item-title">${escapeHtml(c.name)}</span></span>
+      <span class="rp-mark" aria-hidden="true">${ICONS.check}</span></label></li>`;
+  }).join('');
+}
+function rcolHiddenText(m) {
+  const shown = new Set(rcolVisible(m).map(c => c.id));
+  const n = m.draft.filter(id => !shown.has(id)).length;
+  if (!n) return '';
+  return n === 1 ? '1 ausgewählte Sammlung ist durch die Suche ausgeblendet.' : `${n} ausgewählte Sammlungen sind durch die Suche ausgeblendet.`;
+}
+function rcolCountText(m) {
+  const live = new Set((orgOk() ? orgCollections() : []).map(c => c.id));
+  const n = m.draft.filter(id => live.has(id)).length;
+  return n ? `${n} ${n === 1 ? 'Sammlung' : 'Sammlungen'} ausgewählt` : 'Keine Sammlung ausgewählt';
+}
+function rcolNewHtml(m) {
+  if (!m.newOpen) return `<button type="button" class="text-btn rcol-new-btn" data-action="rcol-new" data-id="${escapeAttr(m.recipeId)}">${ICONS.plus}<span>Neue Sammlung</span></button>`;
+  const err = m.newError === 'empty' ? 'Gib der Sammlung einen Namen.'
+    : m.newError === 'too_long' ? 'Der Name ist zu lang. Höchstens 60 Zeichen.'
+    : m.newError === 'duplicate' ? 'Diese Sammlung gibt es bereits.'
+    : m.newError ? 'Die Sammlung konnte nicht gespeichert werden. Der Gerätespeicher ist vielleicht voll. Versuche es nochmals.' : '';
+  return `<div class="rcol-add">
+    <div class="inline-add">
+      <label for="colNewInline" class="sr-only">Name der neuen Sammlung</label>
+      <input id="colNewInline" type="text" maxlength="60" placeholder="Name der Sammlung" autocomplete="off" enterkeyhint="done" value="${escapeAttr(m.newName || '')}"${err ? ' aria-invalid="true" aria-describedby="rcolErr"' : ''}>
+      <button type="button" class="outline-btn outline-btn--small" data-action="rcol-create" data-id="${escapeAttr(m.recipeId)}">Erstellen</button>
+    </div>
+    ${err ? `<p class="fs-hint rcol-err" id="rcolErr" role="alert">${escapeHtml(err)}${m.newError === 'duplicate' && m.existingId ? ` <button type="button" class="text-btn rcol-use" data-action="rcol-use-existing" data-id="${escapeAttr(m.existingId)}">Bestehende Sammlung verwenden</button>` : ''}</p>` : ''}
+  </div>`;
+}
+function rcolModalHtml() {
+  const m = rcolModalState();
+  if (!m || !orgOk()) return '';
+  const r = state.recipes.find(x => x.id === m.recipeId);
+  if (!r) return '';
+  const many = orgCollections().length >= RCOL_SEARCH_MIN;
+  const body = `${many ? `<div class="rp-search" role="search">
+      <label for="rcolSearch" class="sr-only">Sammlung suchen</label>
+      <span class="rp-search-icon" aria-hidden="true">${ICONS.search || ''}</span>
+      <input type="search" id="rcolSearch" class="rp-search-input" placeholder="Sammlung suchen" value="${escapeAttr(m.query || '')}" autocomplete="off" spellcheck="false" enterkeyhint="search" aria-controls="rcolList">
+    </div>` : ''}
+    <p class="rp-count" id="rcolHidden" aria-live="polite">${escapeHtml(rcolHiddenText(m))}</p>
+    <ul class="rp-list rcol-list" id="rcolList" aria-label="Deine Sammlungen">${rcolListInnerHtml(m)}</ul>
+    <div class="rcol-new">${rcolNewHtml(m)}</div>`;
+  const foot = `<p class="rp-count" id="rcolCount" role="status" aria-live="polite">${escapeHtml(rcolCountText(m))}</p>
+    <div class="rp-actions"><button type="button" class="ghost-btn" data-action="close-modal">Abbrechen</button><button type="button" class="primary-btn" data-action="rcol-save" data-id="${escapeAttr(r.id)}">Speichern</button></div>`;
+  return rpSheetHtml({ id: 'rcol-title', title: 'Zu Sammlungen hinzufügen', sub: r.title || 'Ohne Titel', subId: 'rcol-sub', body, foot, cls: 'rp-sheet--rcol' });
+}
+function rcolRefresh(focusId) {
+  const m = rcolModalState();
+  const ul = document.getElementById('rcolList');
+  if (!m || !ul) return;
+  ul.innerHTML = rcolListInnerHtml(m);
+  const h = document.getElementById('rcolHidden'); if (h) h.textContent = rcolHiddenText(m);
+  const c = document.getElementById('rcolCount'); if (c) c.textContent = rcolCountText(m);
+  if (focusId) { const inp = ul.querySelector(`[data-rcol-pick="${cssAttr(focusId)}"]`); if (inp) focusWithoutScroll(inp); }
+}
+
+/* ---------- «Passt dazu» in der Rezeptansicht ---------- */
+const PAIRING_MAX = 4;
+const LINK_STATUS_ORDER = { ok: 0, pending: 1, gone: 2 };
+function linkListFor(recipeId) {
+  if (!linksOk()) return [];
+  let list;
+  try { list = (orgLinksOf(recipeId) || []).slice(); } catch (e) { return []; }
+  // Ziel inzwischen weg (z. B. gerade geloescht, Rueckgaengig-Frist): nie eine kaputte, anklickbare Karte
+  list = list.filter(l => l && l.otherId && l.otherId !== recipeId).map(l => (l.status === 'ok' && !state.recipes.some(x => x.id === l.otherId)) ? Object.assign({}, l, { status: 'gone' }) : l);
+  return list.map((l, i) => [l, i]).sort((a, b) => ((LINK_STATUS_ORDER[a[0].status] ?? 2) - (LINK_STATUS_ORDER[b[0].status] ?? 2)) || a[1] - b[1]).map(x => x[0]);
+}
+function linkOtherTitle(l) {
+  const o = l && l.status === 'ok' ? state.recipes.find(x => x.id === l.otherId) : null;
+  return o ? (o.title || 'Ohne Titel') : 'Verknüpftes Rezept';
+}
+function pairingCardHtml(r, l, hide, idx) {
+  const o = l.status === 'ok' ? state.recipes.find(x => x.id === l.otherId) : null;
+  const title = linkOtherTitle(l);
+  const time = o ? timeInfo(o).cardText : '';
+  const status = o ? '' : l.status === 'pending' ? 'Noch nicht verfügbar' : 'Nicht mehr vorhanden';
+  const noteId = l.note ? `pairing-note-${idx}` : '';
+  const media = o && hasPhoto(o) ? recipeImageHtml(o, 'pairing-img', 'thumb') : `<span class="pairing-img pairing-ph" aria-hidden="true">${ICONS.bookOpen}</span>`;
+  const body = `<span class="pairing-body"><span class="pairing-title">${escapeHtml(title)}</span>${time ? `<span class="pairing-meta">${ICONS.clock}<span>${escapeHtml(time)}</span></span>` : ''}${status ? `<span class="pairing-meta pairing-status">${status}</span>` : ''}${l.note ? `<span class="pairing-note" id="${noteId}">${escapeHtml(l.note)}</span>` : ''}</span>`;
+  const main = o
+    ? `<button type="button" class="pairing-main" data-action="open-linked-recipe" data-id="${escapeAttr(o.id)}" data-from="${escapeAttr(r.id)}" data-link-key="${escapeAttr(l.key)}" aria-label="${escapeAttr(title)} öffnen"${noteId ? ` aria-describedby="${noteId}"` : ''}>${media}${body}</button>`
+    : `<div class="pairing-main" aria-disabled="true" data-link-key="${escapeAttr(l.key)}">${media}${body}</div>`;
+  return `<li class="pairing-card ${o ? '' : 'is-off'}"${hide ? ' hidden' : ''}>${main}<button type="button" class="icon-btn pairing-menu-btn" data-action="link-menu" data-id="${escapeAttr(l.key)}" aria-label="Aktionen für ${escapeAttr(title)}" aria-haspopup="dialog">${ICONS.moreH}</button></li>`;
+}
+function pairingSectionHtml(r) {
+  const links = linkListFor(r.id);
+  if (!links.length) return '';   // ohne Verknuepfung keine leere Flaeche; Einstieg dann ueber das Menue
+  const many = links.length > PAIRING_MAX;
+  return `<section class="pairing" aria-labelledby="pairing-h">
+    <div class="pairing-head"><h2 class="section-title" id="pairing-h">Passt dazu</h2><button type="button" class="text-btn pairing-add" data-action="link-open" data-id="${escapeAttr(r.id)}">${ICONS.plus}<span>Verknüpfen</span></button></div>
+    <ul class="pairing-list" id="pairingList">${links.map((l, i) => pairingCardHtml(r, l, i >= PAIRING_MAX, i)).join('')}</ul>
+    ${many ? `<button type="button" class="text-btn pairing-more" data-pairing-more aria-expanded="false" aria-controls="pairingList">Alle ${links.length} anzeigen</button>` : ''}
+  </section>`;
+}
+
+/* ---------- Dialog «Rezept verknüpfen» (Modaltyp 'link-recipe') ---------- */
+const LINK_NOTE_MAX = 200;
+function linkPickState() {
+  const m = state.modal;
+  if (!m || m.type !== 'link-recipe') return null;
+  if (!Array.isArray(m.sel)) { m.sel = []; m.query = m.query || ''; m.note = m.note || ''; }
+  return m;
+}
+function linkLinkedSet(recipeId) { return new Set(linkListFor(recipeId).map(l => l.otherId)); }
+function linkCandidates(m) { return state.recipes.filter(x => x.id !== m.recipeId); }   // eigenes Rezept nie waehlbar
+function linkListInnerHtml(m) {
+  const cands = linkCandidates(m);
+  if (!cands.length) return `<li class="rp-empty"><p>Du hast noch kein anderes Rezept zum Verknüpfen.</p></li>`;
+  const list = typeof rpFilter === 'function' ? rpFilter(cands, m.query || '') : cands;
+  if (!list.length) return `<li class="rp-empty"><p><strong>Kein Rezept gefunden für «${escapeHtml((m.query || '').trim())}».</strong> Prüfe die Schreibweise oder suche nach einer Kategorie.</p><button type="button" class="outline-btn outline-btn--small" data-link-clear>Suche löschen</button></li>`;
+  const linked = linkLinkedSet(m.recipeId), sel = new Set(m.sel);
+  return list.map(x => {
+    const done = linked.has(x.id), on = done || sel.has(x.id);
+    const meta = done ? 'Schon verknüpft' : timeInfo(x).cardText;
+    return `<li class="rp-row ${on ? 'is-selected' : ''} ${done ? 'is-linked' : ''}"><label class="rp-item">
+      <input type="checkbox" class="rp-input" data-link-pick="${escapeAttr(x.id)}" ${on ? 'checked' : ''} ${done ? 'disabled' : ''}>
+      ${recipeImageHtml(x, 'picker-thumb', 'thumb')}
+      <span class="rp-item-text"><span class="rp-item-title">${escapeHtml(x.title || 'Ohne Titel')}</span>${meta ? `<span class="rp-item-meta">${escapeHtml(meta)}</span>` : ''}</span>
+      <span class="rp-mark" aria-hidden="true">${ICONS.check}</span></label></li>`;
+  }).join('');
+}
+function linkSelected(m) {
+  const linked = linkLinkedSet(m.recipeId);
+  return m.sel.filter(id => id !== m.recipeId && !linked.has(id) && state.recipes.some(x => x.id === id));
+}
+function linkCountText(m) {
+  const n = linkSelected(m).length;
+  const q = (m.query || '').trim();
+  const parts = [];
+  if (q) { const hits = typeof rpFilter === 'function' ? rpFilter(linkCandidates(m), q).length : 0; parts.push(hits === 1 ? '1 Treffer' : `${hits} Treffer`); }
+  parts.push(n ? `${n} ${n === 1 ? 'Rezept' : 'Rezepte'} ausgewählt` : 'Noch kein Rezept ausgewählt');
+  return parts.join(' · ');
+}
+function linkSaveLabel(n) { return n > 1 ? `${n} Rezepte verknüpfen` : 'Verknüpfen'; }
+function linkPickModalHtml(r) {
+  const m = linkPickState();
+  if (!m) return '';
+  const n = linkSelected(m).length;
+  const body = `<div class="rp-search" role="search">
+      <label for="linkSearch" class="sr-only">Rezepte durchsuchen</label>
+      <span class="rp-search-icon" aria-hidden="true">${ICONS.search || ''}</span>
+      <input type="search" id="linkSearch" class="rp-search-input" placeholder="Rezept oder Kategorie suchen" value="${escapeAttr(m.query || '')}" autocomplete="off" autocapitalize="off" spellcheck="false" enterkeyhint="search" aria-controls="linkList" aria-describedby="linkCount">
+    </div>
+    <ul class="rp-list" id="linkList" aria-label="Deine Rezepte">${linkListInnerHtml(m)}</ul>`;
+  const note = m.noteOpen
+    ? `<div class="field link-note-field"><label for="linkNote">Notiz zur Kombination <span class="rp-optional">(optional)</span></label>
+        <input id="linkNote" type="text" maxlength="${LINK_NOTE_MAX}" placeholder="z. B. Sauce kurz vor dem Servieren dazugeben" value="${escapeAttr(m.note || '')}" autocomplete="off" aria-describedby="linkNoteHint">
+        <p class="fs-hint" id="linkNoteHint">${n > 1 ? 'Gilt für alle gewählten Rezepte und erscheint jeweils bei beiden.' : 'Erscheint bei beiden Rezepten.'}</p></div>`
+    : `<button type="button" class="text-btn link-note-toggle" data-action="link-note-toggle" data-id="${escapeAttr(r.id)}">${ICONS.plus}<span>Notiz zur Kombination hinzufügen</span></button>`;
+  const foot = `<p class="rp-count" id="linkCount" role="status" aria-live="polite">${escapeHtml(linkCountText(m))}</p>
+    ${note}
+    <div class="rp-actions"><button type="button" class="ghost-btn" data-action="close-modal">Abbrechen</button><button type="button" class="primary-btn" data-action="link-save" data-id="${escapeAttr(r.id)}" ${n ? '' : 'disabled'}>${linkSaveLabel(n)}</button></div>`;
+  return rpSheetHtml({ id: 'link-title', title: 'Rezept verknüpfen', sub: `Mit «${r.title || 'Ohne Titel'}»`, subId: 'link-sub', body, foot, cls: 'rp-sheet--link' });
+}
+function linkPickRefresh(focusId) {
+  const m = linkPickState();
+  const ul = document.getElementById('linkList');
+  if (!m || !ul) return;
+  ul.innerHTML = linkListInnerHtml(m);
+  if (typeof hydrateLazyImages === 'function') hydrateLazyImages();
+  linkPickStatus();
+  if (focusId) { const inp = ul.querySelector(`[data-link-pick="${cssAttr(focusId)}"]`); if (inp) focusWithoutScroll(inp); }
+}
+function linkPickStatus() {
+  const m = linkPickState();
+  if (!m) return;
+  const n = linkSelected(m).length;
+  const c = document.getElementById('linkCount'); if (c) c.textContent = linkCountText(m);
+  const go = document.querySelector('[data-action="link-save"]'); if (go) { go.disabled = !n; go.textContent = linkSaveLabel(n); }
+  const hint = document.getElementById('linkNoteHint'); if (hint) hint.textContent = n > 1 ? 'Gilt für alle gewählten Rezepte und erscheint jeweils bei beiden.' : 'Erscheint bei beiden Rezepten.';
+}
+
+/* ---------- Kartenmenue und Notiz ---------- */
+function linkFind(recipeId, key) { return linkListFor(recipeId).find(l => l.key === key) || null; }
+function linkMenuModalHtml(r) {
+  const m = state.modal;
+  const l = linkFind(r.id, m.key);
+  if (!l) return '';
+  const ok = l.status === 'ok';
+  const btn = (action, id, icon, label, extra, hint) => `<button type="button" class="menu-item ${extra || ''}" data-action="${action}" data-id="${escapeAttr(id)}">${icon}<span class="menu-item-text"><span>${label}</span>${hint ? `<span class="menu-item-hint">${hint}</span>` : ''}</span></button>`;
+  return sheet('link-menu-title', linkOtherTitle(l), `<div class="menu-list">
+    ${ok ? btn('link-menu-open', l.otherId, ICONS.bookOpen, 'Öffnen') : ''}
+    ${ok ? btn('link-note-edit', l.key, ICONS.note || ICONS.edit, l.note ? 'Notiz bearbeiten' : 'Notiz hinzufügen') : ''}
+    ${btn('link-remove', l.key, ICONS.trash, 'Verknüpfung entfernen', 'menu-item--danger menu-item--hint', 'Beide Rezepte bleiben erhalten')}
+  </div>`);
+}
+function linkNoteModalHtml(r) {
+  const m = state.modal;
+  const l = linkFind(r.id, m.key);
+  if (!l) return '';
+  return sheet('link-note-title', 'Notiz zur Kombination', `
+    <p class="hint-line">${escapeHtml(r.title || 'Ohne Titel')} und ${escapeHtml(linkOtherTitle(l))}</p>
+    <div class="field"><label for="linkNoteEdit" class="sr-only">Notiz zur Kombination</label>
+    <textarea id="linkNoteEdit" rows="3" maxlength="${LINK_NOTE_MAX}" aria-describedby="linkNoteEditHint" placeholder="z. B. Sauce kurz vor dem Servieren dazugeben">${escapeHtml(l.note || '')}</textarea>
+    <p class="fs-hint" id="linkNoteEditHint">Erscheint bei beiden Rezepten.</p></div>
+    <div class="form-actions"><button type="button" class="ghost-btn" data-action="close-modal">Abbrechen</button><button type="button" class="primary-btn" data-action="link-note-save" data-id="${escapeAttr(l.key)}">Speichern</button></div>`);
+}
+function linkModalsHtml(r) {
+  const t = state.modal && state.modal.type;
+  if (!linksOk() || !r) return '';
+  if (t === 'link-recipe') return linkPickModalHtml(r);
+  if (t === 'link-menu') return linkMenuModalHtml(r);
+  if (t === 'link-note') return linkNoteModalHtml(r);
+  return '';
+}
+
+/* ---------- Teilaktualisierung (ohne render: Cursor, Fokus und Scroll bleiben) ---------- */
+document.addEventListener('input', (e) => {
+  const t = e.target, m = state.modal;
+  if (!t || !m) return;
+  if (t.id === 'rcolSearch' && m.type === 'rcol') { m.query = t.value; if (!e.isComposing) rcolRefresh(); }
+  else if (t.id === 'colNewInline' && m.type === 'rcol') m.newName = t.value;
+  else if (t.id === 'linkSearch' && m.type === 'link-recipe') { m.query = t.value; if (!e.isComposing) linkPickRefresh(); }
+  else if (t.id === 'linkNote' && m.type === 'link-recipe') m.note = t.value;
+});
+document.addEventListener('compositionend', (e) => {
+  const t = e.target, m = state.modal;
+  if (!t || !m) return;
+  if (t.id === 'rcolSearch' && m.type === 'rcol') { m.query = t.value; rcolRefresh(); }
+  if (t.id === 'linkSearch' && m.type === 'link-recipe') { m.query = t.value; linkPickRefresh(); }
+});
+document.addEventListener('keydown', (e) => {
+  const t = e.target;
+  if (!t || e.key !== 'Enter') return;
+  if (t.id === 'rcolSearch' || t.id === 'linkSearch' || t.id === 'linkNote') { e.preventDefault(); return; }   // Enter sendet nichts ab
+  if (t.id === 'colNewInline') { e.preventDefault(); const b = document.querySelector('[data-action="rcol-create"]'); if (b) b.click(); }
+});
+document.addEventListener('change', (e) => {
+  const t = e.target, m = state.modal;
+  if (!t || !m || !t.dataset) return;
+  if (t.dataset.rcolPick && m.type === 'rcol') {
+    const id = t.dataset.rcolPick;
+    m.draft = t.checked ? Array.from(new Set(m.draft.concat(id))) : m.draft.filter(x => x !== id);
+    const li = t.closest('.rp-row'); if (li) li.classList.toggle('is-selected', t.checked);
+    const c = document.getElementById('rcolCount'); if (c) c.textContent = rcolCountText(m);
+  } else if (t.dataset.linkPick && m.type === 'link-recipe') {
+    const id = t.dataset.linkPick;
+    m.sel = t.checked ? Array.from(new Set(m.sel.concat(id))) : m.sel.filter(x => x !== id);
+    const li = t.closest('.rp-row'); if (li) li.classList.toggle('is-selected', t.checked);
+    linkPickStatus();
+  }
+});
+document.addEventListener('click', (e) => {
+  const t = e.target && e.target.closest ? e.target : null;
+  if (!t) return;
+  if (t.closest('[data-rcol-clear]') && state.modal && state.modal.type === 'rcol') {
+    state.modal.query = ''; const s = document.getElementById('rcolSearch'); if (s) { s.value = ''; focusWithoutScroll(s); } rcolRefresh(); return;
+  }
+  if (t.closest('[data-link-clear]') && state.modal && state.modal.type === 'link-recipe') {
+    state.modal.query = ''; const s = document.getElementById('linkSearch'); if (s) { s.value = ''; focusWithoutScroll(s); } linkPickRefresh(); return;
+  }
+  const more = t.closest('[data-col-tags-more], [data-pairing-more]');
+  if (more) {
+    // Aufklappen ohne Neuaufbau; Fokus auf den ersten bisher verborgenen Eintrag
+    const box = more.hasAttribute('data-pairing-more') ? document.getElementById('pairingList') : more.closest('.col-tags');
+    const hidden = box ? Array.from(box.querySelectorAll(more.hasAttribute('data-pairing-more') ? ':scope > .pairing-card[hidden]' : ':scope > .col-tag[hidden]')) : [];
+    hidden.forEach(x => { x.hidden = false; });
+    more.setAttribute('aria-expanded', 'true'); more.hidden = true;
+    const first = hidden[0] && (hidden[0].matches('button') ? hidden[0] : hidden[0].querySelector('button'));
+    if (first) focusWithoutScroll(first);
+  }
+}, true);
 
 /* ---------- Auswahl-Sheet: Zutaten in den Einkauf ---------- */
 function shopSelectModal() {
@@ -815,8 +1132,9 @@ function cookModeView() {
         ${ingChips ? `<div class="cook-ing-list">${ingChips}</div>` : ''}
       </div>`;
   const refModal = state.modal && state.modal.type === 'step-ings' ? stepIngredientsModal(r, state.modal.stepIndex) : '';
+  const linkModal = typeof cookLinkModalHtml === 'function' ? cookLinkModalHtml(r) : '';   // v84: «Passt dazu» nur als Vorschau
   const scaleLabel = ['Normal', 'Gross', 'Sehr gross'][state.cookScale || 0];
-  return `${refModal}<div class="cookmode-overlay cook-v2 cook-scale-${state.cookScale || 0}" role="main" aria-label="Kochmodus">
+  return `${refModal}${linkModal}<div class="cookmode-overlay cook-v2 cook-scale-${state.cookScale || 0}" role="main" aria-label="Kochmodus">
     <div class="cookmode-top">
       <button class="icon-btn" data-action="exit-cook" aria-label="Kochmodus verlassen">${ICONS.x}</button>
       <span class="cookmode-progress" aria-live="polite">Schritt ${idx + 1} von ${total}</span>
@@ -827,7 +1145,7 @@ function cookModeView() {
       </div>
     </div>
     <div class="cook-progress" aria-hidden="true"><span style="width:${Math.round(((idx + 1) / total) * 100)}%"></span></div>
-    <div class="cook-title-line"><span class="cook-title-text">${escapeHtml(r.title)}</span>${state.wakeLock ? `<span class="wakelock-chip">${ICONS.sun} Bildschirm bleibt an</span>` : (state.wakeLockUnsupported ? `<span class="wakelock-chip wakelock-chip--off">Bildschirm kann ausgehen</span>` : '')}</div>
+    <div class="cook-title-line"><span class="cook-title-text">${escapeHtml(r.title)}</span>${typeof cookLinksButtonHtml === 'function' ? cookLinksButtonHtml(r) : ''}${state.wakeLock ? `<span class="wakelock-chip">${ICONS.sun} Bildschirm bleibt an</span>` : (state.wakeLockUnsupported ? `<span class="wakelock-chip wakelock-chip--off">Bildschirm kann ausgehen</span>` : '')}</div>
     <div class="cookmode-body">${body}</div>
     <div class="cook-timerbar" id="cookTimerBar" role="group" aria-label="Laufende Timer" ${cookTimerBarHtml(r) ? '' : 'hidden'}>${cookTimerBarHtml(r)}</div>
     <div class="cookmode-nav">
