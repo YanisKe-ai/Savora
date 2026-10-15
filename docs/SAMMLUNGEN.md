@@ -31,10 +31,11 @@ Weitere Festlegungen aus `org.js`:
 ## 3. Übernahme des Bestands
 - Bis 0.83 gab es `savora-collections` (`[{id,name}]`) und `recipe.collections`. Beide werden weiter gelesen, nichts wird gelöscht, `recipe.collections` wird nie verändert.
 - `orgEnsureLegacy()` übernimmt idempotent:
-  1. Unbekannte IDs aus `savora-collections` als Sammlungen mit `updatedAt` 1 (Uhr 1). Reihenfolge: Listenposition beim ersten Lauf, danach angehängt. `createdAt` kommt aus der Zeit in der ID, falls erkennbar.
-  2. Paare aus `recipe.collections` als Zuordnungen mit Uhr 1, nur wenn für das Paar noch gar kein Datensatz besteht (weder aktiv noch Grabstein) und die Sammlung aktiv ist.
+  1. Unbekannte IDs aus `savora-collections` als Sammlungen mit `updatedAt` 1 (Uhr 1). Reihenfolge: ein endlicher `order` aus der Liste, sonst Listenposition beim ersten Lauf, danach angehängt. `createdAt` kommt aus der Zeit in der ID, falls erkennbar.
+  2. Paare aus `recipe.collections` und aus dem alten Format mit der Zuordnung in der Sammlung (`recipeIds`) als Zuordnungen mit Uhr 1, nur wenn für das Paar noch gar kein Datensatz besteht (weder aktiv noch Grabstein), die Sammlung aktiv ist und das Rezept vorhanden ist.
 - Jeder echte Stand (Uhr grösser als 1) gewinnt gegen eine Übernahme. Übernahmen mit Uhr 1 oder weniger werden nicht ins Konto hochgeladen (`orgSyncAll`).
-- **Projektion für alte Geräte:** `savora-collections` wird weiter geschrieben (aktive Sammlungen in Nutzerreihenfolge, mit `id`, `name`, `color`, `icon`, `order`), aber nur wenn sich der Inhalt ändert, sonst entstünde ein Abgleich-Pingpong.
+- **Projektion für alte Geräte:** `savora-collections` wird weiter geschrieben (aktive Sammlungen in Nutzerreihenfolge, mit `id`, `name`, `color`, `icon`), aber nur wenn sich dieser Inhalt ändert. Unbekannte Felder alter Einträge (zum Beispiel `recipeIds`) bleiben erhalten. `order` steht bewusst nicht darin, weil der Ordnungswert einer Bestandsübernahme je Gerät verschieden sein kann.
+- **Kein Abgleich-Pingpong:** Empfängt ein Gerät das Setting `collections`, lädt es die zusammengeführte Liste nur hoch, wenn sie inhaltlich abweicht (Menge aus `id`, `name`, `color`, `icon`, Reihenfolge zählt nicht, `orgProjectionSame`). Zwei Geräte mit unterschiedlichem Ordnungswert derselben Bestandssammlung erzeugen daher keinen neuen Upload.
 
 ## 4. Abgleich (cloud.js, Tabelle `savora_records`)
 - **Datenarten (`kind`):** `collection` (id = Sammlungs-ID), `membership` (id = `colId|recipeId`), `pairing` (id = `idA~idB`).
@@ -46,6 +47,8 @@ Weitere Festlegungen aus `org.js`:
   - Grabsteine bleiben dauerhaft. Ein Grabstein wird nur durch ein neues bewusstes Hinzufügen überholt (neue Uhr), nie automatisch.
   - `orgSyncApply` gibt `{ applied }`, `{ applied:false, localNewer:true, localAt }` oder `{ applied:false, invalid:true }` zurück. Ungültige Fremdsätze (`orgSyncValidate`) werden nicht übernommen.
   - Ein Grabstein ohne Daten behält lokal Namen, Farbe, Symbol, Reihenfolge, damit die ID-Regel weiter greift.
+- **Grabsteine mit Daten:** Gelöschte Org-Datensätze gehen mit ihren Daten hoch (Name, Farbe, Symbol). Ein neues Gerät übernimmt den Namen, damit gleichnamiges Neuanlegen dieselbe ID trifft.
+- **Vormerken im Sammelschreiben:** `orgPut` sammelt die Vormerkungen, `orgFlush` übergibt sie einmal an `cloudMarkMany` (ein Lese- und Schreibvorgang der Warteschlange). Schlägt das Schreiben fehl, wird nichts vorgemerkt.
 - **Warteschlange:** Org-Datensätze gehen in eigenen Blöcken zu 200 hoch. Lehnt der Server einen Block ab (zum Beispiel weil die Migration fehlt), bleiben diese Einträge in der Warteschlange und der übrige Abgleich (Rezepte, Plan, Einkauf) läuft weiter. Bei Offline oder 401 bricht der Abgleich ab wie bisher.
 - **Eingehend:** `cloudApplyOrgRows` übernimmt eine Seite in einem Schreibvorgang (`orgBatch`). Ist lokal etwas neuer und nicht vorgemerkt, wird es erneut zum Hochladen vorgemerkt.
 - **Nachholen:** `cloudOrgCatchUp` holt einmalig alle Org-Zeilen ohne Cursor nach (`kind=in.(collection,membership,pairing)`, Seiten zu 1000). Grund: ein Gerät mit älterer Version hat solche Zeilen schon gezogen, aber nicht verstanden. Das Flag `catchUpDone` in `savora-org-meta` verhindert Wiederholung. Bei vollem Abzug ohne Cursor wird es direkt gesetzt.
@@ -59,12 +62,12 @@ Weitere Festlegungen aus `org.js`:
 - Rückgängig/Wiederherstellen eines Rezepts bringt Beziehungen automatisch zurück.
 
 ## 6. Sicherung und Wiederherstellen
-- **Export:** `schemaVersion` 6, Abschnitt `organization` aus `orgExport()`: `{ v:1, collections, memberships, links }`, nur aktive Daten, keine Grabsteine, Zuordnungen nur zu aktiven Sammlungen. `settings.collections` und `recipe.collections` bleiben drin, damit ältere App-Stände die Sicherung lesen.
+- **Export:** `schemaVersion` 6, Abschnitt `organization` aus `orgExport()`: `{ v:1, collections, memberships, links }`, nur aktive Daten, keine Grabsteine, Zuordnungen nur zu aktiven Sammlungen, Zuordnungen und Verknüpfungen nur mit vorhandenen Rezepten. `settings.collections` und `recipe.collections` bleiben drin, damit ältere App-Stände die Sicherung lesen.
 - **Prüfung:** `validateBackupOrganization` (validate.js) gibt `{ present, data, problems }` zurück. Fehlt der Abschnitt, ist `data` `null` (alte Sicherung). Grenzen: 2000 Sammlungen, 200000 Zuordnungen, 50000 Verknüpfungen, Name 60, Notiz 200 Zeichen. Ungültige Einträge werden einzeln gemeldet und übersprungen.
 - **Wiederherstellen:** `orgImport(data, recipeIdMap, colIdMap)` direkt nach den Rezepten.
   - Rezept-IDs werden über `recipeIdMap` abgebildet. Alte IDs, die in der Sicherung mehrfach vorkommen, werden nicht abgebildet und nicht verbunden.
-  - Sammlungen: gleiche ID und gleicher Name, oder gleicher Name unter den aktiven, werden zusammengeführt (`mapped`). Sonst neu angelegt, bei belegter ID mit freier neuer ID.
-  - **Alte Sicherungen** (ohne `organization`): Sammlungen aus `settings.collections`, Zuordnungen aus `recipe.collections` (`legacy`). Bei neuen Sicherungen werden die `legacy`-Paare nur als «schon entschieden» vermerkt (lokaler Grabstein mit Uhr 0, nie abgeglichen), damit die Bestandsübernahme veraltete Paare nicht wiederbelebt.
+  - Sammlungen: gleiche aktive ID (auch bei anderem Namen, etwa nach Umbenennen) oder gleicher Name unter den aktiven werden zusammengeführt (`mapped`). Sonst neu angelegt, bei belegter ID mit freier neuer ID.
+  - **Alte Sicherungen** (ohne `organization`): Sammlungen aus `settings.collections`, Zuordnungen aus `recipe.collections` und `settings.collections[].recipeIds` (`legacy`, nur Rezepte der Sicherung). Bei neuen Sicherungen werden die `legacy`-Paare nur als «schon entschieden» vermerkt (lokaler Grabstein mit Uhr 0, nie abgeglichen), damit die Bestandsübernahme veraltete Paare nicht wiederbelebt.
   - **Grabsteine:** Wurde eine Zuordnung oder Verknüpfung auf diesem Gerät bewusst entfernt (Uhr grösser als 0), wird sie nicht wiederbelebt (`removed`). Wiederholtes Einspielen erzeugt keine Dubletten (`existed`).
   - Bei bestehender Verknüpfung ohne Notiz wird die Notiz aus der Sicherung ergänzt.
 - **Bericht** von `orgImport`: `collections {added, mapped, invalid}`, `memberships {added, existed, missing, removed}`, `links {added, existed, missing, self, removed}`, `colIdMap`. `backup.js` meldet daraus fehlende Ziele, Verknüpfungen zwischen zwei gleichen Rezepten, bewusst entfernte Einträge und den Hinweis auf mehrfach vorkommende IDs.
@@ -91,8 +94,8 @@ Konstanten: `ORG_COLORS`, `ORG_ICONS`. Fehlercodes: `empty`, `too_long`, `duplic
 | `orgRecipeIdsIn(colId)` | vorhandene Rezept-IDs einer Sammlung | `Set` |
 | `orgCounts()` | Anzahl vorhandener Rezepte je Sammlung | `Map` colId zu Anzahl |
 | `orgInNoCollection(recipeOrId)` | Rezept in keiner Nutzersammlung | `boolean` |
-| `orgSetMembership(recipeId, colId, on)` | eine Zuordnung setzen oder entfernen | Undo-Token oder `null` (keine Änderung) |
-| `orgApply(recipeIds, colId, 'add'\|'remove')` | Zuordnung für mehrere Rezepte, nur diese Beziehung | Undo-Token oder `null` |
+| `orgSetMembership(recipeId, colId, on)` | eine Zuordnung setzen oder entfernen | Undo-Token, `null` (keine Änderung) oder `{ok:false, error:'storage'}` |
+| `orgApply(recipeIds, colId, 'add'\|'remove')` | Zuordnung für mehrere Rezepte, nur diese Beziehung | Undo-Token, `null` oder `{ok:false, error:'storage'}` |
 | `orgUndo(token)` | Stand vor der Aktion wiederherstellen (als neue Änderung mit frischer Uhr) | `true` oder `false` |
 | `orgUndoCount(token)` | Anzahl geänderter Datensätze | Zahl |
 | `orgLinksOf(recipeId)` | Verknüpfungen eines Rezepts | Liste `{key, otherId, note, status, createdAt}` |
@@ -118,5 +121,7 @@ Konstanten: `ORG_COLORS`, `ORG_ICONS`. Fehlercodes: `empty`, `too_long`, `duplic
 ## 9. Bekannte Einschränkungen
 - Ein altes Gerät (Stand vor 0.84), das nur `recipe.collections` ändert: Hinzufügungen werden übernommen, sofern kein Grabstein besteht. Das Entfernen einer Sammlung aus `recipe.collections` geht in der Übergangszeit verloren. Die PWA aktualisiert sich über den Service Worker zügig.
 - Doppelte Rezept-IDs in einer Sicherung: Beziehungen auf diese IDs werden nicht wiederhergestellt und im Bericht gemeldet, weil die Abbildung mehrdeutig wäre. Es gibt kein Zuordnen über den Titel.
+- Ein altes Gerät (Stand vor 0.84) benennt eine Sammlung um: Das neue Gerät übernimmt nur unbekannte IDs aus `savora-collections` und schreibt danach seine eigene Projektion. Der neue Name geht dabei verloren, das alte Gerät erhält wieder den bisherigen Namen.
+- Speicherfehler: `orgApply`, `orgSetMembership`, `orgCreateCollection` und `orgLinkCreate` nehmen die Änderung im Zwischenspeicher zurück und melden `storage`. Innerhalb eines äusseren `orgBatch` wird ein Fehler erst am Ende erkannt.
 - Mehrere Tabs: Es gibt keine Sperre. Änderungen in einem anderen Tab kommen nur über das `storage`-Ereignis an (`orgReload`). Gleichzeitiges Bearbeiten in zwei Tabs kann einen Stand überschreiben.
 - Eine Sammlung zur Zeit in der Auswahl (keine Mehrfachauswahl in Version 1).

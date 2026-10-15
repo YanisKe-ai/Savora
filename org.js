@@ -45,6 +45,7 @@ const org = {
   undo: new Map(), undoSeq: 0,
   subs: new Set(), notifyQueued: false,
   batch: 0, dirty: new Set(), writeFailed: false,      // Sammelschreiben (viele Datensaetze, ein Schreibvorgang je Schluessel)
+  marks: [],                                          // im Sammelschreiben gesammelte Abgleich-Vormerkungen (einmal je orgFlush)
 };
 
 /* ---------- Speicher ---------- */
@@ -72,10 +73,17 @@ function orgFlush() {
   let ok = true;
   org.dirty.forEach(k => {
     if (k === 'meta') ok = orgWriteKey(ORG_META_KEY, org.meta) && ok;
-    else { ok = orgWriteKey(ORG_STORE[k].key, ORG_STORE[k].get()) && ok; if (k === 'collection') orgWriteProjection(); }
+    else { const w = orgWriteKey(ORG_STORE[k].key, ORG_STORE[k].get()); ok = w && ok; if (k === 'collection' && w) orgWriteProjection(); }   // Projektion nur nach erfolgreichem Schreiben
   });
   org.dirty.clear();
   if (!ok) org.writeFailed = true;
+  // Vormerkungen fuer den Abgleich gesammelt (ein Lese- und Schreibvorgang der Warteschlange statt einer je Datensatz).
+  // Schlug das Schreiben fehl, nichts vormerken: der Aufrufer nimmt die Aenderung im Speicher zurueck.
+  const marks = org.marks; org.marks = [];
+  if (ok && marks.length) {
+    if (typeof cloudMarkMany === 'function') cloudMarkMany(marks);
+    else if (typeof cloudMark === 'function') marks.forEach(m => cloudMark(m[0], m[1], m[2], m[3]));
+  }
   return ok;
 }
 // Mehrere Aenderungen gesammelt schreiben (z. B. 200 Zuordnungen oder ein Abgleich). Verschachtelbar.
@@ -99,11 +107,20 @@ function orgPut(kind, key, rec, mark) {
   const store = ORG_STORE[kind].get();
   store[key] = rec;
   org.dirty.add(kind);
+  if (mark) org.marks.push([kind, key, !!rec.deleted, orgEnc(rec)]);
   const ok = org.batch ? true : orgFlush();
   org.ver++;
-  if (mark && typeof cloudMark === 'function') cloudMark(kind, key, !!rec.deleted, orgEnc(rec));
   orgNotify();
   return ok;
+}
+// Speicherfehler: Aenderungen einer Aktion im Zwischenspeicher zuruecknehmen (nichts Halbes bleibt sichtbar).
+function orgRollback(tx) {
+  orgLoad();
+  tx.changes.slice().reverse().forEach(({ kind, key, prev }) => {
+    const store = ORG_STORE[kind].get();
+    if (prev) store[key] = prev; else delete store[key];
+  });
+  org.ver++; orgNotify();
 }
 
 /* ---------- Uhr und Konfliktwert ---------- */
@@ -183,12 +200,30 @@ function orgEnsureLegacy() {
       const id = String(it.id || '');
       if (!ORG_ID_RE.test(id) || id === ORG_FRIENDS_ID || org.cols[id]) return;
       const name = orgCleanName(it.name).slice(0, ORG_NAME_MAX) || 'Sammlung';
-      org.cols[id] = { id, name, color: orgValidColor(it.color), icon: orgValidIcon(it.icon), order: firstRun ? i : ++maxOrder, createdAt: orgTimeFromId(id), updatedAt: 1, deleted: false };
-      if (firstRun) maxOrder = Math.max(maxOrder, i);
+      // Ordnungswert aus der Liste (Projektion eines Geraets mit 0.84.0), sonst Listenposition bzw. angehaengt
+      const order = Number.isFinite(it.order) ? it.order : firstRun ? i : maxOrder + 1;
+      org.cols[id] = { id, name, color: orgValidColor(it.color), icon: orgValidIcon(it.icon), order, createdAt: orgTimeFromId(id), updatedAt: 1, deleted: false };
+      maxOrder = Math.max(maxOrder, order);
       changedCols = true;
     });
   }
   // 2. recipe.collections: Paare ohne jeden Datensatz (weder aktiv noch Grabstein) als Zuordnung uebernehmen.
+  //    Ebenso das alte Format mit der Zuordnung in der Sammlung (recipeIds), nur fuer vorhandene Rezepte.
+  if (Array.isArray(list) && list.some(it => it && Array.isArray(it.recipeIds))) {
+    const exist = new Set(recs.map(r => r && r.id));
+    list.forEach(it => {
+      if (!it || !Array.isArray(it.recipeIds)) return;
+      const c = String(it.id || '');
+      if (c === ORG_FRIENDS_ID || !orgActive(org.cols[c])) return;
+      it.recipeIds.forEach(rid => {
+        if (typeof rid !== 'string' || !ORG_ID_RE.test(rid) || !exist.has(rid)) return;
+        const key = orgMemKey(c, rid);
+        if (org.mems[key]) return;
+        org.mems[key] = { c, r: rid, updatedAt: 1, deleted: false };
+        changedMems = true;
+      });
+    });
+  }
   recs.forEach(r => {
     if (!r || !Array.isArray(r.collections) || !ORG_ID_RE.test(String(r.id || ''))) return;
     r.collections.forEach(c => {
@@ -209,15 +244,34 @@ function orgEnsureLegacy() {
   org.legacySig = { raw, recs, len: recs.length, ver: org.ver };
 }
 // Projektion fuer aeltere App-Staende: nur aktive Sammlungen, in Nutzerreihenfolge. Nur schreiben, wenn sich etwas aendert
-// (sonst Abgleich-Pingpong zwischen Geraeten).
+// (sonst Abgleich-Pingpong zwischen Geraeten). Ohne order: der Ordnungswert einer Bestandsuebernahme ist geraeteabhaengig.
+// Inhaltlich gleich (gleiche Folge aus id, name, color, icon) bleibt der alte Text stehen, auch im alten Format.
+// Bei einer Aenderung bleiben unbekannte Felder alter Eintraege erhalten (z. B. recipeIds des alten Formats), order nicht.
 function orgWriteProjection() {
-  const list = orgSortedCollections().map(c => ({ id: c.id, name: c.name, color: c.color || null, icon: c.icon || null, order: c.order }));
-  const text = JSON.stringify(list);
   let cur = null; try { cur = localStorage.getItem(ORG_LEGACY_KEY); } catch (e) {}
-  if (cur === text) return;
+  let old = []; try { old = JSON.parse(cur || '[]'); } catch (e) { old = []; }
+  const prev = new Map((Array.isArray(old) ? old : []).filter(it => it && typeof it === 'object').map(it => [String(it.id || ''), it]));
+  const list = orgSortedCollections().map(c => {
+    const keep = Object.assign({}, prev.get(c.id) || {}); delete keep.order;
+    return Object.assign(keep, { id: c.id, name: c.name, color: c.color || null, icon: c.icon || null });
+  });
+  const text = JSON.stringify(list);
+  if (cur === text || (cur !== null && orgProjectionSame(cur, text, true))) return;
   if (!list.length && (cur === null || cur === '[]')) return;
   try { localStorage.setItem(ORG_LEGACY_KEY, text); } catch (e) {}
   if (org.legacySig) org.legacySig.raw = text;
+}
+// Gleicher Inhalt zweier Projektionen (Text): Menge aus id, name, color, icon (andere Felder zaehlen nicht).
+// ordered=true: auch die Reihenfolge muss gleich sein.
+function orgProjectionSame(textA, textB, ordered) {
+  const norm = (t) => {
+    let l; try { l = JSON.parse(t || '[]'); } catch (e) { return null; }
+    if (!Array.isArray(l)) return null;
+    const rows = l.filter(it => it && typeof it === 'object').map(it => [String(it.id || ''), String(it.name || ''), it.color || null, it.icon || null]);
+    return JSON.stringify(ordered ? rows : rows.sort((x, y) => (x[0] < y[0] ? -1 : x[0] > y[0] ? 1 : 0)));
+  };
+  const a = norm(textA);
+  return a !== null && a === norm(textB);
 }
 
 /* ---------- Verzeichnisse ---------- */
@@ -323,8 +377,9 @@ function orgCreateCollection({ name, color, icon } = {}) {
   const revived = !!org.cols[id];
   const at = orgClock();
   const maxOrder = orgSortedCollections().reduce((m, c) => Math.max(m, Number(c.order) || 0), -1);
+  const tx = orgUndoBegin(); orgRemember(tx, 'collection', id);
   const ok = orgPut('collection', id, { id, name: chk.name, color: orgValidColor(color), icon: orgValidIcon(icon), order: Math.floor(maxOrder) + 1, createdAt: at, updatedAt: at, deleted: false }, true);
-  if (!ok) return { ok: false, error: 'storage' };
+  if (!ok) { orgRollback(tx); return { ok: false, error: 'storage' }; }
   // Neu angelegt mit der ID einer frueher geloeschten gleichnamigen Sammlung: alte Zuordnungen nicht wiederbeleben.
   if (revived) orgBatch(() => Object.entries(org.mems).forEach(([key, m]) => { if (m.c === id && orgActive(m)) orgPut('membership', key, Object.assign({}, m, { deleted: true, updatedAt: orgClock() }), true); }));
   return { ok: true, id };
@@ -387,20 +442,25 @@ function orgSetMem(tx, recipeId, colId, on) {
   orgPut('membership', key, { c: colId, r: recipeId, updatedAt: orgClock(), deleted: !on }, true);
   return true;
 }
+// Rueckgabe: Rueckgaengig-Token, null (keine Aenderung) oder { ok:false, error:'storage' } (Schreiben fehlgeschlagen, zurueckgenommen).
 function orgSetMembership(recipeId, colId, on) {
   orgEnsureLegacy();
   if (!ORG_ID_RE.test(String(recipeId || '')) || !orgActive(org.cols[colId])) return null;
   const tx = orgUndoBegin();
-  orgSetMem(tx, String(recipeId), colId, on);
+  org.writeFailed = false;
+  orgBatch(() => orgSetMem(tx, String(recipeId), colId, on));
+  if (org.writeFailed && tx.changes.length) { orgRollback(tx); return { ok: false, error: 'storage' }; }
   return orgUndoCommit(tx);
 }
 // Aendert nur die genannte Beziehung (Sammlung colId) fuer die genannten Rezepte. Andere Zuordnungen bleiben unberuehrt.
-// Rueckgabe: Rueckgaengig-Token oder null, wenn sich nichts geaendert hat.
+// Rueckgabe: Rueckgaengig-Token, null, wenn sich nichts geaendert hat, oder { ok:false, error:'storage' } bei Speicherfehler.
 function orgApply(recipeIds, colId, mode) {
   orgEnsureLegacy();
   if (!orgActive(org.cols[colId]) || (mode !== 'add' && mode !== 'remove')) return null;
   const tx = orgUndoBegin();
+  org.writeFailed = false;
   orgBatch(() => [...new Set(recipeIds || [])].forEach(rid => { if (ORG_ID_RE.test(String(rid || ''))) orgSetMem(tx, String(rid), colId, mode === 'add'); }));
+  if (org.writeFailed && tx.changes.length) { orgRollback(tx); return { ok: false, error: 'storage' }; }
   return orgUndoCommit(tx);
 }
 
@@ -431,7 +491,8 @@ function orgLinkCreate(idA, idB, note) {
   const at = orgClock();
   const tx = orgUndoBegin(); orgRemember(tx, 'pairing', key);
   const ok = orgPut('pairing', key, { a, b, type: 'pairing', note: orgCleanNote(note), createdAt: at, updatedAt: at, deleted: false }, true);
-  return ok ? { ok: true, key, undoToken: orgUndoCommit(tx) } : { ok: false, error: 'storage' };
+  if (!ok) { orgRollback(tx); return { ok: false, error: 'storage' }; }
+  return { ok: true, key, undoToken: orgUndoCommit(tx) };
 }
 function orgLinkNote(key, note) {
   orgLoad();
@@ -451,15 +512,17 @@ function orgLinkRemove(key) {
 }
 
 /* ---------- Sicherung ---------- */
-// Nur aktive Daten (Grabsteine werden nicht gesichert). Zuordnungen nur zu aktiven Sammlungen.
+// Nur aktive Daten (Grabsteine werden nicht gesichert). Zuordnungen nur zu aktiven Sammlungen. Zuordnungen und Verknuepfungen
+// nur mit vorhandenen Rezepten (verwaiste Beziehungen geloeschter Rezepte bleiben lokal, gehen aber nicht in die Sicherung).
 function orgExport() {
   const idx = orgIndex();
   const active = new Set(idx.cols.map(c => c.id));
+  const exist = orgExistingIds();
   return {
     v: 1,
     collections: idx.cols.map(c => ({ id: c.id, name: c.name, color: c.color || null, icon: c.icon || null, order: c.order, createdAt: c.createdAt || null })),
-    memberships: Object.values(org.mems).filter(m => orgActive(m) && active.has(m.c)).map(m => ({ c: m.c, r: m.r })),
-    links: Object.values(org.links).filter(orgActive).map(l => ({ a: l.a, b: l.b, note: l.note || '', createdAt: l.createdAt || null })),
+    memberships: Object.values(org.mems).filter(m => orgActive(m) && active.has(m.c) && exist.has(m.r)).map(m => ({ c: m.c, r: m.r })),
+    links: Object.values(org.links).filter(l => orgActive(l) && exist.has(l.a) && exist.has(l.b)).map(l => ({ a: l.a, b: l.b, note: l.note || '', createdAt: l.createdAt || null })),
   };
 }
 // Wiederherstellen mit ID-Abbildung. data: { collections, memberships?, links?, legacy? }
@@ -505,7 +568,7 @@ function orgImportInner(data, recipeIdMap, colIdMap) {
     if (cmap.has(id) && orgActive(org.cols[cmap.get(id)])) { rep.collections.mapped++; return; }
     const key = orgNameKey(name);
     const local = org.cols[id];
-    if (orgActive(local) && orgNameKey(local.name) === key) { cmap.set(id, id); rep.collections.mapped++; return; }
+    if (orgActive(local)) { cmap.set(id, id); rep.collections.mapped++; return; }   // gleiche aktive ID (auch umbenannt): dieselbe Sammlung
     const same = orgSortedCollections().find(x => orgNameKey(x.name) === key);
     if (same) { cmap.set(id, same.id); rep.collections.mapped++; return; }
     const newId = local ? orgNewCollectionId(name, { freeOnly: true }) : id;

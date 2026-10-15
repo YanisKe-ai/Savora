@@ -284,6 +284,109 @@ async def main():
         check('6j Kontowechsel: spaete Antwort des alten Kontos verworfen, nichts ins neue Konto', sw['col'] is None and sw['user'] == uid2 and 'col_konto1-geheim' not in rows(uid2, 'collection') and late.get('reason') == 'stale', f"{sw} {late}")
         await asyncio.gather(cA.close(), cB.close(), cC.close())
 
+        # ================= 7 Befunde der Pruefung (H1, M1, M2, N1, N3, N4, N5) =================
+        # H1: zwei Geraete mit verschobener Bestandssammlung, Setting collections bleibt nach 5 Runden stabil
+        uid3 = add_user('pingpong@example.test')
+        cA, pa = await device(browser, 'A', errs)
+        await pa.evaluate("localStorage.setItem('savora-collections', JSON.stringify([{id:'col_x',name:'X'},{id:'col_y',name:'Y'},{id:'col_z',name:'Z'}]))")
+        await pa.evaluate(MK, [['p1', 'Eins', ['col_x']]])
+        await goto(pa)
+        await sign_in(pa, 'pingpong@example.test')
+        await pa.evaluate("orgMoveCollection('col_z', -1)"); await pa.evaluate("cloudSyncNow()")
+        cB, pb = await device(browser, 'B', errs)
+        await sign_in(pb, 'pingpong@example.test')
+        await pb.evaluate("cloudSyncNow()"); await pa.evaluate("cloudSyncNow()")
+        at0 = rows(uid3, 'setting').get('collections', {}).get('client_updated_at')
+        ats = []
+        for _ in range(5):
+            await pb.evaluate("cloudSyncNow()"); await pa.evaluate("cloudSyncNow()")
+            ats.append(rows(uid3, 'setting').get('collections', {}).get('client_updated_at'))
+        projs = await asyncio.gather(*[pg.evaluate("localStorage.getItem('savora-collections')") for pg in (pa, pb)])
+        seqs = await asyncio.gather(*[pg.evaluate("orgCollections().map(c => c.id)") for pg in (pa, pb)])
+        check('7a H1 Setting collections nach 5 Runden stabil, Projektion ohne order, gleiche Reihenfolge', at0 and all(a == at0 for a in ats) and '"order"' not in projs[0] and seqs[0] == seqs[1] == ['col_x', 'col_z', 'col_y'], f"{at0} {ats} {seqs}")
+        # N1: Grabstein mit Namen; neues Geraet trifft beim gleichnamigen Neuanlegen dieselbe ID
+        await pa.evaluate("() => { const c = orgCreateCollection({ name: 'Pasta' }).id; orgSetMembership('p1', c, true); }"); await pa.evaluate("cloudSyncNow()")
+        await pa.evaluate("orgDeleteCollection('col_pasta')"); await pa.evaluate("cloudSyncNow()")
+        srow = rows(uid3, 'collection').get('col_pasta') or {}
+        cC, pc = await device(browser, 'C', errs)
+        await sign_in(pc, 'pingpong@example.test')
+        tombC = await pc.evaluate("JSON.parse(localStorage.getItem('savora-org-collections'))['col_pasta']")
+        mkC = await pc.evaluate("orgCreateCollection({ name: 'Pasta' })")
+        await pc.evaluate("cloudSyncNow()"); await pa.evaluate("cloudSyncNow()")
+        colsA = await pa.evaluate("orgCollections().filter(c => c.name === 'Pasta').map(c => c.id)")
+        check('7b N1 Grabstein mit Daten hochgeladen, Name auf neuem Geraet, gleichnamig neu = gleiche ID', srow.get('deleted') and (srow.get('data') or {}).get('name') == 'Pasta' and tombC and tombC['name'] == 'Pasta' and tombC['deleted'] and mkC == {'ok': True, 'id': 'col_pasta'} and colsA == ['col_pasta'], f"{srow} {tombC} {mkC} {colsA}")
+        await asyncio.gather(cB.close(), cC.close())
+        # M2: 1500 Rezepte angemeldet hinzufuegen/entfernen (grosszuegige Grenze fuer Linux-CI)
+        await pa.evaluate("""async () => { for (let i = 0; i < 1500; i++) { const r = emptyRecipe(); r.id = 'm' + i; r.title = 'Menge ' + i; r.createdAt = r.updatedAt = Date.now(); await cloudOrig.dbPut(r); } await loadRecipes(); }""")
+        perf = await pa.evaluate("""() => { clearTimeout(cloud.timer); const c = orgCreateCollection({ name: 'Gross' }).id; const ids = state.recipes.filter(r => r.id.startsWith('m')).map(r => r.id);
+            let t0 = performance.now(); const t = orgApply(ids, c, 'add'); const add = performance.now() - t0;
+            const q = Object.keys(cloudQueue()).filter(k => k.startsWith('membership|' + c + '|')).length;
+            t0 = performance.now(); orgApply(ids, c, 'remove'); const rem = performance.now() - t0; clearTimeout(cloud.timer);
+            return { add, rem, q, n: orgUndoCount(t) }; }""")
+        check('7c M2 1500 Zuordnungen angemeldet hinzufuegen/entfernen < 1500 ms, alle vorgemerkt', perf['add'] < 1500 and perf['rem'] < 1500 and perf['q'] == 1500 and perf['n'] == 1500, perf)
+        await cA.close()
+
+        # M1, N3, N4, N5 lokal
+        cL, pl = await device(browser, 'L', errs, cloud=False)
+        await pl.evaluate("localStorage.setItem('savora-collections', JSON.stringify([{ id: 'col_alt', name: 'Alt', order: 5 }, { id: 'col_b', name: 'Bee', order: 2 }]))")
+        await pl.evaluate(MK, [['d1', 'Bulgogi', ['col_alt', 'friends']], ['d2', 'Burger', None], ['d3', 'Sauce', None]])
+        await goto(pl)
+        lo = await pl.evaluate("orgCollections().map(c => c.id + ':' + c.order)")
+        check('7d H1 Bestandsuebernahme uebernimmt endliche order aus der Liste', lo == ['col_b:2', 'col_alt:5'], lo)
+        dup = await pl.evaluate("""async () => { orgSetMembership('d1', 'col_alt', false);
+            await handleActionV2('duplicate-recipe', 'd1', document.body, null);
+            const k1 = state.recipes.find(r => r.title === 'Bulgogi (Kopie)');
+            const n = orgCreateCollection({ name: 'Neu' }).id; orgSetMembership('d2', n, true); orgSetMembership('d2', 'col_b', true);
+            await handleActionV2('duplicate-recipe', 'd2', document.body, null);
+            const k2 = state.recipes.find(r => r.title === 'Burger (Kopie)');
+            return { k1: orgCollectionIdsOf(k1.id), raw1: k1.collections, k2: orgCollectionIdsOf(k2.id).slice().sort(), orig: orgCollectionIdsOf('d1') }; }""")
+        check('7e M1 Duplizieren: keine veraltete Bestandszuordnung, keine Systemmarke, aktuelle Sammlungen uebernommen', dup['k1'] == [] and dup['raw1'] == [] and dup['k2'] == ['col_b', 'col_neu'] and dup['orig'] == [], dup)
+        # N3: Speicher voll (setItem wirft fuer Org-Schluessel)
+        n3 = await pl.evaluate("""async () => { const orig = Storage.prototype.setItem; const out = {};
+            Storage.prototype.setItem = function (k, v) { if (String(k).startsWith('savora-org-') && k !== 'savora-org-meta') throw new DOMException('voll', 'QuotaExceededError'); return orig.call(this, k, v); };
+            try {
+              out.apply = orgApply(['d1', 'd3'], 'col_b', 'add'); out.applyMem = orgCollectionIdsOf('d3');
+              out.set = orgSetMembership('d3', 'col_b', true); out.setMem = orgCollectionIdsOf('d3');
+              out.create = orgCreateCollection({ name: 'Voll' }); out.createCol = !!orgCollection('col_voll');
+              out.link = orgLinkCreate('d1', 'd3', 'x'); out.links = orgLinksOf('d1').length;
+              state.modal = { type: 'rcol', recipeId: 'd3', draft: ['col_b'] }; state.toastMsg = '';
+              await handleActionV2('rcol-save', 'd3', document.body, null); out.rcolToast = state.toastMsg; out.rcolMem = orgCollectionIdsOf('d3');
+              state.selectMode = { ids: new Set(['d1', 'd3']), target: null }; state.modal = { type: 'col-batch', checked: new Set(['col_b', 'col_neu']), query: '', newOpen: false }; state.toastMsg = '';
+              await handleActionV2('col-batch-apply', null, document.body, null); out.batchToast = state.toastMsg; out.batchMem = [orgCollectionIdsOf('d1'), orgCollectionIdsOf('d3')];
+            } finally { Storage.prototype.setItem = orig; state.modal = null; state.selectMode = null; }
+            out.after = orgSetMembership('d3', 'col_b', true) !== null && orgCollectionIdsOf('d3').includes('col_b');
+            out.disk = JSON.parse(localStorage.getItem('savora-org-memberships'))['col_b|d3'];
+            return out; }""")
+        st_err = {'ok': False, 'error': 'storage'}
+        check('7f N3 Speicherfehler: org-Funktionen melden storage, nichts Halbes im Speicher', n3['apply'] == st_err and n3['applyMem'] == [] and n3['set'] == st_err and n3['setMem'] == [] and n3['create'] == st_err and not n3['createCol'] and n3['link'] == st_err and n3['links'] == 0, n3)
+        check('7g N3 rcol-save und col-batch-apply zeigen den Speicherfehler, danach funktioniert es wieder', 'Gerätespeicher' in (n3['rcolToast'] or '') and n3['rcolMem'] == [] and 'Gerätespeicher' in (n3['batchToast'] or '') and n3['batchMem'] == [[], []] and n3['after'] and n3['disk'] and not n3['disk']['deleted'], n3)
+        await goto(pl)   # closeModal kann in der Verlaufsliste zurueckgehen: frisch laden
+        # N4 + N5: Sicherung ohne verwaiste Beziehungen; umbenannte Sammlung mit gleicher ID wird beim Wiederherstellen zugeordnet
+        await pl.evaluate("""async () => { orgSetMembership('d3', 'col_neu', true); orgLinkCreate('d1', 'd3', 'weg'); orgLinkCreate('d1', 'd2', 'bleibt');
+            await dbDelete('d3'); await loadRecipes(); }""")
+        async with pl.expect_download() as dl_info:
+            await pl.evaluate("downloadBackup()")
+        b4 = json.load(open(await (await dl_info.value).path()))
+        o4 = b4.get('organization') or {}
+        check('7h N4 Export ohne Zuordnungen/Verknuepfungen geloeschter Rezepte', not any(m['r'] == 'd3' for m in o4.get('memberships', [])) and not any('d3' in (l['a'], l['b']) for l in o4.get('links', [])) and any(l['note'] == 'bleibt' for l in o4.get('links', [])), o4)
+        await pl.evaluate("orgUpdateCollection('col_neu', { name: 'Umbenannt' })")
+        n0 = await pl.evaluate("orgCollections().length")
+        await pl.evaluate(RESTORE, b4)
+        n5 = await pl.evaluate("({ n: orgCollections().length, names: orgCollections().map(c => c.id + ':' + c.name), d2: orgCollectionIdsOf('d2').slice().sort() })")
+        check('7i N5 Wiederherstellen: gleiche aktive ID trotz anderem Namen = dieselbe Sammlung', n5['n'] == n0 and 'col_neu:Umbenannt' in n5['names'] and not any(x.endswith(':Neu') or x.startswith('col_voll') for x in n5['names']) and n5['d2'] == ['col_b', 'col_neu'], n5)
+        await cL.close()
+        # Altes Format: Zuordnung in der Sammlung (recipeIds) wird uebernommen, die Projektion verliert recipeIds nicht
+        cO, po = await device(browser, 'O', errs, cloud=False)
+        OLDF = '[{"id":"col_1","name":"Sonntag","recipeIds":["o1","o_fehlt"]}]'
+        await po.evaluate("(t) => localStorage.setItem('savora-collections', t)", OLDF)
+        await po.evaluate(MK, [['o1', 'Eins', None], ['o2', 'Zwei', None]])
+        await goto(po)
+        of = await po.evaluate("({ o1: orgCollectionIdsOf('o1'), n: orgRecipeIdsIn('col_1').size, raw: localStorage.getItem('savora-collections') })")
+        await po.evaluate("orgCreateCollection({ name: 'Neu' })")
+        of2 = await po.evaluate("JSON.parse(localStorage.getItem('savora-collections'))")
+        check('7j Altes Format recipeIds: Zuordnung uebernommen, Projektion unveraendert bzw. recipeIds erhalten', of['o1'] == ['col_1'] and of['n'] == 1 and of['raw'] == OLDF and of2[0].get('recipeIds') == ['o1', 'o_fehlt'] and 'order' not in of2[0] and of2[1]['id'] == 'col_neu', f"{of} {of2}")
+        await cO.close()
+
         errs2 = [e for e in errs if 'Failed to load resource' not in e and 'Schweizer' not in e]
         check('Keine Konsolenfehler', not errs2, str(errs2[:4]))
         await browser.close()

@@ -269,6 +269,11 @@ async function restoreBackupFromFile(file) {
       Object.entries(recipeIdMap).forEach(([k, v]) => { if (idCount[k] === 1) orgMap[k] = v; });
       const ambiguous = Object.keys(idCount).filter(k => idCount[k] > 1).length;
       const od = vb.organization && vb.organization.data;
+      // Altes Format: Zuordnung in der Sammlung (settings.collections[].recipeIds). Gleiche Regeln wie recipe.collections,
+      // nur Rezepte, die in der Sicherung stehen (ID-Abbildung in orgImport).
+      (data.settings && Array.isArray(data.settings.collections) ? data.settings.collections : []).forEach(c => {
+        if (isObj(c) && typeof c.id === 'string' && c.id !== 'friends' && Array.isArray(c.recipeIds)) c.recipeIds.forEach(r => { if (typeof r === 'string' && idCount[r]) legacyPairs.push({ c: c.id, r }); });
+      });
       const orgData = od ? { collections: od.collections, memberships: od.memberships, links: od.links, legacy: legacyPairs }
         : { collections: (data.settings && Array.isArray(data.settings.collections) ? data.settings.collections : []).filter(c => isObj(c)), legacy: legacyPairs };
       orgRep = orgImport(orgData, orgMap);
