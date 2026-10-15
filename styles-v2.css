@@ -3084,3 +3084,8 @@ main.cookbook-main.cb-anim { position: relative; overflow-x: clip; }
 .ce-imgctl { padding-top: 1rem; border-top: 1px solid var(--border); }
 .ce-imgitem:focus-visible, .ce-rotnum input:focus-visible { outline: 3px solid var(--text); outline-offset: 2px; }
 @media (prefers-reduced-motion: reduce) { .ce-imgitem { transition: none; } .ce-imgitem:active { transform: none; } }
+
+/* ===== Wochenplan: «Einkaufen» bricht in schmalen Spalten um (1024 px, grosse Systemschrift) ===== */
+.plan-day-foot { min-width: 0; max-width: 100%; }
+.plan-day-foot .day-select { max-width: 100%; min-width: 0; flex-wrap: wrap; overflow-wrap: anywhere; }
+.plan-day-foot .day-select input { flex: 0 0 auto; }
