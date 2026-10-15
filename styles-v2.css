@@ -3644,3 +3644,4 @@ body.keyboard-open .rp-foot { padding-bottom: 0.75rem; }
   .rp-sheet .rp-meal-chips { flex-wrap: nowrap; overflow-x: auto; margin-inline: -1.25rem; padding-inline: 1.25rem; scroll-padding-inline: 1.25rem; }
   .rp-sheet .rp-meal-chips .chip { flex: none; white-space: nowrap; }
 }
+.rp-sheet--plan .rp-sub { color: var(--text); font-size: 1rem; font-weight: 600; }

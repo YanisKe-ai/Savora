@@ -19,6 +19,7 @@ SETUP = """async () => {
   const mk = (id, title, extra) => Object.assign(emptyRecipe(), { id, title, ingredients: [{ amount: '200', unit: 'g', name: 'Zucker' }, { amount: '1', unit: '', name: 'Zitrone' }], steps: [{ text: 'Kochen.' }] }, extra || {});
   const list = [
     mk('r_v83_karamell', 'Karamellsauce', { servingMode: 'total', servings: 1, yieldLabel: 'Glas', categoryTags: ['sauce'], timeMinutes: 30 }),
+    mk('r_v83_fond', 'Rinderfond', { servingMode: 'total', servings: 500, yieldLabel: 'ml' }),
     mk('r_v83_zimt', 'Zimtschnecken', { servingMode: 'pieces', servings: 12, yieldLabel: 'Stück', timeMinutes: 90 }),
     mk('r_v83_suppe', 'Linsensuppe', { servings: 4, categoryTags: ['soup'] }),
     mk('r_v83_gemuese', 'Gemüsewähe', { servings: 4 }),
@@ -61,19 +62,19 @@ async def main():
         # ---------- Planungsdialog: Aufbau ----------
         await open_plan(page, dk)
         d = await ev("""() => { const s = document.querySelector('.modal-sheet'); const vis = sel => { const e = s.querySelector(sel); return !!e && e.getClientRects().length > 0; };
-          return { role: s.getAttribute('role'), modal: s.getAttribute('aria-modal'), title: document.getElementById(s.getAttribute('aria-labelledby')).textContent,
+          return { role: s.getAttribute('role'), modal: s.getAttribute('aria-modal'), title: document.getElementById('picker-modal-title').textContent, date: /\\d+\\. /.test(document.getElementById('picker-modal-date').textContent) && s.getAttribute('aria-labelledby') === 'picker-modal-title picker-modal-date',
             close: vis('.rp-close[aria-label="Schliessen"]'), cancel: [...s.querySelectorAll('button')].some(b => b.textContent.trim() === 'Abbrechen'),
             search: vis('input[type=search]#rpSearch'), searchLabel: !!s.querySelector('label[for=rpSearch]'),
             note: !!s.querySelector('#planNoteInput'), quick: !!s.querySelector('[data-note=Reste]'), custom: !!s.querySelector('#planMealCustom'),
             meals: [...s.querySelectorAll('[data-action=set-plan-meal]')].length, other: vis('[data-action=plan-meal-other]'),
             seg: [...s.querySelectorAll('[data-action=plan-mode]')].map(b => b.textContent.trim() + ':' + b.getAttribute('aria-checked')),
             commit: vis('[data-action=plan-commit-recipe]'), items: s.querySelectorAll('.rp-item').length } }""")
-        check('Plan: Dialog mit Rolle, aria-modal, Datum im Titel', d['role'] == 'dialog' and d['modal'] == 'true' and d['title'].startswith('Planen für '), d)
+        check('Plan: Dialog mit Rolle, aria-modal, Datum im Titel', d['role'] == 'dialog' and d['modal'] == 'true' and d['title'] == 'Zum Wochenplan' and d['date'], d)
         check('Plan: Schliessen-Symbol und «Abbrechen» sichtbar', d['close'] and d['cancel'], d)
         check('Plan: Suchfeld mit Beschriftung', d['search'] and d['searchLabel'], d)
         check('Plan: Umschalter «Rezept» (aktiv) / «Ohne Rezept»', d['seg'] == ['Rezept:true', 'Ohne Rezept:false'], d['seg'])
         check('Plan: nicht alles gleichzeitig (keine Notiz, keine Reste, keine eigene Bezeichnung im Rezeptmodus)', not d['note'] and not d['quick'] and not d['custom'], d)
-        check('Plan: Mahlzeit optional mit «Andere Bezeichnung»', d['meals'] == 3 and d['other'], d)
+        check('Plan: Mahlzeit optional mit «Andere Mahlzeit»', d['meals'] == 3 and d['other'], d)
         check('Plan: eindeutige Abschlussaktion «Eintragen»', d['commit'], d)
         total = d['items']
 
@@ -143,11 +144,22 @@ async def main():
         e = await ev(f"() => planEntriesFor('{dk}')")
         check('Unveränderte Menge: servings null, meal dinner', e[1]['servings'] is None and e[1]['meal'] == 'dinner' and e[1]['recipeId'] == 'r_v83_zimt', e)
 
+        # Gesamtertrag 500 ml: Mengenwahl in ganzen Ansaetzen (yieldStep)
+        await open_plan(page, dk)
+        await click(page, '.rp-input[data-rp-pick="r_v83_fond"]')
+        f0 = await ev("() => ({ v: document.querySelector('#rpPlanQty .rp-qty-val').textContent, minus: document.querySelector('#rpPlanQty [data-rp-step=\"-1\"]').disabled })")
+        await click(page, '#rpPlanQty [data-rp-step="1"]')
+        f1 = await ev("() => ({ v: document.querySelector('#rpPlanQty .rp-qty-val').textContent, minus: document.querySelector('#rpPlanQty [data-rp-step=\"-1\"]').disabled, q: state.modal.rpQty.r_v83_fond })")
+        await click(page, '#rpPlanQty [data-rp-step="-1"]'); await click(page, '#rpPlanQty [data-rp-step="-1"]')
+        f2 = await ev("() => state.modal.rpQty.r_v83_fond")
+        check('Gesamtertrag 500 ml: Schritte von 500 ml, Minimum 500 ml (Minus gesperrt)', f0['minus'] and f1['q'] == 1000 and not f1['minus'] and f2 == 500, [f0, f1, f2])
+        await page.keyboard.press('Escape'); await page.wait_for_function("() => !document.querySelector('.modal-sheet')")
+
         # Ohne Rezept: Notiz
         await open_plan(page, dk)
         await click(page, '[data-action="plan-mode"][data-id="note"]')
         nd = await ev("() => ({ note: !!document.getElementById('planNoteInput'), list: !!document.getElementById('rpList'), quick: document.querySelectorAll('[data-action=add-plan-note][data-note]').length, foot: [...document.querySelectorAll('.rp-foot button')].map(b => b.textContent.trim()) })")
-        check('«Ohne Rezept»: Reste, Auswärts, eigene Notiz; keine Rezeptliste', nd['note'] and not nd['list'] and nd['quick'] == 2 and nd['foot'] == ['Abbrechen', 'Notiz eintragen'], nd)
+        check('«Ohne Rezept»: Reste, Auswärts, eigene Notiz; keine Rezeptliste', nd['note'] and not nd['list'] and nd['quick'] == 2 and nd['foot'] == ['Abbrechen', 'Notiz hinzufügen'], nd)
         await page.fill('#planNoteInput', 'Pizza bei Anna')
         await click(page, '.rp-foot [data-action="add-plan-note"]'); await page.wait_for_function("() => !document.querySelector('.modal-sheet')")
         e = await ev(f"() => planEntriesFor('{dk}')")
@@ -197,7 +209,7 @@ async def main():
         await click(page, '.rp-input[data-rp-pick="r_v83_suppe"]')
         await page.fill('#rpSearch', '')
         c = await ev("() => ({ count: document.getElementById('rpCount').textContent, go: document.querySelector('[data-rp-confirm]').textContent, sel: state.modal.rpSel, k: document.querySelector('.rp-input[data-rp-pick=r_v83_karamell]').checked })")
-        check('Mehrfachauswahl über zwei Suchen: Anzahl sichtbar, Auswahl erhalten', c['count'] == '2 Rezepte ausgewählt' and c['go'] == 'Weiter mit 2 Rezepten' and c['sel'] == ['r_v83_karamell', 'r_v83_suppe'] and c['k'], c)
+        check('Mehrfachauswahl über zwei Suchen: Anzahl sichtbar, Auswahl erhalten', c['count'] == '2 Rezepte ausgewählt' and c['go'] == 'Zur Vorschau (2 Rezepte)' and c['sel'] == ['r_v83_karamell', 'r_v83_suppe'] and c['k'], c)
         kq = await ev("() => document.querySelector('.rp-input[data-rp-pick=r_v83_karamell]').closest('.rp-row').querySelector('.rp-qty-val').textContent")
         check('Gesamtertrag in der Mengenwahl («1 Glas»)', kq == '1 Glas', kq)
         # Menge je Rezept: Linsensuppe 4 -> 8 (Zucker 200 g -> 400 g)

@@ -915,10 +915,10 @@ function pickRecipesModal() {
   m.rpPicker = true; m.rpMulti = true;
   if (!Array.isArray(m.rpSel)) m.rpSel = Array.isArray(m.selected) ? m.selected.slice() : [];
   const n = rpSelected(m).length;
-  return rpSheetHtml({ id: 'pick-recipes-title', title: 'Aus Rezepten einkaufen', sub: 'Wähle Rezepte und Mengen. Danach siehst du die Zutaten und wählst, was du brauchst.', cls: 'rp-sheet--shop',
+  return rpSheetHtml({ id: 'pick-recipes-title', title: 'Aus Rezepten zur Einkaufsliste', sub: 'Wähle Rezepte und Mengen. Danach siehst du die Zutaten und wählst, was du brauchst.', cls: 'rp-sheet--shop',
     body: `${state.recipes.length ? rpSearchHtml(m) : ''}${rpListHtml(m, 'Rezepte')}`,
     foot: `<p class="rp-count" id="rpCount" role="status" aria-live="polite">${escapeHtml(rpCountText(m))}</p>
-      <div class="rp-actions"><button type="button" class="ghost-btn" data-action="close-modal">Abbrechen</button><button type="button" class="primary-btn" data-action="confirm-pick-recipes" data-rp-confirm>${n ? `Weiter mit ${n} ${n === 1 ? 'Rezept' : 'Rezepten'}` : 'Weiter zur Vorschau'}</button></div>` });
+      <div class="rp-actions"><button type="button" class="ghost-btn" data-action="close-modal">Abbrechen</button><button type="button" class="primary-btn" data-action="confirm-pick-recipes" data-rp-confirm>${n ? `Zur Vorschau (${n} ${n === 1 ? 'Rezept' : 'Rezepte'})` : 'Zur Vorschau'}</button></div>` });
 }
 
 /* ---------- Wochenplan ---------- */
@@ -1012,9 +1012,9 @@ function planMealPicker(m) {
       <legend class="rp-label">Mahlzeit <span class="rp-optional">(optional)</span></legend>
       <div class="chip-row chip-row--wrap rp-chips rp-meal-chips" role="radiogroup" aria-label="Mahlzeit">
         ${MEAL_SLOTS.map(x => `<button type="button" class="chip ${m.meal === x.id && !other ? 'chip--active' : ''}" role="radio" aria-checked="${m.meal === x.id && !other}" data-action="set-plan-meal" data-id="${escapeAttr(x.id)}">${x.label}</button>`).join('')}
-        <button type="button" class="chip ${other ? 'chip--active' : ''}" role="radio" aria-checked="${other}" data-action="plan-meal-other">Andere Bezeichnung</button>
+        <button type="button" class="chip ${other ? 'chip--active' : ''}" role="radio" aria-checked="${other}" data-action="plan-meal-other">Andere Mahlzeit</button>
       </div>
-      ${other ? `<div class="field rp-field"><label for="planMealCustom">Eigene Bezeichnung</label><input id="planMealCustom" type="text" maxlength="40" placeholder="z. B. Znüni oder Gäste" autocomplete="off" enterkeyhint="done" value="${escapeAttr(custom)}"></div>` : ''}
+      ${other ? `<div class="field rp-field"><label for="planMealCustom">Name der Mahlzeit</label><input id="planMealCustom" type="text" maxlength="40" placeholder="z. B. Znüni oder Gäste" autocomplete="off" enterkeyhint="done" value="${escapeAttr(custom)}"></div>` : ''}
     </fieldset>`;
 }
 // Wochenplan: Planungsdialog fuer einen Tag. Umschalter «Rezept» / «Ohne Rezept», nie alles gleichzeitig.
@@ -1024,7 +1024,7 @@ function recipePickerModal() {
   const [y, mo, d] = m.date.split('-').map(Number);
   const labelDate = new Date(y, mo - 1, d).toLocaleDateString('de-CH', { weekday: 'long', day: 'numeric', month: 'long' });
   const mode = m.planMode === 'note' ? 'note' : 'recipe';
-  const seg = `<div class="rp-seg" role="radiogroup" aria-label="Was planen?">
+  const seg = `<div class="rp-seg" role="radiogroup" aria-label="Rezept oder Eintrag ohne Rezept wählen">
       <button type="button" class="rp-seg-btn" role="radio" aria-checked="${mode === 'recipe'}" data-action="plan-mode" data-id="recipe">Rezept</button>
       <button type="button" class="rp-seg-btn" role="radio" aria-checked="${mode === 'note'}" data-action="plan-mode" data-id="note">Ohne Rezept</button>
     </div>`;
@@ -1032,8 +1032,8 @@ function recipePickerModal() {
   const notePart = `<div class="rp-note">
       <p class="rp-label" id="planQuickLabel">Schnell eintragen</p>
       <div class="chip-row chip-row--wrap rp-chips" role="group" aria-labelledby="planQuickLabel">
-        <button type="button" class="chip" data-action="add-plan-note" data-note="Reste">Reste</button>
-        <button type="button" class="chip" data-action="add-plan-note" data-note="Auswärts">Auswärts</button>
+        <button type="button" class="chip" data-action="add-plan-note" data-note="Reste">Reste essen</button>
+        <button type="button" class="chip" data-action="add-plan-note" data-note="Auswärts">Auswärts essen</button>
       </div>
       <div class="field rp-field"><label for="planNoteInput">Eigene Notiz</label>
         <input id="planNoteInput" type="text" maxlength="${PLAN_NOTE_MAX}" placeholder="z. B. Pizza bei Anna" autocomplete="off" enterkeyhint="done" value="${escapeAttr(m.noteDraft || '')}"></div>
@@ -1041,9 +1041,9 @@ function recipePickerModal() {
   const foot = mode === 'recipe'
     ? `<p class="rp-count" id="rpCount" role="status" aria-live="polite">${escapeHtml(rpCountText(m))}</p>
        <div id="rpPlanQty">${rpPlanQtyHtml(m)}</div>
-       <div class="rp-actions"><button type="button" class="ghost-btn" data-action="close-modal">Abbrechen</button><button type="button" class="primary-btn" data-action="plan-commit-recipe" data-date="${escapeAttr(m.date)}">Eintragen</button></div>`
-    : `<div class="rp-actions"><button type="button" class="ghost-btn" data-action="close-modal">Abbrechen</button><button type="button" class="primary-btn" data-action="add-plan-note">Notiz eintragen</button></div>`;
-  return rpSheetHtml({ id: 'picker-modal-title', title: `Planen für ${labelDate}`, cls: 'rp-sheet--plan',
+       <div class="rp-actions"><button type="button" class="ghost-btn" data-action="close-modal">Abbrechen</button><button type="button" class="primary-btn" data-action="plan-commit-recipe" data-date="${escapeAttr(m.date)}">Zum Wochenplan hinzufügen</button></div>`
+    : `<div class="rp-actions"><button type="button" class="ghost-btn" data-action="close-modal">Abbrechen</button><button type="button" class="primary-btn" data-action="add-plan-note">Notiz hinzufügen</button></div>`;
+  return rpSheetHtml({ id: 'picker-modal-title', title: 'Zum Wochenplan', sub: labelDate, subId: 'picker-modal-date', cls: 'rp-sheet--plan',
     body: `${planMealPicker(m)}${seg}<div class="rp-pane" data-plan-mode="${mode}">${mode === 'recipe' ? recipePart : notePart}</div>`, foot });
 }
 function planEntryModal() {
@@ -1085,7 +1085,7 @@ function planRecipeModal() {
   const days = Array.from({ length: 7 }, (_, i) => addDays(getMonday(new Date()), i));
   const todayKey = fmtDateKey(new Date());
   const qty = r && yieldKnown(r) ? `<div class="rp-qty-line"><span class="rp-qty-label">Menge</span>${rpStepperHtml(r, rpQtyFor(m, r))}</div>` : '';
-  return rpSheetHtml({ id: 'plan-recipe-title', title: 'In den Wochenplan', sub: r ? (r.title || 'Ohne Titel') : '', cls: 'rp-sheet--plan',
+  return rpSheetHtml({ id: 'plan-recipe-title', title: 'Zum Wochenplan', sub: r ? (r.title || 'Ohne Titel') : '', cls: 'rp-sheet--plan',
     body: `${planMealPicker(m)}${qty}
       <p class="rp-label" id="planDayLabel">Tag wählen</p>
       <div class="menu-list" role="group" aria-labelledby="planDayLabel">${days.map((d, i) => { const k = fmtDateKey(d); return `<button type="button" class="menu-item" data-action="assign-mealplan-recipe" data-date="${k}" data-id="${escapeAttr(m.recipeId)}">${ICONS.calendar}<span>${WEEKDAY_LABELS[i]}, ${d.getDate()}. ${MONTH_LABELS[d.getMonth()]}${k === todayKey ? ' <span class="plan-today">Heute</span>' : ''}</span></button>`; }).join('')}</div>`,

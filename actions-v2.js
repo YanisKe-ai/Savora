@@ -541,7 +541,7 @@ async function handleActionV2(action, id, el, e) {
       // Auswahl aus dem Dialogzustand (bleibt auch fuer gerade ausgefilterte Rezepte erhalten), Menge je Rezept
       const pm = state.modal;
       const ids = typeof rpSelected === 'function' ? rpSelected(pm) : Array.from(document.querySelectorAll('[data-pick-recipe]:checked')).map(x => x.dataset.pickRecipe);
-      if (!ids.length) { showToast('Wähle mindestens ein Rezept aus.'); const s = document.getElementById('rpSearch'); if (s) focusWithoutScroll(s); return true; }
+      if (!ids.length) { showToast('Wähle mindestens ein Rezept für die Einkaufsliste aus.'); const s = document.getElementById('rpSearch'); if (s) focusWithoutScroll(s); return true; }
       const items = ids.flatMap(rid => { const r = state.recipes.find(x => x.id === rid); return r ? shoppingSelectionFor(r, (typeof rpQtyFor === 'function' ? rpQtyFor(pm, r) : 0) || r.servings || 1) : []; });
       markShoppingDuplicates(items);
       replaceModal({ type: 'shop-select', items });
@@ -742,7 +742,7 @@ async function handleActionV2(action, id, el, e) {
       if (!m || m.type !== 'pick-recipe') return true;
       const rid = (typeof rpSelected === 'function' ? rpSelected(m) : [])[0];
       const r = rid ? state.recipes.find(x => x.id === rid) : null;
-      if (!r) { showToast('Wähle zuerst ein Rezept aus der Liste.'); const s = document.getElementById('rpSearch'); if (s) focusWithoutScroll(s); return true; }
+      if (!r) { showToast('Wähle zuerst ein Rezept aus, dann kannst du es zum Wochenplan hinzufügen.'); const s = document.getElementById('rpSearch'); if (s) focusWithoutScroll(s); return true; }
       planCaptureDrafts(m);
       const date = m.date;
       const entries = planEntriesFor(date).slice();
@@ -788,7 +788,8 @@ async function handleActionV2(action, id, el, e) {
       const entry = entries.find(x => x.id === m.entryId);
       if (!entry || isNoteEntry(entry)) return true;
       const r = state.recipes.find(x => x.id === entry.recipeId) || { servings: 1 };
-      entry.servings = Math.max(1, (entry.servings || r.servings || 1) + parseInt(el.dataset.delta, 10));
+      const st = typeof rpStep === 'function' ? rpStep(r) : 1;   // Gesamtertrag in ml/g: ganze Ansaetze
+      entry.servings = Math.max(st, (entry.servings || r.servings || 1) + parseInt(el.dataset.delta, 10) * st);
       await savePlanEntries(m.date, entries);
       render();
       return true;

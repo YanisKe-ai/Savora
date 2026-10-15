@@ -44,6 +44,8 @@ function rpTimeText(r) {
   if (typeof timeInfo === 'function') { try { return timeInfo(r).cardText || ''; } catch (e) { /* Rueckfall unten */ } }
   return r.timeMinutes > 0 ? `${r.timeMinutes} Min.` : '';
 }
+// Schrittweite der Mengenwahl: bei Gesamtertrag in ml/g ganze Ansaetze (500 ml -> 1000 ml), sonst 1
+function rpStep(r) { const s = typeof yieldStep === 'function' ? Number(yieldStep(r)) : 1; return s > 0 ? s : 1; }
 function rpQtyFor(m, r) {
   const q = m && m.rpQty ? Number(m.rpQty[r.id]) : 0;
   return q > 0 ? q : (yieldKnown(r) ? Number(r.servings) : 0);
@@ -61,7 +63,7 @@ function rpSearchHtml(m, placeholder) {
 function rpStepperHtml(r, n, extraLabel) {
   const title = r.title || 'Rezept';
   return `<div class="stepper rp-stepper" role="group" aria-label="Menge für ${escapeAttr(title)}">
-    <button type="button" data-rp-step="-1" data-id="${escapeAttr(r.id)}" aria-label="Weniger ${escapeAttr(extraLabel || title)}" ${n <= 1 ? 'disabled' : ''}>${ICONS.minus}</button>
+    <button type="button" data-rp-step="-1" data-id="${escapeAttr(r.id)}" aria-label="Weniger ${escapeAttr(extraLabel || title)}" ${n <= rpStep(r) ? 'disabled' : ''}>${ICONS.minus}</button>
     <span class="stepper-value rp-qty-val" aria-live="polite">${escapeHtml(rpYieldShort(r, n) || String(n))}</span>
     <button type="button" data-rp-step="1" data-id="${escapeAttr(r.id)}" aria-label="Mehr ${escapeAttr(extraLabel || title)}">${ICONS.plus}</button>
   </div>`;
@@ -110,12 +112,12 @@ function rpCountText(m) {
 }
 
 /* Dialoggeruest mit Kopf (Titel, Untertitel, Schliessen), scrollbarem Inhalt und festem Fuss. */
-function rpSheetHtml({ id, title, sub, body, foot, cls }) {
+function rpSheetHtml({ id, title, sub, subId, body, foot, cls }) {
   return `<div class="modal-backdrop rp-backdrop" data-action="close-modal">
-    <div class="modal-sheet rp-sheet ${cls || ''}" role="dialog" aria-modal="true" aria-labelledby="${escapeAttr(id)}" tabindex="-1" onclick="event.stopPropagation()">
+    <div class="modal-sheet rp-sheet ${cls || ''}" role="dialog" aria-modal="true" aria-labelledby="${escapeAttr(id)}${subId ? ' ' + escapeAttr(subId) : ''}" tabindex="-1" onclick="event.stopPropagation()">
       <div class="sheet-handle" aria-hidden="true"></div>
       <div class="rp-head">
-        <div class="rp-head-text"><h2 class="rp-title" id="${escapeAttr(id)}">${escapeHtml(title)}</h2>${sub ? `<p class="rp-sub">${escapeHtml(sub)}</p>` : ''}</div>
+        <div class="rp-head-text"><h2 class="rp-title" id="${escapeAttr(id)}">${escapeHtml(title)}</h2>${sub ? `<p class="rp-sub"${subId ? ` id="${escapeAttr(subId)}"` : ''}>${escapeHtml(sub)}</p>` : ''}</div>
         <button type="button" class="rp-close" data-action="close-modal" aria-label="Schliessen">${ICONS.x}</button>
       </div>
       <div class="rp-body">${body}</div>
@@ -147,7 +149,7 @@ function rpRefreshStatus() {
   const go = document.querySelector('[data-rp-confirm]');
   if (go && m.rpMulti) {
     const n = rpSelected(m).length;
-    go.textContent = n ? `Weiter mit ${n} ${n === 1 ? 'Rezept' : 'Rezepten'}` : 'Weiter zur Vorschau';
+    go.textContent = n ? `Zur Vorschau (${n} ${n === 1 ? 'Rezept' : 'Rezepte'})` : 'Zur Vorschau';
   }
 }
 function cssEscapeRp(s) { return (window.CSS && CSS.escape) ? CSS.escape(String(s)) : String(s).replace(/["\\]/g, '\\$&'); }
@@ -156,7 +158,7 @@ function cssEscapeRp(s) { return (window.CSS && CSS.escape) ? CSS.escape(String(
 function rpPlanQtyHtml(m) {
   const r = state.recipes.find(x => x.id === rpSelected(m)[0]);
   if (!r) return '';
-  if (!yieldKnown(r)) return `<p class="rp-qty-hint">Für «${escapeHtml(r.title || 'Ohne Titel')}» fehlt der Ertrag. Es gelten die Originalmengen.</p>`;
+  if (!yieldKnown(r)) return `<p class="rp-qty-hint">Bei «${escapeHtml(r.title || 'Ohne Titel')}» fehlt die Angabe, was das Rezept ergibt, darum gelten die Originalmengen.</p>`;
   const n = rpQtyFor(m, r);
   return `<div class="rp-qty-line"><span class="rp-qty-label"><span class="sr-only">Gewählt: </span>${escapeHtml(r.title || 'Ohne Titel')}</span>${rpStepperHtml(r, n)}</div>`;
 }
@@ -206,13 +208,14 @@ document.addEventListener('click', (e) => {
     const m = state.modal;
     const r = state.recipes.find(x => x.id === step.dataset.id);
     if (!r || !yieldKnown(r)) return;
-    const n = Math.max(1, Math.min(999, rpQtyFor(m, r) + parseInt(step.dataset.rpStep, 10)));
+    const st = rpStep(r);
+    const n = Math.max(st, Math.min(st * 999, rpQtyFor(m, r) + parseInt(step.dataset.rpStep, 10) * st));
     m.rpQty = Object.assign({}, m.rpQty || {}, { [r.id]: n });
     const group = step.closest('.rp-stepper');
     if (group) {
       group.querySelector('.rp-qty-val').textContent = rpYieldShort(r, n) || String(n);
       const minus = group.querySelector('[data-rp-step="-1"]');
-      if (minus) { minus.disabled = n <= 1; if (minus.disabled && document.activeElement === minus) focusWithoutScroll(group.querySelector('[data-rp-step="1"]')); }
+      if (minus) { minus.disabled = n <= st; if (minus.disabled && document.activeElement === minus) focusWithoutScroll(group.querySelector('[data-rp-step="1"]')); }
     }
     return;
   }
