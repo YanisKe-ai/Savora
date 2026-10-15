@@ -295,43 +295,69 @@ function coverApplyArrangement(model, name, input, measure) {
   return coverModelSanitize(m);
 }
 
-/* ---------- Pruefregeln ---------- */
+/* ---------- Pruefregeln ----------
+   v83: Mit echter Schriftmessung (layout.geometry === 'ink') gelten die SICHTBAREN Inhalte: Textzeilen nach dem Umbruch mit ihrer
+   gemessenen Tinte (nicht das Textfeld), die Wortmarke mit ihrer Pfadflaeche (nicht die viewBox). Ueberlappung = Tinte beruehrt sich
+   oder steht naeher als COVER_MIN_GAP_MM; 'margin' = Tinte naeher als COVER_SAFE_MM am Seitenrand (Druckbereich, sperrt nie).
+   Solange Schriften noch laden (layout.fontsPending), entstehen keine Ueberlappungs- oder Randhinweise (sie waeren nicht belastbar).
+   Ueberlappungswarnungen tragen otherId (das zweite Element). */
+const COVER_MIN_GAP_MM = 1, COVER_SAFE_MM = 4;
 function coverValidate(layout) {
   const out = [];
   if (!layout) return out;
-  const eps = 0.002, L = COVER_FIELD_LABEL;
-  const add = (fieldId, kind, message) => out.push({ fieldId, kind, message });
+  const eps = 0.002, L = COVER_FIELD_LABEL, W = COVER_PAGE.w, H = COVER_PAGE.h, MM = W / 210;
+  const add = (fieldId, kind, message, extra) => out.push(Object.assign({ fieldId, kind, message }, extra || {}));
+  const ink = layout.geometry === 'ink', pending = !!layout.fontsPending;
   const rects = [];
+  const outsideMsg = (lab, rot) => `${lab} liegt teilweise ausserhalb der Seite. ${rot ? 'Verschiebe das Textfeld, mache es schmaler oder drehe es weniger.' : 'Verschiebe das Textfeld oder mache es schmaler.'}`;
   (layout.blocks || []).forEach((b) => {
     const id = coverBlockId(b), lab = L[id] || 'Der Text';
     if (b.splitWord) add(id, 'cut', `${lab} enthält ein Wort, das breiter ist als das Textfeld und mitten im Wort getrennt wird. Verbreitere das Textfeld, verkleinere die Schrift oder kürze den Text.`);
-    const g = b.rot && b.bbox ? b.bbox : b;   // gedreht: achsenparallele Huelle der gedrehten Ecken
+    const useInk = ink && b.inkBox;
+    // gedreht: achsenparallele Huelle der gedrehten Ecken
+    const g = useInk ? (b.rot && b.inkHull ? coverHullBox(b.inkHull) : b.inkBox) : (b.rot && b.bbox ? b.bbox : b);
     if (g.y + g.h > 1 + eps) add(id, 'cut', `${lab} ragt unten über die Seite hinaus und wird abgeschnitten. Kürze den Text, verkleinere die Schrift oder verbreitere das Textfeld.`);
     else if (b.fits === false) add(id, 'cut', `${lab} ist zu lang für dieses Titelblatt. Bitte kürzen (er passt nur in kleiner, nicht lesbarer Schrift).`);
-    if (g.x < -eps || g.x + g.w > 1 + eps || g.y < -eps) add(id, 'outside', `${lab} liegt teilweise ausserhalb der Seite. ${b.rot ? 'Verschiebe das Textfeld, mache es schmaler oder drehe es weniger.' : 'Verschiebe das Textfeld oder mache es schmaler.'}`);
-    rects.push({ id, x: b.tx != null ? b.tx : b.x, y: b.y, w: b.tw != null ? b.tw : b.w, h: b.h, poly: b.rot && b.hull ? b.hull : null });
+    if (g.x < -eps || g.x + g.w > 1 + eps || g.y < -eps) add(id, 'outside', outsideMsg(lab, b.rot));
+    else if (useInk && !pending && g.y + g.h <= 1 + eps && coverNearEdge(g, COVER_SAFE_MM * MM)) add(id, 'margin', `${lab} steht weniger als ${COVER_SAFE_MM} mm vom Seitenrand entfernt und kann beim Drucken angeschnitten werden. Verschiebe ihn etwas nach innen.`);
+    if (useInk) rects.push({ id, lines: b.rot ? null : b.inkLines, box: b.inkBox, poly: b.rot ? b.inkHull : null });
+    else rects.push({ id, box: { x: b.tx != null ? b.tx : b.x, y: b.y, w: b.tw != null ? b.tw : b.w, h: b.h }, poly: b.rot && b.hull ? b.hull : null });
   });
   const d = layout.date;
   if (d) {
     const dx = d.align === 'left' ? d.ax : (d.align === 'center' ? d.ax - d.tw / 2 : d.ax - d.tw);
-    const g = d.rot && d.bbox ? d.bbox : { x: dx, y: d.y, w: d.tw, h: d.h };
+    const useInk = ink && d.inkBox;
+    const g = useInk ? (d.rot && d.inkHull ? coverHullBox(d.inkHull) : d.inkBox) : (d.rot && d.bbox ? d.bbox : { x: dx, y: d.y, w: d.tw, h: d.h });
     if (g.x < -eps || g.x + g.w > 1 + eps || g.y < -eps || g.y + g.h > 1 + eps) add('date', 'outside', `${L.date} liegt teilweise ausserhalb der Seite. Verschiebe es nach innen.`);
-    rects.push({ id: 'date', x: dx, y: d.y, w: d.tw, h: d.h, poly: d.rot && d.hull ? d.hull : null });
+    else if (useInk && !pending && coverNearEdge(g, COVER_SAFE_MM * MM)) add('date', 'margin', `${L.date} steht weniger als ${COVER_SAFE_MM} mm vom Seitenrand entfernt und kann beim Drucken angeschnitten werden. Verschiebe es etwas nach innen.`);
+    if (useInk) rects.push({ id: 'date', box: d.inkBox, poly: d.rot ? d.inkHull : null });
+    else rects.push({ id: 'date', box: { x: dx, y: d.y, w: d.tw, h: d.h }, poly: d.rot && d.hull ? d.hull : null });
   }
   const lg = layout.logo;
   if (lg) {
     if (lg.x < -eps || lg.x + lg.w > 1 + eps || lg.y < -eps || lg.y + lg.h > 1 + eps) add('logo', 'outside', `${L.logo} liegt teilweise ausserhalb der Seite.`);
-    rects.push({ id: 'logo', x: lg.x, y: lg.y, w: lg.w, h: lg.h });
+    rects.push({ id: 'logo', box: ink && typeof coverLogoInkBox === 'function' ? coverLogoInkBox(lg) : { x: lg.x, y: lg.y, w: lg.w, h: lg.h } });
   }
-  const polyOf = r => r.poly || [{ x: r.x, y: r.y }, { x: r.x + r.w, y: r.y }, { x: r.x + r.w, y: r.y + r.h }, { x: r.x, y: r.y + r.h }];
-  for (let i = 0; i < rects.length; i++) for (let j = i + 1; j < rects.length; j++) {
+  const polyOf = r => { const b = r.box; return r.poly || [{ x: b.x, y: b.y }, { x: b.x + b.w, y: b.y }, { x: b.x + b.w, y: b.y + b.h }, { x: b.x, y: b.y + b.h }]; };
+  const acc = { title: 'den Titel', subtitle: 'den Untertitel', name: 'den Namen', extra1: 'die weitere Zeile', date: 'das Datum', logo: 'das Logo' };
+  if (!(ink && pending)) for (let i = 0; i < rects.length; i++) for (let j = i + 1; j < rects.length; j++) {
     const a = rects[i], b = rects[j];
-    // ungedreht: unveraenderter Rechtecktest; sonst exakter Trennachsen-Test auf den gedrehten Rechtecken
-    const hit = (!a.poly && !b.poly) ? (a.x < b.x + b.w - eps && b.x < a.x + a.w - eps && a.y < b.y + b.h - eps && b.y < a.y + a.h - eps) : coverPolysOverlap(polyOf(a), polyOf(b), 1.5);
-    if (hit) {
-      const acc = { title: 'den Titel', subtitle: 'den Untertitel', name: 'den Namen', extra1: 'die weitere Zeile', date: 'das Datum', logo: 'das Logo' };
-      add(b.id, 'overlap', `${L[b.id] || 'Ein Feld'} überlappt ${acc[a.id] || 'ein anderes Feld'}. Verschiebe eines der beiden Felder.`);
+    let hit = false, close = false;
+    if (ink) {
+      if (a.poly || b.poly) hit = coverPolysOverlap(polyOf(a), polyOf(b), 0.5);
+      else {
+        // kleinster sichtbarer Abstand zwischen den Zeilen (Pixel); < 0 = Tinte ueberlappt
+        let gap = Infinity;
+        (a.lines || [a.box]).forEach(ra => (b.lines || [b.box]).forEach((rb) => { gap = Math.min(gap, coverRectGapPx(ra, rb)); }));
+        hit = gap < 0; close = !hit && gap < COVER_MIN_GAP_MM * MM;
+      }
+    } else {
+      const A = a.box, B = b.box;
+      // ungedreht: unveraenderter Rechtecktest; sonst exakter Trennachsen-Test auf den gedrehten Rechtecken
+      hit = (!a.poly && !b.poly) ? (A.x < B.x + B.w - eps && B.x < A.x + A.w - eps && A.y < B.y + B.h - eps && B.y < A.y + A.h - eps) : coverPolysOverlap(polyOf(a), polyOf(b), 1.5);
     }
+    if (hit) add(b.id, 'overlap', `${L[b.id] || 'Ein Feld'} überlappt ${acc[a.id] || 'ein anderes Feld'}. Verschiebe eines der beiden Felder.`, { otherId: a.id });
+    else if (close) add(b.id, 'overlap', `${L[b.id] || 'Ein Feld'} berührt fast ${acc[a.id] || 'ein anderes Feld'} (weniger als ${COVER_MIN_GAP_MM} mm Abstand). Verschiebe eines der beiden Felder.`, { otherId: a.id, near: true });
   }
   if (layout.mode === 'custom' && !layout.image && layout.bgColor && layout.readability !== 'gradient') {
     const behind = (id) => (id !== 'date' && layout.readability === 'panel') ? COVER_PAPER : layout.bgColor;   // Datum liegt nie auf der Textflaeche
@@ -340,7 +366,7 @@ function coverValidate(layout) {
   } else if (layout.readability === 'panel') {
     (layout.blocks || []).forEach(b => { if (coverContrast(b.ink, COVER_PAPER) < 3) add(coverBlockId(b), 'unreadable', 'Der Text ist hier schwer lesbar. Wähle eine andere Farbe oder aktiviere eine Textfläche.'); });
   }
-  const page = [{ x: 0, y: 0 }, { x: 1, y: 0 }, { x: 1, y: 1 }, { x: 0, y: 1 }], logoPoly = lg ? polyOf({ x: lg.x, y: lg.y, w: lg.w, h: lg.h }) : null;
+  const page = [{ x: 0, y: 0 }, { x: 1, y: 0 }, { x: 1, y: 1 }, { x: 0, y: 1 }], logoPoly = lg ? polyOf({ box: ink && typeof coverLogoInkBox === 'function' ? coverLogoInkBox(lg) : { x: lg.x, y: lg.y, w: lg.w, h: lg.h } }) : null;
   (layout.images || []).forEach((im, k) => {
     const fid = 'image:' + im.id, nr = (layout.images.length > 1 ? ` ${k + 1}` : '');
     const push = (kind, message) => out.push({ fieldId: fid, imageId: im.id, kind, message });
@@ -353,8 +379,79 @@ function coverValidate(layout) {
   if (layout.image && layout.image.ppi != null && layout.image.ppi < 150) add('image', 'lowres', `Das Bild hat nur etwa ${Math.round(layout.image.ppi)} ppi auf A4. Für den Druck möglicherweise unscharf.`);
   return out;
 }
+/* Abstand zweier Rechtecke in Seitenpixeln (negativ = Ueberlappung, Wert = Eindringtiefe der kleineren Achse) */
+function coverRectGapPx(a, b) {
+  const W = COVER_PAGE.w, H = COVER_PAGE.h;
+  const gx = Math.max(a.x - (b.x + b.w), b.x - (a.x + a.w)) * W, gy = Math.max(a.y - (b.y + b.h), b.y - (a.y + a.h)) * H;
+  return Math.max(gx, gy);
+}
+function coverNearEdge(g, px) {
+  const W = COVER_PAGE.w, H = COVER_PAGE.h;
+  return g.x * W < px || (1 - g.x - g.w) * W < px || g.y * H < px || (1 - g.y - g.h) * H < px;
+}
 function coverExportBlockers(layout) {
   if (!layout) return [];
   if (layout.v !== COVER_SCHEMA_V2) return (layout.warnings || []).map(w => ({ fieldId: w.key || '', kind: 'cut', message: w.message }));
   return (layout.warnings || []).filter(w => (w.kind === 'cut' || w.kind === 'outside') && !w.imageId);
+}
+
+/* ---------- v83: Automatisch ausrichten (nur auf ausdrueckliche Aktion im Editor) ----------
+   coverAutoAlign(model, input) -> { model, moves: [{ id, dxMm, dyMm }], unresolved: [{ id, reason }] }   (rein, schreibt nichts)
+   Loest Ueberlappungen ('overlap') und zu knappe Raender ('margin') der Textfelder und des Datums mit der KLEINSTEN Verschiebung
+   (eine Achse, Sicherheitsabstand COVER_ALIGN_GAP_MM zur sichtbaren Tinte aller anderen Elemente, innerhalb COVER_SAFE_MM).
+   Aendert nur x/y der verschobenen Felder (nie Text, Schrift, Groesse, Breite, Drehung). Fliessende Felder, die sich dadurch
+   bewegen wuerden, werden an ihrer bisherigen Stelle festgehalten. Bewegt wird das nachrangige Feld eines Paars
+   (Reihenfolge Titel, Untertitel, Name, weitere Zeile, Datum); das Logo bleibt stehen. Gedrehte Felder werden nicht bewegt. */
+const COVER_ALIGN_GAP_MM = 3;
+function coverAutoAlign(model, input) {
+  const W = COVER_PAGE.w, H = COVER_PAGE.h, MM = W / 210, gapX = COVER_ALIGN_GAP_MM * MM / W, gapY = COVER_ALIGN_GAP_MM * MM / H;
+  const safeX = COVER_SAFE_MM * MM / W, safeY = COVER_SAFE_MM * MM / H;
+  let m = coverModelSanitize(model);
+  const lay = (mm) => coverLayout(Object.assign({}, input || {}, { v2: mm }));
+  const bad = (L) => (L.warnings || []).filter(w => (w.kind === 'overlap' && !w.imageId) || w.kind === 'margin');
+  const moverOf = (w) => (w.fieldId === 'logo' ? w.otherId : w.fieldId);
+  const inkOf = (L, id) => { if (id === 'date') return L.date && L.date.inkBox; if (id === 'logo') return coverLogoInkBox(L.logo); const b = (L.blocks || []).find(x => coverBlockId(x) === id); return b && b.inkBox; };
+  const posOf = (L, id) => { if (id === 'date') return L.date ? { x: L.date.fx, y: L.date.y } : null; const b = (L.blocks || []).find(x => coverBlockId(x) === id); return b ? { x: b.x, y: b.y } : null; };
+  const rotOf = (L, id) => { if (id === 'date') return L.date && L.date.rot; const b = (L.blocks || []).find(x => coverBlockId(x) === id); return b && b.rot; };
+  const moves = {}, unresolved = {};
+  let L = lay(m);
+  if (L.geometry !== 'ink') return { model: m, moves: [], unresolved: bad(L).map(w => ({ id: moverOf(w), reason: 'Messung nicht möglich' })) };
+  for (let round = 0; round < 8; round++) {
+    const ws = bad(L).filter(w => !unresolved[moverOf(w)]);
+    if (!ws.length) break;
+    const id = moverOf(ws[0]);
+    if (!id || id === 'logo') { unresolved[id || '?'] = 'Logo'; continue; }
+    if (rotOf(L, id)) { unresolved[id] = 'gedreht'; continue; }
+    const U = inkOf(L, id), P = posOf(L, id);
+    if (!U || !P) { unresolved[id] = 'Messung nicht möglich'; continue; }
+    const others = ['title', 'subtitle', 'name', 'extra1', 'date', 'logo'].filter(o => o !== id).map(o => inkOf(L, o)).filter(Boolean);
+    const okAt = (dx, dy) => {
+      const r = { x: U.x + dx, y: U.y + dy, w: U.w, h: U.h };
+      if (r.x < safeX - 1e-6 || r.y < safeY - 1e-6 || r.x + r.w > 1 - safeX + 1e-6 || r.y + r.h > 1 - safeY + 1e-6) return false;
+      return others.every(o => r.x >= o.x + o.w + gapX - 1e-6 || o.x >= r.x + r.w + gapX - 1e-6 || r.y >= o.y + o.h + gapY - 1e-6 || o.y >= r.y + r.h + gapY - 1e-6);
+    };
+    const cands = [[0, 0]];
+    const clamp = [[safeX - U.x, 0], [1 - safeX - (U.x + U.w), 0], [0, safeY - U.y], [0, 1 - safeY - (U.y + U.h)]];
+    clamp.forEach(c => cands.push(c));
+    others.forEach((o) => {
+      cands.push([0, o.y + o.h + gapY - U.y], [0, o.y - gapY - (U.y + U.h)], [o.x + o.w + gapX - U.x, 0], [o.x - gapX - (U.x + U.w), 0]);
+    });
+    const mmOf = ([dx, dy]) => Math.hypot(dx * W, dy * H) / MM;
+    const best = cands.filter(([dx, dy]) => okAt(dx, dy)).sort((a, b) => mmOf(a) - mmOf(b))[0];
+    if (!best || (best[0] === 0 && best[1] === 0)) { unresolved[id] = 'kein Platz'; continue; }
+    // Felder festhalten, die ohne eigene Position fliessen (sonst bewegen sie sich mit)
+    const before = {}; ['title', 'subtitle', 'name', 'extra1'].forEach((o) => { const p = posOf(L, o); if (p) before[o] = p; });
+    const next = coverModelSanitize(m);
+    Object.keys(before).forEach((o) => { if (o !== id && (!next.fields[o] || next.fields[o].y == null)) next.fields[o] = Object.assign({}, next.fields[o], { y: coverRound(before[o].y) }); });
+    next.fields[id] = Object.assign({}, next.fields[id], { x: coverRound(P.x + best[0]), y: coverRound(P.y + best[1]) });
+    if (id === 'date') { const d = L.date; const f = next.fields.date; f.w = coverRound(d.w); }
+    const L2 = lay(coverModelSanitize(next));
+    if (bad(L2).length >= bad(L).length && bad(L2).some(w => moverOf(w) === id)) { unresolved[id] = 'kein Platz'; continue; }
+    m = coverModelSanitize(next); L = L2;
+    const mv = moves[id] || { id, dxMm: 0, dyMm: 0 };
+    mv.dxMm = Math.round((mv.dxMm + best[0] * W / MM) * 10) / 10; mv.dyMm = Math.round((mv.dyMm + best[1] * H / MM) * 10) / 10;
+    moves[id] = mv;
+  }
+  bad(L).forEach((w) => { const id = moverOf(w); if (id && !unresolved[id]) unresolved[id] = 'kein Platz'; });
+  return { model: m, moves: Object.values(moves), unresolved: Object.keys(unresolved).map(id => ({ id, reason: unresolved[id] })) };
 }

@@ -127,6 +127,34 @@ function coverMeasureDefault(text, font) {
   _coverMeasureCtx.font = font;
   return _coverMeasureCtx.measureText(text).width;
 }
+/* v83: sichtbare Tinte statt Containerrechteck. Zeilen werden mit denselben Massen wie coverDraw gesetzt (Grundlinie aus 'Hg'),
+   die Ausdehnung kommt aus actualBoundingBox* der geladenen Schrift. Ergebnis in Seitenanteilen: [{ x, y, w, h }] je nicht leerer Zeile.
+   Nur mit der Standardmessung (echte Schriften); Tests mit eigener Messfunktion behalten die Containerrechtecke. */
+function coverInkLines(lines, font, lhPx, x, w, y, align) {
+  if (!_coverMeasureCtx) _coverMeasureCtx = document.createElement('canvas').getContext('2d');
+  const g = _coverMeasureCtx; g.font = font; g.textAlign = 'left';
+  const hg = g.measureText('Hg');
+  const fa = hg.fontBoundingBoxAscent || hg.actualBoundingBoxAscent, fd = hg.fontBoundingBoxDescent || hg.actualBoundingBoxDescent;
+  if (!(fa > 0)) return null;
+  const W = COVER_PAGE.w, H = COVER_PAGE.h, out = [];
+  lines.forEach((line, i) => {
+    if (!line || !line.trim()) return;
+    const mt = g.measureText(line);
+    const start = align === 'center' ? (x + w / 2) * W - mt.width / 2 : align === 'right' ? (x + w) * W - mt.width : x * W;
+    const base = y * H + i * lhPx + (lhPx - (fa + fd)) / 2 + fa;
+    const l = start - (mt.actualBoundingBoxLeft || 0), r = start + (mt.actualBoundingBoxRight != null ? mt.actualBoundingBoxRight : mt.width);
+    const t = base - (mt.actualBoundingBoxAscent || 0), b = base + (mt.actualBoundingBoxDescent || 0);
+    if (r > l && b > t) out.push({ x: l / W, y: t / H, w: (r - l) / W, h: (b - t) / H });
+  });
+  return out;
+}
+function coverUnionBox(rs) {
+  if (!rs || !rs.length) return null;
+  const x = Math.min(...rs.map(r => r.x)), y = Math.min(...rs.map(r => r.y)), x2 = Math.max(...rs.map(r => r.x + r.w)), y2 = Math.max(...rs.map(r => r.y + r.h));
+  return { x, y, w: x2 - x, h: y2 - y };
+}
+/* Sind die Schriften dieses Fonts geladen? (ohne FontFaceSet: ja) */
+function coverFontReady(font) { try { return !document.fonts || !document.fonts.check || document.fonts.check(font); } catch (e) { return true; } }
 function coverCleanText(s) {
   return String(s == null ? '' : s).replace(/\r\n?/g, '\n').split('\n').map(l => l.replace(/[ \t ]+/g, ' ').trim()).filter((l, i, a) => l || (i > 0 && i < a.length - 1)).join('\n').trim();
 }
@@ -287,6 +315,8 @@ function coverLayoutV2(input, measure) {
   const defInk = model.readability === 'panel' ? dark : bgInk;
   const logoH = COVER_LOGO_BOX.w * COVER_PAGE.w * (WORDMARK_BOX.h / WORDMARK_BOX.w) / COVER_PAGE.h;
   let cursor = custom ? (model.logo.pos === 'bottom-right' ? 0.08 : 0.13) : tpl.text.y, flowChanged = false;
+  const realInk = !measure || measure === coverMeasureDefault;   // sichtbare Tinte nur mit echter Schriftmessung
+  let fontsPending = false;
   const blocks = [];
   ids.forEach((id) => {
     const o = F[id] || {}, d = COVER_FIELD_DEFAULTS[id], b0 = baseBy[id], meta = COVER_FONT_TABLE[o.font || d.font];
@@ -306,7 +336,10 @@ function coverLayoutV2(input, measure) {
     const split = words.some(wd => m(wd, font) > w * COVER_PAGE.w + 0.5);
     const geoSet = o.x != null || o.y != null || o.w != null || o.fontPt != null || !!o.font;
     const tx = align === 'left' ? x : (align === 'center' ? x + (w - tw) / 2 : x + w - tw), rot = o.rot || 0, cx = x + w / 2, cy = y + h / 2;
-    blocks.push({ key: id === 'subtitle' ? 'slogan' : id, id, lines, sizePx, sizePt: sizePx / COVER_PT, lineHeightPx: sizePx * lhr, family, weight, font: o.font || d.font, x, y, w, h,
+    if (realInk && !coverFontReady(font)) fontsPending = true;
+    const inkLines = realInk ? coverInkLines(lines, font, sizePx * lhr, x, w, y, align) : null;
+    const inkBox = inkLines ? coverUnionBox(inkLines) : null;
+    blocks.push({ inkLines, inkBox, inkHull: inkBox && rot ? coverRotCorners(inkBox.x, inkBox.y, inkBox.w, inkBox.h, cx, cy, rot) : null, key: id === 'subtitle' ? 'slogan' : id, id, lines, sizePx, sizePt: sizePx / COVER_PT, lineHeightPx: sizePx * lhr, family, weight, font: o.font || d.font, x, y, w, h,
       ink: o.color || defInk, align, fits: (b0 && !geoSet) ? b0.fits : true, splitWord: split, tx, tw,
       rot, cx, cy, hull: coverRotCorners(tx, y, tw, h, cx, cy, rot), bbox: coverHullBox(coverRotCorners(x, y, w, h, cx, cy, rot)) });
     cursor = y + h + COVER_V2_GAP;
@@ -327,6 +360,13 @@ function coverLayoutV2(input, measure) {
     const fx = align === 'left' ? ax : (align === 'center' ? ax - w / 2 : ax - w), rot = o.rot || 0, cx = fx + w / 2, cy = y + dh / 2;
     const dx = align === 'left' ? ax : (align === 'center' ? ax - tw / 2 : ax - tw), hull = coverRotCorners(dx, y, tw, dh, cx, cy, rot);
     date = { text: dtext, sizePx, x1: ax, ax, align, y, h: dh, w, tw, ink: o.color || bgInk, family: meta.family, weight, fx, rot, cx, cy, hull, bbox: coverHullBox(hull) };
+    if (realInk) {
+      const dfont = `${weight} ${sizePx}px ${meta.family}`;
+      if (!coverFontReady(dfont)) fontsPending = true;
+      const il = coverInkLines([dtext], dfont, dh * COVER_PAGE.h, fx, w, y, align === 'left' || align === 'center' ? align : 'right');
+      date.inkBox = il ? coverUnionBox(il) : null;
+      date.inkHull = date.inkBox && rot ? coverRotCorners(date.inkBox.x, date.inkBox.y, date.inkBox.w, date.inkBox.h, cx, cy, rot) : null;
+    }
   }
   // Logo
   let logo = null;
@@ -380,7 +420,8 @@ function coverLayoutV2(input, measure) {
       }
     });
   }
-  const layout = { v: 2, mode: model.mode, templateId: tpl.id, page: COVER_PAGE, ink: defInk, bgColor: bg, blocks, date, logo, image, images, panels, gradients, readability: model.readability, warnings: [], background: custom ? null : coverBackgroundUrl(tpl.id) };
+  const layout = { v: 2, mode: model.mode, templateId: tpl.id, page: COVER_PAGE, ink: defInk, bgColor: bg, blocks, date, logo, image, images, panels, gradients, readability: model.readability, warnings: [], background: custom ? null : coverBackgroundUrl(tpl.id), geometry: realInk ? 'ink' : 'box', fontsPending };
+  if (fontsPending && typeof coverEnsureFonts === 'function') { try { coverEnsureFonts(); } catch (e) { /* spaeter */ } }
   layout.warnings = coverValidate(layout);
   return layout;
 }
@@ -390,6 +431,14 @@ function coverLayoutV2(input, measure) {
    In der App steuert CSS die Farbe ueber data-theme (Hell rot #B93B2C, Dunkel creme #F7F4EE): kein Filter, kein Flackern. */
 const WORDMARK_PATH = "M98.54,366.88 C68.71,361.87 48.82,348.68 38.30,326.94 C18.06,285.08 37.22,236.65 77.40,228.12 C90.80,225.28 95.85,227.10 110.87,240.20 C124.27,251.89 132.86,255.92 144.42,255.94 C163.40,255.97 171.53,244.64 160.44,233.63 C154.80,228.04 153.26,227.53 114.63,218.39 C70.24,207.90 46.51,186.62 44.37,155.41 C42.22,124.06 63.21,97.15 106.65,75.57 C151.35,53.36 246.12,26.37 253.19,33.83 C259.11,40.08 282.03,85.48 286.02,98.87 C291.73,118.01 255.18,149.54 220.35,155.51 C206.87,157.82 198.06,155.64 185.68,146.95 C168.43,134.84 162.21,132.26 150.05,132.21 C137.66,132.15 133.13,134.48 128.85,143.08 C124.08,152.68 129.22,162.21 142.22,167.87 C148.63,170.67 153.06,171.24 176.17,172.22 C228.96,174.49 248.68,180.62 267.67,200.70 C281.06,214.86 286.78,232.00 285.65,254.55 C284.46,278.19 276.27,295.90 257.32,315.83 C233.01,341.39 197.03,359.24 156.63,365.79 C144.99,367.68 107.48,368.39 98.54,366.88 Z M315.50,362.24 C294.78,357.86 276.72,342.44 270.00,323.41 C268.01,317.75 268.05,317.40 271.37,313.46 C277.70,305.93 286.01,290.33 289.69,279.03 C292.76,269.63 293.37,265.10 293.51,250.71 L293.67,233.57 301.78,227.82 C316.09,217.67 336.74,210.18 361.51,206.18 C377.15,203.64 382.20,197.81 376.19,189.23 C369.67,179.91 352.95,182.44 333.58,195.66 C315.90,207.73 304.44,211.24 291.91,208.43 C285.08,206.91 283.19,205.56 272.57,194.63 L260.80,182.52 260.80,174.70 C260.80,162.57 266.90,151.72 282.38,136.34 C313.55,105.37 349.52,88.10 382.84,88.10 C409.42,88.10 431.51,100.95 447.55,125.74 C461.30,147.00 468.18,166.32 474.78,202.18 C479.57,228.19 483.80,242.30 489.91,252.67 C492.14,256.45 498.53,270.22 504.10,283.27 C518.98,318.09 518.99,327.00 504.17,340.32 C494.17,349.32 484.41,352.77 466.83,353.55 C443.86,354.56 426.52,347.51 409.97,330.41 L403.18,323.39 393.39,333.70 C381.67,346.03 369.56,353.99 355.13,358.83 C343.26,362.82 325.48,364.35 315.50,362.24 Z M851.25,349.70 C832.79,346.83 823.58,341.49 818.76,330.88 C814.15,320.74 815.10,315.80 823.62,305.76 C841.52,284.67 850.84,262.19 853.89,232.77 C857.51,197.87 846.76,157.26 826.81,130.41 C819.85,121.04 819.14,117.81 822.35,110.12 C827.26,98.37 838.26,90.72 853.84,88.21 C869.31,85.72 880.69,89.37 889.68,99.70 L894.95,105.76 900.72,98.68 C913.88,82.53 928.76,74.98 947.60,74.89 C971.94,74.78 986.41,87.31 987.85,109.75 C988.88,125.76 983.01,140.51 970.12,154.29 C962.35,162.59 958.20,164.83 947.31,166.58 C917.05,171.46 909.56,192.96 920.94,242.27 C924.65,258.34 925.13,262.32 923.90,266.75 C921.47,275.51 922.09,295.22 925.10,304.90 C931.24,324.61 919.44,341.73 895.84,347.34 C884.55,350.03 861.26,351.26 851.25,349.70 Z M702.57,344.14 C665.22,337.28 639.76,314.99 630.48,281.03 C624.99,260.90 627.78,231.10 637.75,203.49 C660.73,139.83 699.60,102.15 744.77,99.72 C796.93,96.93 837.77,137.23 845.54,199.15 C855.34,277.27 801.89,341.60 724.58,344.71 C716.07,345.06 706.17,344.80 702.57,344.14 Z M977.12,344.05 C936.61,335.52 917.61,290.59 937.50,250.36 C942.95,239.33 960.96,221.76 974.72,214.04 C989.94,205.51 1013.53,197.79 1032.22,195.23 C1044.74,193.52 1048.06,192.57 1050.06,190.11 C1054.84,184.22 1052.45,177.34 1044.72,174.79 C1037.55,172.42 1029.04,174.88 1015.06,183.35 C996.53,194.57 987.79,196.62 977.27,192.23 C969.90,189.15 964.58,183.56 962.82,177.02 C961.42,171.81 961.55,171.24 964.59,169.34 C977.73,161.17 992.57,138.74 994.98,123.41 C996.31,114.98 997.70,113.18 1011.56,102.02 C1030.35,86.88 1048.88,79.75 1069.49,79.72 C1097.17,79.68 1117.22,92.63 1128.86,118.06 C1135.03,131.53 1136.66,145.43 1135.59,175.54 C1134.27,212.42 1136.18,218.70 1154.32,237.39 C1166.10,249.52 1169.06,257.51 1168.97,276.93 C1168.85,304.76 1157.87,324.13 1136.60,334.09 C1125.59,339.24 1102.25,339.44 1089.87,334.48 C1081.41,331.10 1067.00,319.05 1062.69,311.77 L1060.33,307.78 1050.47,317.31 C1037.78,329.58 1027.37,336.40 1014.87,340.63 C1003.59,344.44 986.40,346.00 977.12,344.05 Z M537.83,335.26 C529.84,332.71 522.37,323.88 522.36,316.98 C522.35,308.44 520.48,302.89 506.97,271.25 C492.33,236.95 487.30,221.76 481.73,194.98 C477.14,172.90 471.45,155.42 464.09,140.81 C458.67,130.03 458.86,127.50 465.46,122.49 C478.70,112.45 508.81,110.05 525.37,117.72 C547.28,127.87 553.26,142.97 556.46,196.21 C558.25,225.87 559.48,231.99 562.95,228.51 C566.90,224.57 568.77,206.45 567.80,181.73 C566.68,153.47 568.23,147.04 578.30,137.94 C594.88,122.96 632.32,121.68 645.60,135.63 C655.25,145.78 655.05,149.33 643.51,172.33 C630.02,199.20 621.68,226.46 621.68,243.70 C621.68,251.99 615.33,267.76 599.44,298.93 C589.18,319.06 579.75,329.18 566.72,334.05 C557.89,337.36 545.97,337.85 537.83,335.26 Z M376.91,272.39 C384.43,267.27 387.39,262.22 387.39,254.49 C387.39,245.02 383.59,241.23 374.26,241.36 C361.46,241.55 348.64,252.18 348.64,262.61 C348.64,274.18 365.63,280.06 376.91,272.39 Z M1039.78,265.11 C1049.57,260.05 1057.04,244.47 1054.51,234.39 C1051.33,221.72 1027.36,229.82 1018.80,246.45 C1015.04,253.78 1015.42,258.25 1020.22,263.05 C1024.92,267.75 1033.03,268.60 1039.78,265.11 Z M744.72,228.51 C756.52,218.58 759.09,196.47 749.35,188.81 C740.56,181.90 727.72,193.67 723.72,212.29 C720.24,228.55 732.98,238.39 744.72,228.51 Z";
 const WORDMARK_BOX = { w: 1200, h: 400 };
+/* v83: sichtbare Flaeche des Pfads in der viewBox (gerastert gemessen, 4-fach; Test test_v83_cover_pdf prueft die Werte nach).
+   Die viewBox hat links 2,5 %, oben und unten je rund 8 % transparenten Rand; die Ueberlappungspruefung nutzt nur die Tinte. */
+const WORDMARK_INK = { x0: 30, y0: 32.5, x1: 1169, y1: 367.75 };
+function coverLogoInkBox(lg) {
+  if (!lg) return null;
+  const kx = lg.w / WORDMARK_BOX.w, ky = lg.h / WORDMARK_BOX.h;
+  return { x: lg.x + WORDMARK_INK.x0 * kx, y: lg.y + WORDMARK_INK.y0 * ky, w: (WORDMARK_INK.x1 - WORDMARK_INK.x0) * kx, h: (WORDMARK_INK.y1 - WORDMARK_INK.y0) * ky };
+}
 function wordmarkSvg(cls, label) {
   const a11y = label ? `role="img" aria-label="${label}"` : 'aria-hidden="true"';
   return `<svg class="wordmark ${cls || ''}" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 400" width="1200" height="400" ${a11y} focusable="false"><path fill="currentColor" fill-rule="evenodd" d="${WORDMARK_PATH}"/></svg>`;

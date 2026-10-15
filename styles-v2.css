@@ -3493,3 +3493,8 @@ body:has(.lp) .topbar--sub .topbar-title { overflow-wrap: normal; hyphens: auto;
 @media (min-width: 768px) { .lib-switch-btn { white-space: nowrap; } }
 .lib-byline .lib-meta-line > span { display: block; min-width: 0; }
 .lib-author-link { display: inline-flex; align-items: center; justify-content: flex-start; text-align: left; vertical-align: middle; max-width: 100%; overflow-wrap: anywhere; }
+
+/* ===== v83 Cover-Geometrie ===== */
+.ce-align-btn { margin-top: 0.5rem; }
+.ce-align-msg { margin: 0.5rem 0 0; padding: 0.5rem 0.75rem; border-radius: 0.75rem; background: var(--surface-soft); color: var(--text); font-size: 0.875rem; line-height: 1.4; }
+.ce-warn--margin { border-left-color: var(--text-soft); background: var(--surface-soft); }
