@@ -3721,3 +3721,10 @@ body.keyboard-open .rp-foot { padding-bottom: 0.75rem; }
 /* Handy-Suchfeld: Tippflächen 44 px (Feld und Schliessen-Knopf), ohne das Overlay zu vergrössern */
 #libSearchPop .search-input { min-height: 2.75rem; }
 #libSearchPop .search-close { width: 2.75rem; height: 2.75rem; margin: -0.25rem 0; }
+
+/* ===== v84 Daten ===== */
+/* Sammlungsfarben (org.js ORG_COLORS): nur fuer kleine Flaechen (Punkt, Symbol), nie einziges Merkmal. Gespeichert wird nur die id.
+   Kontrast gegen --card-bg und --bg: hell mind. 4.3:1, dunkel mind. 7.5:1 (Grafik-Mindestwert 3:1, WCAG 1.4.11). */
+:root { --org-c-none: var(--text-soft); --org-c-tomato: #B93B2C; --org-c-sage: #5F7A4E; --org-c-mustard: #8A6A12; --org-c-plum: #7A4A7E; --org-c-lake: #3D6683; --org-c-earth: #7A5A43; }
+[data-theme="dark"] { --org-c-tomato: #FF9B80; --org-c-sage: #A9C49A; --org-c-mustard: #E2BE5C; --org-c-plum: #D3A6D6; --org-c-lake: #9CC0DA; --org-c-earth: #CFAE92; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --org-c-tomato: #FF9B80; --org-c-sage: #A9C49A; --org-c-mustard: #E2BE5C; --org-c-plum: #D3A6D6; --org-c-lake: #9CC0DA; --org-c-earth: #CFAE92; } }
