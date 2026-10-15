@@ -100,6 +100,15 @@ class H(BaseHTTPRequestHandler):
             if not uid: return self.reply(401, {'message': 'JWT required'})
             if p.startswith('/storage/v1/object/' + PUB_BUCKET):
                 return self.lib_storage(method, p, uid)
+            if p == '/storage/v1/object/list/' + PUB_BUCKET and method == 'POST':   # Liste eigener Objekte (eine Ebene, Ordner mit id None)
+                b = json.loads(self.body() or b'{}'); pre = str(b.get('prefix') or '').rstrip('/') + '/'
+                if not pre.startswith(uid + '/'): return self.reply(200, [])
+                names = {}
+                for k in PUB_OBJECTS:
+                    if k.startswith(pre):
+                        rest = k[len(pre):]; head = rest.split('/', 1)[0]
+                        names[head] = None if '/' in rest else k
+                return self.reply(200, [{'name': n, 'id': v} for n, v in names.items()])
             if p == '/rest/v1/savora_records' and method == 'POST':
                 rows = json.loads(self.body())
                 for r in rows:
@@ -549,6 +558,12 @@ def _lib_rpc(self, name, me, a):
             if p['status'] != 'withdrawn':
                 t = now_ts(); p.update(status='withdrawn', withdrawn_at=t, updated_at=t)
             return ok({'id': p['id'], 'status': 'withdrawn'})
+        if name == 'savora_pub_withdraw_all':
+            t = now_ts()
+            for p in PUBS.values():
+                if p['owner'] == me and p['status'] == 'published': p.update(status='withdrawn', withdrawn_at=t, updated_at=t)
+            if me in PUB_PROFILES: PUB_PROFILES[me]['avatar_path'] = None
+            return ok(None)
         if name == 'savora_pub_mine':
             rows = [{'id': p['id'], 'status': p['status'], 'version': p['version'], 'title': p['title'], 'thumb_path': p['thumb_path'],
                      'source_local_id': p['source_local_id'], 'published_at': p['published_at'], 'updated_at': p['updated_at'],
