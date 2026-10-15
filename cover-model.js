@@ -18,6 +18,16 @@
         // x, y = obere linke Ecke des Textfelds, w = Breite, beide als Anteil der A4-Seite (0..1, Hoehe ergibt sich aus Text und Schrift)
         // fontPt in Punkt (A4 = 595.3 x 841.9 pt; 1 pt = 1.3333 px bei COVER_PAGE 794 px). Ohne y: Feld fliesst unter das vorige (Titel, Untertitel, Name, extra1)
         // text: ueberschreibt den Text aus cfg.title (title), cfg.subtitle (subtitle), cfg.author (name); extra1 hat nur text. Fehlt text, gilt der v1-Text.
+        // rot (Paket Drehung, alle fuenf Felder): Grad im Uhrzeigersinn, -180..180, gerundet auf 0.5, Standard 0 (0 wird nicht gespeichert).
+        //   Drehpunkt = Mitte des Textfelds (x + w/2, y + h/2). Ohne rot bleibt alles pixelgleich wie vorher.
+     images: [ { id, imgId, x, y, w, rot, z, opacity?, iw, ih } ]   // zusaetzliche eigene Bilder (hoechstens COVER_MAX_IMAGES = 4), in beiden Modi
+        // id      = eindeutiger Schluessel im Modell ('ci-<zufall>', [A-Za-z0-9_-], hoechstens 40 Zeichen; doppelte IDs werden verworfen)
+        // imgId   = Bild im Store 'images' mit Praefix 'cover-' (Import ueber coverImageImport(file, bookKey) -> { id, w, h }; id -> imgId, w -> iw, h -> ih)
+        // x, y    = MITTE des Bildes als Seitenanteil (-0.5..1.5), w = Breite als Seitenbreiten-Anteil (0.02..1.5)
+        // iw, ih  = Pixel des gespeicherten Bildes; Hoehe auf der Seite = w * 794 * ih / iw (nie verzerrt). Fehlen iw/ih, rechnet coverDraw mit den echten Pixeln.
+        // rot     = wie bei den Feldern (Drehpunkt = Bildmitte); z = 'below' (unter dem Text, Standard) | 'above' (ueber dem Text, unter Wortmarke und Datum)
+        // opacity = 0.05..1 (Standard 1, 1 wird nicht gespeichert)
+        // Fehlt images (alte Cover), gibt es keine Zusatzbilder. Reihenfolge im Array = Zeichenreihenfolge innerhalb derselben Ebene.
      logo:  { pos: 'top-right'|'top-left'|'bottom-right', variant: 'auto'|'light'|'dark' },   // light = helle (creme) Wortmarke, dark = dunkle (Tinte)
      readability: 'none' | 'panel' | 'gradient',
      arrange: ''  | 'Oben links' | 'Oben mittig' | 'Mittig' | 'Unten links' | 'Unten mittig' | 'Frei platzieren'
@@ -28,7 +38,10 @@
      coverModelFromLegacy(cfg)          cfg = Kochbuch-Konfiguration (getCookbookConfig()); liefert IMMER ein v2-Modell (v1 -> Standardansicht), schreibt nichts.
      coverModelSanitize(raw)            idempotent, begrenzt Werte, wirft unbekannte Schluessel/Schriften weg.
      coverModelIsPlainTemplate(m)       true = Vorlage ohne jede Abweichung (-> alter v1-Pfad, pixelgleich)
-     coverApplyArrangement(model, name, input, measure?)   neues Modell (rein), input wie bei coverLayout (Texte), setzt x/y/w/align der sichtbaren Textfelder.
+     coverApplyArrangement(model, name, input, measure?)   neues Modell (rein), input wie bei coverLayout (Texte), setzt x/y/w/align der sichtbaren Textfelder
+                                        und setzt deren rot auf 0 zurueck (auch bei 'Frei platzieren'; Datum und Zusatzbilder bleiben unberuehrt).
+     coverNewImageEntry(imp, opts?)     baut einen Eintrag fuer model.images aus dem Ergebnis von coverImageImport ({ id, w, h }); opts: { x, y, w, z } (Standard Mitte, Breite 0.4, 'below').
+     coverRotCorners(x, y, w, h, cx, cy, rot)   4 Ecken [{x,y}] (Seitenanteile) des um (cx,cy) gedrehten Rechtecks (Seitenverhaeltnis A4 beruecksichtigt)
      coverContrast(fg, bg)              WCAG-Kontrast 1..21 (Farben '#RRGGBB'/'#RGB')
      coverValidate(layout)              berechnet warnings[] aus einem v2-Layout (wird von coverLayout aufgerufen)
      coverExportBlockers(layout)        nur 'cut'/'outside' (bei v1-Layout: alle v1-Warnungen) -> [{fieldId, kind, message}]
@@ -36,18 +49,34 @@
      coverLogoAuto(model, lumaHint?)    'light'|'dark' fuer Variante 'auto' (Luminanz Hintergrundfarbe; bei Bild lumaHint 0..1 = mittlere Helligkeit hinter dem Logo)
    FUNKTIONEN (cover.js)
      coverLayout(input, measure?)       input: { templateId, title, name, slogan, date, showDate, logo, v2? }; v2-Pfad, wenn input.v2 vorhanden und nicht schlichte Vorlage.
-     coverDraw(ctx, layout, bgImg, scale, userImg?)   userImg = decodiertes Bild (ImageBitmap/Image/Canvas) fuer layout.image
-     coverRenderCanvas(layout, scale, bgUrl, userImg?)   fehlt userImg, wird window.coverImageLoad(id) (Paket C4, async -> drawable|null) gefragt.
+     coverDraw(ctx, layout, bgImg, scale, userImg?, extraImgs?)   userImg = decodiertes Bild (ImageBitmap/Image/Canvas) fuer layout.image;
+                                        extraImgs = { [imgId]: drawable } fuer layout.images (fehlt ein Eintrag, wird das Bild ausgelassen).
+                                        Reihenfolge v2: Hintergrundfarbe, Hintergrundbild, Bilder 'below', Textflaechen/Verlaeufe, Text, Bilder 'above', Wortmarke, Datum.
+                                        (v1-Layout: unveraenderte alte Reihenfolge, pixelgleich.)
+     coverRenderCanvas(layout, scale, bgUrl, userImg?, extraImgs?)   fehlt userImg bzw. ein Zusatzbild, wird window.coverImageLoad(id) gefragt;
+                                        fehlt ein Zusatzbild danach, wirft es coverError('Ein zusätzliches Bild des Titelblatts konnte nicht geladen werden. ...').
+     coverHtml(layout, imgUrl)          unsichtbarer Textlayer; gedrehte Bloecke/Datum mit transform: rotate(<rot>deg) um dieselbe Mitte (transform-origin).
 
    LAYOUT-ERGEBNIS v2 (zusaetzlich zu v1-Feldern: templateId, page, ink, blocks, date, logo, warnings, background)
      v: 2, mode, bgColor: '#RRGGBB' | null (Vorlage), background: URL | null,
      blocks[]: { key ('title'|'slogan'|'name'|'extra1'), id ('title'|'subtitle'|'name'|'extra1'), lines[], sizePx, sizePt, lineHeightPx, family, weight, font,
-                 x, y, w, h (Seitenanteile), ink, align, fits, splitWord (true = Einzelwort an Zeichengrenze geteilt) }
-     date: { text, sizePx, x1 (rechter Rand, v1-kompatibel), ax (Ankerpunkt), align, y, h, w, ink, family, weight } | null
+                 x, y, w, h (Seitenanteile), ink, align, fits, splitWord (true = Einzelwort an Zeichengrenze geteilt), tx, tw (Textausdehnung),
+                 rot (Grad, 0 = ungedreht), cx, cy (Drehpunkt = Mitte des Textfelds), hull: [4 Ecken {x,y}] der gedrehten Textausdehnung (tx..tx+tw, y..y+h),
+                 bbox: {x,y,w,h} achsenparallele Huelle des gedrehten Textfelds (x..x+w) }
+     date: { text, sizePx, x1 (rechter Rand, v1-kompatibel), ax (Ankerpunkt), align, y, h, w, tw, ink, family, weight, rot, cx, cy, hull, bbox } | null
      logo: { x, y, w, h, variant ('light'|'dark'), ink, pos } | null
      image: null | { id, fit, src: {x,y,w,h} (Originalpixel), dst: {x,y,w,h} (Seitenanteile), ppi }
-     panels[]: { x, y, w, h, r (Radius in Seitenbreiten-Anteil), color, alpha }    gradients[]: { x, y, w, h, from: '#RRGGBB', alpha, dir: 'down'|'up' }
-     readability, warnings[]: { fieldId ('title'|'subtitle'|'name'|'extra1'|'date'|'logo'|'image'), kind: 'cut'|'outside'|'overlap'|'unreadable'|'lowres', message }
+     images[]: { id, imgId, x, y, w, h (ungedrehtes Ziel-Rechteck, obere linke Ecke, Seitenanteile; h = null ohne iw/ih), cx, cy (Mitte), rot, z, opacity,
+                 iw, ih, ppi (Pixelbreite / Druckbreite in Zoll) | null, hull: [4 Ecken] | null, bbox | null }      (immer vorhanden, [] ohne Zusatzbilder)
+     panels[]: { x, y, w, h, r (Radius in Seitenbreiten-Anteil), color, alpha, rot, cx, cy }   rot != 0: Flaeche dreht mit ihrem Block um (cx, cy)
+                 (Bloecke mit verschiedener Drehung bilden nie eine gemeinsame Flaeche)
+     gradients[]: { x, y, w, h, from: '#RRGGBB', alpha, dir: 'down'|'up' }   Verlauf bleibt seitenbreit und waagrecht; seine Hoehe deckt die gedrehte Huelle ab
+     readability, warnings[]: { fieldId ('title'|'subtitle'|'name'|'extra1'|'date'|'logo'|'image'|'image:<images[].id>'), imageId? (bei Zusatzbildern),
+                 kind: 'cut'|'outside'|'overlap'|'unreadable'|'lowres', message }
+     Pruefung gedrehter Elemente: 'outside'/'cut' mit der achsenparallelen Huelle (bbox) der gedrehten Ecken; 'overlap' exakt per Trennachsen-Test (SAT)
+     auf den gedrehten Rechtecken (beide ungedreht: unveraenderter Rechtecktest). Zusatzbilder: 'outside' nur wenn GANZ ausserhalb der Seite,
+     'overlap' (fieldId 'image:<id>') wenn das Bild die Wortmarke beruehrt, 'lowres' unter 150 ppi. Warnungen von Zusatzbildern sperren den Export nie
+     (coverExportBlockers liefert sie nicht); nur ein fehlendes Bild sperrt (coverRenderCanvas wirft).
    Warnungstexte sind fertige deutsche Meldungen mit Loesungshinweis. */
 
 const COVER_SCHEMA_V2 = 2;
