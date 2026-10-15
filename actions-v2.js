@@ -74,6 +74,14 @@ document.addEventListener('change', (e) => {
     // Titelblatt-Eingaben (Texte, Datum, Logo) behandelt cover-editor.js
     if (t.closest && t.closest('.cover-picker')) return;
     if (t.matches('[data-cb-flag]')) cfg[t.dataset.cbFlag] = !!t.checked;
+    else if (t.matches('[data-cb-print-name]')) {   // 0.83.1: wo der Name gedruckt wird (author bleibt unveraendert)
+      if (!COOKBOOK_PRINT_NAME.includes(t.value)) return;
+      if (typeof ceFlush === 'function') ceFlush();   // ungespeicherte Eingaben im Cover-Editor zuerst sichern
+      const fresh = getCookbookConfig();
+      fresh.printName = t.value; saveCookbookConfig(fresh); render();
+      const again = document.querySelector(`[data-cb-print-name][value="${cssAttr(t.value)}"]`); if (again) focusWithoutScroll(again);
+      return;
+    }
     else if (t.matches('[data-cb-field]')) cfg[t.dataset.cbField] = t.value.trim();
     else if (t.matches('[data-cb-chapter]')) { const c = cfg.chapters.find(x => x.id === t.dataset.cbChapter); if (c) c.name = t.value.trim() || c.name; }
     else if (t.matches('[data-cb-item-chapter]')) { const it = cfg.items.find(x => x.recipeId === t.dataset.cbItemChapter); if (it) it.chapterId = t.value; }
@@ -88,6 +96,8 @@ function planCaptureDrafts(m) {
   if (!m) return;
   const ni = document.getElementById('planNoteInput'); if (ni) m.noteDraft = ni.value;
   const c = document.getElementById('planMealCustom'); if (c) m.mealCustom = c.value;
+  const ne = document.getElementById('planNoteEdit'); if (ne) m.noteEditDraft = ne.value;   // Eintrag bearbeiten
+  const mv = document.getElementById('planMoveDay'); if (mv) m.moveDraft = mv.value;
 }
 // Menge fuer den Eintrag: nur eine vom Rezept abweichende Menge wird gespeichert (sonst null wie bisher)
 function planServingsFromModal(m, r) {
@@ -544,7 +554,15 @@ async function handleActionV2(action, id, el, e) {
       if (!ids.length) { showToast('Wähle mindestens ein Rezept für die Einkaufsliste aus.'); const s = document.getElementById('rpSearch'); if (s) focusWithoutScroll(s); return true; }
       const items = ids.flatMap(rid => { const r = state.recipes.find(x => x.id === rid); return r ? shoppingSelectionFor(r, (typeof rpQtyFor === 'function' ? rpQtyFor(pm, r) : 0) || r.servings || 1) : []; });
       markShoppingDuplicates(items);
-      replaceModal({ type: 'shop-select', items });
+      // Auswahl merken, damit «Zurück zur Auswahl» Rezepte, Mengen und Suche wiederherstellt
+      replaceModal({ type: 'shop-select', items, pickBack: { rpSel: ids.slice(), rpQty: Object.assign({}, pm.rpQty || {}), rpQuery: pm.rpQuery || '' } });
+      return true;
+    }
+    case 'shop-back-to-pick': {   // Vorschau -> zurueck in die Rezeptauswahl, ohne etwas zu uebernehmen
+      const back = state.modal && state.modal.type === 'shop-select' ? state.modal.pickBack : null;
+      if (!back) return true;
+      replaceModal({ type: 'pick-recipes', selected: [], rpPicker: true, rpMulti: true, rpSel: back.rpSel.slice(), rpQty: Object.assign({}, back.rpQty), rpQuery: back.rpQuery });
+      const go = document.querySelector('[data-rp-confirm]'); if (go) focusWithoutScroll(go);
       return true;
     }
     case 'mealplan-to-shopping': {
@@ -722,7 +740,7 @@ async function handleActionV2(action, id, el, e) {
       const m = state.modal;
       if (!m) return true;
       planCaptureDrafts(m);
-      if (m.mealOther) { m.mealOther = false; m.mealCustom = ''; m.meal = ''; render(); return true; }
+      if (m.mealOther || document.getElementById('planMealCustom')) { m.mealOther = false; m.mealCustom = ''; m.meal = ''; render(); return true; }
       m.mealOther = true; m.meal = '';
       render();
       const c = document.getElementById('planMealCustom'); if (c) focusWithoutScroll(c);
@@ -782,18 +800,6 @@ async function handleActionV2(action, id, el, e) {
     case 'open-plan-entry':
       openModal({ type: 'plan-entry', date: el.dataset.date, entryId: id, meal: (planEntriesFor(el.dataset.date).find(x => x.id === id) || {}).meal || '' }, `[data-action="open-plan-entry"][data-id="${escapeAttr(id)}"]`);
       return true;
-    case 'plan-entry-servings': {
-      const m = state.modal;
-      const entries = planEntriesFor(m.date).map(x => ({ ...x }));
-      const entry = entries.find(x => x.id === m.entryId);
-      if (!entry || isNoteEntry(entry)) return true;
-      const r = state.recipes.find(x => x.id === entry.recipeId) || { servings: 1 };
-      const st = typeof rpStep === 'function' ? rpStep(r) : 1;   // Gesamtertrag in ml/g: ganze Ansaetze
-      entry.servings = Math.max(st, (entry.servings || r.servings || 1) + parseInt(el.dataset.delta, 10) * st);
-      await savePlanEntries(m.date, entries);
-      render();
-      return true;
-    }
     case 'save-plan-entry': {
       const m = state.modal;
       const meal = readPlanMeal();
@@ -803,6 +809,11 @@ async function handleActionV2(action, id, el, e) {
       if (!entry) { closeModal(); return true; }
       const prevSource = planEntriesFor(m.date).map(x => ({ ...x })), prevTarget = planEntriesFor(target).map(x => ({ ...x }));
       entry.meal = meal;
+      if (!isNoteEntry(entry) && m.rpQty) {   // Menge aus dem gemeinsamen Mengenwahler; nur eine Aenderung wird gespeichert
+        const r = state.recipes.find(x => x.id === entry.recipeId);
+        const q = Number(m.rpQty[entry.recipeId]);
+        if (r && yieldKnown(r) && q > 0 && q !== Number(entry.servings || r.servings)) entry.servings = q;
+      }
       if (isNoteEntry(entry)) {
         const ne = document.getElementById('planNoteEdit');
         const t = ne ? ne.value.replace(/\s+/g, ' ').trim().slice(0, PLAN_NOTE_MAX) : entry.text;
@@ -904,7 +915,8 @@ async function handleActionV2(action, id, el, e) {
     case 'cb-use-sender-name': case 'cb-clear-name': {   // v83: Name auf Titelblatt und Fusszeile = Feld «Name» des Titelblatts
       if (typeof ceFlush === 'function') ceFlush();   // ungespeicherte Eingaben im Cover-Editor zuerst sichern
       const cfg = getCookbookConfig();
-      cfg.author = action === 'cb-use-sender-name' ? String(state.senderName || '').trim() : '';
+      // 0.83.1: «Keinen Namen im PDF zeigen» ist jetzt die Wahl «Nicht drucken»: der Name bleibt gespeichert
+      if (action === 'cb-use-sender-name') cfg.author = String(state.senderName || '').trim(); else cfg.printName = 'none';
       saveCookbookConfig(cfg); render();
       showToast(action === 'cb-clear-name' ? 'Name im PDF entfernt' : 'Name fürs PDF eingetragen');
       return true;

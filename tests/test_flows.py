@@ -147,7 +147,7 @@ async def main():
               f"{before_titles} {[e['meal'] for e in rec['entries']]}")
         eid = rec['entries'][2]['id']
         await click(page, f'[data-action="open-plan-entry"][data-id="{eid}"]')
-        await click(page, '[data-action="plan-entry-servings"][data-delta="1"]')
+        await click(page, '.rp-sheet--entry [data-rp-step="1"]')   # v0.83.1: gemeinsamer Mengenwahler, gespeichert mit «Speichern»
         await page.select_option('#planMoveDay', await page.evaluate("fmtDateKey(addDays(state.weekStart, 2))"))
         await click(page, '[data-action="save-plan-entry"]')
         await page.wait_for_timeout(300)

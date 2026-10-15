@@ -351,7 +351,7 @@ function pvExtrasGroupHtml(units) {
 function pvExtrasHtml(m, nutritionDetail) { return pvExtrasGroupHtml(pvExtrasUnits(m, nutritionDetail)); }
 
 function pvFooter() {
-  const t = PDF_CTX;
+  const t = PDF_CTX;   // t.author ist nur gesetzt, wenn der Name in die Fusszeile gehoert (Kochbuch: printName 'both' oder 'footer')
   const left = [t.bookTitle, t.author].filter(Boolean).join('  /  ') || 'Savora';
   return `<footer class="pv-foot"><span>${pvEsc(left)}</span></footer>`;
 }

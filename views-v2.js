@@ -755,6 +755,7 @@ function shopSelectModal() {
   const multi = Object.keys(byRecipe).length > 1;
   const dupCount = m.items.filter(it => it.dup).length;
   return sheet('shop-select-title', 'In den Einkauf übernehmen', `
+    ${m.pickBack ? `<button type="button" class="text-btn shop-back-btn" data-action="shop-back-to-pick">${ICONS.chevronLeft}<span>Zurück zur Auswahl</span></button>` : ''}
     <p class="hint-line">Wähle, was du wirklich brauchst. Gleiche Zutaten mit passender Einheit werden zusammengeführt.</p>
     ${dupCount ? `<p class="hint-line shop-dup-hint" role="status">Schon auf der Einkaufsliste: ${dupCount} Zutat${dupCount === 1 ? '' : 'en'}. Sie sind abgewählt; setze einen Haken, um sie trotzdem nochmals hinzuzufügen.</p>` : ''}
     <div class="shop-select-list">
@@ -1011,13 +1012,6 @@ function mealplanView() {
     ${state.modal && state.modal.type === 'shop-select' ? shopSelectModal() : ''}
   `;
 }
-function mealSlotChooser(current, customValue) {
-  const isCustom = current && !MEAL_SLOTS.some(m => m.id === current);
-  return `<div class="chip-row chip-row--wrap" role="radiogroup" aria-label="Mahlzeit">
-      ${MEAL_SLOTS.map(m => `<button type="button" class="chip ${current === m.id ? 'chip--active' : ''}" role="radio" aria-checked="${current === m.id}" data-action="set-plan-meal" data-id="${escapeAttr(m.id)}">${m.label}</button>`).join('')}
-    </div>
-    <div class="field"><label for="planMealCustom">Eigene Bezeichnung (optional)</label><input id="planMealCustom" type="text" placeholder="z.B. Znüni oder Gäste" value="${escapeHtml(isCustom ? current : (customValue || ''))}"></div>`;
-}
 // Mahlzeit fuer neue Eintraege: optional; eine eigene Bezeichnung erst ueber «Andere Bezeichnung»
 function planMealPicker(m) {
   const custom = m.mealCustom || (m.meal && !MEAL_SLOTS.some(x => x.id === m.meal) ? m.meal : '');
@@ -1060,35 +1054,34 @@ function recipePickerModal() {
   return rpSheetHtml({ id: 'picker-modal-title', title: 'Zum Wochenplan', sub: labelDate, subId: 'picker-modal-date', cls: 'rp-sheet--plan',
     body: `${planMealPicker(m)}${seg}<div class="rp-pane" data-plan-mode="${mode}">${mode === 'recipe' ? recipePart : notePart}</div>`, foot });
 }
+// v0.83.1: Bestehenden Eintrag bearbeiten, im gleichen Dialoggeruest wie «Zum Wochenplan» (recipe-picker.js):
+// Schliessen-Symbol, Abbrechen, Mahlzeit optional mit «Andere Mahlzeit», Menge mit Schrittweite des Ertrags.
+// Die Menge wird erst mit «Speichern» uebernommen; Abbrechen, Escape und Schliessen verwerfen sie.
 function planEntryModal() {
   const m = state.modal;
   const e = planEntriesFor(m.date).find(x => x.id === m.entryId);
   if (!e) return '';
-  const moveSel = (days) => `<div class="field"><label for="planMoveDay">Verschieben auf</label><select id="planMoveDay">${days.map((d, i) => { const k = fmtDateKey(d); return `<option value="${escapeAttr(k)}" ${k === m.date ? 'selected' : ''}>${WEEKDAY_LABELS[i]}, ${d.getDate()}. ${MONTH_LABELS[d.getMonth()]}</option>`; }).join('')}</select></div>`;
-  if (isNoteEntry(e)) {
-    const wk = Array.from({ length: 7 }, (_, i) => addDays(state.weekStart, i));
-    return sheet('plan-entry-title', 'Notiz', `
-      <div class="field"><label for="planNoteEdit">Notiz</label><input id="planNoteEdit" type="text" maxlength="${PLAN_NOTE_MAX}" value="${escapeHtml(e.text || '')}" autocomplete="off"></div>
-      ${mealSlotChooser(e.meal || '')}
-      ${moveSel(wk)}
-      <div class="form-actions">
-        <button class="ghost-btn danger-btn" data-action="remove-plan-entry">Entfernen</button>
-        <button class="primary-btn" data-action="save-plan-entry">Speichern</button>
-      </div>`);
-  }
-  const r = state.recipes.find(x => x.id === e.recipeId) || { title: '', servings: 1 };
-  const servings = e.servings || r.servings || 0;
+  m.rpPicker = true; m.rpMulti = false;
+  const [y, mo, d] = m.date.split('-').map(Number);
+  const labelDate = new Date(y, mo - 1, d).toLocaleDateString('de-CH', { weekday: 'long', day: 'numeric', month: 'long' });
   const days = Array.from({ length: 7 }, (_, i) => addDays(state.weekStart, i));
-  return sheet('plan-entry-title', r.title || 'Eintrag', `
-    ${yieldKnown(r) || e.servings > 0 ? `<div class="amount-row"><span class="amount-row-label">Menge für diesen Termin</span>
-      <div class="stepper"><button data-action="plan-entry-servings" data-delta="-1" aria-label="Weniger">${ICONS.minus}</button><span class="stepper-value">${escapeHtml(servingLabel(r, servings))}</span><button data-action="plan-entry-servings" data-delta="1" aria-label="Mehr">${ICONS.plus}</button></div></div>
-    <p class="hint-line">Das Rezept selbst bleibt bei ${escapeHtml(servingLabel(r, r.servings || 0))}.</p>` : `<p class="hint-line">Bei diesem Rezept fehlt die Angabe, wie viel es ergibt. Für diesen Termin gelten die Originalmengen. Ergänze die Angabe im Rezept, um zu skalieren.</p>`}
-    ${mealSlotChooser(e.meal || '')}
-    <div class="field"><label for="planMoveDay">Verschieben auf</label><select id="planMoveDay">${days.map((d, i) => { const k = fmtDateKey(d); return `<option value="${escapeAttr(k)}" ${k === m.date ? 'selected' : ''}>${WEEKDAY_LABELS[i]}, ${d.getDate()}. ${MONTH_LABELS[d.getMonth()]}</option>`; }).join('')}</select></div>
-    <div class="form-actions">
-      <button class="ghost-btn danger-btn" data-action="remove-plan-entry">Entfernen</button>
-      <button class="primary-btn" data-action="save-plan-entry">Speichern</button>
-    </div>`);
+  const moveTo = m.moveDraft || m.date;   // gemerkte Auswahl, falls der Dialog neu aufgebaut wird (Mahlzeit gewechselt)
+  const moveSel = `<div class="field rp-field"><label for="planMoveDay">Verschieben auf</label><select id="planMoveDay">${days.map((dd, i) => { const k = fmtDateKey(dd); return `<option value="${escapeAttr(k)}" ${k === moveTo ? 'selected' : ''}>${WEEKDAY_LABELS[i]}, ${dd.getDate()}. ${MONTH_LABELS[dd.getMonth()]}</option>`; }).join('')}</select></div>`;
+  const remove = `<button type="button" class="text-btn text-btn--danger rp-remove" data-action="remove-plan-entry">${ICONS.trash || ''}<span>Aus dem Wochenplan entfernen</span></button>`;
+  const foot = `<div class="rp-actions"><button type="button" class="ghost-btn" data-action="close-modal">Abbrechen</button><button type="button" class="primary-btn" data-action="save-plan-entry">Speichern</button></div>`;
+  if (isNoteEntry(e)) {
+    return rpSheetHtml({ id: 'plan-entry-title', title: 'Notiz bearbeiten', sub: labelDate, subId: 'plan-entry-date', cls: 'rp-sheet--plan rp-sheet--entry',
+      body: `<div class="field rp-field"><label for="planNoteEdit">Notiz</label><input id="planNoteEdit" type="text" maxlength="${PLAN_NOTE_MAX}" value="${escapeAttr(m.noteEditDraft !== undefined ? m.noteEditDraft : (e.text || ''))}" autocomplete="off" enterkeyhint="done"></div>
+        ${planMealPicker(m)}${moveSel}${remove}`, foot });
+  }
+  const r = state.recipes.find(x => x.id === e.recipeId) || { id: e.recipeId, title: '', servings: 0 };
+  if (!m.rpQty) m.rpQty = (e.servings > 0 && yieldKnown(r)) ? { [r.id]: Number(e.servings) } : {};
+  const qty = yieldKnown(r)
+    ? `<div class="rp-group"><div class="rp-qty-line"><span class="rp-qty-label">Menge für diesen Tag</span>${rpStepperHtml(r, rpQtyFor(m, r))}</div>
+       <p class="rp-qty-hint">Das Rezept selbst bleibt bei ${escapeHtml(servingLabel(r, r.servings || 0))}.</p></div>`
+    : `<p class="rp-qty-hint">Bei diesem Rezept fehlt die Angabe, was es ergibt. Für diesen Tag gelten die Originalmengen. Ergänze die Angabe im Rezept, um die Menge anzupassen.</p>`;
+  return rpSheetHtml({ id: 'plan-entry-title', title: r.title || 'Eintrag', sub: labelDate, subId: 'plan-entry-date', cls: 'rp-sheet--plan rp-sheet--entry',
+    body: `${qty}${planMealPicker(m)}${moveSel}${remove}`, foot });
 }
 // Aus der Rezeptdetailansicht (auch nach «Speichern und planen» in der Bibliothek, dann mit der lokalen ID):
 // Mahlzeit und Menge waehlen, dann den Tag der aktuellen Woche antippen.
@@ -1165,8 +1158,18 @@ function cookbookPageStyleChoice(cfg) {
       ${Object.values(PDF_TEMPLATES).map(t => `<button type="button" role="radio" aria-checked="${cur === t.id}" class="pdf-tpl-opt ${cur === t.id ? 'active' : ''}" data-action="cb-page-style" data-id="${escapeAttr(t.id)}"><span class="pdf-tpl-swatch pdf-tpl-swatch-${t.id.toLowerCase()}" aria-hidden="true"></span><b>${t.name}</b><small>${t.hint}</small></button>`).join('')}
     </div>`;
 }
+/* 0.83.1: Satz unter «Name», passend zur Wahl, wo der Name gedruckt wird */
+function cookbookNameWhereText(author, pn) {
+  if (!author) return 'Kein Name eingetragen. Im PDF erscheint kein Name.';
+  const n = `«${escapeHtml(author)}»`;
+  if (pn === 'cover') return `${n} steht nur auf dem Titelblatt.`;
+  if (pn === 'footer') return `${n} steht nur in der Fusszeile jeder Rezeptseite. Im Editor oben bleibt er sichtbar, damit du ihn bearbeiten kannst.`;
+  if (pn === 'none') return `${n} bleibt gespeichert, wird aber nicht gedruckt. Im Editor oben bleibt er sichtbar, damit du ihn bearbeiten kannst.`;
+  return `${n} steht auf dem Titelblatt und in der Fusszeile jeder Rezeptseite.`;
+}
 function cookbookStepDesign(cfg) {
   const nut = cookbookPdfNutrition(cfg);
+  const pn = cookbookPrintName(cfg);
   const author = String(cfg.author || '').trim();
   const sender = String(state.senderName || '').trim();
   return `
@@ -1183,9 +1186,12 @@ function cookbookStepDesign(cfg) {
         <h2 class="section-title" id="cbPdfOptsTitle">Im PDF</h2>
         <div class="cb-opt">
           <h3 class="sub-title">Name</h3>
-          <p class="hint-line" id="cbNameWhere">${author ? `«${escapeHtml(author)}» steht auf dem Titelblatt und in der Fusszeile jeder Rezeptseite.` : 'Kein Name eingetragen. Im PDF erscheint kein Name.'} Den Namen änderst du oben beim Titelblatt im Feld «Name». Leer lassen, wenn kein Name gedruckt werden soll.</p>
+          <p class="hint-line" id="cbNameWhere">${cookbookNameWhereText(author, pn)} Den Namen änderst du oben beim Titelblatt im Feld «Name».</p>
           ${!author && sender ? `<button type="button" class="outline-btn outline-btn--small" data-action="cb-use-sender-name">«${escapeHtml(sender)}» als Name eintragen</button>` : ''}
-          ${author ? '<button type="button" class="text-btn" data-action="cb-clear-name">Keinen Namen im PDF zeigen</button>' : ''}
+          <p class="hint-line" id="cbPrintNameLabel">Wo soll der Name stehen?</p>
+          <div class="cb-print-name" role="radiogroup" aria-labelledby="cbPrintNameLabel">
+            ${COOKBOOK_PRINT_NAME.map(v => `<label class="check-line"><input type="radio" name="cbPrintName" value="${v}" data-cb-print-name ${pn === v ? 'checked' : ''}> <span>${COOKBOOK_PRINT_NAME_LABEL[v]}</span></label>`).join('')}
+          </div>
         </div>
         ${state.showNutrition ? `<div class="cb-opt">
           <h3 class="sub-title" id="cbNutLabel">Nährwerte</h3>
@@ -1235,6 +1241,7 @@ function cookbookStepPreview(cfg) {
             <div><dt>Titelblatt</dt><dd>${escapeHtml(coverName)}</dd></div>
             <div><dt>Seitenstil</dt><dd>${escapeHtml(cookbookPdfTemplateName(tplId))}</dd></div>
             <div><dt>Name</dt><dd>${author ? escapeHtml(author) : 'Kein Name'}</dd></div>
+            ${author ? `<div><dt>Name im PDF</dt><dd id="cbSummaryPrintName">${COOKBOOK_PRINT_NAME_LABEL[cookbookPrintName(cfg)]}</dd></div>` : ''}
             ${state.showNutrition ? `<div><dt>Nährwerte</dt><dd>${COOKBOOK_NUTRITION_LABEL[nut]}</dd></div>` : ''}
           </dl>
           <button type="button" class="text-btn cb-summary-edit" data-action="cb-step" data-id="2">Gestaltung ändern</button></div>

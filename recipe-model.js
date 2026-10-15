@@ -607,7 +607,7 @@ function getCookbookConfig() {
   if (!cfg || !Array.isArray(cfg.items)) {
     // Ohne gespeicherte Auswahl verhaelt sich der Export wie bisher: alle Rezepte (auch ein Stub mit nur Titelblatt-Daten).
     const stub = cfg || {};
-    return { title: stub.title || state.cookbookTitle || '', subtitle: stub.subtitle || '', author: stub.author || '', coverRecipeId: stub.coverRecipeId || '', chapters: stub.chapters || [], items: state.recipes.map(r => ({ recipeId: r.id, chapterId: '' })), isDefault: true, ...(stub.showLogo === false ? { showLogo: false } : {}), cover };
+    return { title: stub.title || state.cookbookTitle || '', subtitle: stub.subtitle || '', author: stub.author || '', coverRecipeId: stub.coverRecipeId || '', chapters: stub.chapters || [], items: state.recipes.map(r => ({ recipeId: r.id, chapterId: '' })), isDefault: true, ...(stub.showLogo === false ? { showLogo: false } : {}), ...(stub.printName ? { printName: stub.printName } : {}), cover };
   }
   cfg.items = (cfg.items || []).filter(it => ids.has(it.recipeId));
   cfg.chapters = cfg.chapters || [];
