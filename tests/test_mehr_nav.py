@@ -43,9 +43,10 @@ async def main():
         check('Mehr: Route more', await ev("state.view") == 'more')
         groups = await ev("() => Array.from(document.querySelectorAll('.settings-group')).map(g => [g.querySelector('.settings-group-title').textContent.trim(), Array.from(g.querySelectorAll('.settings-row')).map(r => [r.querySelector('.settings-row-title').textContent.trim(), r.querySelector('.settings-row-summary').textContent.trim()])])")
         want = [['Austauschen', [['Freunde & Rezepte', 'Empfangene Rezepte und Kontakte']]],
+                ['Rezeptbibliothek', [['Meine Veröffentlichungen', 'Zum Veröffentlichen anmelden'], ['Öffentliches Profil', 'Nicht angemeldet']]],
                 ['Werkzeuge', [['Einheiten umrechnen', 'Gewicht, Volumen, Temperatur und Zutaten']]],
                 ['Verwalten', [['Einstellungen', 'Konto, Daten und App anpassen'], ['Hilfe & Kontakt', 'Antworten und Unterstützung'], ['Über Savora', 'Version, Datenschutz und Lizenzen']]]]
-        check('Mehr: Gruppen Austauschen, Werkzeuge, Verwalten mit den Vorgabetexten', groups == want, str(groups))
+        check('Mehr: Gruppen Austauschen, Rezeptbibliothek, Werkzeuge, Verwalten mit den Vorgabetexten', groups == want, str(groups))
         check('Mehr: Seitentitel «Mehr» als h1', await ev("() => document.querySelector('main h1').textContent.trim()") == 'Mehr')
         check('Mehr: kein Farbschema auf der Übersicht', await ev("() => !document.querySelector('[data-action=\"set-theme\"]')"))
         check('Mehr: Zähler fehlt ohne echte Daten', await ev("() => !document.querySelector('.settings-row-badge')"))

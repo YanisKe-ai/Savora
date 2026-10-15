@@ -965,6 +965,8 @@ async function handleActionV2(action, id, el, e) {
       setTimeout(() => { if (state.view === 'form') { state.formStep = 0; state.editingRecipeSnapshot = '__import__'; } }, 0);
       return false;
     default:
+      if (typeof handleLibraryViewAction === 'function' && await handleLibraryViewAction(action, id, el, e)) return true;
+      if (typeof handleLibraryPublishAction === 'function' && await handleLibraryPublishAction(action, id, el, e)) return true;
       return typeof handleCloudAction === 'function' ? handleCloudAction(action, id, el, e) : false;
   }
 }

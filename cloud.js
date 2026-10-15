@@ -93,7 +93,10 @@ async function cloudAccessToken() {
 async function cloudAuthSignIn(email, password) {
   const res = await cloudFetch('/auth/v1/token?grant_type=password', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email, password }) }, false);
   cloudStoreTokenResponse(await res.json());
+  if (typeof libReset === 'function') libReset();   // Verwaltungsdaten eines frueheren Kontos verwerfen
+  if (typeof libDraftAdoptLocal === 'function') libDraftAdoptLocal();   // vor der Anmeldung begonnene Entwuerfe diesem Konto zuordnen
   await cloudPrepareFirstSync();
+  if (typeof libStartup === 'function') setTimeout(() => { libLoadMine(); libLoadPubProfile(); libModCheck(); }, 500);
   return true;
 }
 async function cloudAuthSignUp(email, password) {
@@ -112,6 +115,7 @@ async function cloudAuthSignOut() {
   try { await cloudFetch('/auth/v1/logout', { method: 'POST' }); } catch (e) { /* offline abmelden geht trotzdem */ }
   cloudSetSession(null);
   if (typeof shareReset === 'function') shareReset();
+  if (typeof libReset === 'function') libReset();
   // Beim naechsten Anmelden wird neu zusammengefuehrt; lokale Daten bleiben auf dem Geraet.
   [CLOUD_QUEUE_KEY, CLOUD_META_KEY, CLOUD_CURSOR_KEY, CLOUD_LAST_KEY].forEach(k => { try { localStorage.removeItem(k); } catch (e) {} });
 }
@@ -402,6 +406,22 @@ function cloudStatusHtml() {
 /* ---------- Konto loeschen ---------- */
 async function cloudDeleteAccount() {
   const uidPrefix = cloudUserId();
+  // 0. Rezeptbibliothek: zuerst alle Veroeffentlichungen zurueckziehen (sofort nicht mehr oeffentlich), dann die oeffentlichen
+  //    Bilder loeschen. Bricht etwas ab, entfernt savora_delete_account Profil und Veroeffentlichungen trotzdem vollstaendig;
+  //    uebrig gebliebene Bilddateien sind ohne Veroeffentlichung nicht mehr lesbar.
+  try {
+    await cloudFetch('/rest/v1/rpc/savora_pub_withdraw_all', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' });
+    for (let round = 0; round < 20; round++) {
+      const items = [];
+      const walk = async (prefix) => {
+        const list = await (await cloudFetch('/storage/v1/object/list/savora-public', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ prefix, limit: 1000, offset: 0 }) })).json();
+        for (const o of (list || [])) { if (!o || !o.name) continue; if (o.id === null) await walk(`${prefix}/${o.name}`); else items.push(`${prefix}/${o.name}`); }
+      };
+      await walk(uidPrefix);
+      if (!items.length) break;
+      await cloudFetch('/storage/v1/object/savora-public', { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ prefixes: items }) });
+    }
+  } catch (e) { if (e && e.offline) throw e; /* Bibliothek nicht eingerichtet oder Bilder schon weg: weiter */ }
   // 1. Bilder entfernen (Storage verwaltet Dateien getrennt von der Datenbank)
   for (let round = 0; round < 20; round++) {
     const list = await (await cloudFetch(`/storage/v1/object/list/${CLOUD_BUCKET}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ prefix: uidPrefix, limit: 1000, offset: 0 }) })).json();
@@ -412,6 +432,7 @@ async function cloudDeleteAccount() {
   // 2. Datensaetze und Konto
   await cloudFetch('/rest/v1/rpc/savora_delete_account', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' });
   cloudSetSession(null);
+  if (typeof libReset === 'function') libReset();
   [CLOUD_QUEUE_KEY, CLOUD_META_KEY, CLOUD_CURSOR_KEY, CLOUD_LAST_KEY].forEach(k => { try { localStorage.removeItem(k); } catch (e) {} });
 }
 
@@ -447,7 +468,7 @@ function cloudAccountSectionHtml() {
         <button class="ghost-btn primary-btn--block" data-action="cloud-save-password">Passwort speichern</button>
       </div></div>
       <div class="settings-group"><div class="settings-group-title">Konto</div><div class="settings-group-card settings-group-card--padded">
-        <p class="settings-hint">Löscht dein Konto und alle Daten in der Cloud endgültig. Die Rezepte auf diesem Gerät bleiben erhalten.</p>
+        <p class="settings-hint">Löscht dein Konto und alle Daten in der Cloud endgültig, auch dein öffentliches Profil und deine Veröffentlichungen in der Rezeptbibliothek. Kopien, die andere schon gespeichert haben, bleiben bei ihnen. Die Rezepte auf diesem Gerät bleiben erhalten.</p>
         <button class="ghost-btn danger-btn primary-btn--block" data-action="cloud-delete-account">Konto und Cloud-Daten löschen</button>
       </div></div>`;
   } else {
@@ -500,6 +521,12 @@ async function handleCloudAction(action, id, el) {
       try {
         if (action === 'cloud-sign-in') {
           await cloudAuthSignIn(email, password);
+          // Rueckkehr zur beabsichtigten Aktion (z. B. Veroeffentlichen); der Entwurf liegt kontogebunden im Speicher
+          if (typeof lib !== 'undefined' && lib.returnTo && lib.returnTo.view) {
+            const ret = lib.returnTo; lib.returnTo = null;
+            if (ret.view === 'lib-publish' && ret.recipeId && typeof libOpenPublish === 'function') { libOpenPublish(ret.recipeId, ret.publicationId ? { publicationId: ret.publicationId, expectedVersion: ret.expectedVersion } : undefined); showToast('Angemeldet. Der Abgleich startet.'); await cloudSyncNow(); return true; }
+            state.view = ret.view;
+          }
           render(); showToast('Angemeldet. Der Abgleich startet.');
           await cloudSyncNow(); render();
         } else if (action === 'cloud-sign-up') {

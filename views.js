@@ -42,6 +42,14 @@ function viewFor(view) {
     case 'unitconverter': return unitConverterView();
     case 'cookbook': return cookbookDesignerView();
     case 'cookbooks': return cookbooksView();
+    /* Rezeptbibliothek (library-views.js, library-publish.js). Fehlt eine Datei (z. B. alter Zwischenspeicher), bleibt die Startseite. */
+    case 'discover': return viewIfDefined(typeof discoverView === 'function' ? discoverView : null, () => homeView());
+    case 'lib-detail': return viewIfDefined(typeof libDetailView === 'function' ? libDetailView : null, () => homeView());
+    case 'lib-profile': return viewIfDefined(typeof libProfileView === 'function' ? libProfileView : null, () => homeView());
+    case 'lib-publish': return viewIfDefined(typeof libPublishView === 'function' ? libPublishView : null, () => homeView());
+    case 'lib-mine': return viewIfDefined(typeof libMineView === 'function' ? libMineView : null, () => moreView());
+    case 'lib-pubprofile': return viewIfDefined(typeof libPubProfileView === 'function' ? libPubProfileView : null, () => moreView());
+    case 'lib-mod': return viewIfDefined(typeof libModView === 'function' ? libModView : null, () => moreView());
     default: return homeView();
   }
 }
@@ -51,7 +59,7 @@ function viewFor(view) {
    mit allen Detailseiten, Freunde & Rezepte, Rechner, Hilfe, Über Savora und ihre Rechtstexte. */
 function isMoreSectionView(view) {
   view = String(view || '');
-  return view === 'more' || view === 'settings' || view.indexOf('settings-') === 0 || view.indexOf('friends') === 0 || view === 'unitconverter';
+  return view === 'more' || view === 'settings' || view.indexOf('settings-') === 0 || view.indexOf('friends') === 0 || view === 'unitconverter' || view === 'lib-mine' || view === 'lib-pubprofile' || view === 'lib-mod';
 }
 
 /* Die sechs Einstellungsseiten fuer die lokale Abschnittsnavigation neben den Details (Tablet und Desktop).
@@ -161,10 +169,20 @@ function deleteModal(r) {
   return `<div class="modal-backdrop" data-action="close-modal">
     <div class="modal-sheet" role="dialog" aria-modal="true" aria-labelledby="delete-modal-title" tabindex="-1" onclick="event.stopPropagation()">
       <h2 class="modal-title" id="delete-modal-title">Rezept löschen?</h2>
-      <p style="font-size:14px;color:var(--text-muted);">„${escapeHtml(r.title)}“ wird endgültig aus deinem Kochbuch entfernt.</p>
+      <p style="font-size:0.875rem;color:var(--text-muted);">„${escapeHtml(r.title)}“ wird endgültig aus deinen Rezepten gelöscht.</p>
+      ${(() => {
+        const pub = typeof libPublicationForRecipe === 'function' ? libPublicationForRecipe(r.id) : null;
+        if (!pub || pub.status !== 'published') return '';
+        // Veroeffentlichung und privates Rezept sind getrennt: ausdruecklich waehlen, nichts vorausgewaehlt
+        return `<fieldset class="del-pub" id="delPub" data-pub-id="${escapeAttr(pub.id)}"><legend class="del-pub-legend">Dieses Rezept ist in der Rezeptbibliothek veröffentlicht.</legend>
+          <label class="check-line"><input type="radio" name="delPubChoice" value="keep"> Veröffentlichung bestehen lassen</label>
+          <label class="check-line"><input type="radio" name="delPubChoice" value="withdraw"> Veröffentlichung zurückziehen</label>
+          <p class="hint-line">Kopien, die andere schon gespeichert haben, bleiben in jedem Fall bei ihnen.</p>
+          <p class="cloud-error" id="delPubError" role="alert"></p></fieldset>`;
+      })()}
       <div class="form-actions">
         <button class="ghost-btn" data-action="close-modal">Abbrechen</button>
-        <button class="primary-btn" style="background:var(--danger);color:#fff;flex:1;justify-content:center;" data-action="delete-recipe" data-id="${escapeAttr(r.id)}">Löschen</button>
+        <button class="primary-btn kd-danger-btn" style="flex:1;justify-content:center;" data-action="delete-recipe" data-id="${escapeAttr(r.id)}">Löschen</button>
       </div>
     </div>
   </div>`;
@@ -330,6 +348,7 @@ function moreView() {
       ${pageTitle('Mehr')}
       ${settingsGroup('Austauschen',
         settingsRow({ icon: ICONS.share, title: 'Freunde &amp; Rezepte', summary: moreFriendsSummary(), view: 'friends', badge: moreFriendsBadge() }))}
+      ${typeof libMoreRowsHtml === 'function' ? settingsGroup('Rezeptbibliothek', libMoreRowsHtml()) : ''}
       ${settingsGroup('Werkzeuge',
         settingsRow({ icon: ICONS.scale, title: 'Einheiten umrechnen', summary: 'Gewicht, Volumen, Temperatur und Zutaten', view: 'unitconverter' }))}
       ${settingsGroup('Verwalten', [

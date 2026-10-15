@@ -383,6 +383,7 @@ function renderKeepFocus(id) {
    Element gesperrt, weil zu jedem Zeitpunkt ohnehin nur eine dieser Aktionen sinnvoll aktiv sein
    kann (ein Editor, ein PDF-Export-Modal, ein Backup-Vorgang). */
 const ASYNC_GUARDED_ACTIONS = new Set([
+  'lib-save', 'lib-save-and', 'lib-update-copy', 'lib-extra-copy', 'lib-report-send', 'lib-retry-image',
   'save-recipe', 'export-backup', 'pdf-export-build', 'pdf-export-download', 'pdf-export-share',
   'nutrition-confirm-match', 'nutrition-accept-suggestions', 'nutrition-save-custom',
   'duplicate-recipe', 'share-send', 'share-accept', 'share-connect', 'rc-apply', 'confirm-shop-select', 'cook-complete', 'save-note',
@@ -552,14 +553,26 @@ async function dispatchAction(action, id, el, e) {
     case 'delete-recipe': {
       const recipeToDelete = state.recipes.find(x => x.id === id);
       if (!recipeToDelete) break;
+      const delPub = document.getElementById('delPub');
+      if (delPub) {
+        const choice = document.querySelector('input[name="delPubChoice"]:checked');
+        const errEl = document.getElementById('delPubError');
+        if (!choice) { if (errEl) errEl.textContent = 'Bitte wähle, was mit der Veröffentlichung geschehen soll.'; break; }
+        if (choice.value === 'withdraw') {
+          try { await libWithdraw(delPub.dataset.pubId); }
+          catch (err) { if (errEl) errEl.textContent = 'Die Veröffentlichung konnte nicht zurückgezogen werden. Das Rezept wurde nicht gelöscht. ' + libErrText(err); break; }
+        }
+      }
       state.recipes = state.recipes.filter(x => x.id !== id);
+      state.pendingDeletes = state.pendingDeletes || new Set();
+      state.pendingDeletes.add(id);   // noch in der Datenbank, aber geloescht vorgemerkt (Rueckgaengig-Fenster)
       state.modal = null;
       state.view = 'home';
       render();
       showUndoToast(
         `„${recipeToDelete.title}“ gelöscht`,
-        () => { state.recipes.push(recipeToDelete); state.recipes.sort((a, b) => b.updatedAt - a.updatedAt); render(); },
-        async () => { await dbDelete(id); if (recipeToDelete.imageId) dbDeleteImage(recipeToDelete.imageId).catch(() => {}); }
+        () => { state.pendingDeletes.delete(id); state.recipes.push(recipeToDelete); state.recipes.sort((a, b) => b.updatedAt - a.updatedAt); render(); },
+        async () => { await dbDelete(id); state.pendingDeletes.delete(id); if (recipeToDelete.imageId) dbDeleteImage(recipeToDelete.imageId).catch(() => {}); }
       );
       break;
     }
@@ -727,7 +740,9 @@ async function dispatchAction(action, id, el, e) {
       render();
       break;
     case 'nav-tab':
-      state.view = el.dataset.view;
+      // «Rezepte» kehrt in die zuletzt gewaehlte Unteransicht zurueck (Meine Rezepte oder Entdecken)
+      state.view = el.dataset.view === 'home' && state.recipesTab === 'discover' && typeof discoverView === 'function' ? 'discover' : el.dataset.view;
+      if (state.view === 'discover' && typeof libEnterDiscover === 'function') libEnterDiscover();
       render();
       break;
     case 'goto-view':

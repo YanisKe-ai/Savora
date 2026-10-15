@@ -52,6 +52,54 @@ function valText(v, max, label, errors, optional) {
   if (typeof v !== 'string') { errors.push(`${label}: muss Text sein (gefunden: ${valTypeName(v)})`); return; }
   if (v.length > max) errors.push(`${label}: zu lang (${v.length} Zeichen, erlaubt sind ${max})`);
 }
+/* ---------- Herkunft aus der oeffentlichen Rezeptbibliothek (recipe.publicOrigin, recipe.publicTips) ----------
+   Reine Anzeige-Angabe: daraus entstehen nie Rechte (Bearbeiten, Zurueckziehen usw. prueft immer der Server ueber das Konto).
+   Das Objekt wird Feld fuer Feld neu aufgebaut, unbekannte Felder fallen weg. Die Adresse (url) wird nie vertraut, sondern
+   immer lokal aus publicationId gebaut. mode: 'store' (alle Felder), 'receive' (von Freunden: ohne savedVersion/savedAt/
+   imagePending), 'send' (an Freunde: nur publicationId, authorPublicId, authorName).
+   Ergebnis: { origin: Objekt|null, problems: [Text] } . origin null heisst: keine gueltige Herkunft (ganzes Feld entfernen). */
+const VAL_UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
+const VAL_PUBLIC_ID_RE = /^[a-z0-9]{12}$/;
+const VAL_MAX_PUBLIC_TIPS = 2000;
+function publicSiteUrl() {
+  // CLOUD_SITE_URL steht in cloud.js (spaeter geladen); zur Laufzeit ist es da, sonst die feste Adresse
+  return (typeof CLOUD_SITE_URL === 'string' && /^https:\/\//.test(CLOUD_SITE_URL)) ? CLOUD_SITE_URL : 'https://yaniske-ai.github.io/Savora/';
+}
+function publicRecipeUrl(publicationId) { return publicSiteUrl() + '?rezept=' + publicationId; }
+function valPublicOrigin(raw, mode) {
+  mode = mode || 'store';
+  const problems = [];
+  if (!valIsObj(raw)) return { origin: null, problems: ['Die Herkunft aus der Rezeptbibliothek war ungültig und wurde entfernt'] };
+  const pid = typeof raw.publicationId === 'string' ? raw.publicationId.trim().toLowerCase() : '';
+  if (!VAL_UUID_RE.test(pid)) return { origin: null, problems: ['Die Herkunft aus der Rezeptbibliothek war ungültig und wurde entfernt'] };
+  const o = { publicationId: pid };
+  if (raw.authorPublicId !== undefined && raw.authorPublicId !== null && raw.authorPublicId !== '') {
+    if (typeof raw.authorPublicId === 'string' && VAL_PUBLIC_ID_RE.test(raw.authorPublicId)) o.authorPublicId = raw.authorPublicId;
+    else problems.push('Die Profil-ID der Herkunft war ungültig und wurde entfernt');
+  }
+  if (raw.authorName !== undefined && raw.authorName !== null) {
+    if (typeof raw.authorName === 'string' && raw.authorName.trim().length <= 40) { if (raw.authorName.trim()) o.authorName = raw.authorName.trim(); }
+    else problems.push('Der Autorenname der Herkunft war ungültig und wurde entfernt');
+  }
+  if (mode === 'send') return { origin: o, problems };
+  if (mode === 'store') {
+    if (raw.savedVersion !== undefined && raw.savedVersion !== null) {
+      if (Number.isInteger(raw.savedVersion) && raw.savedVersion >= 1) o.savedVersion = raw.savedVersion;
+      else problems.push('Die gespeicherte Version der Herkunft war ungültig und wurde entfernt');
+    }
+    if (raw.savedAt !== undefined && raw.savedAt !== null) {
+      if (valIsNum(raw.savedAt) && raw.savedAt >= 0) o.savedAt = raw.savedAt;
+      else problems.push('Das Speicherdatum der Herkunft war ungültig und wurde entfernt');
+    }
+    if (raw.imagePending !== undefined && raw.imagePending !== null) {
+      if (typeof raw.imagePending === 'boolean') o.imagePending = raw.imagePending;
+      else problems.push('Die Bildangabe der Herkunft war ungültig und wurde entfernt');
+    }
+  }
+  o.url = publicRecipeUrl(pid);   // nie aus den Daten uebernehmen: immer selbst gebaut (gleich, wenn sie stimmte)
+  return { origin: o, problems };
+}
+
 function valTypeName(v) { return v === null ? 'leer' : Array.isArray(v) ? 'Liste' : typeof v === 'string' ? 'Text' : typeof v === 'number' ? 'Zahl' : typeof v === 'boolean' ? 'ja/nein' : typeof v === 'object' ? 'Objekt' : typeof v; }
 function valNumber(v, max, label, errors) {
   if (v === undefined || v === null || v === '') return;
@@ -120,6 +168,16 @@ function validateRecipe(raw) {
   if (recipe.focalPoint !== undefined && !(valIsObj(recipe.focalPoint) && valIsNum(recipe.focalPoint.x) && valIsNum(recipe.focalPoint.y) && recipe.focalPoint.x >= 0 && recipe.focalPoint.x <= 1 && recipe.focalPoint.y >= 0 && recipe.focalPoint.y <= 1)) {
     recipe.focalPoint = { x: 0.5, y: 0.5 };
     warnings.push('Der Bildausschnitt war ungültig und wurde auf die Mitte gesetzt');
+  }
+  // Herkunft aus der Rezeptbibliothek: ungueltig heisst nur das Feld (bzw. Teilfeld) entfernen, das Rezept bleibt gueltig
+  if (recipe.publicOrigin !== undefined && recipe.publicOrigin !== null) {
+    const po = valPublicOrigin(recipe.publicOrigin, 'store');
+    if (po.origin) recipe.publicOrigin = po.origin; else delete recipe.publicOrigin;
+    po.problems.forEach(p => warnings.push(p));
+  }
+  if (recipe.publicTips !== undefined && recipe.publicTips !== null && !(typeof recipe.publicTips === 'string' && recipe.publicTips.length <= VAL_MAX_PUBLIC_TIPS)) {
+    delete recipe.publicTips;
+    warnings.push('Die Kochtipps aus der Rezeptbibliothek waren ungültig und wurden entfernt');
   }
   return { ok: true, errors, warnings, recipe };
 }
