@@ -3503,3 +3503,35 @@ body:has(.lp) .topbar--sub .topbar-title { overflow-wrap: normal; hyphens: auto;
 .stepper button:disabled { opacity: 0.4; cursor: default; }
 .nutrition-basis-title { font-size: 1rem; font-weight: 700; margin: 0 0 0.25rem; color: var(--text); }
 .nutrition-basis-note { font-size: 0.875rem; color: var(--text-soft); margin: 0 0 0.5rem; }
+
+/* ===== v83 Schritte, Hinweise, Teilen ===== */
+/* Schritte: deutliche Nummer, Überschrift separat, Text darunter mit guter Zeilenlänge */
+.step-list-v2 li.step-item { grid-template-columns: 2rem minmax(0, 1fr); }
+.step-list-v2 .step-no { background: var(--forest-900); color: #fff; }
+[data-theme="dark"] .step-list-v2 .step-no { background: var(--surface-selected); color: var(--text); }
+.step-body { min-width: 0; max-width: var(--measure, 68ch); }
+.step-body .step-title { margin: 0.25rem 0 0; font-family: var(--font-sans); font-size: 1.0625rem; font-weight: 700; line-height: 1.35; color: var(--text); }
+.step-body .step-title + p { margin-top: 0.25rem; }
+/* Rezepthinweise: Stufe als sichtbares Wort im selben Absatz (Screenreader liest Stufe und Text zusammen) */
+.recipe-check-list .rc-warn span::before { content: none; }
+.rc-item { display: grid; gap: 0.5rem; }
+.rc-text { margin: 0; line-height: 1.5; }
+.rc-level { display: inline-block; margin-right: 0.25rem; padding: 0 0.5rem; border-radius: 999px; font-size: 0.75rem; font-weight: 700; line-height: 1.5rem; background: var(--surface-soft); color: var(--text); }
+.rc-error .rc-level { background: var(--danger); color: #fff; }
+.rc-check .rc-level { background: var(--surface-selected); color: var(--text); }
+.rc-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem; }
+.rc-actions .text-btn { min-height: 2.75rem; }
+.recipe-check--form { padding: 0.75rem 0; }
+/* Teilen-Menü: Zweck als zweite Zeile */
+.menu-item-text { display: flex; flex-direction: column; min-width: 0; }
+.menu-item-hint { font-size: 0.8125rem; font-weight: 500; color: var(--text-soft); }
+.menu-item--hint { min-height: 3.5rem; padding-block: 0.25rem; }
+.menu-group-title { margin: 0.5rem 0 0; padding: 0.5rem 0.75rem 0; border-top: 1px solid var(--border); font-size: 0.8125rem; font-weight: 700; color: var(--text-soft); }
+/* Rezeptaktionen mit ausgeschriebenen Beschriftungen: schmal 2 × 2 (Symbol links), nie abgekürzt */
+.detail-tools .tool-action { justify-content: flex-start; }
+.detail-tools .tool-action span { overflow-wrap: normal; hyphens: manual; }
+@media (max-width: 599px) {
+  .detail-tools { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.25rem 0.5rem; }
+  .detail-tools .tool-action { flex-direction: row; justify-content: flex-start; gap: 0.5rem; min-height: 2.75rem; padding: 0.25rem 0.5rem; text-align: left; line-height: 1.25; }
+  .detail-tools .tool-action svg { flex: 0 0 auto; width: 1.25rem; height: 1.25rem; }
+}

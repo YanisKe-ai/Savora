@@ -548,9 +548,14 @@ function stepsPanel(r) {
   const entries = stepEntries(r);
   if (!entries.length) return `<p class="hint-line">Noch keine Zubereitungsschritte erfasst.</p>`;
   let n = 0;
-  return `<ol class="step-list-v2">${entries.map(e => e.heading
-    ? `<li class="step-heading"><h3>${escapeHtml(String(e.text).trim().replace(/:$/, ''))}</h3></li>`
-    : `<li><span class="step-no" aria-hidden="true">${++n}</span><p>${escapeHtml(e.text)}</p></li>`).join('')}</ol>`;
+  const sections = entries.some(e => e.heading);
+  const titleTag = sections ? 'h4' : 'h3';   // Abschnitt (h3) > Schrittüberschrift
+  // Schrittüberschrift separat, Text darunter. «Überschrift: Text» in einem Schritt wird nur in der Anzeige getrennt (stepDisplayParts, recipe-check.js).
+  return `<ol class="step-list-v2">${entries.map(e => {
+    if (e.heading) return `<li class="step-heading"><h3>${escapeHtml(String(e.text).trim().replace(/:$/, ''))}</h3></li>`;
+    const parts = typeof stepDisplayParts === 'function' ? stepDisplayParts(e.text) : { title: '', text: e.text };
+    return `<li class="step-item ${parts.title ? 'has-title' : ''}"><span class="step-no" aria-hidden="true">${++n}</span><div class="step-body"><span class="sr-only">Schritt ${n}: </span>${parts.title ? `<${titleTag} class="step-title">${escapeHtml(parts.title)}</${titleTag}>` : ''}<p>${escapeHtml(parts.text)}</p></div></li>`;
+  }).join('')}</ol>`;
 }
 function notesPanel(r) {
   const log = (r.cookLog || []).slice().sort((a, b) => (b.date || 0) - (a.date || 0));
@@ -628,10 +633,10 @@ function detailView() {
       </div>
       <button class="primary-btn primary-btn--block cook-start-inline" data-action="start-cook" data-id="${escapeAttr(r.id)}">${ICONS.play} Kochen starten</button>
       <div class="detail-tools" role="group" aria-label="Weitere Aktionen zum Rezept">
-        <button type="button" class="tool-action" data-action="add-to-shopping" data-id="${escapeAttr(r.id)}">${ICONS.cart}<span>Einkaufen</span></button>
-        <button type="button" class="tool-action" data-action="open-plan-recipe" data-id="${escapeAttr(r.id)}">${ICONS.calendar}<span>Planen</span></button>
+        <button type="button" class="tool-action" data-action="add-to-shopping" data-id="${escapeAttr(r.id)}">${ICONS.cart}<span>Auf die Einkaufsliste</span></button>
+        <button type="button" class="tool-action" data-action="open-plan-recipe" data-id="${escapeAttr(r.id)}">${ICONS.calendar}<span>Zum Wochenplan</span></button>
         <button type="button" class="tool-action" data-action="edit-recipe" data-id="${escapeAttr(r.id)}">${ICONS.edit}<span>Bearbeiten</span></button>
-        <button type="button" class="tool-action" data-action="share-recipe" data-id="${escapeAttr(r.id)}">${ICONS.share}<span>Teilen</span></button>
+        <button type="button" class="tool-action" data-action="open-share-menu" data-id="${escapeAttr(r.id)}" aria-haspopup="dialog">${ICONS.share}<span>Teilen</span></button>
       </div>
       ${source}
       ${conflictBox}
@@ -647,6 +652,7 @@ function detailView() {
     ${bottomNav()}
     ${state.modal && state.modal.type === 'delete' ? deleteModal(r) : ''}
     ${state.modal && state.modal.type === 'detail-menu' ? detailMenuModal(r) : ''}
+    ${state.modal && state.modal.type === 'share-menu' ? shareMenuModal(r) : ''}
     ${state.modal && state.modal.type === 'note' ? noteModal(r) : ''}
     ${state.modal && state.modal.type === 'collections' ? collectionsModal(r) : ''}
     ${state.modal && state.modal.type === 'shop-select' ? shopSelectModal() : ''}
@@ -673,19 +679,33 @@ function sheet(id, title, body) {
     </div>
   </div>`;
 }
+/* Teilen (v0.83): drei getrennte Wege, nie vermischt. Öffentlicher Link nur, wenn das Rezept veröffentlicht ist. */
+function recipePublishedPub(r) {
+  try { const p = typeof libPublicationForRecipe === 'function' ? libPublicationForRecipe(r.id) : null; return p && p.status === 'published' ? p : null; } catch (e) { return null; }
+}
+function shareMenuItemsHtml(r) {
+  const item = (action, icon, label, hint) => `<button class="menu-item ${hint ? 'menu-item--hint' : ''}" data-action="${action}" data-id="${escapeAttr(r.id)}">${icon}<span class="menu-item-text"><span>${label}</span>${hint ? `<span class="menu-item-hint">${hint}</span>` : ''}</span></button>`;
+  const pub = recipePublishedPub(r);
+  return item('share-open-send', ICONS.user || ICONS.share, 'An Freunde senden', 'Privat, nur an Freunde in Savora')
+    + (pub ? item('share-public-link', ICONS.link, 'Öffentlichen Link teilen', 'Link zur Veröffentlichung in der Rezeptbibliothek') : '')
+    + (typeof libPublishMenuItemHtml === 'function' && !r.publicOrigin ? libPublishMenuItemHtml(r) : '')
+    + item('share-recipe', ICONS.pdf, 'Als PDF teilen');
+}
+function shareMenuModal(r) {
+  return sheet('share-menu-title', 'Teilen', `<div class="menu-list share-menu">${shareMenuItemsHtml(r)}</div>`);
+}
 function detailMenuModal(r) {
   const item = (action, icon, label, extra) => `<button class="menu-item ${extra || ''}" data-action="${action}" data-id="${escapeAttr(r.id)}">${icon}<span>${label}</span></button>`;
   return sheet('detail-menu-title', r.title || 'Rezept', `<div class="menu-list">
     ${item('edit-recipe', ICONS.edit, 'Bearbeiten')}
     ${item('duplicate-recipe', ICONS.copy, 'Duplizieren')}
     ${item('export-pdf', ICONS.pdf, 'Als PDF exportieren')}
-    ${item('share-recipe', ICONS.share, 'Teilen')}
-    ${item('share-open-send', ICONS.link, 'An Freund in Savora senden')}
-    ${typeof libPublishMenuItemHtml === 'function' && !r.publicOrigin ? libPublishMenuItemHtml(r) : ''}
     ${item('add-to-cookbook', ICONS.bookOpen, 'Zum Kochbuch hinzufügen')}
     ${item('open-collections-modal', ICONS.folder, 'Zu Sammlung hinzufügen')}
-    ${item('open-plan-recipe', ICONS.calendar, 'In den Wochenplan')}
+    ${item('open-plan-recipe', ICONS.calendar, 'Zum Wochenplan')}
     ${item('open-note-modal', ICONS.note, 'Notiz hinzufügen')}
+    <p class="menu-group-title" role="presentation">Teilen</p>
+    ${shareMenuItemsHtml(r)}
     ${item('confirm-delete', ICONS.trash, 'Löschen', 'menu-item--danger')}
   </div>`);
 }
@@ -1266,7 +1286,7 @@ function formView() {
               <li class="${realCount ? 'ok' : 'warn'}">${realCount} Zutat${realCount === 1 ? '' : 'en'}${missingAmounts ? `, davon ${missingAmounts} ohne Mengenangabe` : ''}</li>
               <li class="${stepCount ? 'ok' : 'warn'}">${stepCount} Zubereitungsschritt${stepCount === 1 ? '' : 'e'}</li>
             </ul>
-            ${(() => { const iss = typeof recipeQualityIssues === 'function' ? recipeQualityIssues(r) : []; return iss.length ? `<h3 class="sub-title">Hinweise</h3><ul class="review-list">${iss.map(i => `<li class="warn">${escapeHtml(i.text)}</li>`).join('')}</ul><p class="hint-line">Nichts wird automatisch geändert. Nach dem Speichern kannst du Vorschläge auf der Rezeptseite einzeln übernehmen.</p>` : ''; })()}
+            ${(() => { const iss = typeof recipeQualityIssues === 'function' ? recipeQualityIssues(r) : []; return iss.length ? `<h3 class="sub-title">Hinweise</h3><div class="recipe-check recipe-check--form">${recipeCheckListHtml(r, iss, true)}</div><p class="hint-line">Nichts wird automatisch geändert. Nach dem Speichern kannst du Vorschläge auf der Rezeptseite einzeln übernehmen.</p>` : ''; })()}
           </div>
           ${!isNew ? `<button type="button" class="text-btn danger-link" data-action="confirm-delete" data-id="${escapeAttr(r.id)}">${ICONS.trash} Rezept löschen</button>` : ''}
         </section>
