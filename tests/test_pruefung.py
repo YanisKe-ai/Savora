@@ -38,7 +38,7 @@ async def tz_tests(p):
             title = await page.evaluate("document.getElementById('picker-modal-title').textContent")
             num = day['label'].split('.')[0]
             if f" {num}. " not in title: problems.append(f"{tz} Dialog '{title}' passt nicht zu {day['label']}")
-            await click(page, '.picker-item[data-id="r_plan"]'); await page.wait_for_timeout(250)
+            await click(page, '.rp-input[data-rp-pick="r_plan"]'); await click(page, '[data-action="plan-commit-recipe"]'); await page.wait_for_timeout(250)   # v83: Auswahl + «Eintragen»
             rec = await page.evaluate(f"dbGetAllMealplan().then(l => l.find(d => d.date === '{day['key']}'))")
             if not rec or rec.get('keyVersion') != 2 or rec['entries'][-1]['recipeId'] != 'r_plan': problems.append(f"{tz} gespeichert: {rec}")
         # Neu laden: Eintrag erscheint auf derselben Karte

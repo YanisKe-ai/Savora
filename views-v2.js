@@ -985,7 +985,7 @@ function planMealPicker(m) {
   const other = !!(m.mealOther || custom);
   return `<fieldset class="rp-group">
       <legend class="rp-label">Mahlzeit <span class="rp-optional">(optional)</span></legend>
-      <div class="chip-row chip-row--wrap rp-chips" role="radiogroup" aria-label="Mahlzeit">
+      <div class="chip-row chip-row--wrap rp-chips rp-meal-chips" role="radiogroup" aria-label="Mahlzeit">
         ${MEAL_SLOTS.map(x => `<button type="button" class="chip ${m.meal === x.id && !other ? 'chip--active' : ''}" role="radio" aria-checked="${m.meal === x.id && !other}" data-action="set-plan-meal" data-id="${escapeAttr(x.id)}">${x.label}</button>`).join('')}
         <button type="button" class="chip ${other ? 'chip--active' : ''}" role="radio" aria-checked="${other}" data-action="plan-meal-other">Andere Bezeichnung</button>
       </div>
@@ -1063,7 +1063,7 @@ function planRecipeModal() {
   return rpSheetHtml({ id: 'plan-recipe-title', title: 'In den Wochenplan', sub: r ? (r.title || 'Ohne Titel') : '', cls: 'rp-sheet--plan',
     body: `${planMealPicker(m)}${qty}
       <p class="rp-label" id="planDayLabel">Tag wählen</p>
-      <div class="menu-list" role="group" aria-labelledby="planDayLabel">${days.map((d, i) => { const k = fmtDateKey(d); return `<button class="menu-item" data-action="assign-mealplan-recipe" data-date="${k}" data-id="${escapeAttr(m.recipeId)}">${ICONS.calendar}<span>${WEEKDAY_LABELS[i]}, ${d.getDate()}. ${MONTH_LABELS[d.getMonth()]}${k === todayKey ? ' <span class="plan-today">Heute</span>' : ''}</span></button>`; }).join('')}</div>`,
+      <div class="menu-list" role="group" aria-labelledby="planDayLabel">${days.map((d, i) => { const k = fmtDateKey(d); return `<button type="button" class="menu-item" data-action="assign-mealplan-recipe" data-date="${k}" data-id="${escapeAttr(m.recipeId)}">${ICONS.calendar}<span>${WEEKDAY_LABELS[i]}, ${d.getDate()}. ${MONTH_LABELS[d.getMonth()]}${k === todayKey ? ' <span class="plan-today">Heute</span>' : ''}</span></button>`; }).join('')}</div>`,
     foot: `<div class="rp-actions"><button type="button" class="ghost-btn" data-action="close-modal">Abbrechen</button></div>` });
 }
 
@@ -1108,7 +1108,7 @@ function cookbookStepSelect(cfg) {
             <button class="icon-btn icon-btn--small" data-action="cb-move-item" data-id="${escapeAttr(r.id)}" data-delta="1" ${n === cfg.items.length - 1 ? 'disabled' : ''} aria-label="${escapeHtml(r.title || '')} nach unten">${ICONS.arrowDown}</button>
             <button class="icon-btn icon-btn--small" data-action="cb-remove-item" data-id="${escapeAttr(r.id)}" aria-label="${escapeHtml(r.title || '')} aus dem Kochbuch nehmen">${ICONS.x}</button>
           </span></div>`; }).join('')}
-        ${missing.length ? `<h3 class="sub-title">Nicht im Kochbuch</h3>${typeof rpCookbookSearchHtml === 'function' ? rpCookbookSearchHtml(missing.length) : ''}${missing.map(r => `<div class="cb-item cb-item--out"><span class="cb-item-title">${escapeHtml(r.title || 'Ohne Titel')}</span><button class="outline-btn outline-btn--small" data-action="cb-add-item" data-id="${escapeAttr(r.id)}" aria-label="${escapeHtml(r.title || 'Ohne Titel')} ins Kochbuch aufnehmen">${ICONS.plus} Aufnehmen</button></div>`).join('')}` : ''}
+        ${missing.length ? `<h3 class="sub-title">Nicht im Kochbuch</h3>${typeof rpCookbookSearchHtml === 'function' ? rpCookbookSearchHtml(missing.length) : ''}${missing.map(r => `<div class="cb-item cb-item--out"><span class="cb-item-title">${escapeHtml(r.title || 'Ohne Titel')}</span><button type="button" class="outline-btn outline-btn--small" data-action="cb-add-item" data-id="${escapeAttr(r.id)}" aria-label="${escapeHtml(r.title || 'Ohne Titel')} ins Kochbuch aufnehmen">${ICONS.plus} Aufnehmen</button></div>`).join('')}` : ''}
       </section>
       <section class="panel">
         <h2 class="section-title">Kapitel</h2>

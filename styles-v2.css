@@ -3513,9 +3513,12 @@ body:has(.lp) .topbar--sub .topbar-title { overflow-wrap: normal; hyphens: auto;
 .rp-body { flex: 1 1 auto; min-height: 0; overflow-y: auto; overscroll-behavior: contain; -webkit-overflow-scrolling: touch; padding: 0 1.25rem 1rem; }
 .rp-foot { flex: none; padding: 0.75rem 1.25rem calc(0.75rem + env(safe-area-inset-bottom, 0px)); border-top: 1px solid var(--border); background: var(--card-bg); }
 body.keyboard-open .rp-foot { padding-bottom: 0.75rem; }
-.rp-actions { display: flex; flex-wrap: wrap; gap: 0.5rem; }
-.rp-actions .ghost-btn { flex: 1 1 7rem; min-height: 48px; justify-content: center; }
-.rp-actions .primary-btn { flex: 2 1 11rem; min-height: 48px; justify-content: center; text-align: center; white-space: normal; }
+.rp-actions { display: flex; gap: 0.5rem; }
+.rp-actions .ghost-btn { flex: 1 1 0; min-width: 0; min-height: 48px; padding-inline: 0.75rem; justify-content: center; }
+.rp-actions .primary-btn { flex: 2 1 0; min-width: 0; min-height: 48px; padding-inline: 0.75rem; justify-content: center; text-align: center; white-space: normal; }
+.rp-count:empty { display: none; }
+.rp-qty-line .rp-qty-label { flex: 1 1 0; min-width: 0; overflow-wrap: anywhere; }
+#rpPlanQty .rp-qty-line { margin-bottom: 0.5rem; }
 .rp-count { margin: 0 0 0.5rem; font-size: 0.9375rem; line-height: 1.35; color: var(--text-soft); overflow-wrap: anywhere; }
 .rp-group { margin: 0 0 0.75rem; padding: 0; border: 0; min-width: 0; }
 .rp-label { display: block; margin: 0 0 0.5rem; padding: 0; font-size: 0.9375rem; font-weight: 700; color: var(--text); }
@@ -3567,3 +3570,8 @@ body.keyboard-open .rp-foot { padding-bottom: 0.75rem; }
 @media (min-width: 640px) { .modal-sheet.rp-sheet { border-radius: 1.5rem; max-height: min(86vh, var(--rp-vvh, 86vh)); } }
 @media (hover: hover) and (pointer: fine) { .rp-row:not(.is-selected):hover { border-color: var(--text-soft); } }
 @media (prefers-reduced-motion: reduce) { .rp-close, .rp-seg-btn { transition: none; } .rp-close:active { transform: none; } }
+/* Schmale Handys: Mahlzeiten in einer waagrecht scrollbaren Reihe, damit die Rezeptliste Platz hat */
+@media (max-width: 479px) {
+  .rp-sheet .rp-meal-chips { flex-wrap: nowrap; overflow-x: auto; margin-inline: -1.25rem; padding-inline: 1.25rem; scroll-padding-inline: 1.25rem; }
+  .rp-sheet .rp-meal-chips .chip { flex: none; white-space: nowrap; }
+}

@@ -103,8 +103,8 @@ function rpCountText(m) {
     const n = rpSelected(m).length;
     parts.push(n ? `${n} ${n === 1 ? 'Rezept' : 'Rezepte'} ausgewählt` : 'Noch kein Rezept ausgewählt');
   } else {
-    const r = state.recipes.find(x => x.id === rpSelected(m)[0]);
-    parts.push(r ? `Gewählt: ${r.title || 'Ohne Titel'}` : 'Tippe ein Rezept an');
+    // Einzelauswahl: das gewaehlte Rezept steht in der Mengenzeile darunter; ohne Wahl ein kurzer Hinweis
+    if (!rpSelected(m).length) parts.push('Tippe ein Rezept an');
   }
   return parts.join(' · ');
 }
@@ -158,7 +158,7 @@ function rpPlanQtyHtml(m) {
   if (!r) return '';
   if (!yieldKnown(r)) return `<p class="rp-qty-hint">Für «${escapeHtml(r.title || 'Ohne Titel')}» fehlt der Ertrag. Es gelten die Originalmengen.</p>`;
   const n = rpQtyFor(m, r);
-  return `<div class="rp-qty-line"><span class="rp-qty-label">Menge für diesen Tag</span>${rpStepperHtml(r, n)}</div>`;
+  return `<div class="rp-qty-line"><span class="rp-qty-label"><span class="sr-only">Gewählt: </span>${escapeHtml(r.title || 'Ohne Titel')}</span>${rpStepperHtml(r, n)}</div>`;
 }
 
 /* ---------- Ereignisse (einmal, delegiert) ---------- */
@@ -223,7 +223,7 @@ document.addEventListener('click', (e) => {
     if (s) { s.value = ''; focusWithoutScroll(s); }
     rpRefresh();
   }
-});
+}, true);   // Erfassungsphase: das Dialogblatt stoppt Klicks (onclick stopPropagation) fuer den Hintergrund
 
 /* Bildschirmtastatur: Dialoghoehe folgt dem sichtbaren Bereich, damit Fuss und Aktionen erreichbar bleiben. */
 (function rpTrackViewport() {
