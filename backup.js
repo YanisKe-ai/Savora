@@ -144,7 +144,7 @@ function backupMapCookbookConfig(config, recipeIdMap, coverIdMap) {
 }
 function backupCookbookIsPristine(book) {
   const c = book && book.config;
-  return !!c && !Array.isArray(c.items) && !c.title && !c.subtitle && !c.author;   // nie bearbeitet: nur die leere Startkonfiguration
+  return !!c && !Array.isArray(c.items) && !c.title && !c.subtitle && !c.author && !c.printName;   // nie bearbeitet: nur die leere Startkonfiguration
 }
 /* Gibt die Zahl der hinzugefuegten Kochbuecher zurueck. Aeltere Sicherungen ohne Projekte: die alte Einzelkonfiguration
    wird wie bei der Migration zu einem Projekt (ein noch unberuehrtes Startkochbuch uebernimmt sie). */

@@ -74,6 +74,14 @@ document.addEventListener('change', (e) => {
     // Titelblatt-Eingaben (Texte, Datum, Logo) behandelt cover-editor.js
     if (t.closest && t.closest('.cover-picker')) return;
     if (t.matches('[data-cb-flag]')) cfg[t.dataset.cbFlag] = !!t.checked;
+    else if (t.matches('[data-cb-print-name]')) {   // 0.83.1: wo der Name gedruckt wird (author bleibt unveraendert)
+      if (!COOKBOOK_PRINT_NAME.includes(t.value)) return;
+      if (typeof ceFlush === 'function') ceFlush();   // ungespeicherte Eingaben im Cover-Editor zuerst sichern
+      const fresh = getCookbookConfig();
+      fresh.printName = t.value; saveCookbookConfig(fresh); render();
+      const again = document.querySelector(`[data-cb-print-name][value="${cssAttr(t.value)}"]`); if (again) focusWithoutScroll(again);
+      return;
+    }
     else if (t.matches('[data-cb-field]')) cfg[t.dataset.cbField] = t.value.trim();
     else if (t.matches('[data-cb-chapter]')) { const c = cfg.chapters.find(x => x.id === t.dataset.cbChapter); if (c) c.name = t.value.trim() || c.name; }
     else if (t.matches('[data-cb-item-chapter]')) { const it = cfg.items.find(x => x.recipeId === t.dataset.cbItemChapter); if (it) it.chapterId = t.value; }
@@ -904,7 +912,8 @@ async function handleActionV2(action, id, el, e) {
     case 'cb-use-sender-name': case 'cb-clear-name': {   // v83: Name auf Titelblatt und Fusszeile = Feld «Name» des Titelblatts
       if (typeof ceFlush === 'function') ceFlush();   // ungespeicherte Eingaben im Cover-Editor zuerst sichern
       const cfg = getCookbookConfig();
-      cfg.author = action === 'cb-use-sender-name' ? String(state.senderName || '').trim() : '';
+      // 0.83.1: «Keinen Namen im PDF zeigen» ist jetzt die Wahl «Nicht drucken»: der Name bleibt gespeichert
+      if (action === 'cb-use-sender-name') cfg.author = String(state.senderName || '').trim(); else cfg.printName = 'none';
       saveCookbookConfig(cfg); render();
       showToast(action === 'cb-clear-name' ? 'Name im PDF entfernt' : 'Name fürs PDF eingetragen');
       return true;
