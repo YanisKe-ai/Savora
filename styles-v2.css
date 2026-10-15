@@ -1885,7 +1885,7 @@ h1[tabindex="-1"]:focus { outline: none; }
 
 .plan-add { grid-area: add; display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem; width: 2.75rem; height: 2.75rem; padding: 0; border: none; border-radius: 50%; background: var(--surface-soft); color: var(--text); font: inherit; font-size: 0.9375rem; font-weight: 600; line-height: 1.25; transition: transform 120ms var(--ease-out); }
 .plan-add svg { width: 20px; height: 20px; flex: none; }
-.plan-add-label { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.plan-add-label { position: absolute; width: 0.0625rem; height: 0.0625rem; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 
 .plan-list { grid-area: list; display: flex; flex-direction: column; margin-top: 0.25rem; min-width: 0; }
 .plan-entry { display: flex; align-items: center; gap: 0.25rem; border-top: 1px solid var(--hairline); min-width: 0; }
@@ -3999,3 +3999,113 @@ button.pairing-main:active { transform: scale(0.98); }
 }
 /* Karten ohne Foto: Titel rückt neben das Häkchen */
 .is-selecting .rcard--text .rcard-title { padding-left: 2rem; }
+/* ===== v831 Grosse Schrift ===== */
+/* Bezugsrahmen «schmal in rem»: #app (ausser auf Startseite und Entdecken, deren Kopf eine eigene unbenannte Container-Abfrage hat) und die Dialoghintergründe.
+   Bei normaler Schrift (16 px) ist auch ein 320-px-Handy mit klassischer Scrollleiste breiter als 18.5rem, die Regeln greifen dann nicht.
+   Bei grosser Systemschrift (z. B. 24 px) gelten 320 bis 430 px als schmal. */
+/* Nie ein Vorfahre eines offenen Dialogs: Container-Eingrenzung macht ihn zum Bezug für position: fixed, Knöpfe im Dialog waren dann nicht mehr klickbar. Darum zählt im Dialog das Blatt selbst. */
+#app:not(:has(.home-head, .lib-head, .lib-filter-bar, .modal-backdrop)), .modal-sheet { container: s831 / inline-size; }
+/* Startseite/Entdecken: kein Bezugsrahmen. Ein Container auf <main> verschob nach dem Schliessen eines Fensters die Scrollposition (Scroll-Verankerung, Linux-CI 260 -> 256). */
+/* Auswahldialog: Hintergrund hat eine feste Höhe (sichtbarer Bereich), daher auch als Höhen-Container nutzbar (Bildschirmtastatur) */
+.modal-backdrop.rp-backdrop { container: s831 / size; }
+
+/* Immer gültig (verändert die normale Darstellung nicht sichtbar) */
+.tag-pill button { min-width: 2.75rem; min-height: 2.75rem; }
+.cb-item select { min-height: 2.75rem; font-size: 0.875rem; }
+.cbk-new { max-width: 100%; }
+.form-actions > * { max-width: 100%; }
+.fs-body { scroll-padding-block: 0.75rem; }
+/* Kopfzeile mit Wortmarke (ohne Titel): Wortmarke nicht unten abschneiden (768 px) */
+.topbar:not(.topbar--sub) .topbar-left:not(:has(.topbar-title)) { overflow: visible; }
+.rp-body:has(.rp-search:not(.cb-rp-search)) { scroll-padding-top: 4rem; scroll-padding-bottom: 0.75rem; }
+
+@container s831 (max-width: 18.5rem) {
+  /* H1 Kochbuch «Im PDF»: Nährwert-Schalter umbrechen statt über den Rand */
+  .nutrition-segmented { flex-wrap: wrap; }
+  .nutrition-segmented button { flex: 1 1 auto; min-width: 0; overflow-wrap: anywhere; }
+  /* H2/M4 Editor: Aktionen umbrechen, Text darf umbrechen */
+  .form-actions { flex-wrap: wrap; }
+  .form-actions .primary-btn, .form-actions .ghost-btn { flex: 1 1 auto; min-width: 0; white-space: normal; text-align: center; }
+  /* M4 Editor Schritt 1: Ertrag/Anzahl und Gesamtzeit/Schwierigkeit untereinander */
+  .field-row--2 { grid-template-columns: minmax(0, 1fr); }
+  /* M4 Kopfzeile mit Aktion: Zurück und Aktion in der ersten Zeile, Titel darunter über die ganze Breite */
+  .topbar--sub:has(.topbar-actions > *) { flex-wrap: wrap; row-gap: 0; }
+  .topbar--sub:has(.topbar-actions > *) .topbar-left { display: contents; }
+  .topbar--sub:has(.topbar-actions > *) .topbar-actions { order: 1; margin-left: auto; }
+  .topbar--sub:has(.topbar-actions > *) .topbar-title { order: 2; flex: 1 1 100%; min-width: 0; font-size: 1.25rem; text-align: left; -webkit-line-clamp: 2; overflow-wrap: normal; hyphens: auto; }
+  /* M1 Filterfenster: kompakterer Fuss */
+  .fs-foot { padding-top: 0.5rem; padding-bottom: calc(0.5rem + env(safe-area-inset-bottom, 0rem)); }
+  .fs-status { margin-bottom: 0.25rem; font-size: 0.875rem; }
+  /* Auswahldialog: Titel trennen, Mengenwähler passt in die Zeile */
+  .rp-title { overflow-wrap: normal; hyphens: auto; }
+  .rp-stepper { max-width: 100%; min-width: 0; }
+  .rp-stepper .stepper-value { flex: 1 1 auto; min-width: 0; }
+  /* M3 Rezeptansicht: Menge über dem Namen, Namen trennen statt mitten im Wort brechen */
+  .ing-check { grid-template-columns: 1.75rem minmax(0, 1fr); column-gap: 0.75rem; row-gap: 0; }
+  .ing-check > .check-box { grid-row: 1 / span 2; }
+  .ing-check > .ing-amount, .ing-check > .ing-name { grid-column: 2; min-width: 0; }
+  .ing-check > .ing-amount:empty { display: none; }
+  .ing-name, .nutri-status-details li, .rp-item-title, .cb-item-title { hyphens: auto; }
+  /* M3 Reiter: Verlauf am rechten Rand zeigt, dass weitere Reiter folgen */
+  .tabbar-v2::after { content: ""; position: sticky; right: 0; flex: 0 0 2rem; margin-left: -0.75rem; background: linear-gradient(to right, transparent, var(--bg) 85%); box-shadow: inset 0 -1px 0 var(--hairline); pointer-events: none; }
+  /* M5/M6 Kochbuch */
+  .cbk-new { white-space: normal; text-align: center; }
+  .cover-grid { gap: 0.5rem; }
+  .cover-opt { padding: 0.25rem; }
+  .cover-opt-name { hyphens: auto; }
+  .cb-chapter { flex-wrap: wrap; }
+  .cb-chapter input { flex: 1 1 100%; }
+  .cb-item select { max-width: 100%; }
+}
+
+/* M2/H3 Auswahldialog bei grosser Schrift: Kopf kompakter, damit die Liste Platz hat; Suche scrollt mit und verdeckt keine Mengenfelder,
+   Aktionen umbrechen statt den Text zu zerquetschen, Vorschaubild und Zähler (Anzahl steht im Knopf) weichen dem Text. Der Fuss bleibt ausserhalb der Liste, ein Feld mit Fokus liegt nie dahinter. */
+@container s831 (max-width: 18.5rem) {
+  .rp-head { padding-bottom: 0.5rem; }
+  .rp-title { font-size: 1.125rem; }
+  .rp-sub { font-size: 0.875rem; }
+  .rp-sheet .rp-search { position: relative; top: auto; }
+  .rp-item .picker-thumb { display: none; }
+  .rp-sheet .rp-foot .rp-count:not(:empty) { position: absolute; width: 0.0625rem; height: 0.0625rem; margin: 0; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+  .rp-foot { padding-top: 0.5rem; padding-bottom: calc(0.5rem + env(safe-area-inset-bottom, 0rem)); }
+  .rp-actions { flex-wrap: wrap; }
+  .rp-actions .ghost-btn, .rp-actions .primary-btn { flex: 1 1 auto; min-width: 0; min-height: 2.75rem; }
+}
+/* H3 Auswahldialog bei wenig Höhe (Bildschirmtastatur): das ganze Fenster scrollt, Kopf, Mahlzeit, Umschalter und Suche scrollen mit,
+   der Fuss bleibt unten sichtbar, der Schliessen-Knopf oben rechts (der Fokus springt per Tab vom Fuss dorthin zurück) */
+@container s831 (max-height: 24rem) {
+  .modal-sheet.rp-sheet { overflow-y: auto; overscroll-behavior: contain; }
+  .rp-sheet .rp-body { flex: none; min-height: auto; overflow: visible; }
+  .rp-sheet .rp-body :is(input, button, select, textarea) { scroll-margin-top: 3.5rem; scroll-margin-bottom: 8rem; }
+  .rp-sheet .rp-foot { position: sticky; bottom: 0; z-index: 2; padding-top: 0.5rem; padding-bottom: 0.5rem; }
+  .rp-sheet .rp-search { position: relative; top: auto; }
+  .rp-sheet .rp-head { display: contents; }
+  .rp-sheet .sheet-handle { order: -2; }
+  .rp-sheet .rp-close { order: -1; position: sticky; top: 0.5rem; z-index: 3; align-self: flex-end; width: 2.75rem; height: 2.75rem; margin: 0.5rem 1.25rem -2.75rem 0; box-shadow: var(--lift-1); }
+  .rp-sheet .rp-head-text { padding: 0 4.5rem 0.75rem 1.25rem; }
+  .rp-actions { flex-wrap: wrap; }
+  .rp-actions .ghost-btn, .rp-actions .primary-btn { flex: 1 1 auto; min-width: 0; min-height: 2.75rem; }
+  .rp-sheet .rp-foot .rp-count:not(:empty) { position: absolute; width: 0.0625rem; height: 0.0625rem; margin: 0; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+}
+
+/* Zweiter Prüfer: Zoom 200 % (195 px) und grosse Schrift, gleiche Ursachen (feste Mindestbreiten, nicht umbrechende Zeilen) */
+@container s831 (max-width: 18.5rem) {
+  .cbk-actions > *, .cb-hint-go { max-width: 100%; min-width: 0; white-space: normal; text-align: left; }
+  .ce-datebox, .pdf-tpl-choice { grid-template-columns: minmax(0, 1fr); }
+  #cbDate { min-width: 0; max-width: 100%; width: 100%; }
+  .check-row { min-width: 0; max-width: 100%; }
+  .check-row > span { min-width: 0; overflow-wrap: break-word; hyphens: auto; }
+  .topbar--sub .topbar-actions:not(:has(> *)) { display: none; }
+  .topbar--sub .topbar-title { hyphens: auto; }
+  /* Planung: Mahlzeit-Chips eine Spalte statt Trennung mitten im Wort, Mengenbeschriftung über dem Wähler */
+  .rp-sheet .rp-meal-chips { grid-template-columns: minmax(0, 1fr); }
+  .rp-sheet .rp-meal-chips .chip { overflow-wrap: normal; hyphens: auto; }
+  .rp-qty-line .rp-qty-label { flex: 1 1 100%; }
+}
+/* Sehr schmal (Zoom 200 %, 195 px): Zutatenzeile im Editor und Rezeptzeilen umbrechen */
+@container s831 (max-width: 13rem) {
+  .ing-row { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); grid-template-areas: "amount unit" "name name" "acts acts"; }
+  .rrow-main, .rrow--phone .rrow-main { grid-template-columns: minmax(0, 1fr); row-gap: 0.5rem; }
+  .rrow-body { min-width: 0; }
+  .cb-chapter > * { min-width: 0; }
+}
