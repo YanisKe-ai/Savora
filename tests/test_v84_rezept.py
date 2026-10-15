@@ -174,7 +174,7 @@ async def main():
         gone = await ev("() => { const c = Array.from(document.querySelectorAll('.pairing-card')).find(x => x.textContent.includes('Nicht mehr vorhanden')); return c ? [!!c.querySelector('[data-action=\"open-linked-recipe\"]'), c.querySelector('.pairing-main').getAttribute('aria-disabled'), c.querySelector('.pairing-title').textContent] : null; }")
         check('Ziel gelöscht: Karte «Nicht mehr vorhanden», nicht anklickbar', gone == [False, 'true', 'Verknüpftes Rezept'], str(gone))
         check('Gelöschtes Ziel steht am Ende', await ev("() => document.querySelector('.pairing-card:last-child').classList.contains('is-off')"))
-        await page.click('.pairing-card.is-off [data-action="link-menu"]'); await wait_modal(page, 'link-menu')
+        await ev("() => document.querySelector('.pairing-card.is-off [data-action=\"link-menu\"]').click()"); await wait_modal(page, 'link-menu')   # Rückgängig-Hinweis liegt unten über der Karte
         check('Menü bei fehlendem Ziel: nur «Verknüpfung entfernen»', await ev("() => Array.from(document.querySelectorAll('.menu-item')).map(b => b.dataset.action).join() === 'link-remove'"))
         await page.keyboard.press('Escape'); await wait_no_modal(page)
         await ev("() => { const b = Array.from(document.querySelectorAll('.toast-undo-btn')).pop(); b && b.click(); }")
