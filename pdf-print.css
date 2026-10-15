@@ -261,3 +261,15 @@
 .pdf-info-line { margin: 4px 0 0; color: var(--text-soft, #765F8C); font-size: 13.5px; }
 @media (prefers-reduced-motion: no-preference) { .pdf-progress > span { transition: width .18s ease-out; } }
 
+
+/* ===== v83 PDF-Layout: dichter Einseiten-Versuch (data-dense) =====
+   Letzter Kandidat vor der Mehrseitigkeit, nur auf einseitigen Rezepten: engere Abstaende zwischen Schritten, Abschnitten und
+   Zusatzbloecken, kleineres Foto (pdf.js). Fliesstext 11 pt, Zutaten 10,5 pt und alle Ueberschriften bleiben gleich gross. */
+.pv-recipe[data-dense] { gap: 2.2mm; }
+.pv-recipe[data-dense] .pv-step { padding-top: 1.1mm; padding-bottom: 1.1mm; }
+.pv-recipe[data-dense] .pv-steps > .pv-h + .pv-step { padding-top: 0; }
+.pv-recipe[data-dense] .pv-steps > .pv-step:last-child { padding-bottom: 0; }
+.pv-recipe[data-dense] .pv-h { margin-bottom: .9mm; }
+.pv-recipe[data-dense] .pv-extra { margin-bottom: 1.5mm; }
+.pv-recipe[data-dense].pv-photo-side .pv-head-grid { min-height: 24mm; }
+.pv-recipe[data-dense] .pp-groups { row-gap: 1.4mm; }
