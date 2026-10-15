@@ -126,7 +126,8 @@ function applyAllFilters(recipes, spec) {
   if (state.activeTag) list = list.filter(r => (r.tags || []).includes(state.activeTag));
   if (state.favOnly) list = list.filter(r => r.favorite);
   const { dietary, category, time, more, tags } = f;
-  if (dietary.size) list = list.filter(r => { const bad = new Set(dietConflicts(r).map(c => c.label)); return (r.diet || []).some(d => dietary.has(d) && !bad.has(d)); });
+  // Vegetarisch schliesst vegan ein (vegan ist immer auch vegetarisch); sonst keine stillen Zusatzklassifikationen
+  if (dietary.size) list = list.filter(r => { const bad = new Set(dietConflicts(r).map(c => c.label)); return (r.diet || []).some(d => !bad.has(d) && (dietary.has(d) || (d === 'vegan' && dietary.has('vegetarisch')))); });
   if (category.size) list = list.filter(r => categoryFilterMatches(r, category));
   if (time.size) list = list.filter(r => timeBucketsFor(r.timeMinutes).some(b => time.has(b)));
   if (more && more.size) { const ids = Array.from(more); list = list.filter(r => ids.some(id => recipesInCollection(id, [r]).length)); }
@@ -181,13 +182,17 @@ function filterDraft() {
   if (!state.modal.draft) state.modal.draft = newFilterDraft();
   return state.modal.draft;
 }
-function filterOptionHtml(type, dim, id, label, checked) {
-  return `<label class="fs-opt"><input class="fs-input" type="${type}" ${type === 'radio' ? 'name="fs-time"' : ''} data-fs-dim="${dim}" value="${escapeHtml(id)}" ${checked ? 'checked' : ''}><span class="fs-mark" aria-hidden="true">${ICONS.check}</span><span class="fs-text">${escapeHtml(label)}</span></label>`;
+function filterOptionHtml(type, dim, id, label, checked, extra) {
+  return `<label class="fs-opt ${extra ? 'fs-opt--extra' : ''}"><input class="fs-input" type="${type}" ${type === 'radio' ? 'name="fs-time"' : ''} data-fs-dim="${dim}" value="${escapeHtml(id)}" ${checked ? 'checked' : ''}><span class="fs-mark" aria-hidden="true">${ICONS.check}</span><span class="fs-text">${escapeHtml(label)}</span></label>`;
 }
-function filterGroupHtml(key, title, inner) {
+function filterGroupHtml(key, title, inner, opts) {
   const id = `filter-group-${key}`;
-  return `<fieldset class="fs-group"><legend class="filter-group-title fs-legend" id="${escapeAttr(id)}">${title}</legend><div class="fs-opts">${inner}</div></fieldset>`;
+  const o = opts || {};
+  // Viele Optionen (v0.83): zuerst die ersten FS_VISIBLE, Rest aufklappbar. Gewählte ausgeblendete Optionen bleiben sichtbar (CSS :has), die Auswahl bleibt beim Zuklappen.
+  const more = o.extraCount ? `<button type="button" class="text-btn fs-more-toggle" data-fs-toggle="${escapeAttr(key)}" aria-expanded="${o.open ? 'true' : 'false'}" aria-controls="fs-opts-${escapeAttr(key)}">${o.open ? 'Weniger zeigen' : `Alle ${o.total} anzeigen`}</button>` : '';
+  return `<fieldset class="fs-group ${o.extraCount && !o.open ? 'is-collapsed' : ''}" data-fs-group="${escapeAttr(key)}"><legend class="filter-group-title fs-legend" id="${escapeAttr(id)}">${title}</legend>${o.hint ? `<p class="fs-hint">${o.hint}</p>` : ''}<div class="fs-opts" id="fs-opts-${escapeAttr(key)}">${inner}</div>${more}</fieldset>`;
 }
+const FS_VISIBLE = 8;
 function filterCountLabel(n) { return `${n} Rezept${n === 1 ? '' : 'e'} anzeigen`; }
 function filterStatusText(n) { return n === 0 ? 'Keine passenden Rezepte. Ändere die Auswahl oder setze sie zurück.' : (n === 1 ? '1 passendes Rezept' : `${n} passende Rezepte`); }
 
@@ -208,8 +213,8 @@ function filterSheetModal() {
       <div class="fs-body">
         ${filterGroupHtml('dietary', 'Ernährung', dietaryOptions.map(o => filterOptionHtml('checkbox', 'dietary', o.key, o.label, d.dietary.has(o.key))).join(''))}
         ${filterGroupHtml('meal', 'Mahlzeit', MEAL_TYPE_OPTIONS.map(o => filterOptionHtml('checkbox', 'category', o.id, o.label, d.category.has(o.id))).join(''))}
-        ${filterGroupHtml('dish', 'Gericht', DISH_TYPE_OPTIONS.map(o => filterOptionHtml('checkbox', 'category', o.id, o.label, d.category.has(o.id))).join(''))}
-        ${filterGroupHtml('time', 'Zubereitungszeit', filterOptionHtml('radio', 'time', '', 'Beliebig', timeNone) + TIME_BUCKET_OPTIONS.map(o => filterOptionHtml('radio', 'time', o.id, o.label, d.time.has(o.id))).join(''))}
+        ${filterGroupHtml('dish', 'Gerichtart', DISH_TYPE_OPTIONS.map((o, i) => filterOptionHtml('checkbox', 'category', o.id, o.label, d.category.has(o.id), i >= FS_VISIBLE)).join(''), { extraCount: Math.max(0, DISH_TYPE_OPTIONS.length - FS_VISIBLE), total: DISH_TYPE_OPTIONS.length, open: !!state.modal.dishOpen })}
+        ${filterGroupHtml('time', 'Gesamtzeit', filterOptionHtml('radio', 'time', '', 'Beliebig', timeNone) + TIME_BUCKET_OPTIONS.map(o => filterOptionHtml('radio', 'time', o.id, o.label, d.time.has(o.id))).join(''), { hint: 'Gesamtzeit inklusive Warte- und Ruhezeiten. Rezepte ohne Zeitangabe erscheinen bei einer Zeitauswahl nicht.' })}
         ${filterGroupHtml('more', 'Weitere Merkmale', moreFilterOptions().map(o => filterOptionHtml('checkbox', 'more', o.id, o.label, d.more.has(o.id))).join(''))}
         ${tags.length ? filterGroupHtml('tags', 'Eigene Schlagwörter', tags.map(t => filterOptionHtml('checkbox', 'tags', t, t, d.tags.has(t))).join('')) : ''}
       </div>
@@ -240,6 +245,16 @@ function bindFilterSheet() {
   const sheet = document.querySelector('.filter-sheet');
   if (sheet && !sheet.dataset.fsBound) {
     sheet.dataset.fsBound = '1';
+    sheet.addEventListener('click', (e) => {
+      const t = e.target.closest && e.target.closest('.fs-more-toggle');
+      if (!t || !state.modal) return;
+      const grp = t.closest('.fs-group');
+      const open = grp.classList.contains('is-collapsed');
+      grp.classList.toggle('is-collapsed', !open);
+      state.modal.dishOpen = open;
+      t.setAttribute('aria-expanded', String(open));
+      t.textContent = open ? 'Weniger zeigen' : `Alle ${grp.querySelectorAll('.fs-opt').length} anzeigen`;
+    });
     sheet.addEventListener('change', (e) => {
       const inp = e.target.closest && e.target.closest('.fs-input');
       const d = filterDraft();
@@ -683,19 +698,19 @@ function sheet(id, title, body) {
 function recipePublishedPub(r) {
   try { const p = typeof libPublicationForRecipe === 'function' ? libPublicationForRecipe(r.id) : null; return p && p.status === 'published' ? p : null; } catch (e) { return null; }
 }
-function shareMenuItemsHtml(r) {
-  const item = (action, icon, label, hint) => `<button class="menu-item ${hint ? 'menu-item--hint' : ''}" data-action="${action}" data-id="${escapeAttr(r.id)}">${icon}<span class="menu-item-text"><span>${label}</span>${hint ? `<span class="menu-item-hint">${hint}</span>` : ''}</span></button>`;
+function shareMenuItemsHtml(r, inMenu) {
+  const item = (action, icon, label, hint) => `<button type="button" class="menu-item ${hint ? 'menu-item--hint' : ''}" data-action="${action}" data-id="${escapeAttr(r.id)}">${icon}<span class="menu-item-text"><span>${label}</span>${hint ? `<span class="menu-item-hint">${hint}</span>` : ''}</span></button>`;
   const pub = recipePublishedPub(r);
   return item('share-open-send', ICONS.user || ICONS.share, 'An Freunde senden', 'Privat, nur an Freunde in Savora')
     + (pub ? item('share-public-link', ICONS.link, 'Öffentlichen Link teilen', 'Link zur Veröffentlichung in der Rezeptbibliothek') : '')
     + (typeof libPublishMenuItemHtml === 'function' && !r.publicOrigin ? libPublishMenuItemHtml(r) : '')
-    + item('share-recipe', ICONS.pdf, 'Als PDF teilen');
+    + (inMenu ? '' : item('share-recipe', ICONS.pdf, 'Als PDF exportieren'));   // im Menü steht «Als PDF exportieren» schon oben
 }
 function shareMenuModal(r) {
   return sheet('share-menu-title', 'Teilen', `<div class="menu-list share-menu">${shareMenuItemsHtml(r)}</div>`);
 }
 function detailMenuModal(r) {
-  const item = (action, icon, label, extra) => `<button class="menu-item ${extra || ''}" data-action="${action}" data-id="${escapeAttr(r.id)}">${icon}<span>${label}</span></button>`;
+  const item = (action, icon, label, extra) => `<button type="button" class="menu-item ${extra || ''}" data-action="${action}" data-id="${escapeAttr(r.id)}">${icon}<span>${label}</span></button>`;
   return sheet('detail-menu-title', r.title || 'Rezept', `<div class="menu-list">
     ${item('edit-recipe', ICONS.edit, 'Bearbeiten')}
     ${item('duplicate-recipe', ICONS.copy, 'Duplizieren')}
@@ -705,7 +720,7 @@ function detailMenuModal(r) {
     ${item('open-plan-recipe', ICONS.calendar, 'Zum Wochenplan')}
     ${item('open-note-modal', ICONS.note, 'Notiz hinzufügen')}
     <p class="menu-group-title" role="presentation">Teilen</p>
-    ${shareMenuItemsHtml(r)}
+    ${shareMenuItemsHtml(r, true)}
     ${item('confirm-delete', ICONS.trash, 'Löschen', 'menu-item--danger')}
   </div>`);
 }

@@ -10,21 +10,21 @@ const RC_REST_WORDS = /ruhen|gehen lassen|aufgehen|kühl stellen|kühlen|marinie
 
 /* Stufen (v0.83): error = verhindert eine Aktion, check = bitte pruefen, info = reine Information.
    Jeder Hinweis: { id, level, text, field, index?, action: { label, step, selector }, fix? }. Ohne Text wird nichts angezeigt. */
-const RC_LEVELS = { error: 'Fehler', check: 'Prüfen', info: 'Hinweis' };
+const RC_LEVELS = { error: 'Fehler', check: 'Zu prüfen', info: 'Hinweis' };
 function rcSafe(fn) { try { return fn() || null; } catch (e) { return null; } }
 /* Editor-Ziel je Feld: Formular-Schritt (FORM_STEPS in views-v2.js) und das zu fokussierende Feld */
 function rcActionFor(i) {
   const idx = Number.isInteger(i.index) && i.index >= 0 ? i.index : null;
   switch (i.field) {
-    case 'servings': return { label: 'Angabe prüfen', step: 0, selector: '#f-servings' };
-    case 'timeMinutes': return { label: 'Angabe prüfen', step: 0, selector: '#f-time' };
-    case 'prepMinutes': return { label: 'Angabe prüfen', step: 0, selector: '#f-prep' };
-    case 'cookMinutes': return { label: 'Angabe prüfen', step: 0, selector: '#f-cook' };
-    case 'restMinutes': return { label: 'Angabe prüfen', step: 0, selector: '#f-rest' };
-    case 'ingredients': return { label: 'Angabe prüfen', step: 2, selector: idx != null ? `[data-ing-row="${idx}"] .ing-amount-input` : '#ingRows input' };
-    case 'steps': return { label: 'Angabe prüfen', step: 3, selector: idx != null ? `[data-step-row="${idx}"] .step-text-input` : '#stepRows textarea' };
-    case 'notes': return { label: 'Angabe prüfen', step: 4, selector: '#f-notes' };
-    default: return { label: 'Angabe prüfen', step: 0, selector: '#f-title' };
+    case 'servings': return { label: 'Portionen prüfen', step: 0, selector: '#f-servings' };
+    case 'timeMinutes': return { label: 'Zeit prüfen', step: 0, selector: '#f-time' };
+    case 'prepMinutes': return { label: 'Zeit prüfen', step: 0, selector: '#f-prep' };
+    case 'cookMinutes': return { label: 'Zeit prüfen', step: 0, selector: '#f-cook' };
+    case 'restMinutes': return { label: 'Zeit prüfen', step: 0, selector: '#f-rest' };
+    case 'ingredients': return { label: 'Zutat prüfen', step: 2, selector: idx != null ? `[data-ing-row="${idx}"] .ing-amount-input` : '#ingRows input' };
+    case 'steps': return { label: 'Schritt prüfen', step: 3, selector: idx != null ? `[data-step-row="${idx}"] .step-text-input` : '#stepRows textarea' };
+    case 'notes': return { label: 'Notiz prüfen', step: 4, selector: '#f-notes' };
+    default: return { label: 'Titel prüfen', step: 0, selector: '#f-title' };
   }
 }
 
@@ -76,11 +76,11 @@ function recipeQualityIssues(r) {
     if (!t || !rcIsTitleLike(t)) return;
     const next = steps[i + 1];
     if (!next || !String(next.text || '').trim() && (!steps[i + 2] || !String(steps[i + 2].text || '').trim())) {
-      issues.push({ id: 'empty-heading:' + i, level: 'check', field: 'steps', index: i, text: `Die Überschrift „${t}“ hat keinen Inhalt. Ergänze darunter einen Arbeitsschritt oder entferne die Zeile.` });
+      issues.push({ id: 'empty-heading:' + i, level: 'check', field: 'steps', index: i, text: `Die Überschrift „${t}“ hat keinen Inhalt. Ergänze darunter einen Schritt oder entferne die Zeile.` });
     }
   });
   if (blank.length) {
-    issues.push({ id: 'empty-steps', level: 'info', field: 'steps', text: `${blank.length} leere${blank.length === 1 ? 'r' : ''} Arbeitsschritt${blank.length === 1 ? '' : 'e'}. Im PDF werden leere Schritte nicht gedruckt.`,
+    issues.push({ id: 'empty-steps', level: 'info', field: 'steps', text: `${blank.length} leere${blank.length === 1 ? 'r' : ''} Schritt${blank.length === 1 ? '' : 'e'}. Im PDF werden leere Schritte nicht gedruckt.`,
       fix: { label: 'Leere Schritte entfernen', apply: (rr) => { rr.steps = (rr.steps || []).filter((s) => s && String(s.text || '').trim()); return rr; } } });
   }
   // Hinweise oder Quellen, die als Schritt gespeichert sind
@@ -88,10 +88,10 @@ function recipeQualityIssues(r) {
     const t = s && String(s.text || '').trim(); if (!t) return;
     const kind = pdfClassifyStepText(t);
     if (kind === 'source') {
-      issues.push({ id: 'source-step:' + i, level: 'info', field: 'steps', index: i, text: `Schritt ${rcStepNo(r, i)} ist eine Quellenangabe („${t.slice(0, 40)}${t.length > 40 ? '…' : ''}“) und gehört nicht zur Anleitung.`,
+      issues.push({ id: 'source-step:' + i, level: 'info', field: 'steps', index: i, text: `Schritt ${rcStepNo(r, i)} ist eine Quellenangabe („${t.slice(0, 40)}${t.length > 40 ? '…' : ''}“) und gehört nicht zur Zubereitung.`,
         fix: { label: 'In das Quellenfeld verschieben', apply: (rr) => { const cur = rr.source && typeof rr.source === 'string' ? rr.source + ' · ' : ''; rr.source = cur + t; rr.steps = (rr.steps || []).filter((x) => x !== rr.steps[i] && !(x && x.text === s.text)); return rr; } } });
     } else if (kind === 'tip') {
-      issues.push({ id: 'tip-step:' + i, level: 'info', field: 'steps', index: i, text: `Schritt ${rcStepNo(r, i)} ist ein Hinweis („${t.slice(0, 40)}${t.length > 40 ? '…' : ''}“). Im Kochmodus und im PDF erscheint er sonst als Arbeitsschritt.`,
+      issues.push({ id: 'tip-step:' + i, level: 'info', field: 'steps', index: i, text: `Schritt ${rcStepNo(r, i)} ist ein Hinweis („${t.slice(0, 40)}${t.length > 40 ? '…' : ''}“). Im Kochmodus und im PDF erscheint er sonst als Schritt.`,
         fix: { label: 'Zu den Notizen verschieben', apply: (rr) => { rr.notes = (rr.notes ? rr.notes.replace(/\s+$/, '') + '\n\n' : '') + t; rr.steps = (rr.steps || []).filter((x) => !(x && x.text === s.text)); return rr; } } });
     }
   });
@@ -101,7 +101,7 @@ function recipeQualityIssues(r) {
       const m = RC_YIELD_WORDS.exec(String((s && s.text) || ''));
       if (m && !/portionen/i.test(m[2])) {
         const n = parseInt(m[1], 10);
-        issues.push({ id: 'yield-pieces', level: 'info', field: 'servings', text: `In der Anleitung steht „${m[0]}“, angegeben ${Number(r.servings) > 0 ? `${r.servings === 1 ? 'ist' : 'sind'} aber ${r.servings} ${r.servings === 1 ? 'Portion' : 'Portionen'}` : 'ist aber keine Menge'}. Prüfe die Mengenangabe.`,
+        issues.push({ id: 'yield-pieces', level: 'info', field: 'servings', text: `In der Zubereitung steht „${m[0]}“, angegeben ${Number(r.servings) > 0 ? `${r.servings === 1 ? 'ist' : 'sind'} aber ${r.servings} ${r.servings === 1 ? 'Portion' : 'Portionen'}` : 'ist aber keine Menge'}. Prüfe die Mengenangabe.`,
           fix: { label: `Ergibt ${n} Stück setzen`, apply: (rr) => { rr.servingMode = 'pieces'; rr.servings = n; return rr; } } });
         break;
       }
@@ -153,8 +153,9 @@ async function applyRecipeFix(recipeId, issueId) {
 function recipeCheckItemHtml(r, i, inForm) {
   const label = RC_LEVELS[i.level] || RC_LEVELS.check;
   const fixBtn = i.fix && !inForm ? `<button type="button" class="outline-btn outline-btn--small" data-action="rc-apply" data-id="${escapeHtml(r.id)}" data-issue="${escapeHtml(i.id)}">${escapeHtml(i.fix.label)}</button>` : '';
-  const goBtn = i.action ? `<button type="button" class="text-btn rc-go" data-action="rc-open-field" data-id="${escapeHtml(r.id)}" data-issue="${escapeHtml(i.id)}">${escapeHtml(i.action.label)}</button>` : '';
-  return `<li class="rc-item rc-${escapeHtml(i.level)}"><p class="rc-text"><span class="rc-level">${label}<span class="sr-only">:</span></span> ${escapeHtml(i.text)}</p>${fixBtn || goBtn ? `<div class="rc-actions">${fixBtn}${goBtn}</div>` : ''}</li>`;
+  const tid = `rc-${inForm ? 'f' : 'd'}-${String(i.id).replace(/[^a-z0-9-]/gi, '-')}`;   // Knopf verweist auf seinen Hinweistext (Screenreader)
+  const goBtn = i.action ? `<button type="button" class="text-btn rc-go" data-action="rc-open-field" data-id="${escapeHtml(r.id)}" data-issue="${escapeHtml(i.id)}" aria-describedby="${tid}">${escapeHtml(i.action.label)}</button>` : '';
+  return `<li class="rc-item rc-${escapeHtml(i.level)}"><p class="rc-text" id="${tid}"><span class="rc-level">${label}<span class="sr-only">:</span></span> ${escapeHtml(i.text)}</p>${fixBtn || goBtn ? `<div class="rc-actions">${fixBtn}${goBtn}</div>` : ''}</li>`;
 }
 /* Liste fuer Detailseite (aufklappbar) und Editor-Schritt «Kontrolle» (inForm: ohne Uebernehmen-Knoepfe, Sprung innerhalb des Formulars) */
 function recipeCheckListHtml(r, issues, inForm) {
@@ -173,13 +174,20 @@ function recipeCheckHtml(r) {
    der Editor (Zurück führt wieder zur Rezeptseite, Reiter bleibt); im Editor selbst werden die Eingaben vorher
    übernommen (wie beim Schrittwechsel), damit nichts verloren geht. */
 function rcFocusField(selector) {
-  let tries = 0;
+  // render() kann per View Transition verzögert sein und danach den Fokus neu setzen: so lange nachfassen,
+  // bis das Feld den Fokus zweimal hintereinander behält (höchstens ~1,2 s), dann nichts mehr anfassen.
+  let tries = 0, held = 0, scrolled = false;
   const go = () => {
     const el = document.querySelector(selector) || document.querySelector('.form-step.is-active input, .form-step.is-active textarea');
+    const det = el && el.closest('details');
+    if (det && !det.open) det.open = true;   // Feld in zugeklapptem Abschnitt (z. B. weitere Zeiten): erst aufklappen
     if (el && el.offsetParent !== null) {
-      try { el.focus({ preventScroll: true }); } catch (e) { el.focus(); }
-      try { el.scrollIntoView({ block: 'center', behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' }); } catch (e) { /* alt */ }
-      return;
+      if (document.activeElement === el) { if (++held >= 2) return; }
+      else {
+        held = 0;
+        try { el.focus({ preventScroll: true }); } catch (e) { el.focus(); }
+        if (!scrolled) { scrolled = true; try { el.scrollIntoView({ block: 'center', behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' }); } catch (e) { /* alt */ } }
+      }
     }
     if (++tries < 30) setTimeout(go, 40);
   };
@@ -208,11 +216,11 @@ async function rcHandleAction(action, id, el) {
   if (action === 'share-public-link') {
     const pub = typeof libPublicationForRecipe === 'function' ? rcSafe(() => libPublicationForRecipe(id)) : null;
     if (state.modal) closeModal();
-    if (!pub || pub.status !== 'published') { showToast('Dieses Rezept ist nicht veröffentlicht. Veröffentliche es zuerst in der Rezeptbibliothek.', 'error'); return true; }
+    if (!pub || pub.status !== 'published') { showToast('Dieses Rezept ist nicht veröffentlicht, deshalb gibt es keinen öffentlichen Link. Veröffentliche es zuerst in der Bibliothek.', 'error'); return true; }
     const r = state.recipes.find((x) => x.id === id);
     const url = libShareLink('recipe', pub.id);
     try { await libShareNative(url, (r && r.title) || 'Rezept'); }
-    catch (e) { showToast('Der Link konnte nicht geteilt werden. Versuche es erneut.', 'error'); }
+    catch (e) { if (!e || e.name !== 'AbortError') showToast('Der Link konnte nicht geteilt werden. Versuche es erneut.', 'error'); }   // Abbrechen ist kein Fehler
     return true;
   }
   return null;

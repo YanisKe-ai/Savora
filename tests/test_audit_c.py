@@ -135,9 +135,10 @@ async def main():
         await ev("() => { resetExtraFilters(); state.modal = null; state.view = 'home'; render(); }"); await page.wait_for_timeout(200)
         await page.click('[data-action="open-filter-sheet"]'); await page.wait_for_selector('.filter-sheet'); await page.wait_for_timeout(300)
         groups = await ev("() => Array.from(document.querySelectorAll('.fs-legend')).map(e => e.textContent.trim())")
-        check('D01 Gruppen «Mahlzeit» und «Gericht» statt «Gerichtart»', 'Mahlzeit' in groups and 'Gericht' in groups and 'Gerichtart' not in groups, str(groups))
+        # v0.83 (Auftrag §15): die Gruppe heisst ausdrücklich «Gerichtart»; Mahlzeit und Gerichtart bleiben getrennte Gruppen
+        check('D01 Gruppen «Mahlzeit» und «Gerichtart» getrennt', 'Mahlzeit' in groups and 'Gerichtart' in groups and 'Gericht' not in groups, str(groups))
         sets = await ev("""() => { const g = (t) => { const f = Array.from(document.querySelectorAll('.fs-group')).find(x => x.querySelector('.fs-legend').textContent.trim() === t); return Array.from(f.querySelectorAll('.fs-text')).map(e => e.textContent.trim()); };
-          return { meal: g('Mahlzeit'), dish: g('Gericht') }; }""")
+          return { meal: g('Mahlzeit'), dish: g('Gerichtart') }; }""")
         check('D01 Mahlzeit enthält Frühstück/Abendessen, Gericht enthält Suppe/Pasta/Backen, keine Vermischung', 'Frühstück' in sets['meal'] and 'Abendessen' in sets['meal'] and 'Suppe' not in sets['meal'] and 'Pasta' in sets['dish'] and 'Backen' in sets['dish'] and 'Abendessen' not in sets['dish'], str(sets))
         async def pickc(v):
             await page.click(f'.fs-input[data-fs-dim="category"][value="{v}"] >> xpath=..'); await page.wait_for_timeout(60)
