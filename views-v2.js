@@ -1169,9 +1169,9 @@ function cookbookStepDesign(cfg) {
         <h2 class="section-title" id="cbPdfOptsTitle">Im PDF</h2>
         <div class="cb-opt">
           <h3 class="sub-title">Name</h3>
-          <p class="hint-line" id="cbNameWhere">${author ? `«${escapeHtml(author)}» steht auf dem Titelblatt und in der Fusszeile jeder Rezeptseite.` : 'Kein Name eingetragen: Im PDF steht kein Name.'} Den Namen änderst du oben beim Titelblatt im Feld «Name». Leer lassen, wenn kein Name gedruckt werden soll.</p>
+          <p class="hint-line" id="cbNameWhere">${author ? `«${escapeHtml(author)}» steht auf dem Titelblatt und in der Fusszeile jeder Rezeptseite.` : 'Kein Name eingetragen. Im PDF erscheint kein Name.'} Den Namen änderst du oben beim Titelblatt im Feld «Name». Leer lassen, wenn kein Name gedruckt werden soll.</p>
           ${!author && sender ? `<button type="button" class="outline-btn outline-btn--small" data-action="cb-use-sender-name">«${escapeHtml(sender)}» als Name eintragen</button>` : ''}
-          ${author ? '<button type="button" class="text-btn" data-action="cb-clear-name">Keinen Namen drucken</button>' : ''}
+          ${author ? '<button type="button" class="text-btn" data-action="cb-clear-name">Keinen Namen im PDF zeigen</button>' : ''}
         </div>
         ${state.showNutrition ? `<div class="cb-opt">
           <h3 class="sub-title" id="cbNutLabel">Nährwerte</h3>
@@ -1207,7 +1207,7 @@ function cookbookStepPreview(cfg) {
   const pagesList = last && Object.keys(last.pages).length ? `<div class="cb-pages">
       <h3 class="sub-title">Seiten im letzten PDF (${escapeHtml(cookbookPdfTemplateName(last.template))}, ${cookbookPlural(last.pageCount, 'Seite', 'Seiten')})</h3>
       <ul class="cb-pages-list">${recipes.filter(r => last.pages[r.id]).map(r => `<li><span>${escapeHtml((byId[r.id] || r).title || 'Ohne Titel')}</span><span class="cb-pages-n">${cookbookPlural(last.pages[r.id], 'Seite', 'Seiten')}</span></li>`).join('')}</ul>
-      <button type="button" class="text-btn" data-action="export-cookbook">PDF-Seite ansehen</button>
+      <p class="hint-line">Die Seiten siehst du in der PDF-Vorschau. Sie wird dafür neu erstellt.</p>
     </div>` : '';
   const nut = cookbookPdfNutrition(cfg);
   const author = String(cfg.author || '').trim();
@@ -1226,7 +1226,7 @@ function cookbookStepPreview(cfg) {
           <button type="button" class="text-btn cb-summary-edit" data-action="cb-step" data-id="2">Gestaltung ändern</button></div>
         </div>
         <h3 class="sub-title" id="cbHintsTitle">Prüfung</h3>
-        ${hints.length ? `<ul class="cb-warnings" aria-labelledby="cbHintsTitle">${hints.map(cookbookHintHtml).join('')}</ul>` : '<p class="hint-line">Keine Auffälligkeiten gefunden.</p>'}
+        ${hints.length ? `<ul class="cb-warnings" aria-labelledby="cbHintsTitle">${hints.map(cookbookHintHtml).join('')}</ul>` : '<p class="hint-line">Alles in Ordnung. Keine Hinweise.</p>'}
         ${pagesList}
         <p class="hint-line">Inhaltsverzeichnis und Seitenzahlen werden automatisch erstellt. Die Vorschau zeigt genau die Datei, die du danach herunterlädst.</p>
         <button class="primary-btn primary-btn--block" data-action="export-cookbook" ${n ? '' : 'disabled'}>${ICONS.pdf} PDF-Vorschau erstellen</button>

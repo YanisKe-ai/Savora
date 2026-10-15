@@ -245,12 +245,20 @@ function cookbookSummary(cfg) {
 function cookbookEmptyChaptersText(n) { return n === 1 ? '1 leeres Kapitel wird im PDF ausgelassen.' : `${n} leere Kapitel werden im PDF ausgelassen.`; }
 
 /* Ergebnis des letzten Kochbuch-PDFs (nur im Speicher): echte Seitenzahlen pro Rezept.
-   INTEGRATIONSPUNKT H4: pdf.js liefert nach dem Rendern `pdfLastPageCounts` (Map recipeId -> Seiten). Bis dahin werden die Seiten aus
-   blob.planLog (gleiche Reihenfolge wie cookbookOrderedSections) abgeleitet, sonst aus blob.recipeStart. */
+   Quelle: zuerst blob.recipePages des angezeigten PDFs, dann `pdfLastPageCounts` (Map recipeId -> tatsaechliche Seiten) und `pdfLastPlan`.
+   Nur als Rueckfall (aelterer Stand ohne diese Schnittstelle): blob.planLog, sonst blob.recipeStart. */
 function cookbookPageCountsFromBlob(blob, cfg) {
   const out = {};
+  // 1) Seiten genau dieses PDFs (pdf.js: blob.recipePages), passt sicher zur angezeigten Datei
   try {
-    if (typeof pdfLastPageCounts !== 'undefined' && pdfLastPageCounts && typeof pdfLastPageCounts.forEach === 'function') {
+    if (blob && blob.recipePages && typeof blob.recipePages.forEach === 'function') {
+      blob.recipePages.forEach((n, id) => { if (n > 0) out[id] = n; });
+      if (Object.keys(out).length) return out;
+    }
+  } catch (e) { /* Rueckfall unten */ }
+  try {
+    const planOk = typeof pdfLastPlan === 'undefined' || !pdfLastPlan || pdfLastPlan.kind === 'cookbook';
+    if (planOk && typeof pdfLastPageCounts !== 'undefined' && pdfLastPageCounts && typeof pdfLastPageCounts.forEach === 'function') {
       pdfLastPageCounts.forEach((n, id) => { if (n > 0) out[id] = n; });
       if (Object.keys(out).length) return out;
     }
@@ -291,7 +299,7 @@ function cookbookReview(cfg) {
       });
     } catch (e) { /* Cover-Pruefung nicht verfuegbar */ }
   }
-  if (cfg.items.length > 40) out.push({ level: 'check', text: `Ein Kochbuch mit ${cfg.items.length} Rezepten braucht beim Erstellen einige Minuten und viel Speicher. Teile es bei Bedarf in mehrere Bücher auf.`, target: { action: 'cb-step', id: '1', label: 'Rezepte auswählen' } });
+  if (cfg.items.length > 40) out.push({ level: 'check', text: `Ein Kochbuch mit ${cfg.items.length} Rezepten dauert beim Erstellen einige Minuten und braucht viel Speicher auf deinem Gerät. Teile es bei Bedarf in mehrere Kochbücher auf.`, target: { action: 'cb-step', id: '1', label: 'Rezepte auswählen' } });
   const noPhoto = [];
   cfg.items.forEach((it) => {
     const r = byId[it.recipeId]; if (!r) return;
@@ -376,14 +384,14 @@ function cookbooksView() {
               <p class="cbk-meta">${n} ${n === 1 ? 'Rezept' : 'Rezepte'}</p>
               ${b.updatedAt ? `<p class="cbk-date">Zuletzt bearbeitet am ${escapeHtml(cookbookDateLabel(b.updatedAt))}</p>` : ''}
               <div class="cbk-actions">
-                <button class="outline-btn cbk-open" data-action="cb-open" data-id="${escapeHtml(b.id)}" aria-label="Kochbuch ${name} öffnen und bearbeiten">${ICONS.edit} Öffnen</button>
-                <button class="icon-btn cbk-more" data-action="cb-menu" data-id="${escapeHtml(b.id)}" aria-haspopup="dialog" aria-label="Weitere Aktionen für ${name}">${ICONS.moreH || ICONS.more}</button>
+                <button type="button" class="outline-btn cbk-open" data-action="cb-open" data-id="${escapeHtml(b.id)}" aria-label="Kochbuch ${name} öffnen und bearbeiten">${ICONS.edit} Öffnen</button>
+                <button type="button" class="icon-btn cbk-more" data-action="cb-menu" data-id="${escapeHtml(b.id)}" aria-haspopup="dialog" aria-label="Weitere Aktionen für ${name}">${ICONS.moreH || ICONS.more}</button>
               </div>
             </div>
           </li>`;
         }).join('')}
       </ul>
-      ${only ? '<p class="hint-line">Mindestens ein Kochbuch bleibt bestehen. Gelöscht wird immer nur das Kochbuch, nie ein Rezept.</p>' : ''}
+      ${only ? '<p class="hint-line">Das letzte Kochbuch kann nicht gelöscht werden. Beim Löschen bleiben deine Rezepte erhalten.</p>' : ''}
     </main>
     ${bottomNav()}
     ${cookbookModals()}`;
@@ -412,12 +420,12 @@ function cookbookModals() {
     const id = escapeAttr(b.id);
     return sheet('cb-menu-title', b.name, `
       <div class="menu-list">
-        <button class="menu-item" data-action="cb-rename" data-id="${id}">${ICONS.edit}<span>Umbenennen</span></button>
-        <button class="menu-item" data-action="cb-duplicate" data-id="${id}">${ICONS.copy}<span>Duplizieren</span></button>
-        <button class="menu-item menu-item--danger" data-action="cb-delete" data-id="${id}" ${only ? 'disabled aria-disabled="true" aria-describedby="cbMenuOnly"' : ''}>${ICONS.trash}<span>Löschen</span></button>
+        <button type="button" class="menu-item" data-action="cb-rename" data-id="${id}">${ICONS.edit}<span>Umbenennen</span></button>
+        <button type="button" class="menu-item" data-action="cb-duplicate" data-id="${id}">${ICONS.copy}<span>Duplizieren</span></button>
+        <button type="button" class="menu-item menu-item--danger" data-action="cb-delete" data-id="${id}" ${only ? 'disabled aria-disabled="true" aria-describedby="cbMenuOnly"' : ''}>${ICONS.trash}<span>Löschen</span></button>
       </div>
-      ${only ? '<p class="hint-line" id="cbMenuOnly">Mindestens ein Kochbuch bleibt bestehen. Gelöscht wird immer nur das Kochbuch, nie ein Rezept.</p>' : ''}
-      <div class="form-actions"><button class="ghost-btn" data-action="close-modal">Schliessen</button></div>`);
+      ${only ? '<p class="hint-line" id="cbMenuOnly">Das letzte Kochbuch kann nicht gelöscht werden. Beim Löschen bleiben deine Rezepte erhalten.</p>' : ''}
+      <div class="form-actions"><button type="button" class="ghost-btn" data-action="close-modal">Schliessen</button></div>`);
   }
   if (m.type === 'cb-delete') {
     const b = cookbookById(m.id);

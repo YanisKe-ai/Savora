@@ -238,14 +238,14 @@ function pdfExportAdoptTemplate() {
   saveCookbookConfig(cfg); pdfRememberTemplate(m.shownTemplate);
   if (m.previewBlob) { try { cookbookRememberBuild(m.previewBlob, m.shownTemplate); } catch (e) { /* nur Anzeige */ } }
   render();
-  showToast(`Seitenstil «${cookbookPdfTemplateName(m.shownTemplate)}» gespeichert`);
+  showToast(`Seitenstil «${cookbookPdfTemplateName(m.shownTemplate)}» fürs Kochbuch gespeichert`);
   const sw = document.querySelector('.pdf-style-switch [aria-checked="true"]'); if (sw && typeof focusWithoutScroll === 'function') focusWithoutScroll(sw);
 }
 function pdfExportCompareNote(m) {
   if (m.target !== 'cookbook' || !m.shownTemplate) return '';
   const proj = cookbookPdfTemplate(getCookbookConfig());
   const shown = cookbookPdfTemplateName(m.shownTemplate), projName = cookbookPdfTemplateName(proj);
-  if (proj === m.shownTemplate) return `<p class="pdf-info-line pdf-compare" id="pdfCompareNote">Seitenstil des Kochbuchs: ${escapeHtml(projName)}. Ein Wechsel hier ist nur ein Vergleich und ändert das Kochbuch nicht.</p>`;
+  if (proj === m.shownTemplate) return `<p class="pdf-info-line pdf-compare" id="pdfCompareNote">Seitenstil des Kochbuchs: ${escapeHtml(projName)}. Hier vergleichst du nur Stile. Das Kochbuch bleibt unverändert.</p>`;
   return `<div class="pdf-info-line pdf-compare pdf-compare--diff" id="pdfCompareNote" role="status"><p>Vergleich: Du siehst «${escapeHtml(shown)}». Das Kochbuch verwendet «${escapeHtml(projName)}».</p><button type="button" class="outline-btn outline-btn--small" data-action="pdf-export-adopt-template">«${escapeHtml(shown)}» fürs Kochbuch übernehmen</button></div>`;
 }
 
@@ -257,7 +257,7 @@ function pdfExportPreviewStage() {
   const canShare = SavoraNative.isNative || (typeof navigator !== 'undefined' && !!navigator.share);
   return `
     <div class="pdf-preview-header">
-      <button class="ghost-btn pdf-preview-close" data-action="pdf-export-back" aria-label="${m.target === 'cookbook' ? 'Vorschau schliessen, zurück zum Kochbuch' : 'Vorschau schliessen, zurück zu den Optionen'}">${ICONS.back} Zurück</button>
+      <button type="button" class="ghost-btn pdf-preview-close" data-action="pdf-export-back" aria-label="${m.target === 'cookbook' ? 'Zurück zum Kochbuch' : 'Zurück zu den Optionen'}">${ICONS.back} Zurück</button>
       <h2 class="modal-title" id="pdf-export-title">Vorschau</h2>
       <span class="pdf-preview-meta" aria-live="polite">${m.pageCount ? m.pageCount + (m.pageCount === 1 ? ' Seite' : ' Seiten') : ''}</span>
       ${pdfPreviewUsesCanvas() ? `<span class="pdf-zoom"><button class="icon-btn" data-action="pdf-zoom" data-id="out" aria-label="Verkleinern" ${(m.zoom || 1) <= 1 ? 'disabled' : ''}>−</button><button class="icon-btn" data-action="pdf-zoom" data-id="in" aria-label="Vergrössern" ${(m.zoom || 1) >= 3 ? 'disabled' : ''}>+</button></span>` : ''}

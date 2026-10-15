@@ -906,7 +906,7 @@ async function handleActionV2(action, id, el, e) {
       const cfg = getCookbookConfig();
       cfg.author = action === 'cb-use-sender-name' ? String(state.senderName || '').trim() : '';
       saveCookbookConfig(cfg); render();
-      showToast(action === 'cb-clear-name' ? 'Im PDF steht kein Name mehr' : 'Name eingetragen');
+      showToast(action === 'cb-clear-name' ? 'Name im PDF entfernt' : 'Name fürs PDF eingetragen');
       return true;
     }
     case 'cb-step': {

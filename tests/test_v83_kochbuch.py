@@ -100,6 +100,8 @@ async def main():
         await page.wait_for_function(WAIT_PREVIEW, timeout=240000)
         m = await ev("() => ({ stage: state.modal.stage, tpl: state.modal.shownTemplate, nut: state.modal.nutritionDetail, err: state.modal.errorText })")
         check('Export nutzt die Konfiguration (Prise Pop aus «B», Nährwerte Aus)', m['stage'] == 'preview' and m['tpl'] == 'prise-pop' and m['nut'] == 'off', str(m))
+        src = await ev("() => [typeof pdfLastPageCounts !== 'undefined' && pdfLastPageCounts && pdfLastPageCounts.get('r_manti'), state.cookbookLastBuild && state.cookbookLastBuild.pages.r_manti]")
+        check('Seitenzahl je Rezept stammt aus pdfLastPageCounts (pdf.js)', src == [2, 2], str(src))
         os.makedirs(OUT, exist_ok=True)
         pages_pop = await save_pdf(page, os.path.join(OUT, 'v83_kochbuch_prise-pop.pdf'))
         txt = subprocess.run(['pdftotext', '-layout', os.path.join(OUT, 'v83_kochbuch_prise-pop.pdf'), '-'], capture_output=True, text=True).stdout
@@ -183,10 +185,11 @@ async def main():
         # ---------- Screenshots 390/1280 hell/dunkel, ohne horizontales Scrollen ----------
         await ev("() => { window.coverRenderCanvas = undefined; }")
         await page.reload(); await page.wait_for_function("typeof state !== 'undefined' && document.getElementById('app').children.length > 0")
+        await ev("() => { state.cookbookLastBuild = { bookId: cookbookActiveBook().id, template: 'pur', pageCount: 7, pages: { r_legacy_1: 1, r_legacy_2: 1, r_legacy_3: 1, r_manti: 2 } }; }")   # Zustand nach dem Erstellen fuer die Bildschirmfotos
         for theme in ('light', 'dark'):
             for w in (390, 1280):
                 await page.set_viewport_size({'width': w, 'height': 900})
-                await ev("(t) => { document.documentElement.dataset.theme = t; localStorage.setItem('savora-theme', t); if (typeof applyTheme === 'function') applyTheme(); }", theme)
+                await ev("(t) => { state.theme = t; applyTheme(); }", theme)
                 for view, step in (('cookbooks', 0), ('cookbook', 2), ('cookbook', 3)):
                     await ev("([v, s]) => { state.view = v; state.cookbookStep = s || 1; render(); window.scrollTo(0, 0); }", [view, step])
                     await page.wait_for_timeout(250)
