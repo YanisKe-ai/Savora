@@ -370,7 +370,10 @@ function lpStep1Html(r, p, built) {
 function lpPreviewHtml(pubLike, opts) {
   // Bevorzugt die öffentliche Detaildarstellung aus library-views.js (UI-A), damit Vorschau und Veröffentlichung gleich aussehen
   if (typeof libPublicRecipeHtml === 'function') {
-    try { const h = libPublicRecipeHtml(pubLike, Object.assign({ preview: true }, opts || {})); if (h) return h; } catch (e) { /* eigene Darstellung */ }
+    try {
+      const h = libPublicRecipeHtml(pubLike, Object.assign({ preview: true, titleTag: 'h2', linkAuthor: false, localImageSrc: pubLike.localImageSrc || '' }, opts || {}));
+      if (h) return (pubLike.image_path || pubLike.localImageSrc) ? h : `<p class="lp-nophoto">${LP_ICONS.image}<span>Ohne Foto</span></p>${h}`;
+    } catch (e) { /* eigene Darstellung */ }
   }
   const d = pubLike.recipe || {};
   const imgId = pubLike.localImageId;
@@ -420,6 +423,21 @@ function lpPreviewHtml(pubLike, opts) {
   </article>`;
 }
 
+/* Eigenes Foto für die Vorschau: aus IndexedDB laden, als Objekt-URL zwischenspeichern (ein Bild zur Zeit). */
+function lpPreviewImageSrc(imageId) {
+  if (!imageId) return '';
+  const c = libPub.previewImg;
+  if (c && c.id === imageId) return c.url || '';
+  if (c && c.url) { try { URL.revokeObjectURL(c.url); } catch (e) { /* nicht kritisch */ } }
+  libPub.previewImg = { id: imageId, url: '' };
+  Promise.resolve(typeof dbGetImage === 'function' ? dbGetImage(imageId) : null).then(img => {
+    const cur = libPub.previewImg;
+    if (!cur || cur.id !== imageId || !img || !img.blob) return;
+    cur.url = URL.createObjectURL(img.blob);
+    lpRerender(['lib-publish']);
+  }).catch(() => {});
+  return '';
+}
 function lpStep2Html(r, p, built) {
   const prof = lpProfileData() || {};
   const pubLike = {
@@ -428,6 +446,7 @@ function lpStep2Html(r, p, built) {
     image_path: null, thumb_path: null, published_at: null, preview: true,
     localImageId: built.includePhoto ? lpLocalImageId(r) : null,
   };
+  pubLike.localImageSrc = pubLike.localImageId ? lpPreviewImageSrc(pubLike.localImageId) : '';
   return `
     <section class="lp-section" aria-labelledby="lpPrevH">
       <h2 class="lp-h" id="lpPrevH">Vorschau</h2>
@@ -506,9 +525,35 @@ function lpPublishGate(r) {
   return '';
 }
 
+function lpPickerHtml() {
+  const own = (state.recipes || []).filter(r => r && !r.publicOrigin).slice().sort((a, b) => String(a.title || '').localeCompare(String(b.title || ''), 'de'));
+  if (!own.length) {
+    return lpCard(`<h2 class="tl-h tl-h--card">Noch kein eigenes Rezept</h2><p>Veröffentlichen kannst du eigene Rezepte. Erstelle zuerst ein Rezept.</p>
+      <button type="button" class="primary-btn primary-btn--block" data-action="new-recipe">Rezept erstellen</button>`, 'tl-card--intro');
+  }
+  return `<section class="lp-section" aria-labelledby="lpPickH">
+    <h2 class="lp-h" id="lpPickH">Welches Rezept möchtest du veröffentlichen?</h2>
+    <p class="lp-lead">Danach prüfst du es und siehst eine Vorschau. Nichts wird öffentlich, bevor du bestätigst.</p>
+    <ul class="lp-list lp-pick">${own.map(r => {
+      const pub = lpPublicationFor(r.id);
+      const note = pub && pub.status === 'published' ? 'Bereits veröffentlicht' : pub && (pub.status === 'blocked' || pub.blocked) ? 'Gesperrt' : lpDraftGet(r.id) ? 'Entwurf vorhanden' : '';
+      const blocked = pub && (pub.status === 'blocked' || pub.blocked);
+      return `<li><button type="button" class="lp-pick-btn" data-action="lib-pub-open" data-id="${escapeAttr(r.id)}" ${blocked ? 'disabled' : ''}><span class="lp-row-title">${escapeHtml(r.title || 'Ohne Titel')}</span>${note ? `<span class="lp-row-sub">${escapeHtml(note)}</span>` : ''}<span class="lp-pick-chev" aria-hidden="true">${ICONS.chevronRight}</span></button></li>`;
+    }).join('')}</ul>
+  </section>`;
+}
+/* Einstieg ohne Rezept (z. B. leere Bibliothek): Rezeptauswahl als eigene Seite */
+function libStartPublish() {
+  lpSync();
+  lib.publish = { recipeId: null, step: 1, publicationId: null, expectedVersion: null, tips: '', includePhoto: false, pick: true };
+  libPub.success = null; libPub.error = null;
+  state.modal = null; state.view = 'lib-publish'; render();
+  if (lpSignedIn() && libPub.mine.state === 'idle') lpLoadMine();
+}
 function libPublishView() {
   lpSync();
   const p = lpPub();
+  if (p && p.pick && !p.recipeId) return settingsDetailShell('Rezept veröffentlichen', `<div class="lp lp--publish">${lpPickerHtml()}</div>`) + lpModals();
   const r = p && lpRecipe(p.recipeId);
   if (!r) {
     return settingsDetailShell('Veröffentlichen', `<div class="lp">${lpCard('<p class="lp-state-title">Dieses Rezept ist auf diesem Gerät nicht vorhanden.</p><button type="button" class="ghost-btn primary-btn--block" data-action="back">Zurück</button>', 'lp-card--state')}</div>`) + lpModals();
@@ -1049,7 +1094,7 @@ function libMoreRowsHtml() {
     settingsRow({ icon: LP_ICONS.person, title: 'Öffentliches Profil', summary: profSum, view: 'lib-pubprofile' }),
   ];
   if (signed && lpModAllowed()) rows.push(settingsRow({ icon: LP_ICONS.shield, title: 'Moderation', summary: 'Meldungen prüfen', view: 'lib-mod' }));
-  return settingsGroup('Rezeptbibliothek', rows.join(''));
+  return rows.join('');   // views.js legt die Gruppe «Rezeptbibliothek» selbst darum
 }
 
 /* ---------- Aktionen ---------- */
@@ -1059,6 +1104,7 @@ async function handleLibraryPublishAction(action, id, el) {
   const p = lpPub();
   switch (action) {
     case 'lib-pub-open': libOpenPublish(id); return true;
+    case 'lib-pub-start': if (id && lpRecipe(id)) libOpenPublish(id); else libStartPublish(); return true;
     case 'lib-pub-step': lpGoStep(id); return true;
     case 'lib-pub-submit': await lpSubmit(el); return true;
     case 'lib-pub-retry':
