@@ -329,6 +329,9 @@ async function handleActionV2(action, id, el, e) {
       copy.title = (r.title || 'Rezept') + ' (Kopie)';
       copy.createdAt = Date.now(); copy.updatedAt = Date.now();
       copy.favorite = false; copy.cookCount = 0; delete copy.lastCookedAt; copy.cookLog = [];
+      // Die Kopie ist ein eigenes Rezept: keine Bestands-IDs und keine Systemmarke uebernehmen (sonst lebt eine veraltete
+      // Zuordnung aus recipe.collections wieder auf). Die aktuellen Sammlungen folgen unten ueber org.js.
+      copy.collections = []; delete copy.collectionIds;
       if (r.imageId) {
         // Eigenes Bild fuer die Kopie, damit Loeschen des Originals die Kopie nicht beschaedigt.
         try {
@@ -338,6 +341,9 @@ async function handleActionV2(action, id, el, e) {
       }
       await dbPut(copy);
       await loadRecipes();
+      if (typeof orgApply === 'function' && typeof orgCollectionIdsOf === 'function') {
+        try { orgCollectionIdsOf(r.id).forEach(c => orgApply([copy.id], c, 'add')); } catch (err) { /* Sammlungen optional, Rezept ist dupliziert */ }
+      }
       state.modal = null;
       state.activeRecipeId = copy.id;
       state.detailTab = 'ingredients';
@@ -409,8 +415,11 @@ async function handleActionV2(action, id, el, e) {
       closeModal();
       if (!added.length && !removed.length) return true;   // ohne Aenderung nur schliessen
       try {
-        added.forEach(c => orgSetMembership(rid, c, true));
-        removed.forEach(c => orgSetMembership(rid, c, false));
+        // Speicherfehler meldet org.js als { ok:false }: wie eine Ausnahme behandeln (bisher Geschriebenes zuruecknehmen)
+        const done = [];
+        const set = (c, on) => { const res = orgSetMembership(rid, c, on); if (res && res.ok === false) throw new Error(res.error || 'storage'); done.push([c, on]); };
+        try { added.forEach(c => set(c, true)); removed.forEach(c => set(c, false)); }
+        catch (e) { done.reverse().forEach(([c, on]) => { try { orgSetMembership(rid, c, !on); } catch (x) {} }); throw e; }
       } catch (err) { showToast('Die Sammlungen konnten nicht gespeichert werden. Der Gerätespeicher ist vielleicht voll. Versuche es nochmals.', 'error', true); return true; }
       // Rueckgaengig stellt nur fuer dieses Rezept die vorherige Menge wieder her (nur die geaenderten Zuordnungen)
       showUndoToast('Sammlungen aktualisiert.', () => {
@@ -1325,7 +1334,11 @@ function hvDeleteCollection(id) {
   return null;
 }
 async function hvApply(ids, colId, mode) {
-  if (typeof orgApply === 'function') return await orgApply(ids, colId, mode);
+  if (typeof orgApply === 'function') {
+    const res = await orgApply(ids, colId, mode);
+    if (res && res.ok === false) throw new Error(res.error || 'storage');   // Aufrufer zeigen den Speicherfehler-Text
+    return res;
+  }
   const changed = [];
   for (const rid of ids) {
     const r = state.recipes.find(x => x.id === rid); if (!r) continue;
@@ -1641,7 +1654,10 @@ async function hvHandleAction(action, id, el, e) {
           tokens.push(await hvApply(missing, c.id, 'add'));
           added += missing.length; touched.push(c); missing.forEach(rid => newRecipes.add(rid));
         }
-      } catch (err) { showToast(hvErrText('storage'), 'error'); return true; }
+      } catch (err) {
+        for (const t of tokens.slice().reverse()) { try { await hvUndo(t); } catch (e) {} }   // nichts Halbes stehen lassen
+        showToast(hvErrText('storage'), 'error'); return true;
+      }
       closeModal();   // Auswahlmodus bleibt mit derselben Auswahl offen
       if (!tokens.length) { showToast(cols.length === 1 ? `Alle ausgewählten Rezepte waren schon in «${cols[0].name}».` : 'Alle ausgewählten Rezepte waren schon in diesen Sammlungen.'); return true; }
       const msg = touched.length === 1 ? `${hvRecipeWord(added)} zu «${touched[0].name}» hinzugefügt.` : `${hvRecipeWord(newRecipes.size)} zu ${touched.length} Sammlungen hinzugefügt.`;

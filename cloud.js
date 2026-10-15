@@ -33,7 +33,7 @@ function cloudIsOrgKind(kind) { return CLOUD_ORG_KINDS.includes(kind); }
 /* Generationszaehler: Anmelden, Abmelden und Konto loeschen erhoehen ihn. Ein laufender Abgleich merkt sich Generation und
    Konto beim Start und schreibt nichts mehr (Daten, Meta, Cursor, Warteschlange), sobald sich eines davon geaendert hat. */
 function cloudSyncCtx() { return { gen: cloud.gen, uid: cloudUserId() }; }
-function cloudCtxValid(ctx) { return !ctx || (ctx.gen === cloud.gen && ctx.uid === cloudUserId()); }
+function cloudCtxValid(ctx) { return !ctx || typeof ctx !== 'object' || (ctx.gen === cloud.gen && ctx.uid === cloudUserId()); }   // ohne Kontext (alte Aufrufe) keine Pruefung
 function cloudCheckCtx(ctx) { if (!cloudCtxValid(ctx)) throw Object.assign(new Error('Abgleich nach Kontowechsel verworfen'), { stale: true }); }
 
 /* ---------- Kleine Helfer ---------- */
@@ -182,6 +182,23 @@ function cloudMark(kind, id, deleted, changedAt) {
   writeJsonKey(CLOUD_QUEUE_KEY, q); writeJsonKey(CLOUD_META_KEY, m);
   cloudScheduleSync(1500);
 }
+// Viele Vormerkungen auf einmal (org.js im Sammelschreiben): Warteschlange und Meta nur einmal lesen und schreiben.
+// list: [[kind, id, deleted, changedAt], ...]
+function cloudMarkMany(list) {
+  if (!cloudSignedIn() || cloud.applyingRemote || !Array.isArray(list) || !list.length) return;
+  const q = cloudQueue(); const m = cloudMeta();
+  let n = 0;
+  list.forEach(([kind, id, deleted, changedAt]) => {
+    if (id === undefined || id === null) return;
+    const key = kind + '|' + id;
+    const at = changedAt || Date.now();
+    q[key] = { kind, id: String(id), deleted: !!deleted, at };
+    m[key] = at; n++;
+  });
+  if (!n) return;
+  writeJsonKey(CLOUD_QUEUE_KEY, q); writeJsonKey(CLOUD_META_KEY, m);
+  cloudScheduleSync(1500);
+}
 // Originale merken und die schreibenden DB-Funktionen umhuellen. Aufrufer merken davon nichts.
 const cloudOrig = {};
 function cloudWrap(name, after) {
@@ -288,7 +305,8 @@ async function cloudPush(ctx) {
   const failed = new Set();
   for (const [key, e] of entries) {
     if (e.kind === 'image') { imageJobs.push([key, e]); continue; }
-    const local = e.deleted ? null : await cloudReadLocal(e.kind, e.id);
+    // Org-Grabsteine mit Daten senden (Name, Farbe, Symbol), damit ein neues Geraet die ID-Regel anwenden kann
+    const local = e.deleted && !cloudIsOrgKind(e.kind) ? null : await cloudReadLocal(e.kind, e.id);
     const row = { user_id: cloudUserId(), kind: e.kind, id: e.id, data: local, deleted: e.deleted || !local, client_updated_at: e.at };
     (cloudIsOrgKind(e.kind) ? orgRows : rows).push(row);
   }
@@ -386,7 +404,12 @@ async function cloudApplyRemote(row, ctx) {
         const value = row.id === 'cookbooks' ? cookbookNormalizeStoreText(row.data.value, true) : row.id === 'cookbookConfig' ? cookbookNormalizeStoreText(row.data.value, false) : row.data.value;
         cloudOrigSetItem.call(localStorage, lsKey, value);
         // Sammlungsliste (Projektion, ggf. von einem Geraet mit aelterer Version): neue IDs ins Modell uebernehmen, nichts verwerfen
-        if (row.id === 'collections' && typeof orgEnsureLegacy === 'function') { orgEnsureLegacy(); legacyMerge = localStorage.getItem(lsKey) !== value; }
+        // Nur hochladen, wenn die zusammengefuehrte Liste inhaltlich abweicht (Reihenfolge zaehlt nicht), sonst Pingpong
+        if (row.id === 'collections' && typeof orgEnsureLegacy === 'function') {
+          orgEnsureLegacy();
+          const merged = localStorage.getItem(lsKey);
+          legacyMerge = typeof orgProjectionSame === 'function' ? !orgProjectionSame(merged, value) : merged !== value;
+        }
         if (row.id === 'cookbookTitle') state.cookbookTitle = row.data.value;
         if (row.id === 'senderName') state.senderName = row.data.value;
       }

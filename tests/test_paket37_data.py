@@ -127,12 +127,12 @@ async def main():
         await pg.evaluate("async (t) => { await restoreBackupFromFile(new File([t], 'b.json')); }", text)
         res = await pg.evaluate("""() => { const s = cookbookStoreRead(); const ids = state.recipes.map(r => r.id).sort();
           return { n: state.recipes.length, titles: state.recipes.map(r => r.title).sort(), fav: state.recipes.filter(r => r.favorite).map(r => r.title).sort(), note: (state.recipes.find(r => r.title === 'Carbonara') || {}).notes,
-                   shop: state.shopping.length, plan: state.mealplan ? Object.keys(state.mealplan).length : -1, cols: getCollections().map(c => [c.name, c.recipeIds.length]),
+                   shop: state.shopping.length, plan: state.mealplan ? Object.keys(state.mealplan).length : -1, cols: orgCollections().map(c => [c.name, orgRecipeIdsIn(c.id).size]),
                    books: s.books.map(b => [b.config.title, b.config.pdfTemplate, b.config.cover && b.config.cover.templateId, (b.config.items || []).map(i => state.recipes.find(r => r.id === i.recipeId).title)]) }; }""")
         check('Wiederherstellung (alte Sicherung, neuer Stand): drei Rezepte, Favoriten, Notiz, Einkauf, Sammlung', res['n'] == 3 and res['titles'] == ['Carbonara', 'Gemüse-Curry', 'Sloppy Joe Buns'] and 'Carbonara' in res['fav'] and 'Sloppy Joe Buns' in res['fav'] and res['note'] == 'Notiz mit Emoji 🍝 und «Zeichen»' and res['shop'] >= 1 and res['cols'] == [['Sonntag', 2]], str(res))
         check('Wiederherstellung: Kochbuch (Titel, Seitenstil, Titelblatt, Reihenfolge) kommt als Projekt zurück', res['books'] and res['books'][0][0] == 'Familienbuch' and res['books'][0][1] in ('B', 'prise-pop') and res['books'][0][3] == ['Carbonara', 'Sloppy Joe Buns'], str(res['books']))
         await pg.evaluate("async (t) => { await restoreBackupFromFile(new File([t], 'b.json')); }", text)
-        res2 = await pg.evaluate("() => [state.recipes.length, cookbookStoreRead().books.length, getCollections().length]")
+        res2 = await pg.evaluate("() => [state.recipes.length, cookbookStoreRead().books.length, orgCollections().length]")
         check('Zweimal Wiederherstellen verdoppelt nichts', res2 == [3, len(res['books']), 1], str(res2))
 
         # ---------- 6. Härtung: defekte Sicherung, falsche Datei, Speicherfehler ----------
