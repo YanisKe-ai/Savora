@@ -33,9 +33,9 @@ function isQualitativeIngredient(ing) {
    Aenderungserkennung noetig. */
 function hashIngredientsForNutrition(ingredients, servings, mode) {
   const relevant = (ingredients || []).map((i) => `${i.amount}|${i.unit}|${(i.name || '').trim().toLowerCase()}`).join(';');
-  // Ertragsart (v0.83): nur 'pieces'/'total' gehen in den Hash ein, damit alte Portionen-Ergebnisse gueltig bleiben,
-  // ein Wechsel der Ertragsart (z. B. 1 Portion -> 1 Glas) die gespeicherten Werte aber ungueltig macht.
-  const input = relevant + '::' + servings + (mode === 'pieces' || mode === 'total' ? '::' + mode : '');
+  // Ertragsart (v0.83): nur 'total' geht in den Hash ein. Portionen und Stueck rechnen gleich (Gesamt / Anzahl), ihre
+  // gespeicherten Ergebnisse bleiben gueltig; ein Wechsel zu Gesamtertrag (z. B. 1 Portion -> 1 Glas) macht sie ungueltig.
+  const input = relevant + '::' + servings + (mode === 'total' ? '::total' : '');
   let hash = 0;
   for (let i = 0; i < input.length; i++) {
     hash = (hash * 31 + input.charCodeAt(i)) | 0;
@@ -207,7 +207,7 @@ async function calculateRecipeNutrition(recipe) {
       (unquantified.length > 0 ? `, ${unquantified.length} ohne Mengenangabe nicht eingerechnet` : '') +
       (unresolvedCount > 0 ? `, ${unresolvedCount} ungeklärt` : '') +
       (rangeCount > 0 ? `, bei ${rangeCount} Zutat${rangeCount === 1 ? '' : 'en'} Mengenbereich: Ergebnis als Spanne` : '') +
-      (needsServings ? ', Angabe zum Ergibt fehlt: keine Pro-Portion-Werte' : wholeRecipe ? ', Gesamtertrag: Werte für das gesamte Rezept' : '') +
+      (needsServings ? '. Die Angabe, was das Rezept ergibt, fehlt. Darum gibt es keine Werte pro Portion' : wholeRecipe ? ', Gesamtertrag: Werte für das gesamte Rezept' : '') +
       (per100Estimated ? ', Fertiggewicht geschätzt' : ', Fertiggewicht bekannt');
 
   return {

@@ -399,9 +399,9 @@ function pdfNutritionNote(result, servings) {
   if (!result) return '';
   const parts = ['Geschätzte Werte, Abweichungen sind möglich.'];
   if (result.rangeUsed) parts.push('Menge als Bereich angegeben, Ergebnis als Spanne.');
-  if (result.needsServings) parts.push('Die Angabe, wie viel das Rezept ergibt, fehlt. Deshalb stehen Werte für das gesamte Rezept da.');
+  if (result.needsServings) parts.push('Es fehlt die Angabe, was das Rezept ergibt. Deshalb gelten die Nährwerte für das ganze Rezept. Trage ein, was das Rezept ergibt, um Werte pro Portion zu sehen.');   // gleicher Satz wie in der App (nutrition-ui.js)
   else if (result.wholeRecipe && servings && servings.kind === 'total') parts.push('Werte für das gesamte Rezept (' + servings.label + '), eine Portion ist nicht festgelegt.');
-  if (servings && servings.conflict) parts.push(servings.kind === 'pieces' ? 'Die Werte gelten pro Stück laut Angabe.' : 'Die Werte gelten pro Portion, nicht pro Stück.');
+  if (servings && servings.conflict && servings.kind !== 'total' && !result.wholeRecipe) parts.push(servings.kind === 'pieces' ? 'Die Werte gelten pro Stück laut Angabe.' : 'Die Werte gelten pro Portion, nicht pro Stück.');
   return parts.join(' ');
 }
 

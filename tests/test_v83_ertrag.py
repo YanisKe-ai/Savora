@@ -40,7 +40,7 @@ async def main():
         check('A: 12 Cookies (eigene Bezeichnung)', y[2][0] == 'Ergibt 12 Cookies', str(y[2]))
         check('A: 1 Glas', y[3] == ['Ergibt 1 Glas', '1 Glas', 'total', 'für das gesamte Rezept'], str(y[3]))
         check('A: 500 ml', y[4] == ['Ergibt 500 ml', '500 ml', 'total', 'für das gesamte Rezept'], str(y[4]))
-        check('A: unbekannter Ertrag erfindet keine Zahl', y[5][:3] == ['Ertrag unbekannt', '', 'unknown'] and y[6][:3] == ['Ertrag unbekannt', '', 'unknown'], str(y[5:]))
+        check('A: unbekannter Ertrag erfindet keine Zahl', y[5][:3] == ['Ergibt: unbekannt', '', 'unknown'] and y[6][:3] == ['Ergibt: unbekannt', '', 'unknown'], str(y[5:]))
         pl = await ev("() => [yieldText({ servings: 1, servingMode: 'total', yieldLabel: 'Glas' }, 2), yieldText({ servings: 1, servingMode: 'total', yieldLabel: 'Blech' }, 3), yieldText({ servings: 1, servingMode: 'total', yieldLabel: 'Schälchen Dip' }, 2), servingLabel({ servings: 1 }, 1)]")
         check('A: Mehrzahl sinnvoll (Gläser, Bleche), sonst Bezeichnung unverändert; 1 Portion bleibt', pl == ['Ergibt 2 Gläser', 'Ergibt 3 Bleche', 'Ergibt 2 Schälchen Dip', '1 Portion'], str(pl))
 
@@ -71,7 +71,7 @@ async def main():
         # Unbekannter Ertrag: kein Stepper, keine erfundene Zahl
         await ev("async (r) => { await dbPut(r); await loadRecipes(); state.activeRecipeId = r.id; state.view = 'detail'; render(); }", variant(id='v83_unk', title='Brei', servings=0, servingMode=None, timeMinutes=0))
         unk = await ev("() => ({ meta: document.querySelector('.detail-meta-v2').textContent, stepper: !!document.querySelector('[data-action=serv-inc]'), row: document.querySelector('.amount-row').textContent })")
-        check('A: unbekannter Ertrag: «Ertrag unbekannt», kein Stepper', 'Ertrag unbekannt' in unk['meta'] and not unk['stepper'] and 'Portion' not in unk['meta'], str(unk))
+        check('A: unbekannter Ertrag: «Ergibt: unbekannt», kein Stepper', 'Ergibt: unbekannt' in unk['meta'] and not unk['stepper'] and 'Portion' not in unk['meta'], str(unk))
         # Hinweis bei verdächtigem «1 Portion», ohne Umdeutung
         sus = await ev("() => [yieldSuspicion({ title: 'Karamellsauce', servings: 1 }), yieldSuspicion({ title: 'Lasagne', servings: 1 }), yieldSuspicion({ title: 'Karamellsauce', servings: 1, servingMode: 'total' }), yieldSuspicion({ title: 'Apfelmus', servings: 1, categoryTags: ['sauce'] })]")
         check('A: verdächtiges «1 Portion» bei Sauce ergibt Hinweis mit Feld', sus[0] and sus[0]['field'] == 'servings' and '1 Portion oder einen Gesamtertrag' in sus[0]['text'], str(sus[0]))
@@ -86,14 +86,14 @@ async def main():
             const r = collectFormData(); return { before, after, mode: r.servingMode, label: r.yieldLabel, servings: r.servings, labels, hint: document.getElementById('f-yield-hint').textContent }; }""")
         check('A: Editor: Bezeichnung erscheint erst bei Stück/Gesamtertrag', ed['before'] is True and ed['after'] is False, str(ed))
         check('A: Editor speichert Gesamtertrag «1 Glas»', ed['mode'] == 'total' and ed['label'] == 'Glas' and ed['servings'] == 1, str(ed))
-        check('A: Editor: Zeiten klar benannt', all(x in ed['labels'] for x in ['Gesamtzeit (Min.)', 'Vorbereitung (Min.)', 'Garen oder Backen (Min.)', 'Ruhen oder Kühlen (Min.)', 'Ertrag', 'Anzahl']), str(ed['labels']))
+        check('A: Editor: Zeiten klar benannt', all(x in ed['labels'] for x in ['Gesamtzeit (Min.)', 'Vorbereitung (Min.)', 'Garen oder Backen (Min.)', 'Ruhen oder Abkühlen (Min.)', 'Ertrag', 'Anzahl']), str(ed['labels']))
         ed2 = await ev("""() => { const sel = document.getElementById('f-serving-mode'); sel.value = 'portions'; sel.dispatchEvent(new Event('change')); document.getElementById('f-servings').value = '';
             const r = collectFormData(); return { mode: r.servingMode, label: r.yieldLabel === undefined, servings: r.servings }; }""")
         check('A: Editor: Ertrag leer = unbekannt (keine Pflicht), Portionen ohne Bezeichnung', ed2 == {'mode': 'portions', 'label': True, 'servings': 0}, str(ed2))
         await ev("() => { state.view = 'home'; state.editingRecipe = null; render(); }")
         # Validierung und Bibliothek
         va = await ev("() => [validateRecipe({ title: 'x', servingMode: 'total', yieldLabel: 'Glas', servings: 1 }), validateRecipe({ title: 'x', servingMode: 'pfund' })].map(v => [v.ok, v.warnings.join('|')])")
-        check('A: validate: total gültig ohne Warnung, unbekannte Art nur Warnung', va[0] == [True, ''] and va[1][0] is True and 'unbekannt' in va[1][1], str(va))
+        check('A: validate: total gültig ohne Warnung, unbekannte Art nur Warnung', va[0] == [True, ''] and va[1][0] is True and 'nicht bekannt' in va[1][1], str(va))
         lib = await ev("""() => { const d = libDraftFromRecipe(state.recipes.find(x => x.id === 'v83_karamell')); const n = libNormalizePublic(d);
             const back = libRecipeFromPublication({ id: '00000000-0000-4000-8000-000000000001', version: 1, recipe: n, author: { display_name: 'Test' } });
             return [d.servingMode, d.yieldLabel, n.servingMode, n.yieldLabel, back.servingMode, back.yieldLabel, back.servings]; }""")
@@ -125,7 +125,10 @@ async def main():
             const asPortion = Object.assign({}, r, { servingMode: 'portions' }); const s3 = (await nutritionStatusFor(asPortion)).status;
             const scaled = Object.assign({}, r, { lastServings: 3 }); const s4 = (await nutritionStatusFor(scaled)).status;
             const grouped = Object.assign({}, r, { id: 'v83_grp', ingredients: [{ amount: '', unit: '', name: 'Sauce:' }].concat(r.ingredients) }); await recalculateAndStoreNutrition(grouped); const s5 = (await nutritionStatusFor(grouped)).status;
-            return [s1, s2, s3, s4, s5]; }""")
+            const pc = Object.assign({}, r, { id: 'v83_pc', servingMode: 'pieces', servings: 8, yieldLabel: 'Pralinen' }); const res = await calculateRecipeNutrition(pc);
+            res.ingredientHash = hashIngredientsForNutrition(nutritionIngredientsFor(pc), 8); await dbPutNutritionResult(res); const s6 = (await nutritionStatusFor(pc)).status;
+            return [s1, s2, s3, s4, s5, s6]; }""")
+        check('B: gespeichertes Ergebnis eines Stück-Rezepts (alter Hash ohne Ertragsart) bleibt gültig', st[5] == 'calculated', str(st))
         check('B: Cache gültig nach Berechnung', st[0] in ('calculated', 'incomplete'), str(st))
         check('B: geänderte Zutaten machen Werte ungültig', st[1] == 'stale', str(st))
         check('B: geänderte Ertragsart macht Werte ungültig', st[2] == 'stale', str(st))
@@ -145,12 +148,14 @@ async def main():
         # ---------- C. Zeiten ----------
         t = await ev("""() => [timeInfo({ timeMinutes: 45 }), timeInfo({ timeMinutes: 30, restMinutes: 60 }), timeInfo({ timeMinutes: 35, prepMinutes: 20, cookMinutes: 30 }), timeInfo({}), [fmtMinutes(45), fmtMinutes(60), fmtMinutes(90), fmtMinutes(0)]]""")
         check('C: nur Gesamtzeit', t[0]['text'] == '45 Min. Gesamtzeit' and t[0]['cardText'] == '45 Min.', str(t[0]))
-        check('C: Arbeits- und Ruhezeit kompakt', t[1]['text'] == '30 Min. Gesamtzeit · 1 Std. Ruhen', t[1]['text'])
+        check('C: Arbeits- und Ruhezeit kompakt', t[1]['text'] == '30 Min. Gesamtzeit · 1 Std. Ruhen/Abkühlen', t[1]['text'])
         check('C: parallele Schritte: keine Summe, Gesamtzeit bleibt 35', t[2]['total'] == 35 and t[2]['text'] == '35 Min. Gesamtzeit · 20 Min. Vorbereitung · 30 Min. Garen', t[2]['text'])
         check('C: unbekannte Zeit: nichts, keine 0', t[3]['text'] == '' and t[3]['cardText'] == '' and t[3]['total'] is None, str(t[3]))
         check('C: fmtMinutes', t[4] == ['45 Min.', '1 Std.', '1 Std. 30 Min.', ''], str(t[4]))
         ts = await ev("""() => { const r = state.recipes.find(x => x.id === 'v83_karamell'); return [timeTextSuspicion(r), timeTextSuspicion(Object.assign({}, r, { restMinutes: 60 })), timeTextSuspicion(Object.assign({}, r, { timeMinutes: 120 })), r.restMinutes === undefined]; }""")
-        check('C: Widerspruch Text/Felder: Hinweis «In Schritt 3 … Kühlzeit … 1 Std.»', ts[0] and ts[0]['field'] == 'restMinutes' and 'Schritt 3' in ts[0]['text'] and 'Kühlzeit' in ts[0]['text'] and '1 Std.' in ts[0]['text'], str(ts[0]))
+        check('C: Widerspruch Text/Felder: Hinweis «In Schritt 3 steht etwa 1 Std. Abkühlen. Prüfe das Feld …»', ts[0] and ts[0]['field'] == 'restMinutes' and ts[0]['text'] == 'In Schritt 3 steht etwa 1 Std. Abkühlen. Prüfe das Feld «Ruhen oder Abkühlen».', str(ts[0]))
+        ts2 = await ev("() => [timeTextSuspicion({ steps: [{ text: '20 Min. backen, dann abkühlen lassen.' }] }), timeTextSuspicion({ steps: [{ text: 'Teig zugedeckt eine halbe Stunde ruhen lassen.' }] })]")
+        check('C: Dauer gehört zum Stichwort (20 Min. backen, dann abkühlen: kein Hinweis)', ts2[0] is None and ts2[1] and '30 Min. Ruhen' in ts2[1]['text'], str(ts2))
         check('C: kein Hinweis, wenn Ruhezeit gesetzt oder Gesamtzeit sie enthält; nichts wird geändert', ts[1] is None and ts[2] is None and ts[3], str(ts))
         fl = await ev("""() => { const ids = (list) => list.map(r => r.id);
             return { b30: timeBucketsFor(0), q: ids(recipesInCollection('quick', [{ id: 'a', timeMinutes: 0 }, { id: 'b', timeMinutes: 25 }, { id: 'c' }])) }; }""")
@@ -165,7 +170,7 @@ async def main():
         await ev("async (r) => { await dbPut(r); await loadRecipes(); state.activeRecipeId = r.id; state.view = 'detail'; state.detailTab = 'ingredients'; render(); }", variant(restMinutes=60))
         await page.wait_for_selector('.detail-times')
         tl = await ev("() => document.querySelector('.detail-times').textContent.trim()")
-        check('C: Detail: kompakte Zeitzeile', tl == '30 Min. Gesamtzeit · 1 Std. Ruhen', tl)
+        check('C: Detail: kompakte Zeitzeile', tl == '30 Min. Gesamtzeit · 1 Std. Ruhen/Abkühlen', tl)
         await page.screenshot(path=os.path.join(OUT, 'v83_detail_karamell_390.png'))
         await page.set_viewport_size({'width': 1280, 'height': 900})
         await page.wait_for_timeout(200)

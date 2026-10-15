@@ -23,8 +23,8 @@ function nutValueText(result, mode, key) {
   return null;
 }
 const NUT_RANGE_HINT = 'Menge als Bereich angegeben, Ergebnis als Spanne.';
-const NUT_SERVINGS_HINT = 'Es fehlt die Angabe, wie viel das Rezept ergibt. Deshalb stehen hier Werte für das gesamte Rezept.';
-const NUT_MISSING_HINT = '– heisst: Wert nicht bekannt, weil er für die berücksichtigten Zutaten fehlt. Er wird nicht als 0 gezählt.';
+const NUT_SERVINGS_HINT = 'Es fehlt die Angabe, was das Rezept ergibt. Deshalb gelten die Nährwerte für das ganze Rezept. Trage ein, was das Rezept ergibt, um Werte pro Portion zu sehen.';   // gleicher Satz wie im PDF (pdf-model.js)
+const NUT_MISSING_HINT = 'Ein Strich («–») bedeutet: Der Wert ist nicht bekannt, weil er für einige Zutaten fehlt. Er zählt nicht als 0.';
 function nutritionResultHints(result) {
   return (result.rangeUsed ? `<p class="nutrition-hint-text">${NUT_RANGE_HINT}</p>` : '') + (result.needsServings ? `<p class="nutrition-hint-text">${NUT_SERVINGS_HINT}</p>` : '');
 }
@@ -83,7 +83,7 @@ function nutritionIngredientStatus(recipe, result) {
     ${(result.approximations || []).length ? `<p class="nutrition-hint-text">Ähnliches Lebensmittel verwendet: ${(result.approximations || []).map(a => escapeHtml(a.name) + ' (wie ' + escapeHtml(a.food.split(',')[0]) + ')').join(', ')}</p>` : ''}
     ${(result.unquantified || []).length ? `<p class="nutrition-hint-text">Ohne Mengenangabe nicht eingerechnet: ${(result.unquantified || []).map(escapeHtml).join(', ')}</p>` : ''}
     ${list.length ? `<details class="nutri-status-details"><summary>Nicht eingerechnet (${list.length})</summary><ul>${list.map(u => `<li><strong>${escapeHtml(u.name)}</strong>: ${reasonText(u)}</li>`).join('')}</ul>
-      <button class="text-btn" data-action="nutrition-open-match" data-id="${escapeAttr(recipe.id)}">Zuordnung korrigieren</button></details>` : ''}
+      <button type="button" class="text-btn" data-action="nutrition-open-match" data-id="${escapeAttr(recipe.id)}">Zuordnung korrigieren</button></details>` : ''}
   </div>`;
 }
 
@@ -94,7 +94,7 @@ function nutritionIncompleteInner(recipe, result) {
     <p class="nutrition-empty-text"><strong>Unvollständig berechnet:</strong> ${result.matchedCount || 0} von ${total} Zutaten konnten eingerechnet werden. Eine Portionssumme wäre daher zu niedrig und wird nicht angezeigt.</p>
     ${nutritionIngredientStatus(recipe, result)}
     <div class="nutrition-compact-actions">
-      <button class="primary-btn" data-action="nutrition-open-match" data-id="${escapeAttr(recipe.id)}">${ICONS.apple} Zutaten zuordnen</button>
+      <button type="button" class="primary-btn" data-action="nutrition-open-match" data-id="${escapeAttr(recipe.id)}">${ICONS.apple} Zutaten zuordnen</button>
     </div>`;
 }
 
@@ -106,7 +106,7 @@ function nutritionCompactInner(recipe, result) {
   if (!result) {
     return `
       <p class="nutrition-empty-text">Noch nicht berechnet.</p>
-      <button class="primary-btn" data-action="nutrition-open-match" data-id="${escapeAttr(recipe.id)}">Nährwerte berechnen</button>
+      <button type="button" class="primary-btn" data-action="nutrition-open-match" data-id="${escapeAttr(recipe.id)}">Nährwerte berechnen</button>
     `;
   }
   const cmode = nutBasisFor(recipe, result).kind === 'total' ? 'total' : 'portion';   // Gesamtertrag oder Ausbeute unbekannt: Gesamtwerte statt Pro-Portion
@@ -126,15 +126,15 @@ function nutritionCompactInner(recipe, result) {
     ${note ? `<p class="nutrition-basis-note">${escapeHtml(note)}</p>` : ''}
     <div class="nutrition-compact-heading">
       <span class="nutrition-confidence-badge nutrition-coverage tone-${nutCoverageTone(result)}">${escapeHtml(nutCoverageText(result))}</span>
-      ${result.unresolvedCount > 0 ? `<button class="nutrition-review-link" data-action="nutrition-open-match" data-id="${escapeAttr(recipe.id)}">${result.unresolvedCount} Zutat${result.unresolvedCount === 1 ? '' : 'en'} prüfen</button>` : ''}
+      ${result.unresolvedCount > 0 ? `<button type="button" class="nutrition-review-link" data-action="nutrition-open-match" data-id="${escapeAttr(recipe.id)}">${result.unresolvedCount} Zutat${result.unresolvedCount === 1 ? '' : 'en'} prüfen</button>` : ''}
     </div>
     <div class="nutrition-compact-grid">${rows}</div>
     ${anyMissing ? `<p class="nutrition-hint-text">${NUT_MISSING_HINT}</p>` : ''}
     ${nutritionResultHints(result)}
     ${nutritionIngredientStatus(recipe, result)}
     <div class="nutrition-compact-actions">
-      <button class="nutrition-detail-link" data-action="nutrition-open-detail" data-id="${escapeAttr(recipe.id)}">Alle Nährwerte ${ICONS.chevronRight}</button>
-      <button class="nutrition-recalc-link" data-action="nutrition-open-match" data-id="${escapeAttr(recipe.id)}">${ICONS.swap} Neu berechnen</button>
+      <button type="button" class="nutrition-detail-link" data-action="nutrition-open-detail" data-id="${escapeAttr(recipe.id)}">Alle Nährwerte ${ICONS.chevronRight}</button>
+      <button type="button" class="nutrition-recalc-link" data-action="nutrition-open-match" data-id="${escapeAttr(recipe.id)}">${ICONS.swap} Neu berechnen</button>
     </div>
   `;
 }
@@ -159,7 +159,7 @@ async function hydrateNutritionCards() {
       if (st.status === 'not-calculated') node.innerHTML = nutritionCompactInner(recipe, null);
       else if (st.status === 'stale') node.innerHTML = `
           <p class="nutrition-empty-text">${ICONS.sparkle} Die Nährwerte sind veraltet (Zutaten, Portionen oder die Berechnung haben sich geändert). Bitte neu berechnen.</p>
-          <button class="primary-btn" data-action="nutrition-open-match" data-id="${escapeAttr(recipe.id)}">${ICONS.swap} Neu berechnen</button>`;
+          <button type="button" class="primary-btn" data-action="nutrition-open-match" data-id="${escapeAttr(recipe.id)}">${ICONS.swap} Neu berechnen</button>`;
       else if (st.status === 'failed') node.innerHTML = `<p class="nutrition-empty-text">Die Nährwerte konnten nicht gelesen werden.</p>`;
       else if (st.status === 'incomplete') node.innerHTML = nutritionIncompleteInner(recipe, st.result);
       else node.innerHTML = nutritionCompactInner(recipe, st.result);
@@ -227,8 +227,8 @@ function nutritionMatchStage(recipe) {
     </details>` : ''}
     ${!items.length ? `<p class="nutrition-empty-text">Keine berechenbaren Zutaten gefunden.</p>` : ''}
     <div class="form-actions">
-      <button class="ghost-btn" data-action="close-modal">Abbrechen</button>
-      <button class="primary-btn" data-action="nutrition-apply" data-id="${escapeAttr(recipe.id)}">Übernehmen</button>
+      <button type="button" class="ghost-btn" data-action="close-modal">Abbrechen</button>
+      <button type="button" class="primary-btn" data-action="nutrition-apply" data-id="${escapeAttr(recipe.id)}">Übernehmen</button>
     </div>
   `;
 }
@@ -254,10 +254,10 @@ function nutritionSelectStage(recipe) {
     ${results.length ? `<ul class="nutrition-match-list">${results.map((f) => nutritionFoodCandidateRow(f, target)).join('')}</ul>`
       : `<p class="nutrition-empty-text">${state.nutritionSearchQuery ? 'Keine Treffer in deinen Lebensmitteln.' : 'Suchbegriff eingeben oder unten ein eigenes Lebensmittel anlegen.'}</p>`}
     <div class="nutrition-select-actions">
-      <button class="add-row-btn" data-action="nutrition-open-custom" data-name="${escapeHtml(target)}">${ICONS.plus} Eigenes Lebensmittel erstellen</button>
+      <button type="button" class="add-row-btn" data-action="nutrition-open-custom" data-name="${escapeHtml(target)}">${ICONS.plus} Eigenes Lebensmittel erstellen</button>
     </div>
     <div class="form-actions">
-      <button class="ghost-btn" data-action="nutrition-back-to-match">Zurück</button>
+      <button type="button" class="ghost-btn" data-action="nutrition-back-to-match">Zurück</button>
     </div>
   `;
 }
@@ -288,8 +288,8 @@ function nutritionCustomStage() {
       ${field('cf-salt', 'Salz', 'g')}
     </div>
     <div class="form-actions">
-      <button class="ghost-btn" data-action="nutrition-back-to-match">Abbrechen</button>
-      <button class="primary-btn" data-action="nutrition-save-custom">Speichern</button>
+      <button type="button" class="ghost-btn" data-action="nutrition-back-to-match">Abbrechen</button>
+      <button type="button" class="primary-btn" data-action="nutrition-save-custom">Speichern</button>
     </div>
   `;
 }
@@ -355,7 +355,7 @@ function nutritionDetailModal(recipe, result) {
       <div class="modal-sheet" role="dialog" aria-modal="true" tabindex="-1" onclick="event.stopPropagation()">
         <h2 class="modal-title">Nährwerte</h2>
         <p class="nutrition-empty-text">Noch nicht berechnet.</p>
-        <button class="ghost-btn" data-action="close-modal" style="width:100%;">Schliessen</button>
+        <button type="button" class="ghost-btn" data-action="close-modal" style="width:100%;">Schliessen</button>
       </div>
     </div>`;
   }
@@ -369,7 +369,7 @@ function nutritionDetailModal(recipe, result) {
     <div class="modal-sheet" role="dialog" aria-modal="true" aria-labelledby="nutrition-detail-title" tabindex="-1" onclick="event.stopPropagation()">
       <h2 class="modal-title" id="nutrition-detail-title">Nährwerte</h2>
       ${modes.length > 1 ? `<div class="nutrition-segmented" role="radiogroup" aria-label="Bezug der Nährwerte">
-        ${modes.map((m) => `<button role="radio" aria-checked="${mode === m.id}" class="${mode === m.id ? 'active' : ''}" data-action="nutrition-set-mode" data-mode="${m.id}">${m.label}</button>`).join('')}
+        ${modes.map((m) => `<button type="button" role="radio" aria-checked="${mode === m.id}" class="${mode === m.id ? 'active' : ''}" data-action="nutrition-set-mode" data-mode="${m.id}">${m.label}</button>`).join('')}
       </div>` : ''}
       <p class="nutrition-basis-title">${escapeHtml(modeHeading)}</p>
       ${note ? `<p class="nutrition-basis-note">${escapeHtml(note)}</p>` : ''}
@@ -379,18 +379,18 @@ function nutritionDetailModal(recipe, result) {
       </div>
       ${nutritionResultHints(result)}
       <p class="nutrition-hint-text">${NUT_MISSING_HINT}</p>
-      <div class="field" style="margin:14px 0;">
+      <div class="field nutrition-weight-field">
         <label for="nutritionFinishedWeight">Gewicht nach dem Kochen (g, optional)</label>
         <input type="number" min="1" id="nutritionFinishedWeight" value="${recipe.nutritionFinishedWeight || ''}" aria-describedby="nutritionFinishedWeightHint">
-        <p class="hint-line" id="nutritionFinishedWeightHint">Nur mit dem gewogenen Endgewicht gibt es Werte pro 100 g. Beim Kochen verdampft Wasser, deshalb gilt das Gewicht der Zutaten nicht als Endgewicht.</p>
+        <p class="hint-line" id="nutritionFinishedWeightHint">Werte pro 100 g gibt es nur mit dem Gewicht des fertigen Gerichts. Beim Kochen verdampft Wasser, darum reicht das Gewicht der Zutaten nicht.</p>
       </div>
-      <button class="ghost-btn" data-action="nutrition-save-finished-weight" data-id="${escapeAttr(recipe.id)}" style="width:100%;margin-bottom:14px;">Gewicht speichern</button>
+      <button type="button" class="ghost-btn nutrition-weight-save" data-action="nutrition-save-finished-weight" data-id="${escapeAttr(recipe.id)}">Gewicht speichern</button>
       ${NUTRITION_GROUP_ORDER.map((g) => nutritionDetailGroup(g, result, mode)).join('')}
       ${sourceLabel ? `<p class="nutrition-source-line">${ICONS.book} ${escapeHtml(sourceLabel)}</p>` : ''}
       <p class="nutrition-disclaimer">Geschätzte Werte. Je nach Zutaten und Mengen können sie abweichen. Keine medizinische Aussage und keine Grundlage für Entscheidungen bei Allergien oder Unverträglichkeiten.</p>
       <div class="form-actions">
-        <button class="ghost-btn" data-action="nutrition-open-match" data-id="${escapeAttr(recipe.id)}">Zuordnung bearbeiten</button>
-        <button class="primary-btn" data-action="close-modal">Schliessen</button>
+        <button type="button" class="ghost-btn" data-action="nutrition-open-match" data-id="${escapeAttr(recipe.id)}">Zuordnung bearbeiten</button>
+        <button type="button" class="primary-btn" data-action="close-modal">Schliessen</button>
       </div>
     </div>
   </div>`;

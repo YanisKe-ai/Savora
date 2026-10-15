@@ -516,15 +516,15 @@ function ingredientsPanel(r) {
   // «Menge anpassen» rechnet nur die Anzeige um; das gespeicherte Rezept bleibt unveraendert (Bearbeiten ist eine eigene Aktion).
   const scaled = !unknownYield && servings !== r.servings;
   return `${unknownYield ? `<div class="amount-row amount-row--unknown">
-      <span class="amount-row-label">Ertrag unbekannt</span>
+      <span class="amount-row-label">Ergibt: unbekannt</span>
       <span class="hint-line">Es gelten die Originalmengen. Mit einer Ertragsangabe kannst du die Menge anpassen.</span>
-      <button class="outline-btn outline-btn--small" data-action="edit-recipe" data-id="${escapeAttr(r.id)}">Ertrag ergänzen</button>
+      <button type="button" class="outline-btn outline-btn--small" data-action="edit-recipe" data-id="${escapeAttr(r.id)}">Ertrag ergänzen</button>
     </div>` : `<div class="amount-row">
       <span class="amount-row-label" id="amount-label-${escapeAttr(r.id)}">Menge anpassen</span>
       <div class="stepper" role="group" aria-labelledby="amount-label-${escapeAttr(r.id)}">
-        <button data-action="serv-dec" data-id="${escapeAttr(r.id)}" aria-label="Weniger"${servings <= yieldStep(r) ? ' disabled' : ''}>${ICONS.minus}</button>
+        <button type="button" data-action="serv-dec" data-id="${escapeAttr(r.id)}" aria-label="Weniger"${servings <= yieldStep(r) ? ' disabled' : ''}>${ICONS.minus}</button>
         <span class="stepper-value" aria-live="polite">${escapeHtml(servingLabel(r, servings))}</span>
-        <button data-action="serv-inc" data-id="${escapeAttr(r.id)}" aria-label="Mehr">${ICONS.plus}</button>
+        <button type="button" data-action="serv-inc" data-id="${escapeAttr(r.id)}" aria-label="Mehr">${ICONS.plus}</button>
       </div>
     </div>`}
     ${scaled ? `<p class="hint-line amount-scaled-hint">Angepasst. Das Rezept selbst bleibt bei ${escapeHtml(servingLabel(r, r.servings))}. <button type="button" class="text-btn" data-action="serv-reset" data-id="${escapeAttr(r.id)}">Original</button></p>` : ''}
@@ -1231,7 +1231,7 @@ function formView() {
             <div class="field-row field-row--3">
               <div class="field"><label for="f-prep">Vorbereitung (Min.)</label><input type="number" id="f-prep" min="0" value="${r.prepMinutes || ''}"></div>
               <div class="field"><label for="f-cook">Garen oder Backen (Min.)</label><input type="number" id="f-cook" min="0" value="${r.cookMinutes || ''}"></div>
-              <div class="field"><label for="f-rest">Ruhen oder Kühlen (Min.)</label><input type="number" id="f-rest" min="0" value="${r.restMinutes || ''}"></div>
+              <div class="field"><label for="f-rest">Ruhen oder Abkühlen (Min.)</label><input type="number" id="f-rest" min="0" value="${r.restMinutes || ''}"></div>
             </div>
             <p class="hint-line">Gesamtzeit heisst: vom Start bis zum Servieren. Sie wird nicht automatisch addiert, weil Schritte parallel laufen können. Leere Felder bleiben unbekannt.</p>
           </details>
