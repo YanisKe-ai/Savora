@@ -104,10 +104,8 @@ async function pdfExportSetTemplate(id) {
   if (!PDF_TEMPLATES[next]) return;
   const changed = pdfNormTpl(m.template) !== next;
   m.template = next;
-  pdfRememberTemplate(next);
-  if (m.target === 'cookbook' && changed) {
-    try { const cfg = getCookbookConfig(); cfg.pdfTemplate = next; saveCookbookConfig(cfg); } catch (e) { /* Kochbuch unveraendert lassen */ }
-  }
+  // v83: Im Kochbuch ist der Wechsel in der Vorschau nur ein Vergleich. Gespeichert wird erst mit «… fürs Kochbuch übernehmen».
+  if (m.target !== 'cookbook') pdfRememberTemplate(next);
   if (m.stage === 'preview' && changed) { await pdfExportBuildAction(); return; }
   render();
   const again = document.querySelector(`[data-action="pdf-export-set-template"][data-id="${cssAttr(next)}"]`);
@@ -165,13 +163,18 @@ async function pdfExportBuildAction() {
   const m = state.modal;
   if (!m || m.type !== 'pdf-export') return;
   if (_pdfExportRun) return;   // doppelter Start
-  revokePdfPreviewUrl(); m.previewUrl = null; m.previewBlob = null; m.errorText = '';
+  // v83: Die bisher sichtbare Vorschau bleibt als Rueckfall erhalten (Abbrechen zeigt sie wieder), bis die neue fertig ist.
+  pdfExportReleasePrev(m);
+  m.prev = m.previewBlob ? { blob: m.previewBlob, url: m.previewUrl, template: m.shownTemplate, pageCount: m.pageCount, plannedPages: m.plannedPages, filename: m.filename } : null;
+  pdfExportAbort(); m.previewUrl = null; m.previewBlob = null; m.errorText = '';
+  const tpl = pdfNormTpl(m.template);
   const ctrl = new AbortController(); const run = { ctrl, t0: Date.now() }; _pdfExportRun = run;
   m.stage = 'building';
   render();
   let result = null;
   try {
-    const opts = { template: pdfNormTpl(m.template), author: pdfExportNameValue(m), signal: ctrl.signal, onProgress: (p) => pdfExportShowProgress(m, p) };
+    // Kochbuch: Name kommt aus der Kochbuch-Konfiguration (Feld «Name» des Titelblatts), deshalb hier kein author
+    const opts = { template: tpl, author: m.target === 'cookbook' ? undefined : pdfExportNameValue(m), signal: ctrl.signal, onProgress: (p) => pdfExportShowProgress(m, p) };
     result = m.target === 'cookbook'
       ? await buildCookbookPdf(m.nutritionDetail, opts)
       : await buildSinglePdf(m.recipeId, m.nutritionDetail, opts);
@@ -187,7 +190,11 @@ async function pdfExportBuildAction() {
     render();
     return;
   }
+  pdfExportReleasePrev(m);
   m.previewBlob = result.blob;
+  m.shownTemplate = tpl;   // Stil der sichtbaren, fertigen Vorschau (Download = genau diese Datei)
+  // echte Seitenzahlen pro Rezept nur fuer den Stil des Kochbuchs merken (ein Vergleich mit dem anderen Stil aendert die Zusammenfassung nicht)
+  if (m.target === 'cookbook' && typeof cookbookRememberBuild === 'function' && tpl === cookbookPdfTemplate(getCookbookConfig())) { try { cookbookRememberBuild(result.blob, tpl); } catch (e) { /* nur Anzeige */ } }
   m.pageCount = result.blob.pageCount || 0;
   m.plannedPages = result.blob.plannedPages || 0;
   m.zoom = 1;
@@ -200,7 +207,46 @@ function pdfExportCancelAction() {
   // Ein Doppelklick auf «PDF erstellen» trifft sonst gleich den neuen «Abbrechen»-Knopf an derselben Stelle
   if (_pdfExportRun && Date.now() - _pdfExportRun.t0 < 700) return;
   pdfExportAbort();
-  if (state.modal && state.modal.type === 'pdf-export') { state.modal.stage = 'options'; render(); }
+  const m = state.modal;
+  if (!m || m.type !== 'pdf-export') return;
+  if (m.target === 'cookbook') {
+    // v83: kein Optionsschritt im Kochbuch. Gab es schon eine fertige Vorschau, erscheint sie wieder (mit ihrem Stil), sonst zurueck zur Seite.
+    if (m.prev) { Object.assign(m, { previewBlob: m.prev.blob, previewUrl: m.prev.url, template: m.prev.template, shownTemplate: m.prev.template, pageCount: m.prev.pageCount, plannedPages: m.prev.plannedPages, filename: m.prev.filename, prev: null, stage: 'preview' }); render(); }
+    else closeModal();
+    return;
+  }
+  m.stage = 'options'; render();
+}
+function pdfExportReleasePrev(m) {
+  if (m && m.prev && m.prev.url) { try { URL.revokeObjectURL(m.prev.url); } catch (e) { /* schon frei */ } }
+  if (m) m.prev = null;
+}
+/* v83: Kochbuch-PDF direkt aus der gespeicherten Konfiguration erstellen (kein zweiter Dialog mit denselben Optionen) */
+async function pdfExportStartCookbook() {
+  if (_pdfExportRun) return;
+  const cfg = getCookbookConfig();
+  const o = cookbookExportOptions(cfg);
+  openModal({ type: 'pdf-export', target: 'cookbook', stage: 'building', template: o.template, nutritionDetail: o.nutritionDetail, fieldsReady: true }, '[data-action="export-cookbook"]');
+  await pdfExportBuildAction();
+}
+/* v83: im Vergleich gezeigten Stil als Seitenstil des Kochbuchs speichern */
+function pdfExportAdoptTemplate() {
+  const m = state.modal;
+  if (!m || m.type !== 'pdf-export' || m.target !== 'cookbook' || !m.shownTemplate) return;
+  const cfg = getCookbookConfig();
+  cfg.pdfTemplate = m.shownTemplate;
+  saveCookbookConfig(cfg); pdfRememberTemplate(m.shownTemplate);
+  if (m.previewBlob) { try { cookbookRememberBuild(m.previewBlob, m.shownTemplate); } catch (e) { /* nur Anzeige */ } }
+  render();
+  showToast(`Seitenstil «${cookbookPdfTemplateName(m.shownTemplate)}» gespeichert`);
+  const sw = document.querySelector('.pdf-style-switch [aria-checked="true"]'); if (sw && typeof focusWithoutScroll === 'function') focusWithoutScroll(sw);
+}
+function pdfExportCompareNote(m) {
+  if (m.target !== 'cookbook' || !m.shownTemplate) return '';
+  const proj = cookbookPdfTemplate(getCookbookConfig());
+  const shown = cookbookPdfTemplateName(m.shownTemplate), projName = cookbookPdfTemplateName(proj);
+  if (proj === m.shownTemplate) return `<p class="pdf-info-line pdf-compare" id="pdfCompareNote">Seitenstil des Kochbuchs: ${escapeHtml(projName)}. Ein Wechsel hier ist nur ein Vergleich und ändert das Kochbuch nicht.</p>`;
+  return `<div class="pdf-info-line pdf-compare pdf-compare--diff" id="pdfCompareNote" role="status"><p>Vergleich: Du siehst «${escapeHtml(shown)}». Das Kochbuch verwendet «${escapeHtml(projName)}».</p><button type="button" class="outline-btn outline-btn--small" data-action="pdf-export-adopt-template">«${escapeHtml(shown)}» fürs Kochbuch übernehmen</button></div>`;
 }
 
 /* Punkt 2 (Direkter Update-Prompt): Vorschau soll auf Mobile eigenstaendiger Fullscreen-Screen
@@ -211,12 +257,13 @@ function pdfExportPreviewStage() {
   const canShare = SavoraNative.isNative || (typeof navigator !== 'undefined' && !!navigator.share);
   return `
     <div class="pdf-preview-header">
-      <button class="ghost-btn pdf-preview-close" data-action="pdf-export-back" aria-label="Vorschau schliessen, zurück zu den Optionen">${ICONS.back} Zurück</button>
+      <button class="ghost-btn pdf-preview-close" data-action="pdf-export-back" aria-label="${m.target === 'cookbook' ? 'Vorschau schliessen, zurück zum Kochbuch' : 'Vorschau schliessen, zurück zu den Optionen'}">${ICONS.back} Zurück</button>
       <h2 class="modal-title" id="pdf-export-title">Vorschau</h2>
       <span class="pdf-preview-meta" aria-live="polite">${m.pageCount ? m.pageCount + (m.pageCount === 1 ? ' Seite' : ' Seiten') : ''}</span>
       ${pdfPreviewUsesCanvas() ? `<span class="pdf-zoom"><button class="icon-btn" data-action="pdf-zoom" data-id="out" aria-label="Verkleinern" ${(m.zoom || 1) <= 1 ? 'disabled' : ''}>−</button><button class="icon-btn" data-action="pdf-zoom" data-id="in" aria-label="Vergrössern" ${(m.zoom || 1) >= 3 ? 'disabled' : ''}>+</button></span>` : ''}
     </div>
     ${pdfStyleSwitchHtml(m)}
+    ${pdfExportCompareNote(m)}
     ${pdfMultiPageNote(m) ? `<p class="pdf-info-line" id="pdfMultiPageNote">${pdfMultiPageNote(m)}</p>` : ''}
     <div class="pdf-preview-frame-wrap">
       ${pdfPreviewUsesCanvas()
@@ -252,4 +299,5 @@ function revokePdfPreviewUrl() {
   if (state.modal && state.modal.type === 'pdf-export' && state.modal.previewUrl) {
     URL.revokeObjectURL(state.modal.previewUrl);
   }
+  if (state.modal && state.modal.type === 'pdf-export') pdfExportReleasePrev(state.modal);
 }

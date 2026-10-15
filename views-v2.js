@@ -548,9 +548,14 @@ function stepsPanel(r) {
   const entries = stepEntries(r);
   if (!entries.length) return `<p class="hint-line">Noch keine Zubereitungsschritte erfasst.</p>`;
   let n = 0;
-  return `<ol class="step-list-v2">${entries.map(e => e.heading
-    ? `<li class="step-heading"><h3>${escapeHtml(String(e.text).trim().replace(/:$/, ''))}</h3></li>`
-    : `<li><span class="step-no" aria-hidden="true">${++n}</span><p>${escapeHtml(e.text)}</p></li>`).join('')}</ol>`;
+  const sections = entries.some(e => e.heading);
+  const titleTag = sections ? 'h4' : 'h3';   // Abschnitt (h3) > Schrittüberschrift
+  // Schrittüberschrift separat, Text darunter. «Überschrift: Text» in einem Schritt wird nur in der Anzeige getrennt (stepDisplayParts, recipe-check.js).
+  return `<ol class="step-list-v2">${entries.map(e => {
+    if (e.heading) return `<li class="step-heading"><h3>${escapeHtml(String(e.text).trim().replace(/:$/, ''))}</h3></li>`;
+    const parts = typeof stepDisplayParts === 'function' ? stepDisplayParts(e.text) : { title: '', text: e.text };
+    return `<li class="step-item ${parts.title ? 'has-title' : ''}"><span class="step-no" aria-hidden="true">${++n}</span><div class="step-body"><span class="sr-only">Schritt ${n}: </span>${parts.title ? `<${titleTag} class="step-title">${escapeHtml(parts.title)}</${titleTag}>` : ''}<p>${escapeHtml(parts.text)}</p></div></li>`;
+  }).join('')}</ol>`;
 }
 function notesPanel(r) {
   const log = (r.cookLog || []).slice().sort((a, b) => (b.date || 0) - (a.date || 0));
@@ -628,10 +633,10 @@ function detailView() {
       </div>
       <button class="primary-btn primary-btn--block cook-start-inline" data-action="start-cook" data-id="${escapeAttr(r.id)}">${ICONS.play} Kochen starten</button>
       <div class="detail-tools" role="group" aria-label="Weitere Aktionen zum Rezept">
-        <button type="button" class="tool-action" data-action="add-to-shopping" data-id="${escapeAttr(r.id)}">${ICONS.cart}<span>Einkaufen</span></button>
-        <button type="button" class="tool-action" data-action="open-plan-recipe" data-id="${escapeAttr(r.id)}">${ICONS.calendar}<span>Planen</span></button>
+        <button type="button" class="tool-action" data-action="add-to-shopping" data-id="${escapeAttr(r.id)}">${ICONS.cart}<span>Auf die Einkaufsliste</span></button>
+        <button type="button" class="tool-action" data-action="open-plan-recipe" data-id="${escapeAttr(r.id)}">${ICONS.calendar}<span>Zum Wochenplan</span></button>
         <button type="button" class="tool-action" data-action="edit-recipe" data-id="${escapeAttr(r.id)}">${ICONS.edit}<span>Bearbeiten</span></button>
-        <button type="button" class="tool-action" data-action="share-recipe" data-id="${escapeAttr(r.id)}">${ICONS.share}<span>Teilen</span></button>
+        <button type="button" class="tool-action" data-action="open-share-menu" data-id="${escapeAttr(r.id)}" aria-haspopup="dialog">${ICONS.share}<span>Teilen</span></button>
       </div>
       ${source}
       ${conflictBox}
@@ -647,6 +652,7 @@ function detailView() {
     ${bottomNav()}
     ${state.modal && state.modal.type === 'delete' ? deleteModal(r) : ''}
     ${state.modal && state.modal.type === 'detail-menu' ? detailMenuModal(r) : ''}
+    ${state.modal && state.modal.type === 'share-menu' ? shareMenuModal(r) : ''}
     ${state.modal && state.modal.type === 'note' ? noteModal(r) : ''}
     ${state.modal && state.modal.type === 'collections' ? collectionsModal(r) : ''}
     ${state.modal && state.modal.type === 'shop-select' ? shopSelectModal() : ''}
@@ -673,19 +679,33 @@ function sheet(id, title, body) {
     </div>
   </div>`;
 }
+/* Teilen (v0.83): drei getrennte Wege, nie vermischt. Öffentlicher Link nur, wenn das Rezept veröffentlicht ist. */
+function recipePublishedPub(r) {
+  try { const p = typeof libPublicationForRecipe === 'function' ? libPublicationForRecipe(r.id) : null; return p && p.status === 'published' ? p : null; } catch (e) { return null; }
+}
+function shareMenuItemsHtml(r) {
+  const item = (action, icon, label, hint) => `<button class="menu-item ${hint ? 'menu-item--hint' : ''}" data-action="${action}" data-id="${escapeAttr(r.id)}">${icon}<span class="menu-item-text"><span>${label}</span>${hint ? `<span class="menu-item-hint">${hint}</span>` : ''}</span></button>`;
+  const pub = recipePublishedPub(r);
+  return item('share-open-send', ICONS.user || ICONS.share, 'An Freunde senden', 'Privat, nur an Freunde in Savora')
+    + (pub ? item('share-public-link', ICONS.link, 'Öffentlichen Link teilen', 'Link zur Veröffentlichung in der Rezeptbibliothek') : '')
+    + (typeof libPublishMenuItemHtml === 'function' && !r.publicOrigin ? libPublishMenuItemHtml(r) : '')
+    + item('share-recipe', ICONS.pdf, 'Als PDF teilen');
+}
+function shareMenuModal(r) {
+  return sheet('share-menu-title', 'Teilen', `<div class="menu-list share-menu">${shareMenuItemsHtml(r)}</div>`);
+}
 function detailMenuModal(r) {
   const item = (action, icon, label, extra) => `<button class="menu-item ${extra || ''}" data-action="${action}" data-id="${escapeAttr(r.id)}">${icon}<span>${label}</span></button>`;
   return sheet('detail-menu-title', r.title || 'Rezept', `<div class="menu-list">
     ${item('edit-recipe', ICONS.edit, 'Bearbeiten')}
     ${item('duplicate-recipe', ICONS.copy, 'Duplizieren')}
     ${item('export-pdf', ICONS.pdf, 'Als PDF exportieren')}
-    ${item('share-recipe', ICONS.share, 'Teilen')}
-    ${item('share-open-send', ICONS.link, 'An Freund in Savora senden')}
-    ${typeof libPublishMenuItemHtml === 'function' && !r.publicOrigin ? libPublishMenuItemHtml(r) : ''}
     ${item('add-to-cookbook', ICONS.bookOpen, 'Zum Kochbuch hinzufügen')}
     ${item('open-collections-modal', ICONS.folder, 'Zu Sammlung hinzufügen')}
-    ${item('open-plan-recipe', ICONS.calendar, 'In den Wochenplan')}
+    ${item('open-plan-recipe', ICONS.calendar, 'Zum Wochenplan')}
     ${item('open-note-modal', ICONS.note, 'Notiz hinzufügen')}
+    <p class="menu-group-title" role="presentation">Teilen</p>
+    ${shareMenuItemsHtml(r)}
     ${item('confirm-delete', ICONS.trash, 'Löschen', 'menu-item--danger')}
   </div>`);
 }
@@ -889,13 +909,16 @@ function shopItemModal(i) {
     </div>
     <div class="form-actions"><button class="ghost-btn" data-action="close-modal">Abbrechen</button><button class="primary-btn" data-action="save-shop-item" data-id="${escapeAttr(i.id)}">Speichern</button></div>`);
 }
+// Einkauf «Aus Rezepten»: Suche, Mehrfachauswahl mit Menge je Rezept, danach die Vorschau (shopSelectModal)
 function pickRecipesModal() {
-  const sel = state.modal.selected || [];
-  return sheet('pick-recipes-title', 'Rezepte wählen', `
-    <div class="picker-list">
-      ${state.recipes.map(r => `<label class="shop-select-row"><input type="checkbox" data-pick-recipe="${escapeAttr(r.id)}" ${sel.includes(r.id) ? 'checked' : ''}><span class="ing-name">${escapeHtml(r.title || 'Ohne Titel')}</span><span class="ing-amount">${escapeHtml(servingShort(r, r.servings || 1))}</span></label>`).join('') || '<p class="hint-line">Noch keine Rezepte vorhanden.</p>'}
-    </div>
-    <div class="form-actions"><button class="ghost-btn" data-action="close-modal">Abbrechen</button><button class="primary-btn" data-action="confirm-pick-recipes">Weiter</button></div>`);
+  const m = state.modal;
+  m.rpPicker = true; m.rpMulti = true;
+  if (!Array.isArray(m.rpSel)) m.rpSel = Array.isArray(m.selected) ? m.selected.slice() : [];
+  const n = rpSelected(m).length;
+  return rpSheetHtml({ id: 'pick-recipes-title', title: 'Aus Rezepten einkaufen', sub: 'Wähle Rezepte und Mengen. Danach siehst du die Zutaten und wählst, was du brauchst.', cls: 'rp-sheet--shop',
+    body: `${state.recipes.length ? rpSearchHtml(m) : ''}${rpListHtml(m, 'Rezepte')}`,
+    foot: `<p class="rp-count" id="rpCount" role="status" aria-live="polite">${escapeHtml(rpCountText(m))}</p>
+      <div class="rp-actions"><button type="button" class="ghost-btn" data-action="close-modal">Abbrechen</button><button type="button" class="primary-btn" data-action="confirm-pick-recipes" data-rp-confirm>${n ? `Weiter mit ${n} ${n === 1 ? 'Rezept' : 'Rezepten'}` : 'Weiter zur Vorschau'}</button></div>` });
 }
 
 /* ---------- Wochenplan ---------- */
@@ -981,28 +1004,47 @@ function mealSlotChooser(current, customValue) {
     </div>
     <div class="field"><label for="planMealCustom">Eigene Bezeichnung (optional)</label><input id="planMealCustom" type="text" placeholder="z.B. Znüni oder Gäste" value="${escapeHtml(isCustom ? current : (customValue || ''))}"></div>`;
 }
+// Mahlzeit fuer neue Eintraege: optional; eine eigene Bezeichnung erst ueber «Andere Bezeichnung»
+function planMealPicker(m) {
+  const custom = m.mealCustom || (m.meal && !MEAL_SLOTS.some(x => x.id === m.meal) ? m.meal : '');
+  const other = !!(m.mealOther || custom);
+  return `<fieldset class="rp-group">
+      <legend class="rp-label">Mahlzeit <span class="rp-optional">(optional)</span></legend>
+      <div class="chip-row chip-row--wrap rp-chips" role="radiogroup" aria-label="Mahlzeit">
+        ${MEAL_SLOTS.map(x => `<button type="button" class="chip ${m.meal === x.id && !other ? 'chip--active' : ''}" role="radio" aria-checked="${m.meal === x.id && !other}" data-action="set-plan-meal" data-id="${escapeAttr(x.id)}">${x.label}</button>`).join('')}
+        <button type="button" class="chip ${other ? 'chip--active' : ''}" role="radio" aria-checked="${other}" data-action="plan-meal-other">Andere Bezeichnung</button>
+      </div>
+      ${other ? `<div class="field rp-field"><label for="planMealCustom">Eigene Bezeichnung</label><input id="planMealCustom" type="text" maxlength="40" placeholder="z. B. Znüni oder Gäste" autocomplete="off" enterkeyhint="done" value="${escapeAttr(custom)}"></div>` : ''}
+    </fieldset>`;
+}
+// Wochenplan: Planungsdialog fuer einen Tag. Umschalter «Rezept» / «Ohne Rezept», nie alles gleichzeitig.
 function recipePickerModal() {
   const m = state.modal;
+  m.rpPicker = true; m.rpMulti = false;
   const [y, mo, d] = m.date.split('-').map(Number);
   const labelDate = new Date(y, mo - 1, d).toLocaleDateString('de-CH', { weekday: 'long', day: 'numeric', month: 'long' });
-  return sheet('picker-modal-title', `Planen für ${labelDate}`, `
-    ${mealSlotChooser(m.meal || '')}
-    <div class="plan-quick" role="group" aria-label="Ohne Rezept eintragen">
-      <h4 class="plan-quick-title">Ohne Rezept</h4>
-      <div class="chip-row chip-row--wrap">
+  const mode = m.planMode === 'note' ? 'note' : 'recipe';
+  const seg = `<div class="rp-seg" role="radiogroup" aria-label="Was planen?">
+      <button type="button" class="rp-seg-btn" role="radio" aria-checked="${mode === 'recipe'}" data-action="plan-mode" data-id="recipe">Rezept</button>
+      <button type="button" class="rp-seg-btn" role="radio" aria-checked="${mode === 'note'}" data-action="plan-mode" data-id="note">Ohne Rezept</button>
+    </div>`;
+  const recipePart = `${state.recipes.length ? rpSearchHtml(m) : ''}${rpListHtml(m, 'Rezepte')}`;
+  const notePart = `<div class="rp-note">
+      <p class="rp-label" id="planQuickLabel">Schnell eintragen</p>
+      <div class="chip-row chip-row--wrap rp-chips" role="group" aria-labelledby="planQuickLabel">
         <button type="button" class="chip" data-action="add-plan-note" data-note="Reste">Reste</button>
         <button type="button" class="chip" data-action="add-plan-note" data-note="Auswärts">Auswärts</button>
       </div>
-      <div class="plan-note-row">
-        <label for="planNoteInput" class="sr-only">Eigene Notiz</label>
-        <input id="planNoteInput" type="text" maxlength="${PLAN_NOTE_MAX}" placeholder="Eigene Notiz, z. B. Pizza bei Anna" autocomplete="off" enterkeyhint="done" value="${escapeHtml(m.noteDraft || '')}">
-        <button type="button" class="outline-btn" data-action="add-plan-note">Eintragen</button>
-      </div>
-    </div>
-    <h4 class="plan-quick-title">Rezept wählen</h4>
-    <div class="picker-list">
-      ${state.recipes.map(r => `<button class="picker-item" data-action="assign-mealplan-recipe" data-date="${escapeAttr(m.date)}" data-id="${escapeAttr(r.id)}">${recipeImageHtml(r, 'picker-thumb', 'thumb')}<span>${escapeHtml(r.title || 'Ohne Titel')}</span></button>`).join('')}
-    </div>`);
+      <div class="field rp-field"><label for="planNoteInput">Eigene Notiz</label>
+        <input id="planNoteInput" type="text" maxlength="${PLAN_NOTE_MAX}" placeholder="z. B. Pizza bei Anna" autocomplete="off" enterkeyhint="done" value="${escapeAttr(m.noteDraft || '')}"></div>
+    </div>`;
+  const foot = mode === 'recipe'
+    ? `<p class="rp-count" id="rpCount" role="status" aria-live="polite">${escapeHtml(rpCountText(m))}</p>
+       <div id="rpPlanQty">${rpPlanQtyHtml(m)}</div>
+       <div class="rp-actions"><button type="button" class="ghost-btn" data-action="close-modal">Abbrechen</button><button type="button" class="primary-btn" data-action="plan-commit-recipe" data-date="${escapeAttr(m.date)}">Eintragen</button></div>`
+    : `<div class="rp-actions"><button type="button" class="ghost-btn" data-action="close-modal">Abbrechen</button><button type="button" class="primary-btn" data-action="add-plan-note">Notiz eintragen</button></div>`;
+  return rpSheetHtml({ id: 'picker-modal-title', title: `Planen für ${labelDate}`, cls: 'rp-sheet--plan',
+    body: `${planMealPicker(m)}${seg}<div class="rp-pane" data-plan-mode="${mode}">${mode === 'recipe' ? recipePart : notePart}</div>`, foot });
 }
 function planEntryModal() {
   const m = state.modal;
@@ -1034,13 +1076,20 @@ function planEntryModal() {
       <button class="primary-btn" data-action="save-plan-entry">Speichern</button>
     </div>`);
 }
-// Aus der Rezeptdetailansicht: Rezept einem Tag der aktuellen Woche zuordnen.
+// Aus der Rezeptdetailansicht (auch nach «Speichern und planen» in der Bibliothek, dann mit der lokalen ID):
+// Mahlzeit und Menge waehlen, dann den Tag der aktuellen Woche antippen.
 function planRecipeModal() {
   const m = state.modal;
+  m.rpPicker = true; m.rpMulti = false;
+  const r = state.recipes.find(x => x.id === m.recipeId);
   const days = Array.from({ length: 7 }, (_, i) => addDays(getMonday(new Date()), i));
-  return sheet('plan-recipe-title', 'In den Wochenplan', `
-    ${mealSlotChooser(m.meal || '')}
-    <div class="menu-list">${days.map((d, i) => `<button class="menu-item" data-action="assign-mealplan-recipe" data-date="${fmtDateKey(d)}" data-id="${escapeAttr(m.recipeId)}">${ICONS.calendar}<span>${WEEKDAY_LABELS[i]}, ${d.getDate()}. ${MONTH_LABELS[d.getMonth()]}</span></button>`).join('')}</div>`);
+  const todayKey = fmtDateKey(new Date());
+  const qty = r && yieldKnown(r) ? `<div class="rp-qty-line"><span class="rp-qty-label">Menge</span>${rpStepperHtml(r, rpQtyFor(m, r))}</div>` : '';
+  return rpSheetHtml({ id: 'plan-recipe-title', title: 'In den Wochenplan', sub: r ? (r.title || 'Ohne Titel') : '', cls: 'rp-sheet--plan',
+    body: `${planMealPicker(m)}${qty}
+      <p class="rp-label" id="planDayLabel">Tag wählen</p>
+      <div class="menu-list" role="group" aria-labelledby="planDayLabel">${days.map((d, i) => { const k = fmtDateKey(d); return `<button class="menu-item" data-action="assign-mealplan-recipe" data-date="${k}" data-id="${escapeAttr(m.recipeId)}">${ICONS.calendar}<span>${WEEKDAY_LABELS[i]}, ${d.getDate()}. ${MONTH_LABELS[d.getMonth()]}${k === todayKey ? ' <span class="plan-today">Heute</span>' : ''}</span></button>`; }).join('')}</div>`,
+    foot: `<div class="rp-actions"><button type="button" class="ghost-btn" data-action="close-modal">Abbrechen</button></div>` });
 }
 
 /* Vorlagenwaehler (Radiogruppe, Tastatur und Touch) und Vorschau aus derselben Layoutdefinition wie der Export */
@@ -1084,7 +1133,7 @@ function cookbookStepSelect(cfg) {
             <button class="icon-btn icon-btn--small" data-action="cb-move-item" data-id="${escapeAttr(r.id)}" data-delta="1" ${n === cfg.items.length - 1 ? 'disabled' : ''} aria-label="${escapeHtml(r.title || '')} nach unten">${ICONS.arrowDown}</button>
             <button class="icon-btn icon-btn--small" data-action="cb-remove-item" data-id="${escapeAttr(r.id)}" aria-label="${escapeHtml(r.title || '')} aus dem Kochbuch nehmen">${ICONS.x}</button>
           </span></div>`; }).join('')}
-        ${missing.length ? `<h3 class="sub-title">Nicht im Kochbuch</h3>${missing.map(r => `<div class="cb-item cb-item--out"><span class="cb-item-title">${escapeHtml(r.title || 'Ohne Titel')}</span><button class="outline-btn outline-btn--small" data-action="cb-add-item" data-id="${escapeAttr(r.id)}" aria-label="${escapeHtml(r.title || 'Ohne Titel')} ins Kochbuch aufnehmen">${ICONS.plus} Aufnehmen</button></div>`).join('')}` : ''}
+        ${missing.length ? `<h3 class="sub-title">Nicht im Kochbuch</h3>${typeof rpCookbookSearchHtml === 'function' ? rpCookbookSearchHtml(missing.length) : ''}${missing.map(r => `<div class="cb-item cb-item--out"><span class="cb-item-title">${escapeHtml(r.title || 'Ohne Titel')}</span><button class="outline-btn outline-btn--small" data-action="cb-add-item" data-id="${escapeAttr(r.id)}" aria-label="${escapeHtml(r.title || 'Ohne Titel')} ins Kochbuch aufnehmen">${ICONS.plus} Aufnehmen</button></div>`).join('')}` : ''}
       </section>
       <section class="panel">
         <h2 class="section-title">Kapitel</h2>
@@ -1103,6 +1152,9 @@ function cookbookPageStyleChoice(cfg) {
     </div>`;
 }
 function cookbookStepDesign(cfg) {
+  const nut = cookbookPdfNutrition(cfg);
+  const author = String(cfg.author || '').trim();
+  const sender = String(state.senderName || '').trim();
   return `
       <section class="panel">
         <h2 class="section-title" id="cbStepTitle" tabindex="-1">Titelblatt</h2>
@@ -1112,29 +1164,71 @@ function cookbookStepDesign(cfg) {
         <h2 class="section-title">Seitenstil der Rezepte</h2>
         <p class="hint-line">Gilt für alle Rezeptseiten dieses Kochbuchs. Das Titelblatt oben ist davon unabhängig.</p>
         ${cookbookPageStyleChoice(cfg)}
+      </section>
+      <section class="panel cb-pdf-opts" aria-labelledby="cbPdfOptsTitle">
+        <h2 class="section-title" id="cbPdfOptsTitle">Im PDF</h2>
+        <div class="cb-opt">
+          <h3 class="sub-title">Name</h3>
+          <p class="hint-line" id="cbNameWhere">${author ? `«${escapeHtml(author)}» steht auf dem Titelblatt und in der Fusszeile jeder Rezeptseite.` : 'Kein Name eingetragen: Im PDF steht kein Name.'} Den Namen änderst du oben beim Titelblatt im Feld «Name». Leer lassen, wenn kein Name gedruckt werden soll.</p>
+          ${!author && sender ? `<button type="button" class="outline-btn outline-btn--small" data-action="cb-use-sender-name">«${escapeHtml(sender)}» als Name eintragen</button>` : ''}
+          ${author ? '<button type="button" class="text-btn" data-action="cb-clear-name">Keinen Namen drucken</button>' : ''}
+        </div>
+        ${state.showNutrition ? `<div class="cb-opt">
+          <h3 class="sub-title" id="cbNutLabel">Nährwerte</h3>
+          <div class="nutrition-segmented" role="radiogroup" aria-labelledby="cbNutLabel">
+            ${COOKBOOK_NUTRITION_LEVELS.map(l => `<button type="button" role="radio" aria-checked="${nut === l}" class="${nut === l ? 'active' : ''}" data-action="cb-pdf-nutrition" data-level="${l}">${COOKBOOK_NUTRITION_LABEL[l]}</button>`).join('')}
+          </div>
+          <p class="hint-line">Gedruckt nur bei Rezepten mit berechneten Nährwerten.</p>
+        </div>` : ''}
       </section>`;
 }
+/* Ein Prüfhinweis mit Ziel (Rezept prüfen, Cover bearbeiten, Kapitel bearbeiten, PDF-Seite ansehen) */
+function cookbookHintHtml(h) {
+  const lvl = { error: 'Fehler', check: 'Prüfen', info: 'Info' }[h.level] || 'Info';
+  const t = h.target;
+  const btn = t ? `<button type="button" class="text-btn cb-hint-go" data-action="${escapeAttr(t.action)}" ${t.id != null ? `data-id="${escapeAttr(t.id)}"` : ''}>${escapeHtml(t.label)}</button>` : '';
+  const details = h.kind === 'empty-chapters' && h.names && h.names.length
+    ? `<details class="cb-hint-details"><summary>Leere Kapitel anzeigen</summary><ul>${h.names.map(n => `<li>${escapeHtml(n || 'Ohne Namen')}</li>`).join('')}</ul><p class="hint-line">Die Kapitel bleiben im Kochbuch erhalten. Sobald du ihnen Rezepte zuordnest, erscheinen sie im PDF.</p></details>` : '';
+  return `<li class="cb-warn cb-warn--${h.level === 'check' ? 'warn' : h.level}" data-level="${h.level}"><span class="cb-hint-level">${lvl}</span><div class="cb-hint-body"><p class="cb-hint-text">${escapeHtml(h.text)}</p>${details}${btn}</div></li>`;
+}
 function cookbookStepPreview(cfg) {
-  const warnings = cookbookWarnings(cfg);
+  const hints = cookbookReview(cfg);
+  const sum = cookbookSummary(cfg);
   const cv = cfg.cover || coverSanitizeConfig(null, true);
   const layout = coverLayout(coverInputFromConfig(cfg));
-  const tpl = pdfTemplateById(pdfNormTpl(cfg.pdfTemplate || pdfDefaultTemplateId()));
+  const tplId = cookbookPdfTemplate(cfg);
   const tplName = (coverTemplateById(cv.templateId) || {}).name || '';
+  const coverName = cv.v === COVER_SCHEMA_V2 && cv.mode === 'custom' ? 'Eigenes Cover' : tplName;
   const n = cfg.items.length;
+  const book = cookbookActiveBook();
+  const last = cookbookLastBuildFor(book.id);
+  const byId = Object.fromEntries(state.recipes.map(r => [r.id, r]));
+  const recipes = cookbookOrderedSections(cfg).flatMap(s => s.recipes);
+  const pagesList = last && Object.keys(last.pages).length ? `<div class="cb-pages">
+      <h3 class="sub-title">Seiten im letzten PDF (${escapeHtml(cookbookPdfTemplateName(last.template))}, ${cookbookPlural(last.pageCount, 'Seite', 'Seiten')})</h3>
+      <ul class="cb-pages-list">${recipes.filter(r => last.pages[r.id]).map(r => `<li><span>${escapeHtml((byId[r.id] || r).title || 'Ohne Titel')}</span><span class="cb-pages-n">${cookbookPlural(last.pages[r.id], 'Seite', 'Seiten')}</span></li>`).join('')}</ul>
+      <button type="button" class="text-btn" data-action="export-cookbook">PDF-Seite ansehen</button>
+    </div>` : '';
+  const nut = cookbookPdfNutrition(cfg);
+  const author = String(cfg.author || '').trim();
   return `
       <section class="panel cb-final">
         <h2 class="section-title" id="cbStepTitle" tabindex="-1">Vorschau &amp; PDF</h2>
         <div class="cb-final-grid">
           <div class="cover-preview" aria-label="Vorschau des Titelblatts">${coverPreviewHtml(layout)}</div>
-          <dl class="cb-summary">
-            <div><dt>Rezepte</dt><dd>${n} ${n === 1 ? 'Rezept' : 'Rezepte'}${cfg.chapters.length ? `, ${cfg.chapters.length} ${cfg.chapters.length === 1 ? 'Kapitel' : 'Kapitel'}` : ''}</dd></div>
-            <div><dt>Titelblatt</dt><dd>${escapeHtml(tplName)}</dd></div>
-            <div><dt>Seitenstil</dt><dd>${escapeHtml(tpl.name)}</dd></div>
+          <div class="cb-summary-wrap"><dl class="cb-summary">
+            <div><dt>Inhalt</dt><dd id="cbSummaryText">${escapeHtml(sum.text)}</dd></div>
+            <div><dt>Titelblatt</dt><dd>${escapeHtml(coverName)}</dd></div>
+            <div><dt>Seitenstil</dt><dd>${escapeHtml(cookbookPdfTemplateName(tplId))}</dd></div>
+            <div><dt>Name</dt><dd>${author ? escapeHtml(author) : 'Kein Name'}</dd></div>
+            ${state.showNutrition ? `<div><dt>Nährwerte</dt><dd>${COOKBOOK_NUTRITION_LABEL[nut]}</dd></div>` : ''}
           </dl>
+          <button type="button" class="text-btn cb-summary-edit" data-action="cb-step" data-id="2">Gestaltung ändern</button></div>
         </div>
-        <h3 class="sub-title">Prüfung</h3>
-        ${warnings.length ? `<ul class="cb-warnings">${warnings.map(w => `<li class="cb-warn cb-warn--${w.level}">${escapeHtml(w.text)}</li>`).join('')}</ul>` : '<p class="hint-line">Keine Auffälligkeiten gefunden.</p>'}
-        <p class="hint-line">Inhaltsverzeichnis und Seitenzahlen werden automatisch erstellt.</p>
+        <h3 class="sub-title" id="cbHintsTitle">Prüfung</h3>
+        ${hints.length ? `<ul class="cb-warnings" aria-labelledby="cbHintsTitle">${hints.map(cookbookHintHtml).join('')}</ul>` : '<p class="hint-line">Keine Auffälligkeiten gefunden.</p>'}
+        ${pagesList}
+        <p class="hint-line">Inhaltsverzeichnis und Seitenzahlen werden automatisch erstellt. Die Vorschau zeigt genau die Datei, die du danach herunterlädst.</p>
         <button class="primary-btn primary-btn--block" data-action="export-cookbook" ${n ? '' : 'disabled'}>${ICONS.pdf} PDF-Vorschau erstellen</button>
       </section>`;
 }
@@ -1266,7 +1360,7 @@ function formView() {
               <li class="${realCount ? 'ok' : 'warn'}">${realCount} Zutat${realCount === 1 ? '' : 'en'}${missingAmounts ? `, davon ${missingAmounts} ohne Mengenangabe` : ''}</li>
               <li class="${stepCount ? 'ok' : 'warn'}">${stepCount} Zubereitungsschritt${stepCount === 1 ? '' : 'e'}</li>
             </ul>
-            ${(() => { const iss = typeof recipeQualityIssues === 'function' ? recipeQualityIssues(r) : []; return iss.length ? `<h3 class="sub-title">Hinweise</h3><ul class="review-list">${iss.map(i => `<li class="warn">${escapeHtml(i.text)}</li>`).join('')}</ul><p class="hint-line">Nichts wird automatisch geändert. Nach dem Speichern kannst du Vorschläge auf der Rezeptseite einzeln übernehmen.</p>` : ''; })()}
+            ${(() => { const iss = typeof recipeQualityIssues === 'function' ? recipeQualityIssues(r) : []; return iss.length ? `<h3 class="sub-title">Hinweise</h3><div class="recipe-check recipe-check--form">${recipeCheckListHtml(r, iss, true)}</div><p class="hint-line">Nichts wird automatisch geändert. Nach dem Speichern kannst du Vorschläge auf der Rezeptseite einzeln übernehmen.</p>` : ''; })()}
           </div>
           ${!isNew ? `<button type="button" class="text-btn danger-link" data-action="confirm-delete" data-id="${escapeAttr(r.id)}">${ICONS.trash} Rezept löschen</button>` : ''}
         </section>

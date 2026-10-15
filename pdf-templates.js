@@ -400,7 +400,7 @@ function pvPage(ctx, pg) {
   const photoOn = !!(pg.first && ctx.imgUrl && ctx.frame);
   const cls = ['pv-page', 'pv-recipe', pg.first ? '' : 'pv-cont-page', tpl.cls, density !== 'normal' ? 'pv-tight' : '', photoOn ? 'pv-photo-side' : 'pv-photo-none'].filter(Boolean).join(' ');
   const head = pg.first ? pvHeadHtml(ctx) : pvContinuationHead(m.title, pg.n, pg.total);
-  return `<section class="${cls}" lang="de" data-recipe-id="${pvEsc(m.id)}" data-page-kind="${pg.first ? 'recipe' : 'continuation'}" data-density="${density}" data-continuation="${pg.first ? 'false' : 'true'}">
+  return `<section class="${cls}" lang="de" data-recipe-id="${pvEsc(m.id)}" data-page-kind="${pg.first ? 'recipe' : 'continuation'}" data-density="${density}"${ctx.dense ? ' data-dense="1"' : ''} data-continuation="${pg.first ? 'false' : 'true'}">
     ${head}
     ${pvIngPanel(pg.ing || [], pg.first ? 'Zutaten' : 'Zutaten <span class="pv-cont">· Fortsetzung</span>', density)}
     ${pvStepsHtml(pg.steps || [], 'Zubereitung', !pg.first)}
@@ -412,10 +412,11 @@ function pvPage(ctx, pg) {
 function pvContinuationPage(m, ingU, stepU, extrasHtml, tight, ingRight, n, total) {
   return pvPage({ m, recipe: null, imgUrl: null, frame: null, tight: !!tight }, { first: false, n, total, ing: ingU || [], steps: stepU || [], extras: extrasHtml ? [{ key: 'x', html: extrasHtml }] : [] });
 }
-/* Komplettes einseitiges Rezept (Einseiten-Kandidaten der Seitenplanung). opts: { frame, tight, density } */
+/* Komplettes einseitiges Rezept (Einseiten-Kandidaten der Seitenplanung). opts: { frame, tight, density, dense }
+   dense (v83): letzter Einseiten-Versuch mit engeren Abstaenden und kleinerem Foto; Schriftgroessen bleiben unveraendert. */
 function pvRecipePage(m, recipe, imgUrl, opts, nutritionDetail) {
   opts = opts || {};
-  const ctx = { m, recipe, imgUrl: imgUrl || null, frame: opts.frame || null, tight: !!opts.tight, density: opts.density, detail: nutritionDetail };
+  const ctx = { m, recipe, imgUrl: imgUrl || null, frame: opts.frame || null, tight: !!opts.tight, density: opts.density, dense: !!opts.dense, detail: nutritionDetail };
   return pvPage(ctx, { first: true, n: 1, total: 1, ing: pvIngredientUnits(m.ingredients), steps: pvStepUnits(m.steps), extras: pvExtrasUnits(m, nutritionDetail) });
 }
 

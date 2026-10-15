@@ -75,6 +75,7 @@ async function renderPdfPreview(blob, box) {
   }
 }
 function bindPdfPreview() {
+  if (typeof cookbookBindThumbs === 'function' && document.querySelector('img[data-cbk-thumb].is-placeholder')) cookbookBindThumbs().catch(() => {});   // v83: Coverminiaturen der Kochbuchübersicht (cookbooks.js)
   // Beim Oeffnen des Export-Dialogs die Bibliothek schon laden: so liegt sie im Cache und die Vorschau klappt auch offline
   if (state.modal && state.modal.type === 'pdf-export' && pdfPreviewUsesCanvas()) loadPdfJs().catch(() => {});
   const box = document.getElementById('pdfPages');
