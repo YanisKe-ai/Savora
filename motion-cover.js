@@ -133,6 +133,10 @@ function motionCookbookStep(from, to, renderFn) {
   parts.forEach((p) => {
     _mcStep.anims.push(mcQuiet(p.animate([{ opacity: 0, transform: `translateX(${dir * MC_STEP.x}px)` }, { opacity: 1, transform: 'translateX(0)' }], opts(MC_STEP.inMs, MC_STEP.inDelay))));
   });
+  // Gemeinsamer, fester Start ab Ende des Neuzeichnens: sonst wartet Chrome bei Compositor-Animationen ein bis drei Frames
+  // auf die Startmeldung (auf langsamen Rechnern mehr), und der Wechsel endet spuerbar spaeter als 220 ms.
+  const start = document.timeline && document.timeline.currentTime != null ? performance.now() : null;
+  if (start != null) _mcStep.anims.forEach((a) => { try { a.startTime = start; } catch (e) { /* Browser setzt selbst */ } });
   const last = _mcStep.anims[_mcStep.anims.length - 1];
   last.finished.then(() => { if (tok === _mcStep.tok) mcStepFinish(); }, () => {});
 }
