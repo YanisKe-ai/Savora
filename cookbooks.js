@@ -245,12 +245,13 @@ function cookbookSummary(cfg) {
 function cookbookEmptyChaptersText(n) { return n === 1 ? '1 leeres Kapitel wird im PDF ausgelassen.' : `${n} leere Kapitel werden im PDF ausgelassen.`; }
 
 /* Ergebnis des letzten Kochbuch-PDFs (nur im Speicher): echte Seitenzahlen pro Rezept.
-   INTEGRATIONSPUNKT H4: pdf.js liefert nach dem Rendern `pdfLastPageCounts` (Map recipeId -> Seiten). Bis dahin werden die Seiten aus
-   blob.planLog (gleiche Reihenfolge wie cookbookOrderedSections) abgeleitet, sonst aus blob.recipeStart. */
+   Quelle: pdf.js (H4) liefert nach dem Rendern `pdfLastPageCounts` (Map recipeId -> tatsaechliche Seiten) und `pdfLastPlan`.
+   Nur als Rueckfall (aelterer Stand ohne diese Schnittstelle): blob.planLog, sonst blob.recipeStart. */
 function cookbookPageCountsFromBlob(blob, cfg) {
   const out = {};
   try {
-    if (typeof pdfLastPageCounts !== 'undefined' && pdfLastPageCounts && typeof pdfLastPageCounts.forEach === 'function') {
+    const planOk = typeof pdfLastPlan === 'undefined' || !pdfLastPlan || pdfLastPlan.kind === 'cookbook';
+    if (planOk && typeof pdfLastPageCounts !== 'undefined' && pdfLastPageCounts && typeof pdfLastPageCounts.forEach === 'function') {
       pdfLastPageCounts.forEach((n, id) => { if (n > 0) out[id] = n; });
       if (Object.keys(out).length) return out;
     }

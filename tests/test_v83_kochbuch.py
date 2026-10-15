@@ -100,6 +100,8 @@ async def main():
         await page.wait_for_function(WAIT_PREVIEW, timeout=240000)
         m = await ev("() => ({ stage: state.modal.stage, tpl: state.modal.shownTemplate, nut: state.modal.nutritionDetail, err: state.modal.errorText })")
         check('Export nutzt die Konfiguration (Prise Pop aus «B», Nährwerte Aus)', m['stage'] == 'preview' and m['tpl'] == 'prise-pop' and m['nut'] == 'off', str(m))
+        src = await ev("() => [typeof pdfLastPageCounts !== 'undefined' && pdfLastPageCounts && pdfLastPageCounts.get('r_manti'), state.cookbookLastBuild && state.cookbookLastBuild.pages.r_manti]")
+        check('Seitenzahl je Rezept stammt aus pdfLastPageCounts (pdf.js)', src == [2, 2], str(src))
         os.makedirs(OUT, exist_ok=True)
         pages_pop = await save_pdf(page, os.path.join(OUT, 'v83_kochbuch_prise-pop.pdf'))
         txt = subprocess.run(['pdftotext', '-layout', os.path.join(OUT, 'v83_kochbuch_prise-pop.pdf'), '-'], capture_output=True, text=True).stdout
