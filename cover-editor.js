@@ -30,6 +30,8 @@ const CE_ICON = {
   down: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>',
   left: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 6-6 6 6 6"/></svg>',
   right: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 6 6 6-6 6"/></svg>',
+  rotate: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 12a8 8 0 1 1-2.34-5.66"/><path d="M20 4v4h-4"/></svg>',
+  size: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 7l10 10M17 9v8H9"/></svg>',
   move: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v18M3 12h18M12 3 9 6M12 3l3 3M12 21l-3-3M12 21l3-3M3 12l3-3M3 12l3 3M21 12l-3-3M21 12l-3 3"/></svg>',
   width: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 7 3 12l5 5M16 7l5 5-5 5M3 12h18"/></svg>',
   alignleft: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M4 6h16M4 12h10M4 18h13"/></svg>',
@@ -39,7 +41,7 @@ const CE_ICON = {
 
 const ce = {
   bookId: null, model: null, texts: null, coverDirty: false, savedSig: '',
-  tab: null, sel: null, imgMove: false, imgBusy: false, imgError: '',
+  tab: null, sel: null, imgMove: false, imgBusy: false, imgError: '', ximgError: '', ximgReplace: null,
   undo: [], redo: [], lastKey: '', lastT: 0,
   status: 'saved', saveTimer: 0, saveError: false,
   layout: null, drag: null, paintTok: 0, paintQueued: false, bgCache: {}, imgCache: {}, pendingRemove: new Set(),
@@ -54,6 +56,31 @@ function ceEsc(s) { return escapeHtml(String(s == null ? '' : s)); }
 function ceF(id) { return (ce.model && ce.model.fields && ce.model.fields[id]) || {}; }
 function ceTextOf(id) { return id === 'extra1' ? (ceF('extra1').text || '') : id === 'title' ? ce.texts.title : id === 'subtitle' ? ce.texts.subtitle : id === 'name' ? ce.texts.author : ''; }
 function ceFieldOptional(id) { return id !== 'title'; }
+
+/* ---------- Drehen und Zusatzbilder ----------
+   Auswahl-IDs: Textfelder 'title' | 'subtitle' | 'name' | 'date' | 'extra1', Zusatzbilder 'img-' + images[i].id.
+   Modell (cover-model.js): fields[id].rot (Grad -180..180), images: [{ id, imgId, x, y, w, rot, z: 'below'|'above', iw, ih }] (hoechstens 4).
+   Bilder: x, y = MITTE, w = Breite (Seitenanteile), Hoehe aus dem Seitenverhaeltnis; Textfelder: x, y = obere linke Ecke. Drehung immer um die Mitte.
+   Die Bedienebene rechnet intern mit Rechtecken { x, y (obere linke Ecke), w, h }; ceImgPos wandelt fuer Bilder zurueck. */
+const CE_IMG_MAX = 4;
+const CE_ROT_SNAP = [0, 15, -15, 30, -30, 45, -45, 90, -90];
+const CE_ROT_SNAP_TOL = 3;
+function ceIsImg(id) { return typeof id === 'string' && id.indexOf('img-') === 0; }
+function ceImgs() { return (ce.model && Array.isArray(ce.model.images)) ? ce.model.images : []; }
+function ceImgSid(im) { return 'img-' + im.id; }
+function ceImgOf(sid) { return ceImgs().find(i => ceImgSid(i) === sid) || null; }
+function ceImgH(im) { return (im.w || 0) * ((im.ih || 1) / (im.iw || 1)) * (COVER_PAGE.w / COVER_PAGE.h); }
+function ceImgBox(im) { const w = im.w || 0.1, h = Math.max(ceImgH(im), 0.01); return { x: (im.x != null ? im.x : 0.5) - w / 2, y: (im.y != null ? im.y : 0.5) - h / 2, w, h }; }
+function ceImgPos(box) { return { x: ceRound(box.x + box.w / 2), y: ceRound(box.y + box.h / 2) }; }
+function ceWarnId(id) { return ceIsImg(id) ? 'image:' + id.slice(4) : id; }
+function ceBoxOf(id) { if (ceIsImg(id)) { const im = ceImgOf(id); return im ? ceImgBox(im) : null; } return ceBoxes()[id] || null; }
+function ceRotOf(id) { if (ceIsImg(id)) { const im = ceImgOf(id); return im && Number.isFinite(im.rot) ? im.rot : 0; } const r = ceF(id).rot; return Number.isFinite(r) ? r : 0; }
+function ceShort(id) { if (ceIsImg(id)) { const i = ceImgs().findIndex(x => ceImgSid(x) === id); return 'Bild ' + (i + 1); } return CE_SHORT[id] || ''; }
+function ceLabel(id) { return ceIsImg(id) ? ceShort(id) : CE_LABEL[id]; }
+function ceRotNorm(a) { let v = ((Number(a) || 0) + 180) % 360; if (v < 0) v += 360; v -= 180; return ceRound(v === -180 && Number(a) > 0 ? 180 : v, 1); }
+function ceRotSnap(a) { for (const t of CE_ROT_SNAP) if (Math.abs(a - t) <= CE_ROT_SNAP_TOL) return t; return a; }
+function ceDeg(a) { const r = Math.round(a * 10) / 10; return (Object.is(r, -0) ? 0 : r).toLocaleString('de-CH') + '°'; }
+function cePatchImg(m, sid, patch) { m.images = (m.images || []).map(i => ceImgSid(i) === sid ? { ...i, ...patch } : i); }
 
 /* ---------- Zustand laden, Aenderungen von aussen erkennen ---------- */
 function ceStoredSig() {
@@ -73,11 +100,11 @@ function ceEnsure() {
   if (ce.bookId !== book.id) {
     ceFlushImages();
     clearTimeout(ce.saveTimer);
-    Object.assign(ce, { bookId: book.id, model: null, undo: [], redo: [], sel: null, tab: null, imgMove: false, imgError: '', status: 'saved', saveError: false, lastKey: '', layout: null, fadeNext: false, paintError: '' });
+    Object.assign(ce, { bookId: book.id, model: null, undo: [], redo: [], sel: null, tab: null, imgMove: false, imgError: '', ximgError: '', ximgReplace: null, status: 'saved', saveError: false, lastKey: '', layout: null, fadeNext: false, paintError: '' });
   }
   // Entwurf nur dann neu laden, wenn nichts Ungespeichertes in der Oberflaeche steht und der Speicher von aussen geaendert wurde
   if (!ce.model || (!ce.saveTimer && !ce.saveError && ce.savedSig !== ceStoredSig())) ceLoadFromStore();
-  if (!ce.tab || (ce.model.mode !== 'custom' && ce.tab === 'bg')) ce.tab = ce.model.mode === 'custom' ? 'bg' : 'text';
+  if (!ce.tab || (ce.model.mode !== 'custom' && (ce.tab === 'bg' || ce.tab === 'img'))) ce.tab = ce.model.mode === 'custom' ? 'bg' : 'text';
   return ce;
 }
 function ceInput() {
@@ -104,6 +131,7 @@ function ceBoxes() {
   return out;
 }
 function ceEff(id) {
+  if (ceIsImg(id)) { const im = ceImgOf(id); const b = im ? ceImgBox(im) : { x: 0, y: 0, w: 0.1 }; return { x: b.x, y: b.y, w: b.w, align: 'left', fontPt: 0, font: '', color: '' }; }
   const f = ceF(id), b = ceBlockOf(id), box = ceBoxes()[id], D = COVER_FIELD_DEFAULTS[id] || {}, d = ce.layout && ce.layout.date;
   const pt = f.fontPt != null ? f.fontPt : (id === 'date' ? (d ? d.sizePx * 0.75 : D.fontPt) : b && b.sizePt != null ? b.sizePt : b ? b.sizePx * 0.75 : D.fontPt);
   return {
@@ -225,21 +253,33 @@ function ceRange(prop, id, label, min, max, step, val, unit, withStep) {
   return `<div class="ce-ctl"><label class="ce-lab" for="ce-${prop}-${id}">${label}</label><div class="ce-range">${withStep ? `<button type="button" class="ce-step" data-ce="step" data-f="${id}" data-d="-1" data-k="${prop}-m-${id}" aria-label="${label} verkleinern">A−</button>` : ''}<input type="range" id="ce-${prop}-${id}" data-ce-input="${prop}" data-f="${id}" data-k="${prop}-r-${id}" min="${min}" max="${max}" step="${step}" value="${ceClamp(val, min, max)}">${withStep ? `<button type="button" class="ce-step" data-ce="step" data-f="${id}" data-d="1" data-k="${prop}-p-${id}" aria-label="${label} vergrössern">A+</button>` : ''}<output class="ce-out" for="ce-${prop}-${id}">${o}</output></div></div>`;
 }
 function cePositionBlock(id) {
-  const e = ceEff(id), pos = ['Oben links', 'Oben mittig', 'Oben rechts', 'Mitte links', 'Mitte', 'Mitte rechts', 'Unten links', 'Unten mittig', 'Unten rechts'];
+  const e = ceEff(id), sh = ceShort(id), pos = ['Oben links', 'Oben mittig', 'Oben rechts', 'Mitte links', 'Mitte', 'Mitte rechts', 'Unten links', 'Unten mittig', 'Unten rechts'];
   return `<div class="ce-ctl"><span class="ce-lab" id="cepos-${id}">Position</span>
     <div class="ce-posrow">
-      <div class="ce-grid3" role="group" aria-labelledby="cepos-${id}">${pos.map((p, i) => `<button type="button" class="ce-cell" data-ce="place" data-f="${id}" data-c="${i % 3}" data-r="${Math.floor(i / 3)}" data-k="pl-${id}-${i}" aria-label="${CE_SHORT[id]}: ${p.toLowerCase()}"><span></span></button>`).join('')}</div>
-      <div class="ce-dpad" role="group" aria-label="${CE_SHORT[id]} verschieben">
-        <button type="button" class="ce-nudge ce-nudge--u" data-ce="nudge" data-f="${id}" data-dx="0" data-dy="-1" data-k="nu-${id}" aria-label="${CE_SHORT[id]} nach oben (Umschalt: grösserer Schritt)">${CE_ICON.up}</button>
-        <button type="button" class="ce-nudge ce-nudge--l" data-ce="nudge" data-f="${id}" data-dx="-1" data-dy="0" data-k="nl-${id}" aria-label="${CE_SHORT[id]} nach links (Umschalt: grösserer Schritt)">${CE_ICON.left}</button>
-        <button type="button" class="ce-nudge ce-nudge--r" data-ce="nudge" data-f="${id}" data-dx="1" data-dy="0" data-k="nr-${id}" aria-label="${CE_SHORT[id]} nach rechts (Umschalt: grösserer Schritt)">${CE_ICON.right}</button>
-        <button type="button" class="ce-nudge ce-nudge--d" data-ce="nudge" data-f="${id}" data-dx="0" data-dy="1" data-k="nd-${id}" aria-label="${CE_SHORT[id]} nach unten (Umschalt: grösserer Schritt)">${CE_ICON.down}</button>
+      <div class="ce-grid3" role="group" aria-labelledby="cepos-${id}">${pos.map((p, i) => `<button type="button" class="ce-cell" data-ce="place" data-f="${id}" data-c="${i % 3}" data-r="${Math.floor(i / 3)}" data-k="pl-${id}-${i}" aria-label="${sh}: ${p.toLowerCase()}"><span></span></button>`).join('')}</div>
+      <div class="ce-dpad" role="group" aria-label="${sh} verschieben">
+        <button type="button" class="ce-nudge ce-nudge--u" data-ce="nudge" data-f="${id}" data-dx="0" data-dy="-1" data-k="nu-${id}" aria-label="${sh} nach oben (Umschalt: grösserer Schritt)">${CE_ICON.up}</button>
+        <button type="button" class="ce-nudge ce-nudge--l" data-ce="nudge" data-f="${id}" data-dx="-1" data-dy="0" data-k="nl-${id}" aria-label="${sh} nach links (Umschalt: grösserer Schritt)">${CE_ICON.left}</button>
+        <button type="button" class="ce-nudge ce-nudge--r" data-ce="nudge" data-f="${id}" data-dx="1" data-dy="0" data-k="nr-${id}" aria-label="${sh} nach rechts (Umschalt: grösserer Schritt)">${CE_ICON.right}</button>
+        <button type="button" class="ce-nudge ce-nudge--d" data-ce="nudge" data-f="${id}" data-dx="0" data-dy="1" data-k="nd-${id}" aria-label="${sh} nach unten (Umschalt: grösserer Schritt)">${CE_ICON.down}</button>
       </div>
     </div>
     <details class="ce-exact"><summary data-k="ex-${id}">Genau einstellen</summary>
       <div class="ce-exact-row"><label>Von links in %<input type="number" inputmode="decimal" step="0.5" min="-50" max="150" data-ce-input="x" data-f="${id}" data-k="x-${id}" value="${ceRound(e.x * 100, 1)}"></label>
       <label>Von oben in %<input type="number" inputmode="decimal" step="0.5" min="-50" max="150" data-ce-input="y" data-f="${id}" data-k="y-${id}" value="${ceRound(e.y * 100, 1)}"></label></div>
     </details></div>`;
+}
+function ceRotBlock(id) {
+  const r = ceRotOf(id), sh = ceShort(id);
+  return `<div class="ce-ctl ce-rot"><label class="ce-lab" for="ce-rot-${id}">Drehung</label>
+    <div class="ce-range"><input type="range" id="ce-rot-${id}" data-ce-input="rot" data-f="${id}" data-k="rot-r-${id}" min="-180" max="180" step="1" value="${r}" aria-valuetext="${ceDeg(r)}">
+      <label class="ce-rotnum"><span class="sr-only">Drehung in Grad</span><input type="number" inputmode="decimal" min="-180" max="180" step="1" data-ce-input="rotnum" data-f="${id}" data-k="rot-n-${id}" value="${ceRound(r, 1)}"><span aria-hidden="true">°</span></label></div>
+    <div class="ce-seg ce-rotbtns" role="group" aria-label="${sh} drehen">
+      <button type="button" class="ce-segbtn" data-ce="rot-step" data-f="${id}" data-d="-15" data-k="rot-m-${id}" aria-label="${sh} 15 Grad gegen den Uhrzeigersinn drehen">−15°</button>
+      <button type="button" class="ce-segbtn" data-ce="rot-step" data-f="${id}" data-d="0" data-k="rot-0-${id}" aria-label="Drehung von ${sh} aufheben" aria-pressed="${r === 0}">0°</button>
+      <button type="button" class="ce-segbtn" data-ce="rot-step" data-f="${id}" data-d="15" data-k="rot-p-${id}" aria-label="${sh} 15 Grad im Uhrzeigersinn drehen">+15°</button>
+    </div>
+    <p class="ce-hint">Oder am runden Griff in der Vorschau drehen: rastet bei 0°, 15°, 30°, 45° und 90° ein, mit Umschalt frei. Taste R dreht um 1°, Umschalt+R um 15°.</p></div>`;
 }
 function ceFieldControls(id) {
   const e = ceEff(id), rg = CE_PT_RANGE[id];
@@ -250,6 +290,7 @@ function ceFieldControls(id) {
     <div class="ce-ctl"><span class="ce-lab">Ausrichtung</span>${ceSeg([['left', CE_ICON.alignleft, CE_ALIGN_LABEL.left], ['center', CE_ICON.aligncenter, CE_ALIGN_LABEL.center], ['right', CE_ICON.alignright, CE_ALIGN_LABEL.right]], e.align, `data-ce="align" data-f="${id}"`, 'Ausrichtung')}</div>
     ${id === 'date' ? '' : ceRange('w', id, 'Breite', 10, 100, 1, e.w * 100, '%', false)}
     ${id === 'title' ? `<div class="ce-ctl"><span class="ce-lab" id="cefont">Titelschrift</span><div class="ce-fonts" role="radiogroup" aria-labelledby="cefont">${COVER_TITLE_FONT_NAMES.map(n => `<button type="button" class="ce-font" role="radio" aria-checked="${e.font === n}" data-ce="font" data-v="${ceEsc(n)}" data-k="font-${n.replace(/\W/g, '')}" style="font-family:${COVER_FONT_TABLE[n].family};font-weight:${COVER_FONT_TABLE[n].weight}">${n.replace(' Extra Condensed', '')}</button>`).join('')}</div></div>` : ''}
+    ${ceRotBlock(id)}
     ${cePositionBlock(id)}
     <div class="ce-actions"><button type="button" class="ce-chip" data-ce="field-reset" data-f="${id}" data-k="fr-${id}">${CE_SHORT[id]} zurücksetzen</button></div>
   </div>`;
@@ -296,6 +337,26 @@ function ceBgTab() {
   </div>`;
   return color + imgHtml;
 }
+function ceImgTab() {
+  const list = ceImgs(), full = list.length >= CE_IMG_MAX, can = typeof coverImageImport === 'function';
+  const sel = ceIsImg(ce.sel) ? ceImgOf(ce.sel) : null;
+  const items = list.map((im, i) => { const sid = ceImgSid(im), on = ce.sel === sid; return `<li><button type="button" class="ce-imgitem ${on ? 'is-on' : ''}" data-ce="ximg-select" data-f="${sid}" data-k="xi-${im.id}" aria-pressed="${on}" aria-label="Bild ${i + 1}, ${im.z === 'above' ? 'vor dem Text' : 'hinter dem Text'}${on ? ', ausgewählt' : ''}"><canvas class="ce-thumb" data-thumb="${ceEsc(im.imgId)}" width="96" height="96" aria-hidden="true"></canvas><span class="ce-imgname">Bild ${i + 1}</span><span class="ce-imgmeta">${im.z === 'above' ? 'Vor dem Text' : 'Hinter dem Text'}${im.rot ? ' · ' + ceDeg(im.rot) : ''}</span></button></li>`; }).join('');
+  const head = `<div class="ce-sec"><h3 class="ce-h">Bilder auf dem Titelblatt</h3>
+    <input type="file" class="ce-file" data-ce-xfile accept="image/jpeg,image/png,image/webp" tabindex="-1" aria-hidden="true">
+    <div class="ce-actions"><button type="button" class="ce-chip ce-chip--solid" data-ce="ximg-add" data-k="ximg-add" aria-describedby="ce-ximg-note" ${full || ce.imgBusy || !can ? 'disabled' : ''}>${ce.imgBusy ? 'Bild wird geladen …' : 'Bild hinzufügen'}</button></div>
+    <p class="ce-hint" id="ce-ximg-note">${full ? `Höchstens ${CE_IMG_MAX} Bilder pro Titelblatt. Entferne ein Bild, um ein neues hinzuzufügen.` : `Bis zu ${CE_IMG_MAX} eigene Bilder, z. B. Fotos oder Zeichnungen. ${list.length} von ${CE_IMG_MAX} verwendet.`}</p>
+    <p class="ce-error" role="alert" ${ce.ximgError ? '' : 'hidden'}>${ceEsc(ce.ximgError)}</p>
+    ${list.length ? `<ul class="ce-imglist">${items}</ul>` : ''}
+    <p class="ce-hint">JPEG, PNG oder WebP. HEIC-Fotos vom iPhone werden nicht unterstützt: Speichere sie vorher als JPEG. Bilder bleiben auf diesem Gerät.</p></div>`;
+  if (!sel) return head + (list.length ? '<p class="ce-hint">Tippe ein Bild in der Liste oder in der Vorschau an, um es zu gestalten.</p>' : '');
+  const sid = ceImgSid(sel), sh = ceShort(sid);
+  return head + `<div class="ce-sec ce-imgctl" data-img="${sid}"><h3 class="ce-h">${sh} gestalten</h3>${ceWarnItems([ceWarnId(sid)])}
+    ${ceRange('iw', sid, 'Grösse', 5, 100, 1, sel.w * 100, '%', false)}
+    ${ceRotBlock(sid)}
+    <div class="ce-ctl"><span class="ce-lab">Ebene</span>${ceSeg([['below', 'Hinter den Text'], ['above', 'Vor den Text']], sel.z === 'above' ? 'above' : 'below', `data-ce="ximg-z" data-f="${sid}"`, 'Ebene des Bildes')}</div>
+    ${cePositionBlock(sid)}
+    <div class="ce-actions"><button type="button" class="ce-chip" data-ce="ximg-replace" data-f="${sid}" data-k="ximg-replace" ${ce.imgBusy || !can ? 'disabled' : ''}>Bild ersetzen</button><button type="button" class="ce-chip ce-chip--danger" data-ce="ximg-remove" data-f="${sid}" data-k="ximg-remove">Bild entfernen</button></div></div>`;
+}
 function ceArrTab() {
   const m = ce.model;
   const arr = `<div class="ce-sec"><h3 class="ce-h">Anordnung der Texte</h3>
@@ -309,14 +370,14 @@ function ceArrTab() {
   const read = `<div class="ce-sec"><h3 class="ce-h">Lesbarkeit</h3>${ceSeg(CE_READ, m.readability, 'data-ce="readability"', 'Lesbarkeit des Textes')}
     <p class="ce-hint">Hilft bei Fotos. Bei einfarbigem Hintergrund prüft Savora den Kontrast, bei Fotos kann das nicht garantiert werden.</p></div>`;
   const reset = `<div class="ce-sec ce-sec--reset"><h3 class="ce-h">Zurücksetzen</h3><div class="ce-actions"><button type="button" class="ce-chip" data-ce="arr-reset" data-k="arr-reset">Anordnung zurücksetzen</button><button type="button" class="ce-chip ce-chip--danger" data-ce="cover-reset" data-k="cover-reset">Cover zurücksetzen</button></div>
-    <p class="ce-hint">«Anordnung zurücksetzen» entfernt nur Positionen und Breiten. Texte, Farben und Hintergrund bleiben.</p></div>`;
+    <p class="ce-hint">«Anordnung zurücksetzen» entfernt nur Positionen, Breiten und Drehungen der Texte. Texte, Farben, Hintergrund und Bilder bleiben.</p></div>`;
   return arr + logo + read + reset;
 }
 function ceTabs() {
-  const tabs = ce.model.mode === 'custom' ? [['bg', 'Hintergrund'], ['text', 'Texte'], ['arr', 'Anordnung']] : [['text', 'Texte'], ['arr', 'Anordnung']];
+  const tabs = ce.model.mode === 'custom' ? [['bg', 'Hintergrund'], ['text', 'Texte'], ['img', 'Bilder'], ['arr', 'Anordnung']] : [['text', 'Texte'], ['arr', 'Anordnung']];
   return `<div class="ce-tabs" role="tablist" aria-label="Bereiche des Titelblatts">${tabs.map(([k, t]) => `<button type="button" role="tab" class="ce-tab ${ce.tab === k ? 'is-on' : ''}" id="cetab-${k}" aria-selected="${ce.tab === k}" aria-controls="cepanel" tabindex="${ce.tab === k ? 0 : -1}" data-ce="tab" data-v="${k}" data-k="tab-${k}">${t}</button>`).join('')}</div>`;
 }
-function cePanelInner() { return ce.tab === 'bg' ? ceBgTab() : ce.tab === 'arr' ? ceArrTab() : ceTextTab(); }
+function cePanelInner() { return ce.tab === 'bg' ? ceBgTab() : ce.tab === 'img' ? ceImgTab() : ce.tab === 'arr' ? ceArrTab() : ceTextTab(); }
 function ceTemplateGrid() {
   const cur = coverValidTemplateId(ce.model.templateId);
   return `<div class="ce-sec"><h3 class="ce-h" id="cegridt">Motiv</h3><div class="cover-grid" role="radiogroup" aria-label="Titelblatt wählen">${COVER_TEMPLATES.map(t => `<button type="button" class="cover-opt ${t.id === cur ? 'is-active' : ''}" role="radio" aria-checked="${t.id === cur}" data-ce="template" data-id="${escapeAttr(t.id)}" aria-label="${escapeHtml(t.name)}"><img src="${coverThumbUrl(t.id)}" alt="" loading="lazy" width="130" height="185"><span class="cover-opt-name">${escapeHtml(t.name)}</span>${t.id === cur ? `<span class="cover-opt-check" aria-hidden="true">${ICONS.check}</span>` : ''}</button>`).join('')}</div></div>`;
@@ -357,7 +418,7 @@ function ceModalHtml() {
   const m = state.modal;
   if (!m || m.type !== 'ce-reset') return '';
   return sheet('ce-reset-title', 'Cover zurücksetzen?', `
-    <p>Das Titelblatt geht zurück auf die Vorlage ohne eigene Anpassungen. Das wird entfernt: eigene Hintergrundfarbe und eigenes Bild, Positionen, Grössen, Farben und Schriften der Texte, die weitere Textzeile, Logo-Einstellungen und Lesbarkeitsfläche.</p>
+    <p>Das Titelblatt geht zurück auf die Vorlage ohne eigene Anpassungen. Das wird entfernt: eigene Hintergrundfarbe, eigenes Hintergrundbild und alle zusätzlichen Bilder, Positionen, Drehungen, Grössen, Farben und Schriften der Texte, die weitere Textzeile, Logo-Einstellungen und Lesbarkeitsfläche.</p>
     <p>Bleiben: Titel, Untertitel, Name und Datum sowie alle Rezepte und der Inhalt des Kochbuchs.</p>
     <div class="form-actions"><button class="ghost-btn" data-action="close-modal">Abbrechen</button><button class="primary-btn danger-btn-fill" data-action="ce-reset-confirm">Cover zurücksetzen</button></div>`);
 }
@@ -377,7 +438,7 @@ function ceRenderPanels() {
   const openEx = !!p.querySelector('details[open]');
   p.innerHTML = cePanelInner();
   if (openEx) { const d = p.querySelector('.ce-exact'); if (d) d.open = true; }
-  p.scrollTop = ps; ceRestoreFocus(key);
+  p.scrollTop = ps; ceRestoreFocus(key); ceFillThumbs();
   if (Math.abs(window.scrollY - y) > 0) window.scrollTo(0, y);
 }
 function ceRenderTabs() {
@@ -398,7 +459,7 @@ function ceRenderWarnings() {
   document.querySelectorAll('.ce-overlay [data-fr]').forEach((fr) => { fr.classList.toggle('is-warn', ceHasWarn(fr.dataset.fr)); });
   ceSetScrollPad();
 }
-function ceHasWarn(id) { return ((ce.layout && ce.layout.warnings) || []).some(w => (w.fieldId || (w.key === 'slogan' ? 'subtitle' : w.key)) === id && (w.kind === 'cut' || w.kind === 'outside' || w.kind === 'overlap')); }
+function ceHasWarn(id) { const wid = ceWarnId(id); return ((ce.layout && ce.layout.warnings) || []).some(w => (w.fieldId || (w.key === 'slogan' ? 'subtitle' : w.key)) === wid && (w.kind === 'cut' || w.kind === 'outside' || w.kind === 'overlap')); }
 function ceRenderAll() {
   const root = ceRoot(); if (!root) return;
   const key = ceFocusKey();
@@ -442,6 +503,8 @@ async function cePaint() {
   try { await coverEnsureFonts(); } catch (e) { /* weiter mit Ersatzschrift */ }
   const bg = L.background ? await ceLoadBg(L.background) : null;
   const user = L.image ? await ceUserImage(L.image.id) : null;
+  const extra = {};
+  for (const im of (L.images || [])) { if (im && im.imgId && !extra[im.imgId]) { const dd = await ceUserImage(im.imgId); if (dd) extra[im.imgId] = dd; } }
   if (tok !== ce.paintTok || !cv.isConnected) return;
   // Bewegung M2: fehlt ein Bild, bleibt das zuletzt fertige Cover sichtbar (nie ein halbes Cover); Hinweis mit «Erneut versuchen»
   const fail = (L.background && !bg) ? 'bg' : (L.image && !user) ? 'image' : '';
@@ -452,13 +515,13 @@ async function cePaint() {
   if (ce.fadeNext && cv.dataset.painted && typeof motionCoverSwap === 'function') {
     // Diskreter Wechsel (Vorlage, Art, Bild): neues Cover vollstaendig in einer zweiten Ebene vorbereiten, dann als Ganzes ueberblenden
     const next = document.createElement('canvas'); next.width = w; next.height = h;
-    try { coverDraw(next.getContext('2d'), L, bg, scale, user); } catch (e) { next.width = 0; next.height = 0; ceShowPaintError('draw'); return; }
+    try { coverDraw(next.getContext('2d'), L, bg, scale, user, extra); } catch (e) { next.width = 0; next.height = 0; ceShowPaintError('draw'); return; }
     motionCoverSwap(cv, next);
   } else {
     // Texteingabe, Regler, Ziehen: direkt und fluessig in die sichtbare Ebene
     if (typeof motionCoverCommit === 'function') motionCoverCommit();
     if (cv.width !== w) cv.width = w; if (cv.height !== h) cv.height = h;
-    try { coverDraw(cv.getContext('2d'), L, bg, scale, user); } catch (e) { ceShowPaintError('draw'); return; }
+    try { coverDraw(cv.getContext('2d'), L, bg, scale, user, extra); } catch (e) { ceShowPaintError('draw'); return; }
   }
   cv.dataset.painted = '1'; ce.fadeNext = false;
 }
@@ -496,24 +559,33 @@ function ceSyncOverlay() {
   }
   ov.classList.toggle('is-imgmove', !!ce.imgMove);
   ov.querySelector('[data-imgpad]').hidden = !ce.imgMove;
-  CE_FIELD_ORDER.forEach((id) => {
-    const b = boxes[id];
+  // Ebenen der Bedienebene wie im Bild: Bilder hinter dem Text, Texte, Bilder vor dem Text, ausgewaehlter Rahmen ganz oben.
+  // Beim Antippen gewinnt so immer das oberste Element (elementFromPoint).
+  const items = [];
+  ceImgs().forEach((im, i) => { items.push({ id: ceImgSid(im), b: ceImgBox(im), rot: im.rot || 0, z: (im.z === 'above' ? 30 : 10) + i, img: true }); });
+  CE_FIELD_ORDER.forEach((id) => { if (boxes[id]) items.push({ id, b: boxes[id], rot: ceRotOf(id), z: 20, img: false }); });
+  if (ceIsImg(ce.sel) && !ceImgOf(ce.sel)) ce.sel = null;
+  items.forEach(({ id, b, rot, z, img }) => {
     let hit = ov.querySelector(`[data-hit="${id}"]`), fr = ov.querySelector(`[data-fr="${id}"]`);
-    if (!b || ce.imgMove) { if (hit) hit.remove(); if (fr) fr.remove(); return; }
+    if (ce.imgMove) { if (hit) hit.remove(); if (fr) fr.remove(); return; }
     want.add(id);
-    const st = `left:${pct(b.x)};top:${pct(b.y)};width:${pct(b.w)};height:${pct(b.h)}`;
+    const st = `left:${pct(b.x)};top:${pct(b.y)};width:${pct(b.w)};height:${pct(b.h)}${rot ? `;transform:rotate(${rot}deg)` : ''}`;
     if (ce.sel === id) {
       if (hit) hit.remove();
       if (!fr) {
-        ov.insertAdjacentHTML('beforeend', `<div class="ce-frame" data-fr="${id}" tabindex="0" role="group" aria-label="${CE_LABEL[id]}, ausgewählt. Mit den Pfeiltasten verschieben, mit Umschalt in grösseren Schritten. Escape hebt die Auswahl auf."><span class="ce-tag">${CE_SHORT[id]}</span><button type="button" class="ce-grip ce-grip--move" data-grip="move" data-k="grip-move" tabindex="-1" aria-label="${CE_SHORT[id]} verschieben">${CE_ICON.move}</button><button type="button" class="ce-grip ce-grip--w" data-grip="width" data-k="grip-w" tabindex="-1" aria-label="Breite von ${CE_SHORT[id]} ändern">${CE_ICON.width}</button></div>`);
+        const sh = ceShort(id), lab = ceLabel(id);
+        const grips = img
+          ? `<button type="button" class="ce-grip ce-grip--move" data-grip="move" data-k="grip-move" tabindex="-1" aria-label="${sh} verschieben">${CE_ICON.move}</button><button type="button" class="ce-grip ce-grip--size" data-grip="size" data-k="grip-size" tabindex="-1" aria-label="Grösse von ${sh} ändern">${CE_ICON.size}</button>`
+          : `<button type="button" class="ce-grip ce-grip--move" data-grip="move" data-k="grip-move" tabindex="-1" aria-label="${sh} verschieben">${CE_ICON.move}</button><button type="button" class="ce-grip ce-grip--w" data-grip="width" data-k="grip-w" tabindex="-1" aria-label="Breite von ${sh} ändern">${CE_ICON.width}</button>`;
+        ov.insertAdjacentHTML('beforeend', `<div class="ce-frame ${img ? 'ce-frame--img' : ''}" data-fr="${id}" tabindex="0" role="group" aria-label="${lab}, ausgewählt. Mit den Pfeiltasten verschieben, mit Umschalt in grösseren Schritten. R dreht um 1 Grad, Umschalt+R um 15 Grad, mit Alt gegen den Uhrzeigersinn. Escape hebt die Auswahl auf."><span class="ce-tag">${sh}</span><i class="ce-rotstem" aria-hidden="true"></i><button type="button" class="ce-grip ce-grip--rot" data-grip="rot" data-k="grip-rot" tabindex="-1" aria-label="${sh} drehen">${CE_ICON.rotate}</button>${grips}</div>`);
         fr = ov.querySelector(`[data-fr="${id}"]`);
       }
-      fr.style.cssText = st; fr.classList.toggle('is-warn', ceHasWarn(id));
-      fr.dataset.align = ceEff(id).align;
+      fr.style.cssText = st + ';z-index:40'; fr.classList.toggle('is-warn', ceHasWarn(id));
+      fr.dataset.align = ceEff(id).align; fr.dataset.rot = String(rot);
     } else {
       if (fr) fr.remove();
-      if (!hit) { ov.insertAdjacentHTML('afterbegin', `<div class="ce-hit" data-hit="${id}" aria-hidden="true"></div>`); hit = ov.querySelector(`[data-hit="${id}"]`); }
-      hit.style.cssText = st;
+      if (!hit) { ov.insertAdjacentHTML('afterbegin', `<div class="ce-hit ${img ? 'ce-hit--img' : ''}" data-hit="${id}" aria-hidden="true"></div>`); hit = ov.querySelector(`[data-hit="${id}"]`); }
+      hit.style.cssText = st + `;z-index:${z}`;
     }
   });
   ov.querySelectorAll('[data-hit],[data-fr]').forEach((n) => { if (!want.has(n.dataset.hit || n.dataset.fr)) n.remove(); });
@@ -521,7 +593,8 @@ function ceSyncOverlay() {
 function ceSelect(id, opts) {
   opts = opts || {};
   ce.sel = id; ce.imgMove = false;
-  if (id && ce.tab !== 'text') { ce.tab = 'text'; ceRenderTabs(); }
+  const want = id ? (ceIsImg(id) ? 'img' : 'text') : null;
+  if (want && ce.tab !== want) { ce.tab = want; ceRenderTabs(); }
   ceSyncOverlay(); ceRenderPanels();
   if (id && opts.focusFrame) { const fr = document.querySelector(`.ce-frame[data-fr="${id}"]`); if (fr) fr.focus({ preventScroll: true }); }
 }
@@ -539,37 +612,73 @@ function ceSnapPos(box, drag) {
 function ceDragStart(e, kind, id) {
   if (ce.drag) return;   // zweiter Finger waehrend des Ziehens wird ignoriert
   const pv = document.querySelector('.ce-preview'); if (!pv) return;
-  const box = kind === 'image' ? null : ceBoxes()[id];
+  const box = kind === 'image' ? null : ceBoxOf(id);
   if (kind !== 'image' && !box) return;
-  ce.drag = { kind, id, pid: e.pointerId, sx: e.clientX, sy: e.clientY, rect: pv.getBoundingClientRect(), box0: box ? { ...box } : null, started: false, eff: id ? ceEff(id) : null, img0: ce.model.image ? { ...ce.model.image } : null, el: e.currentTarget };
+  const rect = pv.getBoundingClientRect(), rot0 = id ? ceRotOf(id) : 0;
+  const cxp = box ? rect.left + (box.x + box.w / 2) * rect.width : 0, cyp = box ? rect.top + (box.y + box.h / 2) * rect.height : 0;
+  ce.drag = { kind, id, pid: e.pointerId, sx: e.clientX, sy: e.clientY, rect, box0: box ? { ...box } : null, started: false, eff: id && !ceIsImg(id) ? ceEff(id) : null,
+    img0: ce.model.image ? { ...ce.model.image } : null, el: e.currentTarget, rot0, cxp, cyp, a0: Math.atan2(e.clientY - cyp, e.clientX - cxp) * 180 / Math.PI };
   try { e.currentTarget.setPointerCapture(e.pointerId); } catch (err) { /* nicht kritisch */ }
   e.preventDefault();
+}
+/* Schreibt ein Rechteck { x, y (obere linke Ecke), w } in das Modell (Textfeld oder Zusatzbild) */
+function ceWriteBox(id, box, extra) {
+  if (ceIsImg(id)) {
+    const p = ceImgPos(box), patch = { x: p.x, y: p.y, ...(box.w != null ? { w: ceRound(box.w) } : {}), ...(extra || {}) };
+    const m = { ...ce.model }; cePatchImg(m, id, patch); ce.model = coverModelSanitize(m);
+  } else {
+    ce.model = coverModelSanitize({ ...ce.model, fields: { ...ce.model.fields, [id]: { ...ceF(id), x: ceRound(box.x), y: ceRound(box.y), ...(box.wSet ? { w: ceRound(box.w) } : {}), ...(extra || {}) } } });
+  }
 }
 function ceDragMove(e) {
   const d = ce.drag; if (!d || e.pointerId !== d.pid) return;
   const dxp = e.clientX - d.sx, dyp = e.clientY - d.sy;
   if (!d.started) {
     if (Math.hypot(dxp, dyp) < 3) return;
-    d.started = true; ceCheckpoint(null);
-    const ov = ceOverlay(); if (ov) ov.classList.add('is-dragging');
+    d.started = true; ceCheckpoint(null);   // eine Bewegung = ein Undo-Schritt
+    const ov = ceOverlay(); if (ov) ov.classList.add('is-dragging', 'is-' + d.kind);
   }
-  const dx = dxp / d.rect.width, dy = dyp / d.rect.height;
-  const ov = ceOverlay();
+  const W = d.rect.width, H = d.rect.height, dx = dxp / W, dy = dyp / H;
+  const ov = ceOverlay(), b = d.box0, th = d.rot0 * Math.PI / 180, cs = Math.cos(th), sn = Math.sin(th);
   if (d.kind === 'image') {
     const im = d.img0; if (!im) return;
     const page = COVER_PAGE.w / COVER_PAGE.h, a = (im.w || 1) / (im.h || 1);
     ce.model = coverModelSanitize({ ...ce.model, image: im.fit === 'contain' ? { ...im, cx: im.cx + dx, cy: im.cy + dy }
       : (() => { const visW = (a > page ? page / a : 1) / im.zoom, visH = (a > page ? 1 : a / page) / im.zoom; return { ...im, cx: im.cx - dx * visW, cy: im.cy - dy * visH }; })() });
+  } else if (d.kind === 'rot') {
+    // Drehung um die Feldmitte: Winkel des Zeigers zur Mitte; sanftes Einrasten, Umschalt = frei
+    const a = Math.atan2(e.clientY - d.cyp, e.clientX - d.cxp) * 180 / Math.PI;
+    let r = ceRotNorm(d.rot0 + (a - d.a0));
+    if (!e.shiftKey) r = ceRotSnap(r);
+    r = ceRound(r, 1);
+    if (ceIsImg(d.id)) { const m = { ...ce.model }; cePatchImg(m, d.id, { rot: r }); ce.model = coverModelSanitize(m); }
+    else ce.model = coverModelSanitize({ ...ce.model, fields: { ...ce.model.fields, [d.id]: { ...ceF(d.id), rot: r } } });
+    const tag = ov && ov.querySelector(`.ce-frame[data-fr="${d.id}"] .ce-tag`); if (tag) tag.textContent = ceDeg(ceRotOf(d.id));
   } else if (d.kind === 'move') {
-    const s = ceSnapPos({ x: d.box0.x + dx, y: d.box0.y + dy, w: d.box0.w, h: d.box0.h }, d);
-    ce.model = coverModelSanitize({ ...ce.model, fields: { ...ce.model.fields, [d.id]: { ...ceF(d.id), x: ceRound(s.x), y: ceRound(s.y) } } });
+    const s = ceSnapPos({ x: b.x + dx, y: b.y + dy, w: b.w, h: b.h }, d);
+    ceWriteBox(d.id, ceIsImg(d.id) ? { x: s.x, y: s.y, w: b.w, h: b.h } : { x: s.x, y: s.y });
     if (ov) { ov.querySelector('[data-g="vc"]').classList.toggle('is-on', s.g.vc); ov.querySelector('[data-g="hc"]').classList.toggle('is-on', s.g.hc); }
+  } else if (d.kind === 'size') {
+    // Ecke unten rechts eines Bildes: Zeigerweg in Bildkoordinaten (gedreht) auf die Diagonale projizieren, Seitenverhaeltnis bleibt, obere linke Ecke bleibt stehen
+    const wp = b.w * W, hp = b.h * H, diag = Math.hypot(wp, hp) || 1;
+    const ldx = dxp * cs + dyp * sn, ldy = -dxp * sn + dyp * cs;
+    const nw = ceClamp(b.w * (diag + (ldx * wp + ldy * hp) / diag) / diag, 0.05, 1.5), k = nw / b.w;
+    const dwp = wp * (k - 1), dhp = hp * (k - 1);
+    const ncx = b.x * W + wp / 2 + (dwp / 2) * cs - (dhp / 2) * sn, ncy = b.y * H + hp / 2 + (dwp / 2) * sn + (dhp / 2) * cs;
+    ceWriteBox(d.id, { x: ncx / W - nw / 2, y: ncy / H - (b.h * k) / 2, w: nw, h: b.h * k });
   } else {
-    let nw = ceClamp(d.box0.w + dx, 0.1, 1);
-    if (Math.abs(d.box0.x + nw - (1 - CE_SAFE_X)) < CE_SNAP) nw = 1 - CE_SAFE_X - d.box0.x;
-    const f = { ...ceF(d.id), w: ceRound(nw) };
-    if (f.x == null) f.x = ceRound(d.box0.x);
-    ce.model = coverModelSanitize({ ...ce.model, fields: { ...ce.model.fields, [d.id]: f } });
+    // Breite eines Textfelds: Zeigerweg entlang der (gedrehten) Feldachse; linke Kante bleibt stehen
+    const ldx = dxp * cs + dyp * sn;
+    let nw = ceClamp(b.w + ldx / W, 0.1, 1);
+    if (!d.rot0) {
+      if (Math.abs(b.x + nw - (1 - CE_SAFE_X)) < CE_SNAP) nw = 1 - CE_SAFE_X - b.x;
+      const f = { ...ceF(d.id), w: ceRound(nw) };
+      if (f.x == null) f.x = ceRound(b.x);
+      ce.model = coverModelSanitize({ ...ce.model, fields: { ...ce.model.fields, [d.id]: f } });
+    } else {
+      const dwp = (nw - b.w) * W, ncx = (b.x + b.w / 2) * W + (dwp / 2) * cs, ncy = (b.y + b.h / 2) * H + (dwp / 2) * sn;
+      ceWriteBox(d.id, { x: ncx / W - nw / 2, y: ncy / H - b.h / 2, w: nw, wSet: true });
+    }
   }
   ce.coverDirty = true;
   ceRelayout(); ceSyncOverlay(); cePaintSoon();
@@ -578,13 +687,15 @@ function ceDragEnd(e) {
   const d = ce.drag; if (!d || (e && e.pointerId !== d.pid)) return;
   ce.drag = null;
   try { if (d.el && d.el.releasePointerCapture) d.el.releasePointerCapture(d.pid); } catch (err) { /* schon frei */ }
-  const ov = ceOverlay(); if (ov) { ov.classList.remove('is-dragging'); ov.querySelectorAll('.ce-g').forEach(g => g.classList.remove('is-on')); }
+  const ov = ceOverlay(); if (ov) { ov.classList.remove('is-dragging', 'is-move', 'is-rot', 'is-size', 'is-width', 'is-image'); ov.querySelectorAll('.ce-g').forEach(g => g.classList.remove('is-on')); }
+  if (d.kind === 'rot') { const tag = ov && ov.querySelector(`.ce-frame[data-fr="${d.id}"] .ce-tag`); if (tag) tag.textContent = ceShort(d.id); }
   if (d.started) { ceRenderWarnings(); ceRenderPanels(); ceScheduleSave(true); }
 }
 
 /* ---------- Verschieben ohne Ziehen ---------- */
 function ceMoveBy(id, dx, dy, key) {
   const e = ceEff(id);
+  if (ceIsImg(id)) { const b = ceBoxOf(id); if (!b) return; const p = ceImgPos({ ...b, x: b.x + dx, y: b.y + dy }); ceChange((m) => { cePatchImg(m, id, p); }, { key: key || 'move:' + id }); ceSyncPositionInputs(id); return; }
   ceChange((m) => { const f = { ...(m.fields[id] || {}) }; f.x = ceRound(e.x + dx); f.y = ceRound(e.y + dy); m.fields[id] = f; }, { key: key || 'move:' + id });
   ceSyncPositionInputs(id);
 }
@@ -595,17 +706,37 @@ function ceSyncPositionInputs(id) {
   if (y && document.activeElement !== y) y.value = ceRound(e.y * 100, 1);
 }
 function cePlace(id, col, row) {
-  const box = ceBoxes()[id] || { w: ceEff(id).w, h: 0.05 }, w = box.w, h = box.h, mx = 0.09, top = 0.10, bottom = 0.08;
+  const box = ceBoxOf(id) || { w: ceEff(id).w, h: 0.05 }, w = box.w, h = box.h, mx = 0.09, top = 0.10, bottom = 0.08;
   const x = col === 0 ? mx : col === 1 ? 0.5 - w / 2 : 1 - mx - w;
   const y = row === 0 ? top : row === 1 ? 0.5 - h / 2 : 1 - bottom - h;
+  if (ceIsImg(id)) { const p = ceImgPos({ x, y, w, h }); ceChange((m) => { cePatchImg(m, id, p); }, { panels: true }); return; }
   ceChange((m) => { m.fields[id] = { ...(m.fields[id] || {}), x: ceRound(x), y: ceRound(y), align: ['left', 'center', 'right'][col] }; }, { panels: true });
 }
 function ceSetProp(id, prop, value, key) {
+  if (ceIsImg(id)) {
+    const b = ceBoxOf(id); if (!b) return;
+    if (prop === 'x' || prop === 'y') { const p = ceImgPos({ ...b, [prop]: value }); ceChange((m) => { cePatchImg(m, id, p); }, { key: key || ('p:' + id + prop) }); ceSyncPositionInputs(id); }
+    else if (prop === 'w') { ceChange((m) => { cePatchImg(m, id, { w: ceRound(value) }); }, { key: key || ('p:' + id + prop) }); }   // Mitte bleibt, Seitenverhaeltnis bleibt
+    return;
+  }
   ceChange((m) => { m.fields[id] = { ...(m.fields[id] || {}), [prop]: value }; }, { key: key || ('p:' + id + prop) });
   if (prop === 'x' || prop === 'y') ceSyncPositionInputs(id);
 }
 
 /* ---------- Anordnung, Zuruecksetzen ---------- */
+/* Drehen ohne Ziehen (Schieber, Zahl, Knoepfe, Taste R) */
+function ceSetRot(id, deg, key) {
+  const r = ceRound(ceClamp(ceRotNorm(deg), -180, 180), 1);
+  if (ceIsImg(id)) ceChange((m) => { cePatchImg(m, id, { rot: r }); }, { key: key || 'rot:' + id });
+  else ceChange((m) => { m.fields[id] = { ...(m.fields[id] || {}), rot: r }; }, { key: key || 'rot:' + id });
+  ceRefreshRot(id);
+}
+function ceRefreshRot(id) {
+  const r = ceRotOf(id);
+  document.querySelectorAll(`[data-ce-input="rot"][data-f="${id}"]`).forEach((el) => { if (document.activeElement !== el) el.value = r; el.setAttribute('aria-valuetext', ceDeg(r)); });
+  document.querySelectorAll(`[data-ce-input="rotnum"][data-f="${id}"]`).forEach((el) => { if (document.activeElement !== el) el.value = ceRound(r, 1); });
+  document.querySelectorAll(`[data-ce="rot-step"][data-d="0"][data-f="${id}"]`).forEach((el) => el.setAttribute('aria-pressed', String(r === 0)));
+}
 function ceArrange(name) {
   ceCheckpoint(null);
   let next;
@@ -617,14 +748,14 @@ function ceArrange(name) {
 function ceResetArrangement() {
   ceCheckpoint(null);
   const m = ceClone(ce.model);
-  Object.keys(m.fields).forEach((id) => { const f = m.fields[id]; ['x', 'y', 'w'].forEach(k => delete f[k]); if (!Object.keys(f).length) delete m.fields[id]; });
+  Object.keys(m.fields).forEach((id) => { const f = m.fields[id]; ['x', 'y', 'w', 'rot'].forEach(k => delete f[k]); if (!Object.keys(f).length) delete m.fields[id]; });
   m.arrange = ''; ce.model = coverModelSanitize(m); ce.coverDirty = true;
   ceRelayout(); ceRenderAll(); ceScheduleSave(true);
 }
 function ceResetCover() {
   ceCheckpoint(null);
   ce.model = coverModelSanitize({ v: 2, mode: 'template', templateId: ce.model.templateId, date: ce.model.date, showDate: ce.model.showDate });
-  ce.coverDirty = true; ce.sel = null; ce.imgMove = false; ce.tab = 'text'; ce.fadeNext = true;
+  ce.coverDirty = true; ce.sel = null; ce.imgMove = false; ce.tab = 'text'; ce.fadeNext = true; ce.ximgError = '';   // Zusatzbilder fallen weg (nur Referenzen; Dateien raeumt coverImageGc auf)
   ceRelayout(); ceRenderAll(); ceScheduleSave(true);
 }
 
@@ -640,6 +771,43 @@ async function ceImportImage(file) {
   } catch (e) {
     ce.imgError = (e && e.userMessage) || 'Das Bild konnte nicht geladen werden. Versuche es mit einer JPEG- oder PNG-Datei.';
   } finally { ce.imgBusy = false; ceRenderPanels(); }
+}
+
+/* ---------- Zusatzbilder ---------- */
+async function ceAddImage(file) {
+  const replace = ce.ximgReplace; ce.ximgReplace = null;
+  if (!file) return;
+  if (typeof coverImageImport !== 'function') { ce.ximgError = 'Eigene Bilder sind in dieser Version noch nicht verfügbar.'; ceRenderPanels(); return; }
+  if (!replace && ceImgs().length >= CE_IMG_MAX) { ce.ximgError = `Höchstens ${CE_IMG_MAX} Bilder pro Titelblatt.`; ceRenderPanels(); return; }
+  ce.imgBusy = true; ce.ximgError = ''; ceRenderPanels();
+  try {
+    const r = await coverImageImport(file, ce.bookId);
+    if (replace && ceImgOf(replace)) {
+      ce.fadeNext = true; ceChange((m) => { cePatchImg(m, replace, { imgId: r.id, iw: r.w, ih: r.h }); }, { now: true });   // Mitte, Breite, Drehung und Ebene bleiben
+    } else {
+      const ar = (r.h || 1) / (r.w || 1) * (COVER_PAGE.w / COVER_PAGE.h), w = ceRound(Math.min(0.4, 0.45 / ar));
+      const n = ceImgs().length, entry = typeof coverNewImageEntry === 'function' ? coverNewImageEntry(r, { x: 0.5 + 0.04 * n, y: 0.5 + 0.04 * n, w, z: 'below' }) : null;
+      if (!entry) throw new Error('Eintrag');
+      ce.fadeNext = true; ceChange((m) => { m.mode = 'custom'; m.images = [...(m.images || []), entry]; }, { now: true });
+      ce.sel = ceImgOf('img-' + entry.id) ? 'img-' + entry.id : ce.sel;
+    }
+  } catch (e) {
+    ce.ximgError = (e && e.userMessage) || 'Das Bild konnte nicht geladen werden. Versuche es mit einer JPEG- oder PNG-Datei.';
+  } finally { ce.imgBusy = false; ceRenderPanels(); ceSyncOverlay(); }
+}
+/* Entfernt nur die Referenz (Undo kann sie zurueckholen); die Datei raeumt coverImageGc() spaeter auf */
+function ceRemoveImage(sid) {
+  ce.fadeNext = true; ceChange((m) => { m.images = (m.images || []).filter(i => ceImgSid(i) !== sid); }, { now: true });
+  if (ce.sel === sid) ce.sel = null;
+  ceSyncOverlay(); ceRenderPanels();
+}
+function ceFillThumbs() {
+  document.querySelectorAll('canvas.ce-thumb[data-thumb]').forEach(async (cv) => {
+    if (cv.dataset.done === cv.dataset.thumb) return;
+    const d = await ceUserImage(cv.dataset.thumb); if (!d || !cv.isConnected) return;
+    const iw = d.naturalWidth || d.width || 1, ih = d.naturalHeight || d.height || 1, k = Math.min(cv.width / iw, cv.height / ih), x = cv.getContext('2d');
+    x.clearRect(0, 0, cv.width, cv.height); x.drawImage(d, (cv.width - iw * k) / 2, (cv.height - ih * k) / 2, iw * k, ih * k); cv.dataset.done = cv.dataset.thumb;
+  });
 }
 
 /* ---------- Ereignisse (einmal, delegiert) ---------- */
@@ -660,7 +828,7 @@ document.addEventListener('click', (e) => {
     case 'tab': ce.tab = v; ce.imgMove = false; ceRenderTabs(); ceRenderPanels(); ceSyncOverlay(); ceRevealTabs(); ceFadePanel(); break;
     case 'template': if (coverValidTemplateId(b.dataset.id) !== coverValidTemplateId(ce.model.templateId)) ce.fadeNext = true; ceChange((m) => { m.templateId = coverValidTemplateId(b.dataset.id); }, { now: true }); ceRenderAll(); break;
     case 'select': ceSelect(ce.sel === id ? null : id); break;
-    case 'goto-warn': { const t = CE_FIELD_ORDER.includes(id) ? id : null; if (t) { ceSelect(t); const c = document.querySelector(`.ce-field[data-f="${t}"]`); if (c) c.scrollIntoView({ block: 'nearest' }); } else { ce.tab = id === 'image' ? 'bg' : 'arr'; ceRenderTabs(); ceRenderPanels(); } break; }
+    case 'goto-warn': { if (/^image:/.test(id || '') && ceImgOf('img-' + id.slice(6))) { ceSelect('img-' + id.slice(6)); break; } const t = CE_FIELD_ORDER.includes(id) ? id : null; if (t) { ceSelect(t); const c = document.querySelector(`.ce-field[data-f="${t}"]`); if (c) c.scrollIntoView({ block: 'nearest' }); } else { ce.tab = id === 'image' ? 'bg' : 'arr'; ceRenderTabs(); ceRenderPanels(); } break; }
     case 'edit': { const inp = document.querySelector(`.ce-field[data-f="${id}"] input[type=text]`); if (inp) { inp.focus(); inp.select && inp.select(); } break; }
     case 'clear-extra': ceChange((m) => { delete m.fields.extra1; }, { panels: true }); break;
     case 'color': {
@@ -690,6 +858,12 @@ document.addEventListener('click', (e) => {
     case 'img-move': ce.imgMove = !ce.imgMove; if (ce.imgMove) ce.sel = null; ceSyncOverlay(); ceRenderPanels(); break;
     case 'img-reset': ceChange((m) => { if (m.image) m.image = { ...m.image, cx: 0.5, cy: 0.5, zoom: 1 }; }, { panels: true }); break;
     case 'img-nudge': { const im = ce.model.image; if (!im) break; const s = (e.shiftKey ? 0.05 : 0.01) * (im.fit === 'contain' ? 1 : -1) * (im.fit === 'contain' ? 1 : 1 / Math.max(im.zoom, 1)); ceChange((m) => { m.image = { ...m.image, cx: m.image.cx + Number(b.dataset.dx) * s, cy: m.image.cy + Number(b.dataset.dy) * s }; }, { key: 'imgnudge' }); break; }
+    case 'rot-step': { const dd = Number(b.dataset.d); ceSetRot(id, dd === 0 ? 0 : ceRotOf(id) + dd, 'rotstep:' + id); break; }
+    case 'ximg-add': { ce.ximgReplace = null; const f = document.querySelector('[data-ce-xfile]'); if (f) f.click(); break; }
+    case 'ximg-replace': { ce.ximgReplace = id; const f = document.querySelector('[data-ce-xfile]'); if (f) f.click(); break; }
+    case 'ximg-remove': ceRemoveImage(id); break;
+    case 'ximg-select': ceSelect(ce.sel === id ? null : id); break;
+    case 'ximg-z': ce.fadeNext = false; ceChange((m) => { cePatchImg(m, id, { z: v === 'above' ? 'above' : 'below' }); }, { panels: true }); ceSyncOverlay(); break;
     case 'undo': ceUndo(); break;
     case 'redo': ceRedo(); break;
     case 'retry': ceSaveNow(); break;
@@ -715,6 +889,8 @@ document.addEventListener('input', (e) => {
   if (kind === 'extra1') { ceChange((m) => { const f = { ...(m.fields.extra1 || {}) }; if (t.value.trim()) f.text = t.value; else delete f.text; if (Object.keys(f).length) m.fields.extra1 = f; else delete m.fields.extra1; }, { key: 'text:extra1' }); return; }
   if (kind === 'fontPt') { ceSetProp(id, 'fontPt', num, 'rng:' + id + 'pt'); t.parentElement.querySelector('output').textContent = `${ceRound(num, 1)} pt`; }
   else if (kind === 'w') { ceSetProp(id, 'w', num / 100, 'rng:' + id + 'w'); t.parentElement.querySelector('output').textContent = `${num} %`; }
+  else if (kind === 'rot') { ceSetRot(id, num, 'rng:' + id + 'rot'); }
+  else if (kind === 'iw') { ceSetProp(id, 'w', num / 100, 'rng:' + id + 'iw'); t.parentElement.querySelector('output').textContent = `${num} %`; }
   else if (kind === 'zoom') { ceChange((m) => { if (m.image) m.image = { ...m.image, zoom: num }; }, { key: 'zoom' }); t.parentElement.querySelector('output').textContent = `${Math.round(num * 100)} %`; }
   else if (kind === 'color') {
     const hex = t.value.toUpperCase();
@@ -724,6 +900,7 @@ document.addEventListener('input', (e) => {
 document.addEventListener('change', (e) => {
   const t = e.target; if (!t.matches || !ceCtx(t)) return;
   if (t.matches('[data-ce-file]')) { const f = t.files && t.files[0]; t.value = ''; ceImportImage(f); return; }
+  if (t.matches('[data-ce-xfile]')) { const f = t.files && t.files[0]; t.value = ''; ceAddImage(f); return; }
   if (t.matches('[data-cb-field]')) { t.value = t.value.trim(); ceSetText(t.dataset.cbField, t.value, true); ceFlush(); return; }
   if (t.matches('[data-cb-cover-date]')) {
     const d = coverNormalizeDate(t.value);
@@ -734,14 +911,15 @@ document.addEventListener('change', (e) => {
   if (t.matches('[data-cb-flag="showLogo"]')) { ceCheckpoint(null); ce.texts.showLogo = !!t.checked; ceAfterChange({ now: true }); return; }
   const kind = t.dataset.ceInput;
   if (kind === 'x' || kind === 'y') { const n = Number(t.value); if (Number.isFinite(n)) ceSetProp(t.dataset.f, kind, ceClamp(n, -50, 150) / 100, 'xy:' + t.dataset.f + kind); }
-  if (kind === 'fontPt' || kind === 'w' || kind === 'zoom' || kind === 'color') ce.lastKey = '';
+  if (kind === 'rotnum') { const n = Number(String(t.value).replace(',', '.')); if (Number.isFinite(n)) ceSetRot(t.dataset.f, ceClamp(n, -180, 180), 'rotnum:' + t.dataset.f); else ceRefreshRot(t.dataset.f); }
+  if (kind === 'fontPt' || kind === 'w' || kind === 'zoom' || kind === 'color' || kind === 'rot' || kind === 'iw') ce.lastKey = '';
 });
 /* Zeigen (Pointer-Events mit Capture). Maus: ganzer Rahmen und Griffe. Touch: nur die Griffe, Rest scrollt normal. */
 document.addEventListener('pointerdown', (e) => {
   const t = e.target; if (!t.closest || !ceCtx(t)) return;
   const grip = t.closest('[data-grip]'), fr = t.closest('.ce-frame'), pad = t.closest('[data-imgpad]'), hit = t.closest('.ce-hit');
   if (e.pointerType === 'mouse' && e.button !== 0) return;
-  if (grip && fr) { ceDragStart({ ...ceEvt(e), currentTarget: grip }, grip.dataset.grip === 'width' ? 'width' : 'move', fr.dataset.fr); }
+  if (grip && fr) { const g = grip.dataset.grip; ceDragStart({ ...ceEvt(e), currentTarget: grip }, g === 'width' || g === 'rot' || g === 'size' ? g : 'move', fr.dataset.fr); }
   else if (fr && e.pointerType === 'mouse') ceDragStart({ ...ceEvt(e), currentTarget: fr }, 'move', fr.dataset.fr);
   else if (pad) ceDragStart({ ...ceEvt(e), currentTarget: pad }, 'image', null);
   else if (hit && e.pointerType === 'mouse') { const id = hit.dataset.hit; ceSelect(id); const nf = document.querySelector(`.ce-frame[data-fr="${id}"]`); if (nf) { e.preventDefault(); ceDragStart({ ...ceEvt(e), currentTarget: nf }, 'move', id); } }
@@ -758,6 +936,7 @@ document.addEventListener('keydown', (e) => {
     const id = fr.dataset.fr, s = e.shiftKey ? 0.05 : 0.01;
     const d = { ArrowLeft: [-s, 0], ArrowRight: [s, 0], ArrowUp: [0, -s], ArrowDown: [0, s] }[e.key];
     if (d) { e.preventDefault(); ceMoveBy(id, d[0], d[1], 'key:' + id); return; }
+    if (e.code === 'KeyR' && !e.metaKey && !e.ctrlKey) { e.preventDefault(); ceSetRot(id, ceRotOf(id) + (e.shiftKey ? 15 : 1) * (e.altKey ? -1 : 1), 'keyrot:' + id); fr.focus({ preventScroll: true }); return; }
     if (e.key === 'Escape') { e.preventDefault(); ceSelect(null); return; }
     if (e.key === 'Enter') { e.preventDefault(); const inp = document.querySelector(`.ce-field[data-f="${id}"] input[type=text]`); if (inp) inp.focus(); return; }
   }
