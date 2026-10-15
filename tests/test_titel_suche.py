@@ -57,7 +57,8 @@ async def main():
             # Favoriten-Ansicht: gleicher Titelort
             await ev(STATE_RESET); await ev("() => { state.favOnly = true; render(); }")
             fv = await ev("() => { const e = document.querySelector('.view-pick .inline-pick-text'); const r = document.createRange(); r.selectNodeContents(e); const q = r.getBoundingClientRect(); return { t: e.textContent.trim(), top: q.top, bottom: q.bottom }; }")
-            check(tag + 'Titel bleibt bei aktiven Favoriten «Alle Rezepte» (ohne Pfeil), auf gleicher Hoehe', fv['t'] == 'Alle Rezepte' and abs(fv['top'] - res['more']['top']) <= 1 and abs(fv['bottom'] - res['more']['bottom']) <= 1, str(fv))
+            # v84: Favoriten sind ein Bereich der Sammlungsauswahl im Titel, der Titel nennt ihn
+            check(tag + 'Titel zeigt bei aktiven Favoriten «Favoriten», auf gleicher Hoehe', fv['t'] == 'Favoriten' and abs(fv['top'] - res['more']['top']) <= 1 and abs(fv['bottom'] - res['more']['bottom']) <= 1, str(fv))
             await ev(STATE_RESET)
             # Mehrere Seiten wechseln: Titel verspringt nicht (Klick durch die Tabs)
             seq = []
@@ -91,7 +92,7 @@ async def main():
         await shot(page, 'suche_offen_hell.png')
         await page.keyboard.type('carb'); await page.wait_for_timeout(400)
         s1 = await ev("() => ({ q: state.query, n: document.querySelectorAll('.rrow--phone').length, line: document.querySelector('.result-line').textContent, focus: document.activeElement.id, val: document.getElementById('searchInput').value, y: scrollY })")
-        check('Tippen filtert die Liste, Trefferzahl «1 Rezept», Fokus bleibt im Feld, Text vollstaendig', s1['q'] == 'carb' and s1['n'] == 1 and s1['line'] == '1 Rezept' and s1['focus'] == 'searchInput' and s1['val'] == 'carb' and s1['y'] == 0, str(s1))
+        check('Tippen filtert die Liste, Trefferzahl «1 von 3 Rezepten» (v84), Fokus bleibt im Feld, Text vollstaendig', s1['q'] == 'carb' and s1['n'] == 1 and s1['line'] == '1 von 3 Rezepten' and s1['focus'] == 'searchInput' and s1['val'] == 'carb' and s1['y'] == 0, str(s1))
         await page.keyboard.press('Escape'); await page.wait_for_timeout(300)
         s2 = await ev("() => { const b = document.getElementById('searchBtn'); return { open: !!document.getElementById('searchInput'), q: state.query, focus: document.activeElement.id, exp: b.getAttribute('aria-expanded'), active: b.classList.contains('is-active'), bg: getComputedStyle(b).backgroundColor, fbg: getComputedStyle(document.querySelector('.filter-btn')).backgroundColor, n: document.querySelectorAll('.rrow--phone').length }; }")
         check('Escape schliesst das Feld: Suchtext bleibt, Treffer bleiben, Fokus zurueck auf dem Knopf, aria-expanded=false', not s2['open'] and s2['q'] == 'carb' and s2['focus'] == 'searchBtn' and s2['exp'] == 'false' and s2['n'] == 1, str(s2))
@@ -113,7 +114,8 @@ async def main():
         # Tastatur: Tab-Reihenfolge Titelwahl, Filter, Suche
         order = await ev("() => Array.from(document.querySelector('.filter-bar').querySelectorAll('select, button')).map(e => e.id || e.className.split(' ')[0])")
         order2 = await ev("() => Array.from(document.querySelectorAll('.result-row select, .result-row button')).map(e => e.id || e.className.split(' ')[0])")
-        check('Tastatur: oben nur Suchen (Titel ohne Auswahl), Zeile darunter Sortierung, Umschalter, Filter', order == ['searchBtn'] and order2[0] == 'sortSelect' and order2[-1] == 'filter-btn', str((order, order2)))
+        # v84: der Titel ist die Sammlungsauswahl (erster Tab-Halt); in der Zeile darunter steht «Auswählen» neben der Anzahl
+        check('Tastatur: oben Sammlungsauswahl und Suchen, Zeile darunter Auswählen, Sortierung, Umschalter, Filter', order == ['colPickBtn', 'searchBtn'] and order2[0] == 'selModeBtn' and order2[1] == 'sortSelect' and order2[-1] == 'filter-btn', str((order, order2)))
         await page.focus('#searchBtn'); await page.keyboard.press('Enter'); await page.wait_for_timeout(300)
         check('Enter auf dem Knopf oeffnet die Suche mit Fokus im Feld', await ev("document.activeElement.id") == 'searchInput')
         await page.keyboard.press('Escape'); await page.wait_for_timeout(200)
@@ -160,8 +162,9 @@ async def main():
         for (w, h) in [(820, 1180), (1440, 900)]:
             b, ctx, page, errs = await new_page(p, w, h); ev = page.evaluate; tag = f'[{w}] '
             await ev(STATE_RESET); await page.wait_for_timeout(250)
-            t = await ev("() => ({ field: !!document.querySelector('.search-field'), input: !!document.getElementById('searchInput'), btn: !!document.getElementById('searchBtn'), seg: !!document.querySelector('.seg') })")
-            check(tag + 'Tablet/Desktop: breites Suchfeld und «Alle/Favoriten» wie bisher, kein Suchknopf', t['field'] and t['input'] and t['seg'] and not t['btn'], str(t))
+            t = await ev("() => ({ field: !!document.querySelector('.search-field'), input: !!document.getElementById('searchInput'), btn: !!document.getElementById('searchBtn'), seg: !!document.querySelector('.seg'), pick: !!document.querySelector('.col-pick-btn') })")
+            # v84: «Alle/Favoriten» ist durch die Sammlungsauswahl ersetzt
+            check(tag + 'Tablet/Desktop: breites Suchfeld und Sammlungsauswahl statt «Alle/Favoriten», kein Suchknopf', t['field'] and t['input'] and not t['seg'] and t['pick'] and not t['btn'], str(t))
             await page.fill('#searchInput', 'carb'); await page.wait_for_timeout(400)
             check(tag + 'Tablet/Desktop: Suche filtert wie bisher', await ev("state.query") == 'carb' and await ev("document.querySelectorAll('.rcard, .rrow').length") == 1)
             await ctx.close(); await b.close()

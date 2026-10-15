@@ -200,11 +200,13 @@ async def main():
             inactive = await ev(MARK, '.theme-opt:not(.active)')
             check(f'D03 [{theme}] aktive Einstellungsoption zeigt Haken, inaktive nicht', bool(ok) and inactive['content'] == 'none', str(m))
             await ev("() => { state.view = 'home'; resetExtraFilters(); render(); }"); await page.wait_for_timeout(200)
-            # Die Segment-Auswahl «Alle/Favoriten» gibt es auf Tablet und Desktop; auf dem Handy ist es seit der Startseite als Liste eine Auswahl «Alle Rezepte».
+            # v84: «Alle/Favoriten» ist ein Bereich der Sammlungsauswahl (Segment entfällt). Der aktive Bereich trägt ein sichtbares Häkchen
+            # und aria-current, die anderen nicht (nicht nur über Farbe erkennbar).
             await page.set_viewport_size({'width': 820, 'height': 1180}); await page.wait_for_timeout(500)
-            m2 = await ev(MARK, '.seg-btn[aria-pressed="true"]')
-            m3 = await ev(MARK, '.seg-btn[aria-pressed="false"]')
-            check(f'D03 [{theme}] «Alle» zeigt Haken, «Favoriten» nicht', bool(m2) and m2['content'] != 'none' and m2['w'] > 2 and m3['content'] == 'none', str(m2))
+            await page.click('#colPickBtn'); await page.wait_for_selector('.col-pick-item'); await page.wait_for_timeout(250)
+            m2 = await ev("() => [...document.querySelectorAll('.col-pick-item')].map(b => ({ cur: b.getAttribute('aria-current') === 'true', svg: !!b.querySelector('.col-check svg'), w: b.querySelector('.col-check svg') ? b.querySelector('.col-check svg').getBoundingClientRect().width : 0, id: b.dataset.id }))")
+            check(f'D03 [{theme}] «Alle Rezepte» zeigt Häkchen und aria-current, «Favoriten» nicht', m2[0]['id'] == 'all' and m2[0]['cur'] and m2[0]['svg'] and m2[0]['w'] > 2 and not m2[1]['cur'] and not m2[1]['svg'], str(m2[:2]))
+            await page.keyboard.press('Escape'); await page.wait_for_timeout(300)
             await page.set_viewport_size({'width': 390, 'height': 844}); await page.wait_for_timeout(500)
             await page.click('[data-action="open-filter-sheet"]'); await page.wait_for_selector('.filter-sheet'); await page.wait_for_timeout(250)
             await page.click('.fs-input[data-fs-dim="dietary"][value="vegan"] >> xpath=..'); await page.wait_for_timeout(80)

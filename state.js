@@ -16,7 +16,7 @@ const state = {
   servingsOverride: {},
   theme: loadStoredTheme(),
   unitSystem: localStorage.getItem(UNIT_KEY) || 'metric',
-  sortBy: (() => { try { const v = localStorage.getItem('savora-sort'); return ['updated', 'az', 'cooked', 'time'].includes(v) ? v : 'updated'; } catch (e) { return 'updated'; } })(),
+  sortBy: (() => { try { const v = localStorage.getItem('savora-sort'); return ['updated', 'added', 'az', 'cooked', 'time'].includes(v) ? v : 'updated'; } catch (e) { return 'updated'; } })(),
   showNutrition: (() => { try { return localStorage.getItem('savora-show-nutrition') !== '0'; } catch (e) { return true; } })(),
   cookScale: (() => { try { return Math.max(0, Math.min(2, parseInt(localStorage.getItem('savora-cook-scale') || '0', 10) || 0)); } catch (e) { return 0; } })(),
   cookbookTitle: localStorage.getItem(COOKBOOK_TITLE_KEY) || '',
@@ -40,7 +40,8 @@ const state = {
   // pro Dimension moeglich ist.
   activeFilters: { dietary: new Set(), category: new Set(), time: new Set(), more: new Set(), tags: new Set() },
   // Feast x Bloom Umbau: reine UI-Zustaende, nichts davon wird ungefragt gespeichert.
-  activeCollection: 'all',       // 'all' | 'favorites' | 'uncooked' | 'frequent' | <Sammlungs-ID>
+  activeCollection: 'all',       // 'all' | 'favorites' | 'uncooked' | 'frequent' | <Sammlungs-ID>; v84 zusaetzlich 'none' (Ohne Sammlung), 'friends'. Nur Sitzung: Start immer bei «Alle Rezepte»
+  selectMode: null,              // v84 Auswahlmodus der Übersicht: { ids: Set<recipeId>, target: Sammlungs-ID|null } (nur Sitzung)
   homeLayoutChosen: (function () { try { const v = localStorage.getItem('savora-home-layout'); return v === 'grid' || v === 'list'; } catch (e) { return false; } })(),
   homeLayout: (function () { try { return localStorage.getItem('savora-home-layout') || 'grid'; } catch (e) { return 'grid'; } })(),
   detailTab: 'ingredients',      // 'ingredients' | 'steps' | 'nutrition' | 'notes'

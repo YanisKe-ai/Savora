@@ -1,5 +1,5 @@
 """Handy (unter 768 px): Rezepte-Zeile 0.71.
-Obere Zeile = Titel «Alle Rezepte» (ohne Pfeil, ohne Auswahl) und Lupe rechts. Zeile darunter: links «N Rezepte» und Sortierung (mit «Nur Favoriten»),
+Obere Zeile = Titel «Alle Rezepte ▾» (v84: Sammlungsauswahl) und Lupe rechts. Zeile darunter: links «N Rezepte» und Sortierung (Favoriten jetzt im Titel),
 rechts der Umschalter Liste/Raster und direkt daneben der Filter (mind. 8 px Abstand). Alles in einer Zeile ohne Ueberlappung bei 320/360/390/430 px
 (Reserve mind. 16 px zwischen Text und Knoepfen), Tippflaechen mind. 44 px, unter 360 px ein einzelner Wechsel-Knopf. Favoriten in der Sortierung,
 Filterzaehler zaehlt Favoriten nicht. Mehr Abstand zur ersten Rezeptzeile. Logo auf allen fuenf Hauptseiten an gleicher Stelle."""
@@ -12,7 +12,7 @@ def check(name, cond, info=''):
     print(('OK   ' if cond else 'FEHL ') + name, info)
     if not cond: FAIL.append(name)
 SHOTS = os.environ.get('SAVORA_SHOTS_DIR')
-RESET = "() => { try { localStorage.removeItem('savora-home-layout'); } catch (e) {} state.homeLayoutChosen = false; state.homeLayout = 'grid'; resetExtraFilters(); state.query = ''; state.searchOpen = false; state.favOnly = false; state.sortBy = 'updated'; state.modal = null; state.view = 'home'; render(); window.scrollTo(0, 0); }"
+RESET = "() => { try { localStorage.removeItem('savora-home-layout'); } catch (e) {} state.homeLayoutChosen = false; state.homeLayout = 'grid'; resetExtraFilters(); state.query = ''; state.searchOpen = false; state.favOnly = false; state.activeCollection = 'all'; state.sortBy = 'updated'; state.modal = null; state.view = 'home'; render(); window.scrollTo(0, 0); }"
 GEO = """() => { const q = (s) => { const e = document.querySelector(s); return e ? e.getBoundingClientRect() : null; };
   const vp = q('.view-pick'), sb = q('#searchBtn'), tg = q('.layout-toggle'), sg = q('.layout-single'), fb = q('.filter-btn'), row = q('.result-row'), info = q('.result-info');
   const two = [...document.querySelectorAll('.layout-toggle .icon-toggle')].map(e => e.getBoundingClientRect());
@@ -43,7 +43,7 @@ async def main():
             b, ctx, page, errs = await new_page(p, w, h); ev = page.evaluate; tag = f'[{w}] '
             await ev(RESET); await page.wait_for_timeout(200)
             g = await ev(GEO)
-            check(tag + 'Titel «Alle Rezepte» ohne Pfeil und ohne Auswahl', g['title'] == 'Alle Rezepte' and not g['arrow'], str(g['title']))
+            check(tag + 'Titel «Alle Rezepte ▾» ist die Sammlungsauswahl (v84, mit Pfeil)', g['title'] == 'Alle Rezepte' and g['arrow'], str(g['title']))
             check(tag + 'Obere Zeile: Titel links, Lupe ganz rechts (16 px Rand, 44 px), gleiche Zeile, kein Ueberlappen', g['vpR'] <= g['sbL'] + 0.5 and abs(g['W'] - g['sbR'] - 16) <= 1 and abs(g['sbH'] - 44) <= 0.5 and abs((g['vpT'] + g['vpH'] / 2) - (g['sbT'] + g['sbH'] / 2)) <= 2, str(g))
             check(tag + 'Umschalter und Filter in der Zeile darunter, nicht mehr in der Sortier-Zeile', not g['toggleInSort'] and g['tgT' if False else 'tgL'] > 0 and g['fbT'] > g['sbT'] + 20, str(g))
             check(tag + 'Umschalter steht links NEBEN dem Filter, mind. 8 px Abstand, Filter ganz rechts (16 px Rand)', g['tgR'] <= g['fbL'] - 8 + 0.5 and abs(g['W'] - g['fbR'] - 16) <= 1, str(g))
@@ -57,13 +57,16 @@ async def main():
             n_all = await ev("() => document.querySelectorAll('.rrow--phone').length")
             await ev("() => { state.recipes[0].favorite = true; render(); }")
             opts = await ev("() => Array.from(document.querySelectorAll('#sortSelect option')).map(o => o.textContent.trim())")
-            await page.select_option('#sortSelect', '__fav'); await page.wait_for_timeout(250)
-            f = await ev("() => ({ n: document.querySelectorAll('.rrow--phone').length, fav: state.favOnly, label: document.querySelector('.sort-inline .inline-pick-text').textContent.trim(), btn: document.querySelector('.filter-btn').textContent.trim(), title: document.querySelector('.view-pick').textContent.trim(), allFav: state.recipes.filter(r => r.favorite).length })")
-            check(tag + 'Sortierung hat «Nur Favoriten»; Auswahl zeigt nur Favoriten, Wahl sichtbar, Filterzaehler unveraendert, Titel bleibt', opts[-1] == 'Nur Favoriten' and f['n'] == f['allFav'] and f['n'] < n_all and f['fav'] and f['label'] == 'Nur Favoriten' and f['btn'] == 'Filter' and f['title'] == 'Alle Rezepte', str((opts, f)))
+            await page.click('#colPickBtn'); await page.click('.col-pick-item[data-id="favorites"]'); await page.wait_for_timeout(350)
+            f = await ev("() => ({ n: document.querySelectorAll('.rrow--phone').length, fav: state.activeCollection === 'favorites', label: document.querySelector('.sort-inline .inline-pick-text').textContent.trim(), btn: document.querySelector('.filter-btn').textContent.trim(), title: document.querySelector('.view-pick').textContent.trim(), allFav: state.recipes.filter(r => r.favorite).length })")
+            # v84: Favoriten sind ein Bereich der Sammlungsauswahl im Titel, nicht mehr eine Sortieroption
+            check(tag + 'Sortierung ohne «Nur Favoriten»; Bereich «Favoriten» zeigt nur Favoriten, Titel nennt ihn, Filterzaehler unveraendert', 'Nur Favoriten' not in opts and f['n'] == f['allFav'] and f['n'] < n_all and f['fav'] and f['label'] == 'Zuletzt bearbeitet' and f['btn'] == 'Filter' and f['title'] == 'Favoriten', str((opts, f)))
             await ev("() => { resetExtraFilters(); render(); }")
-            check(tag + 'Zuruecksetzen laesst Favoriten stehen', await ev("state.favOnly") is True)
+            check(tag + 'Zuruecksetzen laesst Favoriten stehen', await ev("state.activeCollection") == 'favorites')
             await page.select_option('#sortSelect', 'az'); await page.wait_for_timeout(250)
-            check(tag + 'Andere Sortierung zeigt wieder alle Rezepte', not await ev("state.favOnly") and await ev("document.querySelectorAll('.rrow--phone').length") == n_all)
+            check(tag + 'Andere Sortierung aendert den Bereich nicht', await ev("state.activeCollection") == 'favorites' and await ev("document.querySelectorAll('.rrow--phone').length") == f['n'])
+            await page.click('#colPickBtn'); await page.click('.col-pick-item[data-id="all"]'); await page.wait_for_timeout(350)
+            check(tag + '«Alle Rezepte» zeigt wieder alle Rezepte', await ev("document.querySelectorAll('.rrow--phone').length") == n_all)
             # Raster: gleiche Anordnung
             if w >= 360: await page.click('.layout-toggle .icon-toggle[data-id="grid"]')
             else: await page.click('.layout-single')
@@ -87,8 +90,8 @@ async def main():
         for (w, h) in [(820, 1180), (1440, 900)]:
             b, ctx, page, errs = await new_page(p, w, h); ev = page.evaluate
             await ev(RESET); await page.wait_for_timeout(250)
-            t = await ev("() => ({ seg: [...document.querySelectorAll('.seg-btn')].map(e => e.textContent.trim()), tg: !!document.querySelector('.result-row .layout-toggle'), single: !!document.querySelector('.layout-single') })")
-            check(f'[{w}] Tablet/Desktop: Segment Alle/Favoriten bleibt, Umschalter wie bisher in der Ergebniszeile', t['seg'] == ['Alle', 'Favoriten'] and t['tg'] and not t['single'], str(t))
+            t = await ev("() => ({ seg: [...document.querySelectorAll('.seg-btn')].map(e => e.textContent.trim()), pick: (document.getElementById('colPickBtn') || {}).textContent, tg: !!document.querySelector('.result-row .layout-toggle'), single: !!document.querySelector('.layout-single') })")
+            check(f'[{w}] Tablet/Desktop: Sammlungsauswahl statt Segment Alle/Favoriten (v84), Umschalter wie bisher in der Ergebniszeile', t['seg'] == [] and (t['pick'] or '').strip() == 'Alle Rezepte' and t['tg'] and not t['single'], str(t))
             if w == 1440: await shot(page, 'rezepte_laptop_1440.png')
             await ctx.close(); await b.close()
     print('\n' + ('ALLE OK' if not FAIL else f'{len(FAIL)} FEHLER: ' + '; '.join(FAIL[:12])))
