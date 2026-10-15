@@ -94,8 +94,10 @@ async def main():
 
         # ---------- 3. Anlegen, Umbenennen, Duplizieren, Löschen (Bedienung) ----------
         await ev("() => { state.view = 'cookbooks'; render(); }"); await page.wait_for_selector('.cbk-card')
-        check('Liste zeigt Name, Rezeptzahl, Titelblatt-Vorschau und letzte Bearbeitung', await ev("""() => { const c = document.querySelector('.cbk-card'); return !!c.querySelector('.cbk-name').textContent && /Rezept/.test(c.querySelector('.cbk-meta').textContent) && /zuletzt bearbeitet/.test(c.querySelector('.cbk-meta').textContent) && !!c.querySelector('img.cbk-thumb'); }"""))
-        only_del = await ev("() => document.querySelector('[data-action=\"cb-delete\"]').disabled")
+        check('Liste zeigt Name, Rezeptzahl, Titelblatt-Vorschau und letzte Bearbeitung', await ev("""() => { const c = document.querySelector('.cbk-card'); return !!c.querySelector('.cbk-name').textContent && /Rezept/.test(c.querySelector('.cbk-meta').textContent) && /zuletzt bearbeitet/i.test((c.querySelector('.cbk-date') || {}).textContent || '') && !!c.querySelector('img.cbk-thumb'); }"""))
+        await page.click('.cbk-card [data-action="cb-menu"]'); await page.wait_for_selector('.modal-sheet [data-action="cb-delete"]')   # v83: seltene Aktionen im Menü der Karte
+        only_del = await ev("() => document.querySelector('.modal-sheet [data-action=\"cb-delete\"]').disabled")
+        await page.click('.modal-sheet [data-action="close-modal"]'); await page.wait_for_function("() => !state.modal")
         check('Mit nur einem Kochbuch ist „Löschen“ gesperrt', only_del is True)
         await page.click('[data-action="cb-new"]'); await page.wait_for_selector('#cbNameInput')
         await page.fill('#cbNameInput', 'Sommerküche Äpfel'); await page.keyboard.press('Enter'); await page.wait_for_selector('.cb-steps', timeout=8000)
@@ -116,7 +118,7 @@ async def main():
         cards = await ev("() => document.querySelectorAll('.cbk-card').length")
         check('Liste zeigt jetzt zwei Kochbücher', cards == 2)
         # Umbenennen
-        await page.click('.cbk-card:nth-child(2) [data-action="cb-rename"]'); await page.wait_for_selector('#cbNameInput')
+        await page.click('.cbk-card:nth-child(2) [data-action="cb-menu"]'); await page.click('.modal-sheet [data-action="cb-rename"]'); await page.wait_for_selector('#cbNameInput')
         await page.fill('#cbNameInput', ''); await page.click('[data-action="cb-name-save"]'); await page.wait_for_selector('#cbNameError')
         check('Umbenennen mit leerem Namen: Fehler am Feld, nichts gespeichert', await ev("() => cookbookBooks()[1].name") == 'Sommerküche Äpfel')
         await page.fill('#cbNameInput', 'Weihnachtsbäckerei'); await page.click('[data-action="cb-name-save"]'); await page.wait_for_timeout(700)
@@ -124,16 +126,16 @@ async def main():
         raw = await ev("() => JSON.parse(localStorage.getItem('savora-cookbook-projects')).books.map(b => b.name)")
         check('Umbenennen: neuer Name steht im gespeicherten Projekt und in der Liste', names[1] == 'Weihnachtsbäckerei' and raw[1] == 'Weihnachtsbäckerei' and 'Weihnachtsbäckerei' in await page.inner_text('.cbk-list'), str(raw))
         # Duplizieren
-        await page.click('.cbk-card:nth-child(2) [data-action="cb-duplicate"]'); await page.wait_for_timeout(500)
+        await page.click('.cbk-card:nth-child(2) [data-action="cb-menu"]'); await page.click('.modal-sheet [data-action="cb-duplicate"]'); await page.wait_for_timeout(500)
         names = await ev("() => cookbookBooks().map(b => b.name)")
         ids = await ev("() => cookbookBooks().map(b => b.id)")
         check('Duplizieren: Kopie mit eigenem Namen und eigener ID direkt hinter dem Original', len(names) == 3 and names[2] == 'Weihnachtsbäckerei (Kopie)' and len(set(ids)) == 3, str(names))
         # Löschen mit Bestätigung
-        await page.click('.cbk-card:nth-child(3) [data-action="cb-delete"]'); await page.wait_for_selector('[data-action="cb-delete-confirm"]')
+        await page.click('.cbk-card:nth-child(3) [data-action="cb-menu"]'); await page.click('.modal-sheet [data-action="cb-delete"]'); await page.wait_for_selector('[data-action="cb-delete-confirm"]')
         check('Löschen fragt nach und nennt, dass Rezepte erhalten bleiben', 'Rezepte bleiben' in await page.inner_text('.modal-sheet'))
         await page.click('.modal-sheet [data-action="close-modal"]'); await page.wait_for_timeout(500)
         check('Abbrechen löscht nichts', await ev("() => cookbookBooks().length") == 3)
-        await page.click('.cbk-card:nth-child(3) [data-action="cb-delete"]'); await page.wait_for_selector('[data-action="cb-delete-confirm"]')
+        await page.click('.cbk-card:nth-child(3) [data-action="cb-menu"]'); await page.click('.modal-sheet [data-action="cb-delete"]'); await page.wait_for_selector('[data-action="cb-delete-confirm"]')
         await page.click('[data-action="cb-delete-confirm"]'); await page.wait_for_timeout(700)
         left = await ev("async () => ({ books: cookbookBooks().map(b => b.name), recipes: (await dbGetAll()).length })")
         check('Löschen entfernt nur das Kochbuch, Rezepte bleiben alle erhalten', len(left['books']) == 2 and 'Weihnachtsbäckerei (Kopie)' not in left['books'] and left['recipes'] == n_recipes, str(left))

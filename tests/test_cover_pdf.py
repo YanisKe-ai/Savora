@@ -54,19 +54,12 @@ async def setup_book(ev, title, subtitle, author, cover):
         c.title = a.title; c.subtitle = a.subtitle; c.author = a.author; c.showLogo = true; c.cover = a.cover; saveCookbookConfig(c); }""",
              {'title': title, 'subtitle': subtitle, 'author': author, 'cover': cover})
 
-async def ui_export(page, print_name=None, pdf_name=None):
-    """Echte Oberflaeche: Schritt 3 -> «PDF-Vorschau erstellen» -> «PDF erstellen». Liefert (pdf-bytes|None, fehlertext).
-    print_name/pdf_name: Haken «Name im PDF drucken» und Feld «Name im PDF» im Exportdialog wie ein Nutzer setzen (None = unveraendert)."""
+async def ui_export(page):
+    """Echte Oberflaeche: Schritt 3 -> «PDF-Vorschau erstellen» (v83: erstellt direkt, ohne zweiten Optionsdialog). Liefert (pdf-bytes|None, fehlertext)."""
     ev = page.evaluate
     await ev("() => { state.modal = null; state.view = 'cookbook'; state.cookbookStep = 3; render(); window.__c5cover = null; }")
     await page.wait_for_selector('[data-action="export-cookbook"]:not([disabled])', timeout=15000)
     await page.click('[data-action="export-cookbook"]')
-    await page.wait_for_selector('[data-action="pdf-export-build"]', timeout=15000); await page.wait_for_timeout(150)
-    if print_name is not None:
-        await page.set_checked('#pdfNamePrint', print_name)
-    if pdf_name is not None:
-        await page.fill('#pdfNameInput', pdf_name)
-    await page.click('[data-action="pdf-export-build"]')
     await page.wait_for_function("state.modal && (state.modal.stage === 'preview' || state.modal.stage === 'error')", timeout=90000)
     r = await ev("""async () => { const m = state.modal; if (m.stage === 'error') return { err: m.errorText || '', shown: (document.querySelector('.pdf-error-text') || {}).textContent || '' };
         const u = new Uint8Array(await m.previewBlob.arrayBuffer()); let s = ''; for (let i = 0; i < u.length; i += 8192) s += String.fromCharCode.apply(null, u.subarray(i, i + 8192)); return { b64: btoa(s) }; }""")
@@ -277,19 +270,18 @@ async def main():
             raw = await ev("() => cookbookGetRaw().cover")
             check(f'v1 «{tid}»: Export stuft die gespeicherte Konfiguration nicht auf v2 hoch', raw.get('v') == 1 and raw.get('templateId') == tid, str(raw))
 
-        # ---------- 1b. «Name im PDF» aus dem Exportdialog hat auf dem Cover Vorrang; Haken aus = kein Name ----------
-        for label, pn, nm, want, absent in (('Dialogname', True, 'Dialog Beispielname', 'DialogBeispielname', 'AlexMuster'),
-                                            ('Haken aus', False, None, None, 'AlexMuster')):
-            await setup_book(ev, 'Sonntagsküche', 'Rezepte für jeden Tag', 'Alex Muster', {'v': 1, 'templateId': 'tomate', 'date': '2026-10-09', 'showDate': True})
-            data, err = await ui_export(page, print_name=pn, pdf_name=nm)
+        # ---------- 1b. v83: Name kommt aus der Kochbuch-Konfiguration (Feld «Name» des Titelblatts); leer = kein Name ----------
+        for label, author, want, absent in (('Name eingetragen', 'Alex Muster', 'AlexMuster', None), ('Name leer', '', None, 'AlexMuster')):
+            await setup_book(ev, 'Sonntagsküche', 'Rezepte für jeden Tag', author, {'v': 1, 'templateId': 'tomate', 'date': '2026-10-09', 'showDate': True})
+            data, err = await ui_export(page)
             flat = ''
             if data:
-                pth = os.path.join(TMP, f'name-{pn}.pdf'); open(pth, 'wb').write(data)
+                pth = os.path.join(TMP, f'name-{bool(author)}.pdf'); open(pth, 'wb').write(data)
                 flat = re.sub(r'\s+', '', subprocess.run(['pdftotext', '-f', '1', '-l', '1', pth, '-'], capture_output=True, text=True).stdout)
-            ok = bool(data) and (want is None or want in flat) and absent not in flat and 'Sonntagsküche' in flat
-            check(f'Cover: «Name im PDF» aus dem Exportdialog ({label}) steht auf der Titelseite bzw. fehlt', ok, str(err) if err else flat[:120])
+            ok = bool(data) and (want is None or want in flat) and (absent is None or absent not in flat) and 'Sonntagsküche' in flat
+            check(f'Cover: Name des Kochbuchs ({label}) steht auf der Titelseite bzw. fehlt', ok, str(err) if err else flat[:120])
         raw = await ev("() => cookbookGetRaw().author")
-        check('Cover: Name aus dem Exportdialog aendert den gespeicherten Kochbuch-Namen nicht', raw == 'Alex Muster', str(raw))
+        check('Cover: Export aendert den gespeicherten Kochbuch-Namen nicht', raw == '', str(raw))
 
         # ---------- 2. Eigene Bilder importieren (echter Import, Paket C4) ----------
         imgs = {}

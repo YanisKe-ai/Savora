@@ -328,9 +328,8 @@ async def main():
         await page.evaluate("window.buildSinglePdf = window.__origBuild; 0")
 
         # Abbruch eines Kochbuchs
-        await page.evaluate("openModal({ type: 'pdf-export', target: 'cookbook', stage: 'options', template: __T0, nutritionDetail: 'off' })")
-        await page.wait_for_selector('[data-action="pdf-export-build"]')
-        await page.click('[data-action="pdf-export-build"]')
+        # v83: Kochbuch erstellt direkt aus der Konfiguration (kein Optionsschritt)
+        await page.evaluate("() => { state.modal = null; render(); pdfExportStartCookbook(); }")
         await page.wait_for_selector('#pdfProgressBar')
         await page.wait_for_function("document.getElementById('pdfProgressText') && /Rezept|Seite/.test(document.getElementById('pdfProgressText').textContent)", timeout=30000)
         prog = await page.evaluate("({ t: document.getElementById('pdfProgressText').textContent, w: document.getElementById('pdfProgressBar').firstElementChild.style.width })")
@@ -338,10 +337,10 @@ async def main():
         await page.wait_for_timeout(800); await page.click('[data-action="pdf-export-cancel"]')
         await page.wait_for_timeout(800)
         st = await page.evaluate("({ stage: state.modal && state.modal.stage, blob: !!(state.modal && state.modal.previewBlob), root: document.getElementById('printRoot').children.length })")
-        check('Abbrechen: zurueck zu den Optionen, kein PDF-Ergebnis, Druckflaeche leer', st['stage'] == 'options' and not st['blob'] and st['root'] == 0, str(st))
+        check('Abbrechen: Dialog geschlossen (kein Optionsschritt im Kochbuch), kein PDF-Ergebnis, Druckflaeche leer', st['stage'] is None and not st['blob'] and st['root'] == 0, str(st))
         # Fehlerzustand mit «Erneut versuchen»
         await page.evaluate("window.__fail = true; const o = window.buildCookbookPdf; window.__origBook = o; window.buildCookbookPdf = async function () { if (window.__fail) throw Object.assign(new Error('x'), { userMessage: 'Test-Fehler beim Erstellen.' }); return o.apply(this, arguments); }; 0")
-        await page.click('[data-action="pdf-export-build"]')
+        await page.evaluate("() => { pdfExportStartCookbook(); }")
         await page.wait_for_selector('[data-action="pdf-export-build"]:has-text("Erneut versuchen")', timeout=20000)
         txt = await page.evaluate("document.querySelector('.pdf-error-text').textContent")
         check('Fehlerzustand zeigt die Meldung und «Erneut versuchen»', 'Test-Fehler' in txt)
