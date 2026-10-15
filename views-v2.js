@@ -602,7 +602,7 @@ function detailView() {
   (r.categoryTags || []).forEach(c => tagChips.push(categoryLabelFor(c)));
   // Rezeptbibliothek und Freunde-Versand: Rollen getrennt anzeigen (Quelle, Autor in der Bibliothek, Absender), siehe recipe-origin.js
   const originHtml = (r.publicOrigin && typeof recipeOriginHtml === 'function') ? recipeOriginHtml(r) : '';
-  const source = originHtml ? originHtml : (!sourceText && !tagChips.length) ? '' : `<div class="source-row">${sourceText ? `<p class="source-line">${sourceText}</p>` : ''}${tagChips.length ? `<span class="source-chips">${tagChips.slice(0, 2).map(t => `<span class="source-chip">${escapeHtml(t)}</span>`).join('')}</span>` : ''}</div>`;
+  const source = (!originHtml && !sourceText && !tagChips.length) ? '' : `<div class="source-row">${originHtml || (sourceText ? `<p class="source-line">${sourceText}</p>` : '')}${tagChips.length ? `<span class="source-chips">${tagChips.slice(0, 2).map(t => `<span class="source-chip">${escapeHtml(t)}</span>`).join('')}</span>` : ''}</div>`;
   const conflictBox = conflicts.length ? `<div class="diet-warning" role="note">
       <strong>Kennzeichnung prüfen</strong>
       <p>${conflicts.map(c => `Als <b>${c.label === 'vegan' ? 'vegan' : 'vegetarisch'}</b> markiert, enthält aber: ${escapeHtml(Array.from(new Set(c.items)).slice(0, 4).join(', '))}${new Set(c.items).size > 4 ? ' …' : ''}.`).join(' ')}</p>
