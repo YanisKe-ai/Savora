@@ -3721,3 +3721,160 @@ body.keyboard-open .rp-foot { padding-bottom: 0.75rem; }
 /* Handy-Suchfeld: Tippflächen 44 px (Feld und Schliessen-Knopf), ohne das Overlay zu vergrössern */
 #libSearchPop .search-input { min-height: 2.75rem; }
 #libSearchPop .search-close { width: 2.75rem; height: 2.75rem; margin: -0.25rem 0; }
+
+/* ===== v84 Übersicht ===== */
+/* Sammlungsauswahl im Titel (Handy): gleicher Stil wie der bisherige Titel, nur mit Pfeil; lange Namen höchstens 2 Zeilen */
+.home-head--phone .col-pick-title { display: flex; align-items: center; gap: 0.25rem; min-height: 2.75rem; margin: 0; padding: 0; border: 0; background: none; color: var(--text); text-align: left; cursor: pointer; border-radius: 0.75rem; transition: transform 100ms var(--ease-out); }
+.home-head--phone .col-pick-title .inline-pick-text { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-clamp: 2; overflow: hidden; white-space: normal; overflow-wrap: anywhere; }
+.home-head--phone .col-pick-title svg { flex: none; }
+.col-pick-title:active { transform: scale(0.98); }
+.col-pick-title:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 2px; }
+/* Desktop/Tablet: Knopf in Pillenform wie «Filter», einzeilig mit Auslassung, voller Name im title/aria-label */
+.col-pick-btn { max-width: 22rem; min-width: 0; }
+.col-pick-btn .filter-btn-text { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.col-pick-btn svg { flex: none; width: 1.125rem; height: 1.125rem; }
+.col-dot { flex: none; width: 0.625rem; height: 0.625rem; border-radius: 50%; background: var(--c, var(--text-soft)); }
+.col-ico { flex: none; display: inline-flex; align-items: center; justify-content: center; color: var(--c, var(--text-soft)); }
+.col-ico svg { width: 1.25rem; height: 1.25rem; }
+.col-ico--muted { opacity: 0.6; }
+.menu-item-hint { display: block; font-size: 0.875rem; font-weight: 500; line-height: 1.3; color: var(--text-soft); }
+
+/* Auswahlfenster */
+.col-pick-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 0.125rem; }
+.col-pick-list--sys { margin-bottom: 0.25rem; }
+.col-pick-item { width: 100%; min-height: 3.25rem; padding: 0.5rem 0.75rem; gap: 0.75rem; font: inherit; font-size: 1rem; font-weight: 600; }
+.col-pick-item.is-current { background: var(--surface-soft); }
+.col-pick-name { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 0.125rem; overflow-wrap: anywhere; }
+.col-count { flex: none; font-variant-numeric: tabular-nums; font-weight: 500; color: var(--text-soft); }
+.col-check { flex: none; display: inline-flex; width: 1.25rem; color: var(--accent, var(--focus-ring)); }
+.col-check svg { width: 1.25rem; height: 1.25rem; stroke-width: 2.5; }
+.col-pick-empty { margin: 0.75rem 0.75rem 0.25rem; }
+.col-pick-nohit { padding: 0.75rem 0.75rem 0; }
+.col-pick-nohit p { margin: 0 0 0.5rem; overflow-wrap: anywhere; }
+.col-pick-nohit-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem; }
+.col-pick-nohit-actions .outline-btn { max-width: 100%; white-space: normal; overflow-wrap: anywhere; text-align: left; }
+.hv-search { margin-top: 0; }
+.col-pick-foot { flex-wrap: wrap; align-items: center; }
+.col-pick-foot .outline-btn { flex: 1 1 auto; justify-content: center; min-height: 3rem; }
+.col-pick-foot .text-btn { flex: 0 1 auto; }
+.modal-sheet.rp-sheet.rp-sheet--colpick, .modal-sheet.rp-sheet.rp-sheet--colmanage, .modal-sheet.rp-sheet.rp-sheet--coledit, .modal-sheet.rp-sheet.rp-sheet--colbatch { max-width: 440px; }
+/* ab 900 px: kompakt direkt unter dem Knopf, Hintergrund nur Klickfänger */
+@media (min-width: 900px) {
+  .rp-backdrop:has(> .rp-sheet--anchored) { background: transparent !important; }
+  .modal-sheet.rp-sheet.rp-sheet--anchored { position: fixed; left: var(--anchor-x); top: var(--anchor-y); width: 22.5rem; max-width: calc(100vw - 2rem); min-height: 0; max-height: min(70vh, 32rem, var(--anchor-h, 32rem)); border: 1px solid var(--hairline); border-radius: var(--r-card); box-shadow: var(--lift-2); transform-origin: top left; }
+  .modal-sheet.rp-sheet--anchored.sheet-enter { animation: hvAnchorIn 160ms var(--ease-out) both; transform-origin: top left; }
+  .rp-backdrop:has(> .rp-sheet--anchored.sheet-enter) { animation: none; }
+  .rp-sheet--anchored .sheet-handle { display: none; }
+  .rp-sheet--anchored .rp-head { padding-top: 0.75rem; }
+}
+@keyframes hvAnchorIn { from { opacity: 0; transform: scale(0.97); } to { opacity: 1; transform: none; } }
+
+/* Neue Sammlung / bearbeiten */
+.col-name-field input { width: 100%; }
+.col-name-count { margin: 0.25rem 0 0; }
+.col-name-count:empty { display: none; }
+.col-err { margin-top: 0.25rem; }
+.col-err .field-error { margin: 0; }
+.col-err .text-btn { padding-left: 0; }
+.col-fieldset { min-width: 0; margin: 1rem 0 0; padding: 0; border: 0; }
+.col-fieldset .rp-label { display: block; margin: 0 0 0.5rem; padding: 0; font-size: 0.9375rem; font-weight: 700; color: var(--text); }
+.rp-optional { font-weight: 500; color: var(--text-soft); }
+.col-swatches, .col-icons { display: flex; flex-wrap: wrap; gap: 0.25rem; }
+.col-swatch, .col-icon-opt { position: relative; display: inline-flex; align-items: center; justify-content: center; width: 2.75rem; height: 2.75rem; border-radius: 0.75rem; cursor: pointer; }
+.col-radio { position: absolute; inset: 0; width: 100%; height: 100%; margin: 0; opacity: 0; cursor: pointer; }
+.col-swatch-dot { display: inline-flex; align-items: center; justify-content: center; width: 1.75rem; height: 1.75rem; border-radius: 50%; background: var(--c); color: var(--card-bg); transition: box-shadow 120ms var(--ease-out); }
+.col-swatch--none .col-swatch-dot { box-shadow: inset 0 0 0 2px var(--text-faint, var(--text-soft)); color: var(--text); }
+.col-swatch-dot svg { width: 1rem; height: 1rem; stroke-width: 3; opacity: 0; transition: opacity 120ms var(--ease-out); }
+.col-radio:checked + .col-swatch-dot { box-shadow: 0 0 0 2px var(--card-bg), 0 0 0 4px var(--focus-ring); }
+.col-swatch--none .col-radio:checked + .col-swatch-dot { box-shadow: inset 0 0 0 2px var(--text-faint, var(--text-soft)), 0 0 0 2px var(--card-bg), 0 0 0 4px var(--focus-ring); }
+.col-radio:checked + .col-swatch-dot svg { opacity: 1; }
+.col-icon-face { display: inline-flex; align-items: center; justify-content: center; width: 2.75rem; height: 2.75rem; border-radius: 0.75rem; color: var(--text-soft); transition: background-color 120ms var(--ease-out), color 120ms var(--ease-out); }
+.col-icon-face svg { width: 1.375rem; height: 1.375rem; }
+.col-radio:checked + .col-icon-face { background: var(--lime); color: var(--lime-ink); box-shadow: inset 0 0 0 1.5px var(--focus-ring); }
+.col-swatch:has(.col-radio:focus-visible), .col-icon-opt:has(.col-radio:focus-visible) { outline: 2px solid var(--focus-ring); outline-offset: 1px; }
+.rp-sheet--coledit .rp-remove { margin-top: 1.25rem; }
+
+/* Sammlungen verwalten: Name links (umbrechend), Hoch/Runter rechts, je 44 × 44 */
+.col-manage-list { list-style: none; margin: 0; padding: 0; }
+.col-manage-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 0.25rem; border-bottom: 1px solid var(--hairline); }
+.col-manage-row:last-child { border-bottom: 0; }
+.col-manage-main { display: flex; align-items: center; gap: 0.75rem; min-width: 0; min-height: 3.5rem; padding: 0.5rem 0.25rem; border: 0; border-radius: 0.75rem; background: none; color: var(--text); font: inherit; text-align: left; cursor: pointer; }
+.col-manage-main:active { background: var(--surface-soft); }
+.col-manage-main:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: -2px; }
+.col-manage-text { display: flex; flex-direction: column; gap: 0.125rem; min-width: 0; }
+.col-manage-name { font-size: 1rem; font-weight: 600; overflow-wrap: anywhere; }
+.col-manage-move { display: flex; gap: 0.25rem; }
+.col-manage-move .icon-btn { width: 2.75rem; height: 2.75rem; min-width: 2.75rem; }
+.col-manage-move .icon-btn:disabled { opacity: 0.3; }
+@media (max-width: 359px) {
+  .col-manage-row { grid-template-columns: minmax(0, 1fr); }
+  .col-manage-move { justify-content: flex-end; margin: -0.5rem 0 0.25rem; }
+}
+.col-delete-sheet p { overflow-wrap: anywhere; }
+.col-delete-actions { margin-top: 1.25rem; flex-wrap: wrap; }
+.col-delete-actions .ghost-btn, .col-delete-actions .primary-btn { flex: 1 1 8rem; justify-content: center; min-height: 3rem; }
+
+/* Batch: Sammlungsliste mit Hinweis «2 von 3 schon enthalten» */
+.col-batch-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 0.5rem; }
+.col-batch-list .rp-row.is-disabled .rp-item { cursor: default; opacity: 0.75; }
+.col-inline-open { display: inline-flex; align-items: center; gap: 0.5rem; margin-top: 0.5rem; padding-left: 0.25rem; }
+.col-inline-open svg { width: 1.125rem; height: 1.125rem; }
+.col-inline-add { margin-top: 0.75rem; flex-wrap: wrap; }
+.col-inline-add input { flex: 1 1 10rem; min-height: 3rem; }
+
+/* Ergebniszeile: «Auswählen», Hinweis zur Sortierung, «Rezepte hinzufügen» */
+.sel-mode-btn { flex: none; min-height: 2.75rem; padding: 0 0.5rem; white-space: nowrap; }
+.result-row .sel-mode-btn { order: 4; }
+.result-row .hv-add-recipes { order: 1; display: inline-flex; align-items: center; gap: 0.25rem; }
+.result-row .hv-add-recipes svg { width: 1.125rem; height: 1.125rem; }
+.hv-sort-hint { margin: -0.25rem 0 0.75rem; }
+.hv-empty .primary-btn svg { width: 1.125rem; height: 1.125rem; }
+
+/* Auswahlmodus: ganze Karte ist die Trefferfläche, Häkchen oben links, gewählt = Rand in Fokusfarbe */
+.is-selecting .rcard-fav, .is-selecting .rrow-fav { display: none; }
+.is-selecting .rcard-main, .is-selecting .rrow-main { position: relative; }
+.sel-mark { flex: none; }
+.is-selecting .rcard .sel-mark { position: absolute; top: 0.5rem; left: 0.5rem; z-index: 1; background: var(--card-bg); box-shadow: var(--lift-1); }
+.is-selecting .rcard .sel-mark.is-on { background: var(--tomato); }
+.is-selecting .rrow--phone .rrow-main { grid-template-columns: auto 5.25rem minmax(0, 1fr); }
+.is-selecting .rcard.is-picked .rcard-main { outline: 2px solid var(--focus-ring); outline-offset: 2px; border-radius: var(--r-card); }
+.is-selecting .rrow.is-picked { background: color-mix(in srgb, var(--focus-ring) 7%, transparent); }
+.is-selecting .rrow.is-picked .rrow-main { box-shadow: inset 2px 0 0 var(--focus-ring); }
+.is-selecting .rrow .sel-mark { margin-left: 0.25rem; }
+
+/* Auswahlleiste: Handy unten über der Tab-Leiste (zweizeilig), ab 768 px in der Übersicht unten haftend (einzeilig) */
+.select-bar { display: grid; gap: 0.5rem; padding: 0.75rem 1rem; background: var(--card-bg); border: 1px solid var(--hairline); border-radius: var(--r-card); box-shadow: var(--lift-2); max-height: 40vh; overflow: auto; animation: hvBarIn 180ms var(--ease-out) both; }
+.select-bar-row { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 0.25rem 0.75rem; }
+.select-bar-status { flex: 1 1 8rem; min-width: 0; margin: 0; font-weight: 600; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.select-bar .select-all { flex: none; padding-inline: 0.25rem; }
+.select-bar-actions { display: grid; grid-template-columns: minmax(0, 1fr); gap: 0.5rem; }
+.select-bar--two .select-bar-actions { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+.select-bar-actions .primary-btn, .select-bar-actions .ghost-btn { min-width: 0; min-height: 3rem; padding-inline: 0.75rem; justify-content: center; text-align: center; white-space: normal; overflow-wrap: anywhere; }
+.select-bar-actions button:disabled { opacity: 0.5; }
+.home-sel-bar .select-bar { pointer-events: auto; }
+@media (max-width: 767px) {
+  main.home-main--addbar.is-selecting { padding-bottom: calc(var(--nav-h) + 11rem + env(safe-area-inset-bottom, 0px)); }
+  body:has(.home-sel-bar) .toast { bottom: calc(var(--nav-h) + 10rem + env(safe-area-inset-bottom, 0px)); }
+  .result-row--phone .result-tools .sel-mode-btn { order: -1; }
+}
+@media (max-width: 359px) {
+  .select-bar--two .select-bar-actions { grid-template-columns: minmax(0, 1fr); }
+}
+@media (min-width: 768px) {
+  .home-main > .select-bar { position: sticky; bottom: calc(var(--nav-h) + 1rem + env(safe-area-inset-bottom, 0px)); z-index: var(--z-sticky); max-width: 45rem; margin: 1.5rem auto 0; grid-template-columns: minmax(0, 1fr) auto; align-items: center; }
+  .home-main > .select-bar .select-bar-actions { grid-auto-flow: column; grid-template-columns: none; }
+  .home-main > .select-bar .select-bar-actions button { white-space: nowrap; }
+}
+@media (min-width: 900px) { .home-main > .select-bar { bottom: 1rem; } }
+@keyframes hvBarIn { from { opacity: 0; transform: translateY(100%); } to { opacity: 1; transform: none; } }
+@keyframes hvFadeIn { from { opacity: 0; } to { opacity: 1; } }
+@media (prefers-reduced-motion: reduce) {
+  .select-bar { animation: hvFadeIn 120ms linear both; }
+  .modal-sheet.rp-sheet--anchored.sheet-enter { animation: hvFadeIn 120ms linear both !important; }
+  .col-pick-title, .col-pick-title:active { transition: none; transform: none; }
+  .col-swatch-dot, .col-swatch-dot svg, .col-icon-face { transition: none; }
+}
+@media (forced-colors: active) {
+  .col-radio:checked + .col-swatch-dot, .col-radio:checked + .col-icon-face { outline: 2px solid Highlight; }
+  .is-selecting .rcard.is-picked .rcard-main, .is-selecting .rrow.is-picked .rrow-main { outline: 2px solid Highlight; }
+}

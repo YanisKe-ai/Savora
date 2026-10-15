@@ -170,6 +170,7 @@ async function handleActionV2(action, id, el, e) {
     case 'back':
     case 'nav-tab':
       state.shopStay = new Set();   // Einkauf neu betreten: Abgehaktes wandert nach unten
+      state.selectMode = null;      // v84: Auswahlmodus endet beim Verlassen der Übersicht
       if (state.view === 'form') {
         if (!confirmDiscardIfDirty()) return true;
         clearRecipeDraft();
@@ -202,20 +203,12 @@ async function handleActionV2(action, id, el, e) {
       return true;
     }
     case 'set-collection':
-      // Aeltere Einstiegsstelle: Alle/Favoriten bleiben getrennt, alles andere ist ein zusaetzlicher Filter
-      if (!id || id === 'all') state.favOnly = false;
-      else if (id === 'favorites') state.favOnly = true;
-      else { state.activeFilters.more.clear(); state.activeFilters.more.add(id); }
-      motionFlipRecipes(render);
+    case 'set-fav-mode':
+      // v84: aeltere Einstiegsstellen leiten auf den Bereich der Sammlungsauswahl um (eine Sammlung zur Zeit)
+      state.favOnly = false;
+      state.activeCollection = action === 'set-fav-mode' ? (id === 'fav' ? 'favorites' : 'all') : (id || 'all');
+      if (state.modal) closeModal(); else motionFlipRecipes(render);
       return true;
-    case 'set-fav-mode': {
-      const segFrom = motionSegRect();   // sichtbare Lage der Auswahlfläche VOR dem Neuaufbau
-      state.favOnly = id === 'fav';
-      state.activeCollection = 'all';
-      motionFlipRecipes(render);
-      motionSegSlide(segFrom);
-      return true;
-    }
     case 'reset-extra-filters':
       resetExtraFilters();
       motionFlipRecipes(render);
@@ -230,7 +223,7 @@ async function handleActionV2(action, id, el, e) {
       if (d) {
         const f = state.activeFilters;
         ['dietary', 'category', 'time', 'more', 'tags'].forEach(k => { f[k] = new Set(d[k]); });
-        state.activeTag = null; state.activeCollection = 'all';
+        state.activeTag = null;   // v84: der Bereich (Sammlung, Favoriten) bleibt, Filter wirken darin
       }
       closeModal();   // Neuaufbau erst nach popstate (asynchron): hier keine Kartenbewegung, das Fenster deckt die Liste ab
       return true;
@@ -248,6 +241,12 @@ async function handleActionV2(action, id, el, e) {
       state.favOnly = false;
       if (state.modal) closeModal(); else motionFlipRecipes(render);
       return true;
+    /* ----- v84 Übersicht: Sammlungsauswahl, Verwalten, Auswahlmodus (hvHandleAction unten) ----- */
+    case 'open-col-pick': case 'set-col-scope': case 'col-pick-clear': case 'col-new': case 'col-manage': case 'col-edit':
+    case 'col-edit-cancel': case 'col-save': case 'col-use-existing': case 'col-move': case 'col-delete': case 'col-delete-cancel':
+    case 'col-delete-confirm': case 'col-batch-new': case 'col-batch-create': case 'col-batch-use': case 'col-batch-apply':
+    case 'sel-start': case 'sel-end': case 'sel-toggle': case 'sel-all': case 'sel-add': case 'sel-remove': case 'sel-start-add': case 'sel-add-target':
+      return hvHandleAction(action, id, el, e);
     case 'open-recipe':
       if (state.activeRecipeId !== id) state.detailTab = 'ingredients';
       return false;
@@ -1093,3 +1092,444 @@ document.addEventListener('keydown', (e) => {
   focusWithoutScroll(items[i]);
   items[i].click();   // render() stellt den Fokus am neuen Element wieder her
 });
+
+/* ===== v84 Übersicht: Aktionen für Sammlungsauswahl, Verwalten und Auswahlmodus =====
+   Schreibzugriffe nur über org.js (Helfer DATEN). Fehlt org.js, greift ein Rückfall auf das alte Modell
+   (savora-collections + recipe.collections), damit die Oberfläche nie kaputt wirkt. */
+function hvErrText(code) {
+  return ({
+    empty: 'Gib der Sammlung einen Namen.',
+    too_long: `Der Name darf höchstens ${HV_NAME_MAX} Zeichen haben.`,
+    duplicate: 'Diese Sammlung gibt es bereits.',
+  })[code] || 'Die Sammlung konnte nicht gespeichert werden. Der Gerätespeicher ist vielleicht voll. Versuche es nochmals.';
+}
+function hvNameKey(s) { return hvCleanName(s).toLocaleLowerCase('de-CH'); }
+function hvFindDuplicate(name, exceptId) {
+  const k = hvNameKey(name);
+  const c = hvCollections().find(x => x.id !== exceptId && hvNameKey(x.name) === k);
+  return c ? c.id : null;
+}
+function hvCreateCollection(data) {
+  const name = hvCleanName(data.name);
+  if (!name) return { ok: false, error: 'empty' };
+  if (name.length > HV_NAME_MAX) return { ok: false, error: 'too_long' };
+  if (typeof orgCreateCollection === 'function') return orgCreateCollection({ name, color: data.color || '', icon: data.icon || 'folder' });
+  const dup = hvFindDuplicate(name);
+  if (dup) return { ok: false, error: 'duplicate', existingId: dup };
+  const cols = getCollections();
+  const id = 'col_' + Date.now().toString(36);
+  cols.push({ id, name }); saveCollections(cols);
+  return { ok: true, id };
+}
+function hvUpdateCollection(id, patch) {
+  const p = Object.assign({}, patch);
+  if ('name' in p) {
+    p.name = hvCleanName(p.name);
+    if (!p.name) return { ok: false, error: 'empty' };
+    if (p.name.length > HV_NAME_MAX) return { ok: false, error: 'too_long' };
+    const dup = hvFindDuplicate(p.name, id);   // reine Gross-/Kleinänderung derselben Sammlung ist erlaubt
+    if (dup) return { ok: false, error: 'duplicate', existingId: dup };
+  }
+  if (typeof orgUpdateCollection === 'function') return orgUpdateCollection(id, p) || { ok: true };
+  const cols = getCollections(); const c = cols.find(x => x.id === id);
+  if (!c) return { ok: false, error: 'missing' };
+  if (p.name) c.name = p.name;
+  saveCollections(cols);
+  return { ok: true };
+}
+function hvMoveCollection(id, dir) {
+  if (typeof orgMoveCollection === 'function') return orgMoveCollection(id, dir);
+  const cols = getCollections(); const i = cols.findIndex(x => x.id === id), j = i + dir;
+  if (i < 0 || j < 0 || j >= cols.length) return;
+  [cols[i], cols[j]] = [cols[j], cols[i]]; saveCollections(cols);
+}
+function hvDeleteCollection(id) {
+  if (typeof orgDeleteCollection === 'function') return orgDeleteCollection(id);
+  saveCollections(getCollections().filter(x => x.id !== id));   // Rückfall: Zuordnungen im Rezept bleiben (unsichtbar), nichts gelöscht
+  return null;
+}
+async function hvApply(ids, colId, mode) {
+  if (typeof orgApply === 'function') return await orgApply(ids, colId, mode);
+  const changed = [];
+  for (const rid of ids) {
+    const r = state.recipes.find(x => x.id === rid); if (!r) continue;
+    const cur = Array.isArray(r.collections) ? r.collections : [];
+    const has = cur.includes(colId);
+    if ((mode === 'add') === has) continue;
+    changed.push({ id: rid, before: cur.slice() });
+    r.collections = mode === 'add' ? cur.concat(colId) : cur.filter(c => c !== colId);
+    await dbPut(r);   // updatedAt bewusst unverändert: Einsortieren ist keine Rezeptbearbeitung
+  }
+  return { hvLegacy: changed };
+}
+async function hvUndo(token) {
+  if (!token) return;
+  if (token.hvLegacy) {
+    for (const ch of token.hvLegacy) { const r = state.recipes.find(x => x.id === ch.id); if (r) { r.collections = ch.before; await dbPut(r); } }
+    return;
+  }
+  if (typeof orgUndo === 'function') await orgUndo(token);
+}
+function hvFocus(sel) { requestAnimationFrame(() => { const el = document.querySelector(sel); if (el) focusWithoutScroll(el); }); }
+function hvFocusNow(sel) { const el = document.querySelector(sel); if (el) focusWithoutScroll(el); return !!el; }
+function hvBindActions(root) { if (root) root.querySelectorAll('[data-action]').forEach(b => b.addEventListener('click', onAction)); }
+function hvSelIds() { return Array.from((state.selectMode && state.selectMode.ids) || []).filter(id => state.recipes.some(r => r.id === id)); }
+
+/* Auswahlmodus: Einstieg pusht einen History-Eintrag, damit Geräte-Zurück den Modus beendet */
+function hvStartSelect(target) {
+  state.selectMode = { ids: new Set(), target: target || null };
+  history.pushState(Object.assign(navHistorySnapshot(), { selectMode: true }), '');
+  render();
+  hvFocusNow('#selModeBtn');
+  announceLive(target ? `Auswahl gestartet. Wähle Rezepte für «${hvScopeLabel(target)}».` : 'Auswahl gestartet. Tippe Rezepte an, um sie auszuwählen.');
+}
+function hvEndSelect() {
+  if (!state.selectMode) return;
+  if (history.state && history.state.selectMode) { history.back(); return; }   // popstate unten beendet den Modus
+  state.selectMode = null;
+  render();
+  hvFocusNow('#selModeBtn');
+}
+window.addEventListener('popstate', (e) => {
+  if (!state.selectMode || (e.state && e.state.selectMode)) return;
+  state.selectMode = null;
+  if (state.view !== 'home') return;
+  render(true);
+  hvFocusNow('#selModeBtn');
+});
+document.addEventListener('keydown', (e) => {
+  if (e.key !== 'Escape' || !hvSelecting() || state.modal || e.isComposing) return;
+  const t = e.target;
+  if (t && t.matches && t.matches('input, textarea, select')) return;   // Escape im Suchfeld gehört dem Feld
+  e.preventDefault();
+  hvEndSelect();
+});
+/* Haken setzen ohne Neuaufbau: Karten, Leiste und Zähler werden direkt nachgeführt (Fokus und Scroll bleiben) */
+function hvRefreshSelection() {
+  const sm = state.selectMode; if (!sm) return;
+  document.querySelectorAll('.home-main [data-action="sel-toggle"]').forEach(b => {
+    const on = sm.ids.has(b.dataset.id);
+    b.setAttribute('aria-checked', String(on));
+    const mark = b.querySelector('.sel-mark'); if (mark) mark.classList.toggle('is-on', on);
+    const card = b.closest('[data-flip-id]'); if (card) card.classList.toggle('is-picked', on);
+  });
+  const bar = document.querySelector('.select-bar');
+  if (bar) {
+    const focusAct = document.activeElement && bar.contains(document.activeElement) ? document.activeElement.dataset.action : null;
+    const tmp = document.createElement('div');
+    tmp.innerHTML = hvSelectBarHtml(applyAllFilters(state.recipes), hvScope());
+    const fresh = tmp.firstElementChild;
+    bar.replaceWith(fresh);
+    hvBindActions(fresh);
+    if (focusAct) { const f = fresh.querySelector(`[data-action="${focusAct}"]`); if (f && !f.disabled) focusWithoutScroll(f); }
+  }
+}
+/* Teilaktualisierung der Listen in Dialogen (Suche, Haken): kein render(), Cursor bleibt */
+function hvRefreshPickList() {
+  const m = state.modal, box = document.getElementById('colPickList');
+  if (!m || m.type !== 'col-pick' || !box) return;
+  box.innerHTML = colPickListHtml(m); hvBindActions(box);
+}
+function hvRefreshBatch(focusCol) {
+  const m = state.modal, box = document.getElementById('colBatchWrap');
+  if (!m || m.type !== 'col-batch' || !box) return;
+  box.innerHTML = colBatchListHtml(m);
+  const n = m.checked.size;
+  const c = document.getElementById('colBatchCount'); if (c) c.textContent = n ? (n === 1 ? '1 Sammlung gewählt' : `${n} Sammlungen gewählt`) : 'Noch keine Sammlung gewählt';
+  const go = document.querySelector('[data-action="col-batch-apply"]'); if (go) go.disabled = !n;
+  if (focusCol) { const inp = box.querySelector(`[data-col="${cssAttr(focusCol)}"]`); if (inp) focusWithoutScroll(inp); }
+}
+document.addEventListener('input', (e) => {
+  const t = e.target, m = state.modal;
+  if (!t || !m) return;
+  if (t.id === 'colPickSearch' && m.type === 'col-pick') { m.query = t.value; if (!e.isComposing) hvRefreshPickList(); }
+  else if (t.id === 'colBatchSearch' && m.type === 'col-batch') { m.query = t.value; if (!e.isComposing) hvRefreshBatch(); }
+  else if (t.id === 'colName' && m.type === 'col-edit') {
+    m.name = t.value;
+    const c = document.getElementById('colNameCount'); if (c) c.textContent = hvNameCountHtml(t.value.length);
+  } else if (t.id === 'colNewInline' && m.type === 'col-batch') m.newName = t.value;
+});
+document.addEventListener('change', (e) => {
+  const t = e.target, m = state.modal;
+  if (!t || !m) return;
+  if (t.name === 'colColor' && m.type === 'col-edit') m.color = t.value;
+  else if (t.name === 'colIcon' && m.type === 'col-edit') m.icon = t.value;
+  else if (t.id === 'colName' && m.type === 'col-edit') {
+    // Dublette schon beim Verlassen des Feldes melden (sonst erst beim Absenden)
+    const dup = hvCleanName(t.value) ? hvFindDuplicate(t.value, m.mode === 'edit' ? m.id : null) : null;
+    if (dup && !m.existingId) { m.error = hvErrText('duplicate'); m.existingId = dup; render(); }
+    else if (!dup && m.existingId) { m.error = ''; m.existingId = null; render(); }
+  } else if (t.classList && t.classList.contains('col-batch-input') && m.type === 'col-batch') {
+    if (t.checked) m.checked.add(t.dataset.col); else m.checked.delete(t.dataset.col);
+    hvRefreshBatch(t.dataset.col);
+  }
+});
+document.addEventListener('keydown', (e) => {
+  const t = e.target;
+  if (e.key !== 'Enter' || !t || e.isComposing) return;
+  if (t.id === 'colPickSearch' || t.id === 'colBatchSearch') { e.preventDefault(); return; }   // Enter sendet nichts ab
+  if (t.id === 'colName') { e.preventDefault(); const b = document.querySelector('[data-action="col-save"]'); if (b) b.click(); }
+  else if (t.id === 'colNewInline') { e.preventDefault(); const b = document.querySelector('[data-action="col-batch-create"]'); if (b) b.click(); }
+});
+/* Datenänderungen (auch aus dem Abgleich) zeichnen die Übersicht neu, aber nie mitten in einem offenen Dialog */
+(function hvSubscribe() {
+  const sub = () => {
+    if (typeof orgOnChange !== 'function') return;
+    let queued = false;
+    orgOnChange(() => {
+      if (queued) return; queued = true;
+      requestAnimationFrame(() => { queued = false; if (state.view === 'home' && !state.modal && !hvSelecting()) render(); });
+    });
+  };
+  if (document.readyState === 'complete') setTimeout(sub, 0); else window.addEventListener('load', sub);
+})();
+
+function hvColEditModal(c, from) {
+  return { type: 'col-edit', mode: 'edit', id: c.id, name: c.name, startName: c.name, color: c.color || '', icon: c.icon || 'folder', from: from || 'manage' };
+}
+function hvPickAnchor() {
+  if (!(window.innerWidth >= 900)) return null;
+  const b = document.getElementById('colPickBtn'); if (!b) return null;
+  const r = b.getBoundingClientRect(), w = Math.min(360, window.innerWidth - 32);
+  const x = Math.max(16, Math.min(r.left, window.innerWidth - w - 16)), y = r.bottom + 8, h = window.innerHeight - y - 16;
+  return h >= 280 ? { x, y, h } : null;   // passt sie unten nicht hin: mittig wie ab 640 px
+}
+
+async function hvHandleAction(action, id, el, e) {
+  const m = state.modal;
+  switch (action) {
+    /* ----- Sammlungsauswahl ----- */
+    case 'open-col-pick':
+      openModal({ type: 'col-pick', query: '', anchor: hvPickAnchor() }, '#colPickBtn');
+      return true;
+    case 'set-col-scope': {
+      state.favOnly = false;
+      state.activeCollection = id || 'all';
+      if (m) closeModal();   // Fokus kehrt im popstate-Handler zum Auslöser zurück
+      else { motionFlipRecipes(render); hvFocusNow('#colPickBtn'); }
+      return true;
+    }
+    case 'col-pick-clear':
+      if (m) m.query = '';
+      { const s = document.getElementById('colPickSearch'); if (s) { s.value = ''; focusWithoutScroll(s); } }
+      hvRefreshPickList();
+      return true;
+
+    /* ----- Neue Sammlung / bearbeiten ----- */
+    case 'col-new': {
+      const from = el.dataset.from || (m && m.type === 'col-manage' ? 'manage' : 'pick');
+      const next = { type: 'col-edit', mode: 'new', from, name: hvCleanName(el.dataset.name || '').slice(0, HV_NAME_MAX), color: '', icon: 'folder' };
+      if (m) replaceModal(next); else openModal(next);
+      hvFocusNow('#colName');
+      return true;
+    }
+    case 'col-manage':
+      replaceModal({ type: 'col-manage' });
+      return true;
+    case 'col-edit': {
+      const c = hvCollection(id); if (!c) return true;
+      replaceModal(hvColEditModal(c));
+      hvFocusNow('#colName');
+      return true;
+    }
+    case 'col-edit-cancel':
+      if (m && (m.mode === 'edit' || m.from === 'manage')) {
+        const back = m.id;
+        replaceModal({ type: 'col-manage' });
+        if (!(back && hvFocusNow(`[data-action="col-edit"][data-id="${cssAttr(back)}"]`))) hvFocusNow('.col-manage-sheet, .rp-sheet--colmanage');
+      } else closeModal();
+      return true;
+    case 'col-save': {
+      if (!m || m.type !== 'col-edit') return true;
+      const inp = document.getElementById('colName');
+      const name = inp ? inp.value : (m.name || '');
+      m.name = name;
+      let res;
+      try {
+        res = m.mode === 'edit'
+          ? hvUpdateCollection(m.id, { name, color: m.color || '', icon: hvIconKey(m.icon) })
+          : hvCreateCollection({ name, color: m.color || '', icon: hvIconKey(m.icon) });
+      } catch (err) { res = { ok: false, error: 'storage' }; }
+      if (!res || !res.ok) {
+        m.error = hvErrText(res && res.error); m.existingId = (res && res.error === 'duplicate' && res.existingId) || null;
+        render(); hvFocusNow('#colName');
+        return true;
+      }
+      m.error = ''; m.existingId = null;
+      const clean = hvCleanName(name);
+      if (m.mode === 'edit') {
+        showToast(hvCleanName(m.startName) === clean ? 'Sammlung gespeichert.' : 'Sammlung umbenannt.');
+        const back = m.id;
+        replaceModal({ type: 'col-manage' });
+        hvFocusNow(`[data-action="col-edit"][data-id="${cssAttr(back)}"]`);
+        return true;
+      }
+      showToast(`Sammlung «${clean}» erstellt.`);
+      if (m.from === 'manage') {
+        replaceModal({ type: 'col-manage' });
+        hvFocusNow(`[data-action="col-edit"][data-id="${cssAttr(res.id)}"]`);
+      } else {
+        state.favOnly = false; state.activeCollection = res.id;
+        closeModal();
+      }
+      return true;
+    }
+    case 'col-use-existing':
+      state.favOnly = false; state.activeCollection = id;
+      closeModal();
+      return true;
+
+    /* ----- Verwalten: Reihenfolge, Löschen ----- */
+    case 'col-move': {
+      const dir = Number(el.dataset.dir) < 0 ? -1 : 1;
+      hvMoveCollection(id, dir);
+      render();
+      const cols = hvCollections(), pos = cols.findIndex(c => c.id === id);
+      const same = document.querySelector(`[data-action="col-move"][data-id="${cssAttr(id)}"][data-dir="${dir}"]`);
+      const other = document.querySelector(`[data-action="col-move"][data-id="${cssAttr(id)}"][data-dir="${-dir}"]`);
+      if (same && !same.disabled) focusWithoutScroll(same); else if (other) focusWithoutScroll(other);
+      if (pos >= 0) announceLive(`${cols[pos].name} ist jetzt auf Platz ${pos + 1} von ${cols.length}.`);
+      return true;
+    }
+    case 'col-delete':
+      if (!hvCollection(id)) return true;
+      replaceModal({ type: 'col-delete', id, back: m && m.type === 'col-edit' ? Object.assign({}, m) : null });
+      hvFocusNow('[data-action="col-delete-cancel"]');
+      return true;
+    case 'col-delete-cancel':
+      if (m && m.back) { replaceModal(m.back); hvFocusNow('[data-action="col-delete"]'); }
+      else { replaceModal({ type: 'col-manage' }); hvFocusNow(`[data-action="col-edit"][data-id="${cssAttr(id)}"]`); }
+      return true;
+    case 'col-delete-confirm': {
+      const c = hvCollection(id); if (!c) return true;
+      const before = hvCollections(), idx = before.findIndex(x => x.id === id);
+      const wasActive = state.activeCollection === id;
+      let token = null;
+      try { token = hvDeleteCollection(id); } catch (err) { showToast(hvErrText('storage'), 'error'); return true; }
+      if (wasActive) state.activeCollection = 'all';
+      replaceModal({ type: 'col-manage' });
+      const rest = hvCollections();
+      const next = rest[Math.min(idx, rest.length - 1)];
+      if (!(next && hvFocusNow(`[data-action="col-edit"][data-id="${cssAttr(next.id)}"]`))) hvFocusNow('[data-action="col-new"]');
+      const msg = wasActive ? 'Sammlung gelöscht. Du siehst jetzt alle Rezepte.' : `Sammlung «${c.name}» gelöscht.`;
+      if (token) {
+        showUndoToast(msg, async () => {
+          await hvUndo(token);
+          if (wasActive && hvCollection(id)) state.activeCollection = id;
+          render();
+          showToast('Sammlung wiederhergestellt.');
+        }, () => {});
+      } else showToast(msg);
+      return true;
+    }
+
+    /* ----- Batch «Zu Sammlung hinzufügen» ----- */
+    case 'col-batch-new':
+      if (!m) return true;
+      m.newOpen = true; render(); hvFocusNow('#colNewInline');
+      return true;
+    case 'col-batch-create': {
+      if (!m || m.type !== 'col-batch') return true;
+      const inp = document.getElementById('colNewInline');
+      const name = inp ? inp.value : (m.newName || '');
+      m.newName = name;
+      let res;
+      try { res = hvCreateCollection({ name }); } catch (err) { res = { ok: false, error: 'storage' }; }
+      if (!res || !res.ok) {
+        m.error = hvErrText(res && res.error); m.existingId = (res && res.error === 'duplicate' && res.existingId) || null;
+        render(); hvFocusNow('#colNewInline');
+        return true;
+      }
+      m.checked.add(res.id); m.newOpen = false; m.newName = ''; m.error = ''; m.existingId = null; m.query = '';
+      render();
+      hvFocusNow(`.col-batch-input[data-col="${cssAttr(res.id)}"]`);
+      announceLive(`Sammlung «${hvCleanName(name)}» erstellt und gewählt.`);
+      return true;
+    }
+    case 'col-batch-use':
+      if (!m || m.type !== 'col-batch') return true;
+      m.checked.add(id); m.newOpen = false; m.newName = ''; m.error = ''; m.existingId = null; m.query = '';
+      render();
+      hvFocusNow(`.col-batch-input[data-col="${cssAttr(id)}"]`);
+      return true;
+    case 'col-batch-apply': {
+      if (!m || m.type !== 'col-batch' || !m.checked.size) return true;
+      const ids = hvSelIds();
+      const cols = Array.from(m.checked).map(hvCollection).filter(Boolean);
+      const tokens = [], touched = [], newRecipes = new Set(); let added = 0;
+      try {
+        for (const c of cols) {
+          const inSet = hvRecipeIdsIn(c.id);
+          const missing = ids.filter(rid => !inSet.has(rid));
+          if (!missing.length) continue;
+          tokens.push(await hvApply(missing, c.id, 'add'));
+          added += missing.length; touched.push(c); missing.forEach(rid => newRecipes.add(rid));
+        }
+      } catch (err) { showToast(hvErrText('storage'), 'error'); return true; }
+      closeModal();   // Auswahlmodus bleibt mit derselben Auswahl offen
+      if (!tokens.length) { showToast(cols.length === 1 ? `Alle ausgewählten Rezepte waren schon in «${cols[0].name}».` : 'Alle ausgewählten Rezepte waren schon in diesen Sammlungen.'); return true; }
+      const msg = touched.length === 1 ? `${hvRecipeWord(added)} zu «${touched[0].name}» hinzugefügt.` : `${hvRecipeWord(newRecipes.size)} zu ${touched.length} Sammlungen hinzugefügt.`;
+      showUndoToast(msg, async () => { for (const t of tokens.reverse()) await hvUndo(t); if (state.view === 'home' && !state.modal) render(); showToast('Rückgängig gemacht.'); }, () => {});
+      return true;
+    }
+
+    /* ----- Auswahlmodus ----- */
+    case 'sel-start':
+      if (!hvSelecting()) hvStartSelect(null);
+      return true;
+    case 'sel-start-add':
+      if (!hvCollection(id)) return true;
+      state.favOnly = false; state.activeCollection = 'all';
+      if (hvSelecting()) { state.selectMode.target = id; render(); hvFocusNow('#selModeBtn'); }
+      else hvStartSelect(id);
+      return true;
+    case 'sel-end':
+      hvEndSelect();
+      return true;
+    case 'sel-toggle': {
+      if (!state.selectMode) return true;
+      const ids = state.selectMode.ids;
+      if (ids.has(id)) ids.delete(id); else ids.add(id);
+      hvRefreshSelection();
+      return true;
+    }
+    case 'sel-all': {
+      if (!state.selectMode) return true;
+      const list = applyAllFilters(state.recipes), ids = state.selectMode.ids;
+      if (list.length && list.every(r => ids.has(r.id))) ids.clear();   // «Auswahl aufheben»
+      else list.forEach(r => ids.add(r.id));                             // nur aktuelle Such-/Filtertreffer
+      hvRefreshSelection();
+      announceLive((document.getElementById('selStatus') || {}).textContent || '');
+      return true;
+    }
+    case 'sel-add':
+      if (!hvSelIds().length) return true;
+      openModal({ type: 'col-batch', checked: new Set(), query: '', newOpen: false }, '[data-action="sel-add"]');
+      return true;
+    case 'sel-add-target': {
+      const c = hvCollection(id), ids = hvSelIds();
+      if (!c || !ids.length) return true;
+      const inSet = hvRecipeIdsIn(c.id), missing = ids.filter(rid => !inSet.has(rid));
+      let token = null;
+      try { if (missing.length) token = await hvApply(missing, c.id, 'add'); } catch (err) { showToast(hvErrText('storage'), 'error'); return true; }
+      state.favOnly = false; state.activeCollection = c.id;
+      hvEndSelect();
+      if (!token) { showToast(`Alle ausgewählten Rezepte waren schon in «${c.name}».`); return true; }
+      showUndoToast(`${hvRecipeWord(missing.length)} zu «${c.name}» hinzugefügt.`, async () => { await hvUndo(token); if (state.view === 'home' && !state.modal) motionFlipRecipes(render); showToast('Rückgängig gemacht.'); }, () => {});
+      return true;
+    }
+    case 'sel-remove': {
+      const c = hvCollection(id); if (!c) return true;
+      const inSet = hvRecipeIdsIn(c.id), ids = hvSelIds().filter(rid => inSet.has(rid));
+      if (!ids.length) { showToast(`Keines der ausgewählten Rezepte ist in «${c.name}».`); return true; }
+      let token;
+      try { token = await hvApply(ids, c.id, 'remove'); } catch (err) { showToast(hvErrText('storage'), 'error'); return true; }
+      state.selectMode.ids.clear();
+      motionFlipRecipes(render);
+      hvFocusNow('#selModeBtn');
+      showUndoToast(`${hvRecipeWord(ids.length)} aus «${c.name}» entfernt. Die Rezepte bleiben erhalten.`, async () => { await hvUndo(token); if (state.view === 'home' && !state.modal) motionFlipRecipes(render); showToast('Rückgängig gemacht.'); }, () => {});
+      return true;
+    }
+  }
+  return false;
+}
