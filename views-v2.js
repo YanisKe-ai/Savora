@@ -1098,6 +1098,9 @@ function cookbookPageStyleChoice(cfg) {
     </div>`;
 }
 function cookbookStepDesign(cfg) {
+  const nut = cookbookPdfNutrition(cfg);
+  const author = String(cfg.author || '').trim();
+  const sender = String(state.senderName || '').trim();
   return `
       <section class="panel">
         <h2 class="section-title" id="cbStepTitle" tabindex="-1">Titelblatt</h2>
@@ -1107,29 +1110,71 @@ function cookbookStepDesign(cfg) {
         <h2 class="section-title">Seitenstil der Rezepte</h2>
         <p class="hint-line">Gilt für alle Rezeptseiten dieses Kochbuchs. Das Titelblatt oben ist davon unabhängig.</p>
         ${cookbookPageStyleChoice(cfg)}
+      </section>
+      <section class="panel cb-pdf-opts" aria-labelledby="cbPdfOptsTitle">
+        <h2 class="section-title" id="cbPdfOptsTitle">Im PDF</h2>
+        <div class="cb-opt">
+          <h3 class="sub-title">Name</h3>
+          <p class="hint-line" id="cbNameWhere">${author ? `«${escapeHtml(author)}» steht auf dem Titelblatt und in der Fusszeile jeder Rezeptseite.` : 'Kein Name eingetragen: Im PDF steht kein Name.'} Den Namen änderst du oben beim Titelblatt im Feld «Name». Leer lassen, wenn kein Name gedruckt werden soll.</p>
+          ${!author && sender ? `<button type="button" class="outline-btn outline-btn--small" data-action="cb-use-sender-name">«${escapeHtml(sender)}» als Name eintragen</button>` : ''}
+          ${author ? '<button type="button" class="text-btn" data-action="cb-clear-name">Keinen Namen drucken</button>' : ''}
+        </div>
+        ${state.showNutrition ? `<div class="cb-opt">
+          <h3 class="sub-title" id="cbNutLabel">Nährwerte</h3>
+          <div class="nutrition-segmented" role="radiogroup" aria-labelledby="cbNutLabel">
+            ${COOKBOOK_NUTRITION_LEVELS.map(l => `<button type="button" role="radio" aria-checked="${nut === l}" class="${nut === l ? 'active' : ''}" data-action="cb-pdf-nutrition" data-level="${l}">${COOKBOOK_NUTRITION_LABEL[l]}</button>`).join('')}
+          </div>
+          <p class="hint-line">Gedruckt nur bei Rezepten mit berechneten Nährwerten.</p>
+        </div>` : ''}
       </section>`;
 }
+/* Ein Prüfhinweis mit Ziel (Rezept prüfen, Cover bearbeiten, Kapitel bearbeiten, PDF-Seite ansehen) */
+function cookbookHintHtml(h) {
+  const lvl = { error: 'Fehler', check: 'Prüfen', info: 'Info' }[h.level] || 'Info';
+  const t = h.target;
+  const btn = t ? `<button type="button" class="text-btn cb-hint-go" data-action="${escapeAttr(t.action)}" ${t.id != null ? `data-id="${escapeAttr(t.id)}"` : ''}>${escapeHtml(t.label)}</button>` : '';
+  const details = h.kind === 'empty-chapters' && h.names && h.names.length
+    ? `<details class="cb-hint-details"><summary>Leere Kapitel anzeigen</summary><ul>${h.names.map(n => `<li>${escapeHtml(n || 'Ohne Namen')}</li>`).join('')}</ul><p class="hint-line">Die Kapitel bleiben im Kochbuch erhalten. Sobald du ihnen Rezepte zuordnest, erscheinen sie im PDF.</p></details>` : '';
+  return `<li class="cb-warn cb-warn--${h.level === 'check' ? 'warn' : h.level}" data-level="${h.level}"><span class="cb-hint-level">${lvl}</span><div class="cb-hint-body"><p class="cb-hint-text">${escapeHtml(h.text)}</p>${details}${btn}</div></li>`;
+}
 function cookbookStepPreview(cfg) {
-  const warnings = cookbookWarnings(cfg);
+  const hints = cookbookReview(cfg);
+  const sum = cookbookSummary(cfg);
   const cv = cfg.cover || coverSanitizeConfig(null, true);
   const layout = coverLayout(coverInputFromConfig(cfg));
-  const tpl = pdfTemplateById(pdfNormTpl(cfg.pdfTemplate || pdfDefaultTemplateId()));
+  const tplId = cookbookPdfTemplate(cfg);
   const tplName = (coverTemplateById(cv.templateId) || {}).name || '';
+  const coverName = cv.v === COVER_SCHEMA_V2 && cv.mode === 'custom' ? 'Eigenes Cover' : tplName;
   const n = cfg.items.length;
+  const book = cookbookActiveBook();
+  const last = cookbookLastBuildFor(book.id);
+  const byId = Object.fromEntries(state.recipes.map(r => [r.id, r]));
+  const recipes = cookbookOrderedSections(cfg).flatMap(s => s.recipes);
+  const pagesList = last && Object.keys(last.pages).length ? `<div class="cb-pages">
+      <h3 class="sub-title">Seiten im letzten PDF (${escapeHtml(cookbookPdfTemplateName(last.template))}, ${cookbookPlural(last.pageCount, 'Seite', 'Seiten')})</h3>
+      <ul class="cb-pages-list">${recipes.filter(r => last.pages[r.id]).map(r => `<li><span>${escapeHtml((byId[r.id] || r).title || 'Ohne Titel')}</span><span class="cb-pages-n">${cookbookPlural(last.pages[r.id], 'Seite', 'Seiten')}</span></li>`).join('')}</ul>
+      <button type="button" class="text-btn" data-action="export-cookbook">PDF-Seite ansehen</button>
+    </div>` : '';
+  const nut = cookbookPdfNutrition(cfg);
+  const author = String(cfg.author || '').trim();
   return `
       <section class="panel cb-final">
         <h2 class="section-title" id="cbStepTitle" tabindex="-1">Vorschau &amp; PDF</h2>
         <div class="cb-final-grid">
           <div class="cover-preview" aria-label="Vorschau des Titelblatts">${coverPreviewHtml(layout)}</div>
           <dl class="cb-summary">
-            <div><dt>Rezepte</dt><dd>${n} ${n === 1 ? 'Rezept' : 'Rezepte'}${cfg.chapters.length ? `, ${cfg.chapters.length} ${cfg.chapters.length === 1 ? 'Kapitel' : 'Kapitel'}` : ''}</dd></div>
-            <div><dt>Titelblatt</dt><dd>${escapeHtml(tplName)}</dd></div>
-            <div><dt>Seitenstil</dt><dd>${escapeHtml(tpl.name)}</dd></div>
+            <div><dt>Inhalt</dt><dd id="cbSummaryText">${escapeHtml(sum.text)}</dd></div>
+            <div><dt>Titelblatt</dt><dd>${escapeHtml(coverName)}</dd></div>
+            <div><dt>Seitenstil</dt><dd>${escapeHtml(cookbookPdfTemplateName(tplId))}</dd></div>
+            <div><dt>Name</dt><dd>${author ? escapeHtml(author) : 'Kein Name'}</dd></div>
+            ${state.showNutrition ? `<div><dt>Nährwerte</dt><dd>${COOKBOOK_NUTRITION_LABEL[nut]}</dd></div>` : ''}
+            <div class="cb-summary-edit"><button type="button" class="text-btn" data-action="cb-step" data-id="2">Gestaltung ändern</button></div>
           </dl>
         </div>
-        <h3 class="sub-title">Prüfung</h3>
-        ${warnings.length ? `<ul class="cb-warnings">${warnings.map(w => `<li class="cb-warn cb-warn--${w.level}">${escapeHtml(w.text)}</li>`).join('')}</ul>` : '<p class="hint-line">Keine Auffälligkeiten gefunden.</p>'}
-        <p class="hint-line">Inhaltsverzeichnis und Seitenzahlen werden automatisch erstellt.</p>
+        <h3 class="sub-title" id="cbHintsTitle">Prüfung</h3>
+        ${hints.length ? `<ul class="cb-warnings" aria-labelledby="cbHintsTitle">${hints.map(cookbookHintHtml).join('')}</ul>` : '<p class="hint-line">Keine Auffälligkeiten gefunden.</p>'}
+        ${pagesList}
+        <p class="hint-line">Inhaltsverzeichnis und Seitenzahlen werden automatisch erstellt. Die Vorschau zeigt genau die Datei, die du danach herunterlädst.</p>
         <button class="primary-btn primary-btn--block" data-action="export-cookbook" ${n ? '' : 'disabled'}>${ICONS.pdf} PDF-Vorschau erstellen</button>
       </section>`;
 }

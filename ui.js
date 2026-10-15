@@ -706,7 +706,8 @@ async function dispatchAction(action, id, el, e) {
       openModal({ type: 'pdf-export', target: 'single', recipeId: id, stage: 'options', template: pdfDefaultTemplateId(), nutritionDetail: await defaultPdfNutritionDetail('single', id) }, `[data-action="export-pdf"][data-id="${escapeAttr(id)}"]`);
       break;
     case 'export-cookbook':
-      openModal({ type: 'pdf-export', target: 'cookbook', stage: 'options', template: pdfNormTpl(getCookbookConfig().pdfTemplate || pdfDefaultTemplateId()), nutritionDetail: await defaultPdfNutritionDetail('cookbook') }, `[data-action="export-cookbook"]`);
+      // v83: Alle Optionen stehen schon im Schritt «Gestalten» (eine Konfiguration pro Kochbuch). Kein zweiter Optionsdialog: direkt erstellen.
+      await pdfExportStartCookbook();   // pdf-ui.js
       break;
     case 'export-backup':
       downloadBackup();
@@ -1127,6 +1128,9 @@ async function dispatchAction(action, id, el, e) {
       if (box) { box.style.setProperty('--pdf-zoom', String(z)); box.querySelectorAll('canvas').forEach((c) => { c.width = 0; c.height = 0; c.remove(); }); renderPdfPreview(m.previewBlob, box); }
       break;
     }
+    case 'pdf-export-adopt-template':
+      pdfExportAdoptTemplate();   // pdf-ui.js: im Vergleich gewählten Stil ins Kochbuch übernehmen
+      break;
     case 'pdf-export-set-template':
       await pdfExportSetTemplate(id);   // pdf-ui.js: merkt den Stil; in der Vorschau wird das PDF mit dem anderen Stil neu erzeugt
       break;
@@ -1141,6 +1145,7 @@ async function dispatchAction(action, id, el, e) {
       pdfExportCancelAction();
       break;
     case 'pdf-export-back':
+      if (state.modal && state.modal.target === 'cookbook') { closeModal(); break; }   // v83: im Kochbuch gibt es keinen Optionsschritt; zurück zur Seite «Vorschau & PDF»
       revokePdfPreviewUrl();
       state.modal.previewUrl = null;
       state.modal.previewBlob = null;
