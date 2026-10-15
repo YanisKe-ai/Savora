@@ -166,7 +166,7 @@ async def main():
         await page.click('.fs-apply'); await page.wait_for_timeout(600)
         ap = await ev("""() => ({ gone: !document.querySelector('.filter-sheet'), btn: document.querySelector('.filter-btn').textContent.trim(), sum: document.querySelector('.filter-summary-text').textContent.trim(), n: document.querySelectorAll('.rcard').length,
           line: document.querySelector('.result-line').textContent.trim(), foc: document.activeElement.dataset.action, f: [state.activeFilters.dietary.size, state.activeFilters.time.size] })""")
-        check('Übernehmen: Zähler «Filter · 2», Zusammenfassung, 4 Treffer (vegan zählt als vegetarisch)', ap['gone'] and ap['btn'] == 'Filter · 2' and 'Vegetarisch' in ap['sum'] and 'Bis 30 Min.' in ap['sum'] and ap['n'] == 4 and ap['line'] == '4 Rezepte', str(ap))
+        check('Übernehmen: Zähler «Filter · 2», Zusammenfassung, 4 Treffer (vegan zählt als vegetarisch)', ap['gone'] and ap['btn'] == 'Filter · 2' and 'Vegetarisch' in ap['sum'] and 'Bis 30 Min.' in ap['sum'] and ap['n'] == 4 and ap['line'] == '4 von 8 Rezepten', str(ap))   # v84: mit Filter «Treffer von Gesamtzahl»
         check('Fokus nach Übernehmen auf «Filter»', ap['foc'] == 'open-filter-sheet', str(ap['foc']))
         # beim erneuten Öffnen ist die Auswahl vorbelegt
         await open_sheet(page)

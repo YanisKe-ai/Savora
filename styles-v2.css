@@ -3834,9 +3834,10 @@ body.keyboard-open .rp-foot { padding-bottom: 0.75rem; }
 .result-row .sel-mode-btn { order: 4; }
 .result-row .hv-add-recipes { order: 1; display: inline-flex; align-items: center; gap: 0.25rem; }
 .result-row .hv-add-recipes svg { width: 1.125rem; height: 1.125rem; }
+@media (max-width: 1023px) { .result-row .hv-add-recipes { display: none; } }
 .hv-sort-hint { margin: -0.25rem 0 0.75rem; }
 .hv-empty .primary-btn svg { width: 1.125rem; height: 1.125rem; }
-.hv-empty h2, .hv-empty p, .toast, .select-bar-actions button, .result-line { overflow-wrap: anywhere; }
+.hv-empty h2, .hv-empty p, .toast, .result-line { overflow-wrap: anywhere; }
 
 /* Auswahlmodus: ganze Karte ist die Trefferfläche, Häkchen oben links, gewählt = Rand in Fokusfarbe */
 .is-selecting .rcard-fav, .is-selecting .rrow-fav { display: none; }
@@ -3856,8 +3857,9 @@ body.keyboard-open .rp-foot { padding-bottom: 0.75rem; }
 .select-bar-status { flex: 1 1 8rem; min-width: 0; margin: 0; font-weight: 600; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
 .select-bar .select-all { flex: none; padding-inline: 0.25rem; }
 .select-bar-actions { display: grid; grid-template-columns: minmax(0, 1fr); gap: 0.5rem; }
-.select-bar--two .select-bar-actions { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
-.select-bar-actions .primary-btn, .select-bar-actions .ghost-btn { min-width: 0; min-height: 3rem; padding-inline: 0.75rem; justify-content: center; text-align: center; white-space: normal; overflow-wrap: anywhere; }
+/* zwei Aktionen nebeneinander, bei grosser Schrift untereinander (Spaltenbreite in rem wächst mit der Schrift) */
+.select-bar--two .select-bar-actions { grid-template-columns: repeat(auto-fit, minmax(min(100%, 7.5rem), 1fr)); }
+.select-bar-actions .primary-btn, .select-bar-actions .ghost-btn { min-width: 0; min-height: 3rem; padding-inline: 0.75rem; justify-content: center; text-align: center; white-space: normal; overflow-wrap: break-word; hyphens: auto; }
 .select-bar-actions button:disabled { opacity: 0.5; }
 .home-sel-bar .select-bar { pointer-events: auto; }
 @media (max-width: 767px) {
@@ -3866,7 +3868,7 @@ body.keyboard-open .rp-foot { padding-bottom: 0.75rem; }
   /* «Auswählen» direkt neben der Anzahl: die Zeile bleibt so hoch wie vorher (Trefferfläche 44 px ragt über die Textzeile) */
   .hv-count-line { display: flex; flex-wrap: wrap; align-items: center; column-gap: 0.5rem; min-width: 0; }
   .hv-count-line .result-line { min-width: 0; }
-  .hv-count-line .sel-mode-btn { margin: -0.75rem 0; padding: 0 0.5rem; }
+  .hv-count-line .sel-mode-btn { margin: -0.75rem 0; padding: 0 0 0 0.25rem; }
 }
 @media (min-width: 768px) {
   .home-main > .select-bar { position: sticky; bottom: calc(var(--nav-h) + 1rem + env(safe-area-inset-bottom, 0px)); z-index: var(--z-sticky); max-width: 45rem; margin: 1.5rem auto 0; grid-template-columns: minmax(0, 1fr) auto; align-items: center; }
