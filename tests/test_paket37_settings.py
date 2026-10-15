@@ -66,7 +66,7 @@ async def main():
         check('Mein Konto: Anmeldefelder auf der Kontoseite, kein Sicherungsknopf dort', await ev("!!document.getElementById('cloudEmail') && !document.querySelector('[data-action=export-backup]') && !document.getElementById('kontoRestoreInput')"))
         await go('settings-backup')
         check('Sicherung: Seitentitel «Sicherung & Wiederherstellung»', 'Sicherung & Wiederherstellung' in await ev("document.querySelector('header, .topbar').innerText"))
-        check('Sicherung: Beschreibung', 'Lade eine Kopie deiner Daten als Datei herunter.' in t)
+        check('Sicherung: Beschreibung', 'Erstellt eine Datei, mit der du deine Daten später wiederherstellen kannst.' in t)
         btns = await ev("Array.from(document.querySelectorAll('[data-action=\"export-backup\"], [data-action=\"konto-import-pick\"]')).map(b => b.textContent.trim())")
         check('Sicherung: Schaltflächen «Sicherung herunterladen» und «Sicherung importieren»', btns == ['Sicherung herunterladen', 'Sicherung importieren'], str(btns))
         check('Sicherung: Erklärung vor dem Import auf der Seite', 'ergänzt' in t and 'nicht überschrieben' in t and 'nicht doppelt' in t and 'Erst nach deiner Bestätigung wird etwas übernommen' in t)
