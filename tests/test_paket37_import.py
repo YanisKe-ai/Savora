@@ -57,7 +57,7 @@ async def main():
         await page.click('[data-action="do-paste-import"]'); await page.wait_for_timeout(500)
         banner = await ev("() => document.querySelector('.import-summary') ? document.querySelector('.import-summary').innerText : ''")
         flat = banner.replace('\n', ' | ')
-        check('Vorschau: Teilzeiten getrennt, ohne Summe', 'Vorbereitungszeit 15 Min.' in banner and 'Garen/Backen 25 Min.' in banner and '40 Min' not in banner and 'nichts zusammengerechnet' in banner, flat[:400])
+        check('Vorschau: Teilzeiten getrennt, ohne Summe', 'Vorbereitung 15 Min.' in banner and 'Garen oder Backen 25 Min.' in banner and '40 Min' not in banner and 'nichts zusammengerechnet' in banner, flat[:400])
         check('Vorschau: Ausbeute 9 Stück und 3 Schritte', '9 Stück' in banner and '3 erkannt' in banner, flat[:400])
         check('Vorschau: keine Prozentwerte oder Erkennungssicherheit', '%' not in banner and not re.search(r'sicherheit|prozent', banner, re.I), flat[:200])
         form = await ev("() => ({ s: document.getElementById('f-servings').value, t: document.getElementById('f-title').value })")

@@ -106,7 +106,13 @@ function cookSteps(r) {
   stepEntries(r).forEach(e => {
     if (e.heading) { section = String(e.text).trim().replace(/:$/, ''); return; }
     if (typeof pdfClassifyStepText === 'function' && pdfClassifyStepText(e.text) === 'source') return;   // Quellenangabe ist kein Kochschritt (Rezepttext bleibt unveraendert)
-    out.push(Object.assign({}, e.step, { _section: section, _sourceIndex: e.sourceIndex }));
+    let shownText = e.step.text;
+    // «Titel: Satz» wie in der Rezeptansicht als Ueberschrift zeigen (nur Anzeige, gespeicherter Text bleibt)
+    if (!section && typeof stepDisplayParts === 'function') {
+      const parts = stepDisplayParts(e.text);
+      if (parts.title) { section = parts.title; shownText = parts.text; }
+    }
+    out.push(Object.assign({}, e.step, { text: shownText, _section: section, _sourceIndex: e.sourceIndex }));
     section = '';
   });
   return out;
