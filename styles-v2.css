@@ -3493,3 +3493,77 @@ body:has(.lp) .topbar--sub .topbar-title { overflow-wrap: normal; hyphens: auto;
 @media (min-width: 768px) { .lib-switch-btn { white-space: nowrap; } }
 .lib-byline .lib-meta-line > span { display: block; min-width: 0; }
 .lib-author-link { display: inline-flex; align-items: center; justify-content: flex-start; text-align: left; vertical-align: middle; max-width: 100%; overflow-wrap: anywhere; }
+
+/* ===== v83 Planung und Rezeptauswahl ===== */
+/* Gemeinsamer Auswahldialog (recipe-picker.js): Kopf mit Schliessen, scrollbarer Inhalt, fester Fuss.
+   Die Hoehe folgt dem sichtbaren Bereich (--rp-vvh), damit Fuss und Aktionen mit Bildschirmtastatur erreichbar bleiben. */
+.modal-backdrop.rp-backdrop { top: var(--rp-vvtop, 0px); bottom: auto; height: var(--rp-vvh, 100%); }
+.modal-sheet.rp-sheet { display: flex; flex-direction: column; max-width: 560px; padding: 0; overflow: hidden; max-height: min(92vh, var(--rp-vvh, 92vh)); max-height: min(92dvh, var(--rp-vvh, 92dvh)); }
+/* Mit Liste: feste Mindesthoehe, damit der Dialog beim Tippen in der Suche nicht springt */
+.modal-sheet.rp-sheet:has(#rpList) { min-height: min(80vh, var(--rp-vvh, 80vh)); min-height: min(80dvh, var(--rp-vvh, 80dvh)); }
+.rp-sheet .sheet-handle { flex: none; margin: 0.5rem auto 0; }
+.rp-head { flex: none; display: flex; align-items: flex-start; justify-content: space-between; gap: 0.75rem; padding: 0.5rem 1.25rem 0.75rem; }
+.rp-head-text { min-width: 0; }
+.rp-title { margin: 0; font-family: var(--font-display); font-size: 1.375rem; line-height: 1.25; color: var(--text); overflow-wrap: anywhere; }
+.rp-sub { margin: 0.25rem 0 0; font-size: 0.9375rem; line-height: 1.4; color: var(--text-soft); overflow-wrap: anywhere; }
+.rp-close { flex: none; width: 44px; height: 44px; display: inline-flex; align-items: center; justify-content: center; border: 0; border-radius: 50%; background: var(--surface-soft); color: var(--text); cursor: pointer; transition: transform 140ms var(--ease-out, ease-out); }
+.rp-close svg { width: 20px; height: 20px; }
+.rp-close:active { transform: scale(0.94); }
+.rp-close:focus-visible, .rp-seg-btn:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 2px; }
+.rp-body { flex: 1 1 auto; min-height: 0; overflow-y: auto; overscroll-behavior: contain; -webkit-overflow-scrolling: touch; padding: 0 1.25rem 1rem; }
+.rp-foot { flex: none; padding: 0.75rem 1.25rem calc(0.75rem + env(safe-area-inset-bottom, 0px)); border-top: 1px solid var(--border); background: var(--card-bg); }
+body.keyboard-open .rp-foot { padding-bottom: 0.75rem; }
+.rp-actions { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+.rp-actions .ghost-btn { flex: 1 1 7rem; min-height: 48px; justify-content: center; }
+.rp-actions .primary-btn { flex: 2 1 11rem; min-height: 48px; justify-content: center; text-align: center; white-space: normal; }
+.rp-count { margin: 0 0 0.5rem; font-size: 0.9375rem; line-height: 1.35; color: var(--text-soft); overflow-wrap: anywhere; }
+.rp-group { margin: 0 0 0.75rem; padding: 0; border: 0; min-width: 0; }
+.rp-label { display: block; margin: 0 0 0.5rem; padding: 0; font-size: 0.9375rem; font-weight: 700; color: var(--text); }
+.rp-optional { font-weight: 400; color: var(--text-soft); }
+.rp-sheet .rp-chips { margin: 0 0 0.5rem; gap: 0.5rem; }
+.rp-sheet .rp-chips .chip { min-height: 44px; padding: 0 1rem; font-size: 1rem; }
+.rp-sheet .rp-field { margin: 0.25rem 0 0.75rem; }
+/* Umschalter «Rezept» / «Ohne Rezept» */
+.rp-seg { display: flex; gap: 0.25rem; margin: 0 0 0.75rem; padding: 0.25rem; border-radius: 999px; background: var(--surface-soft); }
+.rp-seg-btn { flex: 1 1 0; min-width: 0; min-height: 44px; padding: 0.25rem 0.75rem; border: 0; border-radius: 999px; background: transparent; color: var(--text-soft); font: inherit; font-size: 1rem; font-weight: 600; line-height: 1.2; cursor: pointer; overflow-wrap: anywhere; transition: background-color 140ms var(--ease-out, ease-out), color 140ms var(--ease-out, ease-out); }
+.rp-seg-btn[aria-checked="true"] { background: var(--lime); color: var(--lime-ink); font-weight: 700; box-shadow: inset 0 0 0 1.5px var(--focus-ring); }
+/* Suche: bleibt beim Scrollen der Liste oben sichtbar */
+.rp-search { position: sticky; top: 0; z-index: 1; display: flex; align-items: center; margin: 0 -1.25rem 0.5rem; padding: 0.25rem 1.25rem 0.5rem; background: var(--card-bg); }
+.rp-search-icon { position: absolute; left: 2rem; display: inline-flex; color: var(--text-soft); pointer-events: none; }
+.rp-search-icon svg { width: 18px; height: 18px; }
+.rp-search-input { width: 100%; min-height: 48px; padding: 0.5rem 0.75rem 0.5rem 2.5rem; border: 1.5px solid var(--border); border-radius: 14px; background: var(--card-bg); color: var(--text); font: inherit; font-size: 1rem; }
+.rp-search-input:focus { outline: none; border-color: var(--focus-ring); box-shadow: 0 0 0 3px rgba(185, 59, 44, 0.15); }
+.cb-rp-search { position: static; margin: 0 0 0.75rem; padding: 0; flex-wrap: wrap; }
+.cb-rp-search .rp-search-icon { left: 0.75rem; top: 0.75rem; }
+.cb-rp-search .rp-count { flex: 1 1 100%; margin: 0.5rem 0 0; }
+.cb-rp-search .rp-count:empty { display: none; }
+/* Liste */
+.rp-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 0.5rem; }
+.rp-row { border: 1.5px solid var(--border); border-radius: 14px; background: var(--card-bg); }
+.rp-row.is-selected { border-color: var(--focus-ring); background: var(--lime); }
+.rp-item { position: relative; display: flex; align-items: center; gap: 0.75rem; min-height: 56px; padding: 0.5rem 0.75rem; cursor: pointer; color: var(--text); }
+.rp-input { position: absolute; inset: 0; width: 100%; height: 100%; margin: 0; opacity: 0; cursor: pointer; }
+.rp-item .picker-thumb { width: 48px; height: 40px; }
+.rp-item-text { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 0.125rem; }
+.rp-item-title { font-size: 1rem; font-weight: 600; line-height: 1.3; overflow-wrap: anywhere; }
+.rp-row.is-selected .rp-item-title, .rp-row.is-selected .rp-item-meta { color: var(--lime-ink); }
+.rp-item-meta { font-size: 0.875rem; line-height: 1.3; color: var(--text-soft); }
+.rp-mark { flex: none; width: 24px; height: 24px; display: inline-flex; align-items: center; justify-content: center; border: 2px solid var(--text-soft); border-radius: 7px; color: transparent; }
+.rp-sheet--plan .rp-mark { border-radius: 50%; }
+.rp-mark svg { width: 14px; height: 14px; stroke-width: 3; }
+.rp-row.is-selected .rp-mark { background: var(--lime-ink); border-color: var(--lime-ink); color: var(--lime); }
+.rp-row:has(.rp-input:focus-visible) { outline: 2px solid var(--focus-ring); outline-offset: 2px; }
+.rp-row-qty { display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; flex-wrap: wrap; padding: 0 0.75rem 0.75rem; color: var(--lime-ink); }
+.rp-row-qty-label, .rp-qty-label { font-size: 0.9375rem; font-weight: 600; }
+.rp-qty-line { display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; flex-wrap: wrap; margin: 0 0 0.75rem; }
+.rp-qty-hint { margin: 0 0 0.75rem; font-size: 0.875rem; line-height: 1.4; color: var(--text-soft); }
+.rp-stepper button { min-width: 44px; min-height: 44px; }
+.rp-stepper .stepper-value { min-width: 5.5rem; text-align: center; }
+.rp-empty { padding: 1rem 0.25rem; text-align: center; color: var(--text-soft); }
+.rp-empty p { margin: 0 0 0.75rem; line-height: 1.4; overflow-wrap: anywhere; }
+.rp-empty strong { color: var(--text); }
+.rp-note .field input { width: 100%; }
+.rp-sheet .menu-list .plan-today { margin-left: 0.5rem; }
+@media (min-width: 640px) { .modal-sheet.rp-sheet { border-radius: 1.5rem; max-height: min(86vh, var(--rp-vvh, 86vh)); } }
+@media (hover: hover) and (pointer: fine) { .rp-row:not(.is-selected):hover { border-color: var(--text-soft); } }
+@media (prefers-reduced-motion: reduce) { .rp-close, .rp-seg-btn { transition: none; } .rp-close:active { transform: none; } }

@@ -83,6 +83,17 @@ document.addEventListener('change', (e) => {
   }
 });
 
+// Planungsdialog: Eingaben vor einem Neuaufbau im Dialogzustand merken (Notiz, eigene Bezeichnung)
+function planCaptureDrafts(m) {
+  if (!m) return;
+  const ni = document.getElementById('planNoteInput'); if (ni) m.noteDraft = ni.value;
+  const c = document.getElementById('planMealCustom'); if (c) m.mealCustom = c.value;
+}
+// Menge fuer den Eintrag: nur eine vom Rezept abweichende Menge wird gespeichert (sonst null wie bisher)
+function planServingsFromModal(m, r) {
+  const q = m && m.rpQty ? Number(m.rpQty[r.id]) : 0;
+  return (q > 0 && yieldKnown(r) && q !== Number(r.servings)) ? q : null;
+}
 function readPlanMeal() {
   const custom = document.getElementById('planMealCustom');
   const v = custom ? custom.value.trim() : '';
@@ -524,12 +535,14 @@ async function handleActionV2(action, id, el, e) {
       return true;
     }
     case 'open-shop-from-recipes':
-      openModal({ type: 'pick-recipes', selected: [] }, '[data-action="open-shop-from-recipes"]');
+      openModal({ type: 'pick-recipes', selected: [], rpPicker: true, rpMulti: true, rpSel: [], rpQuery: '', rpQty: {} }, '[data-action="open-shop-from-recipes"]');
       return true;
     case 'confirm-pick-recipes': {
-      const ids = Array.from(document.querySelectorAll('[data-pick-recipe]:checked')).map(x => x.dataset.pickRecipe);
-      if (!ids.length) { showToast('Bitte mindestens ein Rezept wählen'); return true; }
-      const items = ids.flatMap(rid => { const r = state.recipes.find(x => x.id === rid); return r ? shoppingSelectionFor(r, r.servings || 1) : []; });
+      // Auswahl aus dem Dialogzustand (bleibt auch fuer gerade ausgefilterte Rezepte erhalten), Menge je Rezept
+      const pm = state.modal;
+      const ids = typeof rpSelected === 'function' ? rpSelected(pm) : Array.from(document.querySelectorAll('[data-pick-recipe]:checked')).map(x => x.dataset.pickRecipe);
+      if (!ids.length) { showToast('Wähle mindestens ein Rezept aus.'); const s = document.getElementById('rpSearch'); if (s) focusWithoutScroll(s); return true; }
+      const items = ids.flatMap(rid => { const r = state.recipes.find(x => x.id === rid); return r ? shoppingSelectionFor(r, (typeof rpQtyFor === 'function' ? rpQtyFor(pm, r) : 0) || r.servings || 1) : []; });
       markShoppingDuplicates(items);
       replaceModal({ type: 'shop-select', items });
       return true;
@@ -693,15 +706,57 @@ async function handleActionV2(action, id, el, e) {
 
     /* ----- Wochenplan ----- */
     case 'open-day-picker':
-      openModal({ type: 'pick-recipe', date: el.dataset.date, meal: '' }, `[data-action="open-day-picker"][data-date="${escapeAttr(el.dataset.date)}"]`);
+      openModal({ type: 'pick-recipe', date: el.dataset.date, meal: '', planMode: 'recipe', rpPicker: true, rpMulti: false, rpSel: [], rpQuery: '', rpQty: {} }, `[data-action="open-day-picker"][data-date="${escapeAttr(el.dataset.date)}"]`);
       return true;
     case 'set-plan-meal':
-      if (state.modal) { const ni = document.getElementById('planNoteInput'); if (ni) state.modal.noteDraft = ni.value; state.modal.meal = state.modal.meal === id ? '' : id; const c = document.getElementById('planMealCustom'); if (c) c.value = ''; render(); }
+      if (state.modal) {
+        planCaptureDrafts(state.modal);
+        const wasOther = !!state.modal.mealOther;
+        state.modal.meal = (state.modal.meal === id && !wasOther) ? '' : id;
+        state.modal.mealOther = false; state.modal.mealCustom = '';
+        const c = document.getElementById('planMealCustom'); if (c) c.value = '';
+        render();
+      }
       return true;
+    case 'plan-meal-other': {   // eigene Mahlzeitbezeichnung erst auf Wunsch zeigen
+      const m = state.modal;
+      if (!m) return true;
+      planCaptureDrafts(m);
+      if (m.mealOther) { m.mealOther = false; m.mealCustom = ''; m.meal = ''; render(); return true; }
+      m.mealOther = true; m.meal = '';
+      render();
+      const c = document.getElementById('planMealCustom'); if (c) focusWithoutScroll(c);
+      return true;
+    }
+    case 'plan-mode': {   // Umschalter «Rezept» / «Ohne Rezept»
+      const m = state.modal;
+      if (!m || m.type !== 'pick-recipe') return true;
+      planCaptureDrafts(m);
+      m.planMode = id === 'note' ? 'note' : 'recipe';
+      render();
+      const b = document.querySelector(`[data-action="plan-mode"][data-id="${m.planMode}"]`); if (b) focusWithoutScroll(b);
+      return true;
+    }
+    case 'plan-commit-recipe': {
+      const m = state.modal;
+      if (!m || m.type !== 'pick-recipe') return true;
+      const rid = (typeof rpSelected === 'function' ? rpSelected(m) : [])[0];
+      const r = rid ? state.recipes.find(x => x.id === rid) : null;
+      if (!r) { showToast('Wähle zuerst ein Rezept aus der Liste.'); const s = document.getElementById('rpSearch'); if (s) focusWithoutScroll(s); return true; }
+      planCaptureDrafts(m);
+      const date = m.date;
+      const entries = planEntriesFor(date).slice();
+      entries.push({ id: uid(), recipeId: r.id, meal: readPlanMeal(), servings: planServingsFromModal(m, r) });
+      await savePlanEntries(date, entries);
+      closeModal();
+      showToast(`„${r.title || 'Rezept'}“ eingetragen`);
+      return true;
+    }
     case 'assign-mealplan-recipe': {
       const date = el.dataset.date;
       const entries = planEntriesFor(date).slice();
-      entries.push({ id: uid(), recipeId: id, meal: readPlanMeal(), servings: null });
+      const pr = state.recipes.find(x => x.id === id);
+      entries.push({ id: uid(), recipeId: id, meal: readPlanMeal(), servings: pr && state.modal ? planServingsFromModal(state.modal, pr) : null });
       await savePlanEntries(date, entries);
       const fromDetail = state.modal && state.modal.type === 'plan-recipe';
       closeModal();
