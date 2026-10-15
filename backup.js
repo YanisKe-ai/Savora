@@ -25,7 +25,9 @@ async function downloadBackup() {
   const coverImages = await backupCoverImages();
   const payload = {
     // version bleibt fuer aeltere App-Staende lesbar; schemaVersion beschreibt den Inhalt.
-    app: 'savora', version: 3, schemaVersion: 5, exportedAt: new Date().toISOString(),
+    // schemaVersion 6: zusaetzlich organization (Sammlungen, Zuordnungen, Verknuepfungen «Passt dazu»). settings.collections und
+    // recipe.collections bleiben drin, damit aeltere App-Staende die Sicherung weiter lesen.
+    app: 'savora', version: 3, schemaVersion: 6, exportedAt: new Date().toISOString(),
     recipes: recipesForExport, shopping: state.shopping,
     customFoods, nutritionMatches, nutritionResults,
     mealplan,
@@ -33,6 +35,7 @@ async function downloadBackup() {
     // cookbooks: alle Kochbuch-Projekte (ab schemaVersion 5); cookbookConfig: alte Einzelkonfiguration, damit aeltere App-Staende die Sicherung weiter lesen
     settings: { collections: getCollections(), cookbooks: cookbookStoreRead(), cookbookConfig: readJsonKey(COOKBOOK_CONFIG_KEY, null) },
   };
+  if (typeof orgExport === 'function') payload.organization = orgExport();
   const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
   const stamp = new Date().toISOString().slice(0, 10);
   if (SavoraNative.isNative) {   // iOS-App: Sicherung ueber das Teilen-Fenster ("In Dateien sichern")
@@ -196,6 +199,8 @@ async function restoreBackupFromFile(file) {
       const v = validateRecipe(data.recipe);
       if (!v.ok) throw new Error(`Das geteilte Rezept ist nicht lesbar (${v.errors.slice(0, 3).join('; ')}). Es wurde nichts verändert`);
       const clone = v.recipe;
+      // Sammlungs-IDs des Absenders gehoeren nicht in dieses Kochbuch (sie koennten zufaellig eigenen IDs gleichen)
+      delete clone.collections; delete clone.collectionIds;
       const fp = backupRecipeFingerprint(clone);
       const same = state.recipes.find(x => backupRecipeFingerprint(x) === fp);   // gleiche Datei zweimal einspielen legt keine zweite Kopie an
       let msg;
@@ -230,11 +235,15 @@ async function restoreBackupFromFile(file) {
     let added = 0, skipped = 0;
     const skippedIds = new Set();   // schon vorhandene, identische Rezepte: ihre lokalen Nährwert-Ergebnisse bleiben
     const recipeIdMap = {}; // alte Rezept-ID (aus der Sicherung) -> neue ID (siehe unten, wichtig fuer nutritionResults)
+    const legacyPairs = [];   // [{c, r}] aus recipes[].collections (IDs der Sicherung), fuer Sammlungen und Zuordnungen
+    const idCount = {};
+    vb.recipes.forEach(rec => { if (rec.ok && typeof rec.recipe.id === 'string') idCount[rec.recipe.id] = (idCount[rec.recipe.id] || 0) + 1; });
     for (const rec of vb.recipes) {
       if (!rec.ok) continue;
       rec.warnings.forEach(w => report.push(`Hinweis, ${rec.label}: ${w}`));
       const clone = rec.recipe;
       const oldId = clone.id;
+      if (oldId && Array.isArray(clone.collections)) clone.collections.forEach(c => { if (typeof c === 'string' && c !== 'friends') legacyPairs.push({ c, r: oldId }); });
       // Original-ID behalten, wenn sie auf diesem Geraet frei ist (z.B. Wiederherstellung auf
       // neuem Geraet). Nur bei Kollision entsteht eine neue ID, damit nichts ueberschrieben wird.
       // Ist dasselbe Rezept (gleiche ID, gleicher Inhalt) schon da, wird es uebersprungen statt verdoppelt.
@@ -251,6 +260,30 @@ async function restoreBackupFromFile(file) {
       state.recipes.push(clone);   // fuer die Duplikatpruefung der folgenden Datensaetze derselben Datei
       if (oldId) recipeIdMap[oldId] = clone.id;
       added++;
+    }
+    // Sammlungen, Zuordnungen und Verknuepfungen (org.js): direkt nach den Rezepten, damit alle Beziehungen ueber die
+    // vollstaendige ID-Abbildung laufen. Mehrdeutige IDs (mehrfach in der Sicherung) werden nicht verbunden.
+    let orgRep = null;
+    if (typeof orgImport === 'function') {
+      const orgMap = {};
+      Object.entries(recipeIdMap).forEach(([k, v]) => { if (idCount[k] === 1) orgMap[k] = v; });
+      const ambiguous = Object.keys(idCount).filter(k => idCount[k] > 1).length;
+      const od = vb.organization && vb.organization.data;
+      // Altes Format: Zuordnung in der Sammlung (settings.collections[].recipeIds). Gleiche Regeln wie recipe.collections,
+      // nur Rezepte, die in der Sicherung stehen (ID-Abbildung in orgImport).
+      (data.settings && Array.isArray(data.settings.collections) ? data.settings.collections : []).forEach(c => {
+        if (isObj(c) && typeof c.id === 'string' && c.id !== 'friends' && Array.isArray(c.recipeIds)) c.recipeIds.forEach(r => { if (typeof r === 'string' && idCount[r]) legacyPairs.push({ c: c.id, r }); });
+      });
+      const orgData = od ? { collections: od.collections, memberships: od.memberships, links: od.links, legacy: legacyPairs }
+        : { collections: (data.settings && Array.isArray(data.settings.collections) ? data.settings.collections : []).filter(c => isObj(c)), legacy: legacyPairs };
+      orgRep = orgImport(orgData, orgMap);
+      const mr = orgRep.memberships, lr = orgRep.links;
+      if (mr.missing) report.push(`Nicht übernommen, Sammlungen: ${mr.missing} Zuordnung${mr.missing === 1 ? '' : 'en'} ohne Rezept oder Sammlung in der Sicherung`);
+      if (mr.removed) report.push(`Nicht übernommen, Sammlungen: ${mr.removed} Zuordnung${mr.removed === 1 ? ' wurde' : 'en wurden'} auf diesem Gerät bewusst entfernt`);
+      if (lr.missing) report.push(`Nicht übernommen, Passt dazu: ${lr.missing} Verknüpfung${lr.missing === 1 ? '' : 'en'}, weil ein Rezept fehlt${ambiguous ? ' oder seine ID in der Sicherung mehrfach vorkommt' : ''}`);
+      if (lr.self) report.push(`Nicht übernommen, Passt dazu: ${lr.self} Verknüpfung${lr.self === 1 ? '' : 'en'} zwischen zwei gleichen Rezepten`);
+      if (lr.removed) report.push(`Nicht übernommen, Passt dazu: ${lr.removed} Verknüpfung${lr.removed === 1 ? ' wurde' : 'en wurden'} auf diesem Gerät bewusst entfernt`);
+      if (orgRep.collections.added || mr.added || lr.added) progress.written++;
     }
     let addedItems = 0;
     for (let n = 0; n < (data.shopping || []).length; n++) {
@@ -320,7 +353,7 @@ async function restoreBackupFromFile(file) {
     covers.problems.forEach(t => report.push(t));
     const addedBooks = restoreCookbooksFromBackup(data.settings, recipeIdMap, covers.map);
     if (addedBooks) progress.written++;
-    if (data.settings && Array.isArray(data.settings.collections)) {
+    if (!orgRep && data.settings && Array.isArray(data.settings.collections)) {   // nur ohne org.js (Rueckfall)
       const cols = getCollections();
       data.settings.collections.forEach(c => { if (c && typeof c === 'object' && typeof c.id === 'string' && !cols.some(x => x.id === c.id)) cols.push(c); });
       saveCollections(cols);
@@ -334,8 +367,11 @@ async function restoreBackupFromFile(file) {
     if (addedPlan) extras.push(`${addedPlan} Wochenplan-Eintr${addedPlan === 1 ? 'ag' : 'äge'}`);
     if (addedFoods) extras.push(`${addedFoods} eigene${addedFoods === 1 ? 's' : ''} Lebensmittel`);
     if (addedMatches) extras.push(`${addedMatches} gelernte Zuordnung${addedMatches === 1 ? '' : 'en'}`);
+    if (orgRep && orgRep.collections.added) extras.push(`${orgRep.collections.added} Sammlung${orgRep.collections.added === 1 ? '' : 'en'}`);
+    if (orgRep && orgRep.memberships.added) extras.push(`${orgRep.memberships.added} Sammlungszuordnung${orgRep.memberships.added === 1 ? '' : 'en'}`);
+    if (orgRep && orgRep.links.added) extras.push(`${orgRep.links.added} Verknüpfung${orgRep.links.added === 1 ? '' : 'en'}`);
     const nBad = vb.problems.length;
-    const msg = `${added} Rezept${added === 1 ? '' : 'e'}${addedItems ? `, ${addedItems} Einkaufslisten-Eintrag(e)` : ''}${extras.length ? ' und ' + extras.join(', ') : ''} wiederhergestellt.${skipped ? ` ${skipped} Rezept${skipped === 1 ? ' war' : 'e waren'} schon vorhanden und ${skipped === 1 ? 'wurde' : 'wurden'} nicht doppelt angelegt.` : ''}${badRecipes ? ` ${badRecipes} ${badRecipes === 1 ? 'Eintrag war' : 'Einträge waren'} unlesbar und wurde${badRecipes === 1 ? '' : 'n'} übersprungen.` : ''}${nBad > badRecipes ? ` ${nBad - badRecipes} weitere Datensätze waren unlesbar und wurden übersprungen.` : ''}${data.schemaVersion > 5 ? ' Die Sicherung stammt aus einer neueren Savora-Version: Unbekannte Teile wurden nicht übernommen.' : ''}${nBad ? ' Du kannst dieselbe Datei nach einer Korrektur erneut einspielen, bereits übernommene Rezepte werden nicht doppelt angelegt.' : ''}`;
+    const msg = `${added} Rezept${added === 1 ? '' : 'e'}${addedItems ? `, ${addedItems} Einkaufslisten-Eintrag(e)` : ''}${extras.length ? ' und ' + extras.join(', ') : ''} wiederhergestellt.${skipped ? ` ${skipped} Rezept${skipped === 1 ? ' war' : 'e waren'} schon vorhanden und ${skipped === 1 ? 'wurde' : 'wurden'} nicht doppelt angelegt.` : ''}${badRecipes ? ` ${badRecipes} ${badRecipes === 1 ? 'Eintrag war' : 'Einträge waren'} unlesbar und wurde${badRecipes === 1 ? '' : 'n'} übersprungen.` : ''}${nBad > badRecipes ? ` ${nBad - badRecipes} weitere Datensätze waren unlesbar und wurden übersprungen.` : ''}${data.schemaVersion > 6 ? ' Die Sicherung stammt aus einer neueren Savora-Version: Unbekannte Teile wurden nicht übernommen.' : ''}${nBad ? ' Du kannst dieselbe Datei nach einer Korrektur erneut einspielen, bereits übernommene Rezepte werden nicht doppelt angelegt.' : ''}`;
     render();
     backupShowReport(msg, valReportLinesFromStrings(report, 12), !nBad && !covers.problems.length);
     showToast(msg);

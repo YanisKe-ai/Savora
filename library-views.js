@@ -426,6 +426,7 @@ function libDetailActionsHtml(id, saved) {
     ${item('plan', ICONS.calendar, saved ? 'Zum Wochenplan hinzufügen' : 'Speichern und zum Wochenplan hinzufügen')}
     ${item('shop', ICONS.cart, saved ? 'Einkaufen' : 'Speichern und einkaufen')}
     ${item('cookbook', ICONS.bookOpen, saved ? 'Zum Kochbuch hinzufügen' : 'Speichern und zum Kochbuch hinzufügen')}
+    ${item('collection', ICONS.folder || '', saved ? 'Zu Sammlung hinzufügen' : 'Speichern und zu Sammlung hinzufügen')}
     ${item('cook', ICONS.play, saved ? 'Kochen starten' : 'Speichern und kochen')}
     <button type="button" class="menu-item" data-action="lib-share-link" data-id="${escapeAttr(id)}">${ICONS.share}<span>Link teilen</span></button>
   </div>`;
@@ -560,6 +561,7 @@ function libDetailModals(id, pub, rec, title) {
   /* Nach «Speichern und …»: bestehende Fenster der lokalen Kopie (gleiche Funktionen wie in der Rezeptdetailansicht) */
   if (m.type === 'plan-recipe' && typeof planRecipeModal === 'function') return planRecipeModal();
   if (m.type === 'shop-select' && typeof shopSelectModal === 'function') return shopSelectModal();
+  if (m.type === 'rcol' && typeof rcolModalHtml === 'function') return rcolModalHtml();
   return '';
 }
 
@@ -825,13 +827,16 @@ async function libRetryImageNow(recipeId) {
   if (state.view === 'lib-detail' || state.view === 'discover' || state.view === 'lib-profile') render();
 }
 /* Speichert (oder findet) die persönliche Kopie. Gibt das Ergebnis zurück oder null bei Fehler (Meldung bereits gezeigt). */
-async function libEnsure(id) {
+async function libEnsure(id, opts) {
   if (!libHas('ensurePersonalRecipe')) { showToast('Speichern ist gerade nicht möglich.', 'error'); return null; }
   try {
     const r = await ensurePersonalRecipe(id);
     if (!r || !r.recipeId) throw new Error('kein Ergebnis');
     if (r.imageFailed) libImageFailedToast(r.recipeId);
-    else if (r.created) showToast('In Meine Rezepte gespeichert.');
+    else if (r.created && opts && opts.offerCollection && typeof rcolModalHtml === 'function') {   // v84: freiwillig, kein Pflichtdialog
+      const rid = r.recipeId;
+      showToast('In Meine Rezepte gespeichert.', 'success', false, { actionLabel: 'Zu einer Sammlung hinzufügen', duration: 8000, onAction: () => openModal({ type: 'rcol', recipeId: rid }) });
+    } else if (r.created) showToast('In Meine Rezepte gespeichert.');
     return r;
   } catch (err) {
     showToast(libErrorText(err, 'Das Rezept konnte nicht gespeichert werden. Versuche es erneut.'), 'error', true);
@@ -840,6 +845,10 @@ async function libEnsure(id) {
 }
 /* Führt eine bestehende lokale Aktion mit der lokalen Rezept-ID aus (gleiche Handler wie in der Rezeptdetailansicht). */
 async function libRunLocal(action, recipeId, el) {
+  if (action === 'open-collection-dialog') {   // v84: Sammlungsdialog des Rezept-Bereichs, immer mit der lokalen ID
+    openModal({ type: 'rcol', recipeId }, el && el.id ? '#' + el.id : '[data-action="lib-save-and"][data-then="collection"]');
+    return;
+  }
   if (typeof dispatchAction !== 'function') return;
   if (action === 'add-to-cookbook') {
     /* Der bestehende Handler schliesst danach ein Fenster (history.back). Ohne offenes Fenster würde das die Seite
@@ -849,7 +858,7 @@ async function libRunLocal(action, recipeId, el) {
   }
   await dispatchAction(action, recipeId, el, null);
 }
-const LIB_THEN_ACTIONS = { plan: 'open-plan-recipe', shop: 'add-to-shopping', cookbook: 'add-to-cookbook', cook: 'start-cook' };
+const LIB_THEN_ACTIONS = { plan: 'open-plan-recipe', shop: 'add-to-shopping', cookbook: 'add-to-cookbook', collection: 'open-collection-dialog', cook: 'start-cook' };
 
 async function handleLibraryViewAction(action, id, el) {
   if (!action || action.indexOf('lib-') !== 0) return false;
@@ -961,7 +970,7 @@ async function handleLibraryViewAction(action, id, el) {
     case 'lib-save':
       await libGuard('save:' + id, el, async () => {
         const inCard = !!(el && el.closest('.lcard'));
-        const r = await libEnsure(id);
+        const r = await libEnsure(id, { offerCollection: true });
         if (!r) return;
         if (state.modal) state.modal = null;
         render();

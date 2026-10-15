@@ -1,4 +1,4 @@
-"""Bewegung M1: Rezeptkarten per FLIP bei Filter/Sortierung/Suche, gleitende Auswahlflaeche «Alle / Favoriten», «Erledigte nach unten».
+"""Bewegung M1: Rezeptkarten per FLIP bei Filter/Sortierung/Suche/Bereichswechsel (v84: «Alle / Favoriten» ist ein Bereich der Sammlungsauswahl, die gleitende Auswahlflaeche entfaellt), «Erledigte nach unten».
 Prueft im echten Browser (Bewegung erlaubt): verbleibende Karten gleiten (Position WAEHREND der Bewegung zwischen alt und neu), neue Karten
 blenden ein, entfernte sind sofort weg (keine Overlays, nichts bedienbar), 10 schnelle Wechsel enden im letzten Zustand ohne Reste,
 keine unhandledrejection, Suchfeld behaelt Fokus und Cursor und bewegt sich nicht, Reduced Motion beim Start und waehrend einer Bewegung,
@@ -19,7 +19,10 @@ SEED = """(n) => { const out = []; for (let i = 0; i < n; i++) { const r = empty
   r.favorite = i % 2 === 1; r.timeMinutes = 5 + ((i * 37) % 90); r.updatedAt = 1000000 + i * 1000; r.ingredients = []; r.steps = []; out.push(r); }
   state.recipes = out; resetExtraFilters(); state.query = ''; state.searchOpen = false; state.favOnly = false; state.activeCollection = 'all'; state.sortBy = 'updated';
   state.homeLayout = 'grid'; state.homeLayoutChosen = true; state.modal = null; state.view = 'home'; render(); window.scrollTo(0, 0); return out.length; }"""
-HOOKS = """() => { window.MINE = () => [...document.querySelectorAll('[data-flip-id], .seg-thumb, .shop-row, .shop-section-title')].flatMap(e => e.getAnimations()).filter(a => a.playState === 'running'); window.__rej = []; window.addEventListener('unhandledrejection', e => window.__rej.push(String(e.reason))); }"""
+# v84: «Alle / Favoriten» ist ein Bereich der Sammlungsauswahl (keine .seg mehr). Zwei Hilfsknoepfe ausserhalb von #app loesen denselben
+# Bereichswechsel aus wie die Knoepfe der Leerzustaende (set-col-scope ohne Fenster, mit FLIP), damit die Kartenbewegung weiter geprueft wird.
+HOOKS = """() => { ['all', 'favorites'].forEach(id => { const b = document.createElement('button'); b.id = id === 'all' ? 'tScopeAll' : 'tScopeFav'; b.hidden = true; b.onclick = () => handleActionV2('set-col-scope', id, b); document.body.appendChild(b); });
+  window.MINE = () => [...document.querySelectorAll('[data-flip-id], .seg-thumb, .shop-row, .shop-section-title')].flatMap(e => e.getAnimations()).filter(a => a.playState === 'running'); window.__rej = []; window.addEventListener('unhandledrejection', e => window.__rej.push(String(e.reason))); }"""
 RECT = """(id) => { const e = document.querySelector('[data-flip-id="' + id + '"]'); if (!e) return null; const r = e.getBoundingClientRect(); return { x: r.left, y: r.top }; }"""
 # Klick per Skript, kurze Pause, Mitte messen, Ende abwarten, Ende messen
 MID = """async ([sel, id, ms]) => { const R = () => { const e = document.querySelector('[data-flip-id="' + id + '"]'); if (!e) return null; const r = e.getBoundingClientRect(); return { x: r.left, y: r.top }; };
@@ -52,23 +55,19 @@ async def desktop(p, w, h):
     b, ctx, page, errs = await new_page(p, w, h); ev = page.evaluate
     await ev(SEED, 12); await page.wait_for_timeout(300)
     t = await ev(THUMB)
-    check(tag + 'Auswahlflaeche liegt beim Start unter «Alle», ohne Hereinfliegen, aria-hidden, nicht klickbar', t and not t['hidden'] and t['active'] == 'all' and t['dx'] < 1 and t['dy'] < 1 and t['dw'] < 1 and t['anims'] == 0 and t['aria'] == 'true' and t['pe'] == 'none', str(t))
+    check(tag + 'v84: keine Leiste «Alle / Favoriten» und keine verwaiste Auswahlflaeche, Sammlungsauswahl «Alle Rezepte»', not t and await ev("() => !document.querySelector('.seg, .seg-thumb') && document.getElementById('colPickBtn').textContent.trim() === 'Alle Rezepte'"))
     # Alle -> Favoriten: Favoriten-Karte m1_011 (oben in «Zuletzt bearbeitet») bleibt, andere fallen weg
-    r = await ev(MID, ['.seg-btn[data-id="fav"]', 'm1_009', 60])
+    r = await ev(MID, ['#tScopeFav', 'm1_009', 60])
     t2 = await ev(THUMB)
     check(tag + 'Favoriten: verbleibende Karte gleitet (Mitte liegt zwischen alt und neu)', r['anims'] >= 1 and r['mid'] and dist(r['mid'], r['end']) > 1 and dist(r['mid'], r['end']) < dist(r['before'], r['end']), str(r))
     n = await ev("() => ({ cards: document.querySelectorAll('.rcard').length, fav: state.recipes.filter(x => x.favorite).length, ghosts: document.querySelectorAll('[aria-hidden=\"true\"] .rcard, .rcard[inert]').length })")
     check(tag + 'Entfernte Karten sofort weg: keine Overlays, nichts Bedienbares, keine Doppelten', n['cards'] == n['fav'] and n['ghosts'] == 0, str(n))
     check(tag + 'Nach der Bewegung: Endlage, keine laufenden Animationen, keine Inline-Reste', r['running'] == 0 and r['inline'] == 0 and not r['over'], str(r))
-    check(tag + 'Auswahlflaeche unter «Favoriten», aria-pressed folgt', t2['active'] == 'fav' and t2['dx'] < 1 and t2['dw'] < 1 and t2['pressed'] == ['false', 'true'], str(t2))
-    # Gleiten der Auswahlflaeche mitten im Lauf (180 ms)
-    mid = await ev("""async () => { const s = document.querySelector('.filter-bar .seg'), t = s.querySelector('.seg-thumb'); const a = s.querySelector('[data-id="all"]').getBoundingClientRect().left, f = s.querySelector('[data-id="fav"]').getBoundingClientRect().left;
-      s.querySelector('[data-id="all"]').click(); await new Promise(r => setTimeout(r, 70)); const t2 = document.querySelector('.filter-bar .seg-thumb'); const x = t2.getBoundingClientRect().left; const an = t2.getAnimations(); return { a, f, x, n: an.length, dur: an[0] ? an[0].effect.getTiming().duration : 0 }; }""")
-    check(tag + 'Auswahlflaeche gleitet 180 ms von «Favoriten» zu «Alle» (Mitte zwischen beiden)', mid['n'] == 1 and mid['dur'] == 180 and min(mid['a'], mid['f']) + 1 < mid['x'] < max(mid['a'], mid['f']) - 1, str(mid))
+    check(tag + 'Sammlungsauswahl zeigt «Favoriten»', await ev("() => document.getElementById('colPickBtn').textContent.trim()") == 'Favoriten')
     await page.wait_for_timeout(400)
     # Favoriten -> Alle: neue Karten blenden ein
     await ev("() => { state.favOnly = true; render(); }"); await page.wait_for_timeout(50)
-    r2 = await ev(MID, ['.seg-btn[data-id="all"]', 'm1_011', 40])
+    r2 = await ev(MID, ['#tScopeAll', 'm1_011', 40])
     check(tag + 'Zurueck zu «Alle»: neu erscheinende Karten blenden ein (Deckkraft 0 -> 1)', len(r2['ent']) >= 3 and all(int(x[-3:]) % 2 == 0 for x in r2['ent']), str(r2['ent']))
     await page.wait_for_timeout(300)
     # Sortierung: Karten gleiten
@@ -77,16 +76,16 @@ async def desktop(p, w, h):
     check(tag + 'Sortierwechsel: Karten gleiten 220 ms an die neue Stelle, Reihenfolge stimmt', s['order'] == s['want'] and (s['n'] == 0 if abs(s['b'] - s['e']) < 1 else (s['n'] == 1 and s['d'] == 220)), str({k: s[k] for k in ('n', 'd', 'b', 'e')}))
     # 10 schnelle Wechsel: letzter Zustand gewinnt, keine Reste
     q = await ev("""async () => { const sel = () => document.getElementById('sortSelect'); const seq = ['time', 'fav', 'az', 'all', 'updated', 'fav', 'time', 'all', 'az', 'fav'];
-      for (const v of seq) { if (v === 'fav' || v === 'all') document.querySelector('.seg-btn[data-id="' + v + '"]').click(); else { const s = sel(); s.value = v; s.dispatchEvent(new Event('change')); } await new Promise(r => setTimeout(r, 25)); }
+      for (const v of seq) { if (v === 'fav' || v === 'all') document.getElementById(v === 'fav' ? 'tScopeFav' : 'tScopeAll').click(); else { const s = sel(); s.value = v; s.dispatchEvent(new Event('change')); } await new Promise(r => setTimeout(r, 25)); }
       await new Promise(r => setTimeout(r, 450));
       const want = sortRecipes(state.recipes.filter(r => r.favorite), 'az').map(r => r.id).join(',');
       return { order: [...document.querySelectorAll('[data-flip-id]')].map(e => e.getAttribute('data-flip-id')).join(','), want, running: document.getAnimations().filter(a => a.playState === 'running').length,
-        inline: [...document.querySelectorAll('[data-flip-id]')].filter(e => e.style.transform || e.style.opacity).length, fav: state.favOnly, sort: state.sortBy }; }""")
+        inline: [...document.querySelectorAll('[data-flip-id]')].filter(e => e.style.transform || e.style.opacity).length, fav: state.activeCollection === 'favorites', sort: state.sortBy }; }""")
     t3 = await ev(THUMB)
     check(tag + '10 schnelle Wechsel: nur der letzte Zustand, keine laufenden Animationen oder Reste', q['order'] == q['want'] and q['running'] == 0 and q['inline'] == 0 and q['fav'] and q['sort'] == 'az', str(q))
-    check(tag + 'Nach schnellen Wechseln: Auswahlflaeche unter «Favoriten»', t3['active'] == 'fav' and t3['dx'] < 1 and t3['anims'] == 0, str(t3))
+    check(tag + 'Nach schnellen Wechseln: Sammlungsauswahl zeigt «Favoriten»', await ev("() => document.getElementById('colPickBtn').textContent.trim()") == 'Favoriten')
     # Suche: Fokus, Cursor, Suchfeld bewegt sich nicht
-    await ev("() => { state.favOnly = false; state.sortBy = 'updated'; render(); }")
+    await ev("() => { state.favOnly = false; state.activeCollection = 'all'; state.sortBy = 'updated'; render(); }")
     await page.click('#searchInput'); await page.keyboard.type('TEST: Rezept', delay=20)
     await page.wait_for_timeout(80)
     await ev("() => { const i = document.getElementById('searchInput'); i.setSelectionRange(4, 4); }")
@@ -99,18 +98,18 @@ async def desktop(p, w, h):
     check(tag + 'Suche einschraenken: Treffer stimmen, Fokus bleibt, keine Restbewegung', sr2['focus'] and sr2['pos'] == 2 and sr2['n'] >= 1 and sr2['running'] == 0, str(sr2))
     await ev("() => { state.query = ''; render(); }")
     # Reduced Motion waehrend einer laufenden Bewegung einschalten -> sofort Endzustand
-    rm = await ev("""async () => { document.querySelector('.seg-btn[data-id="fav"]').click(); await new Promise(r => setTimeout(r, 30)); return MINE().length; }""")
+    rm = await ev("""async () => { document.querySelector('#tScopeFav').click(); await new Promise(r => setTimeout(r, 30)); return MINE().length; }""")
     await page.emulate_media(reduced_motion='reduce')
     rm2 = await ev("""async () => { await new Promise(r => setTimeout(r, 20)); return { running: MINE().length, what: MINE().map(a => a.effect.target.className + ':' + (a.transitionProperty || a.animationName || 'waapi') + ':' + a.currentTime), inline: [...document.querySelectorAll('[data-flip-id]')].filter(e => e.style.transform).length }; }""")
     check(tag + 'Reduced Motion zur Laufzeit: laufende Bewegung endet sofort im Endzustand', rm >= 1 and rm2['running'] == 0 and rm2['inline'] == 0, f'{rm} {rm2}')
-    rm3 = await ev("""async () => { document.querySelector('.seg-btn[data-id="all"]').click(); await new Promise(r => setTimeout(r, 30)); const t = document.querySelector('.seg-thumb'), b = document.querySelector('.seg-btn[aria-pressed="true"]');
-      return { running: MINE().length, mm: matchMedia('(prefers-reduced-motion: reduce)').matches, what: MINE().map(a => a.effect.target.className + ':' + (a.transitionProperty || a.animationName || 'waapi') + ':' + a.currentTime), tt: t.style.transform, n: document.querySelectorAll('[data-flip-id]').length, dx: Math.abs(t.getBoundingClientRect().left - b.getBoundingClientRect().left) }; }""")
-    check(tag + 'Reduced Motion: Wechsel ohne jede Animation, Endzustand sofort (auch Auswahlflaeche)', rm3['running'] == 0 and rm3['n'] == 12 and rm3['dx'] < 1, str(rm3))
+    rm3 = await ev("""async () => { document.getElementById('tScopeAll').click(); await new Promise(r => setTimeout(r, 30));
+      return { running: MINE().length, mm: matchMedia('(prefers-reduced-motion: reduce)').matches, what: MINE().map(a => a.effect.target.className + ':' + (a.transitionProperty || a.animationName || 'waapi') + ':' + a.currentTime), n: document.querySelectorAll('[data-flip-id]').length }; }""")
+    check(tag + 'Reduced Motion: Wechsel ohne jede Animation, Endzustand sofort', rm3['running'] == 0 and rm3['n'] == 12, str(rm3))
     await page.emulate_media(reduced_motion='no-preference')
     # Groessenwechsel: Auswahlflaeche neu gemessen
     await page.set_viewport_size({'width': 900, 'height': h}); await page.wait_for_timeout(300)
     t4 = await ev(THUMB)
-    check(tag + 'Nach Groessenwechsel (900 px): Auswahlflaeche wieder genau unter dem aktiven Knopf', t4 and t4['dx'] < 1 and t4['dw'] < 1 and t4['dh'] < 1 and not t4['over'], str(t4))
+    check(tag + 'Nach Groessenwechsel (900 px): keine verwaiste Auswahlflaeche, kein Ueberlauf', t4 is None and await ev("() => document.documentElement.scrollWidth <= document.documentElement.clientWidth"), str(t4))
     await page.set_viewport_size({'width': w, 'height': h}); await page.wait_for_timeout(200)
     # 200 Rezepte: nur Sichtbare plus Vorlauf bewegen
     await ev(SEED, 200); await page.wait_for_timeout(300)
@@ -119,7 +118,7 @@ async def desktop(p, w, h):
       return { n, total: els.length, running: document.getAnimations().filter(a => a.playState === 'running').length }; }""")
     check(tag + '200 Rezepte: nur sichtbare Karten plus Vorlauf werden animiert', big['total'] == 200 and 0 < big['n'] <= 60 and big['running'] == 0, str(big))
     # Ansicht waehrend der Bewegung verlassen: keine Fehler, keine Reste
-    await ev("""async () => { document.querySelector('.seg-btn[data-id="fav"]').click(); await new Promise(r => setTimeout(r, 30)); state.view = 'shopping'; render(); await new Promise(r => setTimeout(r, 30)); history.back(); }""")
+    await ev("""async () => { document.querySelector('#tScopeFav').click(); await new Promise(r => setTimeout(r, 30)); state.view = 'shopping'; render(); await new Promise(r => setTimeout(r, 30)); history.back(); }""")
     await page.wait_for_timeout(500)
     rej = await ev("() => window.__rej")
     check(tag + 'Keine unhandledrejection, keine Konsolenfehler', not rej and not errs, str((rej, errs[:3])))
@@ -129,11 +128,11 @@ async def phone(p, w, h):
     tag = f'[{w}] '
     b, ctx, page, errs = await new_page(p, w, h); ev = page.evaluate
     await ev(SEED, 12); await page.wait_for_timeout(300)
-    check(tag + 'Handy: keine Alle/Favoriten-Leiste (Auswahl steht in der Sortierung), keine verwaiste Auswahlflaeche', await ev("() => !document.querySelector('.seg') && !document.querySelector('.seg-thumb')"))
-    r = await ev("""async () => { const id = 'm1_009'; const R = () => document.querySelector('[data-flip-id="' + id + '"]').getBoundingClientRect().top; const b = R(); const sel = document.getElementById('sortSelect'); sel.value = '__fav'; sel.dispatchEvent(new Event('change'));
+    check(tag + 'Handy: keine Alle/Favoriten-Leiste (v84: Auswahl im Titel), keine verwaiste Auswahlflaeche', await ev("() => !document.querySelector('.seg') && !document.querySelector('.seg-thumb')"))
+    r = await ev("""async () => { const id = 'm1_009'; const R = () => document.querySelector('[data-flip-id="' + id + '"]').getBoundingClientRect().top; const b = R(); document.getElementById('tScopeFav').click();
       await new Promise(r => setTimeout(r, 60)); const m = R(); const n = document.querySelector('[data-flip-id="' + id + '"]').getAnimations().length; const over = document.documentElement.scrollWidth > document.documentElement.clientWidth;
       await new Promise(r => setTimeout(r, 400)); return { b, m, e: R(), n, over, cards: document.querySelectorAll('[data-flip-id]').length, running: document.getAnimations().filter(a => a.playState === 'running').length }; }""")
-    check(tag + '«Nur Favoriten»: Zeile gleitet nach oben (Mitte zwischen alt und neu), 6 Treffer', r['n'] == 1 and r['e'] < r['m'] < r['b'] and r['cards'] == 6 and r['running'] == 0, str(r))
+    check(tag + 'Bereich «Favoriten»: Zeile gleitet nach oben (Mitte zwischen alt und neu), 6 Treffer', r['n'] == 1 and r['e'] < r['m'] < r['b'] and r['cards'] == 6 and r['running'] == 0, str(r))
     check(tag + 'Kein horizontaler Ueberlauf waehrend der Bewegung', not r['over'])
     rej = await ev("() => window.__rej")
     check(tag + 'Keine unhandledrejection, keine Konsolenfehler', not rej and not errs, str((rej, errs[:3])))
@@ -181,11 +180,11 @@ async def no_waapi(p):
     await ctx.add_init_script("delete Element.prototype.animate; Element.prototype.animate = undefined;")
     page = await ctx.new_page(); errs = []; page.on('pageerror', lambda e: errs.append(str(e)))
     await goto(page); ev = page.evaluate
-    await ev(SEED, 12); await page.wait_for_timeout(200)
-    await page.click('.seg-btn[data-id="fav"]'); await page.wait_for_timeout(50)
+    await ev(SEED, 12); await ev(HOOKS); await page.wait_for_timeout(200)
+    await page.evaluate("() => document.getElementById('tScopeFav').click()"); await page.wait_for_timeout(50)
     t = await ev(THUMB)
     n = await ev("() => document.querySelectorAll('[data-flip-id]').length")
-    check('[ohne Web Animations] Wechsel wirkt sofort, Auswahlflaeche unter «Favoriten», keine Fehler', n == 6 and t['active'] == 'fav' and t['dx'] < 1 and not errs, str((n, t, errs[:2])))
+    check('[ohne Web Animations] Wechsel wirkt sofort, keine Fehler', n == 6 and not errs, str((n, errs[:2])))
     await ctx.close(); await b.close()
 
 async def main():

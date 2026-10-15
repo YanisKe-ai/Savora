@@ -87,7 +87,7 @@ JS_PHONE_STRIP = """() => {
   if (!pick || !f || !sb) return { sel: !!sel, missing: true };
   const r = e => e.getBoundingClientRect(), t = e => Math.round(r(e).top), txt = f.querySelector('.filter-btn-text');
   const tops = [pick, sb].map(t);
-  return { sel: !sel && !pick.querySelector('svg'), pickText: pick.querySelector('.inline-pick-text').textContent.trim(), searchLabel: sb.getAttribute('aria-label'),
+  return { sel: !sel && !!pick.querySelector('svg') && pick.tagName === 'BUTTON', pickText: pick.querySelector('.inline-pick-text').textContent.trim(), searchLabel: sb.getAttribute('aria-label'),
     order: r(pick).right <= r(sb).left + 1 && r(f).top >= r(sb).bottom - 1, row: Math.max(...tops) - Math.min(...tops),
     filterW: Math.round(r(f).width), filterTextVisible: !!txt && r(txt).width > 2, vw: innerWidth };
 }"""
@@ -143,9 +143,9 @@ async def main():
                     # seit 0.71.0 (Handy): Titel «Alle Rezepte» ohne Pfeil links, Suchknopf rechts, Filter-Knopf in der Zeile darunter (neben dem Umschalter). Davor 0.70.0: statt Segment «Alle/Favoriten» eine Auswahl «Alle Rezepte» (select #viewSelect in .view-pick) links, Filter-Knopf und Suchknopf rechts davon, alles in einer Zeile
                     strip = await page.evaluate(JS_PHONE_STRIP)
                     ok_strip = strip is not None and strip['sel'] and strip['pickText'] == 'Alle Rezepte' and strip['searchLabel'] == 'Suchen' and strip['order'] and strip['row'] <= 6
-                    check(tag + 'Startseite (Handy, seit 0.70.0): Titel «Alle Rezepte» ohne Pfeil links, Suchknopf rechts (aria-label «Suchen»), Filter-Knopf in der Zeile darunter', ok_strip, str(strip))
+                    check(tag + 'Startseite (Handy, seit 0.70.0, v84 mit Pfeil): Titel «Alle Rezepte ▾» als Sammlungsauswahl links, Suchknopf rechts (aria-label «Suchen»), Filter-Knopf in der Zeile darunter', ok_strip, str(strip))
                 else:
-                    check(tag + 'Startseite: Alle/Favoriten und Filter-Schaltfläche in einer Zeile (Tablet/Desktop)', home['stripRow'] is not None and home['stripRow'] <= 6, str(home['stripRow']))
+                    check(tag + 'Startseite: Sammlungsauswahl (v84, statt Alle/Favoriten) und Filter-Schaltfläche in einer Zeile (Tablet/Desktop)', home['stripRow'] is not None and home['stripRow'] <= 6, str(home['stripRow']))
                 check(tag + 'Startseite: erstes Rezept beginnt frueh', home['firstRecipe'] < (520 if w < 600 else 480), str(home['firstRecipe']))
                 if w >= 768:
                     # Rezept ohne Foto: kein Buchstaben-Platzhalter, keine leere Bildflaeche

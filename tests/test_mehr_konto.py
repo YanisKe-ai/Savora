@@ -313,7 +313,7 @@ async def main():
         await page.wait_for_timeout(300)
         t = await text(page, '#kontoOfflineBox')
         check('Rezeptfotos: echte Prüfung (Seed hat 1 Foto im Speicher)', 'Alle 1 auf diesem Gerät' in t, t[:300])
-        await page.evaluate("""async () => { await dbPutImage({ id: 'img_missing_test', blob: new Blob(['x']), thumbBlob: new Blob(['x']), mime: 'image/jpeg' }); const r = state.recipes[1]; r.imageId = 'img_missing_test'; state.recipes[1] = r; await dbDeleteImage('img_missing_test'); kd.offline.photos = await kdOfflinePhotos(); render(); }""")
+        await page.evaluate("""async () => { await dbPutImage({ id: 'img_missing_test', blob: new Blob(['x']), thumbBlob: new Blob(['x']), mime: 'image/jpeg' }); const r = state.recipes.find(x => !x.imageId); r.imageId = 'img_missing_test'; await dbDeleteImage('img_missing_test'); kd.offline.photos = await kdOfflinePhotos(); render(); }""")
         await page.wait_for_timeout(300)
         t = await text(page, '#kontoOfflineBox')
         check('Rezeptfotos: fehlendes Foto wird gemeldet', '1 von 2 fehlen noch auf diesem Gerät' in t, t[:300])

@@ -19,6 +19,12 @@ SHARES = {}     # id -> row
 SIGNUP_DISABLED = [False]
 LOCK = threading.Lock()
 CLOCK = [datetime(2026, 1, 1, tzinfo=timezone.utc)]
+# CHECK-Constraint savora_records_kind_check wie live (nach supabase/paket47-sammlungen.sql). Ein unbekannter kind lehnt den
+# ganzen Block ab (eine Anfrage = eine Transaktion). Tests koennen den Stand vor der Migration nachstellen:
+# ALLOWED_KINDS.clear(); ALLOWED_KINDS.update(KINDS_BEFORE_47)
+KINDS_BEFORE_47 = {'recipe', 'mealplan', 'shopping', 'setting'}
+KINDS_47 = KINDS_BEFORE_47 | {'collection', 'membership', 'pairing'}
+ALLOWED_KINDS = set(KINDS_47)
 
 def now_ts():
     CLOCK[0] = max(CLOCK[0] + timedelta(milliseconds=1), datetime.now(timezone.utc))
@@ -111,6 +117,8 @@ class H(BaseHTTPRequestHandler):
                 return self.reply(200, [{'name': n, 'id': v} for n, v in names.items()])
             if p == '/rest/v1/savora_records' and method == 'POST':
                 rows = json.loads(self.body())
+                bad = [r.get('kind') for r in rows if r.get('kind') not in ALLOWED_KINDS]
+                if bad: return self.reply(400, {'code': '23514', 'message': 'new row for relation "savora_records" violates check constraint "savora_records_kind_check"', 'details': 'kind=%s' % bad[0]})
                 for r in rows:
                     if r.get('user_id', uid) != uid: return self.reply(403, {'message': 'new row violates row-level security policy'})
                     key = (uid, r['kind'], r['id'])
@@ -123,9 +131,14 @@ class H(BaseHTTPRequestHandler):
                 gt = q.get('server_updated_at', [None])[0]
                 if gt and gt.startswith('gt.'):
                     t = gt[3:]; rows = [r for r in rows if r['server_updated_at'] > t]
-                rows.sort(key=lambda r: r['server_updated_at'])
-                lim = int(q.get('limit', ['1000'])[0])
-                return self.reply(200, rows[:lim])
+                kf = q.get('kind', [None])[0]
+                if kf and kf.startswith('in.(') and kf.endswith(')'):
+                    ks = set(kf[4:-1].split(',')); rows = [r for r in rows if r['kind'] in ks]
+                elif kf and kf.startswith('eq.'):
+                    rows = [r for r in rows if r['kind'] == kf[3:]]
+                rows.sort(key=lambda r: (r['server_updated_at'], r['kind'], r['id']))
+                lim = int(q.get('limit', ['1000'])[0]); off = int(q.get('offset', ['0'])[0])
+                return self.reply(200, rows[off:off + lim])
             if p.startswith('/rest/v1/rpc/savora_') and method == 'POST' and p != '/rest/v1/rpc/savora_delete_account':
                 return self.rpc(p.rsplit('/', 1)[1], uid, json.loads(self.body() or b'{}'))
             if p == '/rest/v1/rpc/savora_delete_account' and method == 'POST':

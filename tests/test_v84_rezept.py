@@ -1,0 +1,330 @@
+"""v84 Rezept: Dialog «Zu Sammlungen hinzufügen», Sammlungs-Pillen in der Rezeptansicht, «Passt dazu» (Verknüpfen,
+Notiz, Entfernen mit Rückgängig, gelöschtes Ziel), Navigation zwischen verknüpften Rezepten (Verlauf, Reiter, Scroll,
+Menge, Fokus), Kochmodus-Vorschau mit laufendem Timer, Breiten 320/390/768/1280 hell/dunkel, grosse Schrift, Tastatur."""
+import json
+import asyncio, sys
+import os as _os; sys.path.insert(0, _os.path.dirname(_os.path.abspath(__file__)))
+from common import *
+FAIL = []
+def check(name, cond, info=''):
+    print(('OK   ' if cond else 'FEHL ') + name, info)
+    if not cond: FAIL.append(name)
+SHOTS = _os.environ.get('SAVORA_V84_SHOTS') or _os.path.join(OUT, 'v84-rezept')
+_os.makedirs(SHOTS, exist_ok=True)
+
+# Zusatzrezepte: A (lang, fuer Scroll), B, C, D; Sammlungen
+EXTRA = """async () => {
+  const mk = (id, title, extra) => Object.assign(emptyRecipe(), { id, title }, extra || {});
+  const steps = Array.from({ length: 40 }, (_, i) => ({ text: 'Schritt ' + (i + 1) + ': Zutaten rühren, abschmecken und weiter köcheln lassen, bis alles schön sämig ist.' }));
+  const list = [
+    mk('vk_a', 'Burger mit Brioche', { steps, servings: 4, timeMinutes: 45, ingredients: [{ amount: '4', unit: '', name: 'Brötchen' }, { amount: '500', unit: 'g', name: 'Rindshack' }] }),
+    mk('vk_b', 'Burgersauce', { servings: 6, timeMinutes: 10, ingredients: [{ amount: '100', unit: 'g', name: 'Mayonnaise' }, { amount: '2', unit: 'EL', name: 'Ketchup' }], steps: [{ text: 'Alles verrühren.' }, { text: 'Kalt stellen.' }] }),
+    mk('vk_c', 'Pommes aus dem Ofen', { timeMinutes: 0, steps: [{ text: 'Backen.' }] }),
+    mk('vk_d', 'Coleslaw', { timeMinutes: 20 }),
+  ];
+  for (const r of list) await dbPut(r);
+  await loadRecipes();
+  ['High Protein', 'Meal Prep', 'Sonntag', 'Grillabend', 'Schnell', 'Familie', 'Party'].forEach((n, i) => orgCreateCollection({ name: n, color: ORG_COLORS[i % ORG_COLORS.length].id }));
+  render();
+  return orgCollections().length;
+}"""
+async def openA(page, rid='vk_a'):
+    await page.evaluate("(rid) => { state.modal = null; state.activeRecipeId = rid; state.detailTab = 'ingredients'; state.view = 'detail'; render(); }", rid)
+    await page.wait_for_selector('.detail-main'); await page.wait_for_timeout(150)
+async def wait_modal(page, t):
+    await page.wait_for_function("(t) => state.modal && state.modal.type === t && !!document.querySelector('.modal-sheet')", arg=t, timeout=5000)
+async def wait_no_modal(page):
+    await page.wait_for_function("!state.modal && !document.querySelector('.modal-sheet')", timeout=5000)
+
+async def main():
+    async with async_playwright() as p:
+        browser, ctx = await open_ctx(p, 390, 844, 'reduce')
+        page = await ctx.new_page(); errs = []
+        page.on('pageerror', lambda e: errs.append(str(e)))
+        await goto(page); await page.evaluate(open(SEED_PATH).read()); await page.wait_for_timeout(300)
+        ev = page.evaluate
+        n = await ev(EXTRA)
+        check('Vorbereitung: org.js geladen, 7 Sammlungen', n == 7, str(n))
+        ids = await ev("() => Object.fromEntries(orgCollections().map(c => [c.name, c.id]))")
+
+        # ---------- 1 Menü ----------
+        await openA(page)
+        await page.click('[data-action="open-detail-menu"]'); await wait_modal(page, 'detail-menu')
+        labels = await ev("() => Array.from(document.querySelectorAll('.menu-list .menu-item')).map(b => b.textContent.trim())")
+        check('Menü: «Zu Sammlungen hinzufügen» und «Rezept verknüpfen», alter Eintrag weg', any(l.startswith('Zu Sammlungen hinzufügen') for l in labels) and 'Rezept verknüpfen' in labels and 'Zu Sammlung hinzufügen' not in labels, str(labels))
+
+        # ---------- 2 Dialog Sammlungen ----------
+        await ev("(id) => orgSetMembership('vk_a', id, true)", ids['Party'])
+        await page.click('[data-action="rcol-open"]'); await wait_modal(page, 'rcol')
+        title = await ev("() => document.getElementById('rcol-title').textContent")
+        checked0 = await ev("() => Array.from(document.querySelectorAll('[data-rcol-pick]:checked')).map(i => i.dataset.rcolPick)")
+        check('Dialog «Zu Sammlungen hinzufügen»: Titel, aktuelle Zuordnung angehakt', title == 'Zu Sammlungen hinzufügen' and checked0 == [ids['Party']], f'{title} {checked0}')
+        check('Dialog ersetzt das Menü (ein Verlaufseintrag)', await ev("() => history.state && history.state.modalType === 'detail-menu' && document.querySelectorAll('.modal-sheet').length === 1"))
+        await page.click(f'label:has([data-rcol-pick="{ids["High Protein"]}"])')
+        await page.fill('#rcolSearch', 'meal')
+        await page.wait_for_function("document.querySelectorAll('[data-rcol-pick]').length === 1")
+        hidden_txt = await ev("() => document.getElementById('rcolHidden').textContent")
+        check('Suche: ausgeblendete Auswahl wird benannt', '2 ausgewählte Sammlungen sind durch die Suche ausgeblendet' in hidden_txt, hidden_txt)
+        await page.click(f'label:has([data-rcol-pick="{ids["Meal Prep"]}"])')
+        await page.fill('#rcolSearch', '')
+        await page.wait_for_function("document.querySelectorAll('[data-rcol-pick]').length === 7")
+        draft = await ev("() => Array.from(document.querySelectorAll('[data-rcol-pick]:checked')).map(i => i.dataset.rcolPick).sort()")
+        check('Suche behält den Entwurf (3 Haken)', draft == sorted([ids['Party'], ids['High Protein'], ids['Meal Prep']]), str(draft))
+        check('Entwurf ist noch nicht gespeichert', await ev("() => orgCollectionIdsOf('vk_a').length === 1"))
+        await page.click('[data-action="rcol-new"]'); await page.wait_for_selector('#colNewInline')
+        check('«Neue Sammlung»: Fokus im Namensfeld', await ev("() => document.activeElement && document.activeElement.id === 'colNewInline'"))
+        await page.fill('#colNewInline', 'meal prep ')
+        await page.click('[data-action="rcol-create"]'); await page.wait_for_selector('.rcol-err')
+        err = await ev("() => document.querySelector('.rcol-err').textContent")
+        check('Dublette: Hinweis und «Bestehende Sammlung verwenden»', 'Diese Sammlung gibt es bereits' in err and 'Bestehende Sammlung verwenden' in err, err)
+        await page.fill('#colNewInline', 'Burger & <b>Co</b>')
+        await page.keyboard.press('Enter')
+        await page.wait_for_function("orgCollections().some(c => c.name === 'Burger & <b>Co</b>')")
+        newid = await ev("() => orgCollections().find(c => c.name === 'Burger & <b>Co</b>').id")
+        st = await ev("(id) => ({ checked: !!document.querySelector(`[data-rcol-pick=\"${id}\"]:checked`), focus: document.activeElement && document.activeElement.dataset.rcolPick === id, html: !document.querySelector('.rp-sheet b'), count: document.getElementById('rcolCount').textContent })", newid)
+        check('Neue Sammlung: angehakt, Fokus auf ihrer Checkbox, Name sicher dargestellt', st['checked'] and st['focus'] and st['html'] and st['count'] == '4 Sammlungen ausgewählt', str(st))
+        await page.screenshot(path=_os.path.join(SHOTS, 'rcol-dialog-390-hell.png'))
+        await page.click('[data-action="rcol-save"]'); await wait_no_modal(page)
+        await page.wait_for_selector('.toast-undo')
+        toast = await ev("() => document.querySelector('.toast-undo span').textContent")
+        saved = await ev("() => orgCollectionIdsOf('vk_a').sort()")
+        check('Speichern: «Sammlungen aktualisiert.» und Zuordnungen gesetzt', toast == 'Sammlungen aktualisiert.' and len(saved) == 4, f'{toast} {saved}')
+        check('Fokus zurück auf «Weitere Aktionen»', await ev("() => document.activeElement && document.activeElement.dataset.action === 'open-detail-menu'"))
+        # Pillen
+        pills = await ev("() => ({ n: document.querySelectorAll('.col-tag').length, vis: Array.from(document.querySelectorAll('.col-tag')).filter(t => t.offsetParent).length, more: (document.querySelector('.col-tags-more') || {}).textContent, bg: getComputedStyle(document.querySelector('.col-tag')).backgroundColor, inChips: !!document.querySelector('.source-row .col-tag') })")
+        check('Pillen: max. 3 sichtbar, «+ 1 weitere», Umriss ohne Füllung, getrennt von Merkmalen', pills['n'] == 4 and pills['vis'] == 3 and pills['more'] == '+ 1 weitere' and pills['bg'] in ('rgba(0, 0, 0, 0)', 'transparent') and not pills['inChips'], str(pills))
+        await page.click('.col-tags-more')
+        check('«+ 1 weitere» klappt auf', await ev("() => Array.from(document.querySelectorAll('.col-tag')).filter(t => t.offsetParent).length === 4 && !document.querySelector('.col-tags-more').offsetParent"))
+        await page.click('.toast-undo-btn')
+        await page.wait_for_function("orgCollectionIdsOf('vk_a').length === 1")
+        check('Rückgängig: nur dieses Rezept, vorherige Menge', await ev("(id) => JSON.stringify(orgCollectionIdsOf('vk_a')) === JSON.stringify([id]) && document.querySelectorAll('.col-tag').length === 1", ids['Party']))
+        # Abbrechen verwirft
+        await page.click('[data-action="open-detail-menu"]'); await wait_modal(page, 'detail-menu')
+        await page.click('[data-action="rcol-open"]'); await wait_modal(page, 'rcol')
+        await page.click(f'label:has([data-rcol-pick="{ids["Sonntag"]}"])')
+        await page.keyboard.press('Escape'); await wait_no_modal(page)
+        check('Escape verwirft den Entwurf ohne Rückfrage', await ev("() => orgCollectionIdsOf('vk_a').length === 1"))
+        # Auch aus anderer Ansicht öffnbar (Schnittstelle für INTEGRATION)
+        check('rcolModalHtml() liefert den Dialog für openModal({type:"rcol"})', await ev("() => { const prev = state.modal; state.modal = { type: 'rcol', recipeId: 'vk_b' }; const h = rcolModalHtml(); state.modal = prev; return h.includes('Zu Sammlungen hinzufügen') && h.includes('Burgersauce'); }"))
+        # Pille öffnet Meine Rezepte mit der Sammlung
+        await page.click('.col-tag'); await page.wait_for_function("state.view === 'home'")
+        check('Pille öffnet Meine Rezepte mit dieser Sammlung', await ev("(id) => state.activeCollection === id || (typeof state.orgScope !== 'undefined' && state.orgScope === id)", ids['Party']))
+
+        # ---------- 3 Verknüpfen ----------
+        await openA(page)
+        check('Ohne Verknüpfung kein Abschnitt «Passt dazu»', await ev("() => !document.querySelector('.pairing')"))
+        await page.click('[data-action="open-detail-menu"]'); await wait_modal(page, 'detail-menu')
+        await page.click('[data-action="link-open"]'); await wait_modal(page, 'link-recipe')
+        lst = await ev("() => Array.from(document.querySelectorAll('[data-link-pick]')).map(i => i.dataset.linkPick)")
+        check('Selbstverknüpfung unmöglich: eigenes Rezept nicht in der Liste', 'vk_a' not in lst and 'vk_b' in lst, str(lst))
+        check('«Verknüpfen» deaktiviert ohne Auswahl', await ev("() => document.querySelector('[data-action=\"link-save\"]').disabled"))
+        await page.fill('#linkSearch', 'burgers')
+        await page.wait_for_function("document.querySelectorAll('[data-link-pick]').length === 1")
+        await page.click('label:has([data-link-pick="vk_b"])')
+        await page.fill('#linkSearch', '')
+        await page.wait_for_function("document.querySelectorAll('[data-link-pick]').length > 3")
+        await page.click('label:has([data-link-pick="vk_c"])')
+        lab = await ev("() => document.querySelector('[data-action=\"link-save\"]').textContent")
+        check('Mehrfachauswahl bleibt über die Suche, Knopf «2 Rezepte verknüpfen»', lab == '2 Rezepte verknüpfen', lab)
+        await page.click('[data-action="link-note-toggle"]'); await page.wait_for_selector('#linkNote')
+        hint = await ev("() => document.getElementById('linkNoteHint').textContent")
+        check('Notizfeld mit Hinweis «… erscheint jeweils bei beiden.», max. 200', 'bei beiden' in hint and await ev("() => document.getElementById('linkNote').maxLength === 200"), hint)
+        await page.fill('#linkNote', 'Sauce <i>kurz</i> vorher dazugeben')
+        await page.screenshot(path=_os.path.join(SHOTS, 'link-dialog-390-hell.png'))
+        await page.click('[data-action="link-save"]'); await wait_no_modal(page)
+        toast = await ev("() => document.querySelector('.toast-undo span').textContent")
+        cards = await ev("() => Array.from(document.querySelectorAll('.pairing-card')).map(c => c.querySelector('.pairing-title').textContent)")
+        check('Verknüpft: Toast, Abschnitt «Passt dazu» mit 2 Karten', toast == '2 Rezepte verknüpft.' and cards == ['Burgersauce', 'Pommes aus dem Ofen'], f'{toast} {cards}')
+        check('Fokus auf der neuen ersten Karte', await ev("() => document.activeElement && document.activeElement.dataset.action === 'open-linked-recipe'"))
+        meta = await ev("() => Array.from(document.querySelectorAll('.pairing-card')).map(c => [(c.querySelector('.pairing-meta') || {}).textContent || '', (c.querySelector('.pairing-note') || {}).textContent || '', !!c.querySelector('.pairing-img, .pairing-ph')])")
+        check('Karte: Bild/Platzhalter, Zeit nur wenn bekannt, Notiz (escaped)', meta[0][0] == '10 Min.' and meta[1][0] == '' and meta[0][1] == 'Sauce <i>kurz</i> vorher dazugeben' and all(m[2] for m in meta), str(meta))
+        check('Eine Verknüpfung je Paar (symmetrisch gespeichert)', await ev("() => orgExport().links.length === 2"))
+        await openA(page, 'vk_b')
+        bside = await ev("() => Array.from(document.querySelectorAll('.pairing-card')).map(c => [c.querySelector('.pairing-title').textContent, (c.querySelector('.pairing-note') || {}).textContent])")
+        check('A-B sichtbar in B, Notiz beidseitig', bside == [['Burger mit Brioche', 'Sauce <i>kurz</i> vorher dazugeben']], str(bside))
+        check('Selbstverknüpfung per Schnittstelle abgelehnt', await ev("() => orgLinkCreate('vk_b', 'vk_b', '').error === 'self'"))
+        # Schon verknüpft: gesperrt
+        await page.click('.pairing-add'); await wait_modal(page, 'link-recipe')
+        lk = await ev("() => { const i = document.querySelector('[data-link-pick=\"vk_a\"]'); return [i.checked, i.disabled, i.closest('.rp-row').textContent.includes('Schon verknüpft')]; }")
+        check('Schon verknüpftes Rezept: angehakt, gesperrt, «Schon verknüpft»', lk == [True, True, True], str(lk))
+        await page.keyboard.press('Escape'); await wait_no_modal(page)
+        check('Escape: Fokus zurück auf «Verknüpfen»', await ev("() => document.activeElement && document.activeElement.classList.contains('pairing-add')"))
+        # Notiz bearbeiten (in B), erscheint in A
+        await page.click('.pairing-card [data-action="link-menu"]'); await wait_modal(page, 'link-menu')
+        menu = await ev("() => Array.from(document.querySelectorAll('.menu-item')).map(b => b.textContent.trim())")
+        check('Kartenmenü: Öffnen, Notiz bearbeiten, Verknüpfung entfernen', menu[0] == 'Öffnen' and menu[1] == 'Notiz bearbeiten' and menu[2].startswith('Verknüpfung entfernen'), str(menu))
+        await page.click('[data-action="link-note-edit"]'); await wait_modal(page, 'link-note')
+        await page.fill('#linkNoteEdit', 'Kalt servieren.')
+        await page.click('[data-action="link-note-save"]'); await wait_no_modal(page)
+        await openA(page)
+        check('Geänderte Notiz erscheint auch im anderen Rezept', await ev("() => document.querySelector('.pairing-card .pairing-note').textContent === 'Kalt servieren.'"))
+        # Entfernen mit Rückgängig (aus A)
+        await page.click('.pairing-card:nth-child(2) [data-action="link-menu"]'); await wait_modal(page, 'link-menu')
+        await page.click('[data-action="link-remove"]'); await wait_no_modal(page)
+        rm = await ev("() => [document.querySelector('.toast-undo span').textContent, document.querySelectorAll('.pairing-card').length, state.recipes.some(r => r.id === 'vk_c')]")
+        check('Verknüpfung entfernen: Toast, Karte weg, Rezept bleibt', rm == ['Verknüpfung entfernt. Beide Rezepte bleiben erhalten.', 1, True], str(rm))
+        await page.click('.toast-undo-btn')
+        await page.wait_for_function("document.querySelectorAll('.pairing-card').length === 2")
+        check('Rückgängig: Verknüpfung wieder da', await ev("() => orgLinksOf('vk_a').some(l => l.otherId === 'vk_c')"))
+
+        # ---------- 4 Ziel gelöscht ----------
+        await ev("() => dispatchAction('delete-recipe', 'vk_b', document.body, { stopPropagation() {} })"); await page.wait_for_selector('.toast-undo')
+        await ev("() => { if (undoState) clearTimeout(undoState.timer); }")   # Rückgängig-Fenster (5 s) für die folgenden Prüfungen offen halten, Linux-CI ist langsamer
+        await openA(page)
+        gone = await ev("() => { const c = Array.from(document.querySelectorAll('.pairing-card')).find(x => x.textContent.includes('Nicht mehr vorhanden')); return c ? [!!c.querySelector('[data-action=\"open-linked-recipe\"]'), c.querySelector('.pairing-main').getAttribute('aria-disabled'), c.querySelector('.pairing-title').textContent] : null; }")
+        check('Ziel gelöscht: Karte «Nicht mehr vorhanden», nicht anklickbar', gone == [False, 'true', 'Verknüpftes Rezept'], str(gone))
+        check('Gelöschtes Ziel steht am Ende', await ev("() => document.querySelector('.pairing-card:last-child').classList.contains('is-off')"))
+        await ev("() => document.querySelector('.pairing-card.is-off [data-action=\"link-menu\"]').click()"); await wait_modal(page, 'link-menu')   # Rückgängig-Hinweis liegt unten über der Karte
+        check('Menü bei fehlendem Ziel: nur «Verknüpfung entfernen»', await ev("() => Array.from(document.querySelectorAll('.menu-item')).map(b => b.dataset.action).join() === 'link-remove'"))
+        await page.keyboard.press('Escape'); await wait_no_modal(page)
+        await ev("() => { const b = Array.from(document.querySelectorAll('.toast-undo-btn')).pop(); b && b.click(); }")
+        await page.wait_for_function("state.recipes.some(r => r.id === 'vk_b')")
+        await openA(page)
+        check('Rückgängig des Löschens: Karte wieder anklickbar', await ev("() => !!document.querySelector('[data-action=\"open-linked-recipe\"][data-id=\"vk_b\"]')"))
+
+        # ---------- 5 Navigation A -> B -> C -> A ----------
+        await ev("() => { orgLinkCreate('vk_b', 'vk_c', ''); orgLinkCreate('vk_c', 'vk_d', ''); orgLinkCreate('vk_d', 'vk_a', ''); }")
+        await openA(page)
+        await page.click('[data-action="open-linked-recipe"][data-id="vk_b"]'); await page.wait_for_function("state.activeRecipeId === 'vk_b'"); await page.wait_for_function("!state.linkNavBusy")
+        await page.click('[data-action="open-linked-recipe"][data-id="vk_c"]'); await page.wait_for_function("state.activeRecipeId === 'vk_c'"); await page.wait_for_function("!state.linkNavBusy")
+        await page.click('[data-action="open-linked-recipe"][data-id="vk_d"]'); await page.wait_for_function("state.activeRecipeId === 'vk_d'"); await page.wait_for_function("!state.linkNavBusy")
+        await page.click('[data-action="open-linked-recipe"][data-id="vk_a"]'); await page.wait_for_function("state.activeRecipeId === 'vk_a'")
+        chain = await ev("() => [history.state.activeRecipeId, history.state.linkPrev, orgLinksOf('vk_a').length]")
+        check('A→B→C→D→A: neuer Eintrag (Vorgänger D), nur direkte Nachbarn, keine Schleife', chain == ['vk_a', 'vk_d', 3], str(chain))
+        seq = []
+        for _ in range(4):
+            await page.go_back(); await page.wait_for_timeout(250)
+            seq.append(await ev("[state.activeRecipeId, document.querySelector('.detail-title-v2').textContent]"))
+        check('Zurück führt D, C, B, A', [s[0] for s in seq] == ['vk_d', 'vk_c', 'vk_b', 'vk_a'] and seq[0][1] == 'Coleslaw', str(seq))
+        # Ping-Pong A -> B -> A: zurück statt neuem Eintrag
+        await page.click('[data-action="open-linked-recipe"][data-id="vk_b"]'); await page.wait_for_function("state.activeRecipeId === 'vk_b'"); await page.wait_for_function("!state.linkNavBusy")
+        await page.click('[data-action="open-linked-recipe"][data-id="vk_a"]'); await page.wait_for_function("state.activeRecipeId === 'vk_a'")
+        await page.wait_for_timeout(200)
+        pp = await ev("() => [state.activeRecipeId, history.state.activeRecipeId, !!history.state.linkPrev, history.state.focusSel]")
+        check('A→B→A: Rückweg statt wachsendem Stapel', pp[:3] == ['vk_a', 'vk_a', False] and 'vk_b' in (pp[3] or ''), str(pp))
+        await page.go_forward(); await page.wait_for_function("state.activeRecipeId === 'vk_b'")
+        await page.go_back(); await page.wait_for_function("state.activeRecipeId === 'vk_a'")
+
+        # ---------- 6 Rücknavigation: Reiter, Scroll, Menge, Fokus; Zurück/Vorwärts ----------
+        await openA(page)
+        await page.click('[data-action="set-detail-tab"][data-id="steps"]')
+        await ev("() => { state.servingsOverride['vk_a'] = 8; }")
+        await ev("() => document.querySelector('[data-action=\"open-linked-recipe\"][data-id=\"vk_b\"]').scrollIntoView({ block: 'center' })")
+        await page.wait_for_timeout(200)
+        y0 = await ev("window.scrollY")
+        await page.click('[data-action="open-linked-recipe"][data-id="vk_b"]'); await page.wait_for_function("state.activeRecipeId === 'vk_b'")
+        await page.wait_for_timeout(120)
+        bst = await ev("[window.scrollY, state.detailTab, document.activeElement && document.activeElement.classList.contains('detail-title-v2')]")
+        check('Ziel öffnet oben, Standardreiter, Fokus auf der Überschrift', bst[0] == 0 and bst[1] == 'ingredients' and bst[2], str(bst))
+        # N6a: Topbar-Zurück nennt das Herkunftsrezept (Titel wird escaped)
+        titleA = await ev("state.recipes.find(x => x.id === 'vk_a').title")
+        lbl = await ev("document.querySelector('.topbar [data-action=\"back\"]').getAttribute('aria-label')")
+        check('N6a: Zurück-Taste auf B heisst «Zurück zu <Titel A>»', lbl == 'Zurück zu ' + titleA, f'{lbl!r} / {titleA!r}')
+        await ev("() => { state.recipes.find(x => x.id === 'vk_a').title = 'A \"x\" <b>&'; render(true); }")
+        esc = await ev("[document.querySelector('.topbar [data-action=\"back\"]').getAttribute('aria-label'), !!document.querySelector('.topbar b')]")
+        check('N6a: Titel in der Beschriftung escaped', esc == ['Zurück zu A "x" <b>&', False], str(esc))
+        await ev("() => { state.recipes.find(x => x.id === 'vk_a').title = %s; render(true); }" % json.dumps(titleA))
+        # N6b: Reiter und Scrollstand von B sichern (für Browser-Vorwärts)
+        await page.click('[data-action="set-detail-tab"][data-id="steps"]')
+        await ev("() => window.scrollTo(0, Math.min(120, document.documentElement.scrollHeight - innerHeight))")
+        await page.wait_for_function("history.state.detailTab === 'steps'")
+        yB = await ev("window.scrollY")
+        await page.wait_for_timeout(300)
+        await page.go_back()
+        await page.wait_for_function("state.activeRecipeId === 'vk_a'")
+        await ev("() => new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)))")
+        albl = await ev("document.querySelector('.topbar [data-action=\"back\"]').getAttribute('aria-label')")
+        check('N6a: A ohne Herkunft bleibt «Zurück»', albl == 'Zurück', albl)
+        ast = await ev("[window.scrollY, state.detailTab, state.servingsOverride['vk_a'], document.activeElement && document.activeElement.dataset.id, !document.getElementById('panel-steps').hidden]")
+        check('Zurück: Rezept, Reiter «Zubereitung», Scroll (nach 2 Frames), Menge 8, Fokus auf der Karte', y0 > 600 and abs(ast[0] - y0) <= 2 and ast[1] == 'steps' and ast[2] == 8 and ast[3] == 'vk_b' and ast[4], f'y0={y0} {ast}')
+        await page.go_forward(); await page.wait_for_function("state.activeRecipeId === 'vk_b'")
+        check('Browser-Vorwärts: wieder B', await ev("document.querySelector('.detail-title-v2').textContent === 'Burgersauce'"))
+        await ev("() => new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)))")
+        fw = await ev("[state.detailTab, window.scrollY, !document.getElementById('panel-steps').hidden]")
+        check('N6b: Browser-Vorwärts stellt Reiter und Scrollstand von B wieder her', fw[0] == 'steps' and fw[2] and abs(fw[1] - yB) <= 2, f'yB={yB} {fw}')
+        await page.go_back(); await page.wait_for_function("state.activeRecipeId === 'vk_a'")
+        await page.go_back(); await page.wait_for_timeout(300)
+        check('Weiter zurück verlässt das Rezept wie bisher', await ev("state.activeRecipeId !== 'vk_b'"))
+        # Öffnen über das Kartenmenü
+        await openA(page)
+        await page.click('.pairing-card [data-action="link-menu"][data-id="vk_a~vk_b"]'); await wait_modal(page, 'link-menu')
+        await page.click('[data-action="link-menu-open"]'); await page.wait_for_function("state.activeRecipeId === 'vk_b' && !state.modal")
+        await page.go_back(); await page.wait_for_function("state.activeRecipeId === 'vk_a'")
+        check('Kartenmenü «Öffnen»: eigener Eintrag, Zurück zu A', await ev("state.view === 'detail' && !state.modal"))
+
+        # ---------- 7 Kochmodus: Vorschau, Timer läuft weiter ----------
+        await openA(page)
+        await page.click('[data-action="start-cook"]'); await page.wait_for_selector('.cookmode-overlay')
+        await ev("() => { state.cookStepIndex = 2; render(); startTimer('vk_a-1', 120); }")
+        await page.wait_for_selector('.cook-links-btn')
+        btn = await ev("() => document.querySelector('.cook-links-btn').textContent.trim()")
+        check('Kochmodus: Knopf «Passt dazu (3)»', btn == 'Passt dazu (3)', btn)
+        rem0 = await ev("state.timers['vk_a-1'].remaining")
+        await page.click('.cook-links-btn'); await wait_modal(page, 'link-list')
+        await page.click('[data-action="cook-link-preview"][data-id="vk_b"]'); await wait_modal(page, 'link-preview')
+        pv = await ev("() => { const s = document.querySelector('.cook-link-sheet'); return { t: s.querySelector('h2').textContent, ing: s.querySelectorAll('.cook-link-ings li').length, steps: s.querySelectorAll('.cook-link-step').length, checks: s.querySelectorAll('[data-action=\"toggle-ingredient-check\"], [data-action=\"start-cook\"], [data-action=\"cook-complete\"]').length, hint: s.textContent.includes('Originalmengen') }; }")
+        check('Vorschau: Titel, Zutaten (Originalmengen), Schritte, keine Koch-Aktionen', pv == {'t': 'Burgersauce', 'ing': 2, 'steps': 2, 'checks': 0, 'hint': True}, str(pv))
+        await page.screenshot(path=_os.path.join(SHOTS, 'kochmodus-vorschau-390.png'))
+        await page.wait_for_timeout(2200)
+        mid = await ev("() => ({ a: state.activeRecipeId, s: state.cookStepIndex, v: state.view, run: state.timers['vk_a-1'].running, rem: state.timers['vk_a-1'].remaining, prog: loadCookProgress().recipeId })")
+        check('Während der Vorschau: Rezept, Schritt, Kochmodus unverändert, Timer läuft weiter', mid['a'] == 'vk_a' and mid['s'] == 2 and mid['v'] == 'cookmode' and mid['run'] and mid['rem'] < rem0 and mid['prog'] == 'vk_a', str(mid))
+        await page.keyboard.press('Escape'); await wait_no_modal(page)
+        aft = await ev("() => ({ v: state.view, s: state.cookStepIndex, run: state.timers['vk_a-1'] && state.timers['vk_a-1'].running, cooked: (state.recipes.find(r => r.id === 'vk_b').cookCount || 0) })")
+        check('Escape schliesst nur die Vorschau, Timer läuft, nichts als gekocht markiert', aft == {'v': 'cookmode', 's': 2, 'run': True, 'cooked': 0}, str(aft))
+        check('Fokus zurück auf «Passt dazu»', await ev("() => document.activeElement && document.activeElement.dataset.action === 'cook-links'"))
+        await ev("() => dispatchAction('open-linked-recipe', 'vk_b', document.body, {})"); await wait_modal(page, 'link-preview')
+        check('Im Kochmodus kein voller Wechsel, nur Vorschau', await ev("state.view === 'cookmode' && state.activeRecipeId === 'vk_a'"))
+        await page.go_back(); await wait_no_modal(page)
+        check('Zurück schliesst die Vorschau, Kochmodus bleibt', await ev("state.view === 'cookmode'"))
+        await page.click('[data-action="exit-cook"]'); await page.wait_for_function("state.view !== 'cookmode'")
+
+        # ---------- 8 Breiten, hell/dunkel, grosse Schrift ----------
+        await ev("(ids) => ids.forEach(id => orgSetMembership('vk_a', id, true))", [ids['High Protein'], ids['Meal Prep'], ids['Sonntag'], ids['Grillabend']])
+        for theme in ('light', 'dark'):
+            await ev("(t) => { state.theme = t; applyTheme(); }", theme)
+            for w in (320, 390, 768, 1280):
+                await page.set_viewport_size({'width': w, 'height': 900 if w > 400 else 780})
+                await openA(page)
+                await ev("() => document.querySelector('.pairing').scrollIntoView({ block: 'center' })"); await page.wait_for_timeout(120)
+                ov = await ev("() => document.documentElement.scrollWidth - document.documentElement.clientWidth")
+                small = await ev("() => Array.from(document.querySelectorAll('.pairing-main, .pairing-menu-btn, .col-tags-more')).filter(b => b.getBoundingClientRect().height < 44 && b.offsetParent).length")
+                tag_h = await ev("() => { const t = document.querySelector('.col-tag'); const r = t.getBoundingClientRect(); return r.height; }")
+                cols = await ev("() => getComputedStyle(document.querySelector('.pairing-list')).gridTemplateColumns.split(' ').length")
+                check(f'{w} px {theme}: kein Überlauf, Ziele ≥ 44 px, Pillen ≥ 36 px, {"2" if w >= 768 else "1"} Spalte(n)', ov <= 0 and small == 0 and tag_h >= 35.5 and cols == (2 if w >= 768 else 1), f'ov={ov} small={small} tag={tag_h} cols={cols} {await overflow_info(page) if ov > 0 else ""}')
+                await page.screenshot(path=_os.path.join(SHOTS, f'passt-dazu-{w}-{"hell" if theme == "light" else "dunkel"}.png'))
+                await ev("() => window.scrollTo(0, 0)"); await page.wait_for_timeout(80)
+                await page.screenshot(path=_os.path.join(SHOTS, f'pillen-{w}-{"hell" if theme == "light" else "dunkel"}.png'))
+                if w in (320, 1280):
+                    await ev("() => openModal({ type: 'rcol', recipeId: 'vk_a' })"); await wait_modal(page, 'rcol')
+                    ov2 = await ev("() => { const s = document.querySelector('.rp-sheet'); return s.scrollWidth - s.clientWidth; }")
+                    foot = await ev("() => { const f = document.querySelector('.rp-foot').getBoundingClientRect(); return f.bottom <= innerHeight + 1; }")
+                    check(f'{w} px {theme}: Sammlungsdialog ohne Überlauf, Fuss sichtbar', ov2 <= 0 and foot, f'{ov2} {foot}')
+                    await page.screenshot(path=_os.path.join(SHOTS, f'rcol-dialog-{w}-{"hell" if theme == "light" else "dunkel"}.png'))
+                    await page.keyboard.press('Escape'); await wait_no_modal(page)
+        await ev("() => { state.theme = 'light'; applyTheme(); }")
+        await page.set_viewport_size({'width': 390, 'height': 844})
+        await ev("() => { document.documentElement.style.fontSize = '200%'; }")
+        await openA(page)
+        await ev("() => document.querySelector('.pairing').scrollIntoView({ block: 'start' })"); await page.wait_for_timeout(120)
+        ov = await ev("() => document.documentElement.scrollWidth - document.documentElement.clientWidth")
+        clipped = await ev("() => Array.from(document.querySelectorAll('.pairing-title, .col-tag-name')).filter(e => e.scrollWidth > e.clientWidth + 1).length")
+        check('Grosse Schrift (200 %): kein Überlauf, nichts abgeschnitten', ov <= 0 and clipped == 0, f'{ov} {clipped} {await overflow_info(page) if ov > 0 else ""}')
+        await page.screenshot(path=_os.path.join(SHOTS, 'passt-dazu-390-gross.png'))
+        await ev("() => { document.documentElement.style.fontSize = ''; }")
+
+        # ---------- 9 Tastatur ----------
+        await openA(page)
+        await ev("() => document.querySelector('.pairing-add').focus()")
+        await page.keyboard.press('Enter'); await wait_modal(page, 'link-recipe')
+        await page.keyboard.press('Tab')
+        inside = await ev("() => !!document.activeElement.closest('.modal-sheet')")
+        await page.keyboard.press('Escape'); await wait_no_modal(page)
+        check('Tastatur: Enter öffnet, Tab bleibt im Dialog, Escape schliesst, Fokus zurück', inside and await ev("() => document.activeElement.classList.contains('pairing-add')"))
+        await ev("() => document.querySelector('.pairing-menu-btn').focus()")
+        await page.keyboard.press('Enter'); await wait_modal(page, 'link-menu')
+        await page.keyboard.press('Escape'); await wait_no_modal(page)
+        check('Kartenmenü: Fokus kehrt zum Menüknopf zurück', await ev("() => document.activeElement.classList.contains('pairing-menu-btn')"))
+        check('Keine Seitenfehler', not errs, str(errs[:3]))
+        await browser.close()
+    print('\nFEHLGESCHLAGEN:', ', '.join(FAIL) if FAIL else 'keine'); sys.exit(1 if FAIL else 0)
+asyncio.run(main())

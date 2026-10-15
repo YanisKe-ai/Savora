@@ -236,11 +236,60 @@ function validateBackup(data) {
       out.sections.push({ key, index: n, label: `${name} ${n + 1}`, ok: !errors.length, errors });
     });
   });
+  // Ab schemaVersion 6: eigene Sammlungen, Zuordnungen und Verknuepfungen. Fehlerhafte Eintraege einzeln melden, nie abbrechen.
+  out.organization = validateBackupOrganization(data.organization);
   out.problems = [].concat(
     out.recipes.filter(x => !x.ok).map(x => ({ label: x.label, errors: x.errors })),
     out.shopping.filter(x => !x.ok).map(x => ({ label: x.label, errors: x.errors })),
-    out.sections.filter(x => !x.ok).map(x => ({ label: x.label, errors: x.errors })));
+    out.sections.filter(x => !x.ok).map(x => ({ label: x.label, errors: x.errors })),
+    out.organization.problems);
   return out;
+}
+
+/* Abschnitt organization einer Sicherung pruefen: { v, collections:[{id,name,color,icon,order,createdAt}], memberships:[{c,r}],
+   links:[{a,b,note,createdAt}] }. Ergebnis { present, data (nur gueltige Eintraege) | null, problems: [{label, errors}] }.
+   Fehlt der Abschnitt (aeltere Sicherung), ist data null. */
+const VAL_ORG = { MAX_COLLECTIONS: 2000, MAX_MEMBERSHIPS: 200000, MAX_LINKS: 50000, MAX_NAME: 60, MAX_NOTE: 200 };
+function validateBackupOrganization(o) {
+  const res = { present: o !== undefined && o !== null, data: null, problems: [] };
+  if (!res.present) return res;
+  if (!valIsObj(o)) { res.problems.push({ label: 'Sammlungen', errors: ['Der Teil „organization“ ist ungültig und wurde nicht übernommen'] }); return res; }
+  const data = { v: 1, collections: [], memberships: [], links: [] };
+  const list = (key, max, label) => {
+    const v = o[key];
+    if (v === undefined || v === null) return [];
+    if (!Array.isArray(v)) { res.problems.push({ label, errors: [`Der Teil „${key}“ muss eine Liste sein`] }); return []; }
+    if (v.length > max) { res.problems.push({ label, errors: [`Zu viele Einträge (${v.length}, erlaubt sind ${max}), nur die ersten ${max} werden geprüft`] }); return v.slice(0, max); }
+    return v;
+  };
+  list('collections', VAL_ORG.MAX_COLLECTIONS, 'Sammlungen').forEach((c, n) => {
+    const errors = [];
+    if (!valIsObj(c)) errors.push('Kein Objekt');
+    else {
+      if (typeof c.id !== 'string' || !VAL_ID_RE.test(c.id) || c.id === 'friends') errors.push('ID fehlt oder ist ungültig');
+      const name = typeof c.name === 'string' ? c.name.replace(/\s+/g, ' ').trim() : '';
+      if (!name) errors.push('Name fehlt');
+      else if (name.length > VAL_ORG.MAX_NAME) errors.push(`Name ist länger als ${VAL_ORG.MAX_NAME} Zeichen`);
+    }
+    if (errors.length) res.problems.push({ label: `Sammlung ${n + 1}`, errors });
+    else data.collections.push({ id: c.id, name: c.name.replace(/\s+/g, ' ').trim(), color: typeof c.color === 'string' ? c.color : null, icon: typeof c.icon === 'string' ? c.icon : null, order: valIsNum(c.order) ? c.order : n, createdAt: valIsNum(c.createdAt) ? c.createdAt : null });
+  });
+  let badMem = 0;
+  list('memberships', VAL_ORG.MAX_MEMBERSHIPS, 'Zuordnungen').forEach((m) => {
+    if (valIsObj(m) && typeof m.c === 'string' && typeof m.r === 'string' && VAL_ID_RE.test(m.c) && VAL_ID_RE.test(m.r) && m.c !== 'friends') data.memberships.push({ c: m.c, r: m.r });
+    else badMem++;
+  });
+  if (badMem) res.problems.push({ label: 'Zuordnungen', errors: [`${badMem} Zuordnung${badMem === 1 ? ' ist' : 'en sind'} unlesbar`] });
+  let badLinks = 0;
+  list('links', VAL_ORG.MAX_LINKS, 'Verknüpfungen').forEach((l) => {
+    if (valIsObj(l) && typeof l.a === 'string' && typeof l.b === 'string' && VAL_ID_RE.test(l.a) && VAL_ID_RE.test(l.b) && l.a !== l.b
+        && (l.note === undefined || l.note === null || (typeof l.note === 'string' && l.note.length <= VAL_ORG.MAX_NOTE * 5)))
+      data.links.push({ a: l.a, b: l.b, note: typeof l.note === 'string' ? l.note : '', createdAt: valIsNum(l.createdAt) ? l.createdAt : null });
+    else badLinks++;
+  });
+  if (badLinks) res.problems.push({ label: 'Verknüpfungen', errors: [`${badLinks} Verknüpfung${badLinks === 1 ? ' ist' : 'en sind'} unlesbar`] });
+  res.data = data;
+  return res;
 }
 
 /* ---------- Pruefung der Zeitfelder und der Menge im Editor (Audit B06) ----------

@@ -26,7 +26,15 @@ const CLOUD_SITE_URL = 'https://yaniske-ai.github.io/Savora/';
 const CLOUD_SIGNUP_OPEN = false;
 const CLOUD_CLOSED_BETA_TEXT = 'Savora ist in einer geschlossenen Testphase. Frag nach einem Zugang.';
 
-const cloud = { syncing: false, lastError: null, timer: null, applyingRemote: false, pendingAgain: false };
+const cloud = { syncing: false, lastError: null, timer: null, applyingRemote: false, pendingAgain: false, gen: 0 };
+// Eigene Datenarten der Organisation (org.js): Sammlung, Zuordnung, Verknuepfung. Sie brauchen die Datenbank-Migration paket47.
+const CLOUD_ORG_KINDS = ['collection', 'membership', 'pairing'];
+function cloudIsOrgKind(kind) { return CLOUD_ORG_KINDS.includes(kind); }
+/* Generationszaehler: Anmelden, Abmelden und Konto loeschen erhoehen ihn. Ein laufender Abgleich merkt sich Generation und
+   Konto beim Start und schreibt nichts mehr (Daten, Meta, Cursor, Warteschlange), sobald sich eines davon geaendert hat. */
+function cloudSyncCtx() { return { gen: cloud.gen, uid: cloudUserId() }; }
+function cloudCtxValid(ctx) { return !ctx || typeof ctx !== 'object' || (ctx.gen === cloud.gen && ctx.uid === cloudUserId()); }   // ohne Kontext (alte Aufrufe) keine Pruefung
+function cloudCheckCtx(ctx) { if (!cloudCtxValid(ctx)) throw Object.assign(new Error('Abgleich nach Kontowechsel verworfen'), { stale: true }); }
 
 /* ---------- Kleine Helfer ---------- */
 function cloudSession() { return readJsonKey(CLOUD_SESSION_KEY, null); }
@@ -92,6 +100,7 @@ async function cloudAccessToken() {
 }
 async function cloudAuthSignIn(email, password) {
   const res = await cloudFetch('/auth/v1/token?grant_type=password', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email, password }) }, false);
+  cloud.gen++;
   cloudStoreTokenResponse(await res.json());
   if (typeof libReset === 'function') libReset();   // Verwaltungsdaten eines frueheren Kontos verwerfen
   if (typeof libDraftAdoptLocal === 'function') libDraftAdoptLocal();   // vor der Anmeldung begonnene Entwuerfe diesem Konto zuordnen
@@ -102,7 +111,7 @@ async function cloudAuthSignIn(email, password) {
 async function cloudAuthSignUp(email, password) {
   const res = await cloudFetch('/auth/v1/signup?redirect_to=' + encodeURIComponent(CLOUD_SITE_URL), { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email, password }) }, false);
   const data = await res.json();
-  if (data.access_token) { cloudStoreTokenResponse(data); await cloudPrepareFirstSync(); return 'signed-in'; }
+  if (data.access_token) { cloud.gen++; cloudStoreTokenResponse(data); await cloudPrepareFirstSync(); return 'signed-in'; }
   return 'confirm';
 }
 async function cloudAuthResetPassword(email) {
@@ -112,7 +121,9 @@ async function cloudAuthUpdatePassword(password) {
   await cloudFetch('/auth/v1/user', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ password }) });
 }
 async function cloudAuthSignOut() {
+  cloud.gen++;   // ab hier schreibt ein noch laufender Abgleich nichts mehr
   try { await cloudFetch('/auth/v1/logout', { method: 'POST' }); } catch (e) { /* offline abmelden geht trotzdem */ }
+  cloud.gen++;
   cloudSetSession(null);
   if (typeof shareReset === 'function') shareReset();
   if (typeof libReset === 'function') libReset();
@@ -142,6 +153,7 @@ async function cloudCompleteRedirect(r) {
     const res = await fetch(CLOUD_URL + '/auth/v1/user', { headers: { apikey: CLOUD_KEY, Authorization: 'Bearer ' + r.data.access_token } });
     if (!res.ok) throw new Error('Link ungültig');
     const user = await res.json();
+    cloud.gen++;
     cloudStoreTokenResponse({ ...r.data, user });
     await cloudPrepareFirstSync();
     if (r.type === 'recovery') {
@@ -167,6 +179,23 @@ function cloudMark(kind, id, deleted, changedAt) {
   const at = changedAt || Date.now();
   q[key] = { kind, id: String(id), deleted: !!deleted, at };
   m[key] = at;
+  writeJsonKey(CLOUD_QUEUE_KEY, q); writeJsonKey(CLOUD_META_KEY, m);
+  cloudScheduleSync(1500);
+}
+// Viele Vormerkungen auf einmal (org.js im Sammelschreiben): Warteschlange und Meta nur einmal lesen und schreiben.
+// list: [[kind, id, deleted, changedAt], ...]
+function cloudMarkMany(list) {
+  if (!cloudSignedIn() || cloud.applyingRemote || !Array.isArray(list) || !list.length) return;
+  const q = cloudQueue(); const m = cloudMeta();
+  let n = 0;
+  list.forEach(([kind, id, deleted, changedAt]) => {
+    if (id === undefined || id === null) return;
+    const key = kind + '|' + id;
+    const at = changedAt || Date.now();
+    q[key] = { kind, id: String(id), deleted: !!deleted, at };
+    m[key] = at; n++;
+  });
+  if (!n) return;
   writeJsonKey(CLOUD_QUEUE_KEY, q); writeJsonKey(CLOUD_META_KEY, m);
   cloudScheduleSync(1500);
 }
@@ -210,6 +239,8 @@ async function cloudPrepareFirstSync() {
   imageIds.forEach(id => add('image', id, 1));
   if (typeof coverImageIdsInUse === 'function') coverImageIdsInUse().forEach(id => add('image', id, 1));   // eigene Cover-Bilder gehen denselben Bildweg
   Object.entries(CLOUD_SETTING_KEYS).forEach(([name, key]) => { const v = localStorage.getItem(key); if (v && v !== '[]' && v !== '""') add('setting', name, 1); });
+  // Sammlungen, Zuordnungen, Verknuepfungen (inkl. Grabsteinen) mit ihrem Konfliktwert; reine Bestandsuebernahmen bleiben lokal
+  if (typeof orgSyncAll === 'function') orgSyncAll().forEach(e => { const key = e.kind + '|' + e.id; if (!q[key]) { q[key] = { kind: e.kind, id: String(e.id), deleted: e.deleted, at: e.at }; m[key] = e.at; } });
   writeJsonKey(CLOUD_QUEUE_KEY, q); writeJsonKey(CLOUD_META_KEY, m);
 }
 
@@ -224,6 +255,7 @@ async function cloudReadLocal(kind, id) {
   if (kind === 'mealplan') return (await dbGetAllMealplan()).find(d => d.date === id) || null;
   if (kind === 'shopping') return (await dbGetAllShopping()).find(s => s.id === id) || null;
   if (kind === 'setting') { const v = localStorage.getItem(CLOUD_SETTING_KEYS[id]); return v === null ? null : { value: v }; }
+  if (cloudIsOrgKind(kind) && typeof orgSyncRead === 'function') return orgSyncRead(kind, id);
   return null;
 }
 function cloudImagePath(id, thumb) { return `${cloudUserId()}/${encodeURIComponent(id)}${thumb ? '-thumb' : ''}`; }
@@ -262,40 +294,87 @@ async function cloudFetchMissingCoverImages() {
   return n;
 }
 
-async function cloudPush() {
+async function cloudPush(ctx) {
+  cloudCheckCtx(ctx);
   const q = cloudQueue();
   const entries = Object.entries(q);
   if (!entries.length) return 0;
   const rows = [];
+  const orgRows = [];
   const imageJobs = [];
+  const failed = new Set();
   for (const [key, e] of entries) {
     if (e.kind === 'image') { imageJobs.push([key, e]); continue; }
-    const local = e.deleted ? null : await cloudReadLocal(e.kind, e.id);
-    rows.push({ user_id: cloudUserId(), kind: e.kind, id: e.id, data: local, deleted: e.deleted || !local, client_updated_at: e.at });
+    // Org-Grabsteine mit Daten senden (Name, Farbe, Symbol), damit ein neues Geraet die ID-Regel anwenden kann
+    const local = e.deleted && !cloudIsOrgKind(e.kind) ? null : await cloudReadLocal(e.kind, e.id);
+    const row = { user_id: cloudUserId(), kind: e.kind, id: e.id, data: local, deleted: e.deleted || !local, client_updated_at: e.at };
+    (cloudIsOrgKind(e.kind) ? orgRows : rows).push(row);
   }
-  for (let i = 0; i < rows.length; i += 200) {
-    await cloudFetch('/rest/v1/savora_records?on_conflict=user_id,kind,id', {
-      method: 'POST', headers: { 'Content-Type': 'application/json', Prefer: 'resolution=merge-duplicates,return=minimal' },
-      body: JSON.stringify(rows.slice(i, i + 200)),
-    });
+  const send = (block) => cloudFetch('/rest/v1/savora_records?on_conflict=user_id,kind,id', {
+    method: 'POST', headers: { 'Content-Type': 'application/json', Prefer: 'resolution=merge-duplicates,return=minimal' },
+    body: JSON.stringify(block),
+  });
+  for (let i = 0; i < rows.length; i += 200) { cloudCheckCtx(ctx); await send(rows.slice(i, i + 200)); }
+  // Organisation in eigenen Bloecken: lehnt der Server sie ab (Migration paket47 fehlt), bleiben sie in der Warteschlange
+  // und der uebrige Abgleich (Rezepte, Plan, Einkauf) laeuft trotzdem.
+  for (let i = 0; i < orgRows.length; i += 200) {
+    cloudCheckCtx(ctx);
+    const block = orgRows.slice(i, i + 200);
+    try { await send(block); }
+    catch (err) {
+      if (err.offline || err.status === 401) throw err;
+      console.warn('Sammlungen/Verknuepfungen nicht abgeglichen', err.status, err.message);
+      block.forEach(r => failed.add(r.kind + '|' + r.id));
+    }
   }
   for (const [key, e] of imageJobs) {
     try { await cloudPushImage(e.id, e.deleted); }
     catch (err) { if (err.offline) throw err; if (err.status !== 404) console.warn('Bild-Abgleich', e.id, err.message); }
   }
   // Nur entfernen, was waehrend des Hochladens nicht erneut geaendert wurde.
+  cloudCheckCtx(ctx);
   const now = cloudQueue();
-  entries.forEach(([key, e]) => { if (now[key] && now[key].at === e.at) delete now[key]; });
+  entries.forEach(([key, e]) => { if (!failed.has(key) && now[key] && now[key].at === e.at) delete now[key]; });
   writeJsonKey(CLOUD_QUEUE_KEY, now);
   return rows.length + imageJobs.length;
 }
 
-async function cloudApplyRemote(row) {
+// Organisations-Datensaetze uebernehmen (synchron, eine Seite landet gesammelt in einem Schreibvorgang je Schluessel).
+function cloudApplyOrgRows(rows, ctx) {
+  if (!rows.length || typeof orgSyncApply !== 'function') return 0;
+  cloudCheckCtx(ctx);
+  let n = 0;
+  const meta = cloudMeta(), queue = cloudQueue(), metaUpdates = {}, remark = [];
+  const run = () => rows.forEach(row => {
+    const key = row.kind + '|' + row.id;
+    const pending = queue[key];
+    const known = key in metaUpdates ? metaUpdates[key] : (meta[key] || 0);
+    if (pending && pending.at > row.client_updated_at) return;   // lokaler Stand ist neuer und wird hochgeladen
+    if (known > row.client_updated_at) return;
+    let res;
+    cloud.applyingRemote = true;
+    try { res = orgSyncApply(row.kind, row.id, row.data, !!row.deleted, row.client_updated_at); }
+    finally { cloud.applyingRemote = false; }
+    if (res.invalid) { console.warn('Cloud-Datensatz nicht uebernommen', row.kind, row.id); return; }
+    // Lokaler Stand neuer, aber nicht vorgemerkt (z. B. nach dem Nachholen): erneut hochladen
+    if (res.localNewer) { if (!pending) remark.push([row.kind, row.id, res.localAt]); return; }
+    metaUpdates[key] = row.client_updated_at;
+    if (res.applied) n++;
+  });
+  if (typeof orgBatch === 'function') orgBatch(run); else run();
+  const m = cloudMeta(); Object.assign(m, metaUpdates); writeJsonKey(CLOUD_META_KEY, m);
+  remark.forEach(([kind, id, at]) => { const local = orgSyncRead(kind, id); cloudMark(kind, id, !local || !!local.deleted, at); });
+  return n;
+}
+async function cloudApplyRemote(row, ctx) {
+  cloudCheckCtx(ctx);
+  if (cloudIsOrgKind(row.kind)) return cloudApplyOrgRows([row], ctx) > 0;
   const key = row.kind + '|' + row.id;
   const localAt = cloudMeta()[key] || 0;
   const pending = cloudQueue()[key];
   if (pending && pending.at > row.client_updated_at) return false; // lokaler Stand ist neuer und wird hochgeladen
   if (localAt > row.client_updated_at) return false;
+  let legacyMerge = false;
   cloud.applyingRemote = true;
   try {
     if (row.kind === 'recipe') {
@@ -324,16 +403,44 @@ async function cloudApplyRemote(row) {
         // Stil-IDs von aelteren Geraeten (A/B/C) auf pur/prise-pop abbilden, bevor sie lokal landen
         const value = row.id === 'cookbooks' ? cookbookNormalizeStoreText(row.data.value, true) : row.id === 'cookbookConfig' ? cookbookNormalizeStoreText(row.data.value, false) : row.data.value;
         cloudOrigSetItem.call(localStorage, lsKey, value);
+        // Sammlungsliste (Projektion, ggf. von einem Geraet mit aelterer Version): neue IDs ins Modell uebernehmen, nichts verwerfen
+        // Nur hochladen, wenn die zusammengefuehrte Liste inhaltlich abweicht (Reihenfolge zaehlt nicht), sonst Pingpong
+        if (row.id === 'collections' && typeof orgEnsureLegacy === 'function') {
+          orgEnsureLegacy();
+          const merged = localStorage.getItem(lsKey);
+          legacyMerge = typeof orgProjectionSame === 'function' ? !orgProjectionSame(merged, value) : merged !== value;
+        }
         if (row.id === 'cookbookTitle') state.cookbookTitle = row.data.value;
         if (row.id === 'senderName') state.senderName = row.data.value;
       }
     }
   } finally { cloud.applyingRemote = false; }
   const m = cloudMeta(); m[key] = row.client_updated_at; writeJsonKey(CLOUD_META_KEY, m);
+  if (legacyMerge) cloudMark('setting', 'collections', false);   // zusammengefuehrte Liste fuer aeltere Geraete hochladen
   return true;
 }
+/* Einmaliges Nachholen der Organisations-Datensaetze ohne Cursor: Ein Geraet mit aelterer Version hat solche Zeilen
+   schon gezogen, aber nicht verstanden (Meta gesetzt, Cursor weiter). Nach dem Update werden sie hier nachgeholt. */
+async function cloudOrgCatchUp(ctx) {
+  cloudCheckCtx(ctx);
+  const m = cloudMeta();
+  Object.keys(m).forEach(k => { if (cloudIsOrgKind(k.split('|')[0])) delete m[k]; });
+  writeJsonKey(CLOUD_META_KEY, m);
+  let changed = 0;
+  for (let page = 0; page < 200; page++) {
+    const q = `/rest/v1/savora_records?select=kind,id,data,deleted,client_updated_at,server_updated_at&kind=in.(${CLOUD_ORG_KINDS.join(',')})&order=server_updated_at.asc,kind.asc,id.asc&limit=1000&offset=${page * 1000}`;
+    const rows = await (await cloudFetch(q)).json();
+    cloudCheckCtx(ctx);
+    changed += cloudApplyOrgRows(rows.filter(r => cloudIsOrgKind(r.kind)), ctx);
+    if (rows.length < 1000) break;
+  }
+  cloudCheckCtx(ctx);
+  if (typeof orgMetaSet === 'function') orgMetaSet('catchUpDone', true);
+  return changed;
+}
 
-async function cloudPull() {
+async function cloudPull(ctx) {
+  cloudCheckCtx(ctx);
   let cursor = readJsonKey(CLOUD_CURSOR_KEY, null);
   let changed = 0;
   for (let page = 0; page < 50; page++) {
@@ -342,16 +449,22 @@ async function cloudPull() {
     let q = '/rest/v1/savora_records?select=kind,id,data,deleted,client_updated_at,server_updated_at&order=server_updated_at.asc&limit=500';
     if (cursor) q += '&server_updated_at=gt.' + encodeURIComponent(new Date(new Date(cursor).getTime() - 5000).toISOString());
     const rows = await (await cloudFetch(q)).json();
+    cloudCheckCtx(ctx);   // Antwort eines frueheren Kontos: verwerfen
     let maxCursor = cursor;
+    const orgRows = [];
     for (const row of rows) {
-      if (await cloudApplyRemote(row)) changed++;
+      if (cloudIsOrgKind(row.kind)) orgRows.push(row);
+      else if (await cloudApplyRemote(row, ctx)) changed++;
       if (!maxCursor || row.server_updated_at > maxCursor) maxCursor = row.server_updated_at;
     }
+    changed += cloudApplyOrgRows(orgRows, ctx);   // eine Seite Sammlungen/Zuordnungen in einem Schreibvorgang
     const advanced = maxCursor !== cursor;
     cursor = maxCursor;
+    cloudCheckCtx(ctx);
     if (cursor) writeJsonKey(CLOUD_CURSOR_KEY, cursor);
     if (rows.length < 500 || !advanced) break;
   }
+  cloudCheckCtx(ctx);
   if (!cursor) writeJsonKey(CLOUD_CURSOR_KEY, new Date(0).toISOString());
   return changed;
 }
@@ -362,22 +475,33 @@ async function cloudSyncNow(opts = {}) {
   if (navigator.onLine === false) { cloud.lastError = 'Offline. Änderungen werden später übertragen.'; cloudRefreshStatus(); return { ok: false, reason: 'offline' }; }
   cloud.syncing = true; cloudRefreshStatus();
   let changed = 0;
+  const ctx = cloudSyncCtx();
   try {
-    await cloudPush();
-    changed = await cloudPull();
+    await cloudPush(ctx);
+    const hadCursor = !!readJsonKey(CLOUD_CURSOR_KEY, null);
+    const needCatchUp = hadCursor && typeof orgMetaGet === 'function' && !orgMetaGet('catchUpDone');
+    changed = await cloudPull(ctx);
+    if (needCatchUp) changed += await cloudOrgCatchUp(ctx);
+    else if (!hadCursor && typeof orgMetaSet === 'function') { cloudCheckCtx(ctx); orgMetaSet('catchUpDone', true); }   // voller Abzug enthaelt schon alles
     await cloudFetchMissingCoverImages();
-    await cloudPush(); // was beim Pull als lokal neuer erkannt wurde
+    await cloudPush(ctx); // was beim Pull als lokal neuer erkannt wurde
+    cloudCheckCtx(ctx);
     cloud.lastError = null;
     writeJsonKey(CLOUD_LAST_KEY, Date.now());
   } catch (e) {
-    cloud.lastError = e.message || 'Abgleich fehlgeschlagen';
-    if (e.status === 401) cloud.lastError = 'Sitzung abgelaufen. Bitte neu anmelden.';
+    if (e && e.stale) cloud.lastError = null;   // Kontowechsel waehrend des Abgleichs: still verwerfen
+    else {
+      cloud.lastError = e.message || 'Abgleich fehlgeschlagen';
+      if (e.status === 401) cloud.lastError = 'Sitzung abgelaufen. Bitte neu anmelden.';
+    }
   } finally {
     cloud.syncing = false;
   }
-  if (changed) await cloudReloadState();
+  if (changed && cloudCtxValid(ctx)) await cloudReloadState();
   cloudRefreshStatus();
+  if (!cloudCtxValid(ctx) && cloudSignedIn()) cloud.pendingAgain = true;   // neues Konto: gleich frisch abgleichen
   if (cloud.pendingAgain) { cloud.pendingAgain = false; cloudScheduleSync(500); }
+  if (!cloudCtxValid(ctx)) return { ok: false, reason: 'stale', changed: 0 };
   return { ok: !cloud.lastError, changed };
 }
 // Nach eingehenden Aenderungen neu laden, aber nie mitten in einer Bearbeitung oder im Kochmodus
@@ -431,6 +555,7 @@ async function cloudDeleteAccount() {
   }
   // 2. Datensaetze und Konto
   await cloudFetch('/rest/v1/rpc/savora_delete_account', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' });
+  cloud.gen++;
   cloudSetSession(null);
   if (typeof libReset === 'function') libReset();
   [CLOUD_QUEUE_KEY, CLOUD_META_KEY, CLOUD_CURSOR_KEY, CLOUD_LAST_KEY].forEach(k => { try { localStorage.removeItem(k); } catch (e) {} });

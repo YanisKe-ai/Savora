@@ -299,8 +299,10 @@ async function kdInspectBackup(file) {
   if (days) rows.push({ label: 'Wochenplan', value: plural(days, 'Tag', 'Tage') });
   const books = data.settings && data.settings.cookbooks && typeof cookbookSanitizeStore === 'function' ? cookbookSanitizeStore(data.settings.cookbooks) : null;
   if (books && books.books && books.books.length) rows.push({ label: 'Kochbücher', value: books.books.length });
-  const cols = data.settings && Array.isArray(data.settings.collections) ? data.settings.collections.length : 0;
+  const od = vb.organization && vb.organization.data;   // ab schemaVersion 6, sonst Rueckfall auf die alte Liste
+  const cols = od ? od.collections.length : data.settings && Array.isArray(data.settings.collections) ? data.settings.collections.length : 0;
   if (cols) rows.push({ label: 'Sammlungen', value: cols });
+  if (od && od.links.length) rows.push({ label: 'Passt dazu', value: plural(od.links.length, 'Verknüpfung', 'Verknüpfungen') });
   const foods = vb.sections.filter(x => x.key === 'customFoods' && x.ok).length;
   if (foods) rows.push({ label: 'Eigene Lebensmittel', value: foods });
   const matches = vb.sections.filter(x => x.key === 'nutritionMatches' && x.ok).length;
@@ -308,7 +310,7 @@ async function kdInspectBackup(file) {
   const warnings = [];
   const unreadable = badRecipes + vb.shopping.filter(x => !x.ok).length + vb.sections.filter(x => !x.ok).length;
   if (unreadable) warnings.push(`${plural(unreadable, 'Eintrag ist', 'Einträge sind')} nicht lesbar und ${unreadable === 1 ? 'wird' : 'werden'} übersprungen. Alles andere wird übernommen.`);
-  if (typeof data.schemaVersion === 'number' && data.schemaVersion > 5) warnings.push('Die Sicherung stammt aus einer neueren Savora-Version. Unbekannte Teile werden nicht übernommen.');
+  if (typeof data.schemaVersion === 'number' && data.schemaVersion > 6) warnings.push('Die Sicherung stammt aus einer neueren Savora-Version. Unbekannte Teile werden nicht übernommen.');
   const hasAnything = okRecipes || okShop || days || (books && books.books && books.books.length) || cols || foods || matches;
   if (!hasAnything) return { error: 'Die Datei enthält keine Daten, die übernommen werden könnten.' };
   const exportedAt = typeof data.exportedAt === 'string' && !isNaN(new Date(data.exportedAt).getTime()) ? data.exportedAt : null;

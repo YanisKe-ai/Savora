@@ -75,9 +75,15 @@ function brandLockup() {
   return `<div class="brand-v2">${wordmarkSvg('top-wordmark', 'Savora')}</div>`;
 }
 
+/* v84: kam man über «Passt dazu» von Rezept A, heisst die Zurück-Taste «Zurück zu <Titel A>» (A steht in history.state.linkPrev) */
+function linkBackLabel() {
+  const hs = history.state, prev = hs && hs.view === 'detail' && hs.activeRecipeId === state.activeRecipeId && hs.linkPrev ? state.recipes.find(x => x.id === hs.linkPrev) : null;
+  return prev && prev.title ? `Zurück zu ${prev.title}` : 'Zurück';
+}
+
 function topbar(title, opts = {}) {
   const left = opts.back
-    ? `<button class="icon-btn" data-action="back" aria-label="Zurück">${ICONS.back}</button>`
+    ? `<button class="icon-btn" data-action="back" aria-label="${escapeAttr(opts.backLabel || 'Zurück')}">${ICONS.back}</button>`
     : brandLockup();
   return `<header class="topbar ${opts.back ? 'topbar--sub' : ''} ${opts.cls || ''}">
     <div class="topbar-left">${left}${opts.back ? (opts.plainTitle ? `<span class="topbar-title">${escapeHtml(opts.plainTitle)}</span>` : `<h1 class="topbar-title">${escapeHtml(title)}</h1>`) : ''}</div>
@@ -121,7 +127,8 @@ function categoryFilterMatches(r, set) {
    wird nur die Auswahl ersetzt; Suche, Alle/Favoriten und Sortierung kommen immer aus dem state. */
 function applyAllFilters(recipes, spec) {
   const f = spec || filterSpec();
-  let list = recipesInCollection(state.activeCollection, recipes);
+  // v84: zuerst der gewaehlte Bereich (Alle, Favoriten, Ohne Sammlung, Freunde, eigene Sammlung), dann Suche, Filter, Sortierung
+  let list = hvScopeList(hvScope(), recipes);
   if (state.query.trim()) list = list.filter(r => recipeMatchesQuery(r, state.query));
   if (state.activeTag) list = list.filter(r => (r.tags || []).includes(state.activeTag));
   if (state.favOnly) list = list.filter(r => r.favorite);
@@ -130,23 +137,21 @@ function applyAllFilters(recipes, spec) {
   if (dietary.size) list = list.filter(r => { const bad = new Set(dietConflicts(r).map(c => c.label)); return (r.diet || []).some(d => !bad.has(d) && (dietary.has(d) || (d === 'vegan' && dietary.has('vegetarisch')))); });
   if (category.size) list = list.filter(r => categoryFilterMatches(r, category));
   if (time.size) list = list.filter(r => timeBucketsFor(r.timeMinutes).some(b => time.has(b)));
-  if (more && more.size) { const ids = Array.from(more); list = list.filter(r => ids.some(id => recipesInCollection(id, [r]).length)); }
+  if (more && more.size) { const ids = Array.from(more); list = list.filter(r => ids.some(id => hvScopeList(id, [r]).length)); }
   if (tags && tags.size) list = list.filter(r => (r.tags || []).some(t => tags.has(t)));
-  return sortRecipes(list, state.sortBy);
+  return hvSortRecipes(list, state.sortBy);
 }
 
-/* Weitere Merkmale: nur, was die Daten wirklich hergeben (Kochzaehler, eigene Sammlungen). */
+/* Weitere Merkmale: nur Kochzustaende (v84: Sammlungen und «Rezepte von Freunden» stehen in der Sammlungsauswahl). */
 function moreFilterOptions() {
   const opts = [{ id: 'uncooked', label: 'Noch nicht gekocht' }];
   if (state.recipes.some(isFrequentlyCooked) || state.activeFilters.more.has('frequent')) opts.push({ id: 'frequent', label: 'Häufig gekocht' });
-  if (state.recipes.some(r => (r.collections || []).includes('friends')) || state.activeFilters.more.has('friends')) opts.push({ id: 'friends', label: 'Rezepte von Freunden' });
-  getCollections().forEach(c => opts.push({ id: c.id, label: c.name }));
   return opts;
 }
 function moreFilterLabel(id) {
   const o = moreFilterOptions().find(x => x.id === id);
   if (o) return o.label;
-  return ({ quick: 'Schnell', veggie: 'Vegetarisch', favorites: 'Favoriten' })[id] || id;
+  return ({ quick: 'Schnell', veggie: 'Vegetarisch', favorites: 'Favoriten' })[id] || hvScopeLabel(id);
 }
 function appliedFilterLabels() {
   const f = filterSpec(), out = [];
@@ -156,13 +161,13 @@ function appliedFilterLabels() {
   f.more.forEach(id => out.push(moreFilterLabel(id)));
   f.tags.forEach(t => out.push(t));
   if (state.activeTag) out.push(state.activeTag);
-  if (state.activeCollection && state.activeCollection !== 'all' && state.activeCollection !== 'favorites') out.push(moreFilterLabel(state.activeCollection));
-  return out;
+  return out;   // v84: der Bereich (Sammlung) steht im Titel, nicht in der Filterzusammenfassung
 }
+/* «Zurücksetzen» setzt nur Filter zurück, nie den gewählten Bereich (Sammlung, Favoriten). */
 function resetExtraFilters() {
   const f = filterSpec();
   f.dietary.clear(); f.category.clear(); f.time.clear(); f.more.clear(); f.tags.clear();
-  state.activeTag = null; state.activeCollection = 'all';
+  state.activeTag = null;
 }
 
 /* ---------- Filterfenster mit Entwurf ---------- */
@@ -174,7 +179,6 @@ function newFilterDraft() {
   if (best) draft.time.add(best.id);
   // Aeltere Einzelfilter in die sichtbare Auswahl uebernehmen, damit nichts unsichtbar wirkt
   if (state.activeTag) draft.tags.add(state.activeTag);
-  if (state.activeCollection && state.activeCollection !== 'all' && state.activeCollection !== 'favorites') draft.more.add(state.activeCollection);
   return draft;
 }
 function filterDraft() {
@@ -269,14 +273,16 @@ function bindFilterSheet() {
   if (sel && !sel.dataset.bound) {
     sel.dataset.bound = '1';
     sel.addEventListener('change', () => {
-      if (sel.value === '__fav') { state.favOnly = true; state.activeCollection = 'all'; motionFlipRecipes(render); return; }
-      if (isPhoneLayout()) { state.favOnly = false; if (state.activeCollection === 'favorites') state.activeCollection = 'all'; }
+      // v84: Favoriten sind ein Bereich der Sammlungsauswahl, die Sortierung aendert den Bereich nie
+      if (!HV_SORT_OPTIONS.some(o => o.id === sel.value)) return;
       state.sortBy = sel.value;
       try { localStorage.setItem(SORT_KEY, state.sortBy); } catch (err) {}
       motionFlipRecipes(render);   // Karten gleiten an ihre neue Stelle (Bewegung M1)
     });
   }
-  if (typeof motionSegInit === 'function') motionSegInit();   // Auswahlfläche «Alle / Favoriten» nach jedem Neuaufbau setzen
+  // v84: die Leiste «Alle / Favoriten» gibt es nicht mehr; motionSegInit findet keine .seg und löst dann nur seinen Beobachter.
+  if (typeof motionSegInit === 'function') motionSegInit();
+  hvAnnounceCount();
 }
 
 /* ---------- Rezeptuebersicht ---------- */
@@ -310,8 +316,8 @@ function recipeCard(r, phone) {
   if (phone === true) {
     /* Handy-Raster: Foto 4:3 (oder ruhiger Platzhalter), Titel, Zeit nur wenn bekannt, Favoritenknopf als Geschwister (kein verschachtelter Knopf) */
     const time = timeInfo(r).cardText ? `<span class="rcard-meta rcard-meta--time" title="Gesamtzeit">${ICONS.clock}<span>${timeInfo(r).cardText}</span></span>` : '';
-    return `<article class="rcard rcard--phone" data-flip-id="${escapeAttr(r.id)}">
-    <button type="button" class="rcard-main" data-action="open-recipe" data-id="${escapeAttr(r.id)}" aria-label="${title} öffnen">
+    return `<article class="rcard rcard--phone${hvPickedCls(r)}" data-flip-id="${escapeAttr(r.id)}">
+    <button type="button" class="rcard-main" ${hvMainAttrs(r, title)}>${hvPickMark(r)}
       ${photo ? recipeImageHtml(r, 'rcard-img', 'thumb') : `<span class="rcard-img rcard-ph" aria-hidden="true">${ICONS.bookOpen}</span>`}
       <span class="rcard-body">
         <span class="rcard-title">${titleHl}</span>${searchIngredientHitHtml(r, state.query)}
@@ -321,8 +327,8 @@ function recipeCard(r, phone) {
     ${favButton(r, 'rcard-fav')}
   </article>`;
   }
-  return `<article class="rcard ${photo ? '' : 'rcard--text'}" data-flip-id="${escapeAttr(r.id)}">
-    <button type="button" class="rcard-main" data-action="open-recipe" data-id="${escapeAttr(r.id)}" aria-label="${title} öffnen">
+  return `<article class="rcard ${photo ? '' : 'rcard--text'}${hvPickedCls(r)}" data-flip-id="${escapeAttr(r.id)}">
+    <button type="button" class="rcard-main" ${hvMainAttrs(r, title)}>${hvPickMark(r)}
       ${photo ? recipeImageHtml(r, 'rcard-img', 'thumb') : ''}
       <span class="rcard-body">
         <span class="rcard-title">${titleHl}</span>${searchIngredientHitHtml(r, state.query)}
@@ -339,8 +345,8 @@ function recipeRow(r, phone) {
     const title = escapeHtml(r.title || 'Ohne Titel');
     const titleHl = highlightHtml(r.title || 'Ohne Titel', state.query);
     const time = timeInfo(r).cardText ? `<span class="rrow-meta rrow-meta--time" title="Gesamtzeit">${ICONS.clock}<span>${timeInfo(r).cardText}</span></span>` : '';
-    return `<article class="rrow rrow--phone" data-flip-id="${escapeAttr(r.id)}">
-    <button type="button" class="rrow-main" data-action="open-recipe" data-id="${escapeAttr(r.id)}" aria-label="${title} öffnen">
+    return `<article class="rrow rrow--phone${hvPickedCls(r)}" data-flip-id="${escapeAttr(r.id)}">
+    <button type="button" class="rrow-main" ${hvMainAttrs(r, title)}>${hvPickMark(r)}
       ${photo ? recipeImageHtml(r, 'rrow-img', 'thumb') : `<span class="rrow-img rrow-ph" aria-hidden="true">${ICONS.bookOpen}</span>`}
       <span class="rrow-body">
         <span class="rrow-title">${titleHl}</span>${searchIngredientHitHtml(r, state.query)}
@@ -350,8 +356,8 @@ function recipeRow(r, phone) {
     ${favButton(r, 'rrow-fav')}
   </article>`;
   }
-  return `<article class="rrow ${photo ? '' : 'rrow--text'}" data-flip-id="${escapeAttr(r.id)}">
-    <button type="button" class="rrow-main" data-action="open-recipe" data-id="${escapeAttr(r.id)}" aria-label="${escapeHtml(r.title || 'Ohne Titel')} öffnen">
+  return `<article class="rrow ${photo ? '' : 'rrow--text'}${hvPickedCls(r)}" data-flip-id="${escapeAttr(r.id)}">
+    <button type="button" class="rrow-main" ${hvMainAttrs(r, escapeHtml(r.title || 'Ohne Titel'))}>${hvPickMark(r)}
       ${photo ? recipeImageHtml(r, 'rrow-img', 'thumb') : ''}
       <span class="rrow-body">
         <span class="rrow-title">${highlightHtml(r.title || 'Ohne Titel', state.query)}</span>${searchIngredientHitHtml(r, state.query)}
@@ -398,60 +404,271 @@ function layoutToggleHtml(layout, cls) {
             ${single}
           </div>`;
 }
+/* ===== v84 Übersicht: Sammlungsauswahl, Auswahlmodus, Sammlungen verwalten, Sortierung =====
+   Daten nur über org.js (Helfer DATEN). Fehlt org.js (alter Zwischenspeicher), greift ein Rückfall auf das alte
+   Modell (savora-collections + recipe.collections), damit nichts kaputt wirkt.
+   Bereich = state.activeCollection: 'all' | 'favorites' | 'none' (Ohne Sammlung) | 'friends' | <Sammlungs-ID>.
+   Eine Sammlung zur Zeit; Suche und Filter wirken innerhalb des Bereichs. */
+const HV_COLORS = [{ id: 'tomato', label: 'Tomate' }, { id: 'sage', label: 'Salbei' }, { id: 'mustard', label: 'Senf' }, { id: 'plum', label: 'Pflaume' }, { id: 'lake', label: 'See' }, { id: 'earth', label: 'Erde' }];
+const HV_ICONS = ['folder', 'heart', 'leaf', 'clock', 'timer', 'chef', 'pot', 'fish', 'apple', 'scale', 'sparkle', 'calendar', 'sun', 'book'];
+const HV_ICON_LABELS = { folder: 'Ordner', heart: 'Herz', leaf: 'Blatt', clock: 'Uhr', timer: 'Timer', chef: 'Kochmütze', pot: 'Topf', fish: 'Fisch', apple: 'Apfel', scale: 'Waage', sparkle: 'Funkeln', calendar: 'Kalender', sun: 'Sonne', book: 'Buch' };
+const HV_SEARCH_MIN = 8;          // Suche in der Auswahl ab 8 eigenen Sammlungen (wie FS_VISIBLE / RP_CB_MIN)
+const HV_NAME_MAX = 60;
+const HV_PSEUDO = ['all', 'favorites', 'quick', 'veggie', 'uncooked', 'frequent'];
+const HV_SORT_OPTIONS = [
+  { id: 'updated', label: 'Zuletzt bearbeitet' },
+  { id: 'added', label: 'Zuletzt hinzugefügt' },
+  { id: 'az', label: 'A bis Z' },
+  { id: 'time', label: 'Kürzeste Gesamtzeit' },
+  { id: 'cooked', label: 'Zuletzt gekocht' },
+];
+
+function hvOrg() { return typeof orgCollections === 'function'; }
+function hvColors() { return (typeof ORG_COLORS !== 'undefined' && Array.isArray(ORG_COLORS) && ORG_COLORS.length) ? ORG_COLORS : HV_COLORS; }
+function hvIcons() { return ((typeof ORG_ICONS !== 'undefined' && Array.isArray(ORG_ICONS) && ORG_ICONS.length) ? ORG_ICONS : HV_ICONS).filter(k => ICONS[k]); }
+function hvCollections() {
+  if (hvOrg()) { try { return orgCollections() || []; } catch (e) { return []; } }
+  return getCollections().filter(c => c && c.id && c.id !== 'friends').map((c, i) => ({ id: c.id, name: String(c.name || ''), color: '', icon: 'folder', order: i }));
+}
+function hvCollection(id) {
+  if (!id) return null;
+  if (typeof orgCollection === 'function') { try { return orgCollection(id); } catch (e) { return null; } }
+  return hvCollections().find(c => c.id === id) || null;
+}
+function hvRecipeIdsIn(id) {
+  if (typeof orgRecipeIdsIn === 'function') { try { return orgRecipeIdsIn(id) || new Set(); } catch (e) { return new Set(); } }
+  return new Set(state.recipes.filter(r => (r.collections || []).includes(id)).map(r => r.id));
+}
+function hvCounts() {
+  if (typeof orgCounts === 'function') { try { return orgCounts() || new Map(); } catch (e) { /* Rückfall unten */ } }
+  const m = new Map(); hvCollections().forEach(c => m.set(c.id, hvRecipeIdsIn(c.id).size)); return m;
+}
+function hvCollectionIdsOf(rid) {
+  if (typeof orgCollectionIdsOf === 'function') { try { return orgCollectionIdsOf(rid) || []; } catch (e) { return []; } }
+  const own = new Set(hvCollections().map(c => c.id)); const r = state.recipes.find(x => x.id === rid);
+  return r ? (r.collections || []).filter(c => own.has(c)) : [];
+}
+function hvInNoCollection(r) {
+  if (typeof orgInNoCollection === 'function') { try { return !!orgInNoCollection(r); } catch (e) { /* Rückfall unten */ } }
+  return !hvCollectionIdsOf(r.id).length;   // Systemmarke 'friends' zählt nie als Sammlung
+}
+function hvIsFriendRecipe(r) { return (r.collections || []).includes('friends'); }
+function hvColorVar(color) { return hvColors().some(c => c.id === color) ? `var(--org-c-${color}, var(--text-soft))` : 'var(--text-soft)'; }
+function hvIconKey(icon) { return hvIcons().includes(icon) ? icon : 'folder'; }
+function hvColIco(c, cls) { return `<span class="col-ico ${cls || ''}" style="--c:${hvColorVar(c && c.color)}" aria-hidden="true">${ICONS[hvIconKey(c && c.icon)]}</span>`; }
+function hvNorm(s) { return typeof searchNorm === 'function' ? searchNorm(String(s || '')) : String(s || '').toLowerCase(); }
+function hvCleanName(s) { return String(s || '').replace(/\s+/g, ' ').trim(); }
+function hvRecipeWord(n) { return n === 1 ? '1 Rezept' : `${n} Rezepte`; }
+
+/* Aktiver Bereich. Alte Einstiege (state.favOnly) gelten als «Favoriten». Ungültige Bereiche (z. B. Sammlung auf
+   einem anderen Gerät gelöscht) fallen still auf «Alle Rezepte» zurück: kein leerer, kaputter Zustand. */
+function hvScope() {
+  let s = state.activeCollection || 'all';
+  if (state.favOnly && s === 'all') return 'favorites';
+  if (!HV_PSEUDO.includes(s) && s !== 'none' && s !== 'friends' && !hvCollection(s)) { s = 'all'; state.activeCollection = 'all'; }
+  if (s === 'none' && !hvCollections().length) { s = 'all'; state.activeCollection = 'all'; }
+  return s;
+}
+function hvScopeList(scope, recipes) {
+  if (!scope || HV_PSEUDO.includes(scope)) return recipesInCollection(scope || 'all', recipes);
+  if (scope === 'none') return recipes.filter(hvInNoCollection);
+  if (scope === 'friends') return recipes.filter(hvIsFriendRecipe);
+  const ids = hvRecipeIdsIn(scope);
+  return recipes.filter(r => ids.has(r.id));
+}
+function hvScopeLabel(scope) {
+  const sys = { all: 'Alle Rezepte', favorites: 'Favoriten', none: 'Ohne Sammlung', friends: 'Rezepte von Freunden', quick: 'Schnell', veggie: 'Vegetarisch', uncooked: 'Noch nicht gekocht', frequent: 'Häufig gekocht' };
+  if (sys[scope]) return sys[scope];
+  const c = hvCollection(scope);
+  return c ? c.name : 'Alle Rezepte';
+}
+
+/* ---------- Sortierung ---------- */
+/* «Zuletzt hinzugefügt»: createdAt, sonst die Zeit aus der ID (uid(): r_<ms base36>_…), sonst ans Ende. */
+function hvAddedAt(r) {
+  const c = Number(r && r.createdAt);
+  if (c > 0) return c;
+  const m = /^r_([0-9a-z]+)_/.exec(String((r && r.id) || ''));
+  if (m) { const t = parseInt(m[1], 36); if (t > 946684800000 && t < Date.now() + 864e5) return t; }
+  return 0;
+}
+function hvSortRecipes(list, by) {
+  if (by !== 'added') return sortRecipes(list, by);   // 'time': ohne Zeitangabe ans Ende (unverändert)
+  const title = (r) => String(r.title || '');
+  return list.slice().sort((a, b) => {
+    const x = hvAddedAt(a), y = hvAddedAt(b);
+    if (!x !== !y) return x ? -1 : 1;
+    return (y - x) || title(a).localeCompare(title(b), 'de', { sensitivity: 'base' });
+  });
+}
+/* Hinweis unter der Ergebniszeile, nur wenn die Sortierung Rezepte ohne Wert ans Ende stellt */
+function hvSortHint(list) {
+  if (list.length < 2) return '';
+  const some = (fn) => list.some(fn) && !list.every(fn);
+  if (state.sortBy === 'time' && some(r => !(r.timeMinutes > 0))) return 'Rezepte ohne Zeitangabe stehen am Ende.';
+  if (state.sortBy === 'cooked' && some(r => !r.lastCookedAt)) return 'Noch nie gekochte Rezepte stehen am Ende.';
+  if (state.sortBy === 'added' && some(r => !hvAddedAt(r))) return 'Rezepte ohne bekanntes Datum stehen am Ende.';
+  return '';
+}
+
+/* ---------- Ergebniszeile ---------- */
+function hvFiltered() { return !!(state.query.trim() || activeStructuredFilterCount() || state.activeTag); }
+function hvCountWords(n, total, filtered) {
+  if (!filtered) return hvRecipeWord(n);
+  return `${n} von ${total} Rezepten`;
+}
+// Volltext (auch für Screenreader und Live-Region): «High Protein · 5 von 12 Rezepten»
+function hvCountText(scope, n, total, filtered) {
+  const words = hvCountWords(n, total, filtered);
+  return scope === 'all' ? words : `${hvScopeLabel(scope)} · ${words}`;
+}
+let hvLastCount = null, hvCountTimer = null;
+/* Höfliche Ansage, wenn sich Bereich oder Treffer ändern; beim Tippen erst nach einer Pause (nicht bei jedem Tastendruck). */
+function hvAnnounceCount() {
+  if (state.view !== 'home') { hvLastCount = null; clearTimeout(hvCountTimer); return; }
+  if (state.modal) return;
+  const read = () => { const h = document.getElementById('all-h'); return h ? h.textContent.replace(/\s+/g, ' ').trim() : ''; };
+  if (hvLastCount === null) { hvLastCount = read(); return; }
+  clearTimeout(hvCountTimer);
+  hvCountTimer = setTimeout(() => {
+    if (state.view !== 'home' || state.modal) return;
+    const text = read();
+    if (text && text !== hvLastCount) announceLive(text);
+    hvLastCount = text;
+  }, document.activeElement && document.activeElement.id === 'searchInput' ? 700 : 60);
+}
+
+/* ---------- Auswahlmodus ---------- */
+function hvSelecting() { return !!(state.selectMode && state.view === 'home'); }
+function hvPickedCls(r) { return hvSelecting() && state.selectMode.ids.has(r.id) ? ' is-picked' : ''; }
+function hvMainAttrs(r, titleEsc) {
+  if (!hvSelecting()) return `data-action="open-recipe" data-id="${escapeAttr(r.id)}" aria-label="${titleEsc} öffnen"`;
+  const on = state.selectMode.ids.has(r.id);
+  return `data-action="sel-toggle" data-id="${escapeAttr(r.id)}" role="checkbox" aria-checked="${on}" aria-label="${titleEsc} auswählen"`;
+}
+function hvPickMark(r) {
+  if (!hvSelecting()) return '';
+  return `<span class="check-box sel-mark ${state.selectMode.ids.has(r.id) ? 'is-on' : ''}" aria-hidden="true">${ICONS.check}</span>`;
+}
+function hvSelectBarHtml(list, scope) {
+  const sm = state.selectMode;
+  const ids = Array.from(sm.ids).filter(id => state.recipes.some(r => r.id === id));
+  const visible = new Set(list.map(r => r.id));
+  const n = ids.length, hidden = ids.filter(id => !visible.has(id)).length;
+  const status = !n ? 'Keine Rezepte ausgewählt' : hidden ? `${n} ausgewählt, ${hidden} davon ausgeblendet` : `${hvRecipeWord(n)} ausgewählt`;
+  const allHits = list.length && list.every(r => sm.ids.has(r.id));
+  const target = sm.target ? hvCollection(sm.target) : null;
+  const own = hvCollection(scope);
+  const allBtn = list.length ? `<button type="button" class="text-btn select-all" data-action="sel-all">${allHits ? 'Auswahl aufheben' : `Alle ${list.length} auswählen`}</button>` : '';
+  const actions = target
+    ? `<button type="button" class="primary-btn" data-action="sel-add-target" data-id="${escapeAttr(target.id)}" ${n ? '' : 'disabled'}>Zu «${escapeHtml(target.name)}» hinzufügen</button>`
+    : `<button type="button" class="primary-btn" data-action="sel-add" ${n ? '' : 'disabled'}>Zu Sammlung hinzufügen</button>${own ? `<button type="button" class="ghost-btn" data-action="sel-remove" data-id="${escapeAttr(own.id)}" ${n ? '' : 'disabled'}>Aus Sammlung entfernen</button>` : ''}`;
+  return `<div class="select-bar ${!target && own ? 'select-bar--two' : ''}" role="region" aria-label="Auswahl">
+    <div class="select-bar-row"><p class="select-bar-status" role="status" id="selStatus">${escapeHtml(status)}</p>${allBtn}</div>
+    <div class="select-bar-actions">${actions}</div>
+  </div>`;
+}
+
+/* ---------- Kopf: Auswahlknopf ---------- */
+function hvPickButtonHtml(scope, phone, inert) {
+  const label = hvScopeLabel(scope);
+  const c = hvCollection(scope);
+  if (phone) {
+    return `<button type="button" class="view-pick col-pick-title" id="colPickBtn" data-action="open-col-pick" aria-haspopup="dialog" aria-label="Sammlung wählen, aktuell: ${escapeAttr(label)}" ${inert ? 'inert' : ''}>
+      <span class="inline-pick-text">${escapeHtml(label)}</span>${ICONS.arrowDown}
+    </button>`;
+  }
+  const lead = c ? `<span class="col-dot" style="--c:${hvColorVar(c.color)}" aria-hidden="true"></span>` : (scope === 'favorites' ? ICONS.bookmark : ICONS.folder);
+  return `<button type="button" class="col-pick-btn ${c ? 'is-active' : ''}" id="colPickBtn" data-action="open-col-pick" aria-haspopup="dialog" aria-label="Sammlung wählen, aktuell: ${escapeAttr(label)}" title="${escapeAttr(label)}">${lead}<span class="col-pick-btn-text">${escapeHtml(label)}</span>${ICONS.arrowDown}</button>`;
+}
+
+/* ---------- Leerzustände je Bereich (§1.5) ---------- */
+function hvEmptyHtml(scope, total) {
+  const name = hvScopeLabel(scope), own = hvCollection(scope);
+  const box = (icon, title, text, btns) => `<div class="empty-state hv-empty">${icon}<h2>${title}</h2><p>${text}</p><div class="empty-actions">${btns}</div></div>`;
+  const allBtn = (cls) => `<button type="button" class="${cls}" data-action="set-col-scope" data-id="all">Alle Rezepte zeigen</button>`;
+  if (!total) {
+    if (own) return box(ICONS.folder, 'Noch keine Rezepte in dieser Sammlung.', `Füge Rezepte hinzu, die zu «${escapeHtml(name)}» passen.`,
+      `<button type="button" class="primary-btn" data-action="sel-start-add" data-id="${escapeAttr(own.id)}">${ICONS.plus} Rezepte hinzufügen</button>${allBtn('ghost-btn')}`);
+    if (scope === 'favorites') return box(ICONS.bookmark, 'Noch keine Favoriten', 'Tippe in einem Rezept auf das Lesezeichen, um es hier zu sammeln.', allBtn('primary-btn'));
+    if (scope === 'none') return box(ICONS.folder, 'Alle Rezepte sind einsortiert', 'Jedes Rezept gehört zu mindestens einer deiner Sammlungen.', allBtn('primary-btn'));
+    return box(ICONS.user || ICONS.folder, 'Keine Rezepte in diesem Bereich', 'Hier gibt es gerade keine Rezepte.', allBtn('primary-btn'));
+  }
+  const q = state.query.trim(), qShort = q.length > 40 ? q.slice(0, 40) + '…' : q;
+  const filters = activeStructuredFilterCount() + (state.activeTag ? 1 : 0);
+  if (q && !filters) return box(ICONS.search, `Keine Treffer für „${escapeHtml(qShort)}“`, `In «${escapeHtml(name)}» gibt es kein passendes Rezept.`,
+    `<button type="button" class="primary-btn" data-action="clear-search">Suche löschen</button><button type="button" class="ghost-btn" data-action="set-col-scope" data-id="all" data-keep-query="1">In allen Rezepten suchen</button>`);
+  return box(ICONS.filter, 'Keine passenden Rezepte', `In «${escapeHtml(name)}» passt kein Rezept zu Suche und Filtern.`,
+    `<button type="button" class="primary-btn" data-action="reset-extra-filters">Filter zurücksetzen</button><button type="button" class="ghost-btn" data-action="open-filter-sheet">Filter ändern</button>`);
+}
+
 function homeView() {
   const phone = isPhoneLayout();
+  const scope = hvScope();
+  const scopeAll = hvScopeList(scope, state.recipes);
   const list = applyAllFilters(state.recipes);
-  const filterCount = activeStructuredFilterCount() + (state.activeTag ? 1 : 0) + (state.activeCollection && state.activeCollection !== 'all' && state.activeCollection !== 'favorites' ? 1 : 0);
+  const filterCount = activeStructuredFilterCount() + (state.activeTag ? 1 : 0);
   const labels = appliedFilterLabels();
   const summary = labels.length > 3 ? labels.slice(0, 3).join(' · ') + ` · + ${labels.length - 3} weitere` : labels.join(' · ');
-  const favOnly = !!(state.favOnly || state.activeCollection === 'favorites');
-  /* Handy: «Nur Favoriten» steht als letzte Option in der Sortierung (Auswahl = state.favOnly, Sortierung bleibt gemerkt) */
-  const sortLabel = phone && favOnly ? 'Nur Favoriten' : (SORT_OPTIONS.find(o => o.id === state.sortBy) || SORT_OPTIONS[0]).label;
-  const sortOptions = SORT_OPTIONS.map(o => `<option value="${escapeAttr(o.id)}" ${state.sortBy === o.id && !(phone && favOnly) ? 'selected' : ''}>${escapeHtml(o.label)}</option>`).join('')
-    + (phone ? `<option value="__fav" ${favOnly ? 'selected' : ''}>Nur Favoriten</option>` : '');
+  const selecting = hvSelecting();
+  const sortCur = HV_SORT_OPTIONS.find(o => o.id === state.sortBy) || HV_SORT_OPTIONS[0];
+  const sortOptions = HV_SORT_OPTIONS.map(o => `<option value="${escapeAttr(o.id)}" ${sortCur.id === o.id ? 'selected' : ''}>${escapeHtml(o.label)}</option>`).join('');
   const filterBtn = `<button type="button" class="filter-btn ${filterCount ? 'is-active' : ''}" ${filterCount ? `data-count="${filterCount}"` : ''} ${phone && state.searchOpen ? 'inert' : ''} data-action="open-filter-sheet" aria-haspopup="dialog">${ICONS.sliders}<span class="filter-btn-text">Filter${filterCount ? ' · ' + filterCount : ''}</span></button>`;
+  const selBtn = list.length || selecting ? `<button type="button" class="text-btn sel-mode-btn" id="selModeBtn" data-action="${selecting ? 'sel-end' : 'sel-start'}" ${selecting ? 'aria-pressed="true"' : ''}>${selecting ? 'Fertig' : 'Auswählen'}</button>` : '';
+  const filtered = hvFiltered();
+  const n = list.length, total = scopeAll.length;
+  const countFull = hvCountText(scope, n, total, filtered);
+  const prefix = scope === 'all' ? '' : `${escapeHtml(hvScopeLabel(scope))} · `;
+  // Zahl als Zähler (tickerHtml) wie bisher; Bereichsname auf dem Handy nur für Screenreader (er steht im Titel)
+  const countInner = (filtered ? `${tickerHtml(n, 'count')} von ${total} Rezepten` : `${tickerHtml(n, 'count')} Rezept${n === 1 ? '' : 'e'}`);
+  const resultLine = `<h2 class="result-line" id="all-h" data-count-text="${escapeAttr(countFull)}">${prefix ? (phone ? `<span class="sr-only">${prefix}</span>` : prefix) : ''}${countInner}</h2>`;
+  const sortHint = hvSortHint(list);
+  const own = hvCollection(scope);
+  const addToCol = !phone && own && !selecting && total ? `<button type="button" class="text-btn hv-add-recipes" data-action="sel-start-add" data-id="${escapeAttr(own.id)}">${ICONS.plus} Rezepte hinzufügen</button>` : '';
 
   let content;
   if (!state.recipes.length) content = emptyState();
-  else if (!list.length) content = (phone ? `<div class="result-row result-row--phone result-row--tools-only"><div class="result-tools">${layoutToggleHtml(state.homeLayoutChosen ? (state.homeLayout === 'grid' ? 'grid' : 'list') : 'list', 'layout-toggle--phone')}${filterBtn}</div></div>` : '') + emptyFilterState();
-  else {
-    const n = list.length;
-    if (phone) {
-      /* Handy: Liste ist Standard; «N Rezepte · Sortierung» als ruhige Zeile, rechts der kompakte Umschalter Liste/Raster */
-      const pl = state.homeLayoutChosen ? (state.homeLayout === 'grid' ? 'grid' : 'list') : 'list';
-      const items = pl === 'grid' ? `<div class="rgrid rgrid--phone">${list.map(r => recipeCard(r, true)).join('')}</div>` : `<div class="rlist rlist--phone">${list.map(r => recipeRow(r, true)).join('')}</div>`;
-      content = `
+  else if (!list.length) {
+    const tools = phone ? `<div class="result-row result-row--phone result-row--tools-only"><div class="result-tools">${selecting ? selBtn : ''}${layoutToggleHtml(state.homeLayoutChosen ? (state.homeLayout === 'grid' ? 'grid' : 'list') : 'list', 'layout-toggle--phone')}${filterBtn}</div></div>` : (selecting ? `<div class="result-row">${selBtn}</div>` : '');
+    content = tools + (scope === 'all' ? emptyFilterState() : hvEmptyHtml(scope, total));
+  } else if (phone) {
+    /* Handy: Liste ist Standard; «N Rezepte · Sortierung» als ruhige Zeile, rechts Auswählen, Liste/Raster und Filter */
+    const pl = state.homeLayoutChosen ? (state.homeLayout === 'grid' ? 'grid' : 'list') : 'list';
+    const items = pl === 'grid' ? `<div class="rgrid rgrid--phone">${list.map(r => recipeCard(r, true)).join('')}</div>` : `<div class="rlist rlist--phone">${list.map(r => recipeRow(r, true)).join('')}</div>`;
+    content = `
       <section class="home-section" aria-labelledby="all-h">
         <div class="result-row result-row--phone">
           <div class="result-info">
-            <h2 class="result-line" id="all-h">${tickerHtml(n, 'count')} Rezept${n === 1 ? '' : 'e'}</h2>
+            ${selBtn ? `<div class="hv-count-line">${resultLine}${selBtn}</div>` : resultLine}
             <span class="result-dot" aria-hidden="true">·</span>
             <div class="inline-pick sort-inline">
-              <span class="inline-pick-text">${escapeHtml(sortLabel)}</span>${ICONS.arrowDown}
+              <span class="inline-pick-text">${escapeHtml(sortCur.label)}</span>${ICONS.arrowDown}
               <select class="inline-pick-select sort-select" id="sortSelect" aria-label="Sortierung">${sortOptions}</select>
             </div>
           </div>
           <div class="result-tools">${layoutToggleHtml(pl, 'layout-toggle--phone')}${filterBtn}</div>
         </div>
+        ${sortHint ? `<p class="hint-line hv-sort-hint">${escapeHtml(sortHint)}</p>` : ''}
         ${items}
       </section>`;
-    } else {
-      const items = state.homeLayout === 'list' ? `<div class="rlist">${list.map(r => recipeRow(r)).join('')}</div>` : `<div class="rgrid">${list.map(recipeCard).join('')}</div>`;
-      content = `
+  } else {
+    const items = state.homeLayout === 'list' ? `<div class="rlist">${list.map(r => recipeRow(r)).join('')}</div>` : `<div class="rgrid">${list.map(r => recipeCard(r)).join('')}</div>`;
+    content = `
       <section class="home-section" aria-labelledby="all-h">
         <div class="result-row">
-          <h2 class="result-line" id="all-h">${tickerHtml(n, 'count')} Rezept${n === 1 ? '' : 'e'}</h2>
+          ${resultLine}${addToCol}
           <label class="sort-pick"><span class="sort-pick-label">Sortierung</span>
             <select class="sort-select" id="sortSelect">${sortOptions}</select>
           </label>
+          ${selBtn}
           ${layoutToggleHtml(state.homeLayout)}
         </div>
+        ${sortHint ? `<p class="hint-line hv-sort-hint">${escapeHtml(sortHint)}</p>` : ''}
         ${items}
       </section>`;
-    }
   }
 
-  /* Handy: Suche als runder Knopf neben «Filter»; geoeffnet liegt das Feld ueber der Zeile (kein Springen der Liste), die Zeile dahinter ist inert */
+  /* Handy: Suche als runder Knopf neben dem Titel; geoeffnet liegt das Feld ueber der Zeile (kein Springen der Liste), die Zeile dahinter ist inert */
   const searchOpen = !!state.searchOpen, searchEnter = !!state.searchEnter; state.searchEnter = false;
   const hasQuery = !!state.query.trim();
   const searchBtn = `<button type="button" class="search-btn ${hasQuery ? 'is-active' : ''}" id="searchBtn" data-action="open-search" aria-label="Suchen" aria-expanded="${searchOpen}" aria-controls="searchPop" ${searchOpen ? 'inert' : ''}>${ICONS.search}</button>`;
@@ -461,19 +678,15 @@ function homeView() {
       <input class="search-input" id="searchInput" type="search" enterkeyhint="search" placeholder="Rezepte suchen …" value="${escapeHtml(state.query)}" autocomplete="off">
       <button type="button" class="search-close" data-action="close-search" data-id="${hasQuery ? 'clear' : 'keep'}" aria-label="${hasQuery ? 'Suche löschen und schliessen' : 'Suche schliessen'}">${ICONS.x}</button>
     </div>` : '';
+  /* v84: Sammlungsauswahl statt «Alle / Favoriten»: Handy im Titel, Desktop als Knopf neben «Filter» */
   const filterBar = !state.recipes.length ? '' : (phone
     ? `<div class="filter-bar filter-bar--phone">
-          <div class="view-pick" ${searchOpen ? 'inert' : ''}>
-            <span class="inline-pick-text">Alle Rezepte</span>
-          </div>
+          ${hvPickButtonHtml(scope, true, searchOpen)}
           ${searchBtn}
           ${searchPop}
         </div>`
     : `<div class="filter-bar">
-          <div class="seg" role="group" aria-label="Anzeige">
-            <button type="button" class="seg-btn" data-action="set-fav-mode" data-id="all" aria-pressed="${!favOnly}">Alle</button>
-            <button type="button" class="seg-btn" data-action="set-fav-mode" data-id="fav" aria-pressed="${favOnly}">Favoriten</button>
-          </div>
+          ${hvPickButtonHtml(scope, false)}
           ${filterBtn}
         </div>`);
 
@@ -494,19 +707,182 @@ function homeView() {
         </div>` : ''}
       </section>
     </div>
-    <main class="has-tabbar home-main ${phone && state.recipes.length ? 'home-main--addbar' : ''}">
+    <main class="has-tabbar home-main ${phone && state.recipes.length ? 'home-main--addbar' : ''} ${selecting ? 'is-selecting' : ''}">
       ${phone && typeof recipesSwitchHtml === 'function' ? recipesSwitchHtml() : ''}
       ${todayPlannedHtml()}
-      ${(() => { const n = backupNudgeInfo(); return n ? `<div class="nudge-card" role="note">
-        <p class="nudge-text">${n.never ? 'Noch keine Sicherung' : 'Letzte Sicherung vor ' + n.days + ' Tagen'}</p>
+      ${(() => { const nb = backupNudgeInfo(); return nb ? `<div class="nudge-card" role="note">
+        <p class="nudge-text">${nb.never ? 'Noch keine Sicherung' : 'Letzte Sicherung vor ' + nb.days + ' Tagen'}</p>
         <div class="nudge-actions"><button class="text-btn" data-action="goto-view" data-view="settings-backup">Sichern</button><button class="text-btn text-btn--quiet" data-action="backup-nudge-dismiss">Später</button></div></div>` : ''; })()}
       ${content}
+      ${selecting && !phone ? hvSelectBarHtml(list, scope) : ''}
     </main>
-    ${phone && state.recipes.length ? `<div class="home-add-bar"><button type="button" class="home-add-btn" data-action="open-add-menu">${ICONS.plus}<span>Rezept hinzufügen</span></button></div>` : ''}
+    ${phone && state.recipes.length ? (selecting ? `<div class="home-add-bar home-sel-bar">${hvSelectBarHtml(list, scope)}</div>` : `<div class="home-add-bar"><button type="button" class="home-add-btn" data-action="open-add-menu">${ICONS.plus}<span>Rezept hinzufügen</span></button></div>`) : ''}
     ${bottomNav()}
     ${filterSheetModal()}
     ${addMenuModal()}
+    ${hvModalHtml()}
   `;
+}
+
+/* ---------- Dialoge der Übersicht ---------- */
+function hvModalHtml() {
+  const m = state.modal;
+  if (!m) return '';
+  switch (m.type) {
+    case 'col-pick': return colPickModal(m);
+    case 'col-edit': return colEditModal(m);
+    case 'col-manage': return colManageModal(m);
+    case 'col-delete': return colDeleteModal(m);
+    case 'col-batch': return colBatchModal(m);
+    default: return '';
+  }
+}
+function hvMatchesQuery(c, q) { return !q || hvNorm(c.name).includes(hvNorm(q)); }
+function hvSearchHtml(id, value, label) {
+  return `<div class="rp-search hv-search" role="search">
+    <label for="${id}" class="sr-only">${escapeHtml(label)}</label>
+    <span class="rp-search-icon" aria-hidden="true">${ICONS.search}</span>
+    <input type="search" id="${id}" class="rp-search-input" placeholder="Sammlung suchen" value="${escapeAttr(value || '')}" autocomplete="off" autocapitalize="off" spellcheck="false" enterkeyhint="search">
+  </div>`;
+}
+
+/* Sammlungsauswahl (§1.2). Liste separat, damit die Suche nur sie neu aufbaut (kein render(), Cursor bleibt). */
+function colPickListHtml(m) {
+  const scope = hvScope(), cols = hvCollections(), counts = hvCounts();
+  const q = (m.query || '').trim();
+  const row = (id, icon, name, count, hint) => {
+    const on = scope === id;
+    return `<li><button type="button" class="menu-item col-pick-item ${on ? 'is-current' : ''}" data-action="set-col-scope" data-id="${escapeAttr(id)}" ${on ? 'aria-current="true"' : ''}>
+      ${icon}<span class="col-pick-name"><span class="col-pick-label">${escapeHtml(name)}</span>${hint ? `<span class="menu-item-hint">${escapeHtml(hint)}</span>` : ''}<span class="sr-only">, ${escapeHtml(hvRecipeWord(count))}</span></span>
+      <span class="col-count" aria-hidden="true">${count}</span><span class="col-check" aria-hidden="true">${on ? ICONS.check : ''}</span>
+    </button></li>`;
+  };
+  let sys = '';
+  if (!q) {
+    sys += row('all', `<span class="col-ico" aria-hidden="true">${ICONS.bookOpen}</span>`, 'Alle Rezepte', state.recipes.length);
+    sys += row('favorites', `<span class="col-ico" aria-hidden="true">${ICONS.bookmark}</span>`, 'Favoriten', state.recipes.filter(r => r.favorite).length);
+    if (cols.length) sys += row('none', `<span class="col-ico col-ico--muted" aria-hidden="true">${ICONS.folder}</span>`, 'Ohne Sammlung', state.recipes.filter(hvInNoCollection).length);
+    const fr = state.recipes.filter(hvIsFriendRecipe).length;
+    if (fr || scope === 'friends') sys += row('friends', `<span class="col-ico" aria-hidden="true">${ICONS.user || ICONS.folder}</span>`, 'Rezepte von Freunden', fr, 'Von Freunden erhalten');
+  }
+  const hits = cols.filter(c => hvMatchesQuery(c, q));
+  let own = '';
+  if (!cols.length) own = `<p class="hint-line col-pick-empty">Mit eigenen Sammlungen ordnest du Rezepte nach deinen Themen, zum Beispiel Meal Prep oder Für Gäste.</p>`;
+  else if (!hits.length) own = `<div class="col-pick-nohit"><p><strong>Keine Sammlung gefunden für «${escapeHtml(q)}».</strong></p>
+      <div class="col-pick-nohit-actions"><button type="button" class="outline-btn outline-btn--small" data-action="col-new" data-name="${escapeAttr(hvCleanName(q).slice(0, HV_NAME_MAX))}">${ICONS.plus} Sammlung «${escapeHtml(q)}» erstellen</button>
+      <button type="button" class="text-btn" data-action="col-pick-clear">Suche löschen</button></div></div>`;
+  else own = `<p class="menu-group-title" id="colPickOwnH">Deine Sammlungen</p><ul class="col-pick-list" role="list" aria-labelledby="colPickOwnH">${hits.map(c => row(c.id, hvColIco(c), c.name, counts.get(c.id) || 0)).join('')}</ul>`;
+  return (sys ? `<ul class="col-pick-list col-pick-list--sys" role="list" aria-label="Bereiche">${sys}</ul>` : '') + own;
+}
+function colPickModal(m) {
+  const cols = hvCollections();
+  const search = cols.length >= HV_SEARCH_MIN ? hvSearchHtml('colPickSearch', m.query, 'Sammlungen durchsuchen') : '';
+  const a = m.anchor;
+  const body = `${search}<div id="colPickList">${colPickListHtml(m)}</div>`;
+  const foot = `<div class="rp-actions col-pick-foot"><button type="button" class="outline-btn" data-action="col-new">${ICONS.plus} Neue Sammlung</button>${cols.length ? '<button type="button" class="text-btn" data-action="col-manage">Sammlungen verwalten</button>' : ''}</div>`;
+  const html = rpSheetHtml({ id: 'colPickTitle', title: 'Sammlung wählen', body, foot, cls: `rp-sheet--colpick ${a ? 'rp-sheet--anchored' : ''}` });
+  return a ? html.replace('class="modal-sheet rp-sheet', `style="--anchor-x:${Math.round(a.x)}px;--anchor-y:${Math.round(a.y)}px;--anchor-h:${Math.round(a.h)}px" class="modal-sheet rp-sheet`) : html;
+}
+
+/* Neue Sammlung / Sammlung bearbeiten (§1.4, §4). Entwurf liegt im Dialogzustand (m.name, m.color, m.icon). */
+function hvSwatchesHtml(m) {
+  const cur = m.color || '';
+  const opt = (id, label) => `<label class="col-swatch ${id ? '' : 'col-swatch--none'}"><input type="radio" class="col-radio" name="colColor" value="${escapeAttr(id)}" ${cur === id ? 'checked' : ''} aria-label="${escapeAttr(label)}"><span class="col-swatch-dot" style="--c:${id ? hvColorVar(id) : 'transparent'}" aria-hidden="true">${ICONS.check}</span></label>`;
+  return `<fieldset class="rp-group col-fieldset"><legend class="rp-label">Farbe <span class="rp-optional">(optional)</span></legend>
+    <div class="col-swatches">${opt('', 'Keine')}${hvColors().map(c => opt(c.id, c.label)).join('')}</div></fieldset>`;
+}
+function hvIconsHtml(m) {
+  const cur = hvIconKey(m.icon);
+  return `<fieldset class="rp-group col-fieldset"><legend class="rp-label">Symbol <span class="rp-optional">(optional)</span></legend>
+    <div class="col-icons">${hvIcons().map(k => `<label class="col-icon-opt"><input type="radio" class="col-radio" name="colIcon" value="${escapeAttr(k)}" ${cur === k ? 'checked' : ''} aria-label="${escapeAttr(HV_ICON_LABELS[k] || k)}"><span class="col-icon-face" aria-hidden="true">${ICONS[k]}</span></label>`).join('')}</div></fieldset>`;
+}
+function hvNameCountHtml(len) { return len >= 50 ? `${len} von ${HV_NAME_MAX} Zeichen` : ''; }
+function colEditModal(m) {
+  const edit = m.mode === 'edit';
+  const name = m.name != null ? m.name : '';
+  const err = m.error || '';
+  const errHtml = err ? `<div class="col-err" id="colNameErr" role="alert"><p class="field-error">${escapeHtml(err)}</p>${m.existingId ? `<button type="button" class="text-btn" data-action="col-use-existing" data-id="${escapeAttr(m.existingId)}">Bestehende Sammlung verwenden</button>` : ''}</div>` : '';
+  const body = `<div class="field col-name-field">
+      <label for="colName">Name</label>
+      <input id="colName" type="text" maxlength="${HV_NAME_MAX}" autocomplete="off" enterkeyhint="done" placeholder="z. B. Meal Prep" value="${escapeAttr(name)}" ${err ? 'aria-invalid="true" aria-describedby="colNameErr"' : ''}>
+      <p class="fs-hint col-name-count" id="colNameCount" aria-live="polite">${hvNameCountHtml(name.length)}</p>
+      ${errHtml}
+    </div>
+    ${hvSwatchesHtml(m)}
+    ${hvIconsHtml(m)}
+    ${edit ? `<button type="button" class="text-btn text-btn--danger rp-remove" data-action="col-delete" data-id="${escapeAttr(m.id)}">${ICONS.trash} Sammlung löschen</button>` : ''}`;
+  const foot = `<div class="rp-actions"><button type="button" class="ghost-btn" data-action="col-edit-cancel">Abbrechen</button><button type="button" class="primary-btn" data-action="col-save">${edit ? 'Speichern' : 'Sammlung erstellen'}</button></div>`;
+  return rpSheetHtml({ id: 'colEditTitle', title: edit ? 'Sammlung bearbeiten' : 'Neue Sammlung', body, foot, cls: 'rp-sheet--coledit' });
+}
+
+/* Sammlungen verwalten (§4): Umbenennen/Farbe/Symbol über die Zeile, Reihenfolge mit Hoch/Runter (kein Ziehen nötig) */
+function colManageModal(m) {
+  const cols = hvCollections(), counts = hvCounts();
+  const rows = cols.map((c, i) => {
+    const k = counts.get(c.id) || 0;
+    return `<li class="col-manage-row" data-col-row="${escapeAttr(c.id)}">
+      <button type="button" class="col-manage-main" data-action="col-edit" data-id="${escapeAttr(c.id)}">${hvColIco(c)}<span class="col-manage-text"><span class="col-manage-name">${escapeHtml(c.name)}</span><span class="menu-item-hint">${k ? hvRecipeWord(k) : 'Leer'}</span></span><span class="sr-only">, bearbeiten</span></button>
+      <div class="col-manage-move">
+        <button type="button" class="icon-btn" data-action="col-move" data-id="${escapeAttr(c.id)}" data-dir="-1" aria-label="${escapeAttr(c.name)} nach oben" ${i === 0 ? 'disabled' : ''}>${ICONS.arrowUp}</button>
+        <button type="button" class="icon-btn" data-action="col-move" data-id="${escapeAttr(c.id)}" data-dir="1" aria-label="${escapeAttr(c.name)} nach unten" ${i === cols.length - 1 ? 'disabled' : ''}>${ICONS.arrowDown}</button>
+      </div>
+    </li>`;
+  }).join('');
+  const body = cols.length ? `<ul class="col-manage-list" role="list">${rows}</ul>` : `<p class="hint-line">Du hast noch keine Sammlung.</p>`;
+  const foot = `<div class="rp-actions"><button type="button" class="outline-btn" data-action="col-new" data-from="manage">${ICONS.plus} Neue Sammlung</button><button type="button" class="primary-btn" data-action="close-modal">Fertig</button></div>`;
+  return rpSheetHtml({ id: 'colManageTitle', title: 'Sammlungen verwalten', sub: cols.length === 1 ? '1 Sammlung' : `${cols.length} Sammlungen`, body, foot, cls: 'rp-sheet--colmanage' });
+}
+function colDeleteModal(m) {
+  const c = hvCollection(m.id);
+  if (!c) return '';
+  const k = hvCounts().get(c.id) || 0;
+  return `<div class="modal-backdrop" data-action="close-modal">
+    <div class="modal-sheet col-delete-sheet" role="dialog" aria-modal="true" aria-labelledby="colDelTitle" aria-describedby="colDelText" tabindex="-1" onclick="event.stopPropagation()">
+      <div class="sheet-handle" aria-hidden="true"></div>
+      <h2 class="modal-title" id="colDelTitle">Sammlung löschen?</h2>
+      <p id="colDelText"><strong>Deine Rezepte bleiben erhalten.</strong></p>
+      <p class="hint-line">Nur die Sammlung «${escapeHtml(c.name)}»${k ? ` und ihre Zuordnung zu ${k === 1 ? '1 Rezept' : k + ' Rezepten'}` : ''} ${k ? 'werden' : 'wird'} entfernt.</p>
+      <div class="rp-actions col-delete-actions">
+        <button type="button" class="ghost-btn" data-action="col-delete-cancel" data-id="${escapeAttr(c.id)}">Abbrechen</button>
+        <button type="button" class="primary-btn kd-danger-btn" data-action="col-delete-confirm" data-id="${escapeAttr(c.id)}">Sammlung löschen</button>
+      </div>
+    </div>
+  </div>`;
+}
+
+/* Mehrere Rezepte: «Zu Sammlung hinzufügen» (§3.4). Alle Haken starten leer; nur fehlende Paare werden ergänzt. */
+function colBatchListHtml(m) {
+  const ids = Array.from((state.selectMode && state.selectMode.ids) || []).filter(id => state.recipes.some(r => r.id === id));
+  const cols = hvCollections(), q = (m.query || '').trim();
+  const hits = cols.filter(c => hvMatchesQuery(c, q));
+  if (!cols.length) return `<p class="hint-line">Du hast noch keine Sammlung.</p>`;
+  if (!hits.length) return `<p class="hint-line"><strong>Keine Sammlung gefunden für «${escapeHtml(q)}».</strong></p>`;
+  const checked = m.checked || new Set();
+  return `<ul class="rp-list col-batch-list" id="colBatchList" aria-label="Deine Sammlungen">${hits.map(c => {
+    const inSet = hvRecipeIdsIn(c.id);
+    const have = ids.filter(id => inSet.has(id)).length;
+    const all = ids.length && have === ids.length;
+    const on = all || checked.has(c.id);
+    const meta = all ? (ids.length === 1 ? 'Schon enthalten' : `Alle ${ids.length} schon enthalten`) : have ? `${have} von ${ids.length} schon enthalten` : '';
+    return `<li class="rp-row ${on ? 'is-selected' : ''} ${all ? 'is-disabled' : ''}"><label class="rp-item">
+      <input type="checkbox" class="rp-input col-batch-input" data-col="${escapeAttr(c.id)}" ${on ? 'checked' : ''} ${all ? 'disabled' : ''}>
+      ${hvColIco(c)}<span class="rp-item-text"><span class="rp-item-title">${escapeHtml(c.name)}</span>${meta ? `<span class="rp-item-meta">${escapeHtml(meta)}</span>` : ''}</span>
+      <span class="rp-mark" aria-hidden="true">${ICONS.check}</span></label></li>`;
+  }).join('')}</ul>`;
+}
+function colBatchModal(m) {
+  const ids = Array.from((state.selectMode && state.selectMode.ids) || []).filter(id => state.recipes.some(r => r.id === id));
+  const cols = hvCollections();
+  const search = cols.length >= HV_SEARCH_MIN ? hvSearchHtml('colBatchSearch', m.query, 'Sammlungen durchsuchen') : '';
+  const err = m.error ? `<div class="col-err" id="colNewErr" role="alert"><p class="field-error">${escapeHtml(m.error)}</p>${m.existingId ? `<button type="button" class="text-btn" data-action="col-batch-use" data-id="${escapeAttr(m.existingId)}">Bestehende Sammlung verwenden</button>` : ''}</div>` : '';
+  const inline = (m.newOpen || !cols.length)
+    ? `<div class="inline-add col-inline-add"><label for="colNewInline" class="sr-only">Name der neuen Sammlung</label><input id="colNewInline" type="text" maxlength="${HV_NAME_MAX}" placeholder="Name der Sammlung" autocomplete="off" enterkeyhint="done" value="${escapeAttr(m.newName || '')}" ${m.error ? 'aria-invalid="true" aria-describedby="colNewErr"' : ''}><button type="button" class="outline-btn outline-btn--small" data-action="col-batch-create">Erstellen</button></div>${err}`
+    : `<button type="button" class="text-btn col-inline-open" data-action="col-batch-new">${ICONS.plus} Neue Sammlung</button>`;
+  const n = (m.checked || new Set()).size;
+  const body = `${search}<div id="colBatchWrap">${colBatchListHtml(m)}</div>${inline}`;
+  const foot = `<p class="rp-count" id="colBatchCount" aria-live="polite">${n ? (n === 1 ? '1 Sammlung gewählt' : `${n} Sammlungen gewählt`) : 'Noch keine Sammlung gewählt'}</p>
+    <div class="rp-actions"><button type="button" class="ghost-btn" data-action="close-modal">Abbrechen</button><button type="button" class="primary-btn" data-action="col-batch-apply" ${n ? '' : 'disabled'}>Hinzufügen</button></div>`;
+  return rpSheetHtml({ id: 'colBatchTitle', title: 'Zu Sammlung hinzufügen', sub: `${hvRecipeWord(ids.length)} ausgewählt`, body, foot, cls: 'rp-sheet--colbatch' });
 }
 
 /* ---------- Rezeptdetail ---------- */
@@ -634,7 +1010,7 @@ function detailView() {
       <div class="diet-warning-actions"><button class="outline-btn outline-btn--small" data-action="fix-diet-conflict" data-id="${escapeAttr(r.id)}">Kennzeichnung entfernen</button><button class="text-btn" data-action="edit-recipe" data-id="${escapeAttr(r.id)}">Bearbeiten</button></div>
     </div>` : '';
   return `
-    ${topbar(r.title || 'Rezept', { back: true, plainTitle: 'Rezept', cls: 'topbar--detail', actions: `<button class="icon-btn" data-action="open-detail-menu" data-id="${escapeAttr(r.id)}" aria-label="Weitere Aktionen" aria-haspopup="dialog">${ICONS.more}</button>` })}
+    ${topbar(r.title || 'Rezept', { back: true, backLabel: linkBackLabel(), plainTitle: 'Rezept', cls: 'topbar--detail', actions: `<button class="icon-btn" data-action="open-detail-menu" data-id="${escapeAttr(r.id)}" aria-label="Weitere Aktionen" aria-haspopup="dialog">${ICONS.more}</button>` })}
     <main class="has-tabbar detail-main ${hero ? 'has-hero' : 'no-hero'}" data-tab="${tab}">
       ${hero}
       <div class="detail-cols"><div class="detail-col detail-col--info">
@@ -653,6 +1029,7 @@ function detailView() {
         <button type="button" class="tool-action" data-action="open-share-menu" data-id="${escapeAttr(r.id)}" aria-haspopup="dialog">${ICONS.share}<span>Teilen</span></button>
       </div>
       ${source}
+      ${rcolTagsHtml(r)}
       ${conflictBox}
       <div class="detail-aside-ing" role="region" aria-label="Zutaten">${wide ? `<h2 class="sr-only">Zutaten</h2>` + ingHtml : ''}</div>
       </div><div class="detail-col detail-col--content">
@@ -660,6 +1037,7 @@ function detailView() {
         ${tabs.map(t => `<button role="tab" id="tab-${t.id}" class="tab-v2 ${tab === t.id ? 'is-active' : ''}" aria-selected="${tab === t.id}" aria-controls="panel-${t.id}" tabindex="${tab === t.id ? '0' : '-1'}" data-action="set-detail-tab" data-id="${escapeAttr(t.id)}">${t.label}</button>`).join('')}
       </div>
       ${tabs.map(t => `<div class="tab-panel" id="panel-${t.id}" role="tabpanel" aria-labelledby="tab-${t.id}" ${tab === t.id ? '' : 'hidden'}><h2 class="sr-only">${t.label}</h2>${panelHtml[t.id]}</div>`).join('')}
+      ${pairingSectionHtml(r)}
       ${recipeCheckHtml(r)}
       </div></div>
     </main>
@@ -668,7 +1046,8 @@ function detailView() {
     ${state.modal && state.modal.type === 'detail-menu' ? detailMenuModal(r) : ''}
     ${state.modal && state.modal.type === 'share-menu' ? shareMenuModal(r) : ''}
     ${state.modal && state.modal.type === 'note' ? noteModal(r) : ''}
-    ${state.modal && state.modal.type === 'collections' ? collectionsModal(r) : ''}
+    ${rcolModalHtml()}
+    ${linkModalsHtml(r)}
     ${state.modal && state.modal.type === 'shop-select' ? shopSelectModal() : ''}
     ${state.modal && state.modal.type === 'plan-recipe' ? planRecipeModal() : ''}
     ${nutritionModal(r)}
@@ -715,7 +1094,8 @@ function detailMenuModal(r) {
     ${item('duplicate-recipe', ICONS.copy, 'Duplizieren')}
     ${item('export-pdf', ICONS.pdf, 'Als PDF exportieren')}
     ${item('add-to-cookbook', ICONS.bookOpen, 'Zum Kochbuch hinzufügen')}
-    ${item('open-collections-modal', ICONS.folder, 'Zu Sammlung hinzufügen')}
+    ${rcolMenuItemHtml(r)}
+    ${linksOk() ? item('link-open', ICONS.link, 'Rezept verknüpfen') : ''}
     ${item('open-plan-recipe', ICONS.calendar, 'Zum Wochenplan')}
     ${item('open-note-modal', ICONS.note, 'Notiz hinzufügen')}
     <p class="menu-group-title" role="presentation">Teilen</p>
@@ -731,21 +1111,334 @@ function noteModal(r) {
     <p class="hint-line">Ohne Datum wird der Text an die allgemeine Rezeptnotiz angehängt.</p>
     <div class="form-actions"><button class="ghost-btn" data-action="close-modal">Abbrechen</button><button class="primary-btn" data-action="save-note" data-id="${escapeAttr(r.id)}">Speichern</button></div>`);
 }
-function collectionsModal(r) {
-  const cols = getCollections();
-  return sheet('col-title', 'Sammlungen', `
-    <div class="menu-list">
-      ${cols.length ? cols.map(c => {
-        const on = (r.collections || []).includes(c.id);
-        return `<button class="menu-item" data-action="toggle-recipe-collection" data-id="${escapeAttr(r.id)}" data-col="${escapeHtml(c.id)}" role="checkbox" aria-checked="${on}"><span class="check-box ${on ? 'is-on' : ''}" aria-hidden="true">${ICONS.check}</span><span>${escapeHtml(c.name)}</span></button>`;
-      }).join('') : '<p class="hint-line">Noch keine eigene Sammlung angelegt.</p>'}
-    </div>
-    <div class="inline-add">
-      <label for="newCollectionName" class="sr-only">Neue Sammlung</label>
-      <input id="newCollectionName" type="text" placeholder="Neue Sammlung, z.B. Sonntagsküche">
-      <button class="primary-btn" data-action="create-collection" data-id="${escapeAttr(r.id)}">Sammlung erstellen</button>
-    </div>`);
+/* ===== v84 Rezept: Sammlungen am Rezept und «Passt dazu» =====
+   Daten nur ueber org.js (orgCollections, orgCollectionIdsOf, orgSetMembership, orgCreateCollection, orgLinksOf,
+   orgLinkCreate, orgLinkNote, orgLinkRemove, orgUndo). Fehlt org.js, erscheinen die Teile nicht (typeof-Rueckfall).
+   Sammlungen sind privat und getrennt von den Rezeptmerkmalen (source-chip); Verknuepfungen sind kein Rezeptinhalt. */
+function orgOk() { return typeof orgCollections === 'function' && typeof orgCollectionIdsOf === 'function' && typeof orgSetMembership === 'function'; }
+function linksOk() { return typeof orgLinksOf === 'function' && typeof orgLinkCreate === 'function'; }
+function rcolSafeColor(c) { return String((c && c.color) || '').replace(/[^a-z0-9-]/gi, ''); }
+function rcolDotHtml(c) {
+  const col = rcolSafeColor(c);
+  return `<span class="col-dot" aria-hidden="true"${col ? ` style="--c: var(--org-c-${col})"` : ''}></span>`;
 }
+// Eigene Sammlungen eines Rezepts in der Reihenfolge der Sammlungsliste
+function rcolCollectionsOf(recipeId) {
+  if (!orgOk()) return [];
+  let ids;
+  try { ids = new Set(orgCollectionIdsOf(recipeId) || []); } catch (e) { return []; }
+  return (orgCollections() || []).filter(c => c && ids.has(c.id));
+}
+function rcolMenuItemHtml(r) {
+  if (!orgOk()) return '';
+  const cols = rcolCollectionsOf(r.id);
+  const hint = !cols.length ? '' : cols.length <= 2 ? 'In ' + cols.map(c => c.name).join(', ') : `In ${cols.length} Sammlungen`;
+  return `<button type="button" class="menu-item ${hint ? 'menu-item--hint' : ''}" data-action="rcol-open" data-id="${escapeAttr(r.id)}">${ICONS.folder}<span class="menu-item-text"><span>Zu Sammlungen hinzufügen</span>${hint ? `<span class="menu-item-hint">${escapeHtml(hint)}</span>` : ''}</span></button>`;
+}
+/* Rezeptansicht: dezente Umriss-Pillen (max. 3, dann «+ N weitere»), nie im PDF, Versand oder in der Bibliothek */
+const RCOL_TAGS_MAX = 3;
+function rcolTagsHtml(r) {
+  const cols = rcolCollectionsOf(r.id);
+  if (!cols.length) return '';
+  const more = cols.length - RCOL_TAGS_MAX;
+  return `<div class="col-tags" role="group" aria-label="Deine Sammlungen">${cols.map((c, i) => `<button type="button" class="col-tag" data-action="rcol-scope" data-id="${escapeAttr(c.id)}" aria-label="Sammlung ${escapeAttr(c.name)} öffnen"${i >= RCOL_TAGS_MAX ? ' hidden' : ''}>${rcolDotHtml(c)}<span class="col-tag-name">${escapeHtml(c.name)}</span></button>`).join('')}${more > 0 ? `<button type="button" class="text-btn col-tags-more" data-col-tags-more aria-expanded="false">+ ${more} weitere</button>` : ''}</div>`;
+}
+
+/* ---------- Dialog «Zu Sammlungen hinzufügen» (Modaltyp 'rcol', auch aus anderen Ansichten: openModal({ type: 'rcol', recipeId })) ----------
+   Entwurf im Modal (draft), gespeichert wird erst mit «Speichern». Suche filtert nur die Anzeige, Haken bleiben. */
+const RCOL_SEARCH_MIN = 6;
+function rcolModalState() {
+  const m = state.modal;
+  if (!m || m.type !== 'rcol') return null;
+  if (!Array.isArray(m.draft)) {
+    const cur = rcolCollectionsOf(m.recipeId).map(c => c.id);
+    m.orig = cur.slice(); m.draft = cur.slice(); m.query = m.query || '';
+    if (!(orgOk() && orgCollections().length)) m.newOpen = true;   // noch keine Sammlung: Feld gleich offen
+  }
+  return m;
+}
+function rcolVisible(m) {
+  const q = typeof searchNorm === 'function' ? searchNorm(m.query || '') : String(m.query || '').toLowerCase();
+  const all = orgOk() ? orgCollections() : [];
+  if (!q.trim()) return all;
+  const toks = q.split(' ').filter(Boolean);
+  return all.filter(c => { const hay = typeof searchNorm === 'function' ? searchNorm(c.name || '') : String(c.name || '').toLowerCase(); return toks.every(t => hay.includes(t)); });
+}
+function rcolListInnerHtml(m) {
+  const all = orgOk() ? orgCollections() : [];
+  if (!all.length) return `<li class="rp-empty rcol-empty"><p>Du hast noch keine Sammlung.</p></li>`;
+  const list = rcolVisible(m);
+  if (!list.length) return `<li class="rp-empty"><p><strong>Keine Sammlung gefunden für «${escapeHtml((m.query || '').trim())}».</strong></p><button type="button" class="outline-btn outline-btn--small" data-rcol-clear>Suche löschen</button></li>`;
+  const draft = new Set(m.draft);
+  return list.map(c => {
+    const on = draft.has(c.id);
+    return `<li class="rp-row ${on ? 'is-selected' : ''}"><label class="rp-item">
+      <input type="checkbox" class="rp-input" data-rcol-pick="${escapeAttr(c.id)}" ${on ? 'checked' : ''}>
+      ${rcolDotHtml(c)}
+      <span class="rp-item-text"><span class="rp-item-title">${escapeHtml(c.name)}</span></span>
+      <span class="rp-mark" aria-hidden="true">${ICONS.check}</span></label></li>`;
+  }).join('');
+}
+function rcolHiddenText(m) {
+  const shown = new Set(rcolVisible(m).map(c => c.id));
+  const n = m.draft.filter(id => !shown.has(id)).length;
+  if (!n) return '';
+  return n === 1 ? '1 ausgewählte Sammlung ist durch die Suche ausgeblendet.' : `${n} ausgewählte Sammlungen sind durch die Suche ausgeblendet.`;
+}
+function rcolCountText(m) {
+  const live = new Set((orgOk() ? orgCollections() : []).map(c => c.id));
+  const n = m.draft.filter(id => live.has(id)).length;
+  return n ? `${n} ${n === 1 ? 'Sammlung' : 'Sammlungen'} ausgewählt` : 'Keine Sammlung ausgewählt';
+}
+function rcolNewHtml(m) {
+  if (!m.newOpen) return `<button type="button" class="text-btn rcol-new-btn" data-action="rcol-new" data-id="${escapeAttr(m.recipeId)}">${ICONS.plus}<span>Neue Sammlung</span></button>`;
+  const err = m.newError === 'empty' ? 'Gib der Sammlung einen Namen.'
+    : m.newError === 'too_long' ? 'Der Name ist zu lang. Höchstens 60 Zeichen.'
+    : m.newError === 'duplicate' ? 'Diese Sammlung gibt es bereits.'
+    : m.newError ? 'Die Sammlung konnte nicht gespeichert werden. Der Gerätespeicher ist vielleicht voll. Versuche es nochmals.' : '';
+  return `<div class="rcol-add">
+    <div class="inline-add">
+      <label for="colNewInline" class="sr-only">Name der neuen Sammlung</label>
+      <input id="colNewInline" type="text" maxlength="60" placeholder="Name der Sammlung" autocomplete="off" enterkeyhint="done" value="${escapeAttr(m.newName || '')}"${err ? ' aria-invalid="true" aria-describedby="rcolErr"' : ''}>
+      <button type="button" class="outline-btn outline-btn--small" data-action="rcol-create" data-id="${escapeAttr(m.recipeId)}">Erstellen</button>
+    </div>
+    ${err ? `<p class="fs-hint rcol-err" id="rcolErr" role="alert">${escapeHtml(err)}${m.newError === 'duplicate' && m.existingId ? ` <button type="button" class="text-btn rcol-use" data-action="rcol-use-existing" data-id="${escapeAttr(m.existingId)}">Bestehende Sammlung verwenden</button>` : ''}</p>` : ''}
+  </div>`;
+}
+function rcolModalHtml() {
+  const m = rcolModalState();
+  if (!m || !orgOk()) return '';
+  const r = state.recipes.find(x => x.id === m.recipeId);
+  if (!r) return '';
+  const many = orgCollections().length >= RCOL_SEARCH_MIN;
+  const body = `${many ? `<div class="rp-search" role="search">
+      <label for="rcolSearch" class="sr-only">Sammlung suchen</label>
+      <span class="rp-search-icon" aria-hidden="true">${ICONS.search || ''}</span>
+      <input type="search" id="rcolSearch" class="rp-search-input" placeholder="Sammlung suchen" value="${escapeAttr(m.query || '')}" autocomplete="off" spellcheck="false" enterkeyhint="search" aria-controls="rcolList">
+    </div>` : ''}
+    <p class="rp-count" id="rcolHidden" aria-live="polite">${escapeHtml(rcolHiddenText(m))}</p>
+    <ul class="rp-list rcol-list" id="rcolList" aria-label="Deine Sammlungen">${rcolListInnerHtml(m)}</ul>
+    <div class="rcol-new">${rcolNewHtml(m)}</div>`;
+  const foot = `<p class="rp-count" id="rcolCount" role="status" aria-live="polite">${escapeHtml(rcolCountText(m))}</p>
+    <div class="rp-actions"><button type="button" class="ghost-btn" data-action="close-modal">Abbrechen</button><button type="button" class="primary-btn" data-action="rcol-save" data-id="${escapeAttr(r.id)}">Speichern</button></div>`;
+  return rpSheetHtml({ id: 'rcol-title', title: 'Zu Sammlungen hinzufügen', sub: r.title || 'Ohne Titel', subId: 'rcol-sub', body, foot, cls: 'rp-sheet--rcol' });
+}
+function rcolRefresh(focusId) {
+  const m = rcolModalState();
+  const ul = document.getElementById('rcolList');
+  if (!m || !ul) return;
+  ul.innerHTML = rcolListInnerHtml(m);
+  const h = document.getElementById('rcolHidden'); if (h) h.textContent = rcolHiddenText(m);
+  const c = document.getElementById('rcolCount'); if (c) c.textContent = rcolCountText(m);
+  if (focusId) { const inp = ul.querySelector(`[data-rcol-pick="${cssAttr(focusId)}"]`); if (inp) focusWithoutScroll(inp); }
+}
+
+/* ---------- «Passt dazu» in der Rezeptansicht ---------- */
+const PAIRING_MAX = 4;
+const LINK_STATUS_ORDER = { ok: 0, pending: 1, gone: 2 };
+function linkListFor(recipeId) {
+  if (!linksOk()) return [];
+  let list;
+  try { list = (orgLinksOf(recipeId) || []).slice(); } catch (e) { return []; }
+  // Ziel inzwischen weg (z. B. gerade geloescht, Rueckgaengig-Frist): nie eine kaputte, anklickbare Karte
+  list = list.filter(l => l && l.otherId && l.otherId !== recipeId).map(l => (l.status === 'ok' && !state.recipes.some(x => x.id === l.otherId)) ? Object.assign({}, l, { status: 'gone' }) : l);
+  return list.map((l, i) => [l, i]).sort((a, b) => ((LINK_STATUS_ORDER[a[0].status] ?? 2) - (LINK_STATUS_ORDER[b[0].status] ?? 2)) || a[1] - b[1]).map(x => x[0]);
+}
+function linkOtherTitle(l) {
+  const o = l && l.status === 'ok' ? state.recipes.find(x => x.id === l.otherId) : null;
+  return o ? (o.title || 'Ohne Titel') : 'Verknüpftes Rezept';
+}
+function pairingCardHtml(r, l, hide, idx) {
+  const o = l.status === 'ok' ? state.recipes.find(x => x.id === l.otherId) : null;
+  const title = linkOtherTitle(l);
+  const time = o ? timeInfo(o).cardText : '';
+  const status = o ? '' : l.status === 'pending' ? 'Noch nicht verfügbar' : 'Nicht mehr vorhanden';
+  const noteId = l.note ? `pairing-note-${idx}` : '';
+  const media = o && hasPhoto(o) ? recipeImageHtml(o, 'pairing-img', 'thumb') : `<span class="pairing-img pairing-ph" aria-hidden="true">${ICONS.bookOpen}</span>`;
+  const body = `<span class="pairing-body"><span class="pairing-title">${escapeHtml(title)}</span>${time ? `<span class="pairing-meta">${ICONS.clock}<span>${escapeHtml(time)}</span></span>` : ''}${status ? `<span class="pairing-meta pairing-status">${status}</span>` : ''}${l.note ? `<span class="pairing-note" id="${noteId}">${escapeHtml(l.note)}</span>` : ''}</span>`;
+  const main = o
+    ? `<button type="button" class="pairing-main" data-action="open-linked-recipe" data-id="${escapeAttr(o.id)}" data-from="${escapeAttr(r.id)}" data-link-key="${escapeAttr(l.key)}" aria-label="${escapeAttr(title)} öffnen"${noteId ? ` aria-describedby="${noteId}"` : ''}>${media}${body}</button>`
+    : `<div class="pairing-main" aria-disabled="true" data-link-key="${escapeAttr(l.key)}">${media}${body}</div>`;
+  return `<li class="pairing-card ${o ? '' : 'is-off'}"${hide ? ' hidden' : ''}>${main}<button type="button" class="icon-btn pairing-menu-btn" data-action="link-menu" data-id="${escapeAttr(l.key)}" aria-label="Aktionen für ${escapeAttr(title)}" aria-haspopup="dialog">${ICONS.moreH}</button></li>`;
+}
+function pairingSectionHtml(r) {
+  const links = linkListFor(r.id);
+  if (!links.length) return '';   // ohne Verknuepfung keine leere Flaeche; Einstieg dann ueber das Menue
+  const many = links.length > PAIRING_MAX;
+  return `<section class="pairing" aria-labelledby="pairing-h">
+    <div class="pairing-head"><h2 class="section-title" id="pairing-h">Passt dazu</h2><button type="button" class="text-btn pairing-add" data-action="link-open" data-id="${escapeAttr(r.id)}">${ICONS.plus}<span>Verknüpfen</span></button></div>
+    <ul class="pairing-list" id="pairingList">${links.map((l, i) => pairingCardHtml(r, l, i >= PAIRING_MAX, i)).join('')}</ul>
+    ${many ? `<button type="button" class="text-btn pairing-more" data-pairing-more aria-expanded="false" aria-controls="pairingList">Alle ${links.length} anzeigen</button>` : ''}
+  </section>`;
+}
+
+/* ---------- Dialog «Rezept verknüpfen» (Modaltyp 'link-recipe') ---------- */
+const LINK_NOTE_MAX = 200;
+function linkPickState() {
+  const m = state.modal;
+  if (!m || m.type !== 'link-recipe') return null;
+  if (!Array.isArray(m.sel)) { m.sel = []; m.query = m.query || ''; m.note = m.note || ''; }
+  return m;
+}
+function linkLinkedSet(recipeId) { return new Set(linkListFor(recipeId).map(l => l.otherId)); }
+function linkCandidates(m) { return state.recipes.filter(x => x.id !== m.recipeId); }   // eigenes Rezept nie waehlbar
+function linkListInnerHtml(m) {
+  const cands = linkCandidates(m);
+  if (!cands.length) return `<li class="rp-empty"><p>Du hast noch kein anderes Rezept zum Verknüpfen.</p></li>`;
+  const list = typeof rpFilter === 'function' ? rpFilter(cands, m.query || '') : cands;
+  if (!list.length) return `<li class="rp-empty"><p><strong>Kein Rezept gefunden für «${escapeHtml((m.query || '').trim())}».</strong> Prüfe die Schreibweise oder suche nach einer Kategorie.</p><button type="button" class="outline-btn outline-btn--small" data-link-clear>Suche löschen</button></li>`;
+  const linked = linkLinkedSet(m.recipeId), sel = new Set(m.sel);
+  return list.map(x => {
+    const done = linked.has(x.id), on = done || sel.has(x.id);
+    const meta = done ? 'Schon verknüpft' : timeInfo(x).cardText;
+    return `<li class="rp-row ${on ? 'is-selected' : ''} ${done ? 'is-linked' : ''}"><label class="rp-item">
+      <input type="checkbox" class="rp-input" data-link-pick="${escapeAttr(x.id)}" ${on ? 'checked' : ''} ${done ? 'disabled' : ''}>
+      ${recipeImageHtml(x, 'picker-thumb', 'thumb')}
+      <span class="rp-item-text"><span class="rp-item-title">${escapeHtml(x.title || 'Ohne Titel')}</span>${meta ? `<span class="rp-item-meta">${escapeHtml(meta)}</span>` : ''}</span>
+      <span class="rp-mark" aria-hidden="true">${ICONS.check}</span></label></li>`;
+  }).join('');
+}
+function linkSelected(m) {
+  const linked = linkLinkedSet(m.recipeId);
+  return m.sel.filter(id => id !== m.recipeId && !linked.has(id) && state.recipes.some(x => x.id === id));
+}
+function linkCountText(m) {
+  const n = linkSelected(m).length;
+  const q = (m.query || '').trim();
+  const parts = [];
+  if (q) { const hits = typeof rpFilter === 'function' ? rpFilter(linkCandidates(m), q).length : 0; parts.push(hits === 1 ? '1 Treffer' : `${hits} Treffer`); }
+  parts.push(n ? `${n} ${n === 1 ? 'Rezept' : 'Rezepte'} ausgewählt` : 'Noch kein Rezept ausgewählt');
+  return parts.join(' · ');
+}
+function linkSaveLabel(n) { return n > 1 ? `${n} Rezepte verknüpfen` : 'Verknüpfen'; }
+function linkPickModalHtml(r) {
+  const m = linkPickState();
+  if (!m) return '';
+  const n = linkSelected(m).length;
+  const body = `<div class="rp-search" role="search">
+      <label for="linkSearch" class="sr-only">Rezepte durchsuchen</label>
+      <span class="rp-search-icon" aria-hidden="true">${ICONS.search || ''}</span>
+      <input type="search" id="linkSearch" class="rp-search-input" placeholder="Rezept oder Kategorie suchen" value="${escapeAttr(m.query || '')}" autocomplete="off" autocapitalize="off" spellcheck="false" enterkeyhint="search" aria-controls="linkList" aria-describedby="linkCount">
+    </div>
+    <ul class="rp-list" id="linkList" aria-label="Deine Rezepte">${linkListInnerHtml(m)}</ul>`;
+  const note = m.noteOpen
+    ? `<div class="field link-note-field"><label for="linkNote">Notiz zur Kombination <span class="rp-optional">(optional)</span></label>
+        <input id="linkNote" type="text" maxlength="${LINK_NOTE_MAX}" placeholder="z. B. Sauce kurz vor dem Servieren dazugeben" value="${escapeAttr(m.note || '')}" autocomplete="off" aria-describedby="linkNoteHint">
+        <p class="fs-hint" id="linkNoteHint">${n > 1 ? 'Gilt für alle gewählten Rezepte und erscheint jeweils bei beiden.' : 'Erscheint bei beiden Rezepten.'}</p></div>`
+    : `<button type="button" class="text-btn link-note-toggle" data-action="link-note-toggle" data-id="${escapeAttr(r.id)}">${ICONS.plus}<span>Notiz zur Kombination hinzufügen</span></button>`;
+  const foot = `<p class="rp-count" id="linkCount" role="status" aria-live="polite">${escapeHtml(linkCountText(m))}</p>
+    ${note}
+    <div class="rp-actions"><button type="button" class="ghost-btn" data-action="close-modal">Abbrechen</button><button type="button" class="primary-btn" data-action="link-save" data-id="${escapeAttr(r.id)}" ${n ? '' : 'disabled'}>${linkSaveLabel(n)}</button></div>`;
+  return rpSheetHtml({ id: 'link-title', title: 'Rezept verknüpfen', sub: `Mit «${r.title || 'Ohne Titel'}»`, subId: 'link-sub', body, foot, cls: 'rp-sheet--link' });
+}
+function linkPickRefresh(focusId) {
+  const m = linkPickState();
+  const ul = document.getElementById('linkList');
+  if (!m || !ul) return;
+  ul.innerHTML = linkListInnerHtml(m);
+  if (typeof hydrateLazyImages === 'function') hydrateLazyImages();
+  linkPickStatus();
+  if (focusId) { const inp = ul.querySelector(`[data-link-pick="${cssAttr(focusId)}"]`); if (inp) focusWithoutScroll(inp); }
+}
+function linkPickStatus() {
+  const m = linkPickState();
+  if (!m) return;
+  const n = linkSelected(m).length;
+  const c = document.getElementById('linkCount'); if (c) c.textContent = linkCountText(m);
+  const go = document.querySelector('[data-action="link-save"]'); if (go) { go.disabled = !n; go.textContent = linkSaveLabel(n); }
+  const hint = document.getElementById('linkNoteHint'); if (hint) hint.textContent = n > 1 ? 'Gilt für alle gewählten Rezepte und erscheint jeweils bei beiden.' : 'Erscheint bei beiden Rezepten.';
+}
+
+/* ---------- Kartenmenue und Notiz ---------- */
+function linkFind(recipeId, key) { return linkListFor(recipeId).find(l => l.key === key) || null; }
+function linkMenuModalHtml(r) {
+  const m = state.modal;
+  const l = linkFind(r.id, m.key);
+  if (!l) return '';
+  const ok = l.status === 'ok';
+  const btn = (action, id, icon, label, extra, hint) => `<button type="button" class="menu-item ${extra || ''}" data-action="${action}" data-id="${escapeAttr(id)}">${icon}<span class="menu-item-text"><span>${label}</span>${hint ? `<span class="menu-item-hint">${hint}</span>` : ''}</span></button>`;
+  return sheet('link-menu-title', linkOtherTitle(l), `<div class="menu-list">
+    ${ok ? btn('link-menu-open', l.otherId, ICONS.bookOpen, 'Öffnen') : ''}
+    ${ok ? btn('link-note-edit', l.key, ICONS.note || ICONS.edit, l.note ? 'Notiz bearbeiten' : 'Notiz hinzufügen') : ''}
+    ${btn('link-remove', l.key, ICONS.trash, 'Verknüpfung entfernen', 'menu-item--danger menu-item--hint', 'Beide Rezepte bleiben erhalten')}
+  </div>`);
+}
+function linkNoteModalHtml(r) {
+  const m = state.modal;
+  const l = linkFind(r.id, m.key);
+  if (!l) return '';
+  return sheet('link-note-title', 'Notiz zur Kombination', `
+    <p class="hint-line">${escapeHtml(r.title || 'Ohne Titel')} und ${escapeHtml(linkOtherTitle(l))}</p>
+    <div class="field"><label for="linkNoteEdit" class="sr-only">Notiz zur Kombination</label>
+    <textarea id="linkNoteEdit" rows="3" maxlength="${LINK_NOTE_MAX}" aria-describedby="linkNoteEditHint" placeholder="z. B. Sauce kurz vor dem Servieren dazugeben">${escapeHtml(l.note || '')}</textarea>
+    <p class="fs-hint" id="linkNoteEditHint">Erscheint bei beiden Rezepten.</p></div>
+    <div class="form-actions"><button type="button" class="ghost-btn" data-action="close-modal">Abbrechen</button><button type="button" class="primary-btn" data-action="link-note-save" data-id="${escapeAttr(l.key)}">Speichern</button></div>`);
+}
+function linkModalsHtml(r) {
+  const t = state.modal && state.modal.type;
+  if (!linksOk() || !r) return '';
+  if (t === 'link-recipe') return linkPickModalHtml(r);
+  if (t === 'link-menu') return linkMenuModalHtml(r);
+  if (t === 'link-note') return linkNoteModalHtml(r);
+  return '';
+}
+
+/* ---------- Teilaktualisierung (ohne render: Cursor, Fokus und Scroll bleiben) ---------- */
+document.addEventListener('input', (e) => {
+  const t = e.target, m = state.modal;
+  if (!t || !m) return;
+  if (t.id === 'rcolSearch' && m.type === 'rcol') { m.query = t.value; if (!e.isComposing) rcolRefresh(); }
+  else if (t.id === 'colNewInline' && m.type === 'rcol') m.newName = t.value;
+  else if (t.id === 'linkSearch' && m.type === 'link-recipe') { m.query = t.value; if (!e.isComposing) linkPickRefresh(); }
+  else if (t.id === 'linkNote' && m.type === 'link-recipe') m.note = t.value;
+});
+document.addEventListener('compositionend', (e) => {
+  const t = e.target, m = state.modal;
+  if (!t || !m) return;
+  if (t.id === 'rcolSearch' && m.type === 'rcol') { m.query = t.value; rcolRefresh(); }
+  if (t.id === 'linkSearch' && m.type === 'link-recipe') { m.query = t.value; linkPickRefresh(); }
+});
+document.addEventListener('keydown', (e) => {
+  const t = e.target;
+  if (!t || e.key !== 'Enter') return;
+  if (t.id === 'rcolSearch' || t.id === 'linkSearch' || t.id === 'linkNote') { e.preventDefault(); return; }   // Enter sendet nichts ab
+  if (t.id === 'colNewInline') { e.preventDefault(); const b = document.querySelector('[data-action="rcol-create"]'); if (b) b.click(); }
+});
+document.addEventListener('change', (e) => {
+  const t = e.target, m = state.modal;
+  if (!t || !m || !t.dataset) return;
+  if (t.dataset.rcolPick && m.type === 'rcol') {
+    const id = t.dataset.rcolPick;
+    m.draft = t.checked ? Array.from(new Set(m.draft.concat(id))) : m.draft.filter(x => x !== id);
+    const li = t.closest('.rp-row'); if (li) li.classList.toggle('is-selected', t.checked);
+    const c = document.getElementById('rcolCount'); if (c) c.textContent = rcolCountText(m);
+  } else if (t.dataset.linkPick && m.type === 'link-recipe') {
+    const id = t.dataset.linkPick;
+    m.sel = t.checked ? Array.from(new Set(m.sel.concat(id))) : m.sel.filter(x => x !== id);
+    const li = t.closest('.rp-row'); if (li) li.classList.toggle('is-selected', t.checked);
+    linkPickStatus();
+  }
+});
+document.addEventListener('click', (e) => {
+  const t = e.target && e.target.closest ? e.target : null;
+  if (!t) return;
+  if (t.closest('[data-rcol-clear]') && state.modal && state.modal.type === 'rcol') {
+    state.modal.query = ''; const s = document.getElementById('rcolSearch'); if (s) { s.value = ''; focusWithoutScroll(s); } rcolRefresh(); return;
+  }
+  if (t.closest('[data-link-clear]') && state.modal && state.modal.type === 'link-recipe') {
+    state.modal.query = ''; const s = document.getElementById('linkSearch'); if (s) { s.value = ''; focusWithoutScroll(s); } linkPickRefresh(); return;
+  }
+  const more = t.closest('[data-col-tags-more], [data-pairing-more]');
+  if (more) {
+    // Aufklappen ohne Neuaufbau; Fokus auf den ersten bisher verborgenen Eintrag
+    const box = more.hasAttribute('data-pairing-more') ? document.getElementById('pairingList') : more.closest('.col-tags');
+    const hidden = box ? Array.from(box.querySelectorAll(more.hasAttribute('data-pairing-more') ? ':scope > .pairing-card[hidden]' : ':scope > .col-tag[hidden]')) : [];
+    hidden.forEach(x => { x.hidden = false; });
+    more.setAttribute('aria-expanded', 'true'); more.hidden = true;
+    const first = hidden[0] && (hidden[0].matches('button') ? hidden[0] : hidden[0].querySelector('button'));
+    if (first) focusWithoutScroll(first);
+  }
+}, true);
 
 /* ---------- Auswahl-Sheet: Zutaten in den Einkauf ---------- */
 function shopSelectModal() {
@@ -815,8 +1508,9 @@ function cookModeView() {
         ${ingChips ? `<div class="cook-ing-list">${ingChips}</div>` : ''}
       </div>`;
   const refModal = state.modal && state.modal.type === 'step-ings' ? stepIngredientsModal(r, state.modal.stepIndex) : '';
+  const linkModal = typeof cookLinkModalHtml === 'function' ? cookLinkModalHtml(r) : '';   // v84: «Passt dazu» nur als Vorschau
   const scaleLabel = ['Normal', 'Gross', 'Sehr gross'][state.cookScale || 0];
-  return `${refModal}<div class="cookmode-overlay cook-v2 cook-scale-${state.cookScale || 0}" role="main" aria-label="Kochmodus">
+  return `${refModal}${linkModal}<div class="cookmode-overlay cook-v2 cook-scale-${state.cookScale || 0}" role="main" aria-label="Kochmodus">
     <div class="cookmode-top">
       <button class="icon-btn" data-action="exit-cook" aria-label="Kochmodus verlassen">${ICONS.x}</button>
       <span class="cookmode-progress" aria-live="polite">Schritt ${idx + 1} von ${total}</span>
@@ -827,7 +1521,7 @@ function cookModeView() {
       </div>
     </div>
     <div class="cook-progress" aria-hidden="true"><span style="width:${Math.round(((idx + 1) / total) * 100)}%"></span></div>
-    <div class="cook-title-line"><span class="cook-title-text">${escapeHtml(r.title)}</span>${state.wakeLock ? `<span class="wakelock-chip">${ICONS.sun} Bildschirm bleibt an</span>` : (state.wakeLockUnsupported ? `<span class="wakelock-chip wakelock-chip--off">Bildschirm kann ausgehen</span>` : '')}</div>
+    <div class="cook-title-line"><span class="cook-title-text">${escapeHtml(r.title)}</span>${typeof cookLinksButtonHtml === 'function' ? cookLinksButtonHtml(r) : ''}${state.wakeLock ? `<span class="wakelock-chip">${ICONS.sun} Bildschirm bleibt an</span>` : (state.wakeLockUnsupported ? `<span class="wakelock-chip wakelock-chip--off">Bildschirm kann ausgehen</span>` : '')}</div>
     <div class="cookmode-body">${body}</div>
     <div class="cook-timerbar" id="cookTimerBar" role="group" aria-label="Laufende Timer" ${cookTimerBarHtml(r) ? '' : 'hidden'}>${cookTimerBarHtml(r)}</div>
     <div class="cookmode-nav">
@@ -1129,6 +1823,7 @@ function cookbookStepSelect(cfg) {
         <p class="hint-line" id="cbSelCount" aria-live="polite">${cfg.items.length} von ${state.recipes.length} ${state.recipes.length === 1 ? 'Rezept' : 'Rezepten'} im Kochbuch.${state.recipes.length ? ' Die Reihenfolge hier ist die Reihenfolge im Buch.' : ''}</p>
         ${state.recipes.length ? `<div class="cb-bulk">
           ${missing.length ? '<button class="outline-btn outline-btn--small" data-action="cb-add-all">Alle aufnehmen</button>' : ''}
+          ${missing.length && typeof cbColButtonHtml === 'function' ? cbColButtonHtml() : ''}
           ${cfg.items.length ? '<button class="text-btn" data-action="cb-clear-all">Alle entfernen</button>' : ''}
         </div>` : '<p class="hint-line">Du hast noch keine Rezepte. Lege zuerst Rezepte an, dann kannst du sie hier auswählen.</p>'}
         ${cfg.items.map((it, n) => { const r = byId[it.recipeId]; return `<div class="cb-item">
@@ -1268,6 +1963,7 @@ function cookbookDesignerView() {
     ${bottomNav()}
     ${pdfExportModal()}
     ${ceModalHtml()}
+    ${typeof cbColModalHtml === 'function' ? cbColModalHtml() : ''}
   `;
 }
 

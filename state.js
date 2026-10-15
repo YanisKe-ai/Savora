@@ -16,7 +16,7 @@ const state = {
   servingsOverride: {},
   theme: loadStoredTheme(),
   unitSystem: localStorage.getItem(UNIT_KEY) || 'metric',
-  sortBy: (() => { try { const v = localStorage.getItem('savora-sort'); return ['updated', 'az', 'cooked', 'time'].includes(v) ? v : 'updated'; } catch (e) { return 'updated'; } })(),
+  sortBy: (() => { try { const v = localStorage.getItem('savora-sort'); return ['updated', 'added', 'az', 'cooked', 'time'].includes(v) ? v : 'updated'; } catch (e) { return 'updated'; } })(),
   showNutrition: (() => { try { return localStorage.getItem('savora-show-nutrition') !== '0'; } catch (e) { return true; } })(),
   cookScale: (() => { try { return Math.max(0, Math.min(2, parseInt(localStorage.getItem('savora-cook-scale') || '0', 10) || 0)); } catch (e) { return 0; } })(),
   cookbookTitle: localStorage.getItem(COOKBOOK_TITLE_KEY) || '',
@@ -40,7 +40,8 @@ const state = {
   // pro Dimension moeglich ist.
   activeFilters: { dietary: new Set(), category: new Set(), time: new Set(), more: new Set(), tags: new Set() },
   // Feast x Bloom Umbau: reine UI-Zustaende, nichts davon wird ungefragt gespeichert.
-  activeCollection: 'all',       // 'all' | 'favorites' | 'uncooked' | 'frequent' | <Sammlungs-ID>
+  activeCollection: 'all',       // 'all' | 'favorites' | 'uncooked' | 'frequent' | <Sammlungs-ID>; v84 zusaetzlich 'none' (Ohne Sammlung), 'friends'. Nur Sitzung: Start immer bei «Alle Rezepte»
+  selectMode: null,              // v84 Auswahlmodus der Übersicht: { ids: Set<recipeId>, target: Sammlungs-ID|null } (nur Sitzung)
   homeLayoutChosen: (function () { try { const v = localStorage.getItem('savora-home-layout'); return v === 'grid' || v === 'list'; } catch (e) { return false; } })(),
   homeLayout: (function () { try { return localStorage.getItem('savora-home-layout') || 'grid'; } catch (e) { return 'grid'; } })(),
   detailTab: 'ingredients',      // 'ingredients' | 'steps' | 'nutrition' | 'notes'
@@ -134,6 +135,8 @@ function remembersScroll(view) {
 }
 function navHistorySnapshot() {
   const snap = { view: state.view, modalType: state.modal ? state.modal.type : null, activeRecipeId: state.activeRecipeId };
+  // v84: Rezeptansicht merkt Reiter und Scrollstand (Rueckweg zwischen verknuepften Rezepten)
+  if (state.view === 'detail') { snap.detailTab = state.detailTab; snap.scrollY = bodyScrollLockY !== null ? bodyScrollLockY : window.scrollY; }
   // Rezeptbibliothek: nur IDs und kompakte Zustaende, nie Rezeptdaten (siehe library.js)
   if (typeof libHistoryFields === 'function') Object.assign(snap, libHistoryFields());
   return snap;
@@ -154,11 +157,18 @@ window.addEventListener('popstate', (e) => {
   state.cookProgressHandled = false;
   const wasModalOpen = !!state.modal;
   state.modal = null;
+  let restoreFocusSel = null;
   if (!wasModalOpen) {
     // Kein Modal offen -> ein echter Drill-Down-Schritt wird zurueckgenommen (der Regelfall
     // beim Browser-/Geraete-Zurueck). e.state beschreibt den Eintrag, zu dem gerade
     // zurueckgekehrt wird (von replaceState/pushState an der jeweiligen Stelle gesetzt).
     if (e.state) {
+      // v84: Rezept -> Rezept (verknuepft): Reiter, Scrollstand und Fokus der Ausgangskarte wiederherstellen
+      if (state.view === 'detail' && e.state.view === 'detail') {
+        if (e.state.detailTab) state.detailTab = e.state.detailTab;
+        if (typeof e.state.scrollY === 'number') state.pendingScrollY = e.state.scrollY;
+        restoreFocusSel = e.state.focusSel || null;
+      }
       state.view = e.state.view;
       state.activeRecipeId = e.state.activeRecipeId || null;
       if (typeof libRestoreFromHistory === 'function') libRestoreFromHistory(e.state);
@@ -175,6 +185,11 @@ window.addEventListener('popstate', (e) => {
   // wieder zurueckgesetzt und haette den Push bei jedem Zurueck-Schritt erneut ausgeloest —
   // genau der Fehler, der hier zunaechst auftrat und mit einem echten Test aufgedeckt wurde.
   render(true);
+  if (restoreFocusSel) {
+    let el = null;
+    try { el = App.querySelector(restoreFocusSel); } catch (err) { el = null; }
+    if (el) focusWithoutScroll(el);
+  }
   if (wasModalOpen && typeof modalTriggerSelector !== 'undefined') {
     const trigger = modalTriggerSelector && document.querySelector(modalTriggerSelector);
     if (trigger && document.contains(trigger) && typeof trigger.focus === 'function') {
@@ -251,9 +266,14 @@ function render(skipHistoryPush) {
   const existingModalSheet = document.querySelector('.modal-sheet');
   const preservedModalScrollTop = (hasModal && existingModalSheet) ? existingModalSheet.scrollTop : null;
   lastRenderedView = state.view;
+  // v84: gezielte Scrollposition (verknuepftes Rezept oben, Rueckweg an die alte Stelle). Gilt fuer diesen
+  // Aufruf samt rAF-Nachlauf, damit der Nachlauf sie nicht mit der alten Position ueberschreibt.
+  const targetY = (typeof state.pendingScrollY === 'number' && !hasModal) ? state.pendingScrollY : null;
+  state.pendingScrollY = null;
 
   const applyScroll = () => {
     if (hasModal) return; // Hintergrund bleibt gesperrt, eigenes Scrollen ist hier nicht relevant
+    if (targetY !== null) { window.scrollTo(0, targetY); return; }
     if (!viewChanged) {
       if (preservedY !== null) window.scrollTo(0, preservedY);
     } else if (scrollMemory[state.view] != null && ((typeof TAB_VIEWS !== 'undefined' && TAB_VIEWS.includes(state.view)) || (skipHistoryPush && remembersScroll(state.view)))) {
