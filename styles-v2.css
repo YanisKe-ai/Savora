@@ -3660,10 +3660,11 @@ body.keyboard-open .rp-foot { padding-bottom: 0.75rem; }
 .ce-align-msg { margin: 0.5rem 0 0; padding: 0.5rem 0.75rem; border-radius: 0.75rem; background: var(--surface-soft); color: var(--text); font-size: 0.875rem; line-height: 1.4; }
 .ce-warn--margin { border-left-color: var(--text-soft); background: var(--surface-soft); }
 
-/* Schmale Handys: Mahlzeiten in einer waagrecht scrollbaren Reihe, damit die Rezeptliste Platz hat */
+/* Schmale Handys (v0.83.1): Mahlzeiten als 2 × 2 Raster, damit «Andere Mahlzeit» ohne Wischen sichtbar ist
+   (zwei Zeilen statt einer verdeckten Scrollreihe; die Rezeptliste scrollt weiterhin im Dialog) */
 @media (max-width: 479px) {
-  .rp-sheet .rp-meal-chips { flex-wrap: nowrap; overflow-x: auto; margin-inline: -1.25rem; padding-inline: 1.25rem; scroll-padding-inline: 1.25rem; }
-  .rp-sheet .rp-meal-chips .chip { flex: none; white-space: nowrap; }
+  .rp-sheet .rp-meal-chips { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .rp-sheet .rp-meal-chips .chip { justify-content: center; min-width: 0; padding-inline: 0.5rem; text-align: center; white-space: normal; line-height: 1.2; }
 }
 .rp-sheet--plan .rp-sub { color: var(--text); font-size: 1rem; font-weight: 600; }
 
@@ -3678,3 +3679,14 @@ body.keyboard-open .rp-foot { padding-bottom: 0.75rem; }
 @media (max-width: 599px) { .detail-tools { grid-template-columns: repeat(auto-fit, minmax(min(100%, 9.5rem), 1fr)); } .detail-tools .tool-action { min-width: 0; } }
 /* v83: Handy: Rezeptfoto etwas flacher (16:9), damit die erste Zutat trotz zweizeiliger Aktionen ohne Scrollen sichtbar bleibt (auch mit Linux-Schriften) */
 @media (max-width: 899px) { .detail-main.has-hero .hero-img { aspect-ratio: 16 / 9; } }
+
+/* ===== v831 Planung ===== */
+/* Eintrag bearbeiten: Entfernen als ruhige Textaktion am Ende des Inhalts, nicht neben «Speichern» */
+.rp-sheet .rp-remove { display: inline-flex; align-items: center; gap: 0.5rem; margin: 0.25rem 0 0; padding: 0 0.25rem; font-size: 1rem; }
+.rp-sheet .rp-remove svg { width: 18px; height: 18px; flex: none; }
+.rp-sheet .rp-field select { width: 100%; }
+/* Einkauf: Vorschau -> zurueck zur Rezeptauswahl */
+.shop-back-btn { display: inline-flex; align-items: center; gap: 0.25rem; margin: 0 0 0.5rem -0.5rem; font-size: 1rem; }
+.shop-back-btn svg { width: 18px; height: 18px; flex: none; }
+/* Sehr schmal (320 px): etwas weniger Innenabstand, damit «Andere Mahlzeit» meist einzeilig bleibt */
+@media (max-width: 359px) { .rp-sheet .rp-meal-chips .chip { padding-inline: 0.25rem; } }
