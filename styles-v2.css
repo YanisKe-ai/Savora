@@ -3975,9 +3975,9 @@ button.pairing-main:active { transform: scale(0.98); }
   main.home-main--addbar.is-selecting { padding-bottom: calc(var(--nav-h) + 11rem + env(safe-area-inset-bottom, 0px)); }
   body:has(.home-sel-bar) .toast { bottom: calc(var(--nav-h) + 10rem + env(safe-area-inset-bottom, 0px)); }
   /* «Auswählen» direkt neben der Anzahl: die Zeile bleibt so hoch wie vorher (Trefferfläche 44 px ragt über die Textzeile) */
-  .hv-count-line { display: flex; flex-wrap: wrap; align-items: center; column-gap: 0.5rem; min-width: 0; }
+  .hv-count-line { display: flex; flex-wrap: wrap; align-items: center; column-gap: 0.25rem; min-width: 0; }
   .hv-count-line .result-line { min-width: 0; }
-  .hv-count-line .sel-mode-btn { margin: -0.75rem 0; padding: 0 0 0 0.25rem; }
+  .hv-count-line .sel-mode-btn { margin: -0.75rem 0; padding: 0; }
 }
 @media (min-width: 768px) {
   .home-main > .select-bar { position: sticky; bottom: calc(var(--nav-h) + 1rem + env(safe-area-inset-bottom, 0px)); z-index: var(--z-sticky); max-width: 45rem; margin: 1.5rem auto 0; grid-template-columns: minmax(0, 1fr) auto; align-items: center; }

@@ -169,6 +169,7 @@ async def main():
 
         # ---------- 4 Ziel gelöscht ----------
         await ev("() => dispatchAction('delete-recipe', 'vk_b', document.body, { stopPropagation() {} })"); await page.wait_for_selector('.toast-undo')
+        await ev("() => { if (undoState) clearTimeout(undoState.timer); }")   # Rückgängig-Fenster (5 s) für die folgenden Prüfungen offen halten, Linux-CI ist langsamer
         await openA(page)
         gone = await ev("() => { const c = Array.from(document.querySelectorAll('.pairing-card')).find(x => x.textContent.includes('Nicht mehr vorhanden')); return c ? [!!c.querySelector('[data-action=\"open-linked-recipe\"]'), c.querySelector('.pairing-main').getAttribute('aria-disabled'), c.querySelector('.pairing-title').textContent] : null; }")
         check('Ziel gelöscht: Karte «Nicht mehr vorhanden», nicht anklickbar', gone == [False, 'true', 'Verknüpftes Rezept'], str(gone))
