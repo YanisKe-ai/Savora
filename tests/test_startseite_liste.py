@@ -93,7 +93,8 @@ async def main():
               h1: (document.querySelector('h1') || {}).textContent, pt: !!document.querySelector('.page-title') })""")
             check(tag + 'Suche: runder Knopf «Suchen» statt breitem Feld (Feld erst nach Tippen, Platzhalter «Rezepte suchen …»)', st['ph'] == 'Suchen' and st['noField'], str(st['ph']))
             await open_search(page); check(tag + 'Suche: Platzhalter «Rezepte suchen …»', await ev("document.getElementById('searchInput').placeholder") == 'Rezepte suchen …'); await ev(STATE_RESET)
-            check(tag + 'Titel «Alle Rezepte» ohne Pfeil und Auswahl, Filter-Knopf in der Zeile darunter, «3 Rezepte», Sortierung mit «Nur Favoriten»', st['viewText'] == 'Alle Rezepte' and not st['view'] and not st['arrow'] and st['opts'][-1] == 'Nur Favoriten' and st['filter'] == 'Filter' and st['filterInRow'] and st['count'] == '3 Rezepte' and st['sortText'] == 'Zuletzt bearbeitet' and st['sortOpts'] == 5, str(st))
+            # v84: der Titel ist die Sammlungsauswahl «Alle Rezepte ▾» (Favoriten stehen dort, nicht mehr in der Sortierung)
+            check(tag + 'Titel «Alle Rezepte ▾» als Sammlungsauswahl, Filter-Knopf in der Zeile darunter, «3 Rezepte», Sortierung ohne «Nur Favoriten»', st['viewText'] == 'Alle Rezepte' and not st['view'] and st['arrow'] and 'Nur Favoriten' not in st['opts'] and st['filter'] == 'Filter' and st['filterInRow'] and st['count'] == '3 Rezepte' and st['sortText'] == 'Zuletzt bearbeitet' and st['sortOpts'] == 5, str(st))
             check(tag + 'Raster/Liste-Umschalter in der Ergebniszeile (Ansicht Umschalter), keine Segment-Auswahl, Liste ist Standard, Seitentitel nur fuer Bildschirmleser', st['toggle'] and not st['seg'] and not st['grid'] and st['rows'] == 3 and st['h1'] == 'Deine Rezepte' and not st['pt'], str(st))
             ge = await ev("""() => { const q = (s) => { const e = document.querySelector(s); const r = e.getBoundingClientRect(); return [Math.round(r.left), Math.round(r.top), Math.round(r.right), Math.round(r.height)]; };
               return { pick: q('.view-pick'), filter: q('#searchBtn'), W: document.documentElement.clientWidth } }""")
@@ -131,22 +132,22 @@ async def main():
         check('Favoritenknopf setzt den Favoriten und oeffnet das Rezept nicht', s1['view'] == 'home' and s1['fav'] is True and s1['pressed'] == 'true', str(s1))
         await page.click(f'.rrow--phone:has(.rrow-title:text-is("{t2}")) .fav-toggle'); await page.wait_for_timeout(250)   # wieder ueber den Titel: nach dem ersten Klick kann sich die Reihenfolge (gleiche Zeitstempel) aendern
         check('Favoritenknopf nimmt den Favoriten wieder zurueck', await ev("state.recipes.find(r => r.id === 'r_legacy_2').favorite") in (False, None, 0) or not await ev("state.recipes.find(r => r.id === 'r_legacy_2').favorite"))
-        # Alle / Favoriten
-        await page.select_option('#sortSelect', '__fav'); await page.wait_for_timeout(250)
-        s2 = await ev("() => ({ n: document.querySelectorAll('.rrow--phone').length, text: document.querySelector('.sort-inline .inline-pick-text').textContent, title: document.querySelector('.view-pick .inline-pick-text').textContent, count: document.querySelector('.result-line').textContent, favOnly: state.favOnly, filterBtn: document.querySelector('.filter-btn').textContent.trim() })")
-        check('Auswahl «Favoriten»: nur Favoriten, Beschriftung, Anzahl; zaehlt nicht als Filter', s2['n'] == 1 and s2['text'] == 'Nur Favoriten' and s2['title'] == 'Alle Rezepte' and s2['count'] == '1 Rezept' and s2['favOnly'] and s2['filterBtn'] == 'Filter', str(s2))
-        await page.select_option('#sortSelect', 'updated'); await page.wait_for_timeout(250)
+        # Alle / Favoriten (v84: über die Sammlungsauswahl im Titel)
+        await page.click('#colPickBtn'); await page.click('.col-pick-item[data-id="favorites"]'); await page.wait_for_timeout(350)
+        s2 = await ev("() => ({ n: document.querySelectorAll('.rrow--phone').length, text: document.querySelector('.sort-inline .inline-pick-text').textContent, title: document.querySelector('.view-pick .inline-pick-text').textContent, count: document.querySelector('.result-line').textContent, scope: state.activeCollection, filterBtn: document.querySelector('.filter-btn').textContent.trim() })")
+        check('Auswahl «Favoriten»: nur Favoriten, Titel, Anzahl; zaehlt nicht als Filter', s2['n'] == 1 and s2['text'] == 'Zuletzt bearbeitet' and s2['title'] == 'Favoriten' and s2['count'] == 'Favoriten · 1 Rezept' and s2['scope'] == 'favorites' and s2['filterBtn'] == 'Filter', str(s2))
+        await page.click('#colPickBtn'); await page.click('.col-pick-item[data-id="all"]'); await page.wait_for_timeout(350)
         check('Auswahl «Alle Rezepte»: alle drei wieder da', await ev("document.querySelectorAll('.rrow--phone').length") == 3)
         # Sortierung
         await page.select_option('#sortSelect', 'az'); await page.wait_for_timeout(250)
         s3 = await ev("() => ({ t: Array.from(document.querySelectorAll('.rrow-title')).map(e => e.textContent), text: document.querySelector('.sort-inline .inline-pick-text').textContent, stored: localStorage.getItem(SORT_KEY) })")
         check('Sortierung «A bis Z» bedienbar, Beschriftung folgt', s3['t'] == ['Carbonara', 'Gemüse-Curry', 'Sloppy Joe Buns'] and s3['text'] == 'A bis Z', str(s3))
         await page.select_option('#sortSelect', 'time'); await page.wait_for_timeout(250)
-        check('Sortierung «Kürzeste Zeit»: kuerzeste Zeit zuerst, unbekannte Zeit zuletzt', (await ev("() => Array.from(document.querySelectorAll('.rrow-title')).map(e => e.textContent)"))[0] == 'Carbonara' and (await ev("() => Array.from(document.querySelectorAll('.rrow-title')).map(e => e.textContent)"))[2] == 'Gemüse-Curry')
+        check('Sortierung «Kürzeste Gesamtzeit»: kuerzeste Zeit zuerst, unbekannte Zeit zuletzt', (await ev("() => Array.from(document.querySelectorAll('.rrow-title')).map(e => e.textContent)"))[0] == 'Carbonara' and (await ev("() => Array.from(document.querySelectorAll('.rrow-title')).map(e => e.textContent)"))[2] == 'Gemüse-Curry')
         await page.select_option('#sortSelect', 'updated'); await page.wait_for_timeout(250)
         # Suche
         await open_search(page); await page.fill('#searchInput', 'carb'); await page.wait_for_timeout(300)
-        check('Suche filtert die Liste und die Zeile zeigt «1 Rezept»', await ev("document.querySelector('.result-line').textContent") == '1 Rezept' and await ev("document.querySelectorAll('.rrow--phone').length") == 1)
+        check('Suche filtert die Liste und die Zeile zeigt «1 von 3 Rezepten» (v84: Treffer von Gesamtzahl)', await ev("document.querySelector('.result-line').textContent") == '1 von 3 Rezepten' and await ev("document.querySelectorAll('.rrow--phone').length") == 1)
         await page.fill('#searchInput', ''); await page.wait_for_timeout(300)
         # Oeffnen und Zurueck
         h0 = await ev("history.length")
@@ -222,11 +223,11 @@ async def main():
         await page.click('.filter-btn'); await page.wait_for_selector('.filter-sheet'); await page.wait_for_timeout(300)
         await page.click('.fs-input[data-fs-dim="dietary"][value="vegan"] >> xpath=..'); await page.click('.fs-apply'); await page.wait_for_timeout(500)
         fs = await ev("() => ({ n: document.querySelectorAll('.rrow--phone').length, btn: document.querySelector('.filter-btn').textContent.trim(), sum: !!document.querySelector('.filter-summary'), count: document.querySelector('.result-line').textContent })")
-        check('Anwenden: 1 Rezept, «Filter · 1», Zusammenfassung sichtbar', fs['n'] == 1 and fs['btn'] == 'Filter · 1' and fs['sum'] and fs['count'] == '1 Rezept', str(fs))
-        await page.select_option('#sortSelect', '__fav'); await page.wait_for_timeout(250)
+        check('Anwenden: 1 von 3 Rezepten, «Filter · 1», Zusammenfassung sichtbar', fs['n'] == 1 and fs['btn'] == 'Filter · 1' and fs['sum'] and fs['count'] == '1 von 3 Rezepten', str(fs))
+        await page.click('#colPickBtn'); await page.click('.col-pick-item[data-id="favorites"]'); await page.wait_for_timeout(350)
         check('Filter und Favoriten kombiniert (UND): vegane Favoriten = keine, verstaendlicher Leerzustand', await ev("document.querySelector('.empty-state h2').textContent") == 'Keine passenden Rezepte')
         await page.click('.filter-summary-reset'); await page.wait_for_timeout(300)
-        check('Zuruecksetzen setzt nur die Zusatzfilter zurueck, Favoritenauswahl bleibt', await ev("state.activeFilters.dietary.size") == 0 and await ev("state.favOnly") is True and await ev("document.getElementById('sortSelect').value") == '__fav')
+        check('Zuruecksetzen setzt nur die Zusatzfilter zurueck, Favoritenauswahl bleibt', await ev("state.activeFilters.dietary.size") == 0 and await ev("state.activeCollection") == 'favorites' and await ev("document.querySelector('.view-pick .inline-pick-text').textContent") == 'Favoriten')
         await ctx.close(); await b.close()
 
         # ---------- F. Leerzustaende ----------
@@ -244,11 +245,11 @@ async def main():
         check('Keine Suchtreffer: verstaendliche Meldung, «Suche löschen», Aktionsknopf bleibt', e2['h'].startswith('Keine Treffer') and e2['btn'] == ['Suche löschen'] and e2['add'], str(e2))
         await page.click('[data-action="clear-search"]'); await page.wait_for_timeout(300)
         check('Suche loeschen zeigt wieder alle Rezepte', await ev("document.querySelectorAll('.rrow--phone').length") == 3)
-        await ev("() => { state.recipes.forEach(r => { r.favorite = false; }); }"); await page.select_option('#sortSelect', '__fav'); await page.wait_for_timeout(300)
+        await ev("() => { state.recipes.forEach(r => { r.favorite = false; }); render(); }"); await page.click('#colPickBtn'); await page.click('.col-pick-item[data-id="favorites"]'); await page.wait_for_timeout(350)
         e3 = await ev("() => ({ h: document.querySelector('.empty-state h2').textContent, p: document.querySelector('.empty-state p').textContent, btn: Array.from(document.querySelectorAll('.empty-actions button')).map(b => b.textContent.trim()) })")
-        check('Favoriten ohne Eintraege: «Du hast noch keine Favoriten markiert», Aktion «Alle Rezepte anzeigen»', 'keine Favoriten' in e3['p'] and 'Alle Rezepte anzeigen' in e3['btn'], str(e3))
-        await page.click('[data-action="set-fav-mode"][data-id="all"]'); await page.wait_for_timeout(300)
-        check('«Alle Rezepte anzeigen» fuehrt zur Liste zurueck, Auswahl zeigt «Alle Rezepte»', await ev("document.querySelectorAll('.rrow--phone').length") == 3 and await ev("document.getElementById('sortSelect').value") != '__fav')
+        check('Favoriten ohne Eintraege: «Noch keine Favoriten», Aktion «Alle Rezepte zeigen» (v84)', e3['h'] == 'Noch keine Favoriten' and 'Alle Rezepte zeigen' in e3['btn'], str(e3))
+        await page.click('[data-action="set-col-scope"][data-id="all"]'); await page.wait_for_timeout(300)
+        check('«Alle Rezepte zeigen» fuehrt zur Liste zurueck, Titel zeigt «Alle Rezepte»', await ev("document.querySelectorAll('.rrow--phone').length") == 3 and await ev("document.querySelector('.view-pick .inline-pick-text').textContent") == 'Alle Rezepte')
         await ctx.close(); await b.close()
 
         # ---------- G. Lange Titel, 100 Rezepte, letztes Element ----------

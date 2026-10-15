@@ -3729,10 +3729,17 @@ body.keyboard-open .rp-foot { padding-bottom: 0.75rem; }
 .home-head--phone .col-pick-title svg { flex: none; }
 .col-pick-title:active { transform: scale(0.98); }
 .col-pick-title:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 2px; }
-/* Desktop/Tablet: Knopf in Pillenform wie «Filter», einzeilig mit Auslassung, voller Name im title/aria-label */
-.col-pick-btn { max-width: 22rem; min-width: 0; }
-.col-pick-btn .filter-btn-text { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* Desktop/Tablet: Knopf in Pillenform wie «Filter» (gleiche Masse, eigene Klasse), einzeilig mit Auslassung, voller Name im title/aria-label */
+.col-pick-btn { flex: none; display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem; min-width: 0; max-width: 22rem; min-height: 48px; padding: 0.25rem 1rem; border: 1.5px solid var(--border); border-radius: 999px; background: var(--card-bg); color: var(--text); font: inherit; font-size: 1rem; font-weight: 600; line-height: 1.2; cursor: pointer; transition: background-color 140ms var(--ease-out), border-color 140ms var(--ease-out), transform 140ms var(--ease-out); }
+.col-pick-btn.is-active { background: var(--lime); color: var(--lime-ink); border-color: var(--focus-ring); font-weight: 700; }
+.col-pick-btn:active { transform: scale(0.97); }
+.col-pick-btn:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 2px; }
+.col-pick-btn-text { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .col-pick-btn svg { flex: none; width: 1.125rem; height: 1.125rem; }
+@media (hover: hover) and (pointer: fine) { .col-pick-btn:hover { border-color: var(--text-soft); } }
+/* Zeile so hoch wie vorher mit «Alle / Favoriten» (52 px), damit «Meine Rezepte» und «Entdecken» deckungsgleich bleiben */
+@media (min-width: 768px) { .home-head-body > .filter-bar:has(> .col-pick-btn) { box-sizing: border-box; min-height: 3.25rem; } }
+@media (prefers-reduced-motion: reduce) { .col-pick-btn, .col-pick-btn:active { transition: none; transform: none; } }
 .col-dot { flex: none; width: 0.625rem; height: 0.625rem; border-radius: 50%; background: var(--c, var(--text-soft)); }
 .col-ico { flex: none; display: inline-flex; align-items: center; justify-content: center; color: var(--c, var(--text-soft)); }
 .col-ico svg { width: 1.25rem; height: 1.25rem; }
@@ -3829,6 +3836,7 @@ body.keyboard-open .rp-foot { padding-bottom: 0.75rem; }
 .result-row .hv-add-recipes svg { width: 1.125rem; height: 1.125rem; }
 .hv-sort-hint { margin: -0.25rem 0 0.75rem; }
 .hv-empty .primary-btn svg { width: 1.125rem; height: 1.125rem; }
+.hv-empty h2, .hv-empty p, .toast, .select-bar-actions button, .result-line { overflow-wrap: anywhere; }
 
 /* Auswahlmodus: ganze Karte ist die Trefferfläche, Häkchen oben links, gewählt = Rand in Fokusfarbe */
 .is-selecting .rcard-fav, .is-selecting .rrow-fav { display: none; }
@@ -3855,10 +3863,10 @@ body.keyboard-open .rp-foot { padding-bottom: 0.75rem; }
 @media (max-width: 767px) {
   main.home-main--addbar.is-selecting { padding-bottom: calc(var(--nav-h) + 11rem + env(safe-area-inset-bottom, 0px)); }
   body:has(.home-sel-bar) .toast { bottom: calc(var(--nav-h) + 10rem + env(safe-area-inset-bottom, 0px)); }
-  .result-row--phone .result-tools .sel-mode-btn { order: -1; }
-}
-@media (max-width: 359px) {
-  .select-bar--two .select-bar-actions { grid-template-columns: minmax(0, 1fr); }
+  /* «Auswählen» direkt neben der Anzahl: die Zeile bleibt so hoch wie vorher (Trefferfläche 44 px ragt über die Textzeile) */
+  .hv-count-line { display: flex; flex-wrap: wrap; align-items: center; column-gap: 0.5rem; min-width: 0; }
+  .hv-count-line .result-line { min-width: 0; }
+  .hv-count-line .sel-mode-btn { margin: -0.75rem 0; padding: 0 0.5rem; }
 }
 @media (min-width: 768px) {
   .home-main > .select-bar { position: sticky; bottom: calc(var(--nav-h) + 1rem + env(safe-area-inset-bottom, 0px)); z-index: var(--z-sticky); max-width: 45rem; margin: 1.5rem auto 0; grid-template-columns: minmax(0, 1fr) auto; align-items: center; }
@@ -3878,3 +3886,5 @@ body.keyboard-open .rp-foot { padding-bottom: 0.75rem; }
   .col-radio:checked + .col-swatch-dot, .col-radio:checked + .col-icon-face { outline: 2px solid Highlight; }
   .is-selecting .rcard.is-picked .rcard-main, .is-selecting .rrow.is-picked .rrow-main { outline: 2px solid Highlight; }
 }
+/* Karten ohne Foto: Titel rückt neben das Häkchen */
+.is-selecting .rcard--text .rcard-title { padding-left: 2rem; }

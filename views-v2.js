@@ -424,7 +424,11 @@ function hvCollections() {
   if (hvOrg()) { try { return orgCollections() || []; } catch (e) { return []; } }
   return getCollections().filter(c => c && c.id && c.id !== 'friends').map((c, i) => ({ id: c.id, name: String(c.name || ''), color: '', icon: 'folder', order: i }));
 }
-function hvCollection(id) { return id ? (hvCollections().find(c => c.id === id) || null) : null; }
+function hvCollection(id) {
+  if (!id) return null;
+  if (typeof orgCollection === 'function') { try { return orgCollection(id); } catch (e) { return null; } }
+  return hvCollections().find(c => c.id === id) || null;
+}
 function hvRecipeIdsIn(id) {
   if (typeof orgRecipeIdsIn === 'function') { try { return orgRecipeIdsIn(id) || new Set(); } catch (e) { return new Set(); } }
   return new Set(state.recipes.filter(r => (r.collections || []).includes(id)).map(r => r.id));
@@ -512,13 +516,20 @@ function hvCountText(scope, n, total, filtered) {
   const words = hvCountWords(n, total, filtered);
   return scope === 'all' ? words : `${hvScopeLabel(scope)} · ${words}`;
 }
-let hvLastCount = null;
+let hvLastCount = null, hvCountTimer = null;
+/* Höfliche Ansage, wenn sich Bereich oder Treffer ändern; beim Tippen erst nach einer Pause (nicht bei jedem Tastendruck). */
 function hvAnnounceCount() {
-  if (state.view !== 'home' || state.modal) { if (state.view !== 'home') hvLastCount = null; return; }
-  const h = document.getElementById('all-h');
-  const text = h ? h.textContent.replace(/\s+/g, ' ').trim() : '';
-  if (hvLastCount !== null && text && text !== hvLastCount) announceLive(text);
-  hvLastCount = text;
+  if (state.view !== 'home') { hvLastCount = null; clearTimeout(hvCountTimer); return; }
+  if (state.modal) return;
+  const read = () => { const h = document.getElementById('all-h'); return h ? h.textContent.replace(/\s+/g, ' ').trim() : ''; };
+  if (hvLastCount === null) { hvLastCount = read(); return; }
+  clearTimeout(hvCountTimer);
+  hvCountTimer = setTimeout(() => {
+    if (state.view !== 'home' || state.modal) return;
+    const text = read();
+    if (text && text !== hvLastCount) announceLive(text);
+    hvLastCount = text;
+  }, document.activeElement && document.activeElement.id === 'searchInput' ? 700 : 60);
 }
 
 /* ---------- Auswahlmodus ---------- */
@@ -562,7 +573,7 @@ function hvPickButtonHtml(scope, phone, inert) {
     </button>`;
   }
   const lead = c ? `<span class="col-dot" style="--c:${hvColorVar(c.color)}" aria-hidden="true"></span>` : (scope === 'favorites' ? ICONS.bookmark : ICONS.folder);
-  return `<button type="button" class="filter-btn col-pick-btn ${c ? 'is-active' : ''}" id="colPickBtn" data-action="open-col-pick" aria-haspopup="dialog" aria-label="Sammlung wählen, aktuell: ${escapeAttr(label)}" title="${escapeAttr(label)}">${lead}<span class="filter-btn-text">${escapeHtml(label)}</span>${ICONS.arrowDown}</button>`;
+  return `<button type="button" class="col-pick-btn ${c ? 'is-active' : ''}" id="colPickBtn" data-action="open-col-pick" aria-haspopup="dialog" aria-label="Sammlung wählen, aktuell: ${escapeAttr(label)}" title="${escapeAttr(label)}">${lead}<span class="col-pick-btn-text">${escapeHtml(label)}</span>${ICONS.arrowDown}</button>`;
 }
 
 /* ---------- Leerzustände je Bereich (§1.5) ---------- */
@@ -622,14 +633,14 @@ function homeView() {
       <section class="home-section" aria-labelledby="all-h">
         <div class="result-row result-row--phone">
           <div class="result-info">
-            ${resultLine}
+            ${selBtn ? `<div class="hv-count-line">${resultLine}${selBtn}</div>` : resultLine}
             <span class="result-dot" aria-hidden="true">·</span>
             <div class="inline-pick sort-inline">
               <span class="inline-pick-text">${escapeHtml(sortCur.label)}</span>${ICONS.arrowDown}
               <select class="inline-pick-select sort-select" id="sortSelect" aria-label="Sortierung">${sortOptions}</select>
             </div>
           </div>
-          <div class="result-tools">${selBtn}${layoutToggleHtml(pl, 'layout-toggle--phone')}${filterBtn}</div>
+          <div class="result-tools">${layoutToggleHtml(pl, 'layout-toggle--phone')}${filterBtn}</div>
         </div>
         ${sortHint ? `<p class="hint-line hv-sort-hint">${escapeHtml(sortHint)}</p>` : ''}
         ${items}
@@ -824,7 +835,7 @@ function colDeleteModal(m) {
       <div class="sheet-handle" aria-hidden="true"></div>
       <h2 class="modal-title" id="colDelTitle">Sammlung löschen?</h2>
       <p id="colDelText"><strong>Deine Rezepte bleiben erhalten.</strong></p>
-      <p class="hint-line">Nur die Sammlung «${escapeHtml(c.name)}»${k ? ` und ihre Zuordnung zu ${hvRecipeWord(k)}` : ''} ${k ? 'werden' : 'wird'} entfernt.</p>
+      <p class="hint-line">Nur die Sammlung «${escapeHtml(c.name)}»${k ? ` und ihre Zuordnung zu ${k === 1 ? '1 Rezept' : k + ' Rezepten'}` : ''} ${k ? 'werden' : 'wird'} entfernt.</p>
       <div class="rp-actions col-delete-actions">
         <button type="button" class="ghost-btn" data-action="col-delete-cancel" data-id="${escapeAttr(c.id)}">Abbrechen</button>
         <button type="button" class="primary-btn kd-danger-btn" data-action="col-delete-confirm" data-id="${escapeAttr(c.id)}">Sammlung löschen</button>

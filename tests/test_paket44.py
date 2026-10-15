@@ -35,7 +35,11 @@ async def set_theme(page, theme):
     await page.evaluate("(t) => { state.theme = t; applyTheme(); }", theme); await page.wait_for_timeout(120)
 
 async def fresh(page):
-    await page.evaluate("() => { resetExtraFilters(); state.query=''; state.favOnly=false; state.modal=null; state.view='home'; render(); window.scrollTo(0,0); }"); await page.wait_for_timeout(250)
+    await page.evaluate("() => { resetExtraFilters(); state.query=''; state.favOnly=false; state.activeCollection='all'; state.selectMode=null; state.modal=null; state.view='home'; render(); window.scrollTo(0,0); }"); await page.wait_for_timeout(250)
+
+# v84: «Alle / Favoriten» steht in der Sammlungsauswahl (Titel bzw. Knopf neben «Filter»), nicht mehr als .seg oder Sortieroption
+async def scope(page, sid):
+    await page.click('#colPickBtn'); await page.wait_for_selector('.col-pick-item'); await page.click(f'.col-pick-item[data-id="{sid}"]'); await page.wait_for_timeout(350)
 
 async def open_sheet(page):
     await page.click('[data-action="open-filter-sheet"]'); await page.wait_for_selector('.filter-sheet'); await page.wait_for_timeout(300)
@@ -68,17 +72,18 @@ async def main():
           seg: Array.from(document.querySelectorAll('.seg-btn')).map(e => e.textContent.trim() + ':' + e.getAttribute('aria-pressed')), fb: document.querySelector('.filter-btn').textContent.trim(), chips: document.querySelectorAll('.chip').length, summary: !!document.querySelector('.filter-summary'),
           searchTop: document.querySelector('.search-field').getBoundingClientRect().top, barTop: document.querySelector('.filter-bar').getBoundingClientRect().top })""")
         check('Suche: Platzhalter «Rezepte suchen», volle Breite, eigene Zeile', st['ph'] == 'Rezepte suchen' and st['fw'] >= st['cw'] - 70 and st['barTop'] > st['searchTop'] + 40, str(st))
-        check('Alle/Favoriten: «Alle» gewählt, Filter-Schaltfläche heisst «Filter», keine Chip-Leiste, keine Zusammenfassung', st['seg'] == ['Alle:true', 'Favoriten:false'] and st['fb'] == 'Filter' and st['chips'] == 0 and not st['summary'], str(st))
+        st['pick'] = await ev("() => document.getElementById('colPickBtn').textContent.trim()")
+        check('Sammlungsauswahl «Alle Rezepte» statt Alle/Favoriten, Filter-Schaltfläche heisst «Filter», keine Chip-Leiste, keine Zusammenfassung', st['seg'] == [] and st['pick'] == 'Alle Rezepte' and st['fb'] == 'Filter' and st['chips'] == 0 and not st['summary'], str(st))
         hh = await ev(HEAD_RECT)
         check('Kopf belegt höchstens 40 Prozent der Höhe (820x700)', hh[2] <= 0.40 * 700, str(hh))
         rl = await ev("() => document.querySelector('.result-line').textContent.trim()")
         check('Trefferzeile zeigt Anzahl', rl == '8 Rezepte', rl)
 
         # Alle / Favoriten
-        await page.click('.seg-btn[data-id="fav"]'); await page.wait_for_timeout(200)
-        check('Favoriten: nur Favoriten', await ev(COUNT) == 4 and await ev("() => document.querySelector('.seg-btn[data-id=fav]').getAttribute('aria-pressed')") == 'true', str(await ev(TITLES)))
+        await scope(page, 'favorites')
+        check('Favoriten: nur Favoriten', await ev(COUNT) == 4 and await ev("() => document.getElementById('colPickBtn').textContent.trim()") == 'Favoriten', str(await ev(TITLES)))
         check('Favoriten zählen nicht im Filterzähler', await ev("() => document.querySelector('.filter-btn').textContent.trim()") == 'Filter')
-        await page.click('.seg-btn[data-id="all"]'); await page.wait_for_timeout(200)
+        await scope(page, 'all')
         check('Alle: gesamte Sammlung', await ev(COUNT) == 8)
 
         # ---------- A2. Handy: Startseite als Liste (Auswahl «Alle Rezepte», Filter, Zeile mit Anzahl und Sortierung) ----------
@@ -89,14 +94,14 @@ async def main():
           sel: !!document.getElementById('viewSelect'), opts: Array.from(document.querySelectorAll('#sortSelect option')).map(o => o.textContent.trim()), seg: document.querySelectorAll('.seg-btn').length, fb: document.querySelector('.filter-btn').textContent.trim(), chips: document.querySelectorAll('.chip').length,
           rl: document.querySelector('.result-line').textContent.trim(), hh: Math.round(document.querySelector('.home-head').getBoundingClientRect().height) })""")
         # Neues bewusstes Verhalten (Handy): kein breites Suchfeld mehr, runder Suchknopf (44 px) rechts neben «Filter»; das Feld oeffnet sich erst auf Tippen und hat den Platzhalter «Rezepte suchen …»
-        check('Handy: runder Suchknopf «Suchen» rechts neben dem Titel «Alle Rezepte», «Filter» in der Zeile darunter', st2['ph'] == 'Suchen' and not st2['field'] and st2['bw'] == 44 and st2['sl'] > 200 and not st2['sel'] and st2['opts'][-1] == 'Nur Favoriten' and st2['seg'] == 0 and st2['fb'] == 'Filter' and st2['chips'] == 0, str(st2))
+        check('Handy: runder Suchknopf «Suchen» rechts neben dem Titel «Alle Rezepte», «Filter» in der Zeile darunter', st2['ph'] == 'Suchen' and not st2['field'] and st2['bw'] == 44 and st2['sl'] > 200 and not st2['sel'] and 'Nur Favoriten' not in st2['opts'] and st2['seg'] == 0 and st2['fb'] == 'Filter' and st2['chips'] == 0, str(st2))
         await pg2.click('#searchBtn'); await pg2.wait_for_timeout(250)
         check('Handy: Suchfeld nach Tippen auf den Knopf mit Platzhalter «Rezepte suchen …»', await ev2("() => document.getElementById('searchInput').placeholder") == 'Rezepte suchen …')
         await pg2.keyboard.press('Escape'); await pg2.wait_for_timeout(150)
         check('Handy: Kopf belegt höchstens 40 Prozent der Höhe (390x844) und Zeile zeigt «8 Rezepte»', st2['hh'] <= 0.40 * 844 and st2['rl'] == '8 Rezepte', str(st2))
-        await pg2.select_option('#sortSelect', '__fav'); await pg2.wait_for_timeout(250)
+        await scope(pg2, 'favorites')
         check('Handy: Favoriten wählbar, zählen nicht im Filterzähler', await ev2(COUNT) == 4 and await ev2("() => document.querySelector('.filter-btn').textContent.trim()") == 'Filter')
-        await pg2.select_option('#sortSelect', 'updated'); await pg2.wait_for_timeout(250)
+        await scope(pg2, 'all')
         check('Handy: «Alle Rezepte» zeigt die gesamte Sammlung', await ev2(COUNT) == 8)
         await b2.close()
 
@@ -170,10 +175,10 @@ async def main():
         await page.keyboard.press('Escape'); await page.wait_for_timeout(450)
 
         # Favoriten + Suche kombiniert mit Filtern, Sortierung/Fav zählen nicht
-        await page.click('.seg-btn[data-id="fav"]'); await page.wait_for_timeout(200)
+        await scope(page, 'favorites')
         t = await ev(TITLES)
         check('Favoriten kombiniert mit Filtern: Gemüsepfanne und (vegan) Frühstücksbowl', sorted(t) == ['Frühstücksbowl', 'Gemüsepfanne'] and await ev("() => document.querySelector('.filter-btn').textContent.trim()") == 'Filter · 2', str(t))
-        await page.click('.seg-btn[data-id="all"]'); await page.wait_for_timeout(200)
+        await scope(page, 'all')
         check('«Alle» setzt zusätzliche Filter nicht zurück', await ev(COUNT) == 4 and await ev("() => state.activeFilters.dietary.size") == 1)
         await page.fill('#searchInput', 'apfel'); await page.wait_for_timeout(500)
         check('Suche zusammen mit Filtern', await ev(TITLES) == ['Apfelkuchen'] and await ev("() => document.getElementById('searchInput').value") == 'apfel')
@@ -188,9 +193,9 @@ async def main():
 
         # Zurücksetzen auf Startseite: nur zusätzliche Filter
         await page.fill('#searchInput', 'k'); await page.wait_for_timeout(400)
-        await page.click('.seg-btn[data-id="fav"]'); await page.wait_for_timeout(200)
+        await scope(page, 'favorites')
         await page.click('.filter-summary-reset'); await page.wait_for_timeout(300)
-        rs = await ev("() => [state.query, state.favOnly, state.sortBy, state.activeFilters.dietary.size + state.activeFilters.time.size, !!document.querySelector('.filter-summary')]")
+        rs = await ev("() => [state.query, state.activeCollection === 'favorites', state.sortBy, state.activeFilters.dietary.size + state.activeFilters.time.size, !!document.querySelector('.filter-summary')]")
         check('«Zurücksetzen» entfernt nur zusätzliche Filter (Suche, Favoriten, Sortierung bleiben)', rs == ['k', True, 'updated', 0, False], str(rs))
         await fresh(page)
 

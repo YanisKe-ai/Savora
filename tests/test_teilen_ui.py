@@ -179,7 +179,8 @@ async def main():
         await page.evaluate("() => document.querySelector('[data-action=share-accept][data-mode=keep]').click()"); await page.wait_for_timeout(1500)
         kept = await ev(page, "state.recipes.filter(r => (r.collections || []).includes('friends')).map(r => r.title)")
         check('Behalten: Rezept liegt in der Kategorie «Rezepte von Freunden»', await ev(page, "state.recipes.length") == n0 + 1 and kept == ['Pasta al Limone mit Ricotta'], str(kept))
-        check('Kategorie erscheint im Filter und filtert', await ev(page, "moreFilterOptions().some(o => o.id === 'friends' && o.label === 'Rezepte von Freunden') && recipesInCollection('friends', state.recipes).length === 1"))
+        # v84: «Rezepte von Freunden» ist ein Systembereich der Sammlungsauswahl (nicht mehr im Filterfenster)
+        check('Bereich «Rezepte von Freunden» erscheint in der Sammlungsauswahl und filtert', await ev(page, "!moreFilterOptions().some(o => o.id === 'friends') && hvScopeLabel('friends') === 'Rezepte von Freunden' && hvScopeList('friends', state.recipes).length === 1 && recipesInCollection('friends', state.recipes).length === 1"))
 
         # 10 Tastatur und Fokus, Reduced Motion
         await setup(page, PROFILE, CONNS, INBOX)
