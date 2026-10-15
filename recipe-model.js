@@ -92,7 +92,7 @@ function servingsFactor(r, servings) {
   return (servings || r.servings) / r.servings;
 }
 function servingLabel(r, n) {
-  if (!yieldKnown(r) && !(n > 0)) return 'Ergibt: offen';
+  if (!yieldKnown(r) && !(n > 0)) return 'Ergibt: unbekannt';
   const mode = servingMode(r);
   if (mode === 'pieces') return `${yieldNum(n)} ${r.yieldLabel || 'Stück'}`;
   if (mode === 'total') return yieldTotalPhrase(r, n);
@@ -130,7 +130,7 @@ function yieldLabelFor(label, n) {
 }
 function yieldTotalPhrase(r, n) {
   const label = yieldLabelFor(r && r.yieldLabel, n);
-  return label ? `${yieldNum(n)} ${label}` : `${yieldNum(n)}× Rezeptmenge`;
+  return label ? `${yieldNum(n)} ${label}` : `${yieldNum(n)}-fache Rezeptmenge`;
 }
 // { kind: 'portions'|'pieces'|'total'|'unknown', count: number|null, label }
 function yieldInfo(r) {
@@ -141,11 +141,11 @@ function yieldInfo(r) {
   if (mode === 'total') return { kind: 'total', count, label: yieldLabelFor(r.yieldLabel, count) };
   return { kind: 'portions', count, label: count === 1 ? 'Portion' : 'Portionen' };
 }
-// n = aktuelle (skalierte) Anzahl, sonst Original. «Für 4 Portionen» | «Ergibt 12 Stück» | «Ergibt 1 Glas» | «Ertrag unbekannt»
+// n = aktuelle (skalierte) Anzahl, sonst Original. «Für 4 Portionen» | «Ergibt 12 Stück» | «Ergibt 1 Glas» | «Ergibt: unbekannt»
 function yieldText(r, n) {
   const info = yieldInfo(r);
   const num = Number(n) > 0 ? Number(n) : info.count;
-  if (!(num > 0)) return 'Ertrag unbekannt';
+  if (!(num > 0)) return 'Ergibt: unbekannt';
   const mode = servingMode(r);
   if (mode === 'pieces') return `Ergibt ${yieldNum(num)} ${String((r && r.yieldLabel) || '').trim() || 'Stück'}`;
   if (mode === 'total') return `Ergibt ${yieldTotalPhrase(r, num)}`;
@@ -196,7 +196,7 @@ function timeInfo(r) {
   if (total) parts.push(fmtMinutes(total) + ' Gesamtzeit');
   if (prep) parts.push(fmtMinutes(prep) + ' Vorbereitung');
   if (cook) parts.push(fmtMinutes(cook) + ' Garen');
-  if (rest) parts.push(fmtMinutes(rest) + ' Ruhen');
+  if (rest) parts.push(fmtMinutes(rest) + ' Ruhen/Abkühlen');
   return { total, prep, cook, rest, text: parts.join(' · '), cardText: total ? fmtMinutes(total) : '' };
 }
 
@@ -239,8 +239,9 @@ function timeTextSuspicion(r) {
   const total = Number(r.timeMinutes) > 0 ? Number(r.timeMinutes) : 0;
   const check = (text) => {
     // Saetze trennen, Abkuerzungen («1 Std. ruhen», «ca. 1 Std.») aber zusammenlassen
+    // Dauer und Stichwort muessen im selben Satzteil stehen: «20 Min. backen, dann abkühlen lassen» ist keine Kühlzeit von 20 Min.
     const sentences = String(text || '').replace(/\b(std|min|ca|bzw|evtl|ggf|stk|el|tl|resp|z\.\s?b)\./gi, '$1\u0001')
-      .split(/(?<=[.!?;])\s+|\n+/).map(x => x.replace(/\u0001/g, '.'));
+      .split(/(?<=[.!?;])\s+|\n+|,|;|\s(?:und|dann|danach|anschliessend|anschließend|sobald|bis)\s/i).map(x => x.replace(/\u0001/g, '.'));
     for (const s of sentences) {
       const kw = REST_TEXT_RE.exec(s);
       if (!kw) continue;
@@ -255,10 +256,10 @@ function timeTextSuspicion(r) {
   for (const e of stepEntries(r)) {
     if (!e.heading) n++;
     const hit = check(e.text);
-    if (hit) return { text: `In Schritt ${e.heading ? n + 1 : n} wird eine ${hit.cool ? 'Kühlzeit' : 'Ruhezeit'} von etwa ${fmtMinutes(hit.min)} genannt. Prüfe die Zeitangaben.`, field: 'restMinutes' };
+    if (hit) return { text: `In Schritt ${e.heading ? n + 1 : n} steht etwa ${fmtMinutes(hit.min)} ${hit.cool ? 'Abkühlen' : 'Ruhen'}. Prüfe das Feld «Ruhen oder Abkühlen».`, field: 'restMinutes' };
   }
   const noteHit = check(r.notes);
-  if (noteHit) return { text: `In den Notizen wird eine ${noteHit.cool ? 'Kühlzeit' : 'Ruhezeit'} von etwa ${fmtMinutes(noteHit.min)} genannt. Prüfe die Zeitangaben.`, field: 'restMinutes' };
+  if (noteHit) return { text: `In den Notizen steht etwa ${fmtMinutes(noteHit.min)} ${noteHit.cool ? 'Abkühlen' : 'Ruhen'}. Prüfe das Feld «Ruhen oder Abkühlen».`, field: 'restMinutes' };
   return null;
 }
 // Kuechenrundung: Grossmengen in g/ml auf sinnvolle Schritte, sonst Brueche via fmtAmount.
