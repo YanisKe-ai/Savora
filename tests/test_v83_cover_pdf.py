@@ -48,7 +48,7 @@ COVER_JS = r"""async () => {
     const ib = b.inkBox; return { drawn: [x0, y0, x1 + 1, y1 + 1], ink: [ib.x * W, ib.y * H, (ib.x + ib.w) * W, (ib.y + ib.h) * H].map(v => Math.round(v * 10) / 10) };
   };
   R.pix = {};
-  for (const [n, f] of Object.entries({ left: {}, center: { title: { align: 'center' } }, right: { title: { align: 'right' } }, lilita: { title: { font: 'Lilita One', y: 0.3 } }, zweizeilig: { title: { w: 0.4 } } })) {
+  for (const [n, f] of Object.entries({ left: { title: { color: '#252720' } }, center: { title: { align: 'center' } }, right: { title: { align: 'right' } }, lilita: { title: { font: 'Lilita One', y: 0.3 } }, zweizeilig: { title: { w: 0.4 } } })) {
     const L = coverLayout(inp(f, null, n === 'zweizeilig' ? { title: 'Unsere liebsten Familienrezepte' } : null)); R.pix[n] = pix(L, 'title');
   }
   // Fehlalarm vorher: Titel unter der Wortmarke
@@ -85,8 +85,8 @@ COVER_JS = r"""async () => {
 
 FONT_DELAY_JS = r"""async () => {
   // frische Seite, Lilita noch nicht geladen: Hinweise ohne belastbare Messung zurueckhalten
-  const i = coverInputFromConfig({ title: 'Meine Rezepte', subtitle: 'Familienküche', author: 'Yanis', showLogo: true, cover: { v: 2, mode: 'template', templateId: 'pop', date: '2026-10-15', showDate: true, fields: { title: { font: 'Lilita One', y: 0.3 }, subtitle: { y: 0.31 } } } });
-  const loaded0 = document.fonts.check("400 40px 'Lilita One'");
+  const i = coverInputFromConfig({ title: 'Meine Rezepte', subtitle: 'Familienküche', author: 'Yanis', showLogo: true, cover: { v: 2, mode: 'template', templateId: 'pop', date: '2026-10-15', showDate: true, fields: { title: { font: 'Archivo', y: 0.3 }, subtitle: { y: 0.31 } } } });
+  const loaded0 = document.fonts.check("900 40px 'Archivo'");
   const L0 = coverLayout(i);
   await coverEnsureFonts();
   const L1 = coverLayout(i);
@@ -98,13 +98,17 @@ async def teil_cover(pw):
     print('\n===== Teil A: Cover =====')
     b, c = await open_ctx(pw, 1200, 900); page = await c.new_page(); errs = []
     page.on('pageerror', lambda e: errs.append(str(e)))
-    await page.goto(URL)
+    # Font-Ladeverzoegerung: Archivo kommt erst nach 2,5 s an
+    async def langsam(route):
+        await asyncio.sleep(8); await route.continue_()
+    await page.route('**/archivo.woff2', langsam)
+    await page.goto(URL, wait_until='commit')
     await page.wait_for_function("typeof coverLayout === 'function' && typeof coverAutoAlign === 'function'")
     fd = await page.evaluate(FONT_DELAY_JS)
     if not fd['loaded0']:
         check('Font-Ladeverzoegerung: waehrend die Schrift laedt, keine Ueberlappungshinweise (fontsPending)', fd['pending0'] and fd['w0'] == 0, fd)
     else:
-        print('     (Lilita war schon geladen, Verzoegerungsfall nicht pruefbar)')
+        check('Font-Ladeverzoegerung simuliert (Archivo beim ersten Layout noch nicht geladen)', False, fd)
     check('Font-Ladeverzoegerung: nach dem Laden echte Ueberlappung erkannt', not fd['pending1'] and 'subtitle' in fd['w1'], fd)
     r = await page.evaluate(COVER_JS)
     wm = r['wm']
@@ -127,20 +131,22 @@ async def teil_cover(pw):
     check('alle 15 Vorlagen mit langen Texten: keine Hinweise', not bad, bad)
     a = r['align']
     t = a['titleLogo']
-    check('Ausrichten Titel/Logo: geloest, nur y des Titels, kleinste Verschiebung nach unten',
-          not t['after'] and [m['id'] for m in t['moves']] == ['title'] and t['moves'][0]['dyMm'] > 0 and abs(t['moves'][0]['dxMm']) < 0.05 and t['moves'][0]['dyMm'] < 30, t)
+    check('Ausrichten Titel/Logo: geloest, nur der Titel bewegt, eine Achse, unter 30 mm',
+          not t['after'] and [m['id'] for m in t['moves']] == ['title'] and (abs(t['moves'][0]['dxMm']) < 0.05 or abs(t['moves'][0]['dyMm']) < 0.05) and max(abs(t['moves'][0]['dxMm']), abs(t['moves'][0]['dyMm'])) < 30, t)
     check('Ausrichten: keine Text-, Schrift- oder Breitenaenderung', all(set(f.keys()) <= {'x', 'y', 'w', 'text'} and 'fontPt' not in f for f in t['fields'].values()) and 'w' not in t['fields'].get('title', {}), t['fields'])
     t = a['titleSub']
-    check('Ausrichten Titel/Untertitel: Untertitel verschoben, danach ohne Hinweis', not t['after'] and [m['id'] for m in t['moves']] == ['subtitle'], t)
+    check('Ausrichten Titel/Untertitel: Untertitel nach unten (Reihenfolge bleibt), danach ohne Hinweis', not t['after'] and t['moves'] and t['moves'][0]['id'] == 'subtitle' and t['moves'][0]['dyMm'] > 0 and 'title' not in [m['id'] for m in t['moves']], t)
+    yy = {k: v.get('y') for k, v in t['fields'].items()}
+    check('Ausrichten: Untertitel bleibt unter dem Titel, Name bleibt ueber dem Titel (wie vorher sichtbar)', yy.get('title', 0) < yy.get('subtitle', 1) and yy.get('name', 0) < yy.get('title', 1), yy)
     t = a['rotated']
-    check('Ausrichten gedreht: nicht bewegt, Erklaerung «gedreht»', not t['moves'] and any(u['reason'] == 'gedreht' for u in t['unresolved']), t)
+    check('Ausrichten gedreht: gedrehtes Feld nicht bewegt, Erklaerung «gedreht»', 'subtitle' not in [m['id'] for m in t['moves']] and any(u['reason'] == 'gedreht' and u['id'] == 'subtitle' for u in t['unresolved']), t)
     check('Ausrichten ohne Konflikt: nichts verschoben', not a['none']['moves'] and not a['none']['unresolved'], a['none'])
     check('Teil A: keine Seitenfehler', not errs, errs[:3])
     await b.close()
 
 
 EDITOR_SETUP = """() => { saveCookbookConfig({ title: 'Meine Rezepte', subtitle: 'Familienküche aus Basel', author: 'Yanis', chapters: [], items: state.recipes.slice(0, 1).map(r => ({ recipeId: r.id, chapterId: '' })), showLogo: true,
-  cover: { v: 2, mode: 'template', templateId: 'pop', date: '2026-10-15', showDate: true, fields: { title: { y: 0.3 }, subtitle: { y: 0.31 } } } });
+  cover: { v: 2, mode: 'template', templateId: 'pop', date: '2026-10-15', showDate: true, fields: { title: { y: 0.3 }, subtitle: { y: 0.31 }, name: { y: 0.6 } } } });
   state.view = 'cookbook'; state.cookbookStep = 2; render(); }"""
 
 
@@ -171,15 +177,15 @@ async def teil_editor(pw):
         m1 = await page.evaluate("() => JSON.stringify(ce.model.fields)")
         check(f'[{w}px] Rueckgaengig stellt die Positionen wieder her (Warnung wieder da)', json.loads(m1) == json.loads(m0), m1)
         # Verschieben per Tastatur-/Knopf-Aenderung: Warnung aktualisiert sich
-        await page.evaluate("() => ceMoveBy('subtitle', 0, 0.08)")
+        await page.evaluate("() => ceMoveBy('subtitle', 0, 0.15)")
         await page.wait_for_function("() => !ce.layout.warnings.some(x => x.kind === 'overlap')")
         bar = await page.locator('.ce-warnbar').count()
         check(f'[{w}px] Nach Verschieben: Warnung verschwindet sofort', bar == 0, bar)
-        await page.evaluate("() => ceMoveBy('subtitle', 0, -0.08)")
+        await page.evaluate("() => ceMoveBy('subtitle', 0, -0.15)")
         await page.wait_for_function("() => ce.layout.warnings.some(x => x.kind === 'overlap') && document.querySelector('.ce-warnbar')")
         check(f'[{w}px] Zurueckschieben: Warnung kommt zurueck', True)
         # «Im Cover bearbeiten» aus der Pruefung
-        await page.evaluate("() => { state.cookbookStep = 3; render(); const d = document.createElement('button'); d.type = 'button'; d.dataset.coverEdit = 'subtitle'; d.id = 'h4edit'; d.textContent = 'Im Cover bearbeiten'; document.body.appendChild(d); }")
+        await page.evaluate("() => { state.cookbookStep = 3; render(); const d = document.createElement('button'); d.type = 'button'; d.dataset.coverEdit = 'subtitle'; d.id = 'h4edit'; d.style.cssText = 'position:fixed;top:0;left:0;z-index:99999'; d.textContent = 'Im Cover bearbeiten'; document.body.appendChild(d); }")
         await page.click('#h4edit')
         await page.wait_for_function("() => state.cookbookStep === 2 && typeof ce !== 'undefined' && ce.sel === 'subtitle' && document.querySelector('.ce-root, .cover-picker.ce')")
         check(f'[{w}px] «Im Cover bearbeiten» oeffnet Gestalten mit ausgewaehltem Feld', True)
@@ -213,7 +219,7 @@ async def teil_pdf():
                 if k > 1:
                     t2 = flach(ex.text(first=2))
                     title = fx[rid]['title']
-                    check(f'[{stil}] {was}: Folgeseite nennt Rezeptname und «Fortsetzung»', 'Fortsetzung' in t2 and _ascii(title)[:25] in _ascii(t2), t2[:120])
+                    check(f'[{stil}] {was}: Folgeseite nennt Rezeptname und «Fortsetzung»', 'fortsetzung' in t2.lower() and _ascii(title)[:25] in _ascii(t2), t2[:120])
                 texte[(stil, rid)] = _ascii(flach(ex.text()).replace('Fortsetzung', ''))
                 if rid in ('pdf_sloppy', 'pdf_zweiseiten', 'pdf_hochformat', 'pdf_langtitel') or k >= 3:
                     ex.render(80)

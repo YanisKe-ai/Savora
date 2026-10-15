@@ -410,44 +410,67 @@ function coverAutoAlign(model, input) {
   const lay = (mm) => coverLayout(Object.assign({}, input || {}, { v2: mm }));
   const bad = (L) => (L.warnings || []).filter(w => (w.kind === 'overlap' && !w.imageId) || w.kind === 'margin');
   const moverOf = (w) => (w.fieldId === 'logo' ? w.otherId : w.fieldId);
-  const inkOf = (L, id) => { if (id === 'date') return L.date && L.date.inkBox; if (id === 'logo') return coverLogoInkBox(L.logo); const b = (L.blocks || []).find(x => coverBlockId(x) === id); return b && b.inkBox; };
+  const inkOf = (L, id) => {
+    if (id === 'date') return L.date && (L.date.rot && L.date.inkHull ? coverHullBox(L.date.inkHull) : L.date.inkBox);
+    if (id === 'logo') return coverLogoInkBox(L.logo);
+    const b = (L.blocks || []).find(x => coverBlockId(x) === id); return b && (b.rot && b.inkHull ? coverHullBox(b.inkHull) : b.inkBox);
+  };
+  const ORDER = ['title', 'subtitle', 'name', 'extra1'];   // Lesereihenfolge bleibt erhalten (nichts springt ueber ein vorrangiges Feld)
   const posOf = (L, id) => { if (id === 'date') return L.date ? { x: L.date.fx, y: L.date.y } : null; const b = (L.blocks || []).find(x => coverBlockId(x) === id); return b ? { x: b.x, y: b.y } : null; };
   const rotOf = (L, id) => { if (id === 'date') return L.date && L.date.rot; const b = (L.blocks || []).find(x => coverBlockId(x) === id); return b && b.rot; };
   const moves = {}, unresolved = {};
   let L = lay(m);
   if (L.geometry !== 'ink') return { model: m, moves: [], unresolved: bad(L).map(w => ({ id: moverOf(w), reason: 'Messung nicht möglich' })) };
   for (let round = 0; round < 8; round++) {
-    const ws = bad(L).filter(w => !unresolved[moverOf(w)]);
+    const prio = (id) => { const i = ORDER.indexOf(id); return i < 0 ? 9 : i; };
+    const ws = bad(L).filter(w => !unresolved[moverOf(w)]).sort((x, y) => prio(moverOf(x)) - prio(moverOf(y)));
     if (!ws.length) break;
     const id = moverOf(ws[0]);
     if (!id || id === 'logo') { unresolved[id || '?'] = 'Logo'; continue; }
     if (rotOf(L, id)) { unresolved[id] = 'gedreht'; continue; }
     const U = inkOf(L, id), P = posOf(L, id);
     if (!U || !P) { unresolved[id] = 'Messung nicht möglich'; continue; }
-    const others = ['title', 'subtitle', 'name', 'extra1', 'date', 'logo'].filter(o => o !== id).map(o => inkOf(L, o)).filter(Boolean);
+    const mi = ORDER.indexOf(id);
+    // Nachfolger in derselben Spalte (unterhalb, ungedreht) wandern bei einer Verschiebung nach unten mit (Abstaende untereinander bleiben)
+    const followers = mi < 0 ? [] : ORDER.slice(mi + 1).filter((o) => { const q = inkOf(L, o); return q && !rotOf(L, o) && q.y >= U.y && !(q.x >= U.x + U.w || U.x >= q.x + q.w); });
+    const all = ['title', 'subtitle', 'name', 'extra1', 'date', 'logo'].filter(o => o !== id).map(o => ({ o, b: inkOf(L, o) })).filter(x => x.b);
+    const inSafe = (r) => r.x >= safeX - 1e-6 && r.y >= safeY - 1e-6 && r.x + r.w <= 1 - safeX + 1e-6 && r.y + r.h <= 1 - safeY + 1e-6;
+    // gleiche Spalte: bisherige Reihenfolge von oben nach unten bleibt (kein Feld springt ueber ein anderes Textfeld)
+    //   (ueberlappten sich die beiden schon, gilt die Lesereihenfolge Titel, Untertitel, Name, weitere Zeile)
+    const free = (r, r0, ri, obst) => obst.every(({ o, b: q }) => {
+      const sepX = r.x >= q.x + q.w + gapX - 1e-6 || q.x >= r.x + r.w + gapX - 1e-6;
+      if (!sepX && r0 && ORDER.indexOf(o) >= 0) {
+        const apart = r0.y + r0.h <= q.y + 1e-6 || q.y + q.h <= r0.y + 1e-6;
+        const wasAbove = apart ? r0.y < q.y : ri < ORDER.indexOf(o);
+        if (wasAbove !== (r.y + r.h / 2 < q.y + q.h / 2)) return false;
+      }
+      return sepX || r.y >= q.y + q.h + gapY - 1e-6 || q.y >= r.y + r.h + gapY - 1e-6;
+    });
+    const groupOf = (dy) => (dy > 0 ? [id].concat(followers) : [id]);
     const okAt = (dx, dy) => {
-      const r = { x: U.x + dx, y: U.y + dy, w: U.w, h: U.h };
-      if (r.x < safeX - 1e-6 || r.y < safeY - 1e-6 || r.x + r.w > 1 - safeX + 1e-6 || r.y + r.h > 1 - safeY + 1e-6) return false;
-      return others.every(o => r.x >= o.x + o.w + gapX - 1e-6 || o.x >= r.x + r.w + gapX - 1e-6 || r.y >= o.y + o.h + gapY - 1e-6 || o.y >= r.y + r.h + gapY - 1e-6);
+      const grp = groupOf(dy);
+      const obst = all.filter(x => !grp.includes(x.o));
+      return grp.every((g) => { const q = g === id ? U : inkOf(L, g); const r = { x: q.x + dx, y: q.y + dy, w: q.w, h: q.h }; return inSafe(r) && free(r, ORDER.indexOf(g) >= 0 ? q : null, ORDER.indexOf(g), obst); });
     };
-    const cands = [[0, 0]];
-    const clamp = [[safeX - U.x, 0], [1 - safeX - (U.x + U.w), 0], [0, safeY - U.y], [0, 1 - safeY - (U.y + U.h)]];
-    clamp.forEach(c => cands.push(c));
-    others.forEach((o) => {
+    const cands = [[0, safeY - U.y], [safeX - U.x, 0], [1 - safeX - (U.x + U.w), 0], [0, 1 - safeY - (U.y + U.h)]];
+    all.forEach(({ b: o }) => {
       cands.push([0, o.y + o.h + gapY - U.y], [0, o.y - gapY - (U.y + U.h)], [o.x + o.w + gapX - U.x, 0], [o.x - gapX - (U.x + U.w), 0]);
+      followers.forEach((f) => { const q = inkOf(L, f); cands.push([0, o.y + o.h + gapY - q.y]); });   // Nachfolger muss unter ein Hindernis
     });
     const mmOf = ([dx, dy]) => Math.hypot(dx * W, dy * H) / MM;
-    const best = cands.filter(([dx, dy]) => okAt(dx, dy)).sort((a, b) => mmOf(a) - mmOf(b))[0];
-    if (!best || (best[0] === 0 && best[1] === 0)) { unresolved[id] = 'kein Platz'; continue; }
+    const best = cands.filter(([dx, dy]) => (dx || dy) && okAt(dx, dy)).sort((p1, p2) => mmOf(p1) - mmOf(p2))[0];
+    if (!best) { unresolved[id] = 'kein Platz'; continue; }
+    const grp = groupOf(best[1]);
     // Felder festhalten, die ohne eigene Position fliessen (sonst bewegen sie sich mit)
-    const before = {}; ['title', 'subtitle', 'name', 'extra1'].forEach((o) => { const p = posOf(L, o); if (p) before[o] = p; });
+    const before = {}; ORDER.forEach((o) => { const p = posOf(L, o); if (p) before[o] = p; });
     const next = coverModelSanitize(m);
-    Object.keys(before).forEach((o) => { if (o !== id && (!next.fields[o] || next.fields[o].y == null)) next.fields[o] = Object.assign({}, next.fields[o], { y: coverRound(before[o].y) }); });
-    next.fields[id] = Object.assign({}, next.fields[id], { x: coverRound(P.x + best[0]), y: coverRound(P.y + best[1]) });
+    Object.keys(before).forEach((o) => { if (!grp.includes(o) && (!next.fields[o] || next.fields[o].y == null)) next.fields[o] = Object.assign({}, next.fields[o], { y: coverRound(before[o].y) }); });
+    grp.forEach((g) => { const pp = g === id ? P : posOf(L, g); next.fields[g] = Object.assign({}, next.fields[g], { x: coverRound(pp.x + best[0]), y: coverRound(pp.y + best[1]) }); });
     if (id === 'date') { const d = L.date; const f = next.fields.date; f.w = coverRound(d.w); }
     const L2 = lay(coverModelSanitize(next));
     if (bad(L2).length >= bad(L).length && bad(L2).some(w => moverOf(w) === id)) { unresolved[id] = 'kein Platz'; continue; }
     m = coverModelSanitize(next); L = L2;
+    grp.filter(g => g !== id).forEach((g) => { const mv = moves[g] || { id: g, dxMm: 0, dyMm: 0 }; mv.dxMm = Math.round((mv.dxMm + best[0] * W / MM) * 10) / 10; mv.dyMm = Math.round((mv.dyMm + best[1] * H / MM) * 10) / 10; moves[g] = mv; });
     const mv = moves[id] || { id, dxMm: 0, dyMm: 0 };
     mv.dxMm = Math.round((mv.dxMm + best[0] * W / MM) * 10) / 10; mv.dyMm = Math.round((mv.dyMm + best[1] * H / MM) * 10) / 10;
     moves[id] = mv;
