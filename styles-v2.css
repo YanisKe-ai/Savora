@@ -3667,3 +3667,12 @@ body.keyboard-open .rp-foot { padding-bottom: 0.75rem; }
 }
 .rp-sheet--plan .rp-sub { color: var(--text); font-size: 1rem; font-weight: 600; }
 
+/* v83 Integration: Ertrag und Zeit in einer Zeile (erste Zutat bleibt ohne Scrollen sichtbar), Mindestschrift 14 px */
+.detail-meta-v2 { display: flex; flex-wrap: wrap; align-items: center; column-gap: 0.75rem; row-gap: 0.25rem; }
+.detail-meta-v2 .detail-times { display: inline-flex; align-items: center; gap: 0.25rem; margin: 0; }
+.detail-meta-v2 .detail-times svg { width: 1rem; height: 1rem; flex: none; }
+.cb-hint-level, .cbk-date { font-size: 0.875rem; }
+/* v83: Auf breiten Bildschirmen etwas flacheres Rezeptfoto, damit die erste Zutat trotz Ertrags- und Aktionszeile ohne Scrollen sichtbar bleibt (Laptop 800 px hoch) */
+@media (min-width: 900px) { .detail-main.has-hero .hero-img { aspect-ratio: 3 / 2; } }
+/* Grosse Systemschrift: Rezeptaktionen wechseln auf eine Spalte, statt über den Rand zu ragen */
+@media (max-width: 599px) { .detail-tools { grid-template-columns: repeat(auto-fit, minmax(min(100%, 9.5rem), 1fr)); } .detail-tools .tool-action { min-width: 0; } }

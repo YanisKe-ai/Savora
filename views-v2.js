@@ -643,8 +643,7 @@ function detailView() {
           <h1 class="detail-title-v2 ${(r.title || '').length > 34 ? 'is-long' : ''} ${(r.title || '').length > 70 ? 'is-xlong' : ''}">${escapeHtml(r.title || 'Ohne Titel')}</h1>
           ${favButton(r, 'detail-fav')}
         </div>
-        <p class="detail-meta-v2">${facts.map(f => `<span class="fact">${escapeHtml(f)}</span>`).join('')}</p>
-        ${extraTimes.length ? `<p class="detail-times">${ICONS.clock}<span>${extraTimes.map(escapeHtml).join(' · ')}</span></p>` : ''}
+        <p class="detail-meta-v2">${facts.map(f => `<span class="fact">${escapeHtml(f)}</span>`).join('')}${extraTimes.length ? `<span class="fact detail-times">${ICONS.clock}<span>${extraTimes.map(escapeHtml).join(' · ')}</span></span>` : ''}</p>
       </div>
       <button class="primary-btn primary-btn--block cook-start-inline" data-action="start-cook" data-id="${escapeAttr(r.id)}">${ICONS.play} Kochen starten</button>
       <div class="detail-tools" role="group" aria-label="Weitere Aktionen zum Rezept">
