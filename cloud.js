@@ -33,7 +33,7 @@ function cloudIsOrgKind(kind) { return CLOUD_ORG_KINDS.includes(kind); }
 /* Generationszaehler: Anmelden, Abmelden und Konto loeschen erhoehen ihn. Ein laufender Abgleich merkt sich Generation und
    Konto beim Start und schreibt nichts mehr (Daten, Meta, Cursor, Warteschlange), sobald sich eines davon geaendert hat. */
 function cloudSyncCtx() { return { gen: cloud.gen, uid: cloudUserId() }; }
-function cloudCtxValid(ctx) { return !ctx || (ctx.gen === cloud.gen && ctx.uid === cloudUserId()); }
+function cloudCtxValid(ctx) { return !ctx || typeof ctx !== 'object' || (ctx.gen === cloud.gen && ctx.uid === cloudUserId()); }   // ohne Kontext (alte Aufrufe) keine Pruefung
 function cloudCheckCtx(ctx) { if (!cloudCtxValid(ctx)) throw Object.assign(new Error('Abgleich nach Kontowechsel verworfen'), { stale: true }); }
 
 /* ---------- Kleine Helfer ---------- */
