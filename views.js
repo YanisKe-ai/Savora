@@ -170,6 +170,16 @@ function deleteModal(r) {
     <div class="modal-sheet" role="dialog" aria-modal="true" aria-labelledby="delete-modal-title" tabindex="-1" onclick="event.stopPropagation()">
       <h2 class="modal-title" id="delete-modal-title">Rezept löschen?</h2>
       <p style="font-size:14px;color:var(--text-muted);">„${escapeHtml(r.title)}“ wird endgültig aus deinem Kochbuch entfernt.</p>
+      ${(() => {
+        const pub = typeof libPublicationForRecipe === 'function' ? libPublicationForRecipe(r.id) : null;
+        if (!pub || pub.status !== 'published') return '';
+        // Veroeffentlichung und privates Rezept sind getrennt: ausdruecklich waehlen, nichts vorausgewaehlt
+        return `<fieldset class="del-pub" id="delPub" data-pub-id="${escapeAttr(pub.id)}"><legend class="del-pub-legend">Dieses Rezept ist in der Rezeptbibliothek veröffentlicht.</legend>
+          <label class="check-line"><input type="radio" name="delPubChoice" value="keep"> Veröffentlichung bestehen lassen</label>
+          <label class="check-line"><input type="radio" name="delPubChoice" value="withdraw"> Veröffentlichung zurückziehen</label>
+          <p class="hint-line">Kopien, die andere schon gespeichert haben, bleiben in jedem Fall bei ihnen.</p>
+          <p class="cloud-error" id="delPubError" role="alert"></p></fieldset>`;
+      })()}
       <div class="form-actions">
         <button class="ghost-btn" data-action="close-modal">Abbrechen</button>
         <button class="primary-btn" style="background:var(--danger);color:#fff;flex:1;justify-content:center;" data-action="delete-recipe" data-id="${escapeAttr(r.id)}">Löschen</button>

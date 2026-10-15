@@ -28,7 +28,7 @@ PHONES = [(375, 812), (390, 844), (430, 932)]
 QUICK = bool(os.environ.get('SAVORA_P42_QUICK'))
 # Ansichten, die auf dem Handy bewusst anders aussehen (Startseite als Liste, untere Navigation mit fuenf Punkten statt vier, zentrierte Wortmarke, kein Zahnrad).
 # Das sind genau die Ansichten, in denen die untere Navigation oder die Startseite sichtbar ist (geprueft: .bottom-nav vorhanden). Editor, Import und Kochmodus nicht.
-PHONE_CHANGED_VIEWS = {'home', 'home-list', 'empty-home', 'detail-long', 'detail-photo', 'detail-short', 'settings', 'settings-data', 'settings-display', 'settings-share', 'settings-help',
+PHONE_CHANGED_VIEWS = {'home', 'more', 'home-list', 'empty-home', 'detail-long', 'detail-photo', 'detail-short', 'settings', 'settings-data', 'settings-display', 'settings-share', 'settings-help',
                        'settings-about', 'mealplan', 'shopping', 'cookbooks', 'cookbook1', 'cookbook2', 'cookbook3', 'empty-shopping', 'empty-mealplan', 'empty-cookbooks'}
 def view_of(fname): return fname[:-4].split('-', 2)[2]
 BOUNDED_VIEWS = {'settings', 'settings-data', 'settings-display', 'settings-help', 'settings-about', 'more', 'settings-share'}   # begrenzte Lesebreite; settings-share zeigt jetzt «Freunde & Rezepte»
