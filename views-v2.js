@@ -1162,14 +1162,14 @@ function cookbookStepPreview(cfg) {
         <h2 class="section-title" id="cbStepTitle" tabindex="-1">Vorschau &amp; PDF</h2>
         <div class="cb-final-grid">
           <div class="cover-preview" aria-label="Vorschau des Titelblatts">${coverPreviewHtml(layout)}</div>
-          <dl class="cb-summary">
+          <div class="cb-summary-wrap"><dl class="cb-summary">
             <div><dt>Inhalt</dt><dd id="cbSummaryText">${escapeHtml(sum.text)}</dd></div>
             <div><dt>Titelblatt</dt><dd>${escapeHtml(coverName)}</dd></div>
             <div><dt>Seitenstil</dt><dd>${escapeHtml(cookbookPdfTemplateName(tplId))}</dd></div>
             <div><dt>Name</dt><dd>${author ? escapeHtml(author) : 'Kein Name'}</dd></div>
             ${state.showNutrition ? `<div><dt>Nährwerte</dt><dd>${COOKBOOK_NUTRITION_LABEL[nut]}</dd></div>` : ''}
-            <div class="cb-summary-edit"><button type="button" class="text-btn" data-action="cb-step" data-id="2">Gestaltung ändern</button></div>
           </dl>
+          <button type="button" class="text-btn cb-summary-edit" data-action="cb-step" data-id="2">Gestaltung ändern</button></div>
         </div>
         <h3 class="sub-title" id="cbHintsTitle">Prüfung</h3>
         ${hints.length ? `<ul class="cb-warnings" aria-labelledby="cbHintsTitle">${hints.map(cookbookHintHtml).join('')}</ul>` : '<p class="hint-line">Keine Auffälligkeiten gefunden.</p>'}

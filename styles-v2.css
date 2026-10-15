@@ -3508,7 +3508,8 @@ body:has(.lp) .topbar--sub .topbar-title { overflow-wrap: normal; hyphens: auto;
 .cb-pages-list li { display: flex; justify-content: space-between; gap: 1rem; padding: 0.5rem 0; border-bottom: 1px solid var(--border); }
 .cb-pages-list li span:first-child { min-width: 0; overflow-wrap: anywhere; }
 .cb-pages-n { flex: none; color: var(--text-soft); font-variant-numeric: tabular-nums; }
-.cb-summary-edit { margin-top: -0.25rem; }
+.cb-summary-wrap { display: flex; flex-direction: column; align-items: flex-start; gap: 0.5rem; min-width: 0; }
+.cb-summary-edit { min-height: 2.75rem; padding: 0 0.5rem; margin-left: -0.5rem; }
 .cb-pdf-opts .cb-opt + .cb-opt { margin-top: 1rem; }
 .cb-pdf-opts .sub-title { margin: 0 0 0.25rem; }
 .cbk-meta { margin-bottom: 0; }
