@@ -85,7 +85,7 @@ function libCardHtml(card) {
   const title = String(card.title || 'Ohne Titel');
   const author = card.author && card.author.display_name ? String(card.author.display_name) : '';
   const mins = Number(card.total_minutes);
-  const time = mins > 0 ? `<span class="lcard-meta">${ICONS.clock}<span>${mins} Min.</span></span>` : '';
+  const time = mins > 0 ? `<span class="lcard-meta">${ICONS.clock}<span>${fmtMinutes(mins)}</span></span>` : '';
   const saved = libCopies(id).length > 0;
   const tid = 'lct-' + id.replace(/[^a-zA-Z0-9-]/g, '');
   const myPid = typeof lib !== 'undefined' && lib.pubProfile && lib.pubProfile.data ? lib.pubProfile.data.public_id : '';
@@ -426,8 +426,8 @@ function libPublicRecipeHtml(pubLike, opts) {
   if (heroPath) hero = `<div class="hero lib-hero">${libMediaHtml(heroPath, 'lib-hero-media', 1600, 1067, title)}</div>`;
   else if (opts.localImageSrc) hero = `<div class="hero lib-hero"><span class="lib-hero-media"><span class="lib-ph">${ICONS.bookOpen}</span><img class="is-loaded" src="${escapeAttr(opts.localImageSrc)}" alt="${escapeAttr(title)}" width="1600" height="1067"></span></div>`;
   const yieldRec = { servings: rec.servings, servingMode: rec.servingMode, yieldLabel: rec.yieldLabel };
-  const facts = [rec.timeMinutes > 0 ? `${rec.timeMinutes} Min.` : '', yieldKnown(yieldRec) ? `Ergibt ${servingLabel(yieldRec, rec.servings)}` : 'Ergibt: offen', rec.difficulty || ''].filter(Boolean);
-  const extraTimes = [rec.prepMinutes ? `Vorbereitungszeit ${rec.prepMinutes} Min.` : '', rec.restMinutes ? `Ruhen ${rec.restMinutes} Min.` : '', rec.cookMinutes ? `Garen/Backen ${rec.cookMinutes} Min.` : ''].filter(Boolean);
+  const facts = [timeInfo(rec).cardText, yieldText(yieldRec, rec.servings), rec.difficulty || ''].filter(Boolean);
+  const extraTimes = [rec.prepMinutes > 0 ? `Vorbereitung ${fmtMinutes(rec.prepMinutes)}` : '', rec.cookMinutes > 0 ? `Garen oder Backen ${fmtMinutes(rec.cookMinutes)}` : '', rec.restMinutes > 0 ? `Ruhen oder Abkühlen ${fmtMinutes(rec.restMinutes)}` : ''].filter(Boolean);
   const chips = (rec.diet || []).filter(x => !(x === 'vegetarisch' && (rec.diet || []).includes('vegan'))).map(x => LIB_DIET_LABELS[x] || x).concat((rec.categories || []).map(libCategoryLabel)).slice(0, 4);
   const tips = String(rec.tips || '').trim();
   const linkAuthor = opts.linkAuthor !== false && author.public_id;

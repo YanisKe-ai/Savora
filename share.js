@@ -375,7 +375,7 @@ function settingsSharePreviewView() {
   const item = shareFindInbox(share.previewId);
   if (!item) { return settingsDetailShell('Rezept ansehen', '<div class="tl tl--prev"><div class="tl-card"><p>Dieses Rezept ist nicht mehr da. Vielleicht hast du es schon übernommen oder abgelehnt.</p><button class="ghost-btn primary-btn--block" data-action="share-back-inbox">Zurück zu Empfangen</button></div></div>'); }
   const r = shareRecipeFromPayload(item.recipe, item.from_handle);
-  const meta = [r.timeMinutes ? `${r.timeMinutes} Min.` : '', yieldKnown(r) ? servingLabel(r, r.servings) : 'Ergibt: offen', r.difficulty || ''].filter(Boolean);
+  const meta = [timeInfo(r).cardText, yieldText(r, r.servings), r.difficulty || ''].filter(Boolean);
   const ings = r.ingredients.filter(i => (i.name || '').trim());
   const body = `
     <div class="tl tl--prev share-preview">

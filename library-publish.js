@@ -71,13 +71,6 @@ function lpFmtDate(v) {
   const d = new Date(v);
   return isNaN(d) ? '' : d.toLocaleDateString('de-CH', { day: 'numeric', month: 'long', year: 'numeric' });
 }
-function lpFmtMinutes(m) {
-  const n = Number(m);
-  if (!(n > 0)) return '';
-  if (n < 60) return `${n} Min.`;
-  const h = Math.floor(n / 60), r = n % 60;
-  return r ? `${h} Std. ${r} Min.` : `${h} Std.`;
-}
 function lpRecipe(id) { return (state.recipes || []).find(r => r.id === id) || null; }
 function lpHasOwnPhoto(r) {
   if (!r) return false;
@@ -309,10 +302,10 @@ function lpStep1Html(r, p, built) {
     lpErrLines('steps', lpMessagesFor(shown, 'steps').length ? lpMessagesFor(shown, 'steps') : (libPub.fieldErrors && !steps.length ? ['Mindestens ein Schritt ist nötig.'] : []))));
 
   // Zeit (unbekannt ist erlaubt, nie als 0)
-  const timeParts = [d.timeMinutes > 0 ? `Gesamtzeit ${lpFmtMinutes(d.timeMinutes)}` : 'Zeit unbekannt'];
-  if (d.prepMinutes > 0) timeParts.push(`Vorbereitung ${lpFmtMinutes(d.prepMinutes)}`);
-  if (d.cookMinutes > 0) timeParts.push(`Garen ${lpFmtMinutes(d.cookMinutes)}`);
-  if (d.restMinutes > 0) timeParts.push(`Ruhen ${lpFmtMinutes(d.restMinutes)}`);
+  const timeParts = [d.timeMinutes > 0 ? `Gesamtzeit ${fmtMinutes(d.timeMinutes)}` : 'Zeit unbekannt'];
+  if (d.prepMinutes > 0) timeParts.push(`Vorbereitung ${fmtMinutes(d.prepMinutes)}`);
+  if (d.cookMinutes > 0) timeParts.push(`Garen oder Backen ${fmtMinutes(d.cookMinutes)}`);
+  if (d.restMinutes > 0) timeParts.push(`Ruhen oder Abkühlen ${fmtMinutes(d.restMinutes)}`);
   items.push(lpCheckItem('time', st('time', d.timeMinutes > 0, true), 'Zeitangaben', escapeHtml(timeParts.join(' · ')),
     (d.timeMinutes > 0 ? '' : '<p class="lp-check-note">Das ist erlaubt. Die Zeit wird nicht geschätzt.</p>') + lpErrLines('time', lpMessagesFor(shown, 'time'))));
 
@@ -378,10 +371,10 @@ function lpPreviewHtml(pubLike, opts) {
   }
   const d = pubLike.recipe || {};
   const imgId = pubLike.localImageId;
-  const facts = [d.timeMinutes > 0 ? lpFmtMinutes(d.timeMinutes) : 'Zeit unbekannt',
-    d.servings > 0 ? (typeof yieldText === 'function' ? yieldText(d, d.servings) : `Ergibt ${d.servings} ${d.servings === 1 ? 'Portion' : 'Portionen'}`) : 'Ergibt: unbekannt',
+  const facts = [d.timeMinutes > 0 ? fmtMinutes(d.timeMinutes) : 'Zeit unbekannt',
+    yieldText(d, d.servings),
     d.difficulty || ''].filter(Boolean);
-  const extra = [d.prepMinutes > 0 ? `Vorbereitung ${lpFmtMinutes(d.prepMinutes)}` : '', d.cookMinutes > 0 ? `Garen ${lpFmtMinutes(d.cookMinutes)}` : '', d.restMinutes > 0 ? `Ruhen ${lpFmtMinutes(d.restMinutes)}` : ''].filter(Boolean);
+  const extra = [d.prepMinutes > 0 ? `Vorbereitung ${fmtMinutes(d.prepMinutes)}` : '', d.cookMinutes > 0 ? `Garen oder Backen ${fmtMinutes(d.cookMinutes)}` : '', d.restMinutes > 0 ? `Ruhen oder Abkühlen ${fmtMinutes(d.restMinutes)}` : ''].filter(Boolean);
   const chips = (d.diet || []).filter(x => LP_PUBLIC_DIETS.includes(x) && !(x === 'vegetarisch' && (d.diet || []).includes('vegan'))).map(categoryLabelFor).concat((d.categories || []).map(categoryLabelFor));
   let groups = [];
   try { groups = getIngredientGroups({ ingredients: d.ingredients || [] }); } catch (e) { groups = [{ title: 'Zutaten', ingredients: (d.ingredients || []).filter(i => i && !i.isGroupHeader) }]; }
