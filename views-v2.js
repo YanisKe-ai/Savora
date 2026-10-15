@@ -75,9 +75,15 @@ function brandLockup() {
   return `<div class="brand-v2">${wordmarkSvg('top-wordmark', 'Savora')}</div>`;
 }
 
+/* v84: kam man über «Passt dazu» von Rezept A, heisst die Zurück-Taste «Zurück zu <Titel A>» (A steht in history.state.linkPrev) */
+function linkBackLabel() {
+  const hs = history.state, prev = hs && hs.view === 'detail' && hs.activeRecipeId === state.activeRecipeId && hs.linkPrev ? state.recipes.find(x => x.id === hs.linkPrev) : null;
+  return prev && prev.title ? `Zurück zu ${prev.title}` : 'Zurück';
+}
+
 function topbar(title, opts = {}) {
   const left = opts.back
-    ? `<button class="icon-btn" data-action="back" aria-label="Zurück">${ICONS.back}</button>`
+    ? `<button class="icon-btn" data-action="back" aria-label="${escapeAttr(opts.backLabel || 'Zurück')}">${ICONS.back}</button>`
     : brandLockup();
   return `<header class="topbar ${opts.back ? 'topbar--sub' : ''} ${opts.cls || ''}">
     <div class="topbar-left">${left}${opts.back ? (opts.plainTitle ? `<span class="topbar-title">${escapeHtml(opts.plainTitle)}</span>` : `<h1 class="topbar-title">${escapeHtml(title)}</h1>`) : ''}</div>
@@ -1004,7 +1010,7 @@ function detailView() {
       <div class="diet-warning-actions"><button class="outline-btn outline-btn--small" data-action="fix-diet-conflict" data-id="${escapeAttr(r.id)}">Kennzeichnung entfernen</button><button class="text-btn" data-action="edit-recipe" data-id="${escapeAttr(r.id)}">Bearbeiten</button></div>
     </div>` : '';
   return `
-    ${topbar(r.title || 'Rezept', { back: true, plainTitle: 'Rezept', cls: 'topbar--detail', actions: `<button class="icon-btn" data-action="open-detail-menu" data-id="${escapeAttr(r.id)}" aria-label="Weitere Aktionen" aria-haspopup="dialog">${ICONS.more}</button>` })}
+    ${topbar(r.title || 'Rezept', { back: true, backLabel: linkBackLabel(), plainTitle: 'Rezept', cls: 'topbar--detail', actions: `<button class="icon-btn" data-action="open-detail-menu" data-id="${escapeAttr(r.id)}" aria-label="Weitere Aktionen" aria-haspopup="dialog">${ICONS.more}</button>` })}
     <main class="has-tabbar detail-main ${hero ? 'has-hero' : 'no-hero'}" data-tab="${tab}">
       ${hero}
       <div class="detail-cols"><div class="detail-col detail-col--info">

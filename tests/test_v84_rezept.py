@@ -1,6 +1,7 @@
 """v84 Rezept: Dialog «Zu Sammlungen hinzufügen», Sammlungs-Pillen in der Rezeptansicht, «Passt dazu» (Verknüpfen,
 Notiz, Entfernen mit Rückgängig, gelöschtes Ziel), Navigation zwischen verknüpften Rezepten (Verlauf, Reiter, Scroll,
 Menge, Fokus), Kochmodus-Vorschau mit laufendem Timer, Breiten 320/390/768/1280 hell/dunkel, grosse Schrift, Tastatur."""
+import json
 import asyncio, sys
 import os as _os; sys.path.insert(0, _os.path.dirname(_os.path.abspath(__file__)))
 from common import *
@@ -214,13 +215,32 @@ async def main():
         await page.wait_for_timeout(120)
         bst = await ev("[window.scrollY, state.detailTab, document.activeElement && document.activeElement.classList.contains('detail-title-v2')]")
         check('Ziel öffnet oben, Standardreiter, Fokus auf der Überschrift', bst[0] == 0 and bst[1] == 'ingredients' and bst[2], str(bst))
+        # N6a: Topbar-Zurück nennt das Herkunftsrezept (Titel wird escaped)
+        titleA = await ev("state.recipes.find(x => x.id === 'vk_a').title")
+        lbl = await ev("document.querySelector('.topbar [data-action=\"back\"]').getAttribute('aria-label')")
+        check('N6a: Zurück-Taste auf B heisst «Zurück zu <Titel A>»', lbl == 'Zurück zu ' + titleA, f'{lbl!r} / {titleA!r}')
+        await ev("() => { state.recipes.find(x => x.id === 'vk_a').title = 'A \"x\" <b>&'; render(true); }")
+        esc = await ev("[document.querySelector('.topbar [data-action=\"back\"]').getAttribute('aria-label'), !!document.querySelector('.topbar b')]")
+        check('N6a: Titel in der Beschriftung escaped', esc == ['Zurück zu A "x" <b>&', False], str(esc))
+        await ev("() => { state.recipes.find(x => x.id === 'vk_a').title = %s; render(true); }" % json.dumps(titleA))
+        # N6b: Reiter und Scrollstand von B sichern (für Browser-Vorwärts)
+        await page.click('[data-action="set-detail-tab"][data-id="steps"]')
+        await ev("() => window.scrollTo(0, Math.min(120, document.documentElement.scrollHeight - innerHeight))")
+        await page.wait_for_function("history.state.detailTab === 'steps'")
+        yB = await ev("window.scrollY")
+        await page.wait_for_timeout(300)
         await page.go_back()
         await page.wait_for_function("state.activeRecipeId === 'vk_a'")
         await ev("() => new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)))")
+        albl = await ev("document.querySelector('.topbar [data-action=\"back\"]').getAttribute('aria-label')")
+        check('N6a: A ohne Herkunft bleibt «Zurück»', albl == 'Zurück', albl)
         ast = await ev("[window.scrollY, state.detailTab, state.servingsOverride['vk_a'], document.activeElement && document.activeElement.dataset.id, !document.getElementById('panel-steps').hidden]")
         check('Zurück: Rezept, Reiter «Zubereitung», Scroll (nach 2 Frames), Menge 8, Fokus auf der Karte', y0 > 600 and abs(ast[0] - y0) <= 2 and ast[1] == 'steps' and ast[2] == 8 and ast[3] == 'vk_b' and ast[4], f'y0={y0} {ast}')
         await page.go_forward(); await page.wait_for_function("state.activeRecipeId === 'vk_b'")
         check('Browser-Vorwärts: wieder B', await ev("document.querySelector('.detail-title-v2').textContent === 'Burgersauce'"))
+        await ev("() => new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)))")
+        fw = await ev("[state.detailTab, window.scrollY, !document.getElementById('panel-steps').hidden]")
+        check('N6b: Browser-Vorwärts stellt Reiter und Scrollstand von B wieder her', fw[0] == 'steps' and fw[2] and abs(fw[1] - yB) <= 2, f'yB={yB} {fw}')
         await page.go_back(); await page.wait_for_function("state.activeRecipeId === 'vk_a'")
         await page.go_back(); await page.wait_for_timeout(300)
         check('Weiter zurück verlässt das Rezept wie bisher', await ev("state.activeRecipeId !== 'vk_b'"))

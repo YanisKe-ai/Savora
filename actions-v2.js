@@ -182,11 +182,21 @@ function linkNavigate(toId) {
   state.activeRecipeId = toId;
   state.detailTab = 'ingredients';
   state.pendingScrollY = 0;   // render() wendet das in applyScroll an (auch im rAF-Nachlauf)
+  history.pushState(Object.assign(navHistorySnapshot(), { detailTab: 'ingredients', scrollY: 0, linkPrev: fromId }), '', navHistoryUrl());   // vor render: Topbar liest linkPrev (Zurück zu <Titel>)
   render(true);
-  history.pushState(Object.assign(navHistorySnapshot(), { detailTab: 'ingredients', scrollY: 0, linkPrev: fromId }), '', navHistoryUrl());
   const h = App.querySelector('.detail-title-v2');
   if (h) { h.setAttribute('tabindex', '-1'); focusWithoutScroll(h); }
 }
+
+/* v84: Eintrag eines verknuepften Rezepts (hat linkPrev) aktuell halten, damit Browser-Vorwaerts nach Zurueck
+   Reiter und Scrollstand wieder findet (ein nicht mehr aktueller Eintrag laesst sich nicht nachtragen). */
+function linkSyncEntry() {
+  const cur = history.state;
+  if (state.view !== 'detail' || state.modal || !cur || cur.view !== 'detail' || !cur.linkPrev || cur.activeRecipeId !== state.activeRecipeId) return;
+  try { history.replaceState(Object.assign({}, cur, { detailTab: state.detailTab, scrollY: window.scrollY }), ''); } catch (err) { /* Verlauf nicht beschreibbar */ }
+}
+let linkSyncTimer = 0;
+window.addEventListener('scroll', () => { clearTimeout(linkSyncTimer); linkSyncTimer = setTimeout(linkSyncEntry, 120); }, { passive: true });
 
 async function handleActionV2(action, id, el, e) {
   switch (action) {
@@ -285,6 +295,7 @@ async function handleActionV2(action, id, el, e) {
       if (!newPanel) { state.detailTab = id; render(); return true; }
       const prevH = oldPanel ? oldPanel.offsetHeight : 0;
       state.detailTab = id;
+      linkSyncEntry();
       const dm = document.querySelector('.detail-main'); if (dm) dm.dataset.tab = id;   // breites Layout richtet sich danach
       document.querySelectorAll('.tab-panel').forEach(p => { p.hidden = p !== newPanel; });
       document.querySelectorAll('.tab-v2[role="tab"]').forEach(t => {
@@ -1672,7 +1683,7 @@ async function hvHandleAction(action, id, el, e) {
     case 'sel-all': {
       if (!state.selectMode) return true;
       const list = applyAllFilters(state.recipes), ids = state.selectMode.ids;
-      if (list.length && list.every(r => ids.has(r.id))) ids.clear();   // «Auswahl aufheben»
+      if (list.length && list.every(r => ids.has(r.id))) list.forEach(r => ids.delete(r.id));   // «Auswahl aufheben»: nur sichtbare Treffer, Ausgeblendete bleiben gewählt
       else list.forEach(r => ids.add(r.id));                             // nur aktuelle Such-/Filtertreffer
       hvRefreshSelection();
       announceLive((document.getElementById('selStatus') || {}).textContent || '');
