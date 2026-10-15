@@ -465,15 +465,13 @@ function homeView() {
     <div class="home-head ${phone ? 'home-head--phone' : ''}">
       ${phone ? topbar('', { cls: 'topbar--home topbar--center' }) : topbar('', { cls: 'topbar--home', actions: `<button class="round-btn round-btn--accent" data-action="open-add-menu" aria-label="Rezept hinzufügen">${ICONS.plus}</button>` })}
       <section class="home-head-body" aria-label="Suche und Filter">
-        ${phone ? '<h1 class="sr-only">Deine Rezepte</h1>' : pageTitle('Deine Rezepte')}
-        ${!phone && typeof recipesSwitchHtml === 'function' ? recipesSwitchHtml() : ''}
+        ${phone ? '<h1 class="sr-only">Deine Rezepte</h1>' : pageTitle('Deine Rezepte', typeof recipesSwitchHtml === 'function' ? recipesSwitchHtml() : '')}
         ${phone ? '' : `<div class="search-field">
           ${ICONS.search}
           <label for="searchInput" class="sr-only">Rezepte suchen</label>
           <input class="search-input" id="searchInput" type="search" enterkeyhint="search" placeholder="${phone ? 'Rezepte suchen …' : 'Rezepte suchen'}" value="${escapeHtml(state.query)}" autocomplete="off">
         </div>`}
         ${filterBar}
-        ${phone && typeof recipesSwitchHtml === 'function' ? recipesSwitchHtml() : ''}
         ${filterCount ? `<div class="filter-summary">
           <p class="filter-summary-text"><span class="sr-only">Aktive Filter: </span>${escapeHtml(summary)}</p>
           <button type="button" class="filter-summary-reset" data-action="reset-extra-filters">Zurücksetzen</button>
@@ -481,6 +479,7 @@ function homeView() {
       </section>
     </div>
     <main class="has-tabbar home-main ${phone && state.recipes.length ? 'home-main--addbar' : ''}">
+      ${phone && typeof recipesSwitchHtml === 'function' ? recipesSwitchHtml() : ''}
       ${todayPlannedHtml()}
       ${(() => { const n = backupNudgeInfo(); return n ? `<div class="nudge-card" role="note">
         <p class="nudge-text">${n.never ? 'Noch keine Sicherung' : 'Letzte Sicherung vor ' + n.days + ' Tagen'}</p>

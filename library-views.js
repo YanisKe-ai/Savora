@@ -218,8 +218,7 @@ function discoverView() {
     <div class="home-head lib-head ${phone ? 'home-head--phone' : ''}">
       ${topbar('', { cls: 'topbar--home' + (phone ? ' topbar--center' : '') })}
       <section class="home-head-body lib-head-body" aria-label="Suche und Filter">
-        ${phone ? `<h1 class="sr-only">Entdecken</h1><div class="filter-bar filter-bar--phone"><div class="view-pick"><span class="inline-pick-text">Entdecken</span></div></div>` : pageTitle('Entdecken')}
-        ${recipesSwitchHtml()}
+        ${phone ? `<h1 class="sr-only">Entdecken</h1><div class="filter-bar filter-bar--phone"><div class="view-pick"><span class="inline-pick-text">Entdecken</span></div></div>` : pageTitle('Entdecken', recipesSwitchHtml())}
         <div class="search-field lib-search" role="search">
           ${ICONS.search}
           <label for="libSearchInput" class="sr-only">Rezepte oder Zutaten suchen</label>
@@ -230,6 +229,7 @@ function discoverView() {
       </section>
     </div>
     <main class="has-tabbar home-main lib-main">
+      ${phone ? recipesSwitchHtml() : ''}
       <div id="libResults" class="lib-results">${libResultsHtml()}</div>
     </main>
     ${bottomNav()}

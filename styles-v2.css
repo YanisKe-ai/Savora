@@ -3488,3 +3488,5 @@ body:has(.lp) .topbar--sub .topbar-title { overflow-wrap: normal; hyphens: auto;
 .lib-sort { max-width: 100%; min-width: 0; }
 .lib-sort-select { max-width: 100%; min-width: 0; text-overflow: ellipsis; }
 .lib-switch-btn { overflow-wrap: normal; word-break: normal; hyphens: manual; }
+/* Tablet und Desktop: Umschalter rechts neben dem Seitentitel (keine zusätzliche Kopfhöhe) */
+.page-title-row .lib-switch { margin: -0.5rem 0 -0.5rem auto; flex: 0 0 auto; align-self: center; }
