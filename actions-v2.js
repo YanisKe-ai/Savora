@@ -836,6 +836,23 @@ async function handleActionV2(action, id, el, e) {
       const again = document.querySelector(`[data-action="cb-page-style"][data-id="${cssAttr(id)}"]`); if (again) focusWithoutScroll(again);
       return true;
     }
+    case 'cb-pdf-nutrition': {   // v83: Nährwerte im PDF gehören zur Konfiguration des Kochbuchs (eine Stelle für alle Exporte)
+      const level = el.dataset.level;
+      if (!COOKBOOK_NUTRITION_LEVELS.includes(level)) return true;
+      const cfg = getCookbookConfig();
+      cfg.pdfNutrition = level;
+      saveCookbookConfig(cfg); render();
+      const again = document.querySelector(`[data-action="cb-pdf-nutrition"][data-level="${cssAttr(level)}"]`); if (again) focusWithoutScroll(again);
+      return true;
+    }
+    case 'cb-use-sender-name': case 'cb-clear-name': {   // v83: Name auf Titelblatt und Fusszeile = Feld «Name» des Titelblatts
+      if (typeof ceFlush === 'function') ceFlush();   // ungespeicherte Eingaben im Cover-Editor zuerst sichern
+      const cfg = getCookbookConfig();
+      cfg.author = action === 'cb-use-sender-name' ? String(state.senderName || '').trim() : '';
+      saveCookbookConfig(cfg); render();
+      showToast(action === 'cb-clear-name' ? 'Im PDF steht kein Name mehr' : 'Name eingetragen');
+      return true;
+    }
     case 'cb-step': {
       // Bewegung M2 (motion-cover.js): Doppelklick auf Weiter/Zurueck ueberspringt keinen Schritt; Inhalt wechselt ruhig, Logik sofort
       if (typeof motionStepIgnore === 'function' && motionStepIgnore(el, e)) return true;
@@ -854,7 +871,7 @@ async function handleActionV2(action, id, el, e) {
       return true;
     case 'cb-rename': {
       const b = cookbookById(id); if (!b) return true;
-      openModal({ type: 'cb-name', mode: 'rename', id, value: b.name }, `[data-action="cb-rename"][data-id="${escapeAttr(id)}"]`);
+      openModal({ type: 'cb-name', mode: 'rename', id, value: b.name }, `[data-action="cb-menu"][data-id="${escapeAttr(id)}"]`);   // v83: Umbenennen steht im Menü der Karte
       setTimeout(() => { const i = document.getElementById('cbNameInput'); if (i) { i.focus(); i.select(); } }, 30);
       return true;
     }
@@ -879,16 +896,20 @@ async function handleActionV2(action, id, el, e) {
       state.cookbookStep = 1; state.view = 'cookbook';
       render();
       return true;
+    case 'cb-menu':   // v83: seltene Aktionen (Umbenennen, Duplizieren, Löschen) im Menü der Karte
+      if (!cookbookById(id)) return true;
+      openModal({ type: 'cb-menu', id }, `[data-action="cb-menu"][data-id="${escapeAttr(id)}"]`);
+      return true;
     case 'cb-duplicate': {
       const copy = cookbookDuplicate(id); if (!copy) return true;
-      render();
+      if (state.modal && state.modal.type === 'cb-menu') closeModal(); else render();
       showToast('Kochbuch dupliziert');
       const again = document.querySelector(`[data-action="cb-open"][data-id="${cssAttr(copy.id)}"]`); if (again) focusWithoutScroll(again);
       return true;
     }
     case 'cb-delete':
       if (cookbookBooks().length <= 1) { showToast('Mindestens ein Kochbuch bleibt bestehen'); return true; }
-      openModal({ type: 'cb-delete', id }, `[data-action="cb-delete"][data-id="${escapeAttr(id)}"]`);
+      openModal({ type: 'cb-delete', id }, `[data-action="cb-menu"][data-id="${escapeAttr(id)}"]`);
       return true;
     case 'cb-delete-confirm':
       if (cookbookDelete(id)) { closeModal(); showToast('Kochbuch gelöscht. Deine Rezepte sind unverändert.'); }

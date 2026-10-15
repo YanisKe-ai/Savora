@@ -3535,3 +3535,30 @@ body:has(.lp) .topbar--sub .topbar-title { overflow-wrap: normal; hyphens: auto;
   .detail-tools .tool-action { flex-direction: row; justify-content: flex-start; gap: 0.5rem; min-height: 2.75rem; padding: 0.25rem 0.5rem; text-align: left; line-height: 1.25; }
   .detail-tools .tool-action svg { flex: 0 0 auto; width: 1.25rem; height: 1.25rem; }
 }
+
+/* ===== v83 Kochbuch und PDF-Ablauf ===== */
+.cb-warnings .cb-warn { display: flex; gap: 0.75rem; align-items: flex-start; }
+.cb-warn--info { background: var(--surface-soft); color: var(--text); }
+.cb-hint-level { flex: none; min-width: 3.5rem; font-size: 0.75rem; font-weight: 700; letter-spacing: 0.02em; text-transform: uppercase; padding-top: 0.125rem; }
+.cb-hint-body { flex: 1; min-width: 0; display: flex; flex-direction: column; align-items: flex-start; gap: 0.25rem; }
+.cb-hint-text { margin: 0; overflow-wrap: anywhere; }
+.cb-hint-go { min-height: 2.75rem; padding: 0 0.5rem; margin-left: -0.5rem; font-weight: 700; color: inherit; text-decoration: underline; text-underline-offset: 0.125rem; }
+.cb-hint-details summary { cursor: pointer; min-height: 2.75rem; display: flex; align-items: center; font-weight: 600; }
+.cb-hint-details ul { margin: 0 0 0.5rem; padding-left: 1.25rem; }
+.cb-pages { margin: 1rem 0; }
+.cb-pages-list { list-style: none; margin: 0 0 0.5rem; padding: 0; display: grid; gap: 0.25rem; }
+.cb-pages-list li { display: flex; justify-content: space-between; gap: 1rem; padding: 0.5rem 0; border-bottom: 1px solid var(--border); }
+.cb-pages-list li span:first-child { min-width: 0; overflow-wrap: anywhere; }
+.cb-pages-n { flex: none; color: var(--text-soft); font-variant-numeric: tabular-nums; }
+.cb-summary-wrap { display: flex; flex-direction: column; align-items: flex-start; gap: 0.5rem; min-width: 0; }
+.cb-summary-edit { min-height: 2.75rem; padding: 0 0.5rem; margin-left: -0.5rem; }
+.cb-pdf-opts .cb-opt + .cb-opt { margin-top: 1rem; }
+.cb-pdf-opts .sub-title { margin: 0 0 0.25rem; }
+.cbk-meta { margin-bottom: 0; }
+.cbk-date { margin: 0.125rem 0 0.75rem; color: var(--text-soft); font-size: 0.8125rem; }
+.cbk-actions { gap: 0.5rem; }
+.cbk-more { width: 2.75rem; height: 2.75rem; }
+.cbk-thumb.is-placeholder { opacity: 0.9; }
+.cbk-thumb.is-fallback { opacity: 1; }
+.pdf-compare { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem 0.75rem; }
+.pdf-compare p { margin: 0; }
