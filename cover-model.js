@@ -252,7 +252,8 @@ function coverModelIsPlainTemplate(m) {
 /* Eingabe fuer coverLayout aus der Kochbuch-Konfiguration (v2 nur, wenn die Person es gespeichert hat) */
 function coverInputFromConfig(cfg, extra) {
   const cv = (cfg && cfg.cover) || coverSanitizeConfig(null, true);
-  const input = { templateId: cv.templateId, title: cfg && cfg.title, name: cfg && cfg.author, slogan: cfg && cfg.subtitle, date: cv.date, showDate: cv.showDate, logo: !cfg || cfg.showLogo !== false };
+  const pn = cfg && cfg.printName;   // 0.83.1: «Nur Fusszeile» / «Nicht drucken» = kein Name auf dem Titelblatt (author bleibt gespeichert)
+  const input = { templateId: cv.templateId, title: cfg && cfg.title, name: pn === 'footer' || pn === 'none' ? '' : cfg && cfg.author, slogan: cfg && cfg.subtitle, date: cv.date, showDate: cv.showDate, logo: !cfg || cfg.showLogo !== false };
   if (cv.v === COVER_SCHEMA_V2) input.v2 = coverModelSanitize(cv);
   return Object.assign(input, extra || {});
 }

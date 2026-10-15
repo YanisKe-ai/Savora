@@ -3660,10 +3660,11 @@ body.keyboard-open .rp-foot { padding-bottom: 0.75rem; }
 .ce-align-msg { margin: 0.5rem 0 0; padding: 0.5rem 0.75rem; border-radius: 0.75rem; background: var(--surface-soft); color: var(--text); font-size: 0.875rem; line-height: 1.4; }
 .ce-warn--margin { border-left-color: var(--text-soft); background: var(--surface-soft); }
 
-/* Schmale Handys: Mahlzeiten in einer waagrecht scrollbaren Reihe, damit die Rezeptliste Platz hat */
+/* Schmale Handys (v0.83.1): Mahlzeiten als 2 × 2 Raster, damit «Andere Mahlzeit» ohne Wischen sichtbar ist
+   (zwei Zeilen statt einer verdeckten Scrollreihe; die Rezeptliste scrollt weiterhin im Dialog) */
 @media (max-width: 479px) {
-  .rp-sheet .rp-meal-chips { flex-wrap: nowrap; overflow-x: auto; margin-inline: -1.25rem; padding-inline: 1.25rem; scroll-padding-inline: 1.25rem; }
-  .rp-sheet .rp-meal-chips .chip { flex: none; white-space: nowrap; }
+  .rp-sheet .rp-meal-chips { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .rp-sheet .rp-meal-chips .chip { justify-content: center; min-width: 0; padding-inline: 0.5rem; text-align: center; white-space: normal; line-height: 1.2; }
 }
 .rp-sheet--plan .rp-sub { color: var(--text); font-size: 1rem; font-weight: 600; }
 
@@ -3678,3 +3679,45 @@ body.keyboard-open .rp-foot { padding-bottom: 0.75rem; }
 @media (max-width: 599px) { .detail-tools { grid-template-columns: repeat(auto-fit, minmax(min(100%, 9.5rem), 1fr)); } .detail-tools .tool-action { min-width: 0; } }
 /* v83: Handy: Rezeptfoto etwas flacher (16:9), damit die erste Zutat trotz zweizeiliger Aktionen ohne Scrollen sichtbar bleibt (auch mit Linux-Schriften) */
 @media (max-width: 899px) { .detail-main.has-hero .hero-img { aspect-ratio: 16 / 9; } }
+
+/* ===== v831 Planung ===== */
+/* Eintrag bearbeiten: Entfernen als ruhige Textaktion am Ende des Inhalts, nicht neben «Speichern» */
+.rp-sheet .rp-remove { display: inline-flex; align-items: center; gap: 0.5rem; margin: 0.25rem 0 0; padding: 0 0.25rem; font-size: 1rem; }
+.rp-sheet .rp-remove svg { width: 18px; height: 18px; flex: none; }
+.rp-sheet .rp-field select { width: 100%; }
+/* Einkauf: Vorschau -> zurueck zur Rezeptauswahl */
+.shop-back-btn { display: inline-flex; align-items: center; gap: 0.25rem; margin: 0 0 0.5rem -0.5rem; font-size: 1rem; }
+.shop-back-btn svg { width: 18px; height: 18px; flex: none; }
+/* Sehr schmal (320 px): etwas weniger Innenabstand, damit «Andere Mahlzeit» meist einzeilig bleibt */
+@media (max-width: 359px) { .rp-sheet .rp-meal-chips .chip { padding-inline: 0.25rem; } }
+
+/* ===== v831 Entdecken wie Meine Rezepte ===== */
+/* Tablet/Desktop: Schnellfilter als Chips in der Zeile wie home `filter-bar`, gleich hoch wie «Filter» */
+.lib-filter-bar { flex-wrap: nowrap; }
+.lib-filter-bar .lib-quick { flex: 0 1 auto; flex-wrap: nowrap; min-width: 0; margin: 0; gap: 0.5rem; }
+.lib-filter-bar .lib-qf { min-height: 3rem; padding: 0.25rem 1rem; font-size: 1rem; }
+.lib-filter-bar .filter-btn { flex: none; margin-left: auto; }
+/* Gleiche Höhen wie home: Zeile so hoch wie dort der Umschalter «Alle · Favoriten» (52 px), Kopfzeile so hoch wie mit dem runden Plus-Knopf */
+@media (min-width: 768px) {
+  .lib-filter-bar { box-sizing: border-box; min-height: 3.25rem; }
+  .lib-head .topbar-actions { min-height: 2.75rem; }
+}
+@container (max-width: 40rem) { .lib-filter-bar .lib-quick { flex-wrap: wrap; } }
+/* Ladezustand: Ergebniszeile so hoch wie im fertigen Zustand (kein Sprung) */
+.lib-results > .lib-skel-row { min-height: 2.75rem; }
+.lib-results > .lib-skel-row .lib-skel-line--count { margin: 0; }
+/* Handy: Zusammenfassung aktiver Filter direkt unter der Ergebniszeile */
+.lib-results > .filter-summary { margin: -0.25rem 0 0.75rem; }
+/* Filterfenster, Gruppe «Schnell»: Schalter (Spur rechts), ganze Zeile tippbar */
+.lib-fs-switch { justify-content: space-between; }
+.fs-opts:has(> .lib-fs-switch) { grid-template-columns: minmax(0, 1fr); }
+.lib-fs-switch .fs-text { hyphens: manual; }
+.lib-sw-track { position: relative; flex: none; width: 2.75rem; height: 1.75rem; box-sizing: border-box; border-radius: 999px; background: var(--surface-soft); border: 2px solid var(--text-soft); transition: background-color 140ms var(--ease-out, ease-out), border-color 140ms var(--ease-out, ease-out); }
+.lib-sw-thumb { position: absolute; top: 0.125rem; left: 0.125rem; width: 1.25rem; height: 1.25rem; border-radius: 50%; background: var(--text-soft); transition: transform 140ms var(--ease-out, ease-out); }
+.lib-fs-switch .fs-input:checked ~ .lib-sw-track { background: var(--lime-ink); border-color: var(--lime-ink); }
+.lib-fs-switch .fs-input:checked ~ .lib-sw-track .lib-sw-thumb { background: var(--lime); transform: translateX(1rem); }
+@media (prefers-reduced-motion: reduce) { .lib-sw-track, .lib-sw-thumb { transition: none; } }
+@media (forced-colors: active) { .lib-sw-track { border-color: CanvasText; } .lib-fs-switch .fs-input:checked ~ .lib-sw-track .lib-sw-thumb { background: Highlight; } }
+/* Handy-Suchfeld: Tippflächen 44 px (Feld und Schliessen-Knopf), ohne das Overlay zu vergrössern */
+#libSearchPop .search-input { min-height: 2.75rem; }
+#libSearchPop .search-close { width: 2.75rem; height: 2.75rem; margin: -0.25rem 0; }

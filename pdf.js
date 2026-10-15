@@ -1027,8 +1027,13 @@ async function pdfBuildCookbookImpl(nutritionDetail, opts) {
     await ensurePdfLibs();   // Fehler (offline/Timeout) frueh und mit verstaendlicher Meldung
     const templateId = (opts && opts.template) || cfg.pdfTemplate || pdfDefaultTemplateId();
     const title = cfg.title || '';   // leer = nichts drucken (kein unsichtbarer Standardtitel)
-    const author = opts && typeof opts.author === 'string' ? opts.author : (cfg.author || '');   // «Name im PDF» aus dem Exportdialog hat Vorrang (leer = nicht drucken)
-    pdfSetContext(templateId, title, author, cfg.showLogo !== false, true);
+    const name = opts && typeof opts.author === 'string' ? opts.author : (cfg.author || '');   // «Name im PDF» aus dem Exportdialog hat Vorrang (leer = nicht drucken)
+    // 0.83.1: Titelblatt und Fusszeile getrennt (cfg.printName, fehlt = beide wie bisher)
+    const pn = typeof cookbookPrintName === 'function' ? cookbookPrintName(cfg) : 'both';
+    const coverName = pn === 'both' || pn === 'cover' ? name : '';
+    const footName = pn === 'both' || pn === 'footer' ? name : '';
+    const author = coverName || footName;   // PDF-Eigenschaft «Autor» nur, wenn der Name irgendwo gedruckt wird
+    pdfSetContext(templateId, title, footName, cfg.showLogo !== false, true);
     await ensureFontsReadyForPdf();
 
     // 1) Planung aller Rezepte (Seitenzahlen stehen danach fest)
@@ -1082,7 +1087,7 @@ async function pdfBuildCookbookImpl(nutritionDetail, opts) {
     coverEnsureConfig();
     const cfgNow = getCookbookConfig();
     await coverEnsureFonts();
-    const layout = coverLayout(coverInputFromConfig(cfgNow, { name: author }));   // «Name im PDF» aus dem Exportdialog
+    const layout = coverLayout(coverInputFromConfig(cfgNow, { name: coverName }));   // Name nur, wenn er aufs Titelblatt gehoert
     const blockers = coverExportBlockers(layout);   // nur abgeschnittener oder ausserhalb liegender Text sperrt den Export
     if (blockers.length) throw coverError(blockers.map(w => w.message).join(' '));
     const coverBg = layout.background ? await coverBackgroundDataUrl(layout.templateId) : null;

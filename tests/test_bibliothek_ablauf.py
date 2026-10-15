@@ -14,6 +14,24 @@ from bibliothek_helfer import *   # noqa: F401,F403
 
 SEARCH_PH = 'Rezepte oder Zutaten suchen'
 
+async def open_search(page):
+    """0.83.1: Auf dem Handy liegt das Suchfeld wie bei «Meine Rezepte» hinter dem runden Knopf «Suchen» (Overlay)."""
+    if await page.locator('#libSearchBtn').count() and not await page.locator('#libSearchInput').count():
+        await page.locator('#libSearchBtn').click(timeout=ui_wait())
+        await page.wait_for_selector('#libSearchInput', timeout=ui_wait())
+
+async def quick_filter(page, label, fallback_js):
+    """0.83.1: Die Schnellfilter liegen auf dem Handy im Filterfenster (Gruppe «Schnell», Schalter); ab 768 px als Chips im Kopf."""
+    if await page.locator('#libSearchBtn').count():
+        try:
+            await page.locator('[data-action=lib-filter-open]').first.click(timeout=ui_wait())
+            await page.locator('.lib-filter-sheet').get_by_role('switch', name=label, exact=True).click(timeout=ui_wait())
+            await click_btn(page, 'Rezepte anzeigen')
+            return True
+        except Exception as e:
+            check(f'UI: Schalter «{label}» im Filterfenster', False, str(e)[:160]); await ev(page, fallback_js); return False
+    return await act(page, label, fallback_js)
+
 def watch_search(page, store):
     def on_req(req):
         if req.url.endswith('/rpc/savora_lib_search') and req.method == 'POST':
@@ -38,6 +56,7 @@ async def main():
             await ui_text(page, 'Hier entsteht die Savora-Rezeptbibliothek.')
             await ui_text(page, 'Veröffentliche ein eigenes Rezept und teile es mit anderen.')
             check('UI: Umschalter «Meine Rezepte · Entdecken»', await btn(page, 'Meine Rezepte').count() >= 1 and await btn(page, 'Entdecken').count() >= 1)
+            await open_search(page)
             check('UI: Suchfeld «Rezepte oder Zutaten suchen»', await page.get_by_placeholder(SEARCH_PH).count() == 1)
 
         # ---------- Viele Rezepte: Mehr laden ----------
@@ -76,6 +95,7 @@ async def main():
                     held.append(route.request); await gate.wait()
                 await route.continue_()
             await page.route('**/rpc/savora_lib_search', slow)
+            await open_search(page)
             box = page.get_by_placeholder(SEARCH_PH)
             ui = await box.count() == 1
             check('UI: Suchfeld vorhanden (sonst libSetQuery direkt)', ui)
@@ -106,6 +126,8 @@ async def main():
             await ui_text(page, 'Keine passenden Rezepte gefunden.')
             await ui_text(page, 'Versuche einen anderen Suchbegriff oder passe die Filter an.')
             await ev(page, "libSetQuery('')"); await wait_query(page, '')
+            if await page.locator('#libSearchPop .search-close').count():   # Handy: Suchfeld wieder schliessen (dahinter ist die Zeile inert, wie bei «Meine Rezepte»)
+                await page.locator('#libSearchPop .search-close').click(); await wait_js(page, "!document.getElementById('libSearchPop')", 4000)
 
         # ---------- Schnellfilter und Sortierung ----------
         async with section('Schnellfilter und Sortierung'):
@@ -114,16 +136,17 @@ async def main():
             M.seed_publication(A, M.simple_recipe('Unbekannte Zeit', minutes=None, diet=['vegetarisch']))
             M.seed_publication(A, M.simple_recipe('Lang 90', minutes=90, diet=['vegan']))
             await ev(page, "libResetFilters()"); await wait_discover_ready(page)
-            await act(page, 'Bis 30 Min.', "libSetFilter({ quick: true })")
+            await quick_filter(page, 'Bis 30 Min.', "libSetFilter({ quick: true })")
             await wait_js(page, "lib.discover.filters.quick === true && lib.discover.status === 'ready'")
             titles = await ev(page, "lib.discover.items.map(x => x.title)")
             check('«Bis 30 Min.»: nur bekannte Zeit ≤ 30, unbekannte nie', titles == ['Schnell 20'], titles)
             await ev(page, "libResetFilters()"); await wait_discover_ready(page)
-            await act(page, 'Vegetarisch', "libSetFilter({ veg: true })")
+            await quick_filter(page, 'Vegetarisch', "libSetFilter({ veg: true })")
             await wait_js(page, "lib.discover.filters.veg === true && lib.discover.status === 'ready'")
             titles = sorted(await ev(page, "lib.discover.items.map(x => x.title)"))
             check('«Vegetarisch» schliesst vegan ein', titles == ['Lang 90', 'Unbekannte Zeit'], titles)
-            check('UI: aktiver Schnellfilter erkennbar (aria-pressed)', await ev(page, "[...document.querySelectorAll('button')].some(b => b.textContent.trim() === 'Vegetarisch' && b.getAttribute('aria-pressed') === 'true')"))
+            # 0.83.1: Handy zeigt aktive Filter wie «Meine Rezepte» (Zusammenfassung, Zähler am Filterknopf); ab 768 px zusaetzlich der Chip mit aria-pressed
+            check('UI: aktiver Schnellfilter erkennbar (Zusammenfassung und Zaehler, bzw. aria-pressed)', await ev(page, "[...document.querySelectorAll('button')].some(b => b.textContent.trim() === 'Vegetarisch' && b.getAttribute('aria-pressed') === 'true') || (/Vegetarisch/.test((document.querySelector('.filter-summary-text') || {}).textContent || '') && document.querySelector('[data-action=lib-filter-open]').getAttribute('data-count') === '1')"))
             await ev(page, "libResetFilters()"); await wait_discover_ready(page)
             try:
                 await click_btn(page, 'Filter')
