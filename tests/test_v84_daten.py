@@ -360,7 +360,10 @@ async def main():
         st_err = {'ok': False, 'error': 'storage'}
         check('7f N3 Speicherfehler: org-Funktionen melden storage, nichts Halbes im Speicher', n3['apply'] == st_err and n3['applyMem'] == [] and n3['set'] == st_err and n3['setMem'] == [] and n3['create'] == st_err and not n3['createCol'] and n3['link'] == st_err and n3['links'] == 0, n3)
         check('7g N3 rcol-save und col-batch-apply zeigen den Speicherfehler, danach funktioniert es wieder', 'Gerätespeicher' in (n3['rcolToast'] or '') and n3['rcolMem'] == [] and 'Gerätespeicher' in (n3['batchToast'] or '') and n3['batchMem'] == [[], []] and n3['after'] and n3['disk'] and not n3['disk']['deleted'], n3)
-        await goto(pl)   # closeModal kann in der Verlaufsliste zurueckgehen: frisch laden
+        # closeModal kann in der Verlaufsliste zurueckgehen (history.back): abwarten, dann frisch laden; eine laufende Navigation unterbricht sonst goto
+        await pl.wait_for_timeout(600)
+        try: await goto(pl)
+        except Exception: await pl.wait_for_timeout(600); await goto(pl)
         # N4 + N5: Sicherung ohne verwaiste Beziehungen; umbenannte Sammlung mit gleicher ID wird beim Wiederherstellen zugeordnet
         await pl.evaluate("""async () => { orgSetMembership('d3', 'col_neu', true); orgLinkCreate('d1', 'd3', 'weg'); orgLinkCreate('d1', 'd2', 'bleibt');
             await dbDelete('d3'); await loadRecipes(); }""")
