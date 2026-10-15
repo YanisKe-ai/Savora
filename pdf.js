@@ -204,9 +204,13 @@ async function pdfLoadUnicodeFont(pdf, text) {
     return 'CarlitoText';
   } catch (e) { return null; }
 }
+/* Gedrehte Elemente (data-pdf-rot, Grad im Uhrzeigersinn, Drehpunkt = Elementmitte; Cover-Editor): fuer die Messung kurz ungedreht,
+   jede Zeile bleibt ganz (suchbar, kopierbar) und liegt waagrecht mittig auf ihrer gedrehten Lage. */
 function pdfAddTextLayer(pdf, section, mmPerPx, uniFont) {
+  const rotEls = Array.from(section.querySelectorAll('[data-pdf-rot]')).map(el => ({ el, rot: parseFloat(el.getAttribute('data-pdf-rot')) || 0, tf: el.style.transform }));
   try {
     const secRect = section.getBoundingClientRect();
+    rotEls.forEach((r) => { r.el.style.transform = 'none'; const b = r.el.getBoundingClientRect(); r.cx = (b.left + b.right) / 2 - secRect.left; r.cy = (b.top + b.bottom) / 2 - secRect.top; });
     const range = document.createRange();
     const words = [];
     const walker = document.createTreeWalker(section, NodeFilter.SHOW_TEXT);
@@ -224,15 +228,17 @@ function pdfAddTextLayer(pdf, section, mmPerPx, uniFont) {
         range.setStart(node, m.index); range.setEnd(node, m.index + m[0].length);
         const r = range.getBoundingClientRect();
         if (!r.width || !r.height) continue;
-        words.push({ t: m[0], x: r.left - secRect.left, y: r.bottom - secRect.top - desc, w: r.width, fs });
+        const rg = rotEls.find(q => q.el.contains(node));
+        words.push({ t: m[0], x: r.left - secRect.left, y: r.bottom - secRect.top - desc, w: r.width, fs, rg });
       }
     }
+    rotEls.forEach((r) => { r.el.style.transform = r.tf; });
     // Zu Zeilen zusammenfassen (gleiche Grundlinie, fortlaufend von links nach rechts)
     const lines = [];
     words.forEach((w) => {
-      const line = lines.find((l) => Math.abs(l.y - w.y) < w.fs * 0.35 && w.x >= l.right - 2 && w.x - l.right < w.fs * 2.5);
+      const line = lines.find((l) => l.rg === w.rg && Math.abs(l.y - w.y) < w.fs * 0.35 && w.x >= l.right - 2 && w.x - l.right < w.fs * 2.5);
       if (line) { line.text += ' ' + w.t; line.right = w.x + w.w; }
-      else lines.push({ text: w.t, x: w.x, y: w.y, right: w.x + w.w, fs: w.fs });
+      else lines.push({ text: w.t, x: w.x, y: w.y, right: w.x + w.w, fs: w.fs, rg: w.rg });
     });
     lines.forEach((l) => {
       pdf.setFont(uniFont && PDF_NON_WINANSI.test(l.text) ? uniFont : 'helvetica', 'normal');
@@ -243,9 +249,15 @@ function pdfAddTextLayer(pdf, section, mmPerPx, uniFont) {
       // Breite ueber die Schriftgroesse angleichen statt ueber horizontalScale (unsichtbarer Text, nur fuer Suchen und Kopieren):
       // gestauchte Zeichenbreite machte die Leerzeichen bei schmaleren Schriften (Carlito) so schmal, dass pdftotext sie verschluckte
       pdf.setFontSize(Math.max(1, sizePt * Math.min(1.6, Math.max(0.4, widthMm / natural))));
-      pdf.text(l.text, l.x * mmPerPx, l.y * mmPerPx, { renderingMode: 'invisible' });
+      if (l.rg && l.rg.rot) {
+        // Schraeger Text zerfaellt in pdftotext/PDF-Lesern in Einzelzeichen: die Zeile bleibt waagrecht, mittig auf der gedrehten Zeile
+        const a = l.rg.rot * Math.PI / 180, dx = (l.x + l.right) / 2 - l.rg.cx, dy = l.y - l.rg.cy;
+        const mx = l.rg.cx + dx * Math.cos(a) - dy * Math.sin(a), my = l.rg.cy + dx * Math.sin(a) + dy * Math.cos(a);
+        pdf.text(l.text, mx * mmPerPx - widthMm / 2, my * mmPerPx, { renderingMode: 'invisible' });
+      } else pdf.text(l.text, l.x * mmPerPx, l.y * mmPerPx, { renderingMode: 'invisible' });
     });
   } catch (e) { /* Textebene ist ein Zusatz; Fehler duerfen den Export nicht verhindern */ }
+  finally { rotEls.forEach((r) => { r.el.style.transform = r.tf; }); }
 }
 
 /* Anklickbare Adressen: Elemente mit data-pdf-href (http, https, mailto) werden echte Link-Flaechen. */

@@ -193,6 +193,47 @@ async def main():
         check('Kaputte Cover-Eintraege in der Sicherung: Rezepte kommen, nichts Ungueltiges im Store, Meldung nennt es', n5[0] == len(bk['recipes']) and n5[1] == 0 and 'Titelbild' in msg5, f'{n5} {msg5[:300]}')
         await b4.close(); await b5.close()
 
+        # --- Zusatzbilder (cover.images[].imgId): Verweise, Aufraeumen, Abgleich, Sicherung, Wiederherstellen mit ID-Kollision ---
+        x1 = await imp(page, jpeg(600, 300, (10, 200, 10)), 'zusatz1.jpg', 'image/jpeg')
+        x2 = await imp(page, png(300, 600), 'zusatz2.png', 'image/png')
+        bg_id = (await ev("coverImageIdsInUse()"))[0]
+        await ev("""(a) => { const c = cookbookGetRaw(); c.cover = Object.assign({}, c.cover || {}, { v: 2, mode: 'custom', images: [
+            { id: 'e1', imgId: a.x1.id, x: 0.3, y: 0.3, w: 0.3, rot: 15, z: 'below', iw: a.x1.w, ih: a.x1.h },
+            { id: 'e2', imgId: a.x2.id, x: 0.7, y: 0.7, w: 0.2, rot: -30, z: 'above', iw: a.x2.w, ih: a.x2.h } ] }); cookbookSetRaw(c); }""", {'x1': x1, 'x2': x2})
+        used = await ev("coverImageIdsInUse()")
+        check('coverImageIdsInUse zählt Zusatzbilder mit (Hintergrund + 2 Zusatzbilder)', sorted(used) == sorted([bg_id, x1['id'], x2['id']]), str(used))
+        await ev("(id) => coverImageRemove(id)", x1['id'])
+        check('coverImageRemove lässt ein verwendetes Zusatzbild stehen', await ev("(id) => dbGetImage(id).then(i => !!i)", x1['id']))
+        waise2 = await imp(page, jpeg(200, 200), 'waise2.jpg', 'image/jpeg')
+        gone = await ev("coverImageGc()")
+        stored = [i for i in await ev("coverImageStoredIds()") if str(i).startswith('cover-')]
+        check('coverImageGc löscht Zusatzbilder nicht (nur das verwaiste Bild)', sorted(stored) == sorted([bg_id, x1['id'], x2['id']]) and waise2['id'] not in stored and gone >= 1, f'{gone} {stored}')
+        q = await ev("""async () => { const cur = localStorage.getItem(CLOUD_CURSOR_KEY); localStorage.removeItem(CLOUD_CURSOR_KEY); const q0 = JSON.stringify(cloudQueue()), m0 = JSON.stringify(cloudMeta());
+            await cloudPrepareFirstSync(); const keys = Object.keys(cloudQueue()); localStorage.setItem(CLOUD_QUEUE_KEY, q0); localStorage.setItem(CLOUD_META_KEY, m0); if (cur !== null) localStorage.setItem(CLOUD_CURSOR_KEY, cur); return keys; }""")
+        check('Abgleich: erstes Anmelden merkt Zusatzbilder über den Bildweg vor', all(f'image|{i}' in q for i in (bg_id, x1['id'], x2['id'])), str([k for k in q if k.startswith('image|cover')]))
+        await ev("""async () => { let blob = null; const orig = URL.createObjectURL; URL.createObjectURL = (b) => { blob = b; return orig.call(URL, b); }; await downloadBackup(); URL.createObjectURL = orig; window.__bk2 = blob; }""")
+        txt2 = await ev("window.__bk2.text()")
+        bk2 = json.loads(txt2)
+        check('Sicherung enthält Zusatzbilder als Data-URL', sorted(c['id'] for c in bk2.get('coverImages', [])) == sorted([bg_id, x1['id'], x2['id']]), str([c['id'] for c in bk2.get('coverImages', [])]))
+        b6, c6 = await open_ctx(p, 390, 844); p6 = await c6.new_page(); e6 = []
+        p6.on('pageerror', lambda e: e6.append(str(e)))
+        await goto(p6); await p6.evaluate("(t) => { window.__txt = t }", txt2)
+        await p6.evaluate(restore)
+        g6 = await p6.evaluate("""async () => { const book = cookbookBooks().find(x => x.config.cover && Array.isArray(x.config.cover.images) && x.config.cover.images.length); if (!book) return null; const ims = book.config.cover.images;
+            const sizes = []; for (const e of ims) { const b = await coverImageLoad(e.imgId); sizes.push(b && [b.width, b.height]); } return { ims, sizes, used: coverImageIdsInUse() }; }""")
+        check('Frisches Gerät: Zusatzbilder kommen zurück (gleiche IDs, Drehung, Ebene, iw/ih), laden in Originalmassen',
+              g6 and [e['imgId'] for e in g6['ims']] == [x1['id'], x2['id']] and g6['sizes'] == [[600, 300], [300, 600]] and g6['ims'][0]['rot'] == 15 and g6['ims'][1]['z'] == 'above' and g6['ims'][1]['iw'] == 300 and not e6, f'{g6} {e6[:2]}')
+        await b6.close()
+        b7, c7 = await open_ctx(p, 390, 844); p7 = await c7.new_page(); await goto(p7)
+        await p7.evaluate("(t) => { window.__txt = t }", txt2)
+        await p7.evaluate("""async (id) => { const c = document.createElement('canvas'); c.width = 40; c.height = 40; const blob = await new Promise(r => c.toBlob(r, 'image/png')); await dbPutImage({ id, blob, thumbBlob: blob, mime: 'image/png', kind: 'cover', w: 40, h: 40 }); }""", x1['id'])
+        await p7.evaluate(restore)
+        g7 = await p7.evaluate("""async (old) => { const book = cookbookBooks().find(x => x.config.cover && Array.isArray(x.config.cover.images) && x.config.cover.images.length); const ims = book.config.cover.images;
+            const o = await dbGetImage(old); const n = await dbGetImage(ims[0].imgId); return { ids: ims.map(e => e.imgId), oldW: o && o.w, newW: n && n.w }; }""", x1['id'])
+        check('ID-Kollision beim Zusatzbild: vorhandenes Bild bleibt, Kochbuch zeigt auf die neue ID, zweites Zusatzbild unverändert',
+              g7['ids'][0] != x1['id'] and g7['ids'][0].startswith('cover-') and g7['oldW'] == 40 and g7['newW'] == 600 and g7['ids'][1] == x2['id'], str(g7))
+        await b7.close()
+
         # --- Offline ---
         await ctx.set_offline(True)
         r = await imp(page, jpeg(900, 600), 'offline.jpg', 'image/jpeg')

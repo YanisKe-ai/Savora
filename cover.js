@@ -305,8 +305,10 @@ function coverLayoutV2(input, measure) {
     const words = texts[id].split(/\s+/);
     const split = words.some(wd => m(wd, font) > w * COVER_PAGE.w + 0.5);
     const geoSet = o.x != null || o.y != null || o.w != null || o.fontPt != null || !!o.font;
+    const tx = align === 'left' ? x : (align === 'center' ? x + (w - tw) / 2 : x + w - tw), rot = o.rot || 0, cx = x + w / 2, cy = y + h / 2;
     blocks.push({ key: id === 'subtitle' ? 'slogan' : id, id, lines, sizePx, sizePt: sizePx / COVER_PT, lineHeightPx: sizePx * lhr, family, weight, font: o.font || d.font, x, y, w, h,
-      ink: o.color || defInk, align, fits: (b0 && !geoSet) ? b0.fits : true, splitWord: split, tx: align === 'left' ? x : (align === 'center' ? x + (w - tw) / 2 : x + w - tw), tw });
+      ink: o.color || defInk, align, fits: (b0 && !geoSet) ? b0.fits : true, splitWord: split, tx, tw,
+      rot, cx, cy, hull: coverRotCorners(tx, y, tw, h, cx, cy, rot), bbox: coverHullBox(coverRotCorners(x, y, w, h, cx, cy, rot)) });
     cursor = y + h + COVER_V2_GAP;
   });
   // Datum
@@ -321,7 +323,10 @@ function coverLayoutV2(input, measure) {
     const weight = o.font && o.font !== 'Roboto' ? meta.weight : COVER_FONTS.date.weight;
     const tw = m(dtext, `${weight} ${sizePx}px ${meta.family}`) / COVER_PAGE.w;
     const ax = align === 'left' ? x : (align === 'center' ? x + w / 2 : x + w);
-    date = { text: dtext, sizePx, x1: ax, ax, align, y, h: custom ? Math.max(COVER_DATE_ZONE.h, sizePx * 1.25 / COVER_PAGE.h) : (o.fontPt ? Math.max(dz.h, sizePx * 1.25 / COVER_PAGE.h) : dz.h), w, tw, ink: o.color || bgInk, family: meta.family, weight };
+    const dh = custom ? Math.max(COVER_DATE_ZONE.h, sizePx * 1.25 / COVER_PAGE.h) : (o.fontPt ? Math.max(dz.h, sizePx * 1.25 / COVER_PAGE.h) : dz.h);
+    const fx = align === 'left' ? ax : (align === 'center' ? ax - w / 2 : ax - w), rot = o.rot || 0, cx = fx + w / 2, cy = y + dh / 2;
+    const dx = align === 'left' ? ax : (align === 'center' ? ax - tw / 2 : ax - tw), hull = coverRotCorners(dx, y, tw, dh, cx, cy, rot);
+    date = { text: dtext, sizePx, x1: ax, ax, align, y, h: dh, w, tw, ink: o.color || bgInk, family: meta.family, weight, fx, rot, cx, cy, hull, bbox: coverHullBox(hull) };
   }
   // Logo
   let logo = null;
@@ -338,11 +343,28 @@ function coverLayoutV2(input, measure) {
     image = { id: im.id, fit: im.fit, cx: im.cx, cy: im.cy, zoom: im.zoom, src: null, dst: null, ppi: null };
     if (im.w && im.h) Object.assign(image, coverImageRects(im, im.w, im.h));
   }
-  // Lesbarkeit: Flaeche bzw. Verlauf je zusammenhaengender Textgruppe
+  // Zusatzbilder: Mitte (x, y) und Breite w aus dem Modell, Hoehe aus dem gespeicherten Seitenverhaeltnis (nie verzerrt)
+  const images = (model.images || []).map((e) => {
+    const h = e.iw && e.ih ? e.w * COVER_PAGE.w * (e.ih / e.iw) / COVER_PAGE.h : null;
+    const r = { id: e.id, imgId: e.imgId, x: e.x - e.w / 2, y: h != null ? e.y - h / 2 : null, w: e.w, h, cx: e.x, cy: e.y, rot: e.rot || 0, z: e.z, opacity: e.opacity != null ? e.opacity : 1,
+      iw: e.iw || null, ih: e.ih || null, ppi: e.iw ? e.iw / (e.w * COVER_INCH_W) : null, hull: null, bbox: null };
+    if (h != null) { r.hull = coverRotCorners(r.x, r.y, r.w, h, r.cx, r.cy, r.rot); r.bbox = coverHullBox(r.hull); }
+    return r;
+  });
+  // Lesbarkeit: Flaeche bzw. Verlauf je zusammenhaengender Textgruppe. Gedrehte Bloecke bekommen je eine eigene, mitgedrehte Flaeche;
+  // beim Verlauf zaehlt die achsenparallele Huelle des gedrehten Blocks (der Verlauf bleibt waagrecht und seitenbreit).
   const panels = [], gradients = [];
   if (model.readability !== 'none' && blocks.length) {
     const padX = 20 / COVER_PAGE.w, padY = 20 / COVER_PAGE.h;
-    const rects = blocks.map(b => ({ x: b.tx - padX, y: b.y - padY, x2: b.tx + b.tw + padX, y2: b.y + b.h + padY, ink: b.ink })).sort((a, b) => a.y - b.y);
+    const rectOf = (b) => {
+      if (!b.rot) return { x: b.tx - padX, y: b.y - padY, x2: b.tx + b.tw + padX, y2: b.y + b.h + padY, ink: b.ink };
+      const hb = coverHullBox(coverRotCorners(b.tx - padX, b.y - padY, b.tw + 2 * padX, b.h + 2 * padY, b.cx, b.cy, b.rot));
+      return { x: hb.x, y: hb.y, x2: hb.x + hb.w, y2: hb.y + hb.h, ink: b.ink };
+    };
+    if (model.readability === 'panel') blocks.filter(b => b.rot).forEach((b) => {
+      panels.push({ x: b.tx - padX, y: b.y - padY, w: b.tw + 2 * padX, h: b.h + 2 * padY, r: 16 / COVER_PAGE.w, color: COVER_PAPER, alpha: 0.78, rot: b.rot, cx: b.cx, cy: b.cy });
+    });
+    const rects = blocks.filter(b => model.readability !== 'panel' || !b.rot).map(rectOf).sort((a, b) => a.y - b.y);
     const groups = [];
     rects.forEach((r) => {
       const g = groups.find(q => r.y <= q.y2 + 0.004 && r.x <= q.x2 && r.x2 >= q.x);
@@ -351,14 +373,14 @@ function coverLayoutV2(input, measure) {
     groups.forEach((g) => {
       if (model.readability === 'panel') {
         const x = Math.max(0, g.x), y = Math.max(0, g.y), x2 = Math.min(1, g.x2), y2 = Math.min(1, g.y2);
-        panels.push({ x, y, w: x2 - x, h: y2 - y, r: 16 / COVER_PAGE.w, color: COVER_PAPER, alpha: 0.78 });
+        panels.push({ x, y, w: x2 - x, h: y2 - y, r: 16 / COVER_PAGE.w, color: COVER_PAPER, alpha: 0.78, rot: 0, cx: (x + x2) / 2, cy: (y + y2) / 2 });
       } else {
         const up = (g.y + g.y2) / 2 > 0.5, y0 = up ? Math.max(0, g.y - 0.06) : 0, y1 = up ? 1 : Math.min(1, g.y2 + 0.06);
         gradients.push({ x: 0, y: y0, w: 1, h: y1 - y0, from: g.light ? '#171717' : COVER_PAPER, alpha: 0.82, dir: up ? 'up' : 'down' });
       }
     });
   }
-  const layout = { v: 2, mode: model.mode, templateId: tpl.id, page: COVER_PAGE, ink: defInk, bgColor: bg, blocks, date, logo, image, panels, gradients, readability: model.readability, warnings: [], background: custom ? null : coverBackgroundUrl(tpl.id) };
+  const layout = { v: 2, mode: model.mode, templateId: tpl.id, page: COVER_PAGE, ink: defInk, bgColor: bg, blocks, date, logo, image, images, panels, gradients, readability: model.readability, warnings: [], background: custom ? null : coverBackgroundUrl(tpl.id) };
   layout.warnings = coverValidate(layout);
   return layout;
 }
@@ -389,8 +411,29 @@ function coverDrawWordmark(ctx, x, y, widthPx, ink) {
   ctx.fillStyle = ink; ctx.fill(new Path2D(WORDMARK_PATH), 'evenodd');
   ctx.restore();
 }
-function coverDraw(ctx, layout, bgImg, scale, userImg) {
+/* Um (cx, cy) (Seitenanteile) gedreht zeichnen; rot 0 = unveraendert (keine Transformation, pixelgleich) */
+function coverWithRot(ctx, rot, cx, cy, W, H, fn) {
+  if (!rot) { fn(); return; }
+  ctx.save(); ctx.translate(cx * W, cy * H); ctx.rotate(rot * Math.PI / 180); ctx.translate(-cx * W, -cy * H);
+  try { fn(); } finally { ctx.restore(); }
+}
+/* Zusatzbild: Seitenverhaeltnis immer aus den Bildpixeln (nie verzerrt), Drehung um die Bildmitte, Deckkraft optional */
+function coverDrawExtraImage(ctx, im, img, W, H) {
+  const nw = img.naturalWidth || img.videoWidth || img.width, nh = img.naturalHeight || img.videoHeight || img.height;
+  if (!(nw > 0 && nh > 0)) return;
+  const dw = im.w * W, dh = dw * nh / nw;
+  ctx.save();
+  ctx.translate(im.cx * W, im.cy * H);
+  if (im.rot) ctx.rotate(im.rot * Math.PI / 180);
+  if (im.opacity != null && im.opacity < 1) ctx.globalAlpha = im.opacity;
+  ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = 'high';
+  ctx.drawImage(img, -dw / 2, -dh / 2, dw, dh);
+  ctx.restore();
+}
+function coverDraw(ctx, layout, bgImg, scale, userImg, extraImgs) {
   const W = layout.page.w * scale, H = layout.page.h * scale;
+  const v2 = layout.v === 2, extras = extraImgs || {};
+  const drawImages = (z) => (layout.images || []).forEach((im) => { if (im.z === z && extras[im.imgId]) coverDrawExtraImage(ctx, im, extras[im.imgId], W, H); });
   ctx.save();
   ctx.fillStyle = layout.bgColor || '#FFFFFF'; ctx.fillRect(0, 0, W, H);
   if (bgImg) { const r = coverBgRect(layout.templateId, W, H); ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = 'high'; ctx.drawImage(bgImg, r.x, r.y, r.w, r.h); }
@@ -401,6 +444,7 @@ function coverDraw(ctx, layout, bgImg, scale, userImg) {
     ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = 'high';
     ctx.drawImage(userImg, r.src.x, r.src.y, r.src.w, r.src.h, r.dst.x * W, r.dst.y * H, r.dst.w * W, r.dst.h * H);
   }
+  drawImages('below');
   (layout.gradients || []).forEach((g) => {
     const gr = ctx.createLinearGradient(0, g.y * H, 0, (g.y + g.h) * H), top = g.dir === 'down';
     const rgb = (a) => { const n = parseInt(g.from.slice(1), 16); return `rgba(${n >> 16},${(n >> 8) & 255},${n & 255},${a})`; };
@@ -409,10 +453,13 @@ function coverDraw(ctx, layout, bgImg, scale, userImg) {
   });
   (layout.panels || []).forEach((p) => {
     const n = parseInt(p.color.slice(1), 16);
-    ctx.fillStyle = `rgba(${n >> 16},${(n >> 8) & 255},${n & 255},${p.alpha})`;
-    ctx.beginPath(); ctx.roundRect(p.x * W, p.y * H, p.w * W, p.h * H, p.r * W); ctx.fill();
+    coverWithRot(ctx, p.rot, p.cx, p.cy, W, H, () => {
+      ctx.fillStyle = `rgba(${n >> 16},${(n >> 8) & 255},${n & 255},${p.alpha})`;
+      ctx.beginPath(); ctx.roundRect(p.x * W, p.y * H, p.w * W, p.h * H, p.r * W); ctx.fill();
+    });
   });
-  if (layout.logo) coverDrawWordmark(ctx, layout.logo.x * W, layout.logo.y * H, layout.logo.w * W, layout.logo.ink);
+  // v1: Wortmarke vor dem Text (alte Reihenfolge, pixelgleich); v2: Wortmarke nach Text und Bildern 'above' (immer oben, nie verdeckt)
+  if (layout.logo && !v2) coverDrawWordmark(ctx, layout.logo.x * W, layout.logo.y * H, layout.logo.w * W, layout.logo.ink);
   const baseline = (top, lh, font) => { ctx.font = font; const m = ctx.measureText('Hg'); const fa = m.fontBoundingBoxAscent || m.actualBoundingBoxAscent, fd = m.fontBoundingBoxDescent || m.actualBoundingBoxDescent; return top + (lh - (fa + fd)) / 2 + fa; };
   ctx.textBaseline = 'alphabetic'; ctx.textAlign = 'left';
   layout.blocks.forEach((b) => {
@@ -420,25 +467,40 @@ function coverDraw(ctx, layout, bgImg, scale, userImg) {
     ctx.fillStyle = b.ink;
     const ax = b.align === 'center' ? (b.x + b.w / 2) * W : (b.align === 'right' ? (b.x + b.w) * W : b.x * W);
     ctx.textAlign = b.align || 'left';
-    b.lines.forEach((line, i) => { if (line) ctx.fillText(line, ax, baseline(b.y * H + i * lh, lh, font) + 0); });
+    coverWithRot(ctx, b.rot, b.cx, b.cy, W, H, () => {
+      b.lines.forEach((line, i) => { if (line) ctx.fillText(line, ax, baseline(b.y * H + i * lh, lh, font) + 0); });
+    });
   });
+  if (v2) {
+    drawImages('above');
+    if (layout.logo) coverDrawWordmark(ctx, layout.logo.x * W, layout.logo.y * H, layout.logo.w * W, layout.logo.ink);
+  }
   if (layout.date) {
     const size = layout.date.sizePx * scale, font = `${layout.date.weight} ${size}px ${layout.date.family}`;
     ctx.fillStyle = layout.date.ink; ctx.textAlign = layout.date.align === 'left' || layout.date.align === 'center' ? layout.date.align : 'right';
-    ctx.fillText(layout.date.text, (layout.date.ax != null ? layout.date.ax : (layout.date.align === 'left' ? layout.date.x0 : layout.date.x1)) * W, baseline(layout.date.y * H, layout.date.h * H, font));
+    coverWithRot(ctx, layout.date.rot, layout.date.cx, layout.date.cy, W, H, () => {
+      ctx.fillText(layout.date.text, (layout.date.ax != null ? layout.date.ax : (layout.date.align === 'left' ? layout.date.x0 : layout.date.x1)) * W, baseline(layout.date.y * H, layout.date.h * H, font));
+    });
   }
   ctx.restore();
 }
 function coverLoadImage(url) {
   return new Promise((resolve, reject) => { const im = new Image(); im.onload = () => resolve(im); im.onerror = () => reject(coverError('Die Datei des gewählten Titelblatts konnte nicht geladen werden. Bitte wähle ein anderes Titelblatt.')); im.src = url; });
 }
-async function coverRenderCanvas(layout, scale, bgUrl, userImg) {
+async function coverRenderCanvas(layout, scale, bgUrl, userImg, extraImgs) {
   await coverEnsureFonts();
   const img = (bgUrl || layout.background) ? await coverLoadImage(bgUrl || layout.background) : null;
   if (layout.image && !userImg && typeof window.coverImageLoad === 'function') userImg = await window.coverImageLoad(layout.image.id);
   if (layout.image && !userImg) throw coverError('Das Hintergrundbild des Titelblatts konnte nicht geladen werden. Bitte wähle das Bild neu oder entferne es.');
+  const extras = Object.assign({}, extraImgs || {});
+  for (const im of (layout.images || [])) {
+    if (extras[im.imgId]) continue;
+    const d = typeof window.coverImageLoad === 'function' ? await window.coverImageLoad(im.imgId) : null;
+    if (!d) throw coverError('Ein zusätzliches Bild des Titelblatts konnte nicht geladen werden. Bitte wähle das Bild neu oder entferne es.');
+    extras[im.imgId] = d;
+  }
   const c = document.createElement('canvas'); c.width = Math.round(layout.page.w * scale); c.height = Math.round(layout.page.h * scale);
-  coverDraw(c.getContext('2d'), layout, img, scale, userImg);
+  coverDraw(c.getContext('2d'), layout, img, scale, userImg, extras);
   return c;
 }
 
@@ -447,9 +509,13 @@ async function coverRenderCanvas(layout, scale, bgUrl, userImg) {
 function coverHtml(layout, imgUrl) {
   const esc = (s) => escapeHtml(String(s));
   const pct = (v) => (v * 100).toFixed(3) + '%';
-  const blocks = layout.blocks.map(b => `<div class="cv-block cv-${b.key}" style="left:${pct(b.x)};top:${pct(b.y)};width:${pct(b.w)};${b.align ? 'text-align:' + b.align + ';' : ''}font:${b.weight} ${b.sizePx}px/${b.lineHeightPx}px ${b.family}">${b.lines.map(l => `<div class="cv-line">${l ? esc(l) : '&nbsp;'}</div>`).join('')}</div>`).join('');
+  // gedreht: Hoehe setzen und um die Mitte des Textfelds drehen (gleicher Drehpunkt wie coverDraw)
+  const rotCss = (r) => r ? `transform-origin:50% 50%;transform:rotate(${r}deg);` : '';
+  const blocks = layout.blocks.map(b => `<div class="cv-block cv-${b.key}"${b.rot ? ` data-pdf-rot="${b.rot}"` : ''} style="left:${pct(b.x)};top:${pct(b.y)};width:${pct(b.w)};${b.rot ? 'height:' + pct(b.h) + ';' + rotCss(b.rot) : ''}${b.align ? 'text-align:' + b.align + ';' : ''}font:${b.weight} ${b.sizePx}px/${b.lineHeightPx}px ${b.family}">${b.lines.map(l => `<div class="cv-line">${l ? esc(l) : '&nbsp;'}</div>`).join('')}</div>`).join('');
   const dateAx = layout.date ? (layout.date.ax != null ? layout.date.ax : (layout.date.align === 'left' ? layout.date.x0 : layout.date.x1)) : 0;
-  const date = layout.date ? `<div class="cv-date" style="${layout.date.align === 'left' || layout.date.align === 'center' ? 'left:' + pct(dateAx) + ';' + (layout.date.align === 'center' ? 'transform:translateX(-50%);' : '') : 'right:' + pct(1 - dateAx) + ';'}top:${pct(layout.date.y)};font:${layout.date.weight} ${layout.date.sizePx}px/1 ${layout.date.family}">${esc(layout.date.text)}</div>` : '';
+  const dr = layout.date && layout.date.rot;
+  const date = layout.date && dr ? `<div class="cv-date" data-pdf-rot="${dr}" style="left:${pct(layout.date.fx)};width:${pct(layout.date.w)};height:${pct(layout.date.h)};text-align:${layout.date.align || 'right'};${rotCss(dr)}top:${pct(layout.date.y)};font:${layout.date.weight} ${layout.date.sizePx}px/${(layout.date.h * COVER_PAGE.h).toFixed(2)}px ${layout.date.family}">${esc(layout.date.text)}</div>`
+    : layout.date ? `<div class="cv-date" style="${layout.date.align === 'left' || layout.date.align === 'center' ? 'left:' + pct(dateAx) + ';' + (layout.date.align === 'center' ? 'transform:translateX(-50%);' : '') : 'right:' + pct(1 - dateAx) + ';'}top:${pct(layout.date.y)};font:${layout.date.weight} ${layout.date.sizePx}px/1 ${layout.date.family}">${esc(layout.date.text)}</div>` : '';
   const logo = '';   // die Wortmarke ist reine Grafik (kein Text im PDF)
   return `<section class="pv-page pv-cover pv-cover2" data-page-kind="cover" data-cover="${esc(layout.mode === 'custom' ? 'custom' : layout.templateId)}">${imgUrl ? `<img class="cv-bg" src="${esc(imgUrl)}" alt="" style="left:0;top:0;width:100%;height:100%">` : ''}${logo}<div class="cv-textlayer">${blocks}${date}</div></section>`;
 }

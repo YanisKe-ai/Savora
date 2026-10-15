@@ -1,4 +1,4 @@
-"""Cover-Modell v2 (Paket C2): Migration, Anordnungen, Umbruch, Warnungen, Bildausschnitt, v1-Regression, gemeinsame Layoutfunktion.
+"""Cover-Modell v2 (Paket C2, Drehung und Zusatzbilder): Migration, Anordnungen, Umbruch, Warnungen, Bildausschnitt, v1-Regression, gemeinsame Layoutfunktion.
 Funktionstests im Seitenkontext mit fester Messfunktion (plattformunabhaengig), dazu Pixelproben mit echtem Canvas."""
 import asyncio, json, os, re, sys
 os.environ.setdefault('SAVORA_TEST_PORT', '8982')
@@ -223,6 +223,133 @@ async def main():
         check('Cover-Text wird auf Canvas gezeichnet (kein html2canvas für sichtbaren Text): coverHtml legt Text nur unsichtbar ab', 'coverRenderCanvas(layout, 2, coverBg)' in src_pdf and 'cv-textlayer' in open(os.path.join(ROOT, 'cover.js'), encoding='utf-8').read())
         r = await ev("""async () => { const L = coverLayout(IN({ v2: mk({ readability: 'gradient' }) }), MEAS); const c = await coverRenderCanvas(L, 0.5); return [c.width, c.height]; }""")
         check('coverRenderCanvas ohne Vorlagenbild (eigener Hintergrund) liefert A4-Canvas', r == [397, 562], str(r))
+        # ---- 11. Drehung (rot) und Zusatzbilder (images)
+        r = await ev("""() => {
+          const m = coverModelSanitize({ v: 2, mode: 'custom', fields: { title: { rot: 15.3 }, subtitle: { rot: 999 }, name: { rot: -999 }, extra1: { rot: 'quatsch' }, date: { rot: -0.2 } },
+            images: [ { id: 'a', imgId: 'cover-x-1', x: 0.3, y: 0.4, w: 0.2, rot: 33.26, z: 'oben', opacity: 1, iw: 400, ih: 200 }, { id: 'a', imgId: 'cover-x-2' }, { id: 'b', imgId: 'rezept-1' },
+                      { id: '../böse', imgId: 'cover-x-3' }, { id: 'c', imgId: 'cover-x-4', w: 9, x: -9, opacity: 0.001 }, { id: 'd', imgId: 'cover-x-5', z: 'above', opacity: 0.5 },
+                      { id: 'e', imgId: 'cover-x-6' }, { id: 'f', imgId: 'cover-x-7' } ] });
+          const again = JSON.stringify(coverModelSanitize(m)) === JSON.stringify(m);
+          const old = coverModelSanitize({ v: 2, mode: 'custom' });
+          const entry = coverNewImageEntry({ id: 'cover-b-9', w: 1000, h: 500 }, { z: 'above' });
+          return { f: m.fields, imgs: m.images, again, oldImgs: old.images, entry, legacy: coverModelFromLegacy({ cover: { v: 1, templateId: 'pop' } }).images, plain: coverModelIsPlainTemplate(coverModelSanitize({ v: 2, images: [entry] })) }; }""")
+        f = r['f']; im = r['imgs']
+        check('Sanitize rot: auf 0.5 gerundet, auf -180..180 begrenzt, ungültig/0 nicht gespeichert', f['title'].get('rot') == 15.5 and f['subtitle'].get('rot') == 180 and f['name'].get('rot') == -180 and 'extra1' not in f and 'date' not in f, json.dumps(f))
+        check('Sanitize images: höchstens 4, doppelte/ungültige IDs und Nicht-Cover-Bilder verworfen, Werte begrenzt', [x['id'] for x in im] == ['a', 'c', 'd', 'e'] and im[0]['imgId'] == 'cover-x-1' and im[0]['rot'] == 33.5 and im[0]['z'] == 'below' and 'opacity' not in im[0]
+              and im[0]['iw'] == 400 and im[1]['w'] == 1.5 and im[1]['x'] == -0.5 and im[1]['opacity'] == 0.05 and im[2]['z'] == 'above' and im[2]['opacity'] == 0.5 and 'iw' not in im[3], json.dumps(im))
+        check('Sanitize mit rot/images idempotent; ohne images = keine Zusatzbilder (alte Cover, v1)', r['again'] and r['oldImgs'] == [] and r['legacy'] == [])
+        check('coverNewImageEntry aus coverImageImport-Ergebnis (Mitte, iw/ih, Ebene); Zusatzbild macht Vorlage nicht schlicht', r['entry']['imgId'] == 'cover-b-9' and r['entry']['iw'] == 1000 and r['entry']['ih'] == 500 and r['entry']['x'] == 0.5 and r['entry']['z'] == 'above' and re.fullmatch(r'ci-[a-z0-9]+', r['entry']['id']) and r['plain'] is False, json.dumps(r['entry']))
+
+        r = await ev("""() => {
+          const L0 = coverLayout(IN({ v2: mk({ fields: { title: { y: 0.3 } } }) }), MEAS), L = coverLayout(IN({ v2: mk({ fields: { title: { y: 0.3, rot: 90 } } }) }), MEAS);
+          const a = L0.blocks[0], b = L.blocks[0];
+          const P = (pts) => pts.map(p => [Math.round(p.x * 794 * 100) / 100, Math.round(p.y * 1123 * 100) / 100]);
+          const d = (p, q) => Math.hypot((p.x - q.x) * 794, (p.y - q.y) * 1123);
+          return { rot0: a.rot, rot: b.rot, c: [b.cx, b.cy, b.x + b.w / 2, b.y + b.h / 2], same: JSON.stringify([a.lines, a.x, a.y, a.w, a.h]) === JSON.stringify([b.lines, b.x, b.y, b.w, b.h]),
+                   hull0: P(a.hull), rect0: P([{ x: a.tx, y: a.y }, { x: a.tx + a.tw, y: a.y }, { x: a.tx + a.tw, y: a.y + a.h }, { x: a.tx, y: a.y + a.h }]),
+                   sides: [d(b.hull[0], b.hull[1]), d(b.hull[1], b.hull[2]), a.tw * 794, a.h * 1123], bb: b.bbox, w: b.w, h: b.h }; }""")
+        check('Layout: Block liefert rot und Drehpunkt = Mitte des Textfelds; Umbruch/Geometrie unverändert', r['rot0'] == 0 and r['rot'] == 90 and abs(r['c'][0] - r['c'][2]) < 1e-12 and abs(r['c'][1] - r['c'][3]) < 1e-12 and r['same'], str(r['c']))
+        check('Gedrehte Hülle: Seitenlängen bleiben (nicht verzerrt, A4-Pixel), ungedreht = Textrechteck', r['hull0'] == r['rect0'] and abs(r['sides'][0] - r['sides'][2]) < 1e-6 and abs(r['sides'][1] - r['sides'][3]) < 1e-6, str(r['sides']))
+        check('Gedrehte Hülle 90°: achsenparallele Hülle hat Breite/Höhe vertauscht (in Pixeln)', abs(r['bb']['w'] * 794 - r['h'] * 1123) < 1e-6 and abs(r['bb']['h'] * 1123 - r['w'] * 794) < 1e-6, str(r['bb']))
+
+        r = await ev("""() => {
+          const k = (o) => coverLayout(IN({ v2: mk(o) }), MEAS).warnings.map(w => w.kind + ':' + w.fieldId);
+          const sat = [coverPolysOverlap([{x:.5,y:.4},{x:.6,y:.47},{x:.5,y:.54},{x:.4,y:.47}], [{x:.58,y:.52},{x:.68,y:.52},{x:.68,y:.6},{x:.58,y:.6}], 0),
+                       coverPolysOverlap([{x:.5,y:.4},{x:.6,y:.47},{x:.5,y:.54},{x:.4,y:.47}], [{x:.52,y:.45},{x:.7,y:.45},{x:.7,y:.6},{x:.52,y:.6}], 0)];
+          return {
+            cut0: k({ fields: { title: { y: 0.82 } } }), cut90: k({ fields: { title: { y: 0.82, rot: 90 } } }),
+            out0: k({ fields: { title: { x: 0.09, w: 0.82, y: 0.4 } } }), out45: k({ fields: { title: { y: 0.1, rot: 90 } } }),
+            ov0: k({ fields: { title: { y: 0.3 }, subtitle: { y: 0.3 } } }), ov90: k({ fields: { title: { y: 0.3, rot: 90 }, subtitle: { y: 0.3 } } }), ovRot: k({ fields: { title: { y: 0.3, rot: 10 }, subtitle: { y: 0.31, rot: -10 } } }),
+            dateOut: k({ fields: { date: { rot: 90 } } }), sat };
+        }""")
+        check('Warnung cut mit gedrehter Hülle: ungedreht passend, 90° gedreht ragt unten hinaus', not any(x.startswith('cut:title') for x in r['cut0']) and 'cut:title' in r['cut90'], str(r['cut0']) + str(r['cut90']))
+        check('Warnung outside mit gedrehter Hülle (breites Feld oben 90° gedreht ragt oben hinaus)', 'outside:title' not in r['out0'] and 'outside:title' in r['out45'], str(r['out45']))
+        check('Überlappung exakt (SAT): Rauten-Hüllen getrennt trotz überlappender Bounding-Box; echte Überlappung erkannt', r['sat'] == [False, True], str(r['sat']))
+        check('Überlappung gedreht: 90° gedrehter Titel kreuzt den Untertitel nicht mehr; zwei gedrehte überlappende Felder bleiben Warnung',
+              any(x.startswith('overlap') for x in r['ov0']) and not any(x.startswith('overlap') for x in r['ov90']) and any(x.startswith('overlap') for x in r['ovRot']), str(r['ov90']) + str(r['ovRot']))
+        check('Datum gedreht (90° unten rechts): ragt hinaus -> outside', 'outside:date' in r['dateOut'], str(r['dateOut']))
+
+        r = await ev("""() => { const out = {};
+          const base = mk({ fields: { title: { rot: 20, color: '#B93B2C' }, subtitle: { rot: -12 }, date: { rot: 5 } }, images: [{ id: 'i1', imgId: 'cover-x-1', rot: 30, iw: 100, ih: 100 }] });
+          for (const name of COVER_ARRANGEMENTS) { const m = coverApplyArrangement(base, name, IN({ v2: base }), MEAS); out[name] = [m.fields.title.rot, m.fields.subtitle && m.fields.subtitle.rot, m.fields.date.rot, m.images[0].rot, m.fields.title.color]; }
+          return out; }""")
+        check('Anordnungen (alle 6, auch «Frei platzieren») setzen rot der Textfelder auf 0; Datum, Bilder, Farbe bleiben', all(v[0] is None and v[1] is None and v[2] == 5 and v[3] == 30 and v[4] == '#B93B2C' for v in r.values()), json.dumps(r))
+
+        r = await ev("""() => { const k = (images) => coverLayout(IN({ v2: mk({ images }) }), MEAS);
+          const L = k([{ id: 'p', imgId: 'cover-x-1', x: 0.5, y: 0.5, w: 0.5, rot: 0, iw: 3000, ih: 1500 }, { id: 'q', imgId: 'cover-x-2', x: 0.3, y: 0.6, w: 0.2, rot: 90, z: 'above', opacity: 0.4, iw: 200, ih: 100 }, { id: 'n', imgId: 'cover-x-3', x: 0.5, y: 0.5, w: 0.3 }]);
+          const W = (o) => k([Object.assign({ id: 'w', imgId: 'cover-x-1', iw: 3000, ih: 3000 }, o)]).warnings.filter(w => w.imageId).map(w => w.kind + ':' + w.fieldId);
+          const blk = coverExportBlockers(k([{ id: 'w', imgId: 'cover-x-1', x: 1.5, y: 1.5, w: 0.1, iw: 300, ih: 300 }]));
+          return { L: L.images, ratio: L.images[0].w * 794 / (L.images[0].h * 1123), ppi: L.images[0].ppi,
+                   outFull: W({ x: 1.45, y: 0.5, w: 0.2 }), outPart: W({ x: 0.98, y: 0.5, w: 0.2 }), logo: W({ x: 0.75, y: 0.08, w: 0.2 }), lowres: W({ iw: 300, ih: 300, w: 0.5 }), ok: W({ x: 0.5, y: 0.6, w: 0.3 }), blk: blk.length, none: k([]).images }; }""")
+        L = r['L']
+        check('layout.images: Ziel-Rechteck aus Mitte/Breite, Höhe aus Seitenverhältnis (2:1 bleibt 2:1), Ebene, Drehung, Deckkraft', abs(r['ratio'] - 2) < 1e-9 and abs(L[0]['x'] - 0.25) < 1e-12 and L[0]['z'] == 'below' and L[1]['z'] == 'above' and L[1]['rot'] == 90 and L[1]['opacity'] == 0.4 and L[2]['h'] is None and L[2]['hull'] is None and r['none'] == [], json.dumps(L[0]))
+        check('layout.images: ppi aus Pixelbreite und Druckbreite', abs(r['ppi'] - 3000 / (0.5 * 210 / 25.4)) < 1e-6, str(r['ppi']))
+        check('Bildwarnungen: ganz ausserhalb -> outside, teilweise nicht; Wortmarke berührt -> overlap; lowres; Normalfall ohne', r['outFull'] == ['outside:image:w'] and r['outPart'] == [] and r['logo'] == ['overlap:image:w'] and r['lowres'] == ['lowres:image:w'] and r['ok'] == [], str(r))
+        check('Bildwarnungen sperren den Export nicht', r['blk'] == 0)
+
+        # Zeichnung: Reihenfolge per Pixelprobe, gedrehter Text, nie verzerrt, ungedreht pixelgleich
+        r = await ev("""async () => {
+          const solid = (w, h, col) => { const c = document.createElement('canvas'); c.width = w; c.height = h; const g = c.getContext('2d'); g.fillStyle = col; g.fillRect(0, 0, w, h); return c; };
+          const half = () => { const c = document.createElement('canvas'); c.width = 200; c.height = 100; const g = c.getContext('2d'); g.fillStyle = '#FF0000'; g.fillRect(0, 0, 100, 100); g.fillStyle = '#0000FF'; g.fillRect(100, 0, 100, 100); return c; };
+          const extras = { 'cover-red': solid(100, 100, '#FF0000'), 'cover-blue': solid(100, 100, '#0000FF'), 'cover-half': half() };
+          const draw = (L, ex) => { const cv = document.createElement('canvas'); cv.width = 794; cv.height = 1123; coverDraw(cv.getContext('2d'), L, null, 1, null, ex || extras); return cv; };
+          const px = (cv, x, y) => Array.from(cv.getContext('2d').getImageData(Math.round(x * 794), Math.round(y * 1123), 1, 1).data.slice(0, 3));
+          const count = (cv, box, rgb) => { const d = cv.getContext('2d').getImageData(Math.round(box.x * 794), Math.round(box.y * 1123), Math.max(1, Math.round(box.w * 794)), Math.max(1, Math.round(box.h * 1123))).data; let n = 0; for (let i = 0; i < d.length; i += 4) if (Math.abs(d[i] - rgb[0]) + Math.abs(d[i + 1] - rgb[1]) + Math.abs(d[i + 2] - rgb[2]) < 40) n++; return n; };
+          const res = {};
+          // Reihenfolge: Bild below (rot, ganze Seite), Textflaeche, gelber Titel, Bild above (blau) ueber Titel UND Logo, Wortmarke, Datum
+          const mod = (above) => mk({ bg: { color: '#00FF00' }, readability: 'panel', fields: { title: { y: 0.4, color: '#FFFF00' }, date: { color: '#FF00FF' } },
+            images: [{ id: 'r', imgId: 'cover-red', x: 0.5, y: 0.5, w: 1.2, iw: 100, ih: 100 }].concat(above ? [{ id: 'b1', imgId: 'cover-blue', x: 0.5, y: 0.44, w: 0.9, iw: 100, ih: 100, z: 'above' }, { id: 'b2', imgId: 'cover-blue', x: 0.78, y: 0.08, w: 0.3, iw: 100, ih: 100, z: 'above' }, { id: 'b3', imgId: 'cover-blue', x: 0.75, y: 0.955, w: 0.5, iw: 100, ih: 100, z: 'above' }] : []) });
+          const A = coverLayout(IN({ slogan: '', name: '', v2: mod(false) }), MEAS), B = coverLayout(IN({ slogan: '', name: '', v2: mod(true) }), MEAS);
+          const ca = draw(A), cb = draw(B), t = A.blocks[0], lg = A.logo, d = A.date;
+          const tbox = { x: t.tx, y: t.y, w: t.tw, h: t.h }, lbox = { x: lg.x, y: lg.y, w: lg.w, h: lg.h }, dbox = { x: d.ax - d.tw, y: d.y, w: d.tw, h: d.h };
+          res.order = { redFar: px(ca, 0.05, 0.75), panelBlend: px(ca, t.tx - 10 / 794, t.y), yellowA: count(ca, tbox, [255, 255, 0]), yellowB: count(cb, tbox, [255, 255, 0]),
+                        blueOverPanel: px(cb, t.tx - 10 / 794, t.y), logoInkB: count(cb, lbox, [0x25, 0x27, 0x20]), logoInkA: count(ca, lbox, [0x25, 0x27, 0x20]), dateB: count(cb, dbox, [255, 0, 255]) };
+          // gedrehter Titel 90°: gelbe Pixel in senkrechtem Streifen um die Feldmitte, nicht mehr links waagrecht
+          const R = (rot) => coverLayout(IN({ slogan: '', name: '', showDate: false, logo: false, v2: mk({ bg: { color: '#000000' }, fields: { title: { y: 0.4, color: '#FFFF00', rot } } }) }), MEAS);
+          const r0 = R(0), r90 = R(90), c0 = draw(r0), c90 = draw(r90), b0 = r0.blocks[0];
+          const leftBox = { x: b0.tx, y: b0.y, w: 0.1, h: b0.h }, hb = coverHullBox(r90.blocks[0].hull), strip = { x: hb.x - 2 / 794, y: hb.y - 2 / 1123, w: hb.w + 4 / 794, h: hb.h + 4 / 1123 };
+          res.rot = { left0: count(c0, leftBox, [255, 255, 0]), left90: count(c90, leftBox, [255, 255, 0]), strip90: count(c90, strip, [255, 255, 0]), total0: count(c0, { x: 0, y: 0, w: 1, h: 1 }, [255, 255, 0]), total90: count(c90, { x: 0, y: 0, w: 1, h: 1 }, [255, 255, 0]) };
+          // rot 0 explizit im Layout vs. Layout ohne rot-Felder (Stand vorher): pixelgleich
+          const plain = JSON.parse(JSON.stringify(r0)); plain.blocks.forEach(b => { delete b.rot; delete b.cx; delete b.cy; delete b.hull; delete b.bbox; }); delete plain.images;
+          const cp = draw(plain), d1 = c0.getContext('2d').getImageData(0, 0, 794, 1123).data, d2 = cp.getContext('2d').getImageData(0, 0, 794, 1123).data;
+          let diff = 0; for (let i = 0; i < d1.length; i++) if (d1[i] !== d2[i]) diff++;
+          res.same0 = diff;
+          // nie verzerrt: 2:1-Bild, Breite 0.5 -> 397 x 198.5 px; 90° gedreht -> 198.5 x 397 px (links rot oben, rechts blau unten)
+          const H = (rot, ex) => draw(coverLayout(IN({ title: '', slogan: '', name: '', showDate: false, logo: false, v2: mk({ bg: { color: '#00FF00' }, images: [{ id: 'h', imgId: 'cover-half', x: 0.5, y: 0.5, w: 0.5, rot, iw: 200, ih: 100 }] }) }), MEAS), ex);
+          const ext = (cv) => { const d = cv.getContext('2d').getImageData(0, 0, 794, 1123).data; let x0 = 1e9, x1 = -1, y0 = 1e9, y1 = -1; for (let y = 0; y < 1123; y++) for (let x = 0; x < 794; x++) { const i = (y * 794 + x) * 4; if (d[i + 1] < 128) { x0 = Math.min(x0, x); x1 = Math.max(x1, x); y0 = Math.min(y0, y); y1 = Math.max(y1, y); } } return [x1 - x0 + 1, y1 - y0 + 1]; };
+          const h0 = H(0), h90 = H(90);
+          res.noDistort = { e0: ext(h0), e90: ext(h90), l0: px(h0, 0.35, 0.5), r0: px(h0, 0.65, 0.5), top90: px(h90, 0.5, 0.42), bot90: px(h90, 0.5, 0.58) };
+          // fehlende iw/ih: Seitenverhaeltnis aus dem echten Bild
+          const Hn = draw(coverLayout(IN({ title: '', slogan: '', name: '', showDate: false, logo: false, v2: mk({ bg: { color: '#00FF00' }, images: [{ id: 'h', imgId: 'cover-half', x: 0.5, y: 0.5, w: 0.5 }] }) }), MEAS));
+          res.noDims = ext(Hn);
+          // Deckkraft
+          const O = draw(coverLayout(IN({ title: '', slogan: '', name: '', showDate: false, logo: false, v2: mk({ bg: { color: '#000000' }, images: [{ id: 'o', imgId: 'cover-blue', x: 0.5, y: 0.5, w: 0.5, iw: 100, ih: 100, opacity: 0.5 }] }) }), MEAS));
+          res.opacity = px(O, 0.5, 0.5);
+          // fehlendes Zusatzbild: Sperrmeldung
+          try { await coverRenderCanvas(coverLayout(IN({ v2: mk({ images: [{ id: 'x', imgId: 'cover-gibtsnicht', iw: 10, ih: 10 }] }) }), MEAS), 0.5); res.missing = 'kein Fehler'; } catch (e) { res.missing = e.userMessage || ('ohne userMessage: ' + e.message); }
+          // Panel dreht mit; HTML-Textlayer mit transform
+          const P = coverLayout(IN({ v2: mk({ readability: 'panel', fields: { title: { y: 0.3, rot: 15 }, date: { rot: -30 } } }) }), MEAS);
+          res.panels = P.panels.map(p => [p.rot, Math.round(p.cx * 1e6), Math.round(P.blocks[0].cx * 1e6)]);
+          const html = coverHtml(P, ''), tmp = document.createElement('div'); tmp.innerHTML = html;
+          res.html = { t: tmp.querySelector('.cv-title').getAttribute('style'), d: tmp.querySelector('.cv-date').getAttribute('style'), s: tmp.querySelector('.cv-slogan').getAttribute('style') };
+          return res; }""")
+        o = r['order']
+        check('Reihenfolge: Bild «below» über Hintergrundfarbe, Textfläche darüber (gemischt), Text über Bild «below»', o['redFar'] == [255, 0, 0] and o['panelBlend'] != [255, 0, 0] and o['panelBlend'][1] > 100 and o['yellowA'] > 50, str(o))
+        check('Reihenfolge: Bild «above» deckt Text und Textfläche', o['yellowB'] == 0 and o['blueOverPanel'] == [0, 0, 255], str(o))
+        check('Reihenfolge: Wortmarke und Datum liegen über Bild «above» (nie verdeckt)', o['logoInkB'] > 200 and abs(o['logoInkB'] - o['logoInkA']) < 0.1 * o['logoInkA'] and o['dateB'] > 10, str(o))
+        q = r['rot']
+        check('Gedrehter Text (90°) wird gedreht gezeichnet (Schrift liegt in der senkrechten gedrehten Hülle), gleich viel Schrift', q['left0'] > 30 and q['left90'] == 0 and q['strip90'] > 0.9 * q['total90'] and abs(q['total90'] - q['total0']) < 0.05 * q['total0'], str(q))
+        check('rot 0 zeichnet pixelgleich wie ein Layout ohne Drehfelder', r['same0'] == 0, str(r['same0']))
+        nd = r['noDistort']
+        check('Zusatzbild nie verzerrt: 2:1 bleibt 397x199 px, 90° gedreht 199x397 px, Farben am richtigen Ort', abs(nd['e0'][0] - 397) <= 2 and abs(nd['e0'][1] - 199) <= 2 and abs(nd['e90'][0] - 199) <= 2 and abs(nd['e90'][1] - 397) <= 2
+              and nd['l0'] == [255, 0, 0] and nd['r0'] == [0, 0, 255] and nd['top90'] == [255, 0, 0] and nd['bot90'] == [0, 0, 255], json.dumps(nd))
+        check('Zusatzbild ohne iw/ih: Seitenverhältnis aus dem echten Bild', abs(r['noDims'][0] - 397) <= 2 and abs(r['noDims'][1] - 199) <= 2, str(r['noDims']))
+        check('Zusatzbild mit Deckkraft 0.5', 110 < r['opacity'][2] < 145 and r['opacity'][0] == 0, str(r['opacity']))
+        check('Fehlendes Zusatzbild: verständliche Sperrmeldung', 'zusätzliches Bild' in r['missing'], r['missing'])
+        check('Textfläche dreht mit dem gedrehten Block (rot, Drehpunkt = Blockmitte), ungedrehte Flächen rot 0', any(p[0] == 15 and p[1] == p[2] for p in r['panels']) and all(p[0] in (0, 15) for p in r['panels']), str(r['panels']))
+        h = r['html']
+        check('coverHtml: gedrehter Titel/Datum mit transform rotate um die Mitte (Höhe gesetzt), ungedrehter Untertitel ohne transform',
+              'rotate(15deg)' in h['t'] and 'transform-origin:50% 50%' in h['t'] and 'height:' in h['t'] and 'rotate(-30deg)' in h['d'] and 'width:' in h['d'] and 'transform' not in h['s'], json.dumps(h))
         check('Keine Seitenfehler', not errs, str(errs))
         await b.close()
     print('\nFEHLER:' if FAIL else '\nALLE OK', FAIL if FAIL else '')

@@ -18,6 +18,16 @@
         // x, y = obere linke Ecke des Textfelds, w = Breite, beide als Anteil der A4-Seite (0..1, Hoehe ergibt sich aus Text und Schrift)
         // fontPt in Punkt (A4 = 595.3 x 841.9 pt; 1 pt = 1.3333 px bei COVER_PAGE 794 px). Ohne y: Feld fliesst unter das vorige (Titel, Untertitel, Name, extra1)
         // text: ueberschreibt den Text aus cfg.title (title), cfg.subtitle (subtitle), cfg.author (name); extra1 hat nur text. Fehlt text, gilt der v1-Text.
+        // rot (Paket Drehung, alle fuenf Felder): Grad im Uhrzeigersinn, -180..180, gerundet auf 0.5, Standard 0 (0 wird nicht gespeichert).
+        //   Drehpunkt = Mitte des Textfelds (x + w/2, y + h/2). Ohne rot bleibt alles pixelgleich wie vorher.
+     images: [ { id, imgId, x, y, w, rot, z, opacity?, iw, ih } ]   // zusaetzliche eigene Bilder (hoechstens COVER_MAX_IMAGES = 4), in beiden Modi
+        // id      = eindeutiger Schluessel im Modell ('ci-<zufall>', [A-Za-z0-9_-], hoechstens 40 Zeichen; doppelte IDs werden verworfen)
+        // imgId   = Bild im Store 'images' mit Praefix 'cover-' (Import ueber coverImageImport(file, bookKey) -> { id, w, h }; id -> imgId, w -> iw, h -> ih)
+        // x, y    = MITTE des Bildes als Seitenanteil (-0.5..1.5), w = Breite als Seitenbreiten-Anteil (0.02..1.5)
+        // iw, ih  = Pixel des gespeicherten Bildes; Hoehe auf der Seite = w * 794 * ih / iw (nie verzerrt). Fehlen iw/ih, rechnet coverDraw mit den echten Pixeln.
+        // rot     = wie bei den Feldern (Drehpunkt = Bildmitte); z = 'below' (unter dem Text, Standard) | 'above' (ueber dem Text, unter Wortmarke und Datum)
+        // opacity = 0.05..1 (Standard 1, 1 wird nicht gespeichert)
+        // Fehlt images (alte Cover), gibt es keine Zusatzbilder. Reihenfolge im Array = Zeichenreihenfolge innerhalb derselben Ebene.
      logo:  { pos: 'top-right'|'top-left'|'bottom-right', variant: 'auto'|'light'|'dark' },   // light = helle (creme) Wortmarke, dark = dunkle (Tinte)
      readability: 'none' | 'panel' | 'gradient',
      arrange: ''  | 'Oben links' | 'Oben mittig' | 'Mittig' | 'Unten links' | 'Unten mittig' | 'Frei platzieren'
@@ -28,7 +38,10 @@
      coverModelFromLegacy(cfg)          cfg = Kochbuch-Konfiguration (getCookbookConfig()); liefert IMMER ein v2-Modell (v1 -> Standardansicht), schreibt nichts.
      coverModelSanitize(raw)            idempotent, begrenzt Werte, wirft unbekannte Schluessel/Schriften weg.
      coverModelIsPlainTemplate(m)       true = Vorlage ohne jede Abweichung (-> alter v1-Pfad, pixelgleich)
-     coverApplyArrangement(model, name, input, measure?)   neues Modell (rein), input wie bei coverLayout (Texte), setzt x/y/w/align der sichtbaren Textfelder.
+     coverApplyArrangement(model, name, input, measure?)   neues Modell (rein), input wie bei coverLayout (Texte), setzt x/y/w/align der sichtbaren Textfelder
+                                        und setzt deren rot auf 0 zurueck (auch bei 'Frei platzieren'; Datum und Zusatzbilder bleiben unberuehrt).
+     coverNewImageEntry(imp, opts?)     baut einen Eintrag fuer model.images aus dem Ergebnis von coverImageImport ({ id, w, h }); opts: { x, y, w, z } (Standard Mitte, Breite 0.4, 'below').
+     coverRotCorners(x, y, w, h, cx, cy, rot)   4 Ecken [{x,y}] (Seitenanteile) des um (cx,cy) gedrehten Rechtecks (Seitenverhaeltnis A4 beruecksichtigt)
      coverContrast(fg, bg)              WCAG-Kontrast 1..21 (Farben '#RRGGBB'/'#RGB')
      coverValidate(layout)              berechnet warnings[] aus einem v2-Layout (wird von coverLayout aufgerufen)
      coverExportBlockers(layout)        nur 'cut'/'outside' (bei v1-Layout: alle v1-Warnungen) -> [{fieldId, kind, message}]
@@ -36,18 +49,34 @@
      coverLogoAuto(model, lumaHint?)    'light'|'dark' fuer Variante 'auto' (Luminanz Hintergrundfarbe; bei Bild lumaHint 0..1 = mittlere Helligkeit hinter dem Logo)
    FUNKTIONEN (cover.js)
      coverLayout(input, measure?)       input: { templateId, title, name, slogan, date, showDate, logo, v2? }; v2-Pfad, wenn input.v2 vorhanden und nicht schlichte Vorlage.
-     coverDraw(ctx, layout, bgImg, scale, userImg?)   userImg = decodiertes Bild (ImageBitmap/Image/Canvas) fuer layout.image
-     coverRenderCanvas(layout, scale, bgUrl, userImg?)   fehlt userImg, wird window.coverImageLoad(id) (Paket C4, async -> drawable|null) gefragt.
+     coverDraw(ctx, layout, bgImg, scale, userImg?, extraImgs?)   userImg = decodiertes Bild (ImageBitmap/Image/Canvas) fuer layout.image;
+                                        extraImgs = { [imgId]: drawable } fuer layout.images (fehlt ein Eintrag, wird das Bild ausgelassen).
+                                        Reihenfolge v2: Hintergrundfarbe, Hintergrundbild, Bilder 'below', Textflaechen/Verlaeufe, Text, Bilder 'above', Wortmarke, Datum.
+                                        (v1-Layout: unveraenderte alte Reihenfolge, pixelgleich.)
+     coverRenderCanvas(layout, scale, bgUrl, userImg?, extraImgs?)   fehlt userImg bzw. ein Zusatzbild, wird window.coverImageLoad(id) gefragt;
+                                        fehlt ein Zusatzbild danach, wirft es coverError('Ein zusätzliches Bild des Titelblatts konnte nicht geladen werden. ...').
+     coverHtml(layout, imgUrl)          unsichtbarer Textlayer; gedrehte Bloecke/Datum mit transform: rotate(<rot>deg) um dieselbe Mitte (transform-origin).
 
    LAYOUT-ERGEBNIS v2 (zusaetzlich zu v1-Feldern: templateId, page, ink, blocks, date, logo, warnings, background)
      v: 2, mode, bgColor: '#RRGGBB' | null (Vorlage), background: URL | null,
      blocks[]: { key ('title'|'slogan'|'name'|'extra1'), id ('title'|'subtitle'|'name'|'extra1'), lines[], sizePx, sizePt, lineHeightPx, family, weight, font,
-                 x, y, w, h (Seitenanteile), ink, align, fits, splitWord (true = Einzelwort an Zeichengrenze geteilt) }
-     date: { text, sizePx, x1 (rechter Rand, v1-kompatibel), ax (Ankerpunkt), align, y, h, w, ink, family, weight } | null
+                 x, y, w, h (Seitenanteile), ink, align, fits, splitWord (true = Einzelwort an Zeichengrenze geteilt), tx, tw (Textausdehnung),
+                 rot (Grad, 0 = ungedreht), cx, cy (Drehpunkt = Mitte des Textfelds), hull: [4 Ecken {x,y}] der gedrehten Textausdehnung (tx..tx+tw, y..y+h),
+                 bbox: {x,y,w,h} achsenparallele Huelle des gedrehten Textfelds (x..x+w) }
+     date: { text, sizePx, x1 (rechter Rand, v1-kompatibel), ax (Ankerpunkt), align, y, h, w, tw, ink, family, weight, rot, cx, cy, hull, bbox } | null
      logo: { x, y, w, h, variant ('light'|'dark'), ink, pos } | null
      image: null | { id, fit, src: {x,y,w,h} (Originalpixel), dst: {x,y,w,h} (Seitenanteile), ppi }
-     panels[]: { x, y, w, h, r (Radius in Seitenbreiten-Anteil), color, alpha }    gradients[]: { x, y, w, h, from: '#RRGGBB', alpha, dir: 'down'|'up' }
-     readability, warnings[]: { fieldId ('title'|'subtitle'|'name'|'extra1'|'date'|'logo'|'image'), kind: 'cut'|'outside'|'overlap'|'unreadable'|'lowres', message }
+     images[]: { id, imgId, x, y, w, h (ungedrehtes Ziel-Rechteck, obere linke Ecke, Seitenanteile; h = null ohne iw/ih), cx, cy (Mitte), rot, z, opacity,
+                 iw, ih, ppi (Pixelbreite / Druckbreite in Zoll) | null, hull: [4 Ecken] | null, bbox | null }      (immer vorhanden, [] ohne Zusatzbilder)
+     panels[]: { x, y, w, h, r (Radius in Seitenbreiten-Anteil), color, alpha, rot, cx, cy }   rot != 0: Flaeche dreht mit ihrem Block um (cx, cy)
+                 (Bloecke mit verschiedener Drehung bilden nie eine gemeinsame Flaeche)
+     gradients[]: { x, y, w, h, from: '#RRGGBB', alpha, dir: 'down'|'up' }   Verlauf bleibt seitenbreit und waagrecht; seine Hoehe deckt die gedrehte Huelle ab
+     readability, warnings[]: { fieldId ('title'|'subtitle'|'name'|'extra1'|'date'|'logo'|'image'|'image:<images[].id>'), imageId? (bei Zusatzbildern),
+                 kind: 'cut'|'outside'|'overlap'|'unreadable'|'lowres', message }
+     Pruefung gedrehter Elemente: 'outside'/'cut' mit der achsenparallelen Huelle (bbox) der gedrehten Ecken; 'overlap' exakt per Trennachsen-Test (SAT)
+     auf den gedrehten Rechtecken (beide ungedreht: unveraenderter Rechtecktest). Zusatzbilder: 'outside' nur wenn GANZ ausserhalb der Seite,
+     'overlap' (fieldId 'image:<id>') wenn das Bild die Wortmarke beruehrt, 'lowres' unter 150 ppi. Warnungen von Zusatzbildern sperren den Export nie
+     (coverExportBlockers liefert sie nicht); nur ein fehlendes Bild sperrt (coverRenderCanvas wirft).
    Warnungstexte sind fertige deutsche Meldungen mit Loesungshinweis. */
 
 const COVER_SCHEMA_V2 = 2;
@@ -72,7 +101,61 @@ const COVER_FIELD_DEFAULTS = {
   extra1: { x: 0.09, w: 0.82, fontPt: 12, color: '#252720', align: 'left', font: 'Roboto', weight: 400, lh: 1.3 },
   date: { x: 0.53, y: 0.945, w: 0.4, fontPt: 9.75, color: '#252720', align: 'right', font: 'Roboto', weight: 500, lh: 1 },
 };
-const COVER_LIMITS = { fontPt: [6, 200], pos: [-0.5, 1.5], w: [0.05, 1.5], zoom: [0.3, 8], text: 600 };
+const COVER_LIMITS = { fontPt: [6, 200], pos: [-0.5, 1.5], w: [0.05, 1.5], zoom: [0.3, 8], text: 600, rot: [-180, 180], imgW: [0.02, 1.5], opacity: [0.05, 1] };
+const COVER_MAX_IMAGES = 4;
+const COVER_IMG_ENTRY_ID_RE = /^[A-Za-z0-9_-]{1,40}$/;
+/* Drehung: Grad auf 0.5 gerundet, -180..180 (ungueltig -> 0) */
+function coverRotNorm(v) {
+  const n = coverClampNum(v, COVER_LIMITS.rot[0], COVER_LIMITS.rot[1], 0);
+  const r = Math.round(n * 2) / 2;
+  return r === 0 ? 0 : r;   // -0 -> 0
+}
+/* Ecken eines um (cx, cy) gedrehten Rechtecks in Seitenanteilen; gedreht wird in Seitenpixeln (A4 ist nicht quadratisch) */
+function coverRotCorners(x, y, w, h, cx, cy, rot) {
+  const W = COVER_PAGE.w, H = COVER_PAGE.h, a = (rot || 0) * Math.PI / 180, c = Math.cos(a), s = Math.sin(a);
+  return [[x, y], [x + w, y], [x + w, y + h], [x, y + h]].map(([px, py]) => {
+    const dx = (px - cx) * W, dy = (py - cy) * H;
+    return { x: cx + (dx * c - dy * s) / W, y: cy + (dx * s + dy * c) / H };
+  });
+}
+function coverHullBox(pts) {
+  const xs = pts.map(p => p.x), ys = pts.map(p => p.y), x = Math.min(...xs), y = Math.min(...ys);
+  return { x, y, w: Math.max(...xs) - x, h: Math.max(...ys) - y };
+}
+/* Trennachsen-Test (SAT) fuer zwei konvexe Vierecke in Seitenpixeln; eps in Pixeln (Beruehren zaehlt nicht als Ueberlappung) */
+function coverPolysOverlap(A, B, epsPx) {
+  const W = COVER_PAGE.w, H = COVER_PAGE.h, e = epsPx == null ? 1 : epsPx;
+  const pa = A.map(p => ({ x: p.x * W, y: p.y * H })), pb = B.map(p => ({ x: p.x * W, y: p.y * H }));
+  for (const poly of [pa, pb]) {
+    for (let i = 0; i < poly.length; i++) {
+      const p = poly[i], q = poly[(i + 1) % poly.length], len = Math.hypot(q.x - p.x, q.y - p.y);
+      if (!len) continue;
+      const nx = -(q.y - p.y) / len, ny = (q.x - p.x) / len;
+      const proj = (P) => { let lo = Infinity, hi = -Infinity; P.forEach((v) => { const d = v.x * nx + v.y * ny; lo = Math.min(lo, d); hi = Math.max(hi, d); }); return [lo, hi]; };
+      const [a0, a1] = proj(pa), [b0, b1] = proj(pb);
+      if (a1 <= b0 + e || b1 <= a0 + e) return false;
+    }
+  }
+  return true;
+}
+/* Eintrag fuer model.images aus dem Ergebnis von coverImageImport ({ id, w, h }) */
+function coverNewImageEntry(imp, opts) {
+  const o = opts || {};
+  return coverSanitizeImageEntry({ id: o.id || ('ci-' + Date.now().toString(36) + Math.random().toString(36).slice(2, 7)), imgId: imp && imp.id, iw: imp && imp.w, ih: imp && imp.h, x: o.x != null ? o.x : 0.5, y: o.y != null ? o.y : 0.5, w: o.w != null ? o.w : 0.4, rot: o.rot || 0, z: o.z === 'above' ? 'above' : 'below', opacity: o.opacity });
+}
+function coverSanitizeImageEntry(e) {
+  if (!e || typeof e !== 'object') return null;
+  if (typeof e.id !== 'string' || !COVER_IMG_ENTRY_ID_RE.test(e.id)) return null;
+  if (typeof e.imgId !== 'string' || !e.imgId.startsWith('cover-') || e.imgId.length > 160) return null;
+  const o = { id: e.id, imgId: e.imgId,
+    x: coverRound(coverClampNum(e.x, COVER_LIMITS.pos[0], COVER_LIMITS.pos[1], 0.5)), y: coverRound(coverClampNum(e.y, COVER_LIMITS.pos[0], COVER_LIMITS.pos[1], 0.5)),
+    w: coverRound(coverClampNum(e.w, COVER_LIMITS.imgW[0], COVER_LIMITS.imgW[1], 0.4)), rot: coverRotNorm(e.rot), z: e.z === 'above' ? 'above' : 'below' };
+  const op = coverClampNum(e.opacity, COVER_LIMITS.opacity[0], COVER_LIMITS.opacity[1], 1);
+  if (op < 1) o.opacity = coverRound(op, 3);
+  const iw = Math.round(coverClampNum(e.iw, 1, 100000, 0)), ih = Math.round(coverClampNum(e.ih, 1, 100000, 0));
+  if (iw && ih) { o.iw = iw; o.ih = ih; }
+  return o;
+}
 
 function coverHexNorm(v, fallback) {
   const s = String(v == null ? '' : v).trim();
@@ -111,6 +194,7 @@ function coverModelSanitize(raw) {
     showDate: r.showDate !== false,
     bg: { color: coverHexNorm(r.bg && r.bg.color, COVER_PAPER) },
     image: null,
+    images: [],
     fields: {},
     logo: {
       pos: COVER_LOGO_POSITIONS.includes(r.logo && r.logo.pos) ? r.logo.pos : 'top-right',
@@ -127,6 +211,14 @@ function coverModelSanitize(raw) {
     if (w && h) { img.w = w; img.h = h; }
     out.image = img;
   }
+  if (Array.isArray(r.images)) {
+    const seen = new Set();
+    r.images.forEach((e) => {
+      if (out.images.length >= COVER_MAX_IMAGES) return;
+      const o = coverSanitizeImageEntry(e);
+      if (o && !seen.has(o.id)) { seen.add(o.id); out.images.push(o); }
+    });
+  }
   const fs = r.fields && typeof r.fields === 'object' ? r.fields : {};
   COVER_FIELD_IDS.forEach((id) => {
     const f = fs[id];
@@ -140,6 +232,7 @@ function coverModelSanitize(raw) {
     const col = coverHexNorm(f.color, null); if (col) o.color = col;
     if (['left', 'center', 'right'].includes(f.align)) o.align = f.align;
     if (COVER_FONT_NAMES.includes(f.font)) o.font = f.font;
+    const rot = coverRotNorm(f.rot); if (rot) o.rot = rot;
     if (Object.keys(o).length) out.fields[id] = o;
   });
   return out;
@@ -154,7 +247,7 @@ function coverModelFromLegacy(cfg) {
 }
 /* Vorlage ohne jede Abweichung: alter v1-Pfad (Layout und Zeichnung bleiben pixelgleich) */
 function coverModelIsPlainTemplate(m) {
-  return !!m && m.mode === 'template' && !Object.keys(m.fields || {}).length && (!m.logo || (m.logo.pos === 'top-right' && m.logo.variant === 'auto')) && (!m.readability || m.readability === 'none');
+  return !!m && m.mode === 'template' && !Object.keys(m.fields || {}).length && !(m.images && m.images.length) && (!m.logo || (m.logo.pos === 'top-right' && m.logo.variant === 'auto')) && (!m.readability || m.readability === 'none');
 }
 /* Eingabe fuer coverLayout aus der Kochbuch-Konfiguration (v2 nur, wenn die Person es gespeichert hat) */
 function coverInputFromConfig(cfg, extra) {
@@ -180,13 +273,13 @@ function coverApplyArrangement(model, name, input, measure) {
   const first = coverLayout(inp, measure);
   const ids = first.blocks.map(coverBlockId);
   if (name === 'Frei platzieren') {
-    first.blocks.forEach((b) => { m.fields[coverBlockId(b)] = Object.assign({}, m.fields[coverBlockId(b)], { x: coverRound(b.x), y: coverRound(b.y), w: coverRound(b.w) }); });
+    first.blocks.forEach((b) => { const f = Object.assign({}, m.fields[coverBlockId(b)], { x: coverRound(b.x), y: coverRound(b.y), w: coverRound(b.w) }); delete f.rot; m.fields[coverBlockId(b)] = f; });
     m.arrange = name;
     return coverModelSanitize(m);
   }
   if (!ids.length) { m.arrange = name; return coverModelSanitize(m); }
   const align = name.endsWith('mittig') || name === 'Mittig' ? 'center' : 'left';
-  ids.forEach((id) => { const f = Object.assign({}, m.fields[id], { x: 0.09, w: 0.82, align }); delete f.y; m.fields[id] = f; });
+  ids.forEach((id) => { const f = Object.assign({}, m.fields[id], { x: 0.09, w: 0.82, align }); delete f.y; delete f.rot; m.fields[id] = f; });
   const lay = coverLayout(Object.assign({}, inp, { v2: coverModelSanitize(m) }), measure);
   const gap = 0.016, H = lay.blocks.reduce((a, b) => a + b.h, 0) + gap * (lay.blocks.length - 1);
   const logoBottom = m.logo.pos === 'bottom-right';
@@ -212,25 +305,30 @@ function coverValidate(layout) {
   (layout.blocks || []).forEach((b) => {
     const id = coverBlockId(b), lab = L[id] || 'Der Text';
     if (b.splitWord) add(id, 'cut', `${lab} enthält ein Wort, das breiter ist als das Textfeld und mitten im Wort getrennt wird. Verbreitere das Textfeld, verkleinere die Schrift oder kürze den Text.`);
-    if (b.y + b.h > 1 + eps) add(id, 'cut', `${lab} ragt unten über die Seite hinaus und wird abgeschnitten. Kürze den Text, verkleinere die Schrift oder verbreitere das Textfeld.`);
+    const g = b.rot && b.bbox ? b.bbox : b;   // gedreht: achsenparallele Huelle der gedrehten Ecken
+    if (g.y + g.h > 1 + eps) add(id, 'cut', `${lab} ragt unten über die Seite hinaus und wird abgeschnitten. Kürze den Text, verkleinere die Schrift oder verbreitere das Textfeld.`);
     else if (b.fits === false) add(id, 'cut', `${lab} ist zu lang für dieses Titelblatt. Bitte kürzen (er passt nur in kleiner, nicht lesbarer Schrift).`);
-    if (b.x < -eps || b.x + b.w > 1 + eps || b.y < -eps) add(id, 'outside', `${lab} liegt teilweise ausserhalb der Seite. Verschiebe das Textfeld oder mache es schmaler.`);
-    rects.push({ id, x: b.tx != null ? b.tx : b.x, y: b.y, w: b.tw != null ? b.tw : b.w, h: b.h });
+    if (g.x < -eps || g.x + g.w > 1 + eps || g.y < -eps) add(id, 'outside', `${lab} liegt teilweise ausserhalb der Seite. ${b.rot ? 'Verschiebe das Textfeld, mache es schmaler oder drehe es weniger.' : 'Verschiebe das Textfeld oder mache es schmaler.'}`);
+    rects.push({ id, x: b.tx != null ? b.tx : b.x, y: b.y, w: b.tw != null ? b.tw : b.w, h: b.h, poly: b.rot && b.hull ? b.hull : null });
   });
   const d = layout.date;
   if (d) {
     const dx = d.align === 'left' ? d.ax : (d.align === 'center' ? d.ax - d.tw / 2 : d.ax - d.tw);
-    if (dx < -eps || dx + d.tw > 1 + eps || d.y < -eps || d.y + d.h > 1 + eps) add('date', 'outside', `${L.date} liegt teilweise ausserhalb der Seite. Verschiebe es nach innen.`);
-    rects.push({ id: 'date', x: dx, y: d.y, w: d.tw, h: d.h });
+    const g = d.rot && d.bbox ? d.bbox : { x: dx, y: d.y, w: d.tw, h: d.h };
+    if (g.x < -eps || g.x + g.w > 1 + eps || g.y < -eps || g.y + g.h > 1 + eps) add('date', 'outside', `${L.date} liegt teilweise ausserhalb der Seite. Verschiebe es nach innen.`);
+    rects.push({ id: 'date', x: dx, y: d.y, w: d.tw, h: d.h, poly: d.rot && d.hull ? d.hull : null });
   }
   const lg = layout.logo;
   if (lg) {
     if (lg.x < -eps || lg.x + lg.w > 1 + eps || lg.y < -eps || lg.y + lg.h > 1 + eps) add('logo', 'outside', `${L.logo} liegt teilweise ausserhalb der Seite.`);
     rects.push({ id: 'logo', x: lg.x, y: lg.y, w: lg.w, h: lg.h });
   }
+  const polyOf = r => r.poly || [{ x: r.x, y: r.y }, { x: r.x + r.w, y: r.y }, { x: r.x + r.w, y: r.y + r.h }, { x: r.x, y: r.y + r.h }];
   for (let i = 0; i < rects.length; i++) for (let j = i + 1; j < rects.length; j++) {
     const a = rects[i], b = rects[j];
-    if (a.x < b.x + b.w - eps && b.x < a.x + a.w - eps && a.y < b.y + b.h - eps && b.y < a.y + a.h - eps) {
+    // ungedreht: unveraenderter Rechtecktest; sonst exakter Trennachsen-Test auf den gedrehten Rechtecken
+    const hit = (!a.poly && !b.poly) ? (a.x < b.x + b.w - eps && b.x < a.x + a.w - eps && a.y < b.y + b.h - eps && b.y < a.y + a.h - eps) : coverPolysOverlap(polyOf(a), polyOf(b), 1.5);
+    if (hit) {
       const acc = { title: 'den Titel', subtitle: 'den Untertitel', name: 'den Namen', extra1: 'die weitere Zeile', date: 'das Datum', logo: 'das Logo' };
       add(b.id, 'overlap', `${L[b.id] || 'Ein Feld'} überlappt ${acc[a.id] || 'ein anderes Feld'}. Verschiebe eines der beiden Felder.`);
     }
@@ -242,11 +340,21 @@ function coverValidate(layout) {
   } else if (layout.readability === 'panel') {
     (layout.blocks || []).forEach(b => { if (coverContrast(b.ink, COVER_PAPER) < 3) add(coverBlockId(b), 'unreadable', 'Der Text ist hier schwer lesbar. Wähle eine andere Farbe oder aktiviere eine Textfläche.'); });
   }
+  const page = [{ x: 0, y: 0 }, { x: 1, y: 0 }, { x: 1, y: 1 }, { x: 0, y: 1 }], logoPoly = lg ? polyOf({ x: lg.x, y: lg.y, w: lg.w, h: lg.h }) : null;
+  (layout.images || []).forEach((im, k) => {
+    const fid = 'image:' + im.id, nr = (layout.images.length > 1 ? ` ${k + 1}` : '');
+    const push = (kind, message) => out.push({ fieldId: fid, imageId: im.id, kind, message });
+    if (im.hull) {
+      if (!coverPolysOverlap(im.hull, page, 0)) push('outside', `Das zusätzliche Bild${nr} liegt ganz ausserhalb der Seite und ist nicht zu sehen. Verschiebe es auf die Seite oder entferne es.`);
+      else if (logoPoly && coverPolysOverlap(im.hull, logoPoly, 1.5)) push('overlap', `Das zusätzliche Bild${nr} berührt das Logo. Die Wortmarke bleibt sichtbar, ist aber schlechter lesbar. Verschiebe oder verkleinere das Bild.`);
+    }
+    if (im.ppi != null && im.ppi < 150) push('lowres', `Das zusätzliche Bild${nr} hat in dieser Grösse nur etwa ${Math.round(im.ppi)} ppi. Für den Druck möglicherweise unscharf. Verkleinere es oder wähle ein grösseres Bild.`);
+  });
   if (layout.image && layout.image.ppi != null && layout.image.ppi < 150) add('image', 'lowres', `Das Bild hat nur etwa ${Math.round(layout.image.ppi)} ppi auf A4. Für den Druck möglicherweise unscharf.`);
   return out;
 }
 function coverExportBlockers(layout) {
   if (!layout) return [];
   if (layout.v !== COVER_SCHEMA_V2) return (layout.warnings || []).map(w => ({ fieldId: w.key || '', kind: 'cut', message: w.message }));
-  return (layout.warnings || []).filter(w => w.kind === 'cut' || w.kind === 'outside');
+  return (layout.warnings || []).filter(w => (w.kind === 'cut' || w.kind === 'outside') && !w.imageId);
 }

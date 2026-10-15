@@ -136,6 +136,8 @@ function backupMapCookbookConfig(config, recipeIdMap, coverIdMap) {
   cookbookNormalizeConfigTemplate(cfg);   // alte Stil-ID einer aelteren Sicherung (A/B/C) -> pur/prise-pop, sonst bleibt alles wie gesichert
   const ci = cfg.cover && cfg.cover.image;
   if (ci && typeof ci.id === 'string' && coverIdMap && coverIdMap[ci.id]) ci.id = coverIdMap[ci.id];
+  const cis = cfg.cover && cfg.cover.images;   // zusaetzliche Cover-Bilder (images[].imgId), gleiche Zuordnung wie das Hintergrundbild
+  if (Array.isArray(cis) && coverIdMap) cis.forEach((e) => { if (e && typeof e.imgId === 'string' && coverIdMap[e.imgId]) e.imgId = coverIdMap[e.imgId]; });
   if (Array.isArray(cfg.items)) cfg.items = cfg.items.map(it => ({ ...it, recipeId: recipeIdMap[it.recipeId] })).filter(it => it.recipeId);
   if (cfg.coverRecipeId) cfg.coverRecipeId = recipeIdMap[cfg.coverRecipeId] || '';
   return cfg;

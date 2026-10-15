@@ -378,6 +378,39 @@ async def main():
             if res['pre']['warnings']: res['probs'].append(('Warnungen', res['pre']['warnings']))
             check(f'Anordnung «{arr}», Logo {lpos}/{lvar}: PDF gleicht der Vorschau, Wortmarke an ihrer Stelle, keine Warnung', not res['probs'], str(res['probs'][:4]) + f" mean={res.get('mean')}/{res.get('mean_b')} kachel={res.get('tile')}")
 
+        # ---------- 5b. Gedrehte Texte und Zusatzbilder (unter und über dem Text, gedreht) ----------
+        def extra(k, x, y, w, rot, z):
+            return {'id': f'e-{k}-{z}', 'imgId': imgs[k]['id'], 'x': x, 'y': y, 'w': w, 'rot': rot, 'z': z, 'iw': imgs[k]['w'], 'ih': imgs[k]['h']}
+        rot_cases = []
+        for tr in (15, -30):
+            cov = custom(fields={'title': {'y': 0.24, 'rot': tr}, 'subtitle': {'y': 0.46, 'rot': -12}, 'name': {'y': 0.56}},
+                         )
+            cov['images'] = [extra('quer', 0.3, 0.78, 0.36, -10, 'below'), extra('quadrat', 0.74, 0.76, 0.26, 20, 'above')]
+            rot_cases.append((f'gedreht-titel{tr}-zwei-zusatzbilder', cov, tr))
+        for name, cov, tr in rot_cases:
+            res, im = await export_case(page, name, T, S, A, cov)
+            lay = await ev("() => { const L = coverLayout(coverInputFromConfig(getCookbookConfig())); return { rots: L.blocks.map(b => [b.id, b.rot, b.bbox]), imgs: L.images.map(i => [i.cx, i.cy, i.z, i.rot]), warn: L.warnings.map(w => w.kind + ':' + w.fieldId) }; }")
+            if im is not None:
+                # Zusatzbilder sichtbar: Bildmitte magenta (Kreis), unter dem Text liegendes Bild wird vom Text nicht ganz verdeckt
+                for cx, cy, z, rot in lay['imgs']:
+                    px = im.getpixel((int(cx * W72), int(cy * H72)))
+                    if abs(px[0] - MAGENTA[0]) + abs(px[1] - MAGENTA[1]) + abs(px[2] - MAGENTA[2]) > 90: res['probs'].append(('Zusatzbild fehlt im PDF', z, px))
+                # gedrehter Titel nicht abgeschnitten: gedrehte Huelle ganz in der Seite
+                for bid, rot, bb in lay['rots']:
+                    if rot and (bb['x'] < 0 or bb['y'] < 0 or bb['x'] + bb['w'] > 1 or bb['y'] + bb['h'] > 1): res['probs'].append(('gedrehtes Feld ragt hinaus', bid, bb))
+                # Textlayer: gedrehter Titel als gedrehte Zeile (pdftotext -bbox: Woerter des Untertitels in Leserichtung)
+                bbox = subprocess.run(['pdftotext', '-f', '1', '-l', '1', '-bbox', res['path'], '-'], capture_output=True, text=True).stdout
+                words = re.findall(r'<word xMin="([\d.]+)" yMin="([\d.]+)" xMax="[\d.]+" yMax="[\d.]+">([^<]+)</word>', bbox)
+                if not any(w[2] == T for w in words): res['probs'].append(('Titel fehlt im Textlayer', [w[2] for w in words][:10]))
+            if [r[1] for r in lay['rots']][:2] != [tr, -12]: res['probs'].append(('Drehung nicht im Layout', lay['rots']))
+            if any(not w.startswith('overlap') for w in lay['warn']): res['probs'].append(('Warnungen', lay['warn']))
+            check(f'{name}: PDF gleicht der Vorschau, gedrehte Texte vollständig und auswählbar, Zusatzbilder sichtbar, nichts abgeschnitten', not res['probs'], str(res['probs'][:4]) + f" mean={res.get('mean')}/{res.get('mean_b')} kachel={res.get('tile')}")
+        miss = custom(fields={})
+        miss['images'] = [{'id': 'fehlt', 'imgId': 'cover-c5-zusatz-gibtsnicht', 'x': 0.5, 'y': 0.7, 'w': 0.3, 'iw': 100, 'ih': 100}]
+        res, data = await export_case(page, 'sperre-zusatzbild-fehlt', T, S, A, miss, expect_block=True)
+        err = res['err'] or {}
+        check('sperre-zusatzbild-fehlt: Export gesperrt mit verständlicher Meldung, kein PDF', data is None and 'zusätzliches Bild' in (err.get('err') or ''), str(err)[:200])
+
         # ---------- 6. Neue Vorlagen (Paket K1), sobald vorhanden ----------
         new_ids = await ev("() => COVER_TEMPLATES.map(t => t.id).slice(10)")
         if not new_ids: print('INFO Neue Vorlagen noch nicht vorhanden')

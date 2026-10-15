@@ -5,6 +5,7 @@ import asyncio, base64, json, os, sys
 os.environ.setdefault('SAVORA_TEST_PORT', '8985')
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from common import *
+os.makedirs('/tmp/c3_shots2', exist_ok=True)
 FAIL = []
 def check(name, cond, info=''):
     print(('OK   ' if cond else 'FEHL ') + name, info)
@@ -39,6 +40,218 @@ async def fld(page, id): return await page.evaluate("(i) => (ce.model.fields[i] 
 async def box(page, sel):
     return await page.evaluate("(s) => { const r = document.querySelector(s).getBoundingClientRect(); return { x: r.left, y: r.top, w: r.width, h: r.height }; }", sel)
 
+import math, struct, zlib
+def make_png(w, h, rgb):
+    """Echtes Testbild (RGB, ohne Bibliothek) fuer den richtigen Import ueber coverImageImport."""
+    raw = b''.join(b'\x00' + bytes(rgb) * w for _ in range(h))
+    def chunk(t, d): return struct.pack('>I', len(d)) + t + d + struct.pack('>I', zlib.crc32(t + d) & 0xffffffff)
+    return b'\x89PNG\r\n\x1a\n' + chunk(b'IHDR', struct.pack('>IIBBBBB', w, h, 8, 2, 0, 0, 0)) + chunk(b'IDAT', zlib.compress(raw)) + chunk(b'IEND', b'')
+
+async def new_page_real(p, w=1440, h=900, touch=False):
+    """Wie new_page, aber mit den echten Bild-Funktionen (cover-image.js, IndexedDB)."""
+    browser = await p.chromium.launch()
+    ctx = await browser.new_context(viewport={'width': w, 'height': h}, has_touch=touch, reduced_motion='reduce', timezone_id='UTC')
+    await ctx.add_init_script(NO_SW + " try{localStorage.setItem('savora-splash-seen','1')}catch(e){}")
+    page = await ctx.new_page()
+    await goto(page); await page.evaluate(open(SEED_PATH).read()); await page.wait_for_timeout(300)
+    return browser, ctx, page
+
+async def center(page, sel):
+    b = await box(page, sel); return b['x'] + b['w'] / 2, b['y'] + b['h'] / 2
+
+async def rot_and_images(p):
+    """Paket Drehen und Zusatzbilder: Drehgriff, Einrasten, Tastatur, Schieber, Undo, gedrehtes Verschieben, Reiter Bilder, Neuladen."""
+    browser, ctx, page = await new_page_real(p, 1440, 900)
+    ev = page.evaluate; errs = []
+    page.on('pageerror', lambda e: errs.append(str(e)))
+    await open_design(page, 'Sonntagsküche', 'Rezepte aus dem Garten', 'Alex Muster')
+    await page.click('[data-ce="mode"][data-v="custom"]'); await page.click('[data-ce="tab"][data-v="text"]')
+    await page.click('[data-ce="select"][data-f="title"]'); await page.wait_for_timeout(300)
+    # ---------- Drehgriff mit der Maus ----------
+    cx, cy = await center(page, '.ce-frame[data-fr="title"]'); gx, gy = await center(page, '.ce-grip--rot')
+    r = math.hypot(gx - cx, gy - cy); a0 = math.atan2(gy - cy, gx - cx)
+    u0 = await ev("() => ce.undo.length")
+    await page.mouse.move(gx, gy); await page.mouse.down()
+    for i in range(1, 9):
+        a = a0 + math.radians(16.5) * i / 8; await page.mouse.move(cx + r * math.cos(a), cy + r * math.sin(a))
+    await page.mouse.up(); await page.wait_for_timeout(250)
+    rot = (await fld(page, 'title')).get('rot'); u1 = await ev("() => ce.undo.length")
+    check('Drehgriff (Maus) dreht den Titel im Uhrzeigersinn und rastet bei 15° ein', rot == 15, str(rot))
+    check('Eine Drehbewegung = genau ein Undo-Schritt', u1 - u0 == 1, f'{u0} {u1}')
+    tf = await ev("() => document.querySelector('.ce-frame[data-fr=\"title\"]').style.transform")
+    check('Rahmen und Griffe drehen mit dem Feld (transform: rotate)', tf == 'rotate(15deg)', tf)
+    await ev("() => ceUndo()"); await page.wait_for_timeout(100)
+    check('Rückgängig hebt die ganze Drehung auf', not (await fld(page, 'title')).get('rot'))
+    # Shift = ohne Einrasten
+    cx, cy = await center(page, '.ce-frame[data-fr="title"]'); gx, gy = await center(page, '.ce-grip--rot')
+    r = math.hypot(gx - cx, gy - cy); a0 = math.atan2(gy - cy, gx - cx)
+    await page.mouse.move(gx, gy); await page.mouse.down(); await page.keyboard.down('Shift')
+    for i in range(1, 9):
+        a = a0 - math.radians(16.5) * i / 8; await page.mouse.move(cx + r * math.cos(a), cy + r * math.sin(a))
+    await page.mouse.up(); await page.keyboard.up('Shift'); await page.wait_for_timeout(250)
+    rot = (await fld(page, 'title')).get('rot')
+    check('Mit Umschalt frei drehen (kein Einrasten): etwa −16.5°', rot is not None and abs(rot + 16.5) <= 0.75 and rot != -15, str(rot))
+    # ---------- Tastatur R / Shift+R ----------
+    await page.click('[data-ce="rot-step"][data-f="title"][data-d="0"]'); await page.wait_for_timeout(100)
+    check('Knopf «0°» setzt die Drehung zurück', not (await fld(page, 'title')).get('rot'))
+    await ev("() => document.querySelector('.ce-frame[data-fr=\"title\"]').focus()")
+    lab = await ev("() => document.activeElement.getAttribute('aria-label')")
+    await page.keyboard.press('r'); r1 = (await fld(page, 'title')).get('rot')
+    await page.keyboard.press('Shift+R'); r2 = (await fld(page, 'title')).get('rot')
+    await page.keyboard.press('Alt+r'); r3 = (await fld(page, 'title')).get('rot')
+    check('Tastatur: R dreht um 1°, Umschalt+R um 15°, Alt+R zurück', (r1, r2, r3) == (1, 16, 15), str((r1, r2, r3)))
+    check('Rahmen nennt die Drehtasten in der aria-Beschriftung, Fokus bleibt', 'R dreht um 1 Grad' in (lab or '') and await ev("() => document.activeElement.classList.contains('ce-frame')"), lab)
+    # ---------- Schieber, Zahl, Knöpfe ----------
+    await ev("() => { const r = document.querySelector('#ce-rot-title'); r.value = 30; r.dispatchEvent(new Event('input', { bubbles: true })); }")
+    a = (await fld(page, 'title')).get('rot'); num = await page.input_value('[data-ce-input="rotnum"][data-f="title"]')
+    check('Schieber «Drehung» setzt 30°, Zahl folgt', a == 30 and num == '30', f'{a} {num}')
+    await page.fill('[data-ce-input="rotnum"][data-f="title"]', '-45'); await page.dispatch_event('[data-ce-input="rotnum"][data-f="title"]', 'change')
+    a = (await fld(page, 'title')).get('rot')
+    await page.click('[data-ce="rot-step"][data-f="title"][data-d="15"]'); b = (await fld(page, 'title')).get('rot')
+    await page.click('[data-ce="rot-step"][data-f="title"][data-d="-15"]'); await page.click('[data-ce="rot-step"][data-f="title"][data-d="-15"]'); c = (await fld(page, 'title')).get('rot')
+    check('Zahl in Grad (−45), Knöpfe «+15°» und «−15°»', (a, b, c) == (-45, -30, -60), str((a, b, c)))
+    vt = await ev("() => document.querySelector('#ce-rot-title').getAttribute('aria-valuetext')")
+    check('Schieber hat aria-valuetext in Grad', vt == '-60°', vt)
+    # ---------- Gedrehtes Feld verschieben und Breite ändern ----------
+    await ev("() => ceSetRot('title', 90)"); await page.wait_for_timeout(150)
+    pv = await box(page, '.ce-preview'); b0 = await ev("() => ceBoxes().title")
+    cx, cy = await center(page, '.ce-frame[data-fr="title"]')
+    await page.mouse.move(cx, cy); await page.mouse.down()
+    for i in range(1, 7): await page.mouse.move(cx + 8 * i, cy)
+    await page.mouse.up(); await page.wait_for_timeout(200)
+    b1 = await ev("() => ceBoxes().title")
+    check('Gedrehtes Feld (90°) nach rechts ziehen bewegt es nach rechts (nicht nach unten)', abs((b1['x'] - b0['x']) - 48 / pv['w']) < 0.01 and abs(b1['y'] - b0['y']) < 0.01, f'{b0} {b1}')
+    w0 = b1['w']; gx, gy = await center(page, '.ce-grip--w')
+    await page.mouse.move(gx, gy); await page.mouse.down()
+    for i in range(1, 7): await page.mouse.move(gx, gy - 6 * i)
+    await page.mouse.up(); await page.wait_for_timeout(200)
+    w1 = (await ev("() => ceBoxes().title"))['w']
+    check('Breitengriff bei 90°: Ziehen entlang der gedrehten Feldachse (nach oben) ändert die Breite', abs((w0 - w1) - 36 / pv['w']) < 0.012, f'{w0} {w1}')
+    # ---------- Reiter Bilder ----------
+    await ev("() => { window.__rm = []; const o = window.coverImageRemove; window.coverImageRemove = async (id, x) => { window.__rm.push(id); return o && o(id, x); }; }")
+    await page.click('[data-ce="tab"][data-v="img"]'); await page.wait_for_timeout(200)
+    tabs = await ev("() => Array.from(document.querySelectorAll('.ce-tab')).map(t => t.textContent)")
+    check('Reiter in der Reihenfolge Hintergrund · Texte · Bilder · Anordnung', tabs == ['Hintergrund', 'Texte', 'Bilder', 'Anordnung'], str(tabs))
+    await page.set_input_files('[data-ce-xfile]', files=[{'name': 'kaputt.png', 'mimeType': 'image/png', 'buffer': b'kein bild'}])
+    await page.wait_for_function("() => { const e = document.querySelector('#cepanel .ce-error'); return e && !e.hidden; }")
+    err = await ev("() => document.querySelector('#cepanel .ce-error').textContent")
+    check('Kaputte Datei: Fehlermeldung (userMessage) unter dem Knopf, kein Bild', len(err) > 10 and await ev("() => (ce.model.images || []).length") == 0, err)
+    await page.set_input_files('[data-ce-xfile]', files=[{'name': 'quer.png', 'mimeType': 'image/png', 'buffer': make_png(400, 300, (200, 80, 60))}])
+    await page.wait_for_function("() => (ce.model.images || []).length === 1")
+    im = await ev("() => ce.model.images[0]")
+    check('Bild hinzufügen: Eintrag mit imgId, iw/ih, Mitte, hinter dem Text, ausgewählt', im['imgId'].startswith('cover-') and im['iw'] == 400 and im['ih'] == 300 and im['z'] == 'below' and await ev("() => ce.sel") == 'img-' + im['id'], str(im))
+    await page.wait_for_function("() => { const c = document.querySelector('canvas.ce-thumb'); return c && c.dataset.done; }")
+    check('Liste zeigt ein Vorschaubild', await ev("() => document.querySelectorAll('.ce-imgitem').length") == 1)
+    sid = 'img-' + im['id']
+    # Grösse (Seitenverhältnis bleibt), Drehung, Ebene
+    h0 = await ev("(s) => { const b = ceBoxOf(s); return b.h / b.w; }", sid)
+    await ev("(s) => { const r = document.getElementById('ce-iw-' + s); r.value = 60; r.dispatchEvent(new Event('input', { bubbles: true })); }", sid)
+    h1 = await ev("(s) => { const b = ceBoxOf(s); return b.h / b.w; }", sid); im = await ev("() => ce.model.images[0]")
+    check('Grösse: Schieber setzt die Breite, Seitenverhältnis und Mitte bleiben', im['w'] == 0.6 and abs(h0 - h1) < 1e-6 and im['x'] == 0.5, f'{im} {h0} {h1}')
+    await page.click(f'[data-ce="rot-step"][data-f="{sid}"][data-d="15"]'); await page.click(f'[data-ce="ximg-z"][data-v="above"]'); await page.wait_for_timeout(150)
+    im = await ev("() => ce.model.images[0]")
+    check('Drehung (+15°) und «Vor den Text» für das Bild', im['rot'] == 15 and im['z'] == 'above', str(im))
+    zi = await ev("(s) => document.querySelector(`[data-fr='${s}']`).style.transform", sid)
+    check('Bildrahmen dreht mit', zi == 'rotate(15deg)', zi)
+    # Position per Raster und Richtungstasten
+    await page.click(f'[data-ce="place"][data-f="{sid}"][data-c="0"][data-r="0"]'); await page.wait_for_timeout(100)
+    bb = await ev("(s) => ceBoxOf(s)", sid)
+    check('3×3-Raster «oben links» setzt das Bild oben links', abs(bb['x'] - 0.09) < 0.005 and abs(bb['y'] - 0.10) < 0.005, str(bb))
+    await page.click(f'[data-ce="nudge"][data-f="{sid}"][data-dx="1"]'); bb2 = await ev("(s) => ceBoxOf(s)", sid)
+    check('Richtungsknopf verschiebt das Bild um 1 %', abs(bb2['x'] - bb['x'] - 0.01) < 0.002, f'{bb} {bb2}')
+    # Eckgriff: Grösse in der Vorschau
+    await page.click('[data-ce="place"][data-f="%s"][data-c="1"][data-r="1"]' % sid); await page.wait_for_timeout(100)
+    w0 = (await ev("() => ce.model.images[0]"))['w']; gx, gy = await center(page, '.ce-grip--size')
+    await page.mouse.move(gx, gy); await page.mouse.down()
+    for i in range(1, 7): await page.mouse.move(gx + 5 * i, gy + 5 * i)
+    await page.mouse.up(); await page.wait_for_timeout(200)
+    w1 = (await ev("() => ce.model.images[0]"))['w']
+    check('Eckgriff vergrössert das Bild (Seitenverhältnis bleibt)', w1 > w0 + 0.02, f'{w0} {w1}')
+    # zweites Bild, Auswahl bei Überlagerung: oberstes zuerst
+    await page.set_input_files('[data-ce-xfile]', files=[{'name': 'hoch.png', 'mimeType': 'image/png', 'buffer': make_png(200, 400, (60, 110, 200))}])
+    await page.wait_for_function("() => (ce.model.images || []).length === 2")
+    im2 = await ev("() => ce.model.images[1]")
+    check('Zweites Bild: hinter dem Text, ausgewählt', im2['z'] == 'below' and await ev("() => ce.sel") == 'img-' + im2['id'])
+    await ev("() => ceSelect(null)"); await page.wait_for_timeout(100)
+    # Bild 2 genau unter Bild 1 schieben: Tippen in die Mitte waehlt das obere (Bild 1, vor dem Text)
+    await ev("() => ceChange((m) => { m.images[1] = { ...m.images[1], x: m.images[0].x, y: m.images[0].y }; })"); await ev("() => window.scrollTo(0, 0)"); await page.wait_for_timeout(250)
+    hx, hy = await center(page, f'[data-hit="{sid}"]')
+    top = await ev("([x, y]) => { const e = document.elementFromPoint(x, y); return e ? (e.dataset.hit || e.dataset.fr || e.className) : null; }", [hx, hy])
+    await page.mouse.click(hx, hy); await page.wait_for_timeout(200)
+    check('Tippen in der Vorschau wählt bei Überlagerung das oberste Bild', top == sid and await ev("() => ce.sel") == sid and await ev("() => ce.tab") == 'img', f'{top} {await ev("() => ce.sel")}')
+    # bis 4, dann gesperrt
+    for k in (3, 4):
+        await page.set_input_files('[data-ce-xfile]', files=[{'name': f'b{k}.png', 'mimeType': 'image/png', 'buffer': make_png(120, 120, (40 * k, 160, 90))}])
+        await page.wait_for_function(f"() => (ce.model.images || []).length === {k}")
+    await page.wait_for_function("() => !ce.imgBusy")
+    dis = await ev("() => document.querySelector('[data-ce=\"ximg-add\"]').disabled"); note = await page.inner_text('#ce-ximg-note')
+    check('Höchstens 4 Bilder: Knopf deaktiviert, Hinweis', dis and 'Höchstens 4' in note, note)
+    # Entfernen: nur Referenz
+    await ev("() => ceSelect('img-' + ce.model.images[3].id)"); await page.wait_for_timeout(100)
+    await page.click('[data-ce="ximg-remove"]'); await page.wait_for_timeout(200)
+    check('Bild entfernen: nur die Referenz, coverImageRemove wird nicht aufgerufen, Knopf wieder aktiv', await ev("() => ce.model.images.length") == 3 and await ev("() => window.__rm.length") == 0 and not await ev("() => document.querySelector('[data-ce=\"ximg-add\"]').disabled"))
+    # ---------- Neuladen ----------
+    await ev("() => ceFlush()"); await page.wait_for_timeout(200)
+    before = await ev("() => JSON.stringify({ i: ce.model.images, r: ce.model.fields.title.rot })")
+    await page.reload(); await page.wait_for_function("typeof state !== 'undefined' && document.getElementById('app').children.length > 0"); await page.wait_for_timeout(500)
+    await ev("() => { state.cookbookStep = 2; state.view = 'cookbook'; render(); }"); await page.wait_for_selector('.ce-canvas'); await page.wait_for_timeout(800)
+    after = await ev("() => JSON.stringify({ i: ce.model.images, r: ce.model.fields.title.rot })")
+    check('Neuladen stellt Drehung und alle Bilder (Lage, Grösse, Ebene) wieder her', before == after and await ev("() => ce.model.images.length") == 3, after[:160])
+    await page.click('[data-ce="tab"][data-v="img"]'); await page.wait_for_timeout(200)
+    await page.wait_for_function("() => document.querySelectorAll('canvas.ce-thumb[data-done]').length === 3")
+    check('Nach dem Neuladen: Vorschaubilder aus dem Speicher geladen', True)
+    painted = await ev("() => new Promise(r => setTimeout(() => r(!!document.querySelector('canvas.ce-canvas').dataset.painted && !ce.paintError), 600))")
+    check('Vorschau zeichnet ohne Fehler (Zusatzbilder geladen)', painted)
+    # ---------- Zurücksetzen ----------
+    await page.click('[data-ce="tab"][data-v="arr"]'); await page.click('[data-ce="arr-reset"]'); await page.wait_for_timeout(200)
+    check('«Anordnung zurücksetzen»: Textdrehung 0, Bilder bleiben', not (await fld(page, 'title')).get('rot') and await ev("() => ce.model.images.length") == 3)
+    await page.click('[data-ce="cover-reset"]'); await page.wait_for_selector('.modal-sheet')
+    dlg = await page.inner_text('.modal-sheet')
+    await page.click('[data-action="ce-reset-confirm"]'); await page.wait_for_timeout(500)
+    check('«Cover zurücksetzen» nennt und entfernt auch die zusätzlichen Bilder', 'zusätzlichen Bilder' in dlg and not await ev("() => (ce.model.images || []).length"), dlg[:120])
+    await ev("() => ceUndo()"); await page.wait_for_timeout(300)
+    check('Cover zurücksetzen ist rückgängig machbar (Bilder wieder da)', await ev("() => (ce.model.images || []).length") == 3)
+    check('Keine Skriptfehler (Drehen und Bilder)', not errs, str(errs[:2]))
+    await browser.close()
+
+    # ---------- Breiten, Tippflächen, Fokus, Screenshots ----------
+    for w, h in ((390, 844), (768, 1024), (1440, 900)):
+        browser, ctx, page = await new_page_real(p, w, h)
+        ev = page.evaluate
+        await open_design(page, 'Sonntagsküche', 'Rezepte aus dem Garten', 'Alex Muster')
+        await page.click('[data-ce="mode"][data-v="custom"]'); await page.click('[data-ce="color"][data-v="#F2D98A"]')
+        await page.click('[data-ce="tab"][data-v="img"]'); await page.wait_for_timeout(150)
+        await page.set_input_files('[data-ce-xfile]', files=[{'name': 'a.png', 'mimeType': 'image/png', 'buffer': make_png(300, 300, (156, 181, 154))}])
+        await page.wait_for_function("() => (ce.model.images || []).length === 1 && !ce.imgBusy")
+        await page.set_input_files('[data-ce-xfile]', files=[{'name': 'b.png', 'mimeType': 'image/png', 'buffer': make_png(400, 240, (185, 59, 44))}])
+        await page.wait_for_function("() => (ce.model.images || []).length === 2 && !ce.imgBusy")
+        await ev("() => ceChange((m) => { m.images[0] = { ...m.images[0], x: 0.7, y: 0.72, w: 0.38, rot: -12 }; m.images[1] = { ...m.images[1], x: 0.3, y: 0.8, w: 0.36, rot: 8, z: 'above' }; m.fields.title = { ...(m.fields.title || {}), rot: -8, x: 0.1, y: 0.2 }; }, { panels: true })")
+        await page.wait_for_timeout(300)
+        over = await ev("() => document.documentElement.scrollWidth - document.documentElement.clientWidth")
+        check(f'{w} px (Bilder): kein horizontales Scrollen', over <= 1, str(over))
+        if w == 390:
+            small = await ev("() => Array.from(document.querySelectorAll('.ce-imgitem, .ce-rotnum input, [data-ce=rot-step], [data-ce=ximg-z], [data-ce=ximg-add], [data-ce=ximg-replace], [data-ce=ximg-remove], #cepanel input[type=range]')).filter(e => { const r = e.getBoundingClientRect(); return r.width > 0 && (r.width < 43.5 || r.height < 43.5); }).map(e => e.className + ' ' + Math.round(e.getBoundingClientRect().width) + 'x' + Math.round(e.getBoundingClientRect().height))")
+            check('Bilder und Drehung: Tippflächen mindestens 44 px', not small, str(small[:4]))
+            g = await ev("() => { const r = document.querySelector('.ce-grip--rot'); return r ? r.getBoundingClientRect().width + 20 : 0; }")
+            check('Drehgriff: Tippfläche mindestens 44 px', g >= 43.5, str(g))
+            ta = await ev("() => [getComputedStyle(document.querySelector('.ce-grip--rot')).touchAction, getComputedStyle(document.querySelector('.ce-frame')).touchAction, getComputedStyle(document.querySelector('.ce-hit')).touchAction]")
+            check('touch-action: none nur auf den Griffen (Rahmen und Trefferflächen scrollen)', ta[0] == 'none' and ta[1] != 'none' and ta[2] != 'none', str(ta))
+            await ev("() => document.querySelector('.ce-imgitem').focus()"); await page.keyboard.press('Tab'); await page.keyboard.press('Shift+Tab')
+            fo = await ev("() => { const s = getComputedStyle(document.activeElement); return [document.activeElement.className, s.outlineStyle, s.outlineWidth]; }")
+            check('Fokus sichtbar auf den Bildkarten (3 px)', fo[1] == 'solid' and fo[2] == '3px', str(fo))
+            await ev("() => ceSelect('img-' + ce.model.images[0].id)"); await page.wait_for_timeout(150)
+            await ev("() => document.querySelector('[data-ce-input=rotnum]').focus()")
+            fo = await ev("() => { const s = getComputedStyle(document.activeElement); return [s.outlineStyle, s.outlineWidth]; }")
+            check('Fokus sichtbar im Gradfeld', fo == ['solid', '3px'], str(fo))
+        if w in (390, 1440):
+            await ev("() => ceSelect('title')"); await page.wait_for_timeout(300)
+            await ev("() => { document.activeElement.blur(); window.scrollTo(0, 0); }"); await page.wait_for_timeout(500)
+            await page.screenshot(path=f'/tmp/r2_shots/drehen_{w}.png')
+            await ev("() => ceSelect('img-' + ce.model.images[0].id)"); await page.wait_for_timeout(300)
+            await ev("() => { document.activeElement.blur(); window.scrollTo(0, 0); }"); await page.wait_for_timeout(400)
+            await page.screenshot(path=f'/tmp/r2_shots/bilder_{w}.png', full_page=(w == 1440))
+        await browser.close()
+
 async def main():
     async with async_playwright() as p:
         browser, ctx, page = await new_page(p)
@@ -52,7 +265,7 @@ async def main():
         check('Vorlagen: Raster mit allen Motiven, Texte-Reiter zeigt die Eingabefelder', await ev("() => document.querySelectorAll('.cover-opt').length === COVER_TEMPLATES.length") and await page.is_visible('#cbTitle'))
         await page.click('.cover-opt[aria-label="Citrus"]'); await page.wait_for_timeout(200)
         await page.click('[data-ce="mode"][data-v="custom"]'); await page.wait_for_timeout(300)
-        check('Eigenes Cover: Reiter Hintergrund · Texte · Anordnung, kein Motivraster', await ev("() => Array.from(document.querySelectorAll('.ce-tab')).map(t => t.textContent)") == ['Hintergrund', 'Texte', 'Anordnung'] and await ev("() => document.querySelectorAll('.cover-opt').length") == 0)
+        check('Eigenes Cover: Reiter Hintergrund · Texte · Bilder · Anordnung, kein Motivraster', await ev("() => Array.from(document.querySelectorAll('.ce-tab')).map(t => t.textContent)") == ['Hintergrund', 'Texte', 'Bilder', 'Anordnung'] and await ev("() => document.querySelectorAll('.cover-opt').length") == 0)
         await page.click('[data-ce="color"][data-v="#22382F"]'); await page.wait_for_timeout(300)
         await page.click('[data-ce="mode"][data-v="template"]'); await page.wait_for_timeout(300)
         raw = (await stored(page))['cover']
@@ -68,7 +281,7 @@ async def main():
         check('Antippen wählt das Feld aus (Rahmen, Beschriftung), Tastatur öffnet nicht', fr and 'Kochbuchtitel' in fr and await ev("() => !!document.querySelector('.ce-field[data-f=title] .ce-badge') && !document.querySelector('.ce-field[data-f=title] [data-ce=select]')") and act not in ('INPUT', 'TEXTAREA'), f'{act} {fr}')
         await page.click('[data-ce="edit"][data-f="title"]')
         check('«Text bearbeiten» setzt den Fokus ins Eingabefeld', await ev("() => document.activeElement.id") == 'cbTitle')
-        check('Einmaliger Rahmen und Griffe nur beim ausgewählten Feld', await ev("() => document.querySelectorAll('.ce-frame').length") == 1 and await ev("() => document.querySelectorAll('.ce-grip').length") == 2)
+        check('Einmaliger Rahmen und Griffe (Verschieben, Breite, Drehen) nur beim ausgewählten Feld', await ev("() => document.querySelectorAll('.ce-frame').length") == 1 and await ev("() => Array.from(document.querySelectorAll('.ce-grip')).map(g => g.dataset.grip).sort().join()") == 'move,rot,width')
         ts = await ev("() => ({ frame: getComputedStyle(document.querySelector('.ce-frame')).touchAction, grip: getComputedStyle(document.querySelector('.ce-grip')).touchAction, prev: getComputedStyle(document.querySelector('.ce-preview')).touchAction, canvas: getComputedStyle(document.querySelector('.ce-canvas')).touchAction, hit: getComputedStyle(document.querySelector('.ce-hit')).touchAction })")
         check('touch-action: none nur auf den Griffen, nicht auf Rahmen, Vorschau oder Seite', ts['grip'] == 'none' and ts['frame'] != 'none' and ts['prev'] != 'none' and ts['canvas'] != 'none' and ts['hit'] != 'none', str(ts))
 
@@ -378,6 +591,8 @@ async def main():
             await page.evaluate("() => { document.activeElement.blur(); window.scrollTo(0, 0); }"); await page.wait_for_timeout(300)
             await page.screenshot(path=f'/tmp/c3_shots2/editor_{tag}_dunkel.png')
             await browser.close()
+        os.makedirs('/tmp/r2_shots', exist_ok=True)
+        await rot_and_images(p)
         print('\nFEHLER:', FAIL) if FAIL else print('\nAlle Prüfungen bestanden')
 asyncio.run(main())
 sys.exit(1 if FAIL else 0)
