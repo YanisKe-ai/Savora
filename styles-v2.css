@@ -3525,3 +3525,12 @@ body:has(.lp) .topbar--sub .topbar-title { overflow-wrap: normal; hyphens: auto;
   .detail-tools .tool-action { flex-direction: row; justify-content: flex-start; gap: 0.5rem; min-height: 2.75rem; padding: 0.25rem 0.5rem; text-align: left; line-height: 1.25; }
   .detail-tools .tool-action svg { flex: 0 0 auto; width: 1.25rem; height: 1.25rem; }
 }
+/* Filterfenster: lange Optionen nicht mitten im Wort trennen; Gerichtarten aufklappbar, gewählte bleiben sichtbar */
+.fs-text { overflow-wrap: normal; word-break: normal; hyphens: auto; }
+.fs-group.is-collapsed .fs-opt--extra:not(:has(.fs-input:checked)) { display: none; }
+.fs-more-toggle { min-height: 2.75rem; margin-top: 0.25rem; padding: 0 0.25rem; font-weight: 700; }
+.fs-hint { margin: -0.25rem 0 0.5rem; font-size: 0.875rem; line-height: 1.4; color: var(--text-soft); }
+/* Rezeptübersicht Desktop: Anzahl links, Sortierung kompakt und Ansicht rechts als Gruppe */
+.result-row:not(.result-row--phone) .sort-pick { order: 2; flex: 0 1 auto; flex-wrap: nowrap; margin-left: auto; }
+.result-row:not(.result-row--phone) .sort-pick .sort-select { flex: 0 1 auto; width: auto; max-width: 15rem; }
+.result-row:not(.result-row--phone) .layout-toggle { order: 3; }

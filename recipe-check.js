@@ -173,13 +173,20 @@ function recipeCheckHtml(r) {
    der Editor (Zurück führt wieder zur Rezeptseite, Reiter bleibt); im Editor selbst werden die Eingaben vorher
    übernommen (wie beim Schrittwechsel), damit nichts verloren geht. */
 function rcFocusField(selector) {
-  let tries = 0;
+  // render() kann per View Transition verzögert sein und danach den Fokus neu setzen: so lange nachfassen,
+  // bis das Feld den Fokus zweimal hintereinander behält (höchstens ~1,2 s), dann nichts mehr anfassen.
+  let tries = 0, held = 0, scrolled = false;
   const go = () => {
     const el = document.querySelector(selector) || document.querySelector('.form-step.is-active input, .form-step.is-active textarea');
+    const det = el && el.closest('details');
+    if (det && !det.open) det.open = true;   // Feld in zugeklapptem Abschnitt (z. B. weitere Zeiten): erst aufklappen
     if (el && el.offsetParent !== null) {
-      try { el.focus({ preventScroll: true }); } catch (e) { el.focus(); }
-      try { el.scrollIntoView({ block: 'center', behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' }); } catch (e) { /* alt */ }
-      return;
+      if (document.activeElement === el) { if (++held >= 2) return; }
+      else {
+        held = 0;
+        try { el.focus({ preventScroll: true }); } catch (e) { el.focus(); }
+        if (!scrolled) { scrolled = true; try { el.scrollIntoView({ block: 'center', behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' }); } catch (e) { /* alt */ } }
+      }
     }
     if (++tries < 30) setTimeout(go, 40);
   };
