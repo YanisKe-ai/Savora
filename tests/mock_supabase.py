@@ -333,11 +333,12 @@ def lib_clean(r):
     src = r.get('source') if isinstance(r.get('source'), dict) else {}
     url = txt(src.get('url'), 500)
     if not _re.fullmatch(r'https?://[^\s"\'<>\\`]+', url): url = ''
-    pieces = r.get('servingMode') == 'pieces'
+    mode = r.get('servingMode') if r.get('servingMode') in ('pieces', 'total') else 'portions'   # wie paket46: 'total' = Gesamtertrag
+    pieces = mode != 'portions'
     diet = r.get('diet') if isinstance(r.get('diet'), list) else []
     cats = r.get('categories') if isinstance(r.get('categories'), list) else []
     return {
-        'v': 1, 'title': title, 'servings': servings, 'servingMode': 'pieces' if pieces else 'portions',
+        'v': 1, 'title': title, 'servings': servings, 'servingMode': mode,
         'yieldLabel': txt(r.get('yieldLabel'), 40) if pieces else '',
         'timeMinutes': int_or_none(r.get('timeMinutes'), 1, 100000),   # 0 und Unsinn werden null (unbekannt), nie «0 Minuten»
         'prepMinutes': int_or_none(r.get('prepMinutes'), 1, 100000),
