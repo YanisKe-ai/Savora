@@ -3676,3 +3676,5 @@ body.keyboard-open .rp-foot { padding-bottom: 0.75rem; }
 @media (min-width: 900px) { .detail-main.has-hero .hero-img { aspect-ratio: 3 / 2; } }
 /* Grosse Systemschrift: Rezeptaktionen wechseln auf eine Spalte, statt über den Rand zu ragen */
 @media (max-width: 599px) { .detail-tools { grid-template-columns: repeat(auto-fit, minmax(min(100%, 9.5rem), 1fr)); } .detail-tools .tool-action { min-width: 0; } }
+/* v83: Handy: Rezeptfoto etwas flacher (16:9), damit die erste Zutat trotz zweizeiliger Aktionen ohne Scrollen sichtbar bleibt (auch mit Linux-Schriften) */
+@media (max-width: 899px) { .detail-main.has-hero .hero-img { aspect-ratio: 16 / 9; } }
