@@ -289,7 +289,7 @@ function lpStep1Html(r, p, built) {
     d.title ? escapeHtml(d.title) : 'Noch kein Titel', lpErrLines('title', lpMessagesFor(shown, 'title').length ? lpMessagesFor(shown, 'title') : (libPub.fieldErrors && !d.title ? ['Ein Titel ist nötig.'] : []))));
 
   // Ergibt
-  const yieldTxt = d.servings > 0 ? escapeHtml(d.servingMode === 'pieces' ? `Ergibt ${d.servings} ${d.yieldLabel || 'Stück'}` : `Ergibt ${d.servings} ${d.servings === 1 ? 'Portion' : 'Portionen'}`) : 'Nicht angegeben';
+  const yieldTxt = d.servings > 0 ? escapeHtml(d.servingMode === 'pieces' ? `${d.servings} ${d.yieldLabel || 'Stück'}` : `${d.servings} ${d.servings === 1 ? 'Portion' : 'Portionen'}`) : 'Nicht angegeben';
   items.push(lpCheckItem('yield', st('yield', d.servings > 0, true), 'Ergibt', yieldTxt, lpErrLines('yield', lpMessagesFor(shown, 'yield'))));
 
   // Zutaten
@@ -454,9 +454,9 @@ function lpStep2Html(r, p, built) {
       <div class="lp-preview-frame">${lpPreviewHtml(pubLike)}</div>
     </section>
     <div class="lp-footer lp-footer--3">
-      <button type="button" class="ghost-btn" data-action="lib-pub-step" data-id="1">Zurück zum Bearbeiten</button>
+      <button type="button" class="ghost-btn" data-action="lib-pub-step" data-id="1">Zurück zur Prüfung</button>
       <button type="button" class="text-btn" data-action="edit-recipe" data-id="${escapeAttr(r.id)}">Rezept bearbeiten</button>
-      <button type="button" class="primary-btn" data-action="lib-pub-step" data-id="3">Weiter</button>
+      <button type="button" class="primary-btn" data-action="lib-pub-step" data-id="3">Weiter zur Bestätigung</button>
     </div>`;
 }
 
@@ -467,7 +467,7 @@ function lpStep3Html(r, p, built) {
     <section class="lp-section" aria-labelledby="lpConfH">
       <h2 class="lp-h" id="lpConfH">${isUpdate ? 'Veröffentlichung aktualisieren' : 'Veröffentlichen'}</h2>
       <div class="lp-facts-box">
-        <p><strong>Dein Rezept ist öffentlich sichtbar. Andere können es in ihre persönliche Sammlung übernehmen.</strong></p>
+        <p><strong>Dein Rezept wird öffentlich sichtbar. Andere können es in ihre persönliche Sammlung übernehmen.</strong></p>
         <ul class="lp-bullets">
           <li>Andere dürfen ihre Kopie bearbeiten und privat verwenden, zum Beispiel im eigenen Kochbuch.</li>
           <li>Eine kommerzielle Nutzung erlaubst du damit nicht.</li>
@@ -742,7 +742,7 @@ function libMineView() {
       }
     }
   }
-  return settingsDetailShell('Meine Veröffentlichungen', `<div class="lp lp--mine">${body}<p class="lp-status" id="lpMineStatus" role="status"></p></div>`) + lpModals();
+  return settingsDetailShell('Veröffentlichungen', `<div class="lp lp--mine">${body}<p class="lp-status" id="lpMineStatus" role="status"></p></div>`) + lpModals();
 }
 function lpMineFind(id) { return lpMineItems().find(x => x && x.id === id) || null; }
 function lpOpenFromMine(id) {

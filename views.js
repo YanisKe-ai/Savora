@@ -169,7 +169,7 @@ function deleteModal(r) {
   return `<div class="modal-backdrop" data-action="close-modal">
     <div class="modal-sheet" role="dialog" aria-modal="true" aria-labelledby="delete-modal-title" tabindex="-1" onclick="event.stopPropagation()">
       <h2 class="modal-title" id="delete-modal-title">Rezept löschen?</h2>
-      <p style="font-size:14px;color:var(--text-muted);">„${escapeHtml(r.title)}“ wird endgültig aus deinem Kochbuch entfernt.</p>
+      <p style="font-size:0.875rem;color:var(--text-muted);">„${escapeHtml(r.title)}“ wird endgültig aus deinen Rezepten gelöscht.</p>
       ${(() => {
         const pub = typeof libPublicationForRecipe === 'function' ? libPublicationForRecipe(r.id) : null;
         if (!pub || pub.status !== 'published') return '';
@@ -182,7 +182,7 @@ function deleteModal(r) {
       })()}
       <div class="form-actions">
         <button class="ghost-btn" data-action="close-modal">Abbrechen</button>
-        <button class="primary-btn" style="background:var(--danger);color:#fff;flex:1;justify-content:center;" data-action="delete-recipe" data-id="${escapeAttr(r.id)}">Löschen</button>
+        <button class="primary-btn kd-danger-btn" style="flex:1;justify-content:center;" data-action="delete-recipe" data-id="${escapeAttr(r.id)}">Löschen</button>
       </div>
     </div>
   </div>`;

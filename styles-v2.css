@@ -3467,3 +3467,20 @@ body:has(.lp) .topbar--sub .topbar-title { overflow-wrap: normal; hyphens: auto;
   .lp-switch-track, .lp-switch-thumb, .lp-step.is-done > button, .lp-seg-btn { transition: none; }
   .lp-step.is-done > button:active { transform: none; }
 }
+
+/* ===== Rezeptbibliothek: Korrekturen nach Sichtprüfung ===== */
+.source-row:has(.source-line--origin) { flex-wrap: wrap; align-items: flex-start; }
+.source-line--origin { flex: 1 1 100%; align-items: flex-start; overflow-wrap: normal; word-break: normal; }
+.source-line--origin svg { margin-top: 0.15em; }
+.source-origin-btn { display: inline-flex; min-height: 44px; padding: 0; text-align: left; justify-content: flex-start; white-space: nowrap; }
+.del-pub { border: 0; padding: 0; margin: 1rem 0 0; min-width: 0; }
+.del-pub-legend { padding: 0; margin-bottom: 0.5rem; font-weight: 700; font-size: 0.9375rem; }
+.kd-danger-btn { background: var(--danger); color: #fff; }
+[data-theme="dark"] .kd-danger-btn { color: var(--bg, #1B1A17); }
+.lib-profile-head { align-items: flex-start; flex-wrap: wrap; }
+.lib-profile-text { flex: 1 1 14rem; min-width: 0; }
+.lib-profile-name { overflow-wrap: break-word; hyphens: auto; }
+.lp-field + .lp-field { margin-top: 1.25rem; }
+.lp-h[tabindex="-1"]:focus, #lpSuccessH:focus { outline: none; }
+.lib-author-link { min-width: 44px; }
+.lcard-author { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }

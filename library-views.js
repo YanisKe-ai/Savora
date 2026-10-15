@@ -88,7 +88,11 @@ function libCardHtml(card) {
   const time = mins > 0 ? `<span class="lcard-meta">${ICONS.clock}<span>${mins} Min.</span></span>` : '';
   const saved = libCopies(id).length > 0;
   const tid = 'lct-' + id.replace(/[^a-zA-Z0-9-]/g, '');
-  const save = saved
+  const myPid = typeof lib !== 'undefined' && lib.pubProfile && lib.pubProfile.data ? lib.pubProfile.data.public_id : '';
+  const own = !!(myPid && card.author && card.author.public_id === myPid);
+  const save = own
+    ? `<button type="button" class="lcard-save is-saved" data-action="lib-open" data-id="${escapeAttr(id)}" aria-label="${escapeAttr(title)}: dein veröffentlichtes Rezept ansehen"><span>Dein Rezept</span></button>`
+    : saved
     ? `<button type="button" class="lcard-save is-saved" data-action="lib-open-copy" data-id="${escapeAttr(id)}" aria-label="${escapeAttr(title)}: gespeichert, in meinen Rezepten öffnen">${LIB_ICON_SAVED}<span>Gespeichert</span></button>`
     : `<button type="button" class="lcard-save" data-action="lib-save" data-id="${escapeAttr(id)}" aria-label="${escapeAttr(title)} in meine Rezepte speichern">${LIB_ICON_SAVE}<span>Speichern</span></button>`;
   return `<li class="lcard-item"><article class="lcard" data-lib-card="${escapeAttr(id)}" aria-labelledby="${tid}">
@@ -150,7 +154,7 @@ function libEmptyActions() {
   const signed = typeof cloudSignedIn === 'function' && cloudSignedIn();
   if (!signed) return `<button type="button" class="primary-btn" data-action="goto-view" data-view="settings-account">Anmelden</button>`;
   if (!state.recipes.length) return `<button type="button" class="primary-btn" data-action="new-recipe">${ICONS.plus} Rezept erstellen</button>`;
-  return `<button type="button" class="primary-btn" data-action="lib-tab-mine">Eigenes Rezept veröffentlichen</button>`;
+  return `<button type="button" class="primary-btn" data-action="${typeof libStartPublish === 'function' ? 'lib-pub-start' : 'lib-tab-mine'}">Eigenes Rezept veröffentlichen</button>`;
 }
 function libResultsHtml() {
   const d = libDisc(), items = libDiscItems();
@@ -161,7 +165,7 @@ function libResultsHtml() {
       `<button type="button" class="primary-btn" data-action="lib-tab-mine">Meine Rezepte öffnen</button><button type="button" class="ghost-btn" data-action="lib-retry">Erneut versuchen</button>`);
   }
   if (status === 'error' && !items.length) {
-    return libStateBlock(ICONS.info, 'Die Rezepte konnten nicht geladen werden.', '', `<button type="button" class="primary-btn" data-action="lib-retry">Erneut versuchen</button>`, 'alert');
+    return libStateBlock(ICONS.info, 'Die Rezepte konnten nicht geladen werden.', 'Der Server antwortet gerade nicht. Versuche es in einem Moment erneut.', `<button type="button" class="primary-btn" data-action="lib-retry">Erneut versuchen</button>`, 'alert');
   }
   if ((status === 'loading' || status === 'idle') && !items.length) {
     return `<div class="lib-result-row" aria-hidden="true"><span class="lib-skel-line lib-skel-line--count"></span></div>
@@ -174,7 +178,7 @@ function libResultsHtml() {
       return libStateBlock(ICONS.bookOpen, 'Hier entsteht die Savora-Rezeptbibliothek.', 'Veröffentliche ein eigenes Rezept und teile es mit anderen.', libEmptyActions());
     }
     return `<h2 class="sr-only" id="libResultsH">Ergebnisse</h2>` + libStateBlock(ICONS.search, 'Keine passenden Rezepte gefunden.', 'Versuche einen anderen Suchbegriff oder passe die Filter an.',
-      libFiltersAny() ? `<button type="button" class="ghost-btn" data-action="lib-filter-clear-all">Filter zurücksetzen</button>` : '');
+      libFiltersAny() ? `<button type="button" class="ghost-btn" data-action="lib-filter-clear-all">${libDiscQuery() ? 'Suche und Filter zurücksetzen' : 'Filter zurücksetzen'}</button>` : '');
   }
   const total = Number(d.total) >= items.length ? Number(d.total) : items.length;
   const capped = libDiscCapped();
@@ -219,7 +223,7 @@ function discoverView() {
         <div class="search-field lib-search" role="search">
           ${ICONS.search}
           <label for="libSearchInput" class="sr-only">Rezepte oder Zutaten suchen</label>
-          <input class="search-input" id="libSearchInput" type="search" enterkeyhint="search" placeholder="Rezepte oder Zutaten suchen" value="${escapeAttr(q)}" autocomplete="off" spellcheck="false">
+          <input class="search-input" id="libSearchInput" type="search" enterkeyhint="search" placeholder="Rezept oder Zutat suchen" value="${escapeAttr(q)}" autocomplete="off" spellcheck="false">
           <button type="button" class="lib-search-clear" data-action="lib-search-clear" aria-label="Suche löschen" ${q ? '' : 'hidden'}>${ICONS.x}</button>
         </div>
         <div id="libQuick">${libQuickHtml()}</div>
@@ -501,7 +505,7 @@ function libCompareSheet(id, pub, rec) {
   const row = (label, a, b) => `<div class="lib-cmp-row ${a === b ? '' : 'is-changed'}"><dt>${label}</dt><dd><span class="lib-cmp-old"><span class="sr-only">Deine Kopie: </span>${escapeHtml(a)}</span><span class="lib-cmp-arrow" aria-hidden="true">→</span><span class="lib-cmp-new"><span class="sr-only">Neue Version: </span>${escapeHtml(b)}</span>${a === b ? '<span class="lib-cmp-same">unverändert</span>' : ''}</dd></div>`;
   const list = (items) => items.length ? `<ul class="lib-cmp-list">${items.slice(0, 12).map(n => `<li>${escapeHtml(n)}</li>`).join('')}${items.length > 12 ? `<li>und ${items.length - 12} weitere</li>` : ''}</ul>` : '<p class="lib-cmp-none">keine</p>';
   return sheet('lib-cmp-title', 'Neue Version vergleichen', `
-    <p class="hint-line">Links steht deine Kopie, rechts die neue öffentliche Version.</p>
+    <p class="hint-line">Vorher: deine Kopie. Nachher: die neue öffentliche Version.</p>
     <dl class="lib-cmp">
       ${row('Titel', String(copy.title || ''), String(rec.title || ''))}
       ${row('Ergibt', yOld, yNew)}
