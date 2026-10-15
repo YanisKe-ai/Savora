@@ -100,7 +100,7 @@ function pdfBuildModel(recipe, nutritionResult, opts) {
   const basis = pdfNutritionBasis(nutritionResult, pieces);
   const m = {
     id: recipe.id, title: String(recipe.title || 'Ohne Titel').trim(), category: cat.text, categoryKind: cat.kind, categoryAll: cat.all, facts, ingredients, steps, tips,
-    source: src.source, sourceText: src.sourceText, sourceUrl: src.sourceUrl, sourceUrlText: src.sourceUrlText, notes, log,
+    source: src.source, sourceText: src.sourceText, sourceUrl: src.sourceUrl, sourceUrlText: src.sourceUrlText, sourceOrigin: src.sourceOrigin || '', notes, log,
     nutrition: nutritionResult || null, pieces, servings,
     nutritionBasis: basis.basis, nutritionBasisLabel: basis.label, nutritionView: pdfNutritionView(nutritionResult), nutritionNote: pdfNutritionNote(nutritionResult, servings),
   };
@@ -320,7 +320,9 @@ function pvExtrasBlocks(m, nutritionDetail) {
     const box = pvNutritionBox(m.nutrition, nutritionDetail, m.pieces, m.nutritionBasisLabel || m.nutritionBasis, m.nutritionNote);
     if (box) out.push({ key: 'nutrition', box });
   }
-  const src = pvSourceHtml(m.source, m.sourceUrl);
+  // Herkunft aus der Rezeptbibliothek (m.sourceOrigin) steht am Ende derselben Quellzeile, nie als eigener Block
+  const srcMain = pvSourceHtml(m.source, m.sourceUrl), srcOrigin = pvEsc(String(m.sourceOrigin || '').trim());
+  const src = srcMain && srcOrigin ? srcMain + ' · ' + srcOrigin : (srcMain || srcOrigin);
   if (src) out.push({ key: 'source', box: `<div class="pv-source"><span class="pv-label">Quelle</span><span class="pv-source-text">${src}</span></div>` });
   return out;
 }

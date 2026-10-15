@@ -5,7 +5,7 @@
      ingredients[]  {type:'ing', group, amount, name, note, raw, uncertain} | {type:'group', title, show, size}
      servings       {kind:'portions'|'pieces'|'unknown', value, label, conflict}
      category       Anzeigetext (Kochbuchkapitel des Nutzers, sonst erste gewaehlte Kategorie), categoryKind, categoryAll[]
-     source, sourceText, sourceUrl, sourceUrlText
+     source, sourceText, sourceUrl, sourceUrlText, sourceOrigin (Herkunft aus der Rezeptbibliothek, Text oder '')
      nutritionBasis ('portion'|'piece'|'total'|null), nutritionBasisLabel, nutritionView[], nutritionNote
      warnings[]     kurze Pruefhinweise, nur fuer die App-Vorschau (nicht drucken)
    Wiederverwendet werden die vorhandenen Bausteine: quantity.js (parseQuantity, qtyDisplay, qtyParseLine, qtyIsUnitWord),
@@ -266,6 +266,17 @@ function pdfFindUrl(text) {
   return { text: shown, href: /^https?:\/\//i.test(shown) ? shown : 'https://' + shown };
 }
 
+/* Herkunft eines gespeicherten Bibliotheksrezepts als kurzer Text fuer die Quellzeile ('' ohne gueltige Herkunft).
+   Name wird hart gekuerzt (Vertrag: hoechstens 40 Zeichen), damit die Zeile nie ausufert. */
+function pdfLibraryOriginText(recipe, hasSource) {
+  if (!recipe || !recipe.publicOrigin || typeof valPublicOrigin !== 'function') return '';
+  const po = valPublicOrigin(recipe.publicOrigin, 'store').origin;
+  if (!po) return '';
+  const name = String(po.authorName || '').replace(/\s+/g, ' ').trim().slice(0, 40);
+  if (hasSource) return name ? 'Bibliothek:' + PDF_NB + name : 'Savora-Rezeptbibliothek';
+  return name ? 'Aus der Savora-Rezeptbibliothek, von ' + name : 'Aus der Savora-Rezeptbibliothek';
+}
+
 /* Quelle: Text unveraendert (nichts wird aus Saetzen entfernt), URL zusaetzlich getrennt erkannt.
    sourceText entfernt nur die Beschriftung "Quelle:" am Anfang eines Teils, weil die Vorlage sie selbst setzt. */
 function pdfSourceInfo(recipe, sourceSteps) {
@@ -293,7 +304,10 @@ function pdfSourceInfo(recipe, sourceSteps) {
   const source = clean.join(' · ');
   const sourceText = clean.map((p) => p.replace(/^\s*quelle\s*[:\-–]\s*/i, '')).filter(Boolean).join(' · ');
   if (!url) for (const p of clean) { const u = pdfFindUrl(p); if (u) { url = u; break; } }
-  return { source, sourceText, sourceUrl: url ? url.href : '', sourceUrlText: url ? url.text : '' };
+  // Herkunft aus der Rezeptbibliothek: eigenes Feld, die Vorlage haengt es an dieselbe Quellzeile an (kein eigener Block,
+  // keine lange Adresse). Ohne eigene Quelle «Aus der Savora-Rezeptbibliothek, von Name», mit Quelle « · Bibliothek: Name».
+  const sourceOrigin = pdfLibraryOriginText(recipe, !!(source || url));
+  return { source, sourceText, sourceUrl: url ? url.href : '', sourceUrlText: url ? url.text : '', sourceOrigin };
 }
 
 /* ---------- Portionen und Stueck ---------- */
