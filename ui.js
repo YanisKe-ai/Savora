@@ -564,13 +564,15 @@ async function dispatchAction(action, id, el, e) {
         }
       }
       state.recipes = state.recipes.filter(x => x.id !== id);
+      state.pendingDeletes = state.pendingDeletes || new Set();
+      state.pendingDeletes.add(id);   // noch in der Datenbank, aber geloescht vorgemerkt (Rueckgaengig-Fenster)
       state.modal = null;
       state.view = 'home';
       render();
       showUndoToast(
         `„${recipeToDelete.title}“ gelöscht`,
-        () => { state.recipes.push(recipeToDelete); state.recipes.sort((a, b) => b.updatedAt - a.updatedAt); render(); },
-        async () => { await dbDelete(id); if (recipeToDelete.imageId) dbDeleteImage(recipeToDelete.imageId).catch(() => {}); }
+        () => { state.pendingDeletes.delete(id); state.recipes.push(recipeToDelete); state.recipes.sort((a, b) => b.updatedAt - a.updatedAt); render(); },
+        async () => { await dbDelete(id); state.pendingDeletes.delete(id); if (recipeToDelete.imageId) dbDeleteImage(recipeToDelete.imageId).catch(() => {}); }
       );
       break;
     }

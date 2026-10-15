@@ -467,7 +467,7 @@ function lpStep3Html(r, p, built) {
     <section class="lp-section" aria-labelledby="lpConfH">
       <h2 class="lp-h" id="lpConfH">${isUpdate ? 'Veröffentlichung aktualisieren' : 'Veröffentlichen'}</h2>
       <div class="lp-facts-box">
-        <p><strong>Dein Rezept wird öffentlich sichtbar. Andere können es in ihre persönliche Sammlung übernehmen.</strong></p>
+        <p><strong>Dein Rezept ist öffentlich sichtbar. Andere können es in ihre persönliche Sammlung übernehmen.</strong></p>
         <ul class="lp-bullets">
           <li>Andere dürfen ihre Kopie bearbeiten und privat verwenden, zum Beispiel im eigenen Kochbuch.</li>
           <li>Eine kommerzielle Nutzung erlaubst du damit nicht.</li>

@@ -223,7 +223,7 @@ function discoverView() {
         <div class="search-field lib-search" role="search">
           ${ICONS.search}
           <label for="libSearchInput" class="sr-only">Rezepte oder Zutaten suchen</label>
-          <input class="search-input" id="libSearchInput" type="search" enterkeyhint="search" placeholder="Rezept oder Zutat suchen" value="${escapeAttr(q)}" autocomplete="off" spellcheck="false">
+          <input class="search-input" id="libSearchInput" type="search" enterkeyhint="search" placeholder="Rezepte oder Zutaten suchen" value="${escapeAttr(q)}" autocomplete="off" spellcheck="false">
           <button type="button" class="lib-search-clear" data-action="lib-search-clear" aria-label="Suche löschen" ${q ? '' : 'hidden'}>${ICONS.x}</button>
         </div>
         <div id="libQuick">${libQuickHtml()}</div>
@@ -718,6 +718,8 @@ function libFocusSel(sel) {
   if (el && typeof focusWithoutScroll === 'function') focusWithoutScroll(el);
 }
 function libImageFailedToast(recipeId) {
+  // In der Detailansicht steht der Hinweis mit «Bild erneut laden» schon im Inhalt (role=status): kein zweiter, verdeckender Toast
+  if (state.view === 'lib-detail') { render(); return; }
   showToast('Das Rezept wurde gespeichert. Das Bild konnte noch nicht übernommen werden.', 'info', false, {
     actionLabel: 'Bild erneut laden', duration: 9000,
     onAction: () => libRetryImageNow(recipeId),

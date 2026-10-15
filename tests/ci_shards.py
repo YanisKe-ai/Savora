@@ -7,7 +7,7 @@ import ast, os, re, sys
 HERE = os.path.dirname(os.path.abspath(__file__))
 SPECIAL = {'paket42', 'paket37_adapt'}
 # Laufzeit in Sekunden (Messung auf GitHub); unbekannte Tests zaehlen 10 s
-DAUER = {'pdf_stile': 270, 'bibliothek_herkunft': 90, 'bibliothek_api': 5, 'mehr_konto': 240, 'pdf_ausgabe': 240, 'cover_pdf': 170, 'pdf_planer_v2': 150, 'pdf_cover': 120, 'pdf_kern': 100, 'paket37_plan': 93,
+DAUER = {'pdf_stile': 270, 'bibliothek_herkunft': 90, 'bibliothek_api': 5, 'bibliothek_ablauf': 40, 'bibliothek_veroeffentlichen': 40, 'bibliothek_ansicht': 90, 'mehr_konto': 240, 'pdf_ausgabe': 240, 'cover_pdf': 170, 'pdf_planer_v2': 150, 'pdf_cover': 120, 'pdf_kern': 100, 'paket37_plan': 93,
          'paket37_visual': 80, 'paket44': 75, 'laptop_platz': 73, 'mehr_nav': 65, 'a11y': 61, 'cover_editor': 60, 'monkey': 56, 'paket35': 52,
          'startseite_liste': 49, 'paket39': 46, 'paket37_interaction': 45, 'cover_ablauf': 45, 'paket43': 44, 'paket36': 44, 'freunde': 40, 'feinschliff': 39,
          'audit_b': 39, 'sync': 30, 'paket37_books': 30, 'motion_m1': 30, 'motion_m2': 30, 'flows': 28, 'pruefung': 27, 'visual': 26,

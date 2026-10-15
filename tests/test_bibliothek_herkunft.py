@@ -103,6 +103,7 @@ async def teil_app(p):
         # ---------- 3. Privater Abgleich: Herkunft und lokale ID bleiben ----------
         uid_a = add_user('yanis@example.test'); uid_b = add_user('berta@example.test')
         await login(pa, 'yanis@example.test')
+        await wait_py(lambda: M.RECORDS.get((uid_a, 'recipe', 'r_lib_1')) is not None, 20.0)   # erster Abgleich laeuft asynchron (Linux langsamer)
         row = M.RECORDS.get((uid_a, 'recipe', 'r_lib_1'))
         check('Abgleich: Rezept mit Herkunft hochgeladen', row and row['data'].get('publicOrigin') == ORIGIN and row['data'].get('publicTips') == RECIPE['publicTips'], json.dumps(row and row['data'].get('publicOrigin')))
         # Server-Daten manipulieren: eine fremde Adresse und Zusatzfelder duerfen auf dem zweiten Geraet nicht ankommen

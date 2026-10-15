@@ -406,7 +406,8 @@ function libCopiesOf(publicationId) {
 }
 async function libFindCopyInDb(publicationId) {
   const all = await dbGetAll();
-  return all.filter(r => r && r.publicOrigin && r.publicOrigin.publicationId === publicationId).sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0))[0] || null;
+  const pending = state.pendingDeletes || new Set();   // zum Loeschen vorgemerkte Kopien zaehlen nicht mehr
+  return all.filter(r => r && r.publicOrigin && r.publicOrigin.publicationId === publicationId && !pending.has(r.id)).sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0))[0] || null;
 }
 async function libEncode(blob, maxEdge, quality) {
   const bmp = await createImageBitmap(blob);
@@ -588,6 +589,7 @@ async function libUpload(path, blob) {
   } catch (e) {
     // Gleicher Name schon vorhanden (Wiederholung nach Zeitueberschreitung): gilt als hochgeladen
     if (e.status === 409 || /exists|Duplicate/i.test(String(e.message || ''))) return;
+    if (e.status === 403 || /row-level security/i.test(String(e.message || ''))) throw libErr('Das Foto konnte nicht hochgeladen werden. Dein Konto darf zurzeit keine Bilder veröffentlichen oder das Tageslimit ist erreicht. Versuche es morgen erneut.');
     throw e;
   }
 }
@@ -600,6 +602,9 @@ async function libPublish(o) {
   const check = libValidateDraft(draft, recipe);
   if (!check.ok) throw libErr(check.errors[0].message);
   const gen = lib.gen, me = cloudUserId();
+  // Gesperrte Veroeffentlichungsrechte vor dem Hochladen erkennen (der Server prueft ohnehin selbst)
+  const prof = await libLoadPubProfile();
+  if (prof && prof.publishing_blocked) throw libErr('Dein Konto kann zurzeit keine Rezepte veröffentlichen.');
   const saved = libDraftGet(recipe.id) || {};
   const pubId = o.publicationId || (LIB_UUID_RE.test(saved.pendingPubId || '') ? saved.pendingPubId : libUuid());
   const requestId = saved.requestId && saved.requestFor === pubId + ':' + (o.expectedVersion || 0) ? saved.requestId : libUuid();

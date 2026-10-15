@@ -3484,3 +3484,7 @@ body:has(.lp) .topbar--sub .topbar-title { overflow-wrap: normal; hyphens: auto;
 .lp-h[tabindex="-1"]:focus, #lpSuccessH:focus { outline: none; }
 .lib-author-link { min-width: 44px; }
 .lcard-author { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+/* Sortierung passt sich der Breite an (320 px mit grosser Schrift: kein Überlauf) */
+.lib-sort { max-width: 100%; min-width: 0; }
+.lib-sort-select { max-width: 100%; min-width: 0; text-overflow: ellipsis; }
+.lib-switch-btn { overflow-wrap: normal; word-break: normal; hyphens: manual; }
