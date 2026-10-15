@@ -55,6 +55,7 @@ async def main():
         day = week[2]
         async def open_picker(dk):
             await click(page, f'[data-action="open-day-picker"][data-date="{dk}"]')
+            await click(page, '[data-action="plan-mode"][data-id="note"]')   # v83: Einträge ohne Rezept hinter «Ohne Rezept»
             await page.wait_for_selector('#planNoteInput')
         await open_picker(day)
         await click(page, '[data-action="add-plan-note"][data-note="Reste"]'); await page.wait_for_timeout(300)

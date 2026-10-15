@@ -166,7 +166,8 @@ async def main():
             check(f'Dialog «{label}»: Escape schließt', not await ev("() => !!document.querySelector('.modal-sheet')"))
         # Escape mit ungespeichertem Text fragt nach (Dialog „Notiz“ im Wochenplan)
         await go(page, 'mealplan')
-        await ev("() => document.querySelector('[data-action=\"open-day-picker\"]').click()"); await page.wait_for_selector('#planNoteInput'); await settle(page, 300)
+        await ev("() => document.querySelector('[data-action=\"open-day-picker\"]').click()"); await settle(page, 300)
+        await ev("() => document.querySelector('[data-action=\"plan-mode\"][data-id=\"note\"]').click()"); await page.wait_for_selector('#planNoteInput'); await settle(page, 300)   # v83: «Ohne Rezept»
         MODE['accept'] = False; asked.clear()
         await page.fill('#planNoteInput', 'Pizza bei Anna'); await page.focus('#planNoteInput'); await page.keyboard.press('Escape'); await settle(page, 400)
         check('Escape bei ungespeichertem Text: Rückfrage, Dialog bleibt bei «Nein»', len(asked) >= 1 and await ev("() => !!document.querySelector('.modal-sheet')"), str(asked))
