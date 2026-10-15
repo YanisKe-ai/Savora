@@ -3648,3 +3648,8 @@ body.keyboard-open .rp-foot { padding-bottom: 0.75rem; }
 .nutrition-confidence-badge.nutrition-coverage { text-transform: none; letter-spacing: normal; }
 .nutrition-weight-field { margin: 0.75rem 0; }
 .nutrition-weight-save { width: 100%; margin-bottom: 0.75rem; }
+
+/* ===== v83 Cover-Geometrie ===== */
+.ce-align-btn { margin-top: 0.5rem; }
+.ce-align-msg { margin: 0.5rem 0 0; padding: 0.5rem 0.75rem; border-radius: 0.75rem; background: var(--surface-soft); color: var(--text); font-size: 0.875rem; line-height: 1.4; }
+.ce-warn--margin { border-left-color: var(--text-soft); background: var(--surface-soft); }

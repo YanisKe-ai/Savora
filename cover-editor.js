@@ -45,7 +45,7 @@ const ce = {
   undo: [], redo: [], lastKey: '', lastT: 0,
   status: 'saved', saveTimer: 0, saveError: false,
   layout: null, drag: null, paintTok: 0, paintQueued: false, bgCache: {}, imgCache: {}, pendingRemove: new Set(),
-  fadeNext: false, paintError: '',   // Bewegung M2: naechstes fertiges Cover ueberblenden (nur diskrete Wechsel); letzter Zeichenfehler
+  fadeNext: false, paintError: '', alignMsg: '',   // Bewegung M2: naechstes fertiges Cover ueberblenden (nur diskrete Wechsel); letzter Zeichenfehler
 };
 
 /* ---------- Hilfen ---------- */
@@ -147,6 +147,7 @@ function ceEff(id) {
 /* ---------- Undo / Redo ---------- */
 function ceSnap() { return JSON.stringify({ m: ce.model, t: ce.texts, d: ce.coverDirty }); }
 function ceCheckpoint(key) {
+  ce.alignMsg = '';
   const now = Date.now();
   if (key && ce.lastKey === key && now - ce.lastT < 1000) { ce.lastT = now; return; }
   ce.undo.push(ceSnap()); if (ce.undo.length > CE_UNDO_MAX) ce.undo.shift();
@@ -244,7 +245,8 @@ function ceWarnItems(ids) {
   return `<ul class="ce-warns" role="status">${ws.map((w) => {
     const id = w.fieldId || (w.key === 'slogan' ? 'subtitle' : w.key), isText = CE_FIELD_ORDER.includes(id) && id !== 'date';
     const fix = isText && (w.kind === 'cut' || w.kind === 'outside') ? `<span class="ce-warn-btns"><button type="button" class="ce-chip" data-ce="w-shorten" data-f="${id}" data-k="ws-${id}">Text kürzen</button><button type="button" class="ce-chip" data-ce="w-shrink" data-f="${id}" data-k="wf-${id}">Schrift verkleinern</button><button type="button" class="ce-chip" data-ce="w-widen" data-f="${id}" data-k="ww-${id}">Textfeld verbreitern</button></span>`
-      : w.kind === 'unreadable' && ce.model.readability !== 'panel' ? `<span class="ce-warn-btns"><button type="button" class="ce-chip" data-ce="readability" data-v="panel" data-k="wr-${id}">Textfläche einschalten</button></span>` : '';
+      : w.kind === 'unreadable' && ce.model.readability !== 'panel' ? `<span class="ce-warn-btns"><button type="button" class="ce-chip" data-ce="readability" data-v="panel" data-k="wr-${id}">Textfläche einschalten</button></span>`
+      : (w.kind === 'overlap' || w.kind === 'margin') && !w.imageId ? `<span class="ce-warn-btns"><button type="button" class="ce-chip" data-ce="w-autoalign" data-f="${ceEsc(id)}" data-k="wa-${ceEsc(id)}">Automatisch ausrichten</button></span>` : '';
     return `<li class="ce-warn ce-warn--${ceEsc(w.kind)}"><span class="ce-warn-msg">${ceEsc(w.message)}</span>${fix}</li>`;
   }).join('')}</ul>`;
 }
@@ -386,7 +388,37 @@ function ceWarnSummary() {
   const ws = ((ce.layout && ce.layout.warnings) || []);
   if (!ws.length) return '';
   const id = ws[0].fieldId || (ws[0].key === 'slogan' ? 'subtitle' : ws[0].key);
-  return `<button type="button" class="ce-warnbar" data-ce="goto-warn" data-f="${ceEsc(id)}" data-k="warnbar"><span class="ce-warnbar-n">${ws.length}</span> ${ws.length === 1 ? 'Hinweis zum Titelblatt' : 'Hinweise zum Titelblatt'}: ${ceEsc(ws[0].message)}</button>`;
+  const canAlign = ws.some(w => (w.kind === 'overlap' || w.kind === 'margin') && !w.imageId);
+  return `<button type="button" class="ce-warnbar" data-ce="goto-warn" data-f="${ceEsc(id)}" data-k="warnbar"><span class="ce-warnbar-n">${ws.length}</span> ${ws.length === 1 ? 'Hinweis zum Titelblatt' : 'Hinweise zum Titelblatt'}: ${ceEsc(ws[0].message)}</button>`
+    + (canAlign ? `<button type="button" class="ce-chip ce-align-btn" data-ce="w-autoalign" data-k="warnbar-align">Automatisch ausrichten</button>` : '');
+}
+/* v83: Ergebnis von «Automatisch ausrichten» (bleibt bis zur naechsten Aenderung sichtbar) */
+function ceAlignMsgHtml() { return ce.alignMsg ? `<p class="ce-align-msg" role="status">${ceEsc(ce.alignMsg)}</p>` : ''; }
+const CE_ALIGN_NAME = { title: 'Titel', subtitle: 'Untertitel', name: 'Name', extra1: 'Weitere Textzeile', date: 'Datum' };
+function ceAlignDir(mv) {
+  const f = (v) => Math.abs(v).toLocaleString('de-CH', { maximumFractionDigits: 1 });
+  const p = [];
+  if (Math.abs(mv.dyMm) >= 0.1) p.push(`${f(mv.dyMm)} mm nach ${mv.dyMm > 0 ? 'unten' : 'oben'}`);
+  if (Math.abs(mv.dxMm) >= 0.1) p.push(`${f(mv.dxMm)} mm nach ${mv.dxMm > 0 ? 'rechts' : 'links'}`);
+  return p.join(' und ');
+}
+/* Nur auf Klick: kleinste Verschiebung mit Sicherheitsabstand (coverAutoAlign), Texte und Schriftgroessen bleiben; Rueckgaengig ueber den Undo-Stapel */
+function ceAutoAlign() {
+  let res = null;
+  try { res = coverAutoAlign(ce.model, ceInput()); } catch (e) { res = null; }
+  let msg;
+  const why = (u) => u.reason === 'gedreht' ? `«${CE_ALIGN_NAME[u.id] || 'Ein Feld'}» ist gedreht und wird nicht automatisch verschoben. Verschiebe es im Cover von Hand.`
+    : `Für «${CE_ALIGN_NAME[u.id] || 'ein Feld'}» gibt es keine freie Stelle mit ${COVER_ALIGN_GAP_MM} mm Abstand. Verkleinere die Schrift, kürze den Text oder verschiebe ein anderes Feld.`;
+  if (!res) msg = 'Automatisches Ausrichten ist gerade nicht möglich. Verschiebe die Felder bitte von Hand.';
+  else if (!res.moves.length) msg = res.unresolved.length ? res.unresolved.map(why).join(' ') : 'Es gibt nichts auszurichten.';
+  else {
+    ceCheckpoint(null);
+    ce.model = coverModelSanitize(res.model); ce.coverDirty = true;
+    ceRelayout(); ceRenderAll(); ceScheduleSave(true);
+    msg = 'Ausgerichtet: ' + res.moves.map(mv => `${CE_ALIGN_NAME[mv.id] || mv.id} ${ceAlignDir(mv)}`).join(', ') + '. Rückgängig mit dem Pfeil unter der Vorschau.' + (res.unresolved.length ? ' ' + res.unresolved.map(why).join(' ') : '');
+  }
+  ce.alignMsg = msg;
+  ceRenderWarnings();
 }
 function ceEditorHtml() {
   ceEnsure(); ceRelayout();
@@ -404,7 +436,7 @@ function ceEditorHtml() {
           <button type="button" class="ce-icon" data-ce="redo" data-k="redo" aria-label="Wiederholen" ${ce.redo.length ? '' : 'disabled'}>${CE_ICON.redo}</button>
           <div class="ce-status" data-state="${ce.status}" role="status" aria-live="polite"><span class="ce-status-text">${ce.status === 'saving' ? 'Wird gespeichert …' : ce.status === 'error' ? 'Speichern nicht möglich – erneut versuchen' : 'Gespeichert'}</span><button type="button" class="ce-chip" data-ce="retry" data-k="retry" ${ce.status === 'error' ? '' : 'hidden'}>Erneut versuchen</button></div>
         </div>
-        <div class="ce-warnslot">${ceWarnSummary()}</div>
+        <div class="ce-warnslot">${ceWarnSummary()}${ceAlignMsgHtml()}</div>
       </div>
       ${custom ? '' : `<div class="ce-motif">${ceTemplateGrid()}</div>`}
       <div class="ce-side">
@@ -446,7 +478,7 @@ function ceRenderTabs() {
   const key = ceFocusKey(); w.innerHTML = ceTabs(); ceRestoreFocus(key);
 }
 function ceRenderWarnings() {
-  const slot = document.querySelector('.ce-warnslot'); if (slot) slot.innerHTML = ceWarnSummary();
+  const slot = document.querySelector('.ce-warnslot'); if (slot) slot.innerHTML = ceWarnSummary() + ceAlignMsgHtml();
   // Hinweise an den Feldern aktualisieren, ohne Eingaben neu zu zeichnen
   document.querySelectorAll('.ce-field').forEach((card) => {
     const id = card.dataset.f, old = card.querySelector(':scope > .ce-warns'), html = ceWarnItems([id]);
@@ -459,7 +491,7 @@ function ceRenderWarnings() {
   document.querySelectorAll('.ce-overlay [data-fr]').forEach((fr) => { fr.classList.toggle('is-warn', ceHasWarn(fr.dataset.fr)); });
   ceSetScrollPad();
 }
-function ceHasWarn(id) { const wid = ceWarnId(id); return ((ce.layout && ce.layout.warnings) || []).some(w => (w.fieldId || (w.key === 'slogan' ? 'subtitle' : w.key)) === wid && (w.kind === 'cut' || w.kind === 'outside' || w.kind === 'overlap')); }
+function ceHasWarn(id) { const wid = ceWarnId(id); return ((ce.layout && ce.layout.warnings) || []).some(w => (w.fieldId || (w.key === 'slogan' ? 'subtitle' : w.key)) === wid && (w.kind === 'cut' || w.kind === 'outside' || w.kind === 'overlap' || w.kind === 'margin')); }
 function ceRenderAll() {
   const root = ceRoot(); if (!root) return;
   const key = ceFocusKey();
@@ -843,6 +875,7 @@ document.addEventListener('click', (e) => {
     case 'place': cePlace(id, Number(b.dataset.c), Number(b.dataset.r)); break;
     case 'nudge': { const s = e.shiftKey ? 0.05 : 0.01; ceMoveBy(id, Number(b.dataset.dx) * s, Number(b.dataset.dy) * s, 'nudge:' + id); break; }
     case 'field-reset': ceChange((m) => { const t = m.fields[id] && m.fields[id].text; delete m.fields[id]; if (t) m.fields[id] = { text: t }; }, { panels: true }); break;
+    case 'w-autoalign': ceAutoAlign(); break;
     case 'w-shorten': ceSelect(id); { const inp = document.querySelector(`.ce-field[data-f="${id}"] input[type=text]`); if (inp) inp.focus(); } break;
     case 'w-shrink': ceSetProp(id, 'fontPt', Math.max(CE_PT_RANGE[id][0], ceRound(ceEff(id).fontPt * 0.9, 1)), 'shrink:' + id); ceRenderPanels(); break;
     case 'w-widen': { const ef = ceEff(id), nw = Math.min(ef.w + 0.15, 0.88), nx = Math.max(0.06, Math.min(ef.x, 0.94 - nw)); ceChange((m) => { m.fields[id] = { ...(m.fields[id] || {}), w: ceRound(nw), x: ceRound(nx) }; }, { panels: true }); break; }
@@ -997,3 +1030,27 @@ window.addEventListener('resize', () => { if (ceRoot()) { ceSetTop(); cePaintSoo
     };
   } catch (e) { /* Layout-Paket liefert alles */ }
 })();
+
+/* v83: «Im Cover bearbeiten» aus der Prüfung (Kochbuch-Zusammenfassung): <button type="button" data-cover-edit="<fieldId>">.
+   Wechselt zum Schritt «Gestalten», waehlt das betroffene Feld aus und zeigt es.
+   fieldId: title | subtitle | name | extra1 | date | logo | image | image:<id> (= warnings[].fieldId aus coverLayout). */
+function coverOpenEditor(fieldId) {
+  if (typeof state === 'undefined') return;
+  state.cookbookStep = 2;
+  if (typeof render === 'function') render();
+  requestAnimationFrame(() => {
+    if (!ceRoot()) return;
+    ceEnsure(); ceRelayout();
+    const id = String(fieldId || '');
+    if (/^image:/.test(id) && ceImgOf('img-' + id.slice(6))) ceSelect('img-' + id.slice(6), { focusFrame: true });
+    else if (CE_FIELD_ORDER.includes(id)) ceSelect(id, { focusFrame: true });
+    else { ce.tab = id === 'image' ? 'bg' : 'arr'; ceRenderTabs(); ceRenderPanels(); }
+    const st = document.querySelector('.ce-stage'); if (st && st.scrollIntoView) st.scrollIntoView({ block: 'start' });
+  });
+}
+document.addEventListener('click', (e) => {
+  const b = e.target.closest && e.target.closest('[data-cover-edit]');
+  if (!b || b.disabled) return;
+  e.preventDefault();
+  coverOpenEditor(b.dataset.coverEdit);
+});
