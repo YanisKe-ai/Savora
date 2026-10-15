@@ -38,7 +38,7 @@ const DAY_SHORT = ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So'];
    Ein Zahnrad im Kopf gibt es nicht mehr. «Mehr» bleibt auf allen Unterseiten (Einstellungen, Freunde & Rezepte, Rechner, Hilfe, Ueber Savora) aktiv. */
 function navTabActive(view) {
   const v = state.view;
-  if (view === 'home') return v === 'home' || v === 'detail';
+  if (view === 'home') return v === 'home' || v === 'detail' || v === 'discover' || v === 'lib-detail' || v === 'lib-profile' || v === 'lib-publish';
   if (view === 'cookbooks') return v === 'cookbooks' || v === 'cookbook';
   if (view === 'more') return isMoreSectionView(v);
   return v === view;
@@ -465,6 +465,7 @@ function homeView() {
     <div class="home-head ${phone ? 'home-head--phone' : ''}">
       ${phone ? topbar('', { cls: 'topbar--home topbar--center' }) : topbar('', { cls: 'topbar--home', actions: `<button class="round-btn round-btn--accent" data-action="open-add-menu" aria-label="Rezept hinzufügen">${ICONS.plus}</button>` })}
       <section class="home-head-body" aria-label="Suche und Filter">
+        ${typeof recipesSwitchHtml === 'function' ? recipesSwitchHtml() : ''}
         ${phone ? '<h1 class="sr-only">Deine Rezepte</h1>' : pageTitle('Deine Rezepte')}
         ${phone ? '' : `<div class="search-field">
           ${ICONS.search}
@@ -599,7 +600,9 @@ function detailView() {
   const conflictLabels = new Set(conflicts.map(c => c.label));
   (r.diet || []).forEach(dk => { const d = DIET_OPTIONS.find(o => o.key === dk); if (d && !conflictLabels.has(dk) && !(dk === 'vegetarisch' && r.diet.includes('vegan'))) tagChips.push(d.label); });
   (r.categoryTags || []).forEach(c => tagChips.push(categoryLabelFor(c)));
-  const source = (!sourceText && !tagChips.length) ? '' : `<div class="source-row">${sourceText ? `<p class="source-line">${sourceText}</p>` : ''}${tagChips.length ? `<span class="source-chips">${tagChips.slice(0, 2).map(t => `<span class="source-chip">${escapeHtml(t)}</span>`).join('')}</span>` : ''}</div>`;
+  // Rezeptbibliothek und Freunde-Versand: Rollen getrennt anzeigen (Quelle, Autor in der Bibliothek, Absender), siehe recipe-origin.js
+  const originHtml = (r.publicOrigin && typeof recipeOriginHtml === 'function') ? recipeOriginHtml(r) : '';
+  const source = (!originHtml && !sourceText && !tagChips.length) ? '' : `<div class="source-row">${originHtml || (sourceText ? `<p class="source-line">${sourceText}</p>` : '')}${tagChips.length ? `<span class="source-chips">${tagChips.slice(0, 2).map(t => `<span class="source-chip">${escapeHtml(t)}</span>`).join('')}</span>` : ''}</div>`;
   const conflictBox = conflicts.length ? `<div class="diet-warning" role="note">
       <strong>Kennzeichnung prüfen</strong>
       <p>${conflicts.map(c => `Als <b>${c.label === 'vegan' ? 'vegan' : 'vegetarisch'}</b> markiert, enthält aber: ${escapeHtml(Array.from(new Set(c.items)).slice(0, 4).join(', '))}${new Set(c.items).size > 4 ? ' …' : ''}.`).join(' ')}</p>
@@ -673,6 +676,7 @@ function detailMenuModal(r) {
     ${item('export-pdf', ICONS.pdf, 'Als PDF exportieren')}
     ${item('share-recipe', ICONS.share, 'Teilen')}
     ${item('share-open-send', ICONS.link, 'An Freund in Savora senden')}
+    ${typeof libPublishMenuItemHtml === 'function' && !r.publicOrigin ? libPublishMenuItemHtml(r) : ''}
     ${item('add-to-cookbook', ICONS.bookOpen, 'Zum Kochbuch hinzufügen')}
     ${item('open-collections-modal', ICONS.folder, 'Zu Sammlung hinzufügen')}
     ${item('open-plan-recipe', ICONS.calendar, 'In den Wochenplan')}

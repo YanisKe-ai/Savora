@@ -171,12 +171,25 @@ function shareRecipeFromPayload(payload, fromHandle) {
   r.source = (typeof o.source === 'string' && /^https?:\/\/\S+$/i.test(o.source.trim())) ? o.source.trim().slice(0, 500) : null;
   r.favorite = false; r.cookCount = 0; r.cookLog = [];
   r.createdAt = Date.now(); r.updatedAt = Date.now();
+  // Herkunft aus der Rezeptbibliothek: nur gepruefte, oeffentliche Angaben uebernehmen (Autor bleibt Autor, der Absender steht in sharedBy).
+  // savedVersion/savedAt/imagePending gehoeren zur Kopie des Absenders und werden nicht uebernommen; die Adresse wird lokal gebaut.
+  delete r.publicOrigin; delete r.publicTips;
+  const po = o.publicOrigin ? valPublicOrigin(o.publicOrigin, 'receive').origin : null;
+  if (po) r.publicOrigin = po;
+  const tips = shareStr(o.publicTips, VAL_MAX_PUBLIC_TIPS);
+  if (tips) r.publicTips = tips;
   if (fromHandle) r.sharedBy = fromHandle;
   return r;
 }
 function shareBuildPayload(recipe) {
   const o = shareClean(recipe) || {};
   SHARE_DROP_KEYS.forEach(k => { delete o[k]; });
+  // Herkunft nur mit den oeffentlichen Angaben senden (nie savedAt, savedVersion, imagePending oder eine gespeicherte Adresse)
+  delete o.publicOrigin; delete o.publicTips;
+  const po = recipe && recipe.publicOrigin ? valPublicOrigin(recipe.publicOrigin, 'send').origin : null;
+  if (po) o.publicOrigin = po;
+  const tips = recipe ? shareStr(recipe.publicTips, VAL_MAX_PUBLIC_TIPS) : '';
+  if (tips) o.publicTips = tips;
   return o;
 }
 async function shareImageDataUrl(recipe) {
@@ -368,6 +381,7 @@ function settingsSharePreviewView() {
     <div class="tl tl--prev share-preview">
       <div class="tl-prev-head">
         <p class="share-from">Von ${shareWho({ display_name: item.from_name, handle: item.from_handle })}</p>
+        ${r.publicOrigin ? `<p class="share-from share-origin">${escapeHtml(r.publicOrigin.authorName ? 'Aus der Rezeptbibliothek, von ' + r.publicOrigin.authorName : 'Aus der Savora-Rezeptbibliothek')}</p>` : ''}
         ${item.message ? `<p class="share-msg share-msg--box">„${escapeHtml(item.message)}“</p>` : ''}
         ${share.previewImage ? `<img class="share-preview-img" src="${escapeHtml(share.previewImage)}" alt="${escapeHtml(r.title)}">` : ''}
         <h2 class="detail-title-v2">${escapeHtml(r.title)}</h2>
@@ -384,6 +398,7 @@ function settingsSharePreviewView() {
         <ul class="share-list">${ings.map(i => `<li>${escapeHtml(ingredientText(i))}</li>`).join('') || '<li>Keine Zutaten</li>'}</ul>
         <h3 class="share-sub">Zubereitung</h3>
         <ol class="share-list">${r.steps.filter(s => s.text).map(s => `<li>${escapeHtml(s.text).replace(/\n/g, '<br>')}</li>`).join('') || '<li>Keine Schritte</li>'}</ol>
+        ${r.publicTips ? `<h3 class="share-sub">Kochtipps aus der Rezeptbibliothek</h3><p>${escapeHtml(r.publicTips).replace(/\n/g, '<br>')}</p>` : ''}
         ${r.notes ? `<h3 class="share-sub">Notizen</h3><p>${escapeHtml(r.notes).replace(/\n/g, '<br>')}</p>` : ''}
       </div>
     </div>`;
@@ -434,7 +449,7 @@ function shareSendModal() {
       : `<p class="settings-hint settings-hint--none">Du hast noch keine Freunde in Savora. Füge zuerst einen Freund hinzu.</p><div class="form-actions">${toPage('Freund hinzufügen', 'friends-add')}</div>`;
   }
   const change = state.modal.from === 'pick' ? ` <button type="button" class="text-btn" data-action="share-pick-open">Anderes Rezept</button>` : '';
-  return sheet('share-send-title', 'Rezept senden', `<p class="settings-hint settings-hint--none">„${escapeHtml(r.title || 'Rezept')}“ wird als Kopie gesendet. Dein Original bleibt unverändert. Gesendet wird erst, wenn du «Rezept senden» tippst.${change}</p>${inner}`);
+  return sheet('share-send-title', 'Rezept senden', `<p class="settings-hint settings-hint--none">„${escapeHtml(r.title || 'Rezept')}“ wird als Kopie gesendet. Dein Original bleibt unverändert. Gesendet wird erst, wenn du «Rezept senden» tippst. Mitgesendet werden Zutaten, Zubereitung und deine Notizen.${change}</p>${inner}`);
 }
 
 /* Pro Freund: Rezept senden, Freundschaft entfernen, blockieren. Die Folgen stehen vor der Aktion. */

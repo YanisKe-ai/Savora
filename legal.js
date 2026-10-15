@@ -2,7 +2,7 @@
    Alle Angaben, die nur die verantwortliche Person kennt, stehen zentral in LEGAL. Solange ein Wert
    mit "[" beginnt, ist er ein Platzhalter und wird in der App farbig markiert angezeigt.
    Kein Rechtsrat: Vor einer oeffentlichen Veroeffentlichung von einer Fachperson pruefen lassen. */
-const APP_VERSION = '0.81.0';   // muss mit der Datei VERSION uebereinstimmen (Test: tests/test_paket2.py)
+const APP_VERSION = '0.82.0';   // muss mit der Datei VERSION uebereinstimmen (Test: tests/test_paket2.py)
 const LEGAL = {
   name: '[Name der verantwortlichen Person]',
   email: 'host.tool@outlook.com',
@@ -43,7 +43,10 @@ function legalPrivacyHtml() {
       <p><b>Kamera und Fotos.</b> Die Kamera wird nur für „Foto scannen“ genutzt. Bei „Foto scannen“ liest die Texterkennung von iOS den Text aus dem Bild. Das läuft auf deinem Gerät, Bilder werden weder gespeichert noch übertragen. Es entsteht nur der erkannte Text, den du prüfst.</p>
       <p><b>Mitteilungen (iOS-App).</b> Die Timer-Meldungen werden auf deinem Gerät geplant. Es gibt keinen Push-Server.</p>
       <p><b>Teilen und Sicherung.</b> Erstellst du ein PDF oder eine Sicherungsdatei und gibst sie weiter, verlässt genau diese Datei dein Gerät.</p>`)}
-    ${legalSection('Wo der Dienst betrieben wird', `
+    ${legalSection('Rezeptbibliothek', `
+      <p>Öffentlich wird nur, was du selbst ausdrücklich veröffentlichst: das Rezept in der geprüften Fassung (ohne Notizen, Kochverlauf, Favoriten, Sammlungen und Allergie-Angaben), ein Foto nur, wenn du es auswählst (Ortsangaben und Kameradaten werden dabei entfernt), sowie dein öffentliches Profil (Anzeigename, optionales Bild und Kurztext). E-Mail, Benutzername für Freunde, Einladungscode und Freunde bleiben privat.</p>
+      <p>Veröffentlichte Rezepte kann jede Person lesen, auch ohne Konto, und als eigene Kopie speichern. Ziehst du ein Rezept zurück oder löschst du dein Konto, ist es nicht mehr öffentlich; bereits gespeicherte Kopien anderer bleiben bei ihnen. Gespeichert werden ausserdem die Version und der Zeitpunkt deiner Rechtebestätigung sowie Meldungen anderer zu deinen Rezepten (ohne dass du erfährst, wer gemeldet hat).</p>`)}
+        ${legalSection('Wo der Dienst betrieben wird', `
       <p>Für die Synchronisation nutzt Savora den Dienst Supabase. Die Daten liegen in der Region Zürich in der Schweiz. Anbieter ist Supabase, Inc. (USA), die Infrastruktur stammt von Amazon Web Services. Ein Zugriff des Anbieters aus dem Ausland lässt sich deshalb nicht völlig ausschliessen.</p>`)}
     ${legalSection('Wozu die Daten dienen', `
       <p>Deine Daten werden nur bearbeitet, um dir Savora bereitzustellen: Speichern, Abgleichen und Anmelden. Die Synchronisation nutzt du freiwillig. Mit der Anmeldung stimmst du dieser Bearbeitung zu, du kannst dich jederzeit abmelden. Deine Daten werden nicht verkauft und nicht für Werbung verwendet. Empfänger sind ausschliesslich der Betreiber des Synchronisationsdienstes (siehe oben).</p>`)}
@@ -65,7 +68,9 @@ function legalTermsHtml() {
       <p>Savora ist für die private Nutzung gedacht. Bewahre deine Zugangsdaten sicher auf und gib sie nicht weiter.</p>`)}
     ${legalSection('Deine Inhalte', `
       <p>Deine Rezepte, Fotos und Notizen gehören dir. Du bist dafür verantwortlich, dass du sie speichern und weitergeben darfst. Das gilt vor allem für fremde Rezepttexte und Fotos, die urheberrechtlich geschützt sein können. Savora nutzt deine Inhalte nur, um die App zu betreiben.</p>`)}
-    ${legalSection('Sicherung', `
+    ${legalSection('Veröffentlichen in der Rezeptbibliothek', `
+      <p>Du veröffentlichst nur Rezepte und Fotos, an denen du die Rechte hast oder die du veröffentlichen darfst. Eine Quellenangabe allein ist keine Erlaubnis. Andere dürfen veröffentlichte Rezepte als persönliche Kopie speichern, bearbeiten und privat verwenden, auch in ihrem eigenen Kochbuch-PDF; eine kommerzielle Nutzung ist damit nicht erlaubt. Inhalte können gemeldet und ausgeblendet werden. Eine vollständige Prüfung aller Inhalte gibt es nicht.</p>`)}
+        ${legalSection('Sicherung', `
       <p>Speichere regelmässig eine Sicherungsdatei. In einer Beta-Version kann es zu Fehlern kommen, und der Abgleich zwischen Geräten ersetzt keine Sicherung.</p>`)}
     ${legalSection('Nährwerte und Allergene', `
       <p>Alle Nährwerte sind berechnete Schätzwerte ohne Gewähr. Sie sind keine Ernährungs- oder medizinische Beratung. Verlasse dich bei Allergien, Unverträglichkeiten oder Diäten nie auf die Angaben in Savora. Prüfe immer die Verpackung und frage im Zweifel nach.</p>`)}

@@ -247,7 +247,17 @@ if (navigator.storage && typeof navigator.storage.persist === 'function') {
     await loadRecipes();
     await loadShopping();
     await loadMealplan();
-    render();
+    // Oeffentlicher Link (?rezept= / ?profil=): Ansicht direkt oeffnen, darunter «Entdecken» als Rueckweg in der App
+    const libStart = typeof libHandleStartLink === 'function' && libHandleStartLink();
+    if (libStart) {
+      const target = state.view;
+      state.recipesTab = 'discover';
+      history.replaceState({ view: 'discover', recipesTab: 'discover' }, '', libUrlFor('discover'));
+      history.pushState(navHistorySnapshot(), '', libUrlFor(target));
+      lastRenderedView = null;
+    }
+    render(libStart);
+    if (typeof libStartup === 'function') libStartup();
     if ('serviceWorker' in navigator && !SavoraNative.isNative) {
       registerServiceWorkerWithUpdatePrompt();
     }
