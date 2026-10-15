@@ -77,8 +77,9 @@ function hasNamedGroups(r) {
   return g.length > 1 || (g.length === 1 && g[0].title !== 'Zutaten');
 }
 
-/* ---------- Portionen / Stueck ---------- */
-function servingMode(r) { return r && r.servingMode === 'pieces' ? 'pieces' : 'portions'; }
+/* ---------- Portionen / Stueck / Gesamtertrag ---------- */
+// 'portions' (fehlt = portions) | 'pieces' | 'total' (Gesamtertrag, z. B. 1 Glas, 500 ml, 1 Blech; v0.83)
+function servingMode(r) { return r && (r.servingMode === 'pieces' || r.servingMode === 'total') ? r.servingMode : 'portions'; }
 // Ausbeute bekannt? Unbekannt (0, null, fehlend) wird nie stillschweigend zu 1 oder 4: Mengen bleiben im Original.
 function yieldKnown(r) { return !!r && Number(r.servings) > 0; }
 function currentServings(r) {
@@ -91,13 +92,175 @@ function servingsFactor(r, servings) {
   return (servings || r.servings) / r.servings;
 }
 function servingLabel(r, n) {
-  if (!yieldKnown(r) && !(n > 0)) return 'Ergibt: offen';
-  if (servingMode(r) === 'pieces') return `${n} ${r.yieldLabel || 'Stück'}`;
-  return `${n} ${n === 1 ? 'Portion' : 'Portionen'}`;
+  if (!yieldKnown(r) && !(n > 0)) return 'Ergibt: unbekannt';
+  const mode = servingMode(r);
+  if (mode === 'pieces') return `${yieldNum(n)} ${r.yieldLabel || 'Stück'}`;
+  if (mode === 'total') return yieldTotalPhrase(r, n);
+  return `${yieldNum(n)} ${n === 1 ? 'Portion' : 'Portionen'}`;
 }
 function servingShort(r, n) {
-  if (servingMode(r) === 'pieces') return `${n} ${r.yieldLabel || 'Stück'}`;
-  return `${n} Port.`;
+  const mode = servingMode(r);
+  if (mode === 'pieces') return `${yieldNum(n)} ${r.yieldLabel || 'Stück'}`;
+  if (mode === 'total') return yieldTotalPhrase(r, n);
+  return `${yieldNum(n)} Port.`;
+}
+
+/* ---------- Ertrag: gemeinsame Helfer (v0.83, Vertrag) ----------
+   Eine Quelle fuer alle Beschriftungen (Detail, Karten, Auswahl, Einkauf, Wochenplan, PDF).
+   Nichts wird umgedeutet: «1 Portion» bleibt «1 Portion»; unbekannter Ertrag erfindet keine Zahl. */
+// Zahl fuer Beschriftungen: ganze Zahl oder hoechstens zwei Nachkommastellen mit Komma
+function yieldNum(n) {
+  const v = Math.round(Number(n) * 100) / 100;
+  return Number.isFinite(v) ? String(v).replace('.', ',') : '';
+}
+// Mehrzahl nur fuer sichere Behaelter-Woerter; Einheiten (ml, g, l) und alles andere bleiben unveraendert.
+const YIELD_PLURALS = { glas: 'Gläser', blech: 'Bleche', flasche: 'Flaschen', dose: 'Dosen', schale: 'Schalen', 'schüssel': 'Schüsseln',
+  form: 'Formen', laib: 'Laibe', topf: 'Töpfe', kanne: 'Kannen', becher: 'Becher', torte: 'Torten', kuchen: 'Kuchen', terrine: 'Terrinen', auflaufform: 'Auflaufformen' };
+function yieldLabelFor(label, n) {
+  const l = String(label || '').trim();
+  if (!l) return '';
+  const lower = l.toLowerCase();
+  const plural = YIELD_PLURALS[lower];
+  if (plural && Number(n) !== 1) return l[0] === l[0].toUpperCase() ? plural : plural.toLowerCase();
+  if (Number(n) === 1) {   // gespeicherte Mehrzahl bei 1 zurueck in die Einzahl («Gläser» -> «Glas»)
+    const single = Object.keys(YIELD_PLURALS).find(k => YIELD_PLURALS[k].toLowerCase() === lower && k !== YIELD_PLURALS[k].toLowerCase());
+    if (single) return l[0] === l[0].toUpperCase() ? single[0].toUpperCase() + single.slice(1) : single;
+  }
+  return l;
+}
+function yieldTotalPhrase(r, n) {
+  const label = yieldLabelFor(r && r.yieldLabel, n);
+  return label ? `${yieldNum(n)} ${label}` : `${yieldNum(n)}-fache Rezeptmenge`;
+}
+// { kind: 'portions'|'pieces'|'total'|'unknown', count: number|null, label }
+function yieldInfo(r) {
+  const count = yieldKnown(r) ? Number(r.servings) : null;
+  const mode = servingMode(r);
+  if (count === null) return { kind: 'unknown', count: null, label: String((r && r.yieldLabel) || '').trim() };
+  if (mode === 'pieces') return { kind: 'pieces', count, label: String(r.yieldLabel || '').trim() || 'Stück' };
+  if (mode === 'total') return { kind: 'total', count, label: yieldLabelFor(r.yieldLabel, count) };
+  return { kind: 'portions', count, label: count === 1 ? 'Portion' : 'Portionen' };
+}
+// n = aktuelle (skalierte) Anzahl, sonst Original. «Für 4 Portionen» | «Ergibt 12 Stück» | «Ergibt 1 Glas» | «Ergibt: unbekannt»
+function yieldText(r, n) {
+  const info = yieldInfo(r);
+  const num = Number(n) > 0 ? Number(n) : info.count;
+  if (!(num > 0)) return 'Ergibt: unbekannt';
+  const mode = servingMode(r);
+  if (mode === 'pieces') return `Ergibt ${yieldNum(num)} ${String((r && r.yieldLabel) || '').trim() || 'Stück'}`;
+  if (mode === 'total') return `Ergibt ${yieldTotalPhrase(r, num)}`;
+  return `Für ${yieldNum(num)} ${num === 1 ? 'Portion' : 'Portionen'}`;
+}
+// Knappe Form fuer Listen: «4 Port.» | «12 Stück» | «1 Glas» | ''
+function yieldShort(r, n) {
+  const info = yieldInfo(r);
+  const num = Number(n) > 0 ? Number(n) : info.count;
+  if (!(num > 0)) return '';
+  return servingShort(r, num);
+}
+// Bezugsbasis der Naehrwerte. Gesamtertrag und unbekannter Ertrag: immer das ganze Rezept (keine erfundene Portion).
+function nutritionBasis(r) {
+  const info = yieldInfo(r);
+  if (info.kind === 'portions') return { kind: 'portion', divisor: info.count, label: 'pro Portion' };
+  if (info.kind === 'pieces') return { kind: 'piece', divisor: info.count, label: 'pro Stück' };
+  return { kind: 'total', divisor: 1, label: 'für das gesamte Rezept' };
+}
+
+// Schrittweite fuer «Menge anpassen»: bei Gesamtertrag in Masseinheiten (500 ml, 250 g) in ganzen Rezeptmengen, sonst 1
+function yieldStep(r) {
+  if (servingMode(r) === 'total' && yieldKnown(r) && /^(ml|cl|dl|l|liter|g|gramm|kg)$/i.test(String(r.yieldLabel || '').trim())) return Number(r.servings);
+  return 1;
+}
+// Erklaerung im Editor je Ertragsart
+function formYieldHint(mode) {
+  if (mode === 'pieces') return 'Wie viele Stück das Rezept ergibt, zum Beispiel 12 Cookies.';
+  if (mode === 'total') return 'Die ganze Menge des Rezepts, zum Beispiel 1 Glas oder 500 ml. Nährwerte gelten dann für das gesamte Rezept.';
+  return 'Für wie viele Portionen das Rezept reicht. Leer lassen, wenn du es nicht weisst.';
+}
+
+/* ---------- Zeiten (v0.83) ----------
+   timeMinutes = Gesamtzeit (wie Bibliothek und Filter), prepMinutes = Vorbereitung (aktive Arbeit),
+   cookMinutes = Garen/Backen, restMinutes = Ruhen/Kuehlen. Nichts wird summiert oder ueberschrieben:
+   Arbeitsschritte koennen parallel laufen, eine angegebene Gesamtzeit bleibt, wie sie ist. */
+function fmtMinutes(min) {
+  const m = Math.round(Number(min));
+  if (!Number.isFinite(m) || m <= 0) return '';
+  if (m < 60) return m + ' Min.';
+  const h = Math.floor(m / 60), rest = m % 60;
+  return h + ' Std.' + (rest ? ' ' + rest + ' Min.' : '');
+}
+function timeInfo(r) {
+  const val = (v) => (Number(v) > 0 ? Math.round(Number(v)) : null);
+  const total = val(r && r.timeMinutes), prep = val(r && r.prepMinutes), cook = val(r && r.cookMinutes), rest = val(r && r.restMinutes);
+  const parts = [];
+  if (total) parts.push(fmtMinutes(total) + ' Gesamtzeit');
+  if (prep) parts.push(fmtMinutes(prep) + ' Vorbereitung');
+  if (cook) parts.push(fmtMinutes(cook) + ' Garen');
+  if (rest) parts.push(fmtMinutes(rest) + ' Ruhen/Abkühlen');
+  return { total, prep, cook, rest, text: parts.join(' · '), cardText: total ? fmtMinutes(total) : '' };
+}
+
+/* ---------- Pruefhinweise zu Ertrag und Zeit (v0.83) ----------
+   Reine Pruefungen ohne Seiteneffekt. Sie aendern nie Daten; recipe-check.js (H2) zeigt sie als Hinweis an.
+   Rueckgabe { text, field } oder null. */
+const YIELD_TOTAL_WORDS = /\b(sauce|saucen|soße|sosse|dip|dips|glas|gläser|konfitüre|konfituere|marmelade|gelee|pesto|sirup|chutney|dressing|aufstrich|karamell\w*|caramel\w*|fond|brühe|bouillon|pickles?|relish|ketchup|mayonnaise|aioli|hummus|salsa|würzpaste|paste)\b/i;
+function yieldSuspicion(r) {
+  if (!r || servingMode(r) !== 'portions' || Number(r.servings) !== 1) return null;
+  const title = String(r.title || '');
+  const words = title.split(/[^A-Za-zÄÖÜäöüßéèàç]+/).filter(Boolean);
+  const titleHit = YIELD_TOTAL_WORDS.test(title) || words.some(w => /(sauce|soße|sosse|konfitüre|marmelade|gelee|pesto|sirup|chutney|dressing|aufstrich|dip)$/i.test(w));
+  const catHit = (r.categoryTags || []).includes('sauce');
+  if (!titleHit && !catHit) return null;
+  return { text: 'Prüfe, ob das Rezept 1 Portion oder einen Gesamtertrag ergibt, zum Beispiel 1 Glas.', field: 'servings' };
+}
+// Dauer in einem Satz: «1 Std.», «1 Stunde», «eine Stunde», «30 Minuten», «1–2 Std.», «1 1/2 Stunden», «über Nacht»
+const TIME_WORD_NUM = { ein: 1, eine: 1, einer: 1, einen: 1, zwei: 2, drei: 3, vier: 4, fünf: 5, fuenf: 5, sechs: 6, acht: 8, zehn: 10, zwölf: 12, zwoelf: 12, zwanzig: 20, dreissig: 30 };
+function textDurationMinutes(s) {
+  const t = String(s || '').toLowerCase();
+  if (/über nacht|ueber nacht|overnight/.test(t)) return 480;
+  if (/halbe[n]? stunde/.test(t)) return 30;
+  if (/viertelstunde/.test(t)) return 15;
+  const num = '(\\d+(?:[.,]\\d+)?(?:\\s+1\\/2|\\s*½)?|' + Object.keys(TIME_WORD_NUM).join('|') + ')';
+  const re = new RegExp(num + '(?:\\s*(?:-|–|bis)\\s*\\d+(?:[.,]\\d+)?)?\\s*(std\\.?|stunden?|h\\b|min\\.?|minuten?)', 'i');
+  const m = re.exec(t);
+  if (!m) return null;
+  let raw = m[1];
+  let v = TIME_WORD_NUM[raw];
+  if (v === undefined) {
+    const half = /1\/2|½/.test(raw);
+    v = parseFloat(raw.replace(/\s+1\/2|\s*½/, '').replace(',', '.')) + (half ? 0.5 : 0);
+  }
+  if (!(v > 0)) return null;
+  return /^(std|stunde|h)/.test(m[2]) ? Math.round(v * 60) : Math.round(v);
+}
+const REST_TEXT_RE = /(abkühl|auskühl|abkuehl|auskuehl|kühl stellen|kuehl stellen|kühlschrank|kuehlschrank|kalt stellen|kaltstellen|erkalten|fest werden|ruhen|gehen lassen|aufgehen|ziehen lassen|marinieren|quellen)/i;
+function timeTextSuspicion(r) {
+  if (!r || Number(r.restMinutes) > 0) return null;
+  const total = Number(r.timeMinutes) > 0 ? Number(r.timeMinutes) : 0;
+  const check = (text) => {
+    // Saetze trennen, Abkuerzungen («1 Std. ruhen», «ca. 1 Std.») aber zusammenlassen
+    // Dauer und Stichwort muessen im selben Satzteil stehen: «20 Min. backen, dann abkühlen lassen» ist keine Kühlzeit von 20 Min.
+    const sentences = String(text || '').replace(/\b(std|min|ca|bzw|evtl|ggf|stk|el|tl|resp|z\.\s?b)\./gi, '$1\u0001')
+      .split(/(?<=[.!?;])\s+|\n+|,|;|\s(?:und|dann|danach|anschliessend|anschließend|sobald|bis)\s/i).map(x => x.replace(/\u0001/g, '.'));
+    for (const s of sentences) {
+      const kw = REST_TEXT_RE.exec(s);
+      if (!kw) continue;
+      const min = textDurationMinutes(s);
+      if (!min || min < 10) continue;
+      if (total && total >= min) continue;   // Gesamtzeit kann die Ruhezeit schon enthalten: kein Widerspruch
+      return { min, cool: /kühl|kuehl|kalt|erkalten|fest werden/i.test(kw[1]) };
+    }
+    return null;
+  };
+  let n = 0;
+  for (const e of stepEntries(r)) {
+    if (!e.heading) n++;
+    const hit = check(e.text);
+    if (hit) return { text: `In Schritt ${e.heading ? n + 1 : n} steht etwa ${fmtMinutes(hit.min)} ${hit.cool ? 'Abkühlen' : 'Ruhen'}. Prüfe das Feld «Ruhen oder Abkühlen».`, field: 'restMinutes' };
+  }
+  const noteHit = check(r.notes);
+  if (noteHit) return { text: `In den Notizen steht etwa ${fmtMinutes(noteHit.min)} ${noteHit.cool ? 'Abkühlen' : 'Ruhen'}. Prüfe das Feld «Ruhen oder Abkühlen».`, field: 'restMinutes' };
+  return null;
 }
 // Kuechenrundung: Grossmengen in g/ml auf sinnvolle Schritte, sonst Brueche via fmtAmount.
 // Rechnet immer vom Originalwert, nie von einem bereits skalierten Wert.

@@ -41,7 +41,7 @@ async def main():
                 check('Mit dauerhaftem Speicher: kein Hinweis', 'nicht als dauerhaft' not in await page.evaluate("document.body.innerText"))
                 await page.evaluate("() => { state.view='settings-sync'; render(); }"); await page.wait_for_timeout(200)
                 t = await page.evaluate("document.querySelector('.settings-page, main').innerText")
-                check('Sync-Text ohne holprige Doppelung', 'gleich und sind' not in t and 'auf deinen angemeldeten Geräten übernommen' in t)
+                check('Sync-Text ohne holprige Doppelung (v0.83: vereinbarter Zwecksatz aus Auftrag §16)', 'gleich und sind' not in t and 'Hält deine Rezepte und unterstützten Daten auf deinen Geräten aktuell.' in t)
             check(f'{w} px: keine Seitenfehler', not errs, str(errs[:3]))
             await browser.close()
     print('\nFEHLGESCHLAGEN:', FAIL or 'keine')

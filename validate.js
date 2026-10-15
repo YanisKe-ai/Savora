@@ -127,6 +127,8 @@ function validateRecipe(raw) {
   valText(raw.difficulty, 100, 'Schwierigkeit', errors);
   valText(raw.source, VAL.MAX_URL, 'Quelle', errors);
   valText(raw.servingMode, 20, 'Ergibt-Art', errors);
+  // Ertragsart (v0.83): 'portions' | 'pieces' | 'total'. Ein unbekannter Wert ist unschaedlich (wird als Portionen gelesen) und nur eine Warnung.
+  if (typeof raw.servingMode === 'string' && raw.servingMode && !['portions', 'pieces', 'total'].includes(raw.servingMode)) warnings.push(`Die Angabe «${raw.servingMode.slice(0, 20)}» für «Ergibt» ist nicht bekannt. Sie wird als Portionen angezeigt.`);
   valText(raw.yieldLabel, 100, 'Bezeichnung der Menge', errors);
   valNumber(raw.servings, VAL.MAX_SERVINGS, 'Menge (Ergibt)', errors);
   ['timeMinutes', 'prepMinutes', 'restMinutes', 'cookMinutes'].forEach(k => valNumber(raw[k], VAL.MAX_MINUTES, 'Zeitangabe ' + k, errors));
@@ -245,11 +247,11 @@ function validateBackup(data) {
    Leer = unbekannt. Ungueltige Angaben werden am Feld erklaert, nichts wird still gerundet, begrenzt oder auf 0/1 gesetzt.
    Gibt die Liste der Fehler zurueck: [{ id, message }] in Feldreihenfolge. */
 const FORM_NUMBER_FIELDS = [
-  { id: 'f-servings', label: 'Menge', min: 1, max: VAL.MAX_SERVINGS, hint: 'Gib eine ganze Zahl ab 1 ein oder lass das Feld leer, wenn die Menge unbekannt ist.' },
-  { id: 'f-time', label: 'Zeit', min: 0, max: VAL.MAX_MINUTES, hint: 'Gib die Minuten als ganze Zahl ab 0 ein oder lass das Feld leer, wenn die Zeit unbekannt ist.' },
-  { id: 'f-prep', label: 'Vorbereitungszeit', min: 0, max: VAL.MAX_MINUTES, hint: 'Gib die Minuten als ganze Zahl ab 0 ein oder lass das Feld leer.' },
-  { id: 'f-rest', label: 'Ruhezeit', min: 0, max: VAL.MAX_MINUTES, hint: 'Gib die Minuten als ganze Zahl ab 0 ein oder lass das Feld leer.' },
-  { id: 'f-cook', label: 'Garzeit', min: 0, max: VAL.MAX_MINUTES, hint: 'Gib die Minuten als ganze Zahl ab 0 ein oder lass das Feld leer.' },
+  { id: 'f-servings', label: 'Anzahl', min: 1, max: VAL.MAX_SERVINGS, hint: 'Gib eine ganze Zahl ab 1 ein oder lass das Feld leer, wenn die Menge unbekannt ist.' },
+  { id: 'f-time', label: 'Gesamtzeit', min: 0, max: VAL.MAX_MINUTES, hint: 'Gib die Minuten als ganze Zahl ab 0 ein oder lass das Feld leer, wenn die Zeit unbekannt ist.' },
+  { id: 'f-prep', label: 'Vorbereitung', min: 0, max: VAL.MAX_MINUTES, hint: 'Gib die Minuten als ganze Zahl ab 0 ein oder lass das Feld leer.' },
+  { id: 'f-rest', label: 'Ruhen oder Abkühlen', min: 0, max: VAL.MAX_MINUTES, hint: 'Gib die Minuten als ganze Zahl ab 0 ein oder lass das Feld leer.' },
+  { id: 'f-cook', label: 'Garen oder Backen', min: 0, max: VAL.MAX_MINUTES, hint: 'Gib die Minuten als ganze Zahl ab 0 ein oder lass das Feld leer.' },
 ];
 /* Reine Pruefung eines Feldtexts. Liefert null (gueltig, auch leer) oder den Fehlertext. */
 function formNumberProblem(field, raw, badInput) {

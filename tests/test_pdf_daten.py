@@ -162,9 +162,9 @@ async def main():
         check('Gramm mit hoechstens einer Nachkommastelle (12,345 -> 12,3; 61,04 -> 61)', nut['prot']['text'] == '12,3' and nut['kh']['text'] == '61', str((nut['prot'], nut['kh'])))
         check('mg ab 100 ganzzahlig (842), µg unter 100 mit einer Stelle (12,3 und 0,3)', nut['na']['text'] == '842' and nut['jod']['text'] == '12,3' and nut['b12']['text'] == '0,3', str((nut['na'], nut['jod'], nut['b12'])))
         check('Fehlende Werte sind null, nie 0; gemessene 0 bleibt 0', nut['fat']['value'] is None and nut['fat']['text'] is None and nut['vitK']['value'] is None and nut['salt']['value'] == 0, str((nut['fat'], nut['vitK'], nut['salt'])))
-        check('Bezugsgroesse: pro Portion / pro Stueck / gesamt (Ausbeute fehlt) / keine ohne Ergebnis', nut['b1'] == ['portion', 'pro Portion'] and nut['b2'] == ['piece', 'pro Stück'] and nut['b3'] == ['total', 'gesamt'] and nut['b4'] == [None, 0, ''], str((nut['b1'], nut['b2'], nut['b3'], nut['b4'])))
+        check('Bezugsgroesse: pro Portion / pro Stueck / gesamt (Ausbeute fehlt) / keine ohne Ergebnis', nut['b1'] == ['portion', 'pro Portion'] and nut['b2'] == ['piece', 'pro Stück'] and nut['b3'] == ['total', 'für das gesamte Rezept'] and nut['b4'] == [None, 0, ''], str((nut['b1'], nut['b2'], nut['b3'], nut['b4'])))
         check('Ausbeute fehlt: Gesamtwerte statt Portionswerte', nut['m3kcal']['value'] == 2095, str(nut['m3kcal']))
-        check('Schaetzhinweis kurz; bei Portions-/Stueck-Widerspruch klar "pro Portion, nicht pro Stueck", Werte nicht umgerechnet', nut['note1'].startswith('Geschätzte Werte') and len(nut['note1']) < 80 and 'nicht pro Stück' in nut['note5'] and nut['b5'] == 'portion' and 'Gesamtwerte' in nut['note3'], str((nut['note1'], nut['note5'])))
+        check('Schaetzhinweis kurz; bei Portions-/Stueck-Widerspruch klar "pro Portion, nicht pro Stueck", Werte nicht umgerechnet', nut['note1'].startswith('Geschätzte Werte') and len(nut['note1']) < 80 and 'nicht pro Stück' in nut['note5'] and nut['b5'] == 'portion' and 'ganze Rezept' in nut['note3'], str((nut['note1'], nut['note5'])))
         check('Spanne bei Mengenbereich als Text, Original-Ergebnis unveraendert im Modell', nut['range'] == '120–171' and nut['same'], nut['range'])
 
         check('Keine Seitenfehler', not errs, str(errs[:3]))

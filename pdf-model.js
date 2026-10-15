@@ -3,7 +3,8 @@
    auch alte Rezepte (Zutatenwort in der Einheit, ganze Zeile im Namen) werden nur fuer die Darstellung gelesen.
    pdfBuildModel (pdf-templates.js) setzt die Ergebnisse zusammen; die Vorlagen verlassen sich auf folgende Felder:
      ingredients[]  {type:'ing', group, amount, name, note, raw, uncertain} | {type:'group', title, show, size}
-     servings       {kind:'portions'|'pieces'|'unknown', value, label, conflict}
+     servings       {kind:'portions'|'pieces'|'total'|'unknown', value, label, conflict}
+     facts[]        {label, value, short} aus pdfYieldTimeFacts (Ertrag und Zeiten mit denselben Helfern wie die App)
      category       Anzeigetext (Kochbuchkapitel des Nutzers, sonst erste gewaehlte Kategorie), categoryKind, categoryAll[]
      source, sourceText, sourceUrl, sourceUrlText, sourceOrigin (Herkunft aus der Rezeptbibliothek, Text oder '')
      nutritionBasis ('portion'|'piece'|'total'|null), nutritionBasisLabel, nutritionView[], nutritionNote
@@ -319,8 +320,9 @@ function pdfServingsInfo(recipe, texts) {
   const n = Number(recipe.servings) || 0;
   let kind = 'unknown', label = '';
   if (n > 0) {
-    if (servingMode(recipe) === 'pieces') { kind = 'pieces'; label = n + ' ' + (String(recipe.yieldLabel || '').trim() || 'Stück'); }
-    else { kind = 'portions'; label = n + ' ' + (n === 1 ? 'Portion' : 'Portionen'); }
+    const mode = servingMode(recipe);
+    kind = mode;
+    label = typeof servingLabel === 'function' ? servingLabel(recipe, n) : n + ' ' + (n === 1 ? 'Portion' : 'Portionen');
   }
   let conflict = '';
   if (n > 0) {
@@ -339,6 +341,25 @@ function pdfServingsInfo(recipe, texts) {
   return { kind, value: n > 0 ? n : null, label, conflict };
 }
 
+/* Ertrag und Zeiten fuer den Rezeptkopf (v0.83): gleiche Begriffe wie in der App (yieldText, timeInfo).
+   «Für 4 Portionen» | «Ergibt 1 Glas» · «30 Min. Gesamtzeit» · «15 Min. Vorbereitung» · «20 Min. Garen» · «1 Std. Ruhen».
+   Nichts wird summiert; unbekannter Ertrag erscheint nicht (keine erfundene Portionszahl). */
+function pdfYieldTimeFacts(recipe) {
+  const facts = [];
+  const add = (label, value, short) => facts.push({ label, value, short });
+  const info = yieldInfo(recipe);
+  if (info.kind !== 'unknown') {
+    const text = yieldText(recipe);
+    if (info.kind === 'portions') add(info.label, String(info.count), text);
+    else add('Ergibt', text.replace(/^Ergibt\s+/, ''), text);
+  }
+  const t = timeInfo(recipe);
+  [['total', 'Gesamtzeit'], ['prep', 'Vorbereitung'], ['cook', 'Garen'], ['rest', 'Ruhen']].forEach(([k, label]) => {
+    if (t[k]) add(label, fmtMinutes(t[k]), fmtMinutes(t[k]) + ' ' + label);
+  });
+  return facts;
+}
+
 /* ---------- Naehrwerte ---------- */
 
 // Rundung fuer die Anzeige: kcal/kJ ganzzahlig, g mit hoechstens einer Nachkommastelle, mg und µg ab 100 ganzzahlig, sonst eine Stelle. null bleibt null.
@@ -353,7 +374,7 @@ function pdfNutText(v) { return v === null ? null : String(v).replace('.', ',');
 
 function pdfNutritionView(result) {
   if (!result || typeof NUTRIENT_KEYS === 'undefined') return [];
-  const total = !!result.needsServings;
+  const total = !!(result.needsServings || result.wholeRecipe);
   const exact = total ? result.nutrientsTotal : result.nutrientsPerPortion;
   const range = total ? result.nutrientsTotalRange : result.nutrientsPerPortionRange;
   return Object.keys(NUTRIENT_KEYS).map((key) => {
@@ -370,7 +391,7 @@ function pdfNutritionView(result) {
 
 function pdfNutritionBasis(result, pieces) {
   if (!result) return { basis: null, label: '' };
-  if (result.needsServings) return { basis: 'total', label: 'gesamt' };
+  if (result.needsServings || result.wholeRecipe) return { basis: 'total', label: 'für das gesamte Rezept' };
   return pieces ? { basis: 'piece', label: 'pro Stück' } : { basis: 'portion', label: 'pro Portion' };
 }
 
@@ -378,8 +399,9 @@ function pdfNutritionNote(result, servings) {
   if (!result) return '';
   const parts = ['Geschätzte Werte, Abweichungen sind möglich.'];
   if (result.rangeUsed) parts.push('Menge als Bereich angegeben, Ergebnis als Spanne.');
-  if (result.needsServings) parts.push('Die Ergiebigkeit fehlt, deshalb stehen Gesamtwerte da.');
-  if (servings && servings.conflict) parts.push(servings.kind === 'pieces' ? 'Die Werte gelten pro Stück laut Angabe.' : 'Die Werte gelten pro Portion, nicht pro Stück.');
+  if (result.needsServings) parts.push('Es fehlt die Angabe, was das Rezept ergibt. Deshalb gelten die Nährwerte für das ganze Rezept. Trage ein, was das Rezept ergibt, um Werte pro Portion zu sehen.');   // gleicher Satz wie in der App (nutrition-ui.js)
+  else if (result.wholeRecipe && servings && servings.kind === 'total') parts.push('Werte für das gesamte Rezept (' + servings.label + '), eine Portion ist nicht festgelegt.');
+  if (servings && servings.conflict && servings.kind !== 'total' && !result.wholeRecipe) parts.push(servings.kind === 'pieces' ? 'Die Werte gelten pro Stück laut Angabe.' : 'Die Werte gelten pro Portion, nicht pro Stück.');
   return parts.join(' ');
 }
 

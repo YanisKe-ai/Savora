@@ -31,9 +31,11 @@ function isQualitativeIngredient(ing) {
 /* Einfacher, stabiler Hash ueber die berechnungsrelevanten Zutatendaten (fuer
    "Naehrwerte veraltet"-Erkennung, Punkt 23) — bewusst kein Crypto-Hash, nur
    Aenderungserkennung noetig. */
-function hashIngredientsForNutrition(ingredients, servings) {
+function hashIngredientsForNutrition(ingredients, servings, mode) {
   const relevant = (ingredients || []).map((i) => `${i.amount}|${i.unit}|${(i.name || '').trim().toLowerCase()}`).join(';');
-  const input = relevant + '::' + servings;
+  // Ertragsart (v0.83): nur 'total' geht in den Hash ein. Portionen und Stueck rechnen gleich (Gesamt / Anzahl), ihre
+  // gespeicherten Ergebnisse bleiben gueltig; ein Wechsel zu Gesamtertrag (z. B. 1 Portion -> 1 Glas) macht sie ungueltig.
+  const input = relevant + '::' + servings + (mode === 'total' ? '::total' : '');
   let hash = 0;
   for (let i = 0; i < input.length; i++) {
     hash = (hash * 31 + input.charCodeAt(i)) | 0;
@@ -52,6 +54,16 @@ function addNutrientContribution(totals, known, food, grams) {
 }
 const nutRound = (v) => roundNutrientForDisplay(v);
 
+/* Hash des aktuellen Rezeptstands: dieselben Zutaten (ohne Gruppentitel) und dieselbe Ausbeute wie beim Berechnen.
+   Vorher wurden beim Pruefen die Gruppentitel mitgezaehlt; Rezepte mit Zutatengruppen galten dadurch immer als veraltet. */
+function nutritionIngredientsFor(recipe) {
+  return (recipe.ingredients || []).filter(i => !(typeof isIngredientHeaderRow === 'function' && isIngredientHeaderRow(i)));
+}
+function nutritionHashFor(recipe) {
+  const servings = Number(recipe.servings) > 0 ? Number(recipe.servings) : 1;
+  return hashIngredientsForNutrition(nutritionIngredientsFor(recipe), servings, recipe.servingMode);
+}
+
 /* Berechnet die Naehrwerte eines Rezepts. `recipe` braucht mindestens { ingredients, servings }.
    Optional: recipe.nutritionFinishedWeight (Gramm, Punkt 18) fuer ein exaktes "pro 100g".
    Ruft KEINE UI-Funktionen auf und speichert NICHTS in der DB — das macht der Aufrufer
@@ -59,9 +71,11 @@ const nutRound = (v) => roundNutrientForDisplay(v);
    ohne Nebenwirkungen nutzbar ist. */
 async function calculateRecipeNutrition(recipe) {
   // Gruppentitel wie "Teig:" sind keine Zutaten und duerfen nicht als "ungeklaert" zaehlen.
-  const ingredients = (recipe.ingredients || []).filter(i => !(typeof isIngredientHeaderRow === 'function' && isIngredientHeaderRow(i)));
+  const ingredients = nutritionIngredientsFor(recipe);
   const needsServings = !(Number(recipe.servings) > 0);   // unbekannte Ausbeute: keine stille 1, keine Pro-Portion-Werte
   const servings = needsServings ? 1 : Number(recipe.servings);   // nur fuer den Hash (stabil zu frueher); wird nie als Teiler benutzt, wenn needsServings
+  // Gesamtertrag (z. B. 1 Glas, v0.83): keine Werte pro Glas oder pro Loeffel erfinden, Bezug ist das ganze Rezept.
+  const wholeRecipe = needsServings || recipe.servingMode === 'total';
 
   const totals = {};      // Untergrenze (= exakter Wert, solange kein Bereich im Spiel ist)
   const totalsMax = {};   // Obergrenze
@@ -166,7 +180,7 @@ async function calculateRecipeNutrition(recipe) {
     const t = span(lo, hi);
     nutrientsTotal[key] = lo === null ? null : (rangeUsed ? t.exact : lo);   // bei echter Spanne null, kein Pseudo-Exaktwert
     nutrientsTotalRange[key] = t.range;
-    const p = needsServings ? { exact: null, range: null } : span(lo === null ? null : lo / servings, hi === null ? null : hi / servings);
+    const p = wholeRecipe ? { exact: null, range: null } : span(lo === null ? null : lo / servings, hi === null ? null : hi / servings);
     nutrientsPerPortion[key] = p.exact;
     nutrientsPerPortionRange[key] = p.range;
     // pro 100 g: konservative Einhuellende (Untergrenze durch groesstes Gewicht, Obergrenze durch kleinstes)
@@ -193,13 +207,15 @@ async function calculateRecipeNutrition(recipe) {
       (unquantified.length > 0 ? `, ${unquantified.length} ohne Mengenangabe nicht eingerechnet` : '') +
       (unresolvedCount > 0 ? `, ${unresolvedCount} ungeklärt` : '') +
       (rangeCount > 0 ? `, bei ${rangeCount} Zutat${rangeCount === 1 ? '' : 'en'} Mengenbereich: Ergebnis als Spanne` : '') +
-      (needsServings ? ', Angabe zum Ergibt fehlt: keine Pro-Portion-Werte' : '') +
+      (needsServings ? '. Die Angabe, was das Rezept ergibt, fehlt. Darum gibt es keine Werte pro Portion' : wholeRecipe ? ', Gesamtertrag: Werte für das gesamte Rezept' : '') +
       (per100Estimated ? ', Fertiggewicht geschätzt' : ', Fertiggewicht bekannt');
 
   return {
     recipeId: recipe.id,
     nutritionCalcVersion: NUTRITION_CALC_VERSION,
-    ingredientHash: hashIngredientsForNutrition(ingredients, servings),
+    ingredientHash: nutritionHashFor(recipe),
+    // Bezugsbasis laut Ertrag (v0.83): 'portion' | 'piece' | 'total'. Gesamtertrag und unbekannter Ertrag: ganzes Rezept.
+    basis: typeof nutritionBasis === 'function' ? nutritionBasis(recipe).kind : (needsServings ? 'total' : 'portion'),
     // Punkt 3 (Reparatur-Auftrag): vorher wurden nur Swiss-FCD-Quellen im Ergebnis behalten —
     // war eine Zutat ausschliesslich per Open-Food-Facts-Barcode oder als Custom Food erfasst,
     // verschwand das komplett und die Quellenzeile zeigte faelschlich "Berechnete
@@ -208,6 +224,7 @@ async function calculateRecipeNutrition(recipe) {
     calculatedAt: Date.now(),
     servings: needsServings ? null : servings,
     needsServings,
+    wholeRecipe,   // true: nur Werte fuer das gesamte Rezept (Ertrag unbekannt oder Gesamtertrag)
     rangeUsed,
     totalWeight: totalWeightGrams > 0 ? roundNutrientForDisplay(totalWeightGrams) : null,
     totalWeightMax: rangeUsed && totalWeightMax > 0 ? roundNutrientForDisplay(totalWeightMax) : null,
@@ -244,9 +261,7 @@ async function recalculateAndStoreNutrition(recipe) {
 async function getFreshNutritionResult(recipe) {
   const stored = await dbGetNutritionResult(recipe.id);
   if (!stored) return null;
-  const servings = Number(recipe.servings) > 0 ? Number(recipe.servings) : 1;
-  const currentHash = hashIngredientsForNutrition(recipe.ingredients || [], servings);
-  if (stored.ingredientHash !== currentHash) return null;
+  if (stored.ingredientHash !== nutritionHashFor(recipe)) return null;
   if ((stored.nutritionCalcVersion || 1) < NUTRITION_CALC_VERSION) return null;   // mit aelterer Berechnung erstellt
   return stored;
 }
@@ -261,8 +276,7 @@ async function nutritionStatusFor(recipe) {
   let stored = null;
   try { stored = await dbGetNutritionResult(recipe.id); } catch (e) { return { status: 'failed', result: null }; }
   if (!stored) return { status: 'not-calculated', result: null };
-  const servings = Number(recipe.servings) > 0 ? Number(recipe.servings) : 1;
-  const hashOk = stored.ingredientHash === hashIngredientsForNutrition(recipe.ingredients || [], servings);
+  const hashOk = stored.ingredientHash === nutritionHashFor(recipe);
   if (!hashOk || (stored.nutritionCalcVersion || 1) < NUTRITION_CALC_VERSION) return { status: 'stale', result: stored };
   const complete = stored.relevantCount > 0 && !(stored.unresolvedCount > 0);
   return { status: complete ? 'calculated' : 'incomplete', result: stored };

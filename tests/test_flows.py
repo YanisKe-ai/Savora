@@ -139,7 +139,8 @@ async def main():
         monday = await page.evaluate("fmtDateKey(state.weekStart)")
         await click(page, f'[data-action="open-day-picker"][data-date="{monday}"]')
         await click(page, '[data-action="set-plan-meal"][data-id="dinner"]')
-        await click(page, f'.picker-item[data-id="{zid}"]')
+        await click(page, f'.rp-input[data-rp-pick="{zid}"]')   # v83: Auswahl, dann eindeutige Abschlussaktion
+        await click(page, '[data-action="plan-commit-recipe"]')
         await page.wait_for_timeout(300)
         rec = await page.evaluate(f"dbGetAllMealplan().then(l => l.find(d => d.date === '{monday}'))")
         check('11 Wochenplan behaelt Eintraege, neuer mit Mahlzeit', before_titles == ['Sloppy Joe Buns', 'Carbonara'] and len(rec['entries']) == 3 and rec['entries'][2]['meal'] == 'dinner' and rec['legacyDayField'] == 7 and rec['recipeIds'][:2] == ['r_legacy_1','r_legacy_2'],

@@ -150,9 +150,7 @@ async def main():
         check('Offline: Hintergrundfarbe waehlbar und Bild importierbar', bool(sw) and col != '#F7F4EE' and await ev("() => ce.model.image.h") == 1800, f'{col}')
         await page.wait_for_function("document.querySelector('.ce-status-text') && document.querySelector('.ce-status-text').textContent === 'Gespeichert'", timeout=10000)
         await ev("() => { state.cookbookStep = 3; render(); }")
-        await page.wait_for_selector('[data-action="export-cookbook"]'); await page.click('[data-action="export-cookbook"]')
-        await page.wait_for_selector('[data-action="pdf-export-build"]'); await page.wait_for_timeout(200)
-        await page.click('[data-action="pdf-export-build"]')
+        await page.wait_for_selector('[data-action="export-cookbook"]'); await page.click('[data-action="export-cookbook"]')   # v83: erstellt direkt (Optionen stehen in «Gestalten»)
         await page.wait_for_function("state.modal && (state.modal.stage === 'preview' || state.modal.stage === 'error')", timeout=90000)
         st = await ev("() => [state.modal.stage, state.modal.errorText || '']")
         ok_pdf = False

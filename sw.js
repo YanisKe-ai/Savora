@@ -13,7 +13,7 @@
    - Kontrollierter Update-Flow: kein automatisches skipWaiting. Ein neuer Worker wartet, bis
      die Seite per postMessage({type:'SKIP_WAITING'}) explizit zustimmt.
 */
-const SW_VERSION = 'v93-bibliothek';
+const SW_VERSION = 'v94-verbessert';
 const CACHE_SHELL = 'savora-shell-' + SW_VERSION;
 const CACHE_RUNTIME = 'savora-runtime-' + SW_VERSION;
 const CACHE_DATA = 'savora-data-' + SW_VERSION;
@@ -138,6 +138,7 @@ const SHELL_ASSETS = [
   './actions-v2.js',
   './cloud.js',
   './share.js',
+  './recipe-picker.js',
   './library.js',
   './library-views.js',
   './library-publish.js',
