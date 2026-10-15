@@ -3690,3 +3690,34 @@ body.keyboard-open .rp-foot { padding-bottom: 0.75rem; }
 .shop-back-btn svg { width: 18px; height: 18px; flex: none; }
 /* Sehr schmal (320 px): etwas weniger Innenabstand, damit «Andere Mahlzeit» meist einzeilig bleibt */
 @media (max-width: 359px) { .rp-sheet .rp-meal-chips .chip { padding-inline: 0.25rem; } }
+
+/* ===== v831 Entdecken wie Meine Rezepte ===== */
+/* Tablet/Desktop: Schnellfilter als Chips in der Zeile wie home `filter-bar`, gleich hoch wie «Filter» */
+.lib-filter-bar { flex-wrap: nowrap; }
+.lib-filter-bar .lib-quick { flex: 0 1 auto; flex-wrap: nowrap; min-width: 0; margin: 0; gap: 0.5rem; }
+.lib-filter-bar .lib-qf { min-height: 3rem; padding: 0.25rem 1rem; font-size: 1rem; }
+.lib-filter-bar .filter-btn { flex: none; margin-left: auto; }
+/* Gleiche Höhen wie home: Zeile so hoch wie dort der Umschalter «Alle · Favoriten» (52 px), Kopfzeile so hoch wie mit dem runden Plus-Knopf */
+@media (min-width: 768px) {
+  .lib-filter-bar { box-sizing: border-box; min-height: 3.25rem; }
+  .lib-head .topbar-actions { min-height: 2.75rem; }
+}
+@container (max-width: 40rem) { .lib-filter-bar .lib-quick { flex-wrap: wrap; } }
+/* Ladezustand: Ergebniszeile so hoch wie im fertigen Zustand (kein Sprung) */
+.lib-results > .lib-skel-row { min-height: 2.75rem; }
+.lib-results > .lib-skel-row .lib-skel-line--count { margin: 0; }
+/* Handy: Zusammenfassung aktiver Filter direkt unter der Ergebniszeile */
+.lib-results > .filter-summary { margin: -0.25rem 0 0.75rem; }
+/* Filterfenster, Gruppe «Schnell»: Schalter (Spur rechts), ganze Zeile tippbar */
+.lib-fs-switch { justify-content: space-between; }
+.fs-opts:has(> .lib-fs-switch) { grid-template-columns: minmax(0, 1fr); }
+.lib-fs-switch .fs-text { hyphens: manual; }
+.lib-sw-track { position: relative; flex: none; width: 2.75rem; height: 1.75rem; box-sizing: border-box; border-radius: 999px; background: var(--surface-soft); border: 2px solid var(--text-soft); transition: background-color 140ms var(--ease-out, ease-out), border-color 140ms var(--ease-out, ease-out); }
+.lib-sw-thumb { position: absolute; top: 0.125rem; left: 0.125rem; width: 1.25rem; height: 1.25rem; border-radius: 50%; background: var(--text-soft); transition: transform 140ms var(--ease-out, ease-out); }
+.lib-fs-switch .fs-input:checked ~ .lib-sw-track { background: var(--lime-ink); border-color: var(--lime-ink); }
+.lib-fs-switch .fs-input:checked ~ .lib-sw-track .lib-sw-thumb { background: var(--lime); transform: translateX(1rem); }
+@media (prefers-reduced-motion: reduce) { .lib-sw-track, .lib-sw-thumb { transition: none; } }
+@media (forced-colors: active) { .lib-sw-track { border-color: CanvasText; } .lib-fs-switch .fs-input:checked ~ .lib-sw-track .lib-sw-thumb { background: Highlight; } }
+/* Handy-Suchfeld: Tippflächen 44 px (Feld und Schliessen-Knopf), ohne das Overlay zu vergrössern */
+#libSearchPop .search-input { min-height: 2.75rem; }
+#libSearchPop .search-close { width: 2.75rem; height: 2.75rem; margin: -0.25rem 0; }

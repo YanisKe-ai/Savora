@@ -113,34 +113,63 @@ function libSkeletonCards(n) {
   return out;
 }
 
-/* ---------- Entdecken ---------- */
+/* ---------- Entdecken ----------
+   Aufbau wie «Meine Rezepte» (views-v2.js homeView), mit denselben Klassen und Abmessungen:
+   Handy: Titelzeile «Entdecken» mit rundem Suchknopf (Suchfeld als Overlay), Umschalter, Ergebniszeile «N Rezepte · Sortierung»
+   mit Filterknopf, Zusammenfassung aktiver Filter, Karten. Die Schnellfilter liegen auf dem Handy im Filterfenster (Gruppe «Schnell»).
+   Tablet/Desktop: Seitentitel mit Umschalter, Suchfeld, Zeile mit Schnellfiltern und Filterknopf, Ergebniszeile mit Sortierung. */
 function libSheetFilterCount(f) {
   f = f || libDiscFilters();
   return f.categories.length + f.diet.length + (f.maxMinutes ? 1 : 0);
 }
-function libActiveChips() {
+/* Alle aktiven Filter (Schnellfilter eingeschlossen) als Liste { key, label } in der Reihenfolge von library.js */
+function libActiveFilterList() {
   if (libHas('libFiltersActive')) {
-    try {
-      return (libFiltersActive() || []).filter(c => c && c.key !== 'quick' && c.key !== 'veg').map(c => ({ key: String(c.key), label: String(c.label || c.key) }));
-    } catch (e) { /* Rückfall unten */ }
+    try { return (libFiltersActive() || []).filter(Boolean).map(c => ({ key: String(c.key), label: String(c.label || c.key) })); } catch (e) { /* Rückfall unten */ }
   }
   const f = libDiscFilters(), out = [];
-  f.categories.forEach(id => out.push({ key: 'cat:' + id, label: libCategoryLabel(id) }));
+  if (f.quick) out.push({ key: 'quick', label: 'Bis 30 Min.' });
+  if (f.veg) out.push({ key: 'veg', label: 'Vegetarisch' });
   if (f.maxMinutes) out.push({ key: 'max', label: `Bis ${f.maxMinutes} Min.` });
   f.diet.forEach(id => out.push({ key: 'diet:' + id, label: LIB_DIET_LABELS[id] || id }));
+  f.categories.forEach(id => out.push({ key: 'cat:' + id, label: libCategoryLabel(id) }));
   return out;
 }
 function libFiltersAny() {
   const f = libDiscFilters();
-  return !!(f.quick || f.veg || libSheetFilterCount(f) || libActiveChips().length);
+  return !!(f.quick || f.veg || libSheetFilterCount(f) || libActiveFilterList().length);
 }
-function libSortHtml() {
+function libSortLabel() { return libDiscSort() === 'quickest' ? 'Kürzeste Gesamtzeit' : 'Neueste'; }
+function libSortOptions() {
   const s = libDiscSort();
-  return `<label class="lib-sort"><span class="sr-only">Sortierung</span>
-    <select class="lib-sort-select" id="libSortSelect">
-      <option value="newest" ${s === 'newest' ? 'selected' : ''}>Neueste</option>
-      <option value="quickest" ${s === 'quickest' ? 'selected' : ''}>Kürzeste Gesamtzeit</option>
-    </select>${ICONS.arrowDown}</label>`;
+  return `<option value="newest" ${s === 'newest' ? 'selected' : ''}>Neueste</option><option value="quickest" ${s === 'quickest' ? 'selected' : ''}>Kürzeste Gesamtzeit</option>`;
+}
+/* Sortierung wie home: Handy als ruhige Inline-Auswahl in der Ergebniszeile, sonst Beschriftung und Auswahlfeld */
+function libSortHtml(phone) {
+  if (phone) {
+    return `<div class="inline-pick sort-inline">
+              <span class="inline-pick-text">${escapeHtml(libSortLabel())}</span>${ICONS.arrowDown}
+              <select class="inline-pick-select sort-select" id="libSortSelect" aria-label="Sortierung">${libSortOptions()}</select>
+            </div>`;
+  }
+  return `<label class="sort-pick"><span class="sort-pick-label">Sortierung</span>
+            <select class="sort-select" id="libSortSelect">${libSortOptions()}</select>
+          </label>`;
+}
+/* Filterknopf wie home (Zähler aller aktiven Filter; auf dem Handy hinter dem offenen Suchfeld inert) */
+function libFilterBtnHtml(phone) {
+  const n = libActiveFilterList().length;
+  return `<button type="button" class="filter-btn ${n ? 'is-active' : ''}" ${n ? `data-count="${n}"` : ''} ${phone && state.libSearchOpen ? 'inert' : ''} data-action="lib-filter-open" aria-haspopup="dialog">${ICONS.sliders}<span class="filter-btn-text">Filter${n ? ' · ' + n : ''}</span></button>`;
+}
+/* Zusammenfassung aktiver Filter wie home («… · Zurücksetzen») */
+function libSummaryHtml() {
+  const labels = libActiveFilterList().map(c => c.label);
+  if (!labels.length) return '';
+  const summary = labels.length > 3 ? labels.slice(0, 3).join(' · ') + ` · + ${labels.length - 3} weitere` : labels.join(' · ');
+  return `<div class="filter-summary lib-filter-summary">
+      <p class="filter-summary-text"><span class="sr-only">Aktive Filter: </span>${escapeHtml(summary)}</p>
+      <button type="button" class="filter-summary-reset" data-action="lib-filter-clear-all">Zurücksetzen</button>
+    </div>`;
 }
 function libStateBlock(icon, title, text, actions, role) {
   return `<div class="lib-state" ${role ? `role="${role}"` : ''}>
@@ -156,10 +185,14 @@ function libEmptyActions() {
   if (!state.recipes.length) return `<button type="button" class="primary-btn" data-action="new-recipe">${ICONS.plus} Rezept erstellen</button>`;
   return `<button type="button" class="primary-btn" data-action="${typeof libStartPublish === 'function' ? 'lib-pub-start' : 'lib-tab-mine'}">Eigenes Rezept veröffentlichen</button>`;
 }
+function libIsPhone() { return typeof isPhoneLayout === 'function' && isPhoneLayout(); }
 function libResultsHtml() {
   const d = libDisc(), items = libDiscItems();
   const status = d.status || 'idle';
+  const phone = libIsPhone();
   const offline = status === 'offline' || (libIsOffline() && !items.length);
+  /* Handy: Zusammenfassung aktiver Filter unter der Ergebniszeile (Tablet/Desktop: im Kopf wie home) */
+  const summary = phone ? libSummaryHtml() : '';
   if (offline && !items.length) {
     return libStateBlock(LIB_ICON_OFFLINE, 'Keine Internetverbindung', 'Zum Entdecken brauchst du eine Internetverbindung. Deine gespeicherten Rezepte sind weiterhin verfügbar.',
       `<button type="button" class="primary-btn" data-action="lib-tab-mine">Meine Rezepte öffnen</button><button type="button" class="ghost-btn" data-action="lib-retry">Erneut versuchen</button>`);
@@ -168,7 +201,10 @@ function libResultsHtml() {
     return libStateBlock(ICONS.info, 'Die Rezepte konnten nicht geladen werden.', 'Der Server antwortet gerade nicht. Versuche es in einem Moment erneut.', `<button type="button" class="primary-btn" data-action="lib-retry">Erneut versuchen</button>`, 'alert');
   }
   if ((status === 'loading' || status === 'idle') && !items.length) {
-    return `<div class="lib-result-row" aria-hidden="true"><span class="lib-skel-line lib-skel-line--count"></span></div>
+    const row = phone
+      ? `<div class="result-row result-row--phone lib-skel-row"><div class="result-info" aria-hidden="true"><span class="lib-skel-line lib-skel-line--count"></span></div><div class="result-tools">${libFilterBtnHtml(true)}</div></div>${summary}`
+      : `<div class="result-row lib-skel-row" aria-hidden="true"><span class="lib-skel-line lib-skel-line--count"></span></div>`;
+    return `${row}
       <ul class="lib-grid" aria-hidden="true">${libSkeletonCards(6)}</ul>
       <p class="sr-only" role="status">Rezepte werden geladen.</p>`;
   }
@@ -177,7 +213,9 @@ function libResultsHtml() {
     if (!searching) {
       return libStateBlock(ICONS.bookOpen, 'Hier entsteht die Savora-Rezeptbibliothek.', 'Veröffentliche ein eigenes Rezept und teile es mit anderen.', libEmptyActions());
     }
-    return `<h2 class="sr-only" id="libResultsH">Ergebnisse</h2>` + libStateBlock(ICONS.search, 'Keine passenden Rezepte gefunden.', 'Versuche einen anderen Suchbegriff oder passe die Filter an.',
+    /* Keine Treffer: auf dem Handy bleibt der Filterknopf erreichbar (wie home bei leerer Filterliste) */
+    const tools = phone ? `<div class="result-row result-row--phone result-row--tools-only"><div class="result-tools">${libFilterBtnHtml(true)}</div></div>${summary}` : '';
+    return tools + `<h2 class="sr-only" id="libResultsH">Ergebnisse</h2>` + libStateBlock(ICONS.search, 'Keine passenden Rezepte gefunden.', 'Versuche einen anderen Suchbegriff oder passe die Filter an.',
       libFiltersAny() ? `<button type="button" class="ghost-btn" data-action="lib-filter-clear-all">${libDiscQuery() ? 'Suche und Filter zurücksetzen' : 'Filter zurücksetzen'}</button>` : '');
   }
   const total = Number(d.total) >= items.length ? Number(d.total) : items.length;
@@ -188,50 +226,84 @@ function libResultsHtml() {
   const moreHtml = more === 'error'
     ? `<div class="lib-more lib-more--error" role="alert"><p>Weitere Rezepte konnten nicht geladen werden.</p><button type="button" class="ghost-btn" data-action="lib-load-more">Erneut versuchen</button></div>`
     : next ? `<div class="lib-more"><button type="button" class="ghost-btn lib-more-btn" data-action="lib-load-more" ${more === 'loading' ? 'aria-busy="true" aria-disabled="true"' : ''}>${more === 'loading' ? 'Lädt …' : 'Mehr laden'}</button></div>` : '';
-  return `<div class="lib-result-row">
-      <h2 class="lib-result-line" id="libResultsH">${escapeHtml(libRecipeCountText(total, capped))}</h2>
-      ${libSortHtml()}
-    </div>
+  const count = escapeHtml(libRecipeCountText(total, capped));
+  const row = phone
+    ? `<div class="result-row result-row--phone">
+        <div class="result-info">
+          <h2 class="result-line" id="libResultsH">${count}</h2>
+          <span class="result-dot" aria-hidden="true">·</span>
+          ${libSortHtml(true)}
+        </div>
+        <div class="result-tools">${libFilterBtnHtml(true)}</div>
+      </div>${summary}`
+    : `<div class="result-row">
+        <h2 class="result-line" id="libResultsH">${count}</h2>
+        ${libSortHtml(false)}
+      </div>`;
+  return `${row}
     <ul class="lib-grid ${busy ? 'is-stale' : ''}" ${busy ? 'aria-busy="true"' : ''} aria-labelledby="libResultsH">${items.map(libCardHtml).join('')}</ul>
     ${moreHtml}`;
 }
+/* Tablet/Desktop: Zeile wie home `filter-bar`: links die zwei Schnellfilter als Chips, rechts der Filterknopf */
 function libQuickHtml() {
   const f = libDiscFilters();
-  const n = libSheetFilterCount(f);
   const q = (action, label, on) => `<button type="button" class="lib-qf ${on ? 'is-on' : ''}" data-action="${action}" aria-pressed="${on}">${on ? `<span class="lib-qf-check" aria-hidden="true">${LIB_ICON_SAVED}</span>` : ''}${label}</button>`;
-  const chips = libActiveChips();
-  return `<div class="lib-quick" role="group" aria-label="Schnellfilter">
-      ${q('lib-filter-quick', 'Bis 30 Min.', f.quick)}
-      ${q('lib-filter-veg', 'Vegetarisch', f.veg)}
-      <button type="button" class="lib-qf lib-qf--more ${n ? 'is-on' : ''}" data-action="lib-filter-open" aria-haspopup="dialog">${ICONS.sliders}<span>Filter${n ? ' · ' + n : ''}</span></button>
-    </div>
-    ${chips.length ? `<ul class="lib-chips" aria-label="Aktive Filter">
-      ${chips.map(c => `<li><button type="button" class="lib-chip" data-action="lib-chip-remove" data-id="${escapeAttr(c.key)}" aria-label="Filter ${escapeAttr(c.label)} entfernen"><span>${escapeHtml(c.label)}</span>${ICONS.x}</button></li>`).join('')}
-      ${chips.length > 1 ? `<li><button type="button" class="lib-chip lib-chip--reset" data-action="lib-filter-clear-all">Alle entfernen</button></li>` : ''}
-    </ul>` : ''}`;
+  return `<div class="filter-bar lib-filter-bar">
+      <div class="lib-quick" role="group" aria-label="Schnellfilter">
+        ${q('lib-filter-quick', 'Bis 30 Min.', f.quick)}
+        ${q('lib-filter-veg', 'Vegetarisch', f.veg)}
+      </div>
+      ${libFilterBtnHtml(false)}
+    </div>`;
+}
+/* Handy: Suche als runder Knopf rechts in der Titelzeile; geöffnet liegt das Feld über der Zeile (wie home `search-pop`) */
+function libSearchCloseAttrs(hasQuery) {
+  return { id: hasQuery ? 'clear' : 'keep', label: hasQuery ? 'Suche löschen und schliessen' : 'Suche schliessen' };
 }
 function discoverView() {
-  const phone = typeof isPhoneLayout === 'function' && isPhoneLayout();
+  const phone = libIsPhone();
   const q = libDiscQuery();
+  const hasQuery = !!q.trim();
   libScheduleBind();
-  const search = `<div class="search-field lib-search" role="search">
+  let body;
+  if (phone) {
+    const open = !!state.libSearchOpen, enter = !!state.libSearchEnter; state.libSearchEnter = false;
+    const close = libSearchCloseAttrs(hasQuery);
+    const searchBtn = `<button type="button" class="search-btn ${hasQuery ? 'is-active' : ''}" id="libSearchBtn" data-action="lib-search-open" aria-label="Suchen" aria-expanded="${open}" aria-controls="libSearchPop" ${open ? 'inert' : ''}>${ICONS.search}</button>`;
+    const searchPop = open ? `<div class="search-pop ${enter ? 'is-entering' : ''}" id="libSearchPop" role="search">
+            ${ICONS.search}
+            <label for="libSearchInput" class="sr-only">Rezepte oder Zutaten suchen</label>
+            <input class="search-input" id="libSearchInput" type="search" enterkeyhint="search" placeholder="Rezepte oder Zutaten suchen" value="${escapeAttr(q)}" autocomplete="off" spellcheck="false">
+            <button type="button" class="search-close" data-action="lib-search-close" data-id="${close.id}" aria-label="${close.label}">${ICONS.x}</button>
+          </div>` : '';
+    body = `<h1 class="sr-only">Entdecken</h1>
+        <div class="filter-bar filter-bar--phone">
+          <div class="view-pick" ${open ? 'inert' : ''}>
+            <span class="inline-pick-text">Entdecken</span>
+          </div>
+          ${searchBtn}
+          ${searchPop}
+        </div>`;
+  } else {
+    body = `${pageTitle('Entdecken', recipesSwitchHtml())}
+        <div class="search-field lib-search" role="search">
           ${ICONS.search}
           <label for="libSearchInput" class="sr-only">Rezepte oder Zutaten suchen</label>
           <input class="search-input" id="libSearchInput" type="search" enterkeyhint="search" placeholder="Rezepte oder Zutaten suchen" value="${escapeAttr(q)}" autocomplete="off" spellcheck="false">
           <button type="button" class="lib-search-clear" data-action="lib-search-clear" aria-label="Suche löschen" ${q ? '' : 'hidden'}>${ICONS.x}</button>
         </div>
-        <div id="libQuick">${libQuickHtml()}</div>`;
-  /* Handy: gleicher Aufbau wie «Meine Rezepte» (Titelzeile im Kopf, darunter der Umschalter an derselben Stelle,
-     dann Suche und Schnellfilter im Inhalt). Tablet und Desktop: Umschalter neben dem Titel. */
+        ${libQuickHtml()}
+        ${libSummaryHtml()}`;
+  }
   return `
     <div class="home-head lib-head ${phone ? 'home-head--phone' : ''}">
       ${topbar('', { cls: 'topbar--home' + (phone ? ' topbar--center' : '') })}
-      <section class="home-head-body lib-head-body" aria-label="${phone ? 'Entdecken' : 'Suche und Filter'}">
-        ${phone ? `<h1 class="sr-only">Entdecken</h1><div class="filter-bar filter-bar--phone lib-titlebar"><div class="view-pick"><span class="inline-pick-text">Entdecken</span></div></div>` : pageTitle('Entdecken', recipesSwitchHtml()) + search}
+      <section class="home-head-body lib-head-body" aria-label="Suche und Filter">
+        ${body}
       </section>
     </div>
     <main class="has-tabbar home-main lib-main">
-      ${phone ? recipesSwitchHtml() + `<section class="lib-phone-search" aria-label="Suche und Filter">${search}</section>` : ''}
+      ${phone ? recipesSwitchHtml() : ''}
       <div id="libResults" class="lib-results">${libResultsHtml()}</div>
     </main>
     ${bottomNav()}
@@ -254,6 +326,11 @@ function libDraftStatus(d) { const n = libDraftCount(d); return n === 0 ? 'Keine
 function libFsOpt(type, dim, value, label, checked) {
   return `<label class="fs-opt"><input class="fs-input lib-fs-input" type="${type}" ${type === 'radio' ? 'name="lib-fs-time"' : ''} data-lib-dim="${dim}" value="${escapeAttr(value)}" ${checked ? 'checked' : ''}><span class="fs-mark" aria-hidden="true">${ICONS.check}</span><span class="fs-text">${escapeHtml(label)}</span></label>`;
 }
+/* Schalter der Gruppe «Schnell» (die früheren Schnellfilter «Bis 30 Min.» und «Vegetarisch»). Sie teilen den Entwurf mit
+   «Maximale Gesamtzeit: Bis 30 Min.» und «Vegetarisch (mit vegan)», beide Stellen bleiben dadurch immer gleich. */
+function libFsSwitch(dim, label, checked) {
+  return `<label class="fs-opt lib-fs-switch"><input class="fs-input lib-fs-input" type="checkbox" role="switch" data-lib-dim="${dim}" value="1" ${checked ? 'checked' : ''}><span class="fs-text">${escapeHtml(label)}</span><span class="lib-sw-track" aria-hidden="true"><span class="lib-sw-thumb"></span></span></label>`;
+}
 function libFsGroup(key, title, inner) {
   return `<fieldset class="fs-group"><legend class="filter-group-title fs-legend" id="lib-fg-${key}">${escapeHtml(title)}</legend><div class="fs-opts">${inner}</div></fieldset>`;
 }
@@ -269,6 +346,7 @@ function libFilterSheet() {
         <button type="button" class="fs-close" data-action="close-modal" aria-label="Schliessen">${ICONS.x}</button>
       </div>
       <div class="fs-body">
+        ${libFsGroup('quick', 'Schnell', libFsSwitch('quick30', 'Bis 30 Min.', d.max === 30) + libFsSwitch('veg', 'Vegetarisch', d.veg))}
         ${libFsGroup('meal', 'Gerichtart: Mahlzeit', MEAL_TYPE_OPTIONS.map(o => libFsOpt('checkbox', 'cat', o.id, o.label, d.categories.has(o.id))).join(''))}
         ${libFsGroup('dish', 'Gerichtart: Gericht', DISH_TYPE_OPTIONS.map(o => libFsOpt('checkbox', 'cat', o.id, o.label, d.categories.has(o.id))).join(''))}
         ${libFsGroup('time', 'Maximale Gesamtzeit', libFsOpt('radio', 'max', '', 'Beliebig', !d.max) + LIB_TIME_CHOICES.map(m => libFsOpt('radio', 'max', String(m), `Bis ${m} Min.`, d.max === m)).join(''))}
@@ -296,6 +374,7 @@ function libSyncFilterSheet() {
     else if (dim === 'diet') inp.checked = d.diet.has(inp.value);
     else if (dim === 'veg') inp.checked = !!d.veg;
     else if (dim === 'max') inp.checked = inp.value === '' ? !d.max : Number(inp.value) === d.max;
+    else if (dim === 'quick30') inp.checked = d.max === 30;
   });
   const st = sheetEl.querySelector('.fs-status'); if (st) st.textContent = libDraftStatus(d);
 }
@@ -667,11 +746,20 @@ function libBindViews() {
       const y = window.scrollY;
       requestAnimationFrame(() => { if (window.scrollY !== y) window.scrollTo(0, y); });
       const clr = document.querySelector('.lib-search-clear'); if (clr) clr.hidden = !input.value;
+      const cls = document.querySelector('#libSearchPop .search-close');
+      if (cls) { const a = libSearchCloseAttrs(!!input.value.trim()); cls.dataset.id = a.id; cls.setAttribute('aria-label', a.label); }
       if (libHas('libSetQuery')) libSetQuery(input.value);
     };
     input.addEventListener('input', (e) => { if (e.isComposing) return; push(); });
     input.addEventListener('compositionend', push);
     input.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && state.libSearchOpen) {   // Handy-Suche wie home: Escape schliesst das Feld, der Suchtext bleibt
+        e.preventDefault();
+        if (libHas('libSetQuery') && input.value !== libDiscQuery()) libSetQuery(input.value);
+        state.libSearchOpen = false; render();
+        libFocusSel('#libSearchBtn');
+        return;
+      }
       if (e.key === 'Enter') { e.preventDefault(); if (typeof isPhoneLayout === 'function' && isPhoneLayout()) input.blur(); }
     });
   }
@@ -688,6 +776,7 @@ function libBindViews() {
       else if (dim === 'diet') { if (inp.checked) d.diet.add(inp.value); else d.diet.delete(inp.value); }
       else if (dim === 'veg') d.veg = inp.checked;
       else if (dim === 'max') d.max = inp.value ? Number(inp.value) : null;
+      else if (dim === 'quick30') d.max = inp.checked ? 30 : (d.max === 30 ? null : d.max);
       libSyncFilterSheet();
     });
   }
@@ -766,6 +855,7 @@ async function handleLibraryViewAction(action, id, el) {
   if (!action || action.indexOf('lib-') !== 0) return false;
   switch (action) {
     case 'lib-tab-mine':
+      state.libSearchOpen = false;
       state.recipesTab = 'mine';
       state.modal = null;
       state.view = 'home';
@@ -780,6 +870,17 @@ async function handleLibraryViewAction(action, id, el) {
       render();
       return true;
     }
+    case 'lib-search-open':
+      state.libSearchOpen = true; state.libSearchEnter = true;
+      render();
+      libFocusSel('#libSearchInput');
+      return true;
+    case 'lib-search-close':
+      state.libSearchOpen = false;
+      if (id === 'clear' && libHas('libSetQuery')) libSetQuery('');
+      render();
+      libFocusSel('#libSearchBtn');
+      return true;
     case 'lib-search-clear': {
       const input = document.getElementById('libSearchInput');
       if (input) input.value = '';
@@ -815,7 +916,7 @@ async function handleLibraryViewAction(action, id, el) {
     case 'lib-filter-clear-all':
       if (libHas('libResetFilters')) libResetFilters();
       else if (libHas('libSetFilter')) libSetFilter({ quick: false, veg: false, maxMinutes: null, diet: [], categories: [] });
-      libFocusSel('#libSearchInput');
+      libFocusSel(document.getElementById('libSearchInput') ? '#libSearchInput' : '[data-action="lib-filter-open"]');
       return true;
     case 'lib-chip-remove': {
       const key = String(id || '');
