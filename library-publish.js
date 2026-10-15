@@ -289,7 +289,7 @@ function lpStep1Html(r, p, built) {
     d.title ? escapeHtml(d.title) : 'Noch kein Titel', lpErrLines('title', lpMessagesFor(shown, 'title').length ? lpMessagesFor(shown, 'title') : (libPub.fieldErrors && !d.title ? ['Ein Titel ist nötig.'] : []))));
 
   // Ergibt
-  const yieldTxt = d.servings > 0 ? escapeHtml(d.servingMode === 'pieces' ? `${d.servings} ${d.yieldLabel || 'Stück'}` : `${d.servings} ${d.servings === 1 ? 'Portion' : 'Portionen'}`) : 'Nicht angegeben';
+  const yieldTxt = d.servings > 0 ? escapeHtml(servingLabel(d, d.servings)) : 'Nicht angegeben';   // gemeinsamer Helfer (auch Gesamtertrag «1 Glas», v0.83)
   items.push(lpCheckItem('yield', st('yield', d.servings > 0, true), 'Ergibt', yieldTxt, lpErrLines('yield', lpMessagesFor(shown, 'yield'))));
 
   // Zutaten
@@ -378,7 +378,7 @@ function lpPreviewHtml(pubLike, opts) {
   const d = pubLike.recipe || {};
   const imgId = pubLike.localImageId;
   const facts = [d.timeMinutes > 0 ? lpFmtMinutes(d.timeMinutes) : 'Zeit unbekannt',
-    d.servings > 0 ? (d.servingMode === 'pieces' ? `Ergibt ${d.servings} ${d.yieldLabel || 'Stück'}` : `Ergibt ${d.servings} ${d.servings === 1 ? 'Portion' : 'Portionen'}`) : 'Ergibt: offen',
+    d.servings > 0 ? `Ergibt ${servingLabel(d, d.servings)}` : 'Ergibt: offen',
     d.difficulty || ''].filter(Boolean);
   const extra = [d.prepMinutes > 0 ? `Vorbereitung ${lpFmtMinutes(d.prepMinutes)}` : '', d.cookMinutes > 0 ? `Garen ${lpFmtMinutes(d.cookMinutes)}` : '', d.restMinutes > 0 ? `Ruhen ${lpFmtMinutes(d.restMinutes)}` : ''].filter(Boolean);
   const chips = (d.diet || []).filter(x => LP_PUBLIC_DIETS.includes(x) && !(x === 'vegetarisch' && (d.diet || []).includes('vegan'))).map(categoryLabelFor).concat((d.categories || []).map(categoryLabelFor));

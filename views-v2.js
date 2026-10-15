@@ -282,7 +282,7 @@ function recipeMetaLine(r, full) {
   const parts = [];
   const ct = timeInfo(r).cardText;   // Zeitbasis ueberall: Gesamtzeit (timeMinutes)
   if (ct) parts.push(ct);
-  if (full && yieldKnown(r)) parts.push(yieldShort(r));
+  if (full && yieldKnown(r)) parts.push(servingLabel(r, r.servings));   // «4 Portionen», «12 Stück», «1 Glas»
   return parts.join(' · ');
 }
 function favButton(r, extraCls) {
