@@ -3490,3 +3490,6 @@ body:has(.lp) .topbar--sub .topbar-title { overflow-wrap: normal; hyphens: auto;
 .lib-switch-btn { overflow-wrap: normal; word-break: normal; hyphens: manual; }
 /* Tablet und Desktop: Umschalter rechts neben dem Seitentitel (keine zusätzliche Kopfhöhe) */
 .page-title-row .lib-switch { margin: -0.5rem 0 -0.5rem auto; flex: 0 0 auto; align-self: center; }
+@media (min-width: 768px) { .lib-switch-btn { white-space: nowrap; } }
+.lib-byline .lib-meta-line > span { display: block; min-width: 0; }
+.lib-author-link { display: inline-flex; align-items: center; justify-content: flex-start; text-align: left; vertical-align: middle; max-width: 100%; overflow-wrap: anywhere; }
