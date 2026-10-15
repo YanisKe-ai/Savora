@@ -469,6 +469,20 @@ function orgExport() {
 // recipeIdMap: { altId: neueId } (oder Map); fehlende/null = Ziel fehlt bzw. mehrdeutig → ueberspringen und melden.
 // Bestehende Grabsteine werden nicht wiederbelebt; wiederholtes Einspielen erzeugt keine Dubletten.
 function orgImport(data, recipeIdMap, colIdMap) {
+  orgLoad();
+  // Zuerst: rohe Sammlungs-IDs der wiederhergestellten Rezepte als entschieden vermerken (lokal, Uhr 0, nie abgeglichen).
+  // So uebernimmt die Bestandsuebernahme keine veralteten oder fremden Paare aus recipe.collections.
+  const rmap = (id) => { const v = recipeIdMap instanceof Map ? recipeIdMap.get(id) : (recipeIdMap || {})[id]; return typeof v === 'string' && v ? v : null; };
+  let suppressed = false;
+  (data && Array.isArray(data.legacy) ? data.legacy : []).forEach(p => {
+    if (!p || typeof p.c !== 'string' || typeof p.r !== 'string' || p.c === ORG_FRIENDS_ID) return;
+    const r2 = rmap(p.r); if (!r2) return;
+    const key = orgMemKey(p.c, r2);
+    if (org.mems[key]) return;
+    org.mems[key] = { c: p.c, r: r2, updatedAt: 0, deleted: true };
+    suppressed = true;
+  });
+  if (suppressed) { org.dirty.add('membership'); org.ver++; if (!org.batch) orgFlush(); }
   orgEnsureLegacy();
   return orgBatch(() => orgImportInner(data, recipeIdMap, colIdMap));
 }
@@ -519,17 +533,6 @@ function orgImportInner(data, recipeIdMap, colIdMap) {
     const k = p.c + '|' + p.r; if (seen.has(k)) return; seen.add(k);
     addMem(p);
   });
-  // Rohe Sammlungs-IDs in wiederhergestellten Rezepten als entschieden vermerken (lokal, Uhr 0, nie abgeglichen):
-  // so uebernimmt die Bestandsuebernahme keine veralteten oder fremden Paare.
-  let suppressed = false;
-  legacy.forEach(p => {
-    const r2 = rmap(p.r); if (!r2) return;
-    const key = orgMemKey(p.c, r2);
-    if (org.mems[key]) return;
-    org.mems[key] = { c: p.c, r: r2, updatedAt: 0, deleted: true };
-    suppressed = true;
-  });
-  if (suppressed) { org.dirty.add('membership'); org.ver++; }
   // 3. Verknuepfungen (beide Enden abbilden, danach neu kanonisieren)
   (Array.isArray(d.links) ? d.links : []).forEach(l => {
     if (!l || typeof l.a !== 'string' || typeof l.b !== 'string') { rep.links.missing++; return; }
