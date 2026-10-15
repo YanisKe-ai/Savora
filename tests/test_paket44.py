@@ -115,10 +115,11 @@ async def main():
 
         await pick(page, 'dietary', 'vegetarisch')
         a1 = await ev("() => [document.querySelector('.fs-apply').textContent.trim(), document.querySelector('.filter-btn').textContent.trim(), state.activeFilters.dietary.size, document.querySelector('.fs-status').textContent]")
-        check('Entwurf: Trefferzahl live, Filterzähler und Zustand noch unverändert', a1[0] == '4 Rezepte anzeigen' and a1[1] == 'Filter' and a1[2] == 0, str(a1))
+        # v0.83 (Auftrag §15): vegetarisch schliesst vegan ein (Frühstücksbowl, vegan) sowie das vegane Gemüse-Curry aus seed.js -> zwei Treffer mehr als vorher
+        check('Entwurf: Trefferzahl live, Filterzähler und Zustand noch unverändert', a1[0] == '6 Rezepte anzeigen' and a1[1] == 'Filter' and a1[2] == 0, str(a1))
         await pick(page, 'time', 'under-30')
         a2 = await ev("() => document.querySelector('.fs-apply').textContent.trim()")
-        check('Vegetarisch UND Bis 30 Min.: 2 Treffer, unbekannte Dauer nicht als schnell', a2 == '2 Rezepte anzeigen', a2)
+        check('Vegetarisch (inkl. vegan) UND Bis 30 Min.: 4 Treffer, unbekannte Dauer nicht als schnell', a2 == '4 Rezepte anzeigen', a2)
         await pick(page, 'category', 'dessert')
         a3 = await ev("() => document.querySelector('.fs-apply').textContent.trim()")
         check('Dazu Dessert: 1 Treffer, Singular «1 Rezept anzeigen»', a3 == '1 Rezept anzeigen', a3)
@@ -160,7 +161,7 @@ async def main():
         await page.click('.fs-apply'); await page.wait_for_timeout(600)
         ap = await ev("""() => ({ gone: !document.querySelector('.filter-sheet'), btn: document.querySelector('.filter-btn').textContent.trim(), sum: document.querySelector('.filter-summary-text').textContent.trim(), n: document.querySelectorAll('.rcard').length,
           line: document.querySelector('.result-line').textContent.trim(), foc: document.activeElement.dataset.action, f: [state.activeFilters.dietary.size, state.activeFilters.time.size] })""")
-        check('Übernehmen: Zähler «Filter · 2», Zusammenfassung, 2 Treffer', ap['gone'] and ap['btn'] == 'Filter · 2' and 'Vegetarisch' in ap['sum'] and 'Bis 30 Min.' in ap['sum'] and ap['n'] == 2 and ap['line'] == '2 Rezepte', str(ap))
+        check('Übernehmen: Zähler «Filter · 2», Zusammenfassung, 4 Treffer (vegan zählt als vegetarisch)', ap['gone'] and ap['btn'] == 'Filter · 2' and 'Vegetarisch' in ap['sum'] and 'Bis 30 Min.' in ap['sum'] and ap['n'] == 4 and ap['line'] == '4 Rezepte', str(ap))
         check('Fokus nach Übernehmen auf «Filter»', ap['foc'] == 'open-filter-sheet', str(ap['foc']))
         # beim erneuten Öffnen ist die Auswahl vorbelegt
         await open_sheet(page)
@@ -171,9 +172,9 @@ async def main():
         # Favoriten + Suche kombiniert mit Filtern, Sortierung/Fav zählen nicht
         await page.click('.seg-btn[data-id="fav"]'); await page.wait_for_timeout(200)
         t = await ev(TITLES)
-        check('Favoriten kombiniert mit Filtern: nur Gemüsepfanne', t == ['Gemüsepfanne'] and await ev("() => document.querySelector('.filter-btn').textContent.trim()") == 'Filter · 2', str(t))
+        check('Favoriten kombiniert mit Filtern: Gemüsepfanne und (vegan) Frühstücksbowl', sorted(t) == ['Frühstücksbowl', 'Gemüsepfanne'] and await ev("() => document.querySelector('.filter-btn').textContent.trim()") == 'Filter · 2', str(t))
         await page.click('.seg-btn[data-id="all"]'); await page.wait_for_timeout(200)
-        check('«Alle» setzt zusätzliche Filter nicht zurück', await ev(COUNT) == 2 and await ev("() => state.activeFilters.dietary.size") == 1)
+        check('«Alle» setzt zusätzliche Filter nicht zurück', await ev(COUNT) == 4 and await ev("() => state.activeFilters.dietary.size") == 1)
         await page.fill('#searchInput', 'apfel'); await page.wait_for_timeout(500)
         check('Suche zusammen mit Filtern', await ev(TITLES) == ['Apfelkuchen'] and await ev("() => document.getElementById('searchInput').value") == 'apfel')
         await page.fill('#searchInput', 'carbo'); await page.wait_for_timeout(500)
@@ -199,7 +200,7 @@ async def main():
         vw = await ev("() => state.view")
         await page.click('[data-action="back"]'); await page.wait_for_timeout(600)
         kept = await ev("() => [state.view, document.querySelector('.filter-btn').textContent.trim(), document.querySelectorAll('.rcard').length]")
-        check('Auswahl bleibt nach Rezept öffnen und Zurück erhalten', vw == 'detail' and kept == ['home', 'Filter · 2', 2], str(kept))
+        check('Auswahl bleibt nach Rezept öffnen und Zurück erhalten', vw == 'detail' and kept == ['home', 'Filter · 2', 4], str(kept))
         # Mit geöffnetem Fenster: Browser-Zurück schliesst nur das Fenster
         await open_sheet(page); await pick(page, 'dietary', 'vegan')
         await page.go_back(); await page.wait_for_timeout(500)

@@ -72,14 +72,15 @@ async def main():
         await ev("() => { const d = document.querySelector('.recipe-check'); d.open = true; }")
         items = await ev("""() => Array.from(document.querySelectorAll('.recipe-check .rc-item')).map(li => { const p = li.querySelector('.rc-text'); const lvl = p.querySelector('.rc-level');
             return { lvl: lvl ? lvl.textContent.replace(':', '').trim() : '', rest: p.textContent.replace(lvl ? lvl.textContent : '', '').trim(), before: getComputedStyle(p.querySelector('span'), '::before').content }; })""")
-        check('Kein leeres «Prüfen:»: jede Zeile hat Stufe UND Text im selben Absatz, kein CSS-Vorsatz', items and all(i['lvl'] in ('Fehler', 'Prüfen', 'Hinweis') and len(i['rest']) > 15 and i['before'] in ('none', 'normal') for i in items), str(items))
-        check('Aktion «Angabe prüfen» je Hinweis', await ev("() => document.querySelectorAll('.recipe-check [data-action=rc-open-field]').length") == len(items) and await ev("() => document.querySelector('[data-action=rc-open-field]').textContent.trim()") == 'Angabe prüfen')
+        check('Kein leeres «Prüfen:»: jede Zeile hat Stufe UND Text im selben Absatz, kein CSS-Vorsatz', items and all(i['lvl'] in ('Fehler', 'Zu prüfen', 'Hinweis') and len(i['rest']) > 15 and i['before'] in ('none', 'normal') for i in items), str(items))
+        go = await ev("() => Array.from(document.querySelectorAll('.recipe-check [data-action=rc-open-field]')).map(b => [b.textContent.trim(), (document.getElementById(b.getAttribute('aria-describedby')) || {}).textContent || ''])")
+        check('Aktion je Hinweis mit Ziel im Namen (Portionen/Zeit/Zutat prüfen) und Verweis auf den Hinweistext', len(go) == len(items) and [g[0] for g in go] == ['Portionen prüfen', 'Zeit prüfen', 'Zutat prüfen'] and all(len(g[1]) > 15 for g in go), str(go))
 
         # Direktsprung zum Editor: Zeit-Hinweis -> Feld «Ruhen»
         await ev("() => { window.scrollTo(0, 0); }")
         await ev("() => { const i = recipeQualityIssues(state.recipes.find(r => r.id === 'h2_karamell')).find(x => x.id === 'time-text'); document.querySelector(`[data-action=rc-open-field][data-issue=\"${i.id}\"]`).click(); }")
         await page.wait_for_function("state.view === 'form' && document.activeElement && document.activeElement.id === 'f-rest'", timeout=5000)
-        check('Direktsprung: Editor offen, Feld «Ruhen/Kühlen» fokussiert', True)
+        check('Direktsprung: Editor offen, Feld «Ruhen» im zugeklappten Abschnitt aufgeklappt und fokussiert', await ev("() => { const d = document.getElementById('f-rest').closest('details'); return !d || d.open; }"))
         await page.go_back(); await page.wait_for_function("state.view === 'detail'", timeout=5000)
         check('Rückkehr: Rezeptseite mit Reiter «Zubereitung», Rezept unverändert', await ev("state.activeRecipeId") == 'h2_karamell' and await ev("document.querySelector('.tab-v2.is-active').textContent.trim()") == 'Zubereitung' and before == await ev("() => JSON.stringify(state.recipes.find(r => r.id === 'h2_karamell'))"))
         # Zutat ohne Menge -> Schritt «Zutaten», Mengenfeld der Zeile 3
@@ -104,7 +105,7 @@ async def main():
         await ev("() => document.querySelector('.detail-tools [data-action=open-share-menu]').click()")
         await page.wait_for_selector('.share-menu')
         sm = await ev("() => Array.from(document.querySelectorAll('.share-menu .menu-item')).map(b => b.dataset.action + '|' + b.textContent.trim())")
-        check('Teilen-Menü (nicht veröffentlicht): An Freunde senden, kein öffentlicher Link, Veröffentlichen, PDF', any(x.startswith('share-open-send|An Freunde senden') for x in sm) and not any('share-public-link' in x for x in sm) and any('lib-pub-open' in x for x in sm) and any(x.startswith('share-recipe|') for x in sm), str(sm))
+        check('Teilen-Menü (nicht veröffentlicht): An Freunde senden, kein öffentlicher Link, Veröffentlichen, Als PDF exportieren', any(x.startswith('share-open-send|An Freunde senden') for x in sm) and not any('share-public-link' in x for x in sm) and any('lib-pub-open' in x for x in sm) and any(x == 'share-recipe|Als PDF exportieren' for x in sm), str(sm))
         await page.keyboard.press('Escape'); await page.wait_for_function("!state.modal", timeout=5000)
         await ev("""() => { lib.mine.items = [{ id: 'pub123abc', source_local_id: 'h2_karamell', status: 'published', updated_at: '2026-10-15' }];
             window.__shared = null; window.libShareNative = async (url, title) => { window.__shared = { url, title }; return 'shared'; }; render(); }""")
@@ -118,7 +119,7 @@ async def main():
         await ev("() => { lib.mine.items = []; }")
         await page.wait_for_function("!state.modal", timeout=5000)
         dm = await ev("() => { openModal({ type: 'detail-menu', recipeId: 'h2_karamell' }); return Array.from(document.querySelectorAll('.menu-list .menu-item span:first-child, .menu-list .menu-item > span')).map(s => s.textContent.trim()); }")
-        check('Menü: «Zum Wochenplan», Teilen-Gruppe klar getrennt', 'Zum Wochenplan' in dm and 'An Freunde senden' in dm and 'An Freund in Savora senden' not in dm, str(dm))
+        check('Menü: «Zum Wochenplan», Teilen-Gruppe klar getrennt, PDF nur einmal', 'Zum Wochenplan' in dm and 'An Freunde senden' in dm and 'An Freund in Savora senden' not in dm and dm.count('Als PDF exportieren') == 1, str(dm))
         await page.keyboard.press('Escape'); await page.wait_for_function("!state.modal", timeout=5000)
 
         # 320 px: keine horizontale Scrollleiste, Aktionen nicht abgeschnitten
@@ -163,10 +164,10 @@ async def main():
         await page.wait_for_selector('.kd-link')
         t = await ev("() => document.querySelector('main').innerText")
         rows = await ev("() => Array.from(document.querySelectorAll('.kd-link')).map(b => b.dataset.view)")
-        check('Konto: öffentliches Profil = Rezeptbibliothek, Freunde-Profil getrennt, keine doppelte Verwaltung (nur Verweise)', 'lib-pubprofile' in rows and 'friends-profile' in rows and 'Für die Rezeptbibliothek' in t and 'Einladungscode bleibt privat' in t and 'Nur nötig, wenn du Rezepte mit Freunden' not in t, str(rows))
+        check('Konto: öffentliches Profil = Rezeptbibliothek, Freunde-Profil getrennt, keine doppelte Verwaltung (nur Verweise)', 'lib-pubprofile' in rows and 'friends-profile' in rows and 'Sichtbar für alle' in t and 'Sichtbar für deine Freunde' in t and 'Einladungscode bleibt privat' in t and 'Nur nötig, wenn du Rezepte mit Freunden' not in t, str(rows))
         await ev("() => { state.view = 'settings-sync'; render(); }")
         t = await ev("() => document.querySelector('main').innerText")
-        check('Geräteabgleich: vereinbarter Zwecksatz', 'Hält deine Rezepte und unterstützten Daten auf deinen Geräten aktuell.' in t)
+        check('Geräteabgleich: vereinbarter Zwecksatz, unterstützte Datenarten direkt darunter', 'Hält deine Rezepte und unterstützten Daten auf deinen Geräten aktuell.' in t and await ev("() => !!document.querySelector('.kd-bullets--lead')"))
         await ev("() => { state.view = 'settings-backup'; render(); }")
         t = await ev("() => document.querySelector('main').innerText")
         check('Sicherung: vereinbarter Zwecksatz, kein «alle Daten»-Versprechen', 'Erstellt eine Datei, mit der du deine Daten später wiederherstellen kannst.' in t and 'alle Daten' not in t and 'Alle Daten' not in t)

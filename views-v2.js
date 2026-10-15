@@ -693,19 +693,19 @@ function sheet(id, title, body) {
 function recipePublishedPub(r) {
   try { const p = typeof libPublicationForRecipe === 'function' ? libPublicationForRecipe(r.id) : null; return p && p.status === 'published' ? p : null; } catch (e) { return null; }
 }
-function shareMenuItemsHtml(r) {
-  const item = (action, icon, label, hint) => `<button class="menu-item ${hint ? 'menu-item--hint' : ''}" data-action="${action}" data-id="${escapeAttr(r.id)}">${icon}<span class="menu-item-text"><span>${label}</span>${hint ? `<span class="menu-item-hint">${hint}</span>` : ''}</span></button>`;
+function shareMenuItemsHtml(r, inMenu) {
+  const item = (action, icon, label, hint) => `<button type="button" class="menu-item ${hint ? 'menu-item--hint' : ''}" data-action="${action}" data-id="${escapeAttr(r.id)}">${icon}<span class="menu-item-text"><span>${label}</span>${hint ? `<span class="menu-item-hint">${hint}</span>` : ''}</span></button>`;
   const pub = recipePublishedPub(r);
   return item('share-open-send', ICONS.user || ICONS.share, 'An Freunde senden', 'Privat, nur an Freunde in Savora')
     + (pub ? item('share-public-link', ICONS.link, 'Öffentlichen Link teilen', 'Link zur Veröffentlichung in der Rezeptbibliothek') : '')
     + (typeof libPublishMenuItemHtml === 'function' && !r.publicOrigin ? libPublishMenuItemHtml(r) : '')
-    + item('share-recipe', ICONS.pdf, 'Als PDF teilen');
+    + (inMenu ? '' : item('share-recipe', ICONS.pdf, 'Als PDF exportieren'));   // im Menü steht «Als PDF exportieren» schon oben
 }
 function shareMenuModal(r) {
   return sheet('share-menu-title', 'Teilen', `<div class="menu-list share-menu">${shareMenuItemsHtml(r)}</div>`);
 }
 function detailMenuModal(r) {
-  const item = (action, icon, label, extra) => `<button class="menu-item ${extra || ''}" data-action="${action}" data-id="${escapeAttr(r.id)}">${icon}<span>${label}</span></button>`;
+  const item = (action, icon, label, extra) => `<button type="button" class="menu-item ${extra || ''}" data-action="${action}" data-id="${escapeAttr(r.id)}">${icon}<span>${label}</span></button>`;
   return sheet('detail-menu-title', r.title || 'Rezept', `<div class="menu-list">
     ${item('edit-recipe', ICONS.edit, 'Bearbeiten')}
     ${item('duplicate-recipe', ICONS.copy, 'Duplizieren')}
@@ -715,7 +715,7 @@ function detailMenuModal(r) {
     ${item('open-plan-recipe', ICONS.calendar, 'Zum Wochenplan')}
     ${item('open-note-modal', ICONS.note, 'Notiz hinzufügen')}
     <p class="menu-group-title" role="presentation">Teilen</p>
-    ${shareMenuItemsHtml(r)}
+    ${shareMenuItemsHtml(r, true)}
     ${item('confirm-delete', ICONS.trash, 'Löschen', 'menu-item--danger')}
   </div>`);
 }

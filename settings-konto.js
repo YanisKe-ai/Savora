@@ -78,18 +78,18 @@ function settingsAccountView() {
   if (kdSignedIn()) {
     const hasProfile = typeof friendsProfileView === 'function';   // Route friends-profile gehört zu «Freunde & Rezepte»
     const hasPubProfile = typeof libPubProfileView === 'function';   // Route lib-pubprofile gehört zur Rezeptbibliothek (einzige Stelle für öffentliche Sichtbarkeit)
-    body = kdLeadHtml('Dein Konto hält deine Rezepte auf deinen Geräten aktuell. Du brauchst es auch für Freunde & Rezepte und zum Veröffentlichen in der Rezeptbibliothek.')
+    body = kdLeadHtml('Mit deinem Konto bleiben deine Rezepte auf allen Geräten aktuell. Du brauchst es auch für Freunde und zum Veröffentlichen in der Bibliothek.')
       + kdSection('kdAccStatus', 'Status', `
         <p class="kd-status"><span class="sync-dot" aria-hidden="true"></span><strong class="kd-status-title">Angemeldet</strong></p>
         <p class="kd-sub">E-Mail: <strong class="kd-email">${escapeHtml(kdEmail())}</strong></p>
         ${hasPubProfile || hasProfile ? `<p class="kd-sub kd-sub--strong kd-profiles-title">Deine Profile</p>` : ''}
-        ${hasPubProfile ? kdLinkRow('lib-pubprofile', 'Öffentliches Profil', 'Für die Rezeptbibliothek. Anzeigename, Bild und Kurztext sieht jede Person, die deine veröffentlichten Rezepte ansieht.') : ''}
-        ${hasProfile ? kdLinkRow('friends-profile', 'Profil für Freunde', 'Dein Benutzername, über den dich Freunde finden. Dein Einladungscode bleibt privat.') : ''}`)
+        ${hasPubProfile ? kdLinkRow('lib-pubprofile', 'Öffentliches Profil', 'Sichtbar für alle: Anzeigename, Bild und Kurztext stehen bei deinen veröffentlichten Rezepten in der Bibliothek.') : ''}
+        ${hasProfile ? kdLinkRow('friends-profile', 'Profil für Freunde', 'Sichtbar für deine Freunde: dein Benutzername, über den sie dich finden. Dein Einladungscode bleibt privat.') : ''}`)
       + kdSection('kdAccPw', 'Passwort', `
         <p class="kd-sub">Lege ein neues Passwort für die Anmeldung fest.</p>
         <button type="button" class="ghost-btn kd-btn" data-action="konto-pw-open">Passwort ändern</button>`)
       + kdSection('kdAccOut', 'Abmelden', `
-        <p class="kd-sub">Deine Rezepte und Daten auf diesem Gerät bleiben erhalten. Der Geräteabgleich endet, und beim nächsten Anmelden werden die Daten dieses Geräts mit deinem Konto zusammengeführt.</p>
+        <p class="kd-sub">Deine Rezepte und Daten bleiben auf diesem Gerät. Der Geräteabgleich endet, und beim nächsten Anmelden werden die Daten dieses Geräts mit deinem Konto zusammengeführt.</p>
         <button type="button" class="ghost-btn kd-btn" data-action="cloud-sign-out">Abmelden</button>`)
       + kdSection('kdAccDel', 'Konto löschen', `
         <p class="kd-sub">Löscht dein Konto und die Daten in der Cloud endgültig. Die Rezepte auf diesem Gerät bleiben erhalten. Vor dem Löschen siehst du alle Folgen.</p>
@@ -98,7 +98,7 @@ function settingsAccountView() {
     body = kdLeadHtml('Mit einem Konto werden deine Rezepte auf deinen Geräten übernommen. Ohne Konto bleibt alles auf diesem Gerät, und Savora funktioniert wie gewohnt.')
       + kdSection('kdAccStatus', 'Nicht angemeldet', kdSignedOutForm())
       + (CLOUD_SIGNUP_OPEN ? '' : `<p class="kd-note">${ICONS.info}<span>Noch kein Zugang? ${escapeHtml(CLOUD_CLOSED_BETA_TEXT)}</span></p>`)
-      + `<p class="kd-sub kd-sub--outside">Gespeichert wird in Zürich (Supabase). Nur du hast Zugriff auf deine privaten Daten.</p>`;
+      + `<p class="kd-sub kd-sub--outside">Deine Daten liegen auf einem Server in Zürich. Deine privaten Rezepte siehst nur du.</p>`;
   }
   return kdPage('Mein Konto', body) + kdModals();
 }
@@ -195,7 +195,7 @@ function settingsSyncView() {
       <p class="kd-sub">Wenn zwei Geräte denselben Eintrag ändern, gilt der neuere Stand. Löschst du ein Rezept, verschwindet es auf allen angemeldeten Geräten. Der Abgleich läuft automatisch, solange Savora geöffnet ist.</p>
     </div></details>`;
   const note = `<p class="kd-note">${ICONS.info}<span>Der Abgleich ist keine Sicherung: Er hält deine Geräte gleich, bewahrt aber keinen älteren Stand. Eine Kopie als Datei findest du unter <button type="button" class="kd-inline-link" data-action="goto-view" data-view="settings-backup">Sicherung &amp; Wiederherstellung</button>.</span></p>`;
-  return kdPage('Geräteabgleich', kdLeadHtml('Hält deine Rezepte und unterstützten Daten auf deinen Geräten aktuell.') + status + what + note) + kdModals();
+  return kdPage('Geräteabgleich', kdLeadHtml('Hält deine Rezepte und unterstützten Daten auf deinen Geräten aktuell.') + `<ul class="kd-bullets kd-bullets--lead" aria-label="Unterstützte Daten"><li>Rezepte mit ihren Fotos</li><li>Wochenplan</li><li>Einkaufsliste</li><li>Sammlungen und Kochbücher</li></ul>` + status + what + note) + kdModals();
 }
 /* Kurztext für die Übersicht «Einstellungen» (echter Zustand statt «An») */
 function settingsSyncSummary() {
