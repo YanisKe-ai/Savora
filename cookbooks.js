@@ -202,6 +202,165 @@ function cookbookSetActive(id) {
   return true;
 }
 
+/* ---------- v83: eine gemeinsame PDF-Konfiguration pro Kochbuch ----------
+   Alle Optionen stehen in der Konfiguration des Kochbuchs (additiv, optional):
+     pdfTemplate  'pur' | 'prise-pop'   (wie bisher; alte IDs werden oben normalisiert)
+     pdfNutrition 'off' | 'compact' | 'full'   (NEU; fehlt = Standard: Kompakt, wenn Nährwerte eingeschaltet sind, sonst Aus.
+                                               Rezepte ohne berechnete Nährwerte drucken ohnehin keine Box, also gleiches PDF wie bisher)
+     author       Name auf Titelblatt und in der Fusszeile (wie bisher; leer = nicht gedruckt). Der frühere Name «nur für dieses PDF»
+                  im Exportdialog wurde nie gespeichert; es gibt daher keinen Altwert, der verloren gehen kann.
+   Cover-Editor (Schritt «Gestalten»), Zusammenfassung, Export und Vorschau lesen nur diese Werte. */
+const COOKBOOK_NUTRITION_LEVELS = ['off', 'compact', 'full'];
+const COOKBOOK_NUTRITION_LABEL = { off: 'Aus', compact: 'Kompakt', full: 'Erweitert' };
+function cookbookPdfNutrition(cfg) {
+  if (!state.showNutrition) return 'off';
+  const v = cfg && cfg.pdfNutrition;
+  return COOKBOOK_NUTRITION_LEVELS.includes(v) ? v : 'compact';
+}
+function cookbookPdfTemplate(cfg) {
+  const id = (cfg && cfg.pdfTemplate) || (typeof pdfDefaultTemplateId === 'function' ? pdfDefaultTemplateId() : 'pur');
+  return typeof pdfNormTpl === 'function' ? pdfNormTpl(id) : id;
+}
+function cookbookPdfTemplateName(id) { return (typeof PDF_TEMPLATES !== 'undefined' && PDF_TEMPLATES[id] && PDF_TEMPLATES[id].name) || id; }
+/* Optionen fuer den Export (gleiche Werte wie in «Gestalten»). author bleibt weg: pdf.js nimmt cfg.author. */
+function cookbookExportOptions(cfg) {
+  return { template: cookbookPdfTemplate(cfg), nutritionDetail: cookbookPdfNutrition(cfg) };
+}
+
+/* ---------- v83: Zusammenfassung und Prüfhinweise ---------- */
+function cookbookPlural(n, one, many) { return `${n} ${n === 1 ? one : many}`; }
+/* Kapitel, die tatsaechlich Rezepte enthalten; leere Kapitel bleiben erhalten, werden im PDF aber ausgelassen */
+function cookbookSummary(cfg) {
+  const ids = new Set(state.recipes.map(r => r.id));
+  const items = (cfg.items || []).filter(it => ids.has(it.recipeId));
+  const chapters = cfg.chapters || [];
+  const used = chapters.filter(c => items.some(it => it.chapterId === c.id));
+  const empty = chapters.filter(c => !items.some(it => it.chapterId === c.id));
+  const loose = items.filter(it => !it.chapterId || !chapters.some(c => c.id === it.chapterId)).length;
+  let text = cookbookPlural(items.length, 'Rezept', 'Rezepte');
+  if (used.length) text += ` in ${used.length} ${used.length === 1 ? 'verwendetem Kapitel' : 'verwendeten Kapiteln'}`;
+  if (used.length && loose) text += `, ${loose} ohne Kapitel`;
+  return { recipes: items.length, used, empty, loose, text };
+}
+function cookbookEmptyChaptersText(n) { return n === 1 ? '1 leeres Kapitel wird im PDF ausgelassen.' : `${n} leere Kapitel werden im PDF ausgelassen.`; }
+
+/* Ergebnis des letzten Kochbuch-PDFs (nur im Speicher): echte Seitenzahlen pro Rezept.
+   Quelle: zuerst blob.recipePages des angezeigten PDFs, dann `pdfLastPageCounts` (Map recipeId -> tatsaechliche Seiten) und `pdfLastPlan`.
+   Nur als Rueckfall (aelterer Stand ohne diese Schnittstelle): blob.planLog, sonst blob.recipeStart. */
+function cookbookPageCountsFromBlob(blob, cfg) {
+  const out = {};
+  // 1) Seiten genau dieses PDFs (pdf.js: blob.recipePages), passt sicher zur angezeigten Datei
+  try {
+    if (blob && blob.recipePages && typeof blob.recipePages.forEach === 'function') {
+      blob.recipePages.forEach((n, id) => { if (n > 0) out[id] = n; });
+      if (Object.keys(out).length) return out;
+    }
+  } catch (e) { /* Rueckfall unten */ }
+  try {
+    const planOk = typeof pdfLastPlan === 'undefined' || !pdfLastPlan || pdfLastPlan.kind === 'cookbook';
+    if (planOk && typeof pdfLastPageCounts !== 'undefined' && pdfLastPageCounts && typeof pdfLastPageCounts.forEach === 'function') {
+      pdfLastPageCounts.forEach((n, id) => { if (n > 0) out[id] = n; });
+      if (Object.keys(out).length) return out;
+    }
+  } catch (e) { /* Rueckfall unten */ }
+  const recipes = cookbookOrderedSections(cfg).flatMap(s => s.recipes);
+  const logs = blob && Array.isArray(blob.planLog) ? blob.planLog : null;
+  if (logs && logs.length === recipes.length) {
+    recipes.forEach((r, i) => { const n = parseInt(String((logs[i] && logs[i].plan) || ''), 10); if (n > 0) out[r.id] = n; });
+    if (Object.keys(out).length === recipes.length) return out;
+  }
+  const starts = blob && blob.recipeStart;
+  if (starts && !cfg.chapterPages) {
+    recipes.forEach((r, i) => { const a = starts[r.id], next = i + 1 < recipes.length ? starts[recipes[i + 1].id] : (blob.pageCount || 0) + 1; if (a > 0 && next > a) out[r.id] = next - a; });
+  }
+  return out;
+}
+function cookbookRememberBuild(blob, template) {
+  const cfg = getCookbookConfig();
+  state.cookbookLastBuild = { bookId: cookbookActiveBook().id, template, pageCount: (blob && blob.pageCount) || 0, pages: cookbookPageCountsFromBlob(blob, cfg), at: Date.now() };
+}
+function cookbookLastBuildFor(bookId) { const b = state.cookbookLastBuild; return b && b.bookId === bookId ? b : null; }
+
+/* Prüfhinweise: { level: 'error'|'check'|'info', text, target: { action, id?, label } }.
+   Fehler zuerst, dann «Prüfen», dann Informationen. Cover-Hinweise stammen aus cover-model.js (coverLayout().warnings) und werden nur angezeigt. */
+const COOKBOOK_LEVEL_RANK = { error: 0, check: 1, info: 2 };
+function cookbookReview(cfg) {
+  const out = [];
+  const byId = Object.fromEntries(state.recipes.map(r => [r.id, r]));
+  const recipeTarget = (r) => ({ action: 'open-recipe', id: r.id, label: 'Rezept prüfen' });
+  const coverTarget = { action: 'cb-step', id: '2', label: 'Cover bearbeiten' };
+  const chapterTarget = { action: 'cb-step', id: '1', label: 'Kapitel bearbeiten' };
+  if (!cfg.items.length) out.push({ level: 'error', text: 'Es ist noch kein Rezept ausgewählt.', target: { action: 'cb-step', id: '1', label: 'Rezepte auswählen' } });
+  if (typeof coverLayout === 'function' && cfg.cover) {
+    try {
+      coverLayout(coverInputFromConfig(cfg)).warnings.forEach((w) => {
+        if (!w || !w.message) return;
+        out.push({ level: (!w.kind || w.kind === 'cut' || w.kind === 'outside') ? 'error' : 'check', text: 'Titelblatt: ' + w.message, target: coverTarget });
+      });
+    } catch (e) { /* Cover-Pruefung nicht verfuegbar */ }
+  }
+  if (cfg.items.length > 40) out.push({ level: 'check', text: `Ein Kochbuch mit ${cfg.items.length} Rezepten dauert beim Erstellen einige Minuten und braucht viel Speicher auf deinem Gerät. Teile es bei Bedarf in mehrere Kochbücher auf.`, target: { action: 'cb-step', id: '1', label: 'Rezepte auswählen' } });
+  const noPhoto = [];
+  cfg.items.forEach((it) => {
+    const r = byId[it.recipeId]; if (!r) return;
+    const t = r.title || 'Ohne Titel';
+    if (!realIngredients(r).length) out.push({ level: 'check', text: `«${t}» hat keine Zutaten.`, target: recipeTarget(r) });
+    if (!(r.steps || []).some(s => (s.text || '').trim())) out.push({ level: 'check', text: `«${t}» hat keine Zubereitungsschritte.`, target: recipeTarget(r) });
+    if (typeof recipeIssuesSummary === 'function') { const w = recipeIssuesSummary(r); if (w) out.push({ level: 'check', text: w, target: recipeTarget(r) }); }
+    if (!r.image && !r.imageId) noPhoto.push(r);
+  });
+  const tt = (r) => '«' + (r.title || 'Ohne Titel') + '»';
+  if (noPhoto.length) out.push({ level: 'info', text: noPhoto.length === 1 ? `${tt(noPhoto[0])} hat kein Foto. Die Seite wird ohne Bild gestaltet.` : `${noPhoto.length} Rezepte haben kein Foto. Ihre Seiten werden ohne Bild gestaltet: ${noPhoto.map(tt).join(', ')}.`, target: noPhoto.length === 1 ? recipeTarget(noPhoto[0]) : null });
+  if (cfg.coverRecipeId) {
+    const r = byId[cfg.coverRecipeId];
+    if (!r || (!r.image && !r.imageId)) out.push({ level: 'check', text: 'Das gewählte Titelbild ist nicht mehr verfügbar.', target: coverTarget });
+  }
+  // leere Kapitel: EIN Hinweis (Details aufklappbar in der Ansicht), nicht einer pro Kapitel
+  const sum = cookbookSummary(cfg);
+  if (sum.empty.length) out.push({ level: 'info', kind: 'empty-chapters', text: cookbookEmptyChaptersText(sum.empty.length), names: sum.empty.map(c => c.name), target: chapterTarget });
+  return out.map((h, i) => ({ ...h, i })).sort((a, b) => (COOKBOOK_LEVEL_RANK[a.level] - COOKBOOK_LEVEL_RANK[b.level]) || a.i - b.i);
+}
+
+/* ---------- v83: Coverminiaturen in der Übersicht ----------
+   Gleiche Zeichenfunktion wie Editor und PDF (coverLayout + coverRenderCanvas), klein gerendert und im Speicher zwischengespeichert:
+   neu gezeichnet wird nur, wenn sich Titel, Texte oder Cover des Buchs geaendert haben. Fehler: Vorlagenbild als Platzhalter. */
+const _cookbookThumbCache = new Map();   // bookId -> { sig, url } | { sig, failed: true }
+function cookbookThumbInput(book) {
+  const raw = (book && book.config) || {};
+  const cover = typeof coverSanitizeConfig === 'function' ? coverSanitizeConfig(raw.cover, false) : raw.cover;
+  return coverInputFromConfig({ ...raw, cover });
+}
+function cookbookThumbSig(book) { try { return JSON.stringify(cookbookThumbInput(book)); } catch (e) { return ''; } }
+function cookbookThumbHtml(b) {
+  const sig = cookbookThumbSig(b), hit = _cookbookThumbCache.get(b.id);
+  const ready = hit && hit.sig === sig && hit.url;
+  const src = ready ? hit.url : coverThumbUrl(cookbookCoverId(b));
+  return `<img class="cbk-thumb ${ready ? 'is-rendered' : 'is-placeholder'}" src="${escapeAttr(src)}" alt="" width="64" height="91" data-cbk-thumb="${escapeAttr(b.id)}">`;
+}
+let _cookbookThumbRun = 0;
+async function cookbookBindThumbs() {
+  const imgs = Array.from(document.querySelectorAll('img[data-cbk-thumb].is-placeholder'));
+  if (!imgs.length || typeof coverRenderCanvas !== 'function') return;
+  const run = ++_cookbookThumbRun;
+  for (const img of imgs) {
+    const b = cookbookById(img.dataset.cbkThumb); if (!b) continue;
+    const sig = cookbookThumbSig(b), hit = _cookbookThumbCache.get(b.id);
+    if (hit && hit.sig === sig && hit.failed) continue;   // gleicher Stand ist schon einmal gescheitert: Platzhalter behalten
+    try {
+      const layout = coverLayout(cookbookThumbInput(b));
+      const bg = layout.background ? await coverBackgroundDataUrl(layout.templateId) : null;
+      const c = await coverRenderCanvas(layout, 0.25, bg);
+      const url = c.toDataURL('image/jpeg', 0.85);
+      _cookbookThumbCache.set(b.id, { sig, url });
+      if (run !== _cookbookThumbRun) return;
+      document.querySelectorAll(`img[data-cbk-thumb="${cssAttr(b.id)}"]`).forEach((el) => { el.src = url; el.classList.remove('is-placeholder'); el.classList.add('is-rendered'); });
+    } catch (e) {
+      _cookbookThumbCache.set(b.id, { sig, failed: true });
+      document.querySelectorAll(`img[data-cbk-thumb="${cssAttr(b.id)}"]`).forEach((el) => el.classList.add('is-fallback'));
+    }
+  }
+}
+
 /* ---------- Ansicht «Kochbücher» ---------- */
 function cookbookDateLabel(ts) {
   if (!ts) return '';
@@ -219,21 +378,20 @@ function cookbooksView() {
           const n = cookbookRecipeCount(b);
           const name = escapeHtml(b.name);
           return `<li class="cbk-card" data-book="${escapeHtml(b.id)}">
-            <img class="cbk-thumb" src="${coverThumbUrl(cookbookCoverId(b))}" alt="" width="64" height="91" loading="lazy">
+            ${cookbookThumbHtml(b)}
             <div class="cbk-body">
               <h2 class="cbk-name">${name}</h2>
-              <p class="cbk-meta">${n} ${n === 1 ? 'Rezept' : 'Rezepte'} · zuletzt bearbeitet am ${escapeHtml(cookbookDateLabel(b.updatedAt))}</p>
+              <p class="cbk-meta">${n} ${n === 1 ? 'Rezept' : 'Rezepte'}</p>
+              ${b.updatedAt ? `<p class="cbk-date">Zuletzt bearbeitet am ${escapeHtml(cookbookDateLabel(b.updatedAt))}</p>` : ''}
               <div class="cbk-actions">
-                <button class="outline-btn cbk-open" data-action="cb-open" data-id="${escapeHtml(b.id)}" aria-label="Kochbuch ${name} öffnen und bearbeiten">${ICONS.edit} Bearbeiten</button>
-                <button class="text-btn" data-action="cb-rename" data-id="${escapeHtml(b.id)}" aria-label="Kochbuch ${name} umbenennen">Umbenennen</button>
-                <button class="text-btn" data-action="cb-duplicate" data-id="${escapeHtml(b.id)}" aria-label="Kochbuch ${name} duplizieren">Duplizieren</button>
-                <button class="text-btn text-btn--danger" data-action="cb-delete" data-id="${escapeHtml(b.id)}" aria-label="Kochbuch ${name} löschen" ${only ? 'disabled aria-disabled="true"' : ''}>Löschen</button>
+                <button type="button" class="outline-btn cbk-open" data-action="cb-open" data-id="${escapeHtml(b.id)}" aria-label="Kochbuch ${name} öffnen und bearbeiten">${ICONS.edit} Öffnen</button>
+                <button type="button" class="icon-btn cbk-more" data-action="cb-menu" data-id="${escapeHtml(b.id)}" aria-haspopup="dialog" aria-label="Weitere Aktionen für ${name}">${ICONS.moreH || ICONS.more}</button>
               </div>
             </div>
           </li>`;
         }).join('')}
       </ul>
-      ${only ? '<p class="hint-line">Mindestens ein Kochbuch bleibt bestehen. Gelöscht wird immer nur das Kochbuch, nie ein Rezept.</p>' : ''}
+      ${only ? '<p class="hint-line">Das letzte Kochbuch kann nicht gelöscht werden. Beim Löschen bleiben deine Rezepte erhalten.</p>' : ''}
     </main>
     ${bottomNav()}
     ${cookbookModals()}`;
@@ -254,6 +412,20 @@ function cookbookModals() {
         <button class="ghost-btn" data-action="close-modal">Abbrechen</button>
         <button class="primary-btn" data-action="cb-name-save">${isNew ? 'Anlegen' : 'Speichern'}</button>
       </div>`);
+  }
+  if (m.type === 'cb-menu') {
+    const b = cookbookById(m.id);
+    if (!b) return '';
+    const only = cookbookBooks().length <= 1;
+    const id = escapeAttr(b.id);
+    return sheet('cb-menu-title', b.name, `
+      <div class="menu-list">
+        <button type="button" class="menu-item" data-action="cb-rename" data-id="${id}">${ICONS.edit}<span>Umbenennen</span></button>
+        <button type="button" class="menu-item" data-action="cb-duplicate" data-id="${id}">${ICONS.copy}<span>Duplizieren</span></button>
+        <button type="button" class="menu-item menu-item--danger" data-action="cb-delete" data-id="${id}" ${only ? 'disabled aria-disabled="true" aria-describedby="cbMenuOnly"' : ''}>${ICONS.trash}<span>Löschen</span></button>
+      </div>
+      ${only ? '<p class="hint-line" id="cbMenuOnly">Das letzte Kochbuch kann nicht gelöscht werden. Beim Löschen bleiben deine Rezepte erhalten.</p>' : ''}
+      <div class="form-actions"><button type="button" class="ghost-btn" data-action="close-modal">Schliessen</button></div>`);
   }
   if (m.type === 'cb-delete') {
     const b = cookbookById(m.id);
