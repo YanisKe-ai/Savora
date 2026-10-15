@@ -59,7 +59,7 @@ async def main():
         iss = await ev("() => recipeQualityIssues(state.recipes.find(r => r.id === 'h2_karamell')).map(i => ({ id: i.id, level: i.level, text: i.text, a: !!i.action }))")
         check('Mehrere Hinweise mit Stufe error/check/info, konkretem Text und Aktion', len(iss) >= 3 and all(i['level'] in ('error', 'check', 'info') and len(i['text']) > 15 and i['a'] for i in iss), str(iss))
         check('Gesamtertrag-Hinweis (H1 yieldSuspicion) und Zeit-Hinweis (H1 timeTextSuspicion) mit konkretem Satz',
-              any('Gesamtertrag' in i['text'] for i in iss) and any('Prüfe die Zeitangaben' in i['text'] and 'Schritt 4' in i['text'] for i in iss), str([i['text'] for i in iss]))
+              any('Gesamtertrag' in i['text'] for i in iss) and any('Ruhen oder Abkühlen' in i['text'] and 'Schritt 4' in i['text'] for i in iss), str([i['text'] for i in iss]))
         check('Zutat ohne Menge: konkreter Satz mit Zutatname', any(i['text'].startswith('Für die Zutat „Vanilleschote“ fehlt eine Mengenangabe') for i in iss))
         one = await ev("""() => { const r = Object.assign(emptyRecipe(), { id: 'h2_tmp', title: 'Brot', servings: 0, ingredients: [{ amount: '500', unit: 'g', name: 'Mehl' }], steps: [{ text: 'Backen.' }] });
             return recipeQualityIssues(r).map(i => i.text); }""")
