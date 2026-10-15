@@ -1129,6 +1129,7 @@ function cookbookStepSelect(cfg) {
         <p class="hint-line" id="cbSelCount" aria-live="polite">${cfg.items.length} von ${state.recipes.length} ${state.recipes.length === 1 ? 'Rezept' : 'Rezepten'} im Kochbuch.${state.recipes.length ? ' Die Reihenfolge hier ist die Reihenfolge im Buch.' : ''}</p>
         ${state.recipes.length ? `<div class="cb-bulk">
           ${missing.length ? '<button class="outline-btn outline-btn--small" data-action="cb-add-all">Alle aufnehmen</button>' : ''}
+          ${missing.length && typeof cbColButtonHtml === 'function' ? cbColButtonHtml() : ''}
           ${cfg.items.length ? '<button class="text-btn" data-action="cb-clear-all">Alle entfernen</button>' : ''}
         </div>` : '<p class="hint-line">Du hast noch keine Rezepte. Lege zuerst Rezepte an, dann kannst du sie hier auswählen.</p>'}
         ${cfg.items.map((it, n) => { const r = byId[it.recipeId]; return `<div class="cb-item">
@@ -1268,6 +1269,7 @@ function cookbookDesignerView() {
     ${bottomNav()}
     ${pdfExportModal()}
     ${ceModalHtml()}
+    ${typeof cbColModalHtml === 'function' ? cbColModalHtml() : ''}
   `;
 }
 

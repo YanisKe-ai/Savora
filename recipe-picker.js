@@ -30,6 +30,45 @@ function rpMatches(r, query) {
 }
 function rpFilter(list, query) { return (list || []).filter(r => rpMatches(r, query)); }
 
+/* ---------- v84: Bereich «Anzeigen» (Alle Rezepte, Favoriten, eigene Sammlungen) ----------
+   Daten nur ueber org.js; bis dahin Rueckfall auf den Bestand (savora-collections, recipe.collections). */
+function rpCollections() {
+  if (typeof orgCollections === 'function') { try { return orgCollections().map(c => ({ id: c.id, name: c.name })); } catch (e) { /* Rueckfall */ } }
+  return (typeof getCollections === 'function' ? getCollections() : []).map(c => ({ id: c.id, name: c.name }));
+}
+function rpScopeIdSet(key) {
+  if (!key || key === 'all') return null;
+  if (key === 'favorites') return new Set(state.recipes.filter(r => r.favorite).map(r => r.id));
+  if (typeof orgRecipeIdsIn === 'function') { try { return new Set(orgRecipeIdsIn(key)); } catch (e) { /* Rueckfall */ } }
+  return new Set(state.recipes.filter(r => (r.collections || []).includes(key)).map(r => r.id));
+}
+// Gueltiger Bereich: eine geloeschte Sammlung faellt auf «Alle Rezepte» zurueck
+function rpScopeKey(m) {
+  const k = m && m.rpScope;
+  if (!k || k === 'all' || k === 'favorites') return k || 'all';
+  return rpCollections().some(c => c.id === k) ? k : 'all';
+}
+function rpScopeName(m) {
+  const k = rpScopeKey(m);
+  if (k === 'favorites') return 'Favoriten';
+  const c = rpCollections().find(x => x.id === k);
+  return c ? c.name : '';
+}
+function rpScopeList(m) {
+  const set = rpScopeIdSet(rpScopeKey(m));
+  return set ? state.recipes.filter(r => set.has(r.id)) : state.recipes;
+}
+function rpScopeHtml(m) {
+  const cols = rpCollections();
+  const favN = state.recipes.filter(r => r.favorite).length;
+  if (!cols.length && !favN) return '';
+  const cur = rpScopeKey(m);
+  const opt = (v, label) => `<option value="${escapeAttr(v)}" ${cur === v ? 'selected' : ''}>${escapeHtml(label)}</option>`;
+  const colOpts = cols.map(c => opt(c.id, `${c.name} (${rpScopeIdSet(c.id).size})`)).join('');
+  return `<div class="field rp-field rp-scope"><label for="rpScope">Anzeigen</label>
+    <select id="rpScope">${opt('all', 'Alle Rezepte')}${opt('favorites', `Favoriten (${favN})`)}${colOpts ? `<optgroup label="Deine Sammlungen">${colOpts}</optgroup>` : ''}</select></div>`;
+}
+
 /* ---------- Anzeige-Helfer mit Rueckfall, bis die gemeinsamen Helfer (recipe-model.js) da sind ---------- */
 function rpYieldShort(r, n) {
   if (typeof yieldShort === 'function') return yieldShort(r, n);
@@ -54,6 +93,9 @@ function rpSelected(m) { return (m && Array.isArray(m.rpSel)) ? m.rpSel.filter(i
 
 /* ---------- Bausteine ---------- */
 function rpSearchHtml(m, placeholder) {
+  return `<div class="rp-filters">${rpScopeHtml(m)}${rpSearchBoxHtml(m, placeholder)}</div>`;
+}
+function rpSearchBoxHtml(m, placeholder) {
   return `<div class="rp-search" role="search">
     <label for="rpSearch" class="sr-only">Rezepte durchsuchen</label>
     <span class="rp-search-icon" aria-hidden="true">${ICONS.search || ''}</span>
@@ -85,9 +127,20 @@ function rpItemHtml(m, r) {
 }
 function rpListInnerHtml(m) {
   if (!state.recipes.length) return `<li class="rp-empty"><p>Noch keine Rezepte vorhanden. Lege zuerst ein Rezept an.</p></li>`;
-  const list = rpFilter(state.recipes, m.rpQuery || '');
+  const scoped = rpScopeKey(m) !== 'all';
+  const base = rpScopeList(m);
+  const list = rpFilter(base, m.rpQuery || '');
+  const q = (m.rpQuery || '').trim();
+  if (!list.length && scoped) {
+    const nm = escapeHtml(rpScopeName(m));
+    if (!q) return `<li class="rp-empty"><p>In «${nm}» ist noch kein Rezept.</p>
+      <button type="button" class="outline-btn outline-btn--small" data-rp-allscope>Alle Rezepte zeigen</button></li>`;
+    return `<li class="rp-empty"><p><strong>Kein Rezept in «${nm}» gefunden für «${escapeHtml(q)}».</strong></p>
+      <button type="button" class="outline-btn outline-btn--small" data-rp-clear>Suche löschen</button>
+      <button type="button" class="outline-btn outline-btn--small" data-rp-allscope>In allen Rezepten suchen</button></li>`;
+  }
   if (!list.length) {
-    return `<li class="rp-empty"><p><strong>Kein Rezept gefunden für «${escapeHtml((m.rpQuery || '').trim())}».</strong> Prüfe die Schreibweise oder suche nach einer Kategorie.</p>
+    return `<li class="rp-empty"><p><strong>Kein Rezept gefunden für «${escapeHtml(q)}».</strong> Prüfe die Schreibweise oder suche nach einer Kategorie.</p>
       <button type="button" class="outline-btn outline-btn--small" data-rp-clear>Suche löschen</button></li>`;
   }
   return list.map(r => rpItemHtml(m, r)).join('');
@@ -98,12 +151,19 @@ function rpListHtml(m, label) {
 // Statuszeile: Treffer und (bei Mehrfachauswahl) Anzahl gewaehlter Rezepte
 function rpCountText(m) {
   const q = (m.rpQuery || '').trim();
-  const hits = q ? rpFilter(state.recipes, q).length : state.recipes.length;
+  const base = rpScopeList(m);
+  const hits = q ? rpFilter(base, q).length : base.length;
   const parts = [];
   if (q) parts.push(hits === 1 ? '1 Treffer' : `${hits} Treffer`);
   if (m.rpMulti) {
-    const n = rpSelected(m).length;
+    const sel = rpSelected(m);
+    const n = sel.length;
     parts.push(n ? `${n} ${n === 1 ? 'Rezept' : 'Rezepte'} ausgewählt` : 'Noch kein Rezept ausgewählt');
+    if (rpScopeKey(m) !== 'all') {
+      const inScope = new Set(base.map(r => r.id));
+      const out = sel.filter(id => !inScope.has(id)).length;
+      if (out) parts.push(`${out === 1 ? '1 ausgewähltes' : out + ' ausgewählte'} ausserhalb von «${rpScopeName(m)}»`);
+    }
   } else {
     // Einzelauswahl: das gewaehlte Rezept steht in der Mengenzeile darunter; ohne Wahl ein kurzer Hinweis
     if (!rpSelected(m).length) parts.push('Tippe ein Rezept an');
@@ -186,6 +246,12 @@ document.addEventListener('keydown', (e) => {
 });
 document.addEventListener('change', (e) => {
   const t = e.target;
+  if (!t || t.id !== 'rpScope' || !rpModalActive()) return;
+  state.modal.rpScope = t.value;   // Auswahl (rpSel) bleibt beim Wechsel erhalten
+  rpRefresh();
+});
+document.addEventListener('change', (e) => {
+  const t = e.target;
   if (!t || !t.classList || !t.classList.contains('rp-input') || !rpModalActive()) return;
   const m = state.modal;
   const id = t.dataset.rpPick;
@@ -217,6 +283,14 @@ document.addEventListener('click', (e) => {
       const minus = group.querySelector('[data-rp-step="-1"]');
       if (minus) { minus.disabled = n <= st; if (minus.disabled && document.activeElement === minus) focusWithoutScroll(group.querySelector('[data-rp-step="1"]')); }
     }
+    return;
+  }
+  if (t.closest('[data-rp-allscope]')) {
+    e.preventDefault();
+    state.modal.rpScope = 'all';
+    const sel = document.getElementById('rpScope');
+    if (sel) sel.value = 'all';
+    rpRefresh();
     return;
   }
   if (t.closest('[data-rp-clear]')) {
@@ -280,3 +354,88 @@ if (typeof MutationObserver === 'function') {
     if (app) new MutationObserver(() => { if (document.getElementById('cbRpSearch') && state.cbRpQuery) rpCookbookApply(); }).observe(app, { childList: true });
   });
 }
+
+/* ---------- v84: Kochbuch «Aus Sammlung auswählen» ----------
+   Modal { type:'cb-col', colId, sel[], chapter }. Das Kochbuch uebernimmt die Auswahl einmalig (Momentaufnahme):
+   es werden nur Rezept-IDs ans Ende der Liste gehaengt, nie Sammlungsnamen als Titel oder Kapitel. */
+function cbColSources() {
+  const out = [];
+  const fav = state.recipes.filter(r => r.favorite).length;
+  if (fav) out.push({ id: 'favorites', name: 'Favoriten', n: fav });
+  rpCollections().forEach(c => { const n = rpScopeIdSet(c.id).size; if (n) out.push({ id: c.id, name: c.name, n }); });
+  return out;
+}
+function cbColAvailable() { return rpCollections().some(c => rpScopeIdSet(c.id).size > 0); }
+function cbColInBook() { return new Set(getCookbookConfig().items.map(it => it.recipeId)); }
+function cbColButtonHtml() {
+  return cbColAvailable() ? `<button type="button" class="outline-btn outline-btn--small" data-action="cb-from-col">${ICONS.folder || ''} Aus Sammlung auswählen</button>` : '';
+}
+function cbColCountLabel(n) { return n ? `${n} ${n === 1 ? 'Rezept' : 'Rezepte'} hinzufügen` : 'Rezepte hinzufügen'; }
+function cbColModalHtml() {
+  const m = state.modal;
+  if (!m || m.type !== 'cb-col') return '';
+  if (!m.colId) {
+    const rows = cbColSources().map(c => `<li><button type="button" class="menu-item cbc-col" data-action="cb-col-pick" data-id="${escapeAttr(c.id)}"><span>${escapeHtml(c.name)}</span><span class="cbc-n">${c.n}</span></button></li>`).join('');
+    return rpSheetHtml({ id: 'cb-col-title', title: 'Aus Sammlung auswählen', sub: 'Wähle eine Sammlung. Danach prüfst du die Rezepte.',
+      body: `<ul class="cbc-list" aria-label="Sammlungen">${rows || '<li class="rp-empty"><p>Keine Sammlung mit Rezepten.</p></li>'}</ul>`,
+      foot: `<div class="rp-actions"><button type="button" class="ghost-btn" data-action="close-modal">Abbrechen</button></div>` });
+  }
+  const cfg = getCookbookConfig();
+  const inBook = cbColInBook();
+  const set = rpScopeIdSet(m.colId) || new Set();
+  const list = state.recipes.filter(r => set.has(r.id));
+  const name = m.colId === 'favorites' ? 'Favoriten' : ((rpCollections().find(c => c.id === m.colId) || {}).name || '');
+  const sel = new Set(m.sel || []);
+  const rows = list.map(r => {
+    const has = inBook.has(r.id);
+    const meta = has ? 'Schon im Kochbuch' : [rpTimeText(r), yieldKnown(r) ? rpYieldShort(r, r.servings) : ''].filter(Boolean).join(' · ');
+    return `<li class="rp-row ${has || sel.has(r.id) ? 'is-selected' : ''}"><label class="rp-item">
+      <input type="checkbox" class="rp-input" data-cbcol-pick="${escapeAttr(r.id)}" ${has || sel.has(r.id) ? 'checked' : ''} ${has ? 'disabled' : ''}>
+      ${recipeImageHtml(r, 'picker-thumb', 'thumb')}
+      <span class="rp-item-text"><span class="rp-item-title">${escapeHtml(r.title || 'Ohne Titel')}</span>${meta ? `<span class="rp-item-meta">${escapeHtml(meta)}</span>` : ''}</span>
+      <span class="rp-mark" aria-hidden="true">${ICONS.check}</span></label></li>`;
+  }).join('');
+  const chapters = cfg.chapters.length ? `<div class="field rp-field"><label for="cbColChapter">Kapitel für neue Rezepte</label><select id="cbColChapter"><option value="">Ohne Kapitel</option>${cfg.chapters.map(c => `<option value="${escapeAttr(c.id)}" ${m.chapter === c.id ? 'selected' : ''}>${escapeHtml(c.name)}</option>`).join('')}</select></div>` : '';
+  return rpSheetHtml({ id: 'cb-col-title', title: 'Aus Sammlung auswählen', sub: name, subId: 'cb-col-sub',
+    body: `<button type="button" class="text-btn shop-back-btn" data-action="cb-col-back">${ICONS.chevronLeft || ''} Zurück zur Sammlungsauswahl</button>
+      ${chapters}
+      <ul class="rp-list" id="cbColList" aria-label="Rezepte in ${escapeAttr(name)}">${rows}</ul>
+      <p class="hint-line">Das Kochbuch übernimmt diese Auswahl einmalig. Spätere Änderungen an der Sammlung ändern das Kochbuch nicht.</p>`,
+    foot: `<div class="rp-actions"><button type="button" class="ghost-btn" data-action="close-modal">Abbrechen</button><button type="button" class="primary-btn" data-action="cb-col-confirm" id="cbColGo" ${sel.size ? '' : 'disabled'}>${cbColCountLabel(sel.size)}</button></div>` });
+}
+function cbColOpen() {
+  openModal({ type: 'cb-col', colId: '', sel: [], chapter: '' }, '[data-action="cb-from-col"]');
+}
+function cbColPick(colId) {
+  const m = state.modal; if (!m || m.type !== 'cb-col') return;
+  const set = rpScopeIdSet(colId) || new Set(), inBook = cbColInBook();
+  state.modal = Object.assign({}, m, { colId, sel: state.recipes.filter(r => set.has(r.id) && !inBook.has(r.id)).map(r => r.id), chapter: '' });
+  render();
+}
+function cbColBack() { const m = state.modal; if (!m || m.type !== 'cb-col') return; state.modal = Object.assign({}, m, { colId: '', sel: [] }); render(); }
+function cbColConfirm() {
+  const m = state.modal; if (!m || m.type !== 'cb-col' || !m.colId) return;
+  const cfg = getCookbookConfig();
+  const have = new Set(cfg.items.map(it => it.recipeId));
+  const set = rpScopeIdSet(m.colId) || new Set();
+  const chap = cfg.chapters.some(c => c.id === m.chapter) ? m.chapter : '';
+  const add = state.recipes.filter(r => set.has(r.id) && (m.sel || []).includes(r.id) && !have.has(r.id));
+  const skipped = state.recipes.filter(r => set.has(r.id) && have.has(r.id)).length;
+  if (!add.length) return;
+  add.forEach(r => cfg.items.push({ recipeId: r.id, chapterId: chap }));
+  saveCookbookConfig(cfg);
+  const n = add.length;
+  showToast(`${n} ${n === 1 ? 'Rezept' : 'Rezepte'} im Kochbuch aufgenommen.${skipped ? (skipped === 1 ? ' 1 war schon enthalten.' : ` ${skipped} waren schon enthalten.`) : ''}`, 'success');
+  closeModal();
+}
+document.addEventListener('change', (e) => {
+  const t = e.target; const m = state.modal;
+  if (!t || !m || m.type !== 'cb-col') return;
+  if (t.id === 'cbColChapter') { m.chapter = t.value; return; }
+  if (!t.dataset || t.dataset.cbcolPick == null) return;
+  const id = t.dataset.cbcolPick;
+  m.sel = t.checked ? Array.from(new Set((m.sel || []).concat(id))) : (m.sel || []).filter(x => x !== id);
+  const li = t.closest('.rp-row'); if (li) li.classList.toggle('is-selected', t.checked);
+  const go = document.getElementById('cbColGo');
+  if (go) { go.disabled = !m.sel.length; go.textContent = cbColCountLabel(m.sel.length); }
+});

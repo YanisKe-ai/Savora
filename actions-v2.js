@@ -555,13 +555,13 @@ async function handleActionV2(action, id, el, e) {
       const items = ids.flatMap(rid => { const r = state.recipes.find(x => x.id === rid); return r ? shoppingSelectionFor(r, (typeof rpQtyFor === 'function' ? rpQtyFor(pm, r) : 0) || r.servings || 1) : []; });
       markShoppingDuplicates(items);
       // Auswahl merken, damit «Zurück zur Auswahl» Rezepte, Mengen und Suche wiederherstellt
-      replaceModal({ type: 'shop-select', items, pickBack: { rpSel: ids.slice(), rpQty: Object.assign({}, pm.rpQty || {}), rpQuery: pm.rpQuery || '' } });
+      replaceModal({ type: 'shop-select', items, pickBack: { rpSel: ids.slice(), rpQty: Object.assign({}, pm.rpQty || {}), rpQuery: pm.rpQuery || '', rpScope: pm.rpScope || 'all' } });
       return true;
     }
     case 'shop-back-to-pick': {   // Vorschau -> zurueck in die Rezeptauswahl, ohne etwas zu uebernehmen
       const back = state.modal && state.modal.type === 'shop-select' ? state.modal.pickBack : null;
       if (!back) return true;
-      replaceModal({ type: 'pick-recipes', selected: [], rpPicker: true, rpMulti: true, rpSel: back.rpSel.slice(), rpQty: Object.assign({}, back.rpQty), rpQuery: back.rpQuery });
+      replaceModal({ type: 'pick-recipes', selected: [], rpPicker: true, rpMulti: true, rpSel: back.rpSel.slice(), rpQty: Object.assign({}, back.rpQty), rpQuery: back.rpQuery, rpScope: back.rpScope || 'all' });
       const go = document.querySelector('[data-rp-confirm]'); if (go) focusWithoutScroll(go);
       return true;
     }
@@ -888,6 +888,10 @@ async function handleActionV2(action, id, el, e) {
       saveCookbookConfig(cfg); render();
       return true;
     }
+    case 'cb-from-col': cbColOpen(); return true;
+    case 'cb-col-pick': cbColPick(id); return true;
+    case 'cb-col-back': cbColBack(); return true;
+    case 'cb-col-confirm': cbColConfirm(); return true;
     case 'cb-clear-all': {   // nimmt nur die Auswahl zurueck; Rezepte bleiben unveraendert erhalten
       const cfg = getCookbookConfig();
       cfg.items = [];

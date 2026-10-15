@@ -480,6 +480,7 @@ async function dispatchAction(action, id, el, e) {
       r.steps = r.steps.filter(s => s.text);
       if (!r.ingredients.length) r.ingredients = [{ amount: '', unit: '', name: '' }];
       if (!r.steps.length) r.steps = [{ text: '' }];
+      const wasImport = !!(r._importSummary || r._import);   // v84: nach Text-Import freiwillig zu einer Sammlung
       delete r._importSummary; delete r._import; // nur Anzeigehilfen, gehoeren nicht in die Datenbank
       await dbPut(r);
       clearRecipeDraft();
@@ -489,7 +490,10 @@ async function dispatchAction(action, id, el, e) {
       state.activeRecipeId = r.id;
       state.view = 'detail';
       render();
-      showToast('Rezept gespeichert');
+      if (wasImport && typeof rcolModalHtml === 'function') {
+        const rid = r.id;
+        showToast('Rezept gespeichert', 'success', false, { actionLabel: 'Zu einer Sammlung hinzufügen', duration: 8000, onAction: () => openModal({ type: 'rcol', recipeId: rid }) });
+      } else showToast('Rezept gespeichert');
       } catch (err) {
         // Speichern fehlgeschlagen (z. B. Speicher voll): das Formular bleibt offen, alle Eingaben und der Entwurf bleiben erhalten
         console.error('Rezept speichern fehlgeschlagen', err);

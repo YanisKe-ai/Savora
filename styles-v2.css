@@ -3721,3 +3721,15 @@ body.keyboard-open .rp-foot { padding-bottom: 0.75rem; }
 /* Handy-Suchfeld: Tippflächen 44 px (Feld und Schliessen-Knopf), ohne das Overlay zu vergrössern */
 #libSearchPop .search-input { min-height: 2.75rem; }
 #libSearchPop .search-close { width: 2.75rem; height: 2.75rem; margin: -0.25rem 0; }
+
+/* ===== v84 Integration ===== */
+.rp-filters { display: grid; grid-template-columns: 1fr; gap: 0.5rem; margin-bottom: 0.5rem; }
+.rp-filters .rp-scope { margin: 0; }
+.rp-filters .rp-scope select { width: 100%; min-height: 2.75rem; }
+@media (min-width: 390px) { .rp-filters:has(.rp-scope) { grid-template-columns: minmax(0, 11rem) 1fr; align-items: end; } }
+.rp-empty .outline-btn { margin: 0.5rem 0.5rem 0 0; }
+.cbc-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 0.25rem; }
+.cbc-col { width: 100%; display: flex; justify-content: space-between; align-items: center; gap: 1rem; min-height: 2.75rem; }
+.cbc-n { color: var(--muted, inherit); font-variant-numeric: tabular-nums; }
+.rp-sheet .shop-back-btn { margin-bottom: 0.5rem; }
+.rp-sheet #cbColList { margin-bottom: 1rem; }
