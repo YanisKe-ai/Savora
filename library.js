@@ -111,7 +111,7 @@ function libNormalizePublic(j) {
   return {
     v: 1, title,
     servings: libInt(j.servings, 1, 10000),
-    servingMode: j.servingMode === 'pieces' ? 'pieces' : 'portions',
+    servingMode: j.servingMode === 'pieces' || j.servingMode === 'total' ? j.servingMode : 'portions',   // 'total' = Gesamtertrag (v0.83)
     yieldLabel: libStr(j.yieldLabel, 40),
     timeMinutes: libInt(j.timeMinutes, 1, 100000),
     prepMinutes: libInt(j.prepMinutes, 1, 100000),
@@ -132,6 +132,7 @@ function libDraftFromRecipe(r, opts) {
   const conflicts = new Set((typeof dietConflicts === 'function' ? dietConflicts(r) : []).map(c => c.label));
   const knownCats = new Set([].concat(typeof MEAL_TYPE_OPTIONS !== 'undefined' ? MEAL_TYPE_OPTIONS : [], typeof DISH_TYPE_OPTIONS !== 'undefined' ? DISH_TYPE_OPTIONS : []).map(o => o.id));
   const pieces = r.servingMode === 'pieces';
+  const total = r.servingMode === 'total';   // Gesamtertrag (z. B. 1 Glas), v0.83
   const ingredients = (Array.isArray(r.ingredients) ? r.ingredients : []).filter(i => i && typeof i === 'object' && String(i.name || '').trim()).map(i => {
     const o = { amount: typeof i.amount === 'number' && isFinite(i.amount) ? i.amount : String(i.amount == null ? '' : i.amount).trim().slice(0, 40), unit: String(i.unit || '').trim().slice(0, 40), name: String(i.name || '').trim().slice(0, 300) };
     const g = String(i.group || '').trim().slice(0, 100); if (g) o.group = g;
@@ -146,8 +147,8 @@ function libDraftFromRecipe(r, opts) {
     v: 1,
     title: String(r.title || '').trim().slice(0, 200),
     servings: typeof yieldKnown === 'function' && yieldKnown(r) ? libInt(r.servings, 1, 10000) : null,
-    servingMode: pieces ? 'pieces' : 'portions',
-    yieldLabel: pieces ? String(r.yieldLabel || '').trim().slice(0, 40) : '',
+    servingMode: pieces ? 'pieces' : total ? 'total' : 'portions',
+    yieldLabel: pieces || total ? String(r.yieldLabel || '').trim().slice(0, 40) : '',
     timeMinutes: libInt(r.timeMinutes, 1, 100000),
     prepMinutes: libInt(r.prepMinutes, 1, 100000),
     cookMinutes: libInt(r.cookMinutes, 1, 100000),
@@ -204,7 +205,7 @@ function libRecipeFromPublication(pub) {
       imagePending: false,
     },
   };
-  if (p.servingMode === 'pieces' && p.yieldLabel) r.yieldLabel = p.yieldLabel;
+  if ((p.servingMode === 'pieces' || p.servingMode === 'total') && p.yieldLabel) r.yieldLabel = p.yieldLabel;
   ['prepMinutes', 'cookMinutes', 'restMinutes'].forEach(k => { if (p[k]) r[k] = p[k]; });
   if (!r.publicOrigin.authorPublicId) delete r.publicOrigin.authorPublicId;
   if (p.tips) r.publicTips = p.tips;
