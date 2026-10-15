@@ -163,6 +163,31 @@ function parseShoppingInput(text) {
   return { name: p.name, amount: f.amount, ...(f.amountMax !== undefined ? { amountMax: f.amountMax } : {}), unit: p.unit };
 }
 
+/* v84 Rezept: Detail -> verknuepftes Detail mit eigenem Verlaufseintrag.
+   Der Eintrag des Ausgangsrezepts bekommt Reiter, Scrollstand und die ausloesende Karte (fuer Zurueck);
+   ist das Ziel genau das vorherige Rezept (A -> B -> A), geht es zurueck statt einen Eintrag zu stapeln.
+   Die Mengenansicht (state.servingsOverride) ist pro Rezept-ID und bleibt dabei unberuehrt. */
+function linkNavigate(toId) {
+  if (state.linkNavBusy) return;
+  const fromId = state.activeRecipeId;
+  if (!toId || toId === fromId || state.view !== 'detail' || !state.recipes.some(x => x.id === toId)) return;
+  const cur = history.state || {};
+  if (cur.view === 'detail' && cur.linkPrev === toId) { history.back(); return; }
+  state.linkNavBusy = true;
+  setTimeout(() => { state.linkNavBusy = false; }, 350);   // doppelter Klick auf dieselbe Karte nur einmal
+  history.replaceState(Object.assign({}, cur, navHistorySnapshot(), {
+    detailTab: state.detailTab, scrollY: window.scrollY, linkPrev: cur.linkPrev || null,
+    focusSel: `[data-action="open-linked-recipe"][data-id="${cssAttr(toId)}"]`,
+  }), '', navHistoryUrl());
+  state.activeRecipeId = toId;
+  state.detailTab = 'ingredients';
+  state.pendingScrollY = 0;   // render() wendet das in applyScroll an (auch im rAF-Nachlauf)
+  render(true);
+  history.pushState(Object.assign(navHistorySnapshot(), { detailTab: 'ingredients', scrollY: 0, linkPrev: fromId }), '', navHistoryUrl());
+  const h = App.querySelector('.detail-title-v2');
+  if (h) { h.setAttribute('tabindex', '-1'); focusWithoutScroll(h); }
+}
+
 async function handleActionV2(action, id, el, e) {
   switch (action) {
     /* ----- Navigation mit Schutz vor Datenverlust ----- */
@@ -329,31 +354,178 @@ async function handleActionV2(action, id, el, e) {
       showToast('Im Kochbuch aufgenommen');
       return true;
     }
-    case 'open-collections-modal':
-      replaceModal({ type: 'collections', recipeId: id });
+    /* ----- v84 Rezept: Sammlungen am Rezept (Dialog «Zu Sammlungen hinzufügen», Modaltyp 'rcol') ----- */
+    case 'open-collections-modal':   // alter Name, gleicher Dialog
+    case 'rcol-open': {
+      if (!orgOk() || !state.recipes.some(x => x.id === id)) return true;
+      if (state.modal) replaceModal({ type: 'rcol', recipeId: id });
+      else openModal({ type: 'rcol', recipeId: id }, `[data-action="${action}"][data-id="${escapeAttr(id)}"]`);
+      if (state.modal && state.modal.newOpen) { const inp = document.getElementById('colNewInline'); if (inp) focusWithoutScroll(inp); }
       return true;
-    case 'toggle-recipe-collection': {
-      const r = state.recipes.find(x => x.id === id);
-      const col = el.dataset.col;
-      r.collections = Array.isArray(r.collections) ? r.collections : [];
-      r.collections = r.collections.includes(col) ? r.collections.filter(c => c !== col) : r.collections.concat(col);
-      await dbPut(r); // updatedAt bewusst unveraendert: Einsortieren ist keine Rezeptbearbeitung
+    }
+    case 'rcol-new': {
+      const m = rcolModalState(); if (!m) return true;
+      m.newOpen = true; m.newError = null;
+      render();
+      const inp = document.getElementById('colNewInline'); if (inp) focusWithoutScroll(inp);
+      return true;
+    }
+    case 'rcol-create': {
+      const m = rcolModalState(); if (!m) return true;
+      const inp = document.getElementById('colNewInline');
+      const name = (inp ? inp.value : m.newName || '').trim();
+      m.newName = inp ? inp.value : m.newName;
+      let res;
+      if (!name) res = { ok: false, error: 'empty' };
+      else { try { res = orgCreateCollection({ name }); } catch (err) { res = { ok: false, error: 'storage' }; } }
+      if (res && res.ok) {
+        m.draft = Array.from(new Set(m.draft.concat(res.id)));
+        m.newOpen = false; m.newName = ''; m.newError = null; m.existingId = null; m.query = '';
+        render();
+        rcolRefresh(res.id);   // neue Sammlung angehakt, Fokus auf ihre Checkbox
+        announceLive(`Sammlung «${name}» erstellt.`);
+      } else {
+        m.newError = (res && res.error) || 'storage'; m.existingId = res && res.existingId;
+        render();
+        const again = document.getElementById('colNewInline'); if (again) focusWithoutScroll(again);
+      }
+      return true;
+    }
+    case 'rcol-use-existing': {
+      const m = rcolModalState(); if (!m) return true;
+      m.draft = Array.from(new Set(m.draft.concat(id)));
+      m.newOpen = false; m.newName = ''; m.newError = null; m.existingId = null; m.query = '';
+      render();
+      rcolRefresh(id);
+      return true;
+    }
+    case 'rcol-save': {
+      const m = rcolModalState(); if (!m) return true;
+      const rid = m.recipeId;
+      const live = new Set(orgCollections().map(c => c.id));
+      const before = new Set(rcolCollectionsOf(rid).map(c => c.id));
+      const after = new Set(m.draft.filter(c => live.has(c)));
+      const added = Array.from(after).filter(c => !before.has(c));
+      const removed = Array.from(before).filter(c => !after.has(c));
+      closeModal();
+      if (!added.length && !removed.length) return true;   // ohne Aenderung nur schliessen
+      try {
+        added.forEach(c => orgSetMembership(rid, c, true));
+        removed.forEach(c => orgSetMembership(rid, c, false));
+      } catch (err) { showToast('Die Sammlungen konnten nicht gespeichert werden. Der Gerätespeicher ist vielleicht voll. Versuche es nochmals.', 'error', true); return true; }
+      // Rueckgaengig stellt nur fuer dieses Rezept die vorherige Menge wieder her (nur die geaenderten Zuordnungen)
+      showUndoToast('Sammlungen aktualisiert.', () => {
+        added.forEach(c => orgSetMembership(rid, c, false));
+        removed.forEach(c => orgSetMembership(rid, c, true));
+        if (!state.modal) render();
+      }, () => {});
+      if (!state.modal) render();
+      return true;
+    }
+    case 'rcol-scope': {
+      // Pille in der Rezeptansicht: Meine Rezepte mit dieser Sammlung
+      if (typeof orgScopeOpen === 'function') { orgScopeOpen(id); return true; }
+      state.modal = null;
+      state.activeCollection = id; state.favOnly = false;
+      state.view = 'home';
       render();
       return true;
     }
-    case 'create-collection': {
-      const input = document.getElementById('newCollectionName');
-      const name = input ? input.value.trim() : '';
-      if (!name) { showToast('Bitte einen Namen eingeben'); return true; }
-      const cols = getCollections();
-      const existing = cols.find(c => c.name.toLowerCase() === name.toLowerCase());
-      const col = existing || { id: 'col_' + Date.now().toString(36), name };
-      if (!existing) { cols.push(col); saveCollections(cols); }
-      const r = state.recipes.find(x => x.id === id);
-      if (r) { r.collections = Array.isArray(r.collections) ? r.collections : []; if (!r.collections.includes(col.id)) r.collections.push(col.id); await dbPut(r); }
-      render();
+
+    /* ----- v84 Rezept: «Passt dazu» ----- */
+    case 'link-open': {
+      if (!linksOk() || !state.recipes.some(x => x.id === id)) return true;
+      const m = { type: 'link-recipe', recipeId: id };
+      if (state.modal) replaceModal(m);
+      else openModal(m, el && el.classList.contains('pairing-add') ? '.pairing-add' : `[data-action="link-open"][data-id="${escapeAttr(id)}"]`);
       return true;
     }
+    case 'link-note-toggle': {
+      const m = linkPickState(); if (!m) return true;
+      m.noteOpen = true;
+      render();
+      const inp = document.getElementById('linkNote'); if (inp) focusWithoutScroll(inp);
+      return true;
+    }
+    case 'link-save': {
+      const m = linkPickState(); if (!m) return true;
+      const ids = linkSelected(m);
+      if (!ids.length) return true;
+      const note = String((document.getElementById('linkNote') || {}).value ?? m.note ?? '').trim().slice(0, LINK_NOTE_MAX);
+      const made = [], keys = [];
+      ids.forEach(b => { let res; try { res = orgLinkCreate(m.recipeId, b, note); } catch (err) { res = null; } if (res && res.ok) { made.push(b); keys.push(res.key); } });
+      if (!made.length) { showToast('Die Verknüpfung konnte nicht gespeichert werden. Versuche es nochmals.', 'error', true); return true; }
+      const first = made[0];
+      modalTriggerSelector = `[data-action="open-linked-recipe"][data-id="${cssAttr(first)}"]`;   // Fokus danach auf die neue Karte
+      closeModal();
+      const one = state.recipes.find(x => x.id === first);
+      showUndoToast(made.length === 1 ? `Mit «${(one && one.title) || 'Rezept'}» verknüpft.` : `${made.length} Rezepte verknüpft.`, () => {
+        keys.forEach(k => { if (k) orgLinkRemove(k); });
+        if (!state.modal) render();
+      }, () => {});
+      return true;
+    }
+    case 'link-menu':
+      openModal({ type: 'link-menu', key: id, recipeId: state.activeRecipeId }, `[data-action="link-menu"][data-id="${escapeAttr(id)}"]`);
+      return true;
+    case 'link-menu-open': {
+      // Erst das Menue schliessen (eigener Verlaufseintrag), danach wie die Karte navigieren
+      window.addEventListener('popstate', () => { linkNavigate(id); }, { once: true });
+      closeModal();
+      return true;
+    }
+    case 'link-note-edit':
+      replaceModal({ type: 'link-note', key: id, recipeId: state.activeRecipeId });
+      { const t = document.getElementById('linkNoteEdit'); if (t) focusWithoutScroll(t); }
+      return true;
+    case 'link-note-save': {
+      const t = document.getElementById('linkNoteEdit');
+      const note = (t ? t.value : '').trim().slice(0, LINK_NOTE_MAX);
+      const had = linkFind(state.activeRecipeId, id);
+      try { orgLinkNote(id, note); } catch (err) { showToast('Die Notiz konnte nicht gespeichert werden. Versuche es nochmals.', 'error', true); return true; }
+      modalTriggerSelector = `[data-action="link-menu"][data-id="${cssAttr(id)}"]`;
+      closeModal();
+      showToast(note ? 'Notiz gespeichert.' : (had && had.note ? 'Notiz entfernt.' : 'Notiz gespeichert.'));
+      return true;
+    }
+    case 'link-remove': {
+      const rid = state.activeRecipeId;
+      const list = linkListFor(rid);
+      const i = list.findIndex(l => l.key === id);
+      if (i < 0) { if (state.modal) closeModal(); return true; }
+      let token;
+      try { token = orgLinkRemove(id); } catch (err) { showToast('Die Verknüpfung konnte nicht entfernt werden. Versuche es nochmals.', 'error', true); return true; }
+      const next = list[i + 1] || list[i - 1];
+      // Fokus: naechste Karte, sonst «Weitere Aktionen» (der Abschnitt verschwindet mit der letzten Verknuepfung)
+      const sel = next ? (next.status === 'ok' ? `[data-action="open-linked-recipe"][data-id="${cssAttr(next.otherId)}"]` : `[data-action="link-menu"][data-id="${cssAttr(next.key)}"]`) : '[data-action="open-detail-menu"]';
+      if (state.modal) { modalTriggerSelector = sel; closeModal(); }
+      else { render(); const f = document.querySelector(sel); if (f) focusWithoutScroll(f); }
+      showUndoToast('Verknüpfung entfernt. Beide Rezepte bleiben erhalten.', () => {
+        if (typeof orgUndo === 'function' && token) orgUndo(token);
+        if (!state.modal) render();
+      }, () => {});
+      return true;
+    }
+    case 'open-linked-recipe':
+      if (state.view === 'cookmode') { cookLinkOpen(id); return true; }   // im Kochmodus nie ein voller Wechsel
+      linkNavigate(id);
+      return true;
+
+    /* ----- v84 Rezept: «Passt dazu» im Kochmodus (nur Vorschau, Kochfortschritt und Timer bleiben) ----- */
+    case 'cook-links': {
+      const ok = cookLinkTargets(state.activeRecipeId);
+      if (!ok.length) return true;
+      if (ok.length === 1) openModal({ type: 'link-preview', otherId: ok[0].otherId }, '[data-action="cook-links"]');
+      else openModal({ type: 'link-list' }, '[data-action="cook-links"]');
+      return true;
+    }
+    case 'cook-link-preview':
+      cookLinkOpen(id);
+      return true;
+    case 'cook-link-list':
+      replaceModal({ type: 'link-list' });
+      return true;
+
     case 'open-plan-recipe':
       replaceModal({ type: 'plan-recipe', recipeId: id, meal: '' });
       return true;

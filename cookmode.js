@@ -196,3 +196,70 @@ function timerPlusMinute(id) {
   refreshCookTimerBar();
   setTimeout(saveCookProgress, 0);
 }
+
+/* ---------- v84 Rezept: «Passt dazu» im Kochmodus ----------
+   Nur eine Lesevorschau: aendert nie activeRecipeId, cookStepIndex, Haken, Timer oder den gespeicherten
+   Kochfortschritt und markiert nichts als gekocht. Zurueck/Escape schliesst nur die Vorschau. */
+function cookLinkTargets(recipeId) {
+  return typeof linkListFor === 'function' ? linkListFor(recipeId).filter(l => l.status === 'ok') : [];
+}
+function cookLinksButtonHtml(r) {
+  const n = cookLinkTargets(r.id).length;
+  if (!n) return '';
+  return `<button type="button" class="cook-links-btn" data-action="cook-links" data-id="${escapeAttr(r.id)}" aria-haspopup="dialog">${ICONS.link}<span>Passt dazu (${n})</span></button>`;
+}
+function cookLinkOpen(otherId) {
+  if (!cookLinkTargets(state.activeRecipeId).some(l => l.otherId === otherId)) return;
+  const m = { type: 'link-preview', otherId, fromList: !!(state.modal && state.modal.type === 'link-list') };
+  if (state.modal) replaceModal(m); else openModal(m, '[data-action="cook-links"]');
+}
+function cookLinkSheet(id, title, body) {
+  return `<div class="modal-backdrop modal-backdrop--top" data-action="close-modal">
+    <div class="modal-sheet cook-link-sheet" role="dialog" aria-modal="true" aria-labelledby="${id}" tabindex="-1" onclick="event.stopPropagation()">
+      <div class="sheet-handle" aria-hidden="true"></div>
+      <div class="rp-head"><div class="rp-head-text"><h2 class="rp-title" id="${id}">${escapeHtml(title)}</h2></div>
+        <button type="button" class="rp-close" data-action="close-modal" aria-label="Schliessen">${ICONS.x}</button></div>
+      ${body}
+    </div>
+  </div>`;
+}
+function cookLinkPreviewHtml(r) {
+  const m = state.modal;
+  const l = cookLinkTargets(r.id).find(x => x.otherId === m.otherId);
+  const o = l && state.recipes.find(x => x.id === l.otherId);
+  if (!o) return '';
+  const facts = [yieldKnown(o) ? yieldText(o, o.servings) : '', timeInfo(o).text].filter(Boolean);
+  const showTitles = hasNamedGroups(o);
+  const ings = getIngredientGroups(o).map(g => `${showTitles && g.title ? `<h4 class="cook-link-group">${escapeHtml(g.title)}</h4>` : ''}<ul class="cook-link-ings">${g.ingredients.map(i => { const amt = scaledAmountLine(i, 1); return `<li>${amt ? `<span class="ing-amount">${escapeHtml(amt)}</span> ` : ''}<span class="ing-name">${escapeHtml(i.name)}</span></li>`; }).join('')}</ul>`).join('');
+  let n = 0;
+  const steps = stepEntries(o).map(e => e.heading
+    ? `<li class="cook-link-heading">${escapeHtml(String(e.text).trim().replace(/:$/, ''))}</li>`
+    : `<li class="cook-link-step"><span class="step-no" aria-hidden="true">${++n}</span><p><span class="sr-only">Schritt ${n}: </span>${escapeHtml(e.text)}</p></li>`).join('');
+  const back = m.fromList && cookLinkTargets(r.id).length > 1 ? `<button type="button" class="ghost-btn" data-action="cook-link-list">Zur Liste</button>` : '';
+  return cookLinkSheet('cook-link-title', o.title || 'Ohne Titel', `<div class="cook-link-body">
+      ${facts.length ? `<p class="cook-link-facts">${escapeHtml(facts.join(' · '))}</p>` : ''}
+      ${l.note ? `<p class="cook-link-note">${escapeHtml(l.note)}</p>` : ''}
+      <h3 class="cook-link-h">Zutaten</h3>
+      <p class="fs-hint">Originalmengen des Rezepts</p>
+      ${ings || '<p class="hint-line">Keine Zutaten erfasst.</p>'}
+      <h3 class="cook-link-h">Zubereitung</h3>
+      ${steps ? `<ol class="cook-link-steps">${steps}</ol>` : '<p class="hint-line">Noch keine Zubereitungsschritte erfasst.</p>'}
+    </div>
+    <div class="form-actions cook-link-actions">${back}<button type="button" class="primary-btn" data-action="close-modal">Schliessen</button></div>`);
+}
+function cookLinkListHtml(r) {
+  const links = cookLinkTargets(r.id);
+  if (!links.length) return '';
+  return cookLinkSheet('cook-links-title', 'Passt dazu', `<p class="hint-line">Zum Nachlesen. Dein Kochfortschritt und die Timer laufen weiter.</p>
+    <ul class="cook-link-list">${links.map(l => {
+      const o = state.recipes.find(x => x.id === l.otherId);
+      const time = timeInfo(o).cardText;
+      return `<li><button type="button" class="menu-item cook-link-item" data-action="cook-link-preview" data-id="${escapeAttr(o.id)}">${hasPhoto(o) ? recipeImageHtml(o, 'picker-thumb', 'thumb') : `<span class="picker-thumb pairing-ph" aria-hidden="true">${ICONS.bookOpen}</span>`}<span class="menu-item-text"><span>${escapeHtml(o.title || 'Ohne Titel')}</span>${time || l.note ? `<span class="menu-item-hint">${escapeHtml([time, l.note].filter(Boolean).join(' · '))}</span>` : ''}</span></button></li>`;
+    }).join('')}</ul>`);
+}
+function cookLinkModalHtml(r) {
+  const t = state.modal && state.modal.type;
+  if (t === 'link-preview') return cookLinkPreviewHtml(r);
+  if (t === 'link-list') return cookLinkListHtml(r);
+  return '';
+}
