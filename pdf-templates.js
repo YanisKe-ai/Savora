@@ -83,20 +83,8 @@ function pdfBuildModel(recipe, nutritionResult, opts) {
   const log = (recipe.cookLog || []).filter((x) => x && String(x.text || '').trim());
   const notes = String(recipe.notes || '').trim();
   const servings = pdfServingsInfo(recipe, steps.filter((s) => s.type === 'step').map((s) => s.text).concat(tips, notes ? [notes] : []));
-  const facts = [];
-  const sv = Number(recipe.servings) || 0;
   const pieces = servingMode(recipe) === 'pieces';
-  const addFact = (label, value, short) => facts.push({ label, value, short: short || (label + ' ' + value) });
-  if (sv) {
-    const yl = recipe.yieldLabel || 'Stück';
-    if (pieces) addFact('Ergibt', sv + ' ' + yl, 'Ergibt ' + sv + ' ' + yl);
-    else addFact(sv === 1 ? 'Portion' : 'Portionen', String(sv), sv + ' ' + (sv === 1 ? 'Portion' : 'Portionen'));
-  }
-  const shortMin = (n) => (Math.round(Number(n) || 0) < 120 ? Math.round(Number(n) || 0) + ' Minuten' : pdfFormatMinutes(n));   // Kurzform fuer die Untertitelzeile («4 Portionen · 90 Minuten»)
-  if (recipe.timeMinutes) addFact('Gesamtzeit', pdfFormatMinutes(recipe.timeMinutes), shortMin(recipe.timeMinutes));
-  if (recipe.prepMinutes) addFact('Vorbereitungszeit', pdfFormatMinutes(recipe.prepMinutes), 'Vorbereitung ' + shortMin(recipe.prepMinutes));
-  if (recipe.restMinutes) addFact('Ruhen', pdfFormatMinutes(recipe.restMinutes), 'Ruhen ' + shortMin(recipe.restMinutes));
-  if (recipe.cookMinutes) addFact('Garen/Backen', pdfFormatMinutes(recipe.cookMinutes), 'Garen/Backen ' + shortMin(recipe.cookMinutes));
+  const facts = pdfYieldTimeFacts(recipe);   // Ertrag und Zeiten (pdf-model.js, v0.83 H1): gleiche Begriffe wie in der App
   const basis = pdfNutritionBasis(nutritionResult, pieces);
   const m = {
     id: recipe.id, title: String(recipe.title || 'Ohne Titel').trim(), category: cat.text, categoryKind: cat.kind, categoryAll: cat.all, facts, ingredients, steps, tips,
@@ -259,11 +247,11 @@ function pvStepsHtml(units, label, deco) {
 function pvNutBasisText(result, pieces, basis) {
   const b = basis && typeof basis === 'object' ? (basis.label || basis.text || '') : String(basis || '');
   if (String(b).trim()) return String(b).trim();
-  return result.needsServings ? 'gesamt' : pieces ? 'pro Stück' : 'pro Portion';
+  return (result.needsServings || result.wholeRecipe) ? 'für das gesamte Rezept' : pieces ? 'pro Stück' : 'pro Portion';
 }
 function pvNutritionBox(result, detailLevel, pieces, basis, basisNote) {
   if (!result) return '';
-  const total = !!result.needsServings;   // Ausbeute unbekannt: Gesamtwerte statt Pro-Portion
+  const total = !!(result.needsServings || result.wholeRecipe);   // Ausbeute unbekannt oder Gesamtertrag: Gesamtwerte statt Pro-Portion
   const cell = (key, label) => {
     const def = NUTRIENT_KEYS[key];
     const v = typeof nutValueText === 'function' ? nutValueText(result, total ? 'total' : 'portion', key) : (result.nutrientsPerPortion[key] === null ? null : String(result.nutrientsPerPortion[key]).replace('.', ','));
@@ -277,7 +265,7 @@ function pvNutritionBox(result, detailLevel, pieces, basis, basisNote) {
   const shown = cells.filter(Boolean);
   if (!shown.length) return '';
   const cols = Math.min(shown.length, detailLevel === 'full' ? 4 : 5);
-  const hint = `${pvEsc(nutritionSourceLabel(result.sourceDataVersions))}. Geschätzte Werte, je nach Zutaten und Mengen können sie abweichen. Keine medizinische Aussage.${result.rangeUsed ? ' Menge als Bereich angegeben, Ergebnis als Spanne.' : ''}${result.needsServings ? ' Es fehlt die Angabe, wie viel das Rezept ergibt: Pro-Portion-Werte erst nach Klärung.' : ''}${(result.approximations || []).length ? ' Angenähert: ' + pvEsc(result.approximations.map((a) => a.name).join(', ')) + '.' : ''}${(result.unquantified || []).length ? ' Ohne Mengenangabe nicht eingerechnet: ' + pvEsc(result.unquantified.join(', ')) + '.' : ''}${basisNote ? ' ' + pvEsc(basisNote) : ''}`;
+  const hint = `${pvEsc(nutritionSourceLabel(result.sourceDataVersions))}. Geschätzte Werte, je nach Zutaten und Mengen können sie abweichen. Keine medizinische Aussage.${result.rangeUsed ? ' Menge als Bereich angegeben, Ergebnis als Spanne.' : ''}${result.needsServings && !basisNote ? ' Es fehlt die Angabe, wie viel das Rezept ergibt: Pro-Portion-Werte erst nach Klärung.' : ''}${(result.approximations || []).length ? ' Angenähert: ' + pvEsc(result.approximations.map((a) => a.name).join(', ')) + '.' : ''}${(result.unquantified || []).length ? ' Ohne Mengenangabe nicht eingerechnet: ' + pvEsc(result.unquantified.join(', ')) + '.' : ''}${basisNote ? ' ' + pvEsc(basisNote) : ''}`;
   if (PDF_CTX.tpl.pop && detailLevel !== 'full') {
     const line = [['energyKcal', null], ['protein', 'Eiweiss'], ['carbohydrates', 'Kohlenhydrate'], ['fat', 'Fett'], ['fiber', 'Ballaststoffe']].map(([k, lab]) => {
       const v = typeof nutValueText === 'function' ? nutValueText(result, total ? 'total' : 'portion', k) : null;
@@ -412,7 +400,7 @@ function pvPage(ctx, pg) {
   const photoOn = !!(pg.first && ctx.imgUrl && ctx.frame);
   const cls = ['pv-page', 'pv-recipe', pg.first ? '' : 'pv-cont-page', tpl.cls, density !== 'normal' ? 'pv-tight' : '', photoOn ? 'pv-photo-side' : 'pv-photo-none'].filter(Boolean).join(' ');
   const head = pg.first ? pvHeadHtml(ctx) : pvContinuationHead(m.title, pg.n, pg.total);
-  return `<section class="${cls}" lang="de" data-recipe-id="${pvEsc(m.id)}" data-page-kind="${pg.first ? 'recipe' : 'continuation'}" data-density="${density}" data-continuation="${pg.first ? 'false' : 'true'}">
+  return `<section class="${cls}" lang="de" data-recipe-id="${pvEsc(m.id)}" data-page-kind="${pg.first ? 'recipe' : 'continuation'}" data-density="${density}"${ctx.dense ? ' data-dense="1"' : ''} data-continuation="${pg.first ? 'false' : 'true'}">
     ${head}
     ${pvIngPanel(pg.ing || [], pg.first ? 'Zutaten' : 'Zutaten <span class="pv-cont">· Fortsetzung</span>', density)}
     ${pvStepsHtml(pg.steps || [], 'Zubereitung', !pg.first)}
@@ -424,10 +412,11 @@ function pvPage(ctx, pg) {
 function pvContinuationPage(m, ingU, stepU, extrasHtml, tight, ingRight, n, total) {
   return pvPage({ m, recipe: null, imgUrl: null, frame: null, tight: !!tight }, { first: false, n, total, ing: ingU || [], steps: stepU || [], extras: extrasHtml ? [{ key: 'x', html: extrasHtml }] : [] });
 }
-/* Komplettes einseitiges Rezept (Einseiten-Kandidaten der Seitenplanung). opts: { frame, tight, density } */
+/* Komplettes einseitiges Rezept (Einseiten-Kandidaten der Seitenplanung). opts: { frame, tight, density, dense }
+   dense (v83): letzter Einseiten-Versuch mit engeren Abstaenden und kleinerem Foto; Schriftgroessen bleiben unveraendert. */
 function pvRecipePage(m, recipe, imgUrl, opts, nutritionDetail) {
   opts = opts || {};
-  const ctx = { m, recipe, imgUrl: imgUrl || null, frame: opts.frame || null, tight: !!opts.tight, density: opts.density, detail: nutritionDetail };
+  const ctx = { m, recipe, imgUrl: imgUrl || null, frame: opts.frame || null, tight: !!opts.tight, density: opts.density, dense: !!opts.dense, detail: nutritionDetail };
   return pvPage(ctx, { first: true, n: 1, total: 1, ing: pvIngredientUnits(m.ingredients), steps: pvStepUnits(m.steps), extras: pvExtrasUnits(m, nutritionDetail) });
 }
 

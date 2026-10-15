@@ -3494,6 +3494,75 @@ body:has(.lp) .topbar--sub .topbar-title { overflow-wrap: normal; hyphens: auto;
 .lib-byline .lib-meta-line > span { display: block; min-width: 0; }
 .lib-author-link { display: inline-flex; align-items: center; justify-content: flex-start; text-align: left; vertical-align: middle; max-width: 100%; overflow-wrap: anywhere; }
 
+/* ===== v83 Ertrag, Nährwerte, Zeit ===== */
+.field[hidden] { display: none; }
+.detail-times { display: flex; align-items: flex-start; gap: 0.5rem; }
+.detail-times svg { flex: 0 0 auto; width: 1em; height: 1em; margin-top: 0.2em; }
+.amount-scaled-hint { display: flex; flex-wrap: wrap; align-items: center; gap: 0 0.5rem; }
+.amount-scaled-hint .text-btn { min-height: 44px; }
+.stepper button:disabled { opacity: 0.4; cursor: default; }
+.nutrition-basis-title { font-size: 1rem; font-weight: 700; margin: 0 0 0.25rem; color: var(--text); }
+.nutrition-basis-note { font-size: 0.875rem; color: var(--text-soft); margin: 0 0 0.5rem; }
+
+/* ===== v83 Schritte, Hinweise, Teilen ===== */
+/* Schritte: deutliche Nummer, Überschrift separat, Text darunter mit guter Zeilenlänge */
+.step-list-v2 li.step-item { grid-template-columns: 2rem minmax(0, 1fr); }
+.step-list-v2 .step-no { background: var(--forest-900); color: #fff; }
+[data-theme="dark"] .step-list-v2 .step-no { background: var(--surface-selected); color: var(--text); }
+.step-body { min-width: 0; max-width: var(--measure, 68ch); }
+.step-body .step-title { margin: 0.25rem 0 0; font-family: var(--font-sans); font-size: 1.0625rem; font-weight: 700; line-height: 1.35; color: var(--text); }
+.step-body .step-title + p { margin-top: 0.25rem; }
+/* Rezepthinweise: Stufe als sichtbares Wort im selben Absatz (Screenreader liest Stufe und Text zusammen) */
+.recipe-check-list .rc-warn span::before { content: none; }
+.rc-item { display: grid; gap: 0.5rem; }
+.rc-text { margin: 0; line-height: 1.5; }
+.rc-level { display: inline-block; margin-right: 0.25rem; padding: 0 0.5rem; border-radius: 999px; font-size: 0.75rem; font-weight: 700; line-height: 1.5rem; background: var(--surface-soft); color: var(--text); }
+.rc-error .rc-level { background: var(--danger); color: #fff; }
+.rc-check .rc-level { background: var(--surface-selected); color: var(--text); }
+.rc-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem; }
+.rc-actions .text-btn { min-height: 2.75rem; }
+.recipe-check--form { padding: 0.75rem 0; }
+/* Teilen-Menü: Zweck als zweite Zeile */
+.menu-item-text { display: flex; flex-direction: column; min-width: 0; }
+.menu-item-hint { font-size: 0.8125rem; font-weight: 500; color: var(--text-soft); }
+.menu-item--hint { min-height: 3.5rem; padding-block: 0.25rem; }
+.menu-group-title { margin: 0.5rem 0 0; padding: 0.5rem 0.75rem 0; border-top: 1px solid var(--border); font-size: 0.8125rem; font-weight: 700; color: var(--text-soft); }
+/* Rezeptaktionen mit ausgeschriebenen Beschriftungen: schmal 2 × 2 (Symbol links), nie abgekürzt */
+.detail-tools .tool-action { justify-content: flex-start; }
+.detail-tools .tool-action span { overflow-wrap: normal; hyphens: manual; }
+@media (max-width: 599px) {
+  .detail-tools { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.25rem 0.5rem; }
+  .detail-tools .tool-action { flex-direction: row; justify-content: flex-start; gap: 0.5rem; min-height: 2.75rem; padding: 0.25rem 0.5rem; text-align: left; line-height: 1.25; }
+  .detail-tools .tool-action svg { flex: 0 0 auto; width: 1.25rem; height: 1.25rem; }
+}
+
+/* ===== v83 Kochbuch und PDF-Ablauf ===== */
+.cb-warnings .cb-warn { display: flex; gap: 0.75rem; align-items: flex-start; }
+.cb-warn--info { background: var(--surface-soft); color: var(--text); }
+.cb-hint-level { flex: none; min-width: 3.5rem; font-size: 0.75rem; font-weight: 700; letter-spacing: 0.02em; text-transform: uppercase; padding-top: 0.125rem; }
+.cb-hint-body { flex: 1; min-width: 0; display: flex; flex-direction: column; align-items: flex-start; gap: 0.25rem; }
+.cb-hint-text { margin: 0; overflow-wrap: anywhere; }
+.cb-hint-go { min-height: 2.75rem; padding: 0 0.5rem; margin-left: -0.5rem; font-weight: 700; color: inherit; text-decoration: underline; text-underline-offset: 0.125rem; }
+.cb-hint-details summary { cursor: pointer; min-height: 2.75rem; display: flex; align-items: center; font-weight: 600; }
+.cb-hint-details ul { margin: 0 0 0.5rem; padding-left: 1.25rem; }
+.cb-pages { margin: 1rem 0; }
+.cb-pages-list { list-style: none; margin: 0 0 0.5rem; padding: 0; display: grid; gap: 0.25rem; }
+.cb-pages-list li { display: flex; justify-content: space-between; gap: 1rem; padding: 0.5rem 0; border-bottom: 1px solid var(--border); }
+.cb-pages-list li span:first-child { min-width: 0; overflow-wrap: anywhere; }
+.cb-pages-n { flex: none; color: var(--text-soft); font-variant-numeric: tabular-nums; }
+.cb-summary-wrap { display: flex; flex-direction: column; align-items: flex-start; gap: 0.5rem; min-width: 0; }
+.cb-summary-edit { min-height: 2.75rem; padding: 0 0.5rem; margin-left: -0.5rem; }
+.cb-pdf-opts .cb-opt + .cb-opt { margin-top: 1rem; }
+.cb-pdf-opts .sub-title { margin: 0 0 0.25rem; }
+.cbk-meta { margin-bottom: 0; }
+.cbk-date { margin: 0.125rem 0 0.75rem; color: var(--text-soft); font-size: 0.8125rem; }
+.cbk-actions { gap: 0.5rem; }
+.cbk-more { width: 2.75rem; height: 2.75rem; }
+.cbk-thumb.is-placeholder { opacity: 0.9; }
+.cbk-thumb.is-fallback { opacity: 1; }
+.pdf-compare { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem 0.75rem; }
+.pdf-compare p { margin: 0; }
+
 /* ===== v83 Planung und Rezeptauswahl ===== */
 /* Gemeinsamer Auswahldialog (recipe-picker.js): Kopf mit Schliessen, scrollbarer Inhalt, fester Fuss.
    Die Hoehe folgt dem sichtbaren Bereich (--rp-vvh), damit Fuss und Aktionen mit Bildschirmtastatur erreichbar bleiben. */

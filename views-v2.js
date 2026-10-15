@@ -280,8 +280,9 @@ function recipeImageHtml(r, cls, size) {
 }
 function recipeMetaLine(r, full) {
   const parts = [];
-  if (r.timeMinutes) parts.push(`${r.timeMinutes} Min.`);
-  if (full && r.servings) parts.push(servingMode(r) === 'pieces' ? `${r.servings} Stück` : `${r.servings} ${r.servings === 1 ? 'Portion' : 'Portionen'}`);
+  const ct = timeInfo(r).cardText;   // Zeitbasis ueberall: Gesamtzeit (timeMinutes)
+  if (ct) parts.push(ct);
+  if (full && yieldKnown(r)) parts.push(yieldShort(r));
   return parts.join(' · ');
 }
 function favButton(r, extraCls) {
@@ -293,7 +294,7 @@ function recipeCard(r, phone) {
   const titleHl = highlightHtml(r.title || 'Ohne Titel', state.query);
   if (phone === true) {
     /* Handy-Raster: Foto 4:3 (oder ruhiger Platzhalter), Titel, Zeit nur wenn bekannt, Favoritenknopf als Geschwister (kein verschachtelter Knopf) */
-    const time = r.timeMinutes > 0 ? `<span class="rcard-meta rcard-meta--time">${ICONS.clock}<span>${r.timeMinutes} Min.</span></span>` : '';
+    const time = timeInfo(r).cardText ? `<span class="rcard-meta rcard-meta--time" title="Gesamtzeit">${ICONS.clock}<span>${timeInfo(r).cardText}</span></span>` : '';
     return `<article class="rcard rcard--phone" data-flip-id="${escapeAttr(r.id)}">
     <button type="button" class="rcard-main" data-action="open-recipe" data-id="${escapeAttr(r.id)}" aria-label="${title} öffnen">
       ${photo ? recipeImageHtml(r, 'rcard-img', 'thumb') : `<span class="rcard-img rcard-ph" aria-hidden="true">${ICONS.bookOpen}</span>`}
@@ -322,7 +323,7 @@ function recipeRow(r, phone) {
     /* Handy-Liste: quadratisches Foto (oder ruhiger Platzhalter), Titel, Zeit nur wenn bekannt, eigener Favoritenknopf als Geschwister (kein verschachtelter Knopf) */
     const title = escapeHtml(r.title || 'Ohne Titel');
     const titleHl = highlightHtml(r.title || 'Ohne Titel', state.query);
-    const time = r.timeMinutes > 0 ? `<span class="rrow-meta rrow-meta--time">${ICONS.clock}<span>${r.timeMinutes} Min.</span></span>` : '';
+    const time = timeInfo(r).cardText ? `<span class="rrow-meta rrow-meta--time" title="Gesamtzeit">${ICONS.clock}<span>${timeInfo(r).cardText}</span></span>` : '';
     return `<article class="rrow rrow--phone" data-flip-id="${escapeAttr(r.id)}">
     <button type="button" class="rrow-main" data-action="open-recipe" data-id="${escapeAttr(r.id)}" aria-label="${title} öffnen">
       ${photo ? recipeImageHtml(r, 'rrow-img', 'thumb') : `<span class="rrow-img rrow-ph" aria-hidden="true">${ICONS.bookOpen}</span>`}
@@ -512,19 +513,21 @@ function ingredientsPanel(r) {
   const checked = checkedSetFor(r.id);
   const groups = getIngredientGroups(r);
   const showTitles = groups.length > 1 || (groups[0] && groups[0].title !== 'Zutaten');
+  // «Menge anpassen» rechnet nur die Anzeige um; das gespeicherte Rezept bleibt unveraendert (Bearbeiten ist eine eigene Aktion).
+  const scaled = !unknownYield && servings !== r.servings;
   return `${unknownYield ? `<div class="amount-row amount-row--unknown">
-      <span class="amount-row-label">Menge</span>
-      <span class="hint-line">Ergibt: nicht angegeben, es gelten die Originalmengen.</span>
-      <button class="outline-btn outline-btn--small" data-action="edit-recipe" data-id="${escapeAttr(r.id)}">Angabe ergänzen</button>
+      <span class="amount-row-label">Ertrag unbekannt</span>
+      <span class="hint-line">Es gelten die Originalmengen. Mit einer Ertragsangabe kannst du die Menge anpassen.</span>
+      <button class="outline-btn outline-btn--small" data-action="edit-recipe" data-id="${escapeAttr(r.id)}">Ertrag ergänzen</button>
     </div>` : `<div class="amount-row">
-      <span class="amount-row-label">Menge</span>
-      <div class="stepper" role="group" aria-label="Menge anpassen">
-        <button data-action="serv-dec" data-id="${escapeAttr(r.id)}" aria-label="Weniger">${ICONS.minus}</button>
+      <span class="amount-row-label" id="amount-label-${escapeAttr(r.id)}">Menge anpassen</span>
+      <div class="stepper" role="group" aria-labelledby="amount-label-${escapeAttr(r.id)}">
+        <button data-action="serv-dec" data-id="${escapeAttr(r.id)}" aria-label="Weniger"${servings <= yieldStep(r) ? ' disabled' : ''}>${ICONS.minus}</button>
         <span class="stepper-value" aria-live="polite">${escapeHtml(servingLabel(r, servings))}</span>
         <button data-action="serv-inc" data-id="${escapeAttr(r.id)}" aria-label="Mehr">${ICONS.plus}</button>
       </div>
     </div>`}
-    ${!unknownYield && servings !== (r.servings || 1) ? `<p class="hint-line">Original: ${escapeHtml(servingLabel(r, r.servings || 1))}. Mengen werden immer vom Original berechnet.</p>` : ''}
+    ${scaled ? `<p class="hint-line amount-scaled-hint">Angepasst. Das Rezept selbst bleibt bei ${escapeHtml(servingLabel(r, r.servings))}. <button type="button" class="text-btn" data-action="serv-reset" data-id="${escapeAttr(r.id)}">Original</button></p>` : ''}
     ${groups.length ? groups.map(g => `<section class="ing-group">
       ${showTitles ? `<h3 class="ing-group-title">${escapeHtml(g.title)}</h3>` : ''}
       <ul class="ing-list">
@@ -545,9 +548,14 @@ function stepsPanel(r) {
   const entries = stepEntries(r);
   if (!entries.length) return `<p class="hint-line">Noch keine Zubereitungsschritte erfasst.</p>`;
   let n = 0;
-  return `<ol class="step-list-v2">${entries.map(e => e.heading
-    ? `<li class="step-heading"><h3>${escapeHtml(String(e.text).trim().replace(/:$/, ''))}</h3></li>`
-    : `<li><span class="step-no" aria-hidden="true">${++n}</span><p>${escapeHtml(e.text)}</p></li>`).join('')}</ol>`;
+  const sections = entries.some(e => e.heading);
+  const titleTag = sections ? 'h4' : 'h3';   // Abschnitt (h3) > Schrittüberschrift
+  // Schrittüberschrift separat, Text darunter. «Überschrift: Text» in einem Schritt wird nur in der Anzeige getrennt (stepDisplayParts, recipe-check.js).
+  return `<ol class="step-list-v2">${entries.map(e => {
+    if (e.heading) return `<li class="step-heading"><h3>${escapeHtml(String(e.text).trim().replace(/:$/, ''))}</h3></li>`;
+    const parts = typeof stepDisplayParts === 'function' ? stepDisplayParts(e.text) : { title: '', text: e.text };
+    return `<li class="step-item ${parts.title ? 'has-title' : ''}"><span class="step-no" aria-hidden="true">${++n}</span><div class="step-body"><span class="sr-only">Schritt ${n}: </span>${parts.title ? `<${titleTag} class="step-title">${escapeHtml(parts.title)}</${titleTag}>` : ''}<p>${escapeHtml(parts.text)}</p></div></li>`;
+  }).join('')}</ol>`;
 }
 function notesPanel(r) {
   const log = (r.cookLog || []).slice().sort((a, b) => (b.date || 0) - (a.date || 0));
@@ -587,9 +595,11 @@ function detailView() {
     : heroImgId
       ? `<div class="hero"><div class="hero-img placeholder" data-lazy-img="full" data-image-id="${escapeHtml(heroImgId)}" data-img-class="hero-img" data-img-alt="${escapeHtml(r.title || '')}" style="view-transition-name: recipe-hero-img;"></div></div>`
       : '';
-  const extraTimes = [r.prepMinutes ? `Vorbereitungszeit ${r.prepMinutes} Min.` : '', r.restMinutes ? `Ruhen ${r.restMinutes} Min.` : '', r.cookMinutes ? `Garen/Backen ${r.cookMinutes} Min.` : ''].filter(Boolean);
-  // Zeit und Menge zuerst und gross; Teilzeiten (Vorbereitungszeit, Ruhen, Garen) leiser in einer zweiten Zeile
-  const facts = [r.timeMinutes ? `${r.timeMinutes} Min.` : '', yieldKnown(r) ? `Ergibt ${servingLabel(r, servings)}` : 'Ergibt: offen', r.difficulty || ''].filter(Boolean);
+  // Ertrag zuerst und gross («Für 4 Portionen», «Ergibt 1 Glas»); darunter eine kompakte Zeitzeile mit klar benannten Zeiten
+  // («30 Min. Gesamtzeit · 1 Std. Ruhen»). Nichts wird summiert: Arbeitsschritte koennen parallel laufen.
+  const tInfo = timeInfo(r);
+  const extraTimes = tInfo.text ? [tInfo.text] : [];
+  const facts = [yieldText(r, servings), r.difficulty || ''].filter(Boolean);
   const sourceText = r.sharedBy
     ? `${ICONS.sparkle}<span>Geteilt von ${escapeHtml(r.sharedBy)}</span>`
     : r.source && !/^https?:\/\//i.test(r.source) ? `${ICONS.link}<span>Quelle: ${escapeHtml(r.source)}</span>`   // freier Quellentext (kein Link)
@@ -619,14 +629,14 @@ function detailView() {
           ${favButton(r, 'detail-fav')}
         </div>
         <p class="detail-meta-v2">${facts.map(f => `<span class="fact">${escapeHtml(f)}</span>`).join('')}</p>
-        ${extraTimes.length ? `<p class="detail-times">${extraTimes.map(escapeHtml).join(' · ')}</p>` : ''}
+        ${extraTimes.length ? `<p class="detail-times">${ICONS.clock}<span>${extraTimes.map(escapeHtml).join(' · ')}</span></p>` : ''}
       </div>
       <button class="primary-btn primary-btn--block cook-start-inline" data-action="start-cook" data-id="${escapeAttr(r.id)}">${ICONS.play} Kochen starten</button>
       <div class="detail-tools" role="group" aria-label="Weitere Aktionen zum Rezept">
-        <button type="button" class="tool-action" data-action="add-to-shopping" data-id="${escapeAttr(r.id)}">${ICONS.cart}<span>Einkaufen</span></button>
-        <button type="button" class="tool-action" data-action="open-plan-recipe" data-id="${escapeAttr(r.id)}">${ICONS.calendar}<span>Planen</span></button>
+        <button type="button" class="tool-action" data-action="add-to-shopping" data-id="${escapeAttr(r.id)}">${ICONS.cart}<span>Auf die Einkaufsliste</span></button>
+        <button type="button" class="tool-action" data-action="open-plan-recipe" data-id="${escapeAttr(r.id)}">${ICONS.calendar}<span>Zum Wochenplan</span></button>
         <button type="button" class="tool-action" data-action="edit-recipe" data-id="${escapeAttr(r.id)}">${ICONS.edit}<span>Bearbeiten</span></button>
-        <button type="button" class="tool-action" data-action="share-recipe" data-id="${escapeAttr(r.id)}">${ICONS.share}<span>Teilen</span></button>
+        <button type="button" class="tool-action" data-action="open-share-menu" data-id="${escapeAttr(r.id)}" aria-haspopup="dialog">${ICONS.share}<span>Teilen</span></button>
       </div>
       ${source}
       ${conflictBox}
@@ -642,6 +652,7 @@ function detailView() {
     ${bottomNav()}
     ${state.modal && state.modal.type === 'delete' ? deleteModal(r) : ''}
     ${state.modal && state.modal.type === 'detail-menu' ? detailMenuModal(r) : ''}
+    ${state.modal && state.modal.type === 'share-menu' ? shareMenuModal(r) : ''}
     ${state.modal && state.modal.type === 'note' ? noteModal(r) : ''}
     ${state.modal && state.modal.type === 'collections' ? collectionsModal(r) : ''}
     ${state.modal && state.modal.type === 'shop-select' ? shopSelectModal() : ''}
@@ -668,19 +679,33 @@ function sheet(id, title, body) {
     </div>
   </div>`;
 }
+/* Teilen (v0.83): drei getrennte Wege, nie vermischt. Öffentlicher Link nur, wenn das Rezept veröffentlicht ist. */
+function recipePublishedPub(r) {
+  try { const p = typeof libPublicationForRecipe === 'function' ? libPublicationForRecipe(r.id) : null; return p && p.status === 'published' ? p : null; } catch (e) { return null; }
+}
+function shareMenuItemsHtml(r) {
+  const item = (action, icon, label, hint) => `<button class="menu-item ${hint ? 'menu-item--hint' : ''}" data-action="${action}" data-id="${escapeAttr(r.id)}">${icon}<span class="menu-item-text"><span>${label}</span>${hint ? `<span class="menu-item-hint">${hint}</span>` : ''}</span></button>`;
+  const pub = recipePublishedPub(r);
+  return item('share-open-send', ICONS.user || ICONS.share, 'An Freunde senden', 'Privat, nur an Freunde in Savora')
+    + (pub ? item('share-public-link', ICONS.link, 'Öffentlichen Link teilen', 'Link zur Veröffentlichung in der Rezeptbibliothek') : '')
+    + (typeof libPublishMenuItemHtml === 'function' && !r.publicOrigin ? libPublishMenuItemHtml(r) : '')
+    + item('share-recipe', ICONS.pdf, 'Als PDF teilen');
+}
+function shareMenuModal(r) {
+  return sheet('share-menu-title', 'Teilen', `<div class="menu-list share-menu">${shareMenuItemsHtml(r)}</div>`);
+}
 function detailMenuModal(r) {
   const item = (action, icon, label, extra) => `<button class="menu-item ${extra || ''}" data-action="${action}" data-id="${escapeAttr(r.id)}">${icon}<span>${label}</span></button>`;
   return sheet('detail-menu-title', r.title || 'Rezept', `<div class="menu-list">
     ${item('edit-recipe', ICONS.edit, 'Bearbeiten')}
     ${item('duplicate-recipe', ICONS.copy, 'Duplizieren')}
     ${item('export-pdf', ICONS.pdf, 'Als PDF exportieren')}
-    ${item('share-recipe', ICONS.share, 'Teilen')}
-    ${item('share-open-send', ICONS.link, 'An Freund in Savora senden')}
-    ${typeof libPublishMenuItemHtml === 'function' && !r.publicOrigin ? libPublishMenuItemHtml(r) : ''}
     ${item('add-to-cookbook', ICONS.bookOpen, 'Zum Kochbuch hinzufügen')}
     ${item('open-collections-modal', ICONS.folder, 'Zu Sammlung hinzufügen')}
-    ${item('open-plan-recipe', ICONS.calendar, 'In den Wochenplan')}
+    ${item('open-plan-recipe', ICONS.calendar, 'Zum Wochenplan')}
     ${item('open-note-modal', ICONS.note, 'Notiz hinzufügen')}
+    <p class="menu-group-title" role="presentation">Teilen</p>
+    ${shareMenuItemsHtml(r)}
     ${item('confirm-delete', ICONS.trash, 'Löschen', 'menu-item--danger')}
   </div>`);
 }
@@ -1127,6 +1152,9 @@ function cookbookPageStyleChoice(cfg) {
     </div>`;
 }
 function cookbookStepDesign(cfg) {
+  const nut = cookbookPdfNutrition(cfg);
+  const author = String(cfg.author || '').trim();
+  const sender = String(state.senderName || '').trim();
   return `
       <section class="panel">
         <h2 class="section-title" id="cbStepTitle" tabindex="-1">Titelblatt</h2>
@@ -1136,29 +1164,71 @@ function cookbookStepDesign(cfg) {
         <h2 class="section-title">Seitenstil der Rezepte</h2>
         <p class="hint-line">Gilt für alle Rezeptseiten dieses Kochbuchs. Das Titelblatt oben ist davon unabhängig.</p>
         ${cookbookPageStyleChoice(cfg)}
+      </section>
+      <section class="panel cb-pdf-opts" aria-labelledby="cbPdfOptsTitle">
+        <h2 class="section-title" id="cbPdfOptsTitle">Im PDF</h2>
+        <div class="cb-opt">
+          <h3 class="sub-title">Name</h3>
+          <p class="hint-line" id="cbNameWhere">${author ? `«${escapeHtml(author)}» steht auf dem Titelblatt und in der Fusszeile jeder Rezeptseite.` : 'Kein Name eingetragen: Im PDF steht kein Name.'} Den Namen änderst du oben beim Titelblatt im Feld «Name». Leer lassen, wenn kein Name gedruckt werden soll.</p>
+          ${!author && sender ? `<button type="button" class="outline-btn outline-btn--small" data-action="cb-use-sender-name">«${escapeHtml(sender)}» als Name eintragen</button>` : ''}
+          ${author ? '<button type="button" class="text-btn" data-action="cb-clear-name">Keinen Namen drucken</button>' : ''}
+        </div>
+        ${state.showNutrition ? `<div class="cb-opt">
+          <h3 class="sub-title" id="cbNutLabel">Nährwerte</h3>
+          <div class="nutrition-segmented" role="radiogroup" aria-labelledby="cbNutLabel">
+            ${COOKBOOK_NUTRITION_LEVELS.map(l => `<button type="button" role="radio" aria-checked="${nut === l}" class="${nut === l ? 'active' : ''}" data-action="cb-pdf-nutrition" data-level="${l}">${COOKBOOK_NUTRITION_LABEL[l]}</button>`).join('')}
+          </div>
+          <p class="hint-line">Gedruckt nur bei Rezepten mit berechneten Nährwerten.</p>
+        </div>` : ''}
       </section>`;
 }
+/* Ein Prüfhinweis mit Ziel (Rezept prüfen, Cover bearbeiten, Kapitel bearbeiten, PDF-Seite ansehen) */
+function cookbookHintHtml(h) {
+  const lvl = { error: 'Fehler', check: 'Prüfen', info: 'Info' }[h.level] || 'Info';
+  const t = h.target;
+  const btn = t ? `<button type="button" class="text-btn cb-hint-go" data-action="${escapeAttr(t.action)}" ${t.id != null ? `data-id="${escapeAttr(t.id)}"` : ''}>${escapeHtml(t.label)}</button>` : '';
+  const details = h.kind === 'empty-chapters' && h.names && h.names.length
+    ? `<details class="cb-hint-details"><summary>Leere Kapitel anzeigen</summary><ul>${h.names.map(n => `<li>${escapeHtml(n || 'Ohne Namen')}</li>`).join('')}</ul><p class="hint-line">Die Kapitel bleiben im Kochbuch erhalten. Sobald du ihnen Rezepte zuordnest, erscheinen sie im PDF.</p></details>` : '';
+  return `<li class="cb-warn cb-warn--${h.level === 'check' ? 'warn' : h.level}" data-level="${h.level}"><span class="cb-hint-level">${lvl}</span><div class="cb-hint-body"><p class="cb-hint-text">${escapeHtml(h.text)}</p>${details}${btn}</div></li>`;
+}
 function cookbookStepPreview(cfg) {
-  const warnings = cookbookWarnings(cfg);
+  const hints = cookbookReview(cfg);
+  const sum = cookbookSummary(cfg);
   const cv = cfg.cover || coverSanitizeConfig(null, true);
   const layout = coverLayout(coverInputFromConfig(cfg));
-  const tpl = pdfTemplateById(pdfNormTpl(cfg.pdfTemplate || pdfDefaultTemplateId()));
+  const tplId = cookbookPdfTemplate(cfg);
   const tplName = (coverTemplateById(cv.templateId) || {}).name || '';
+  const coverName = cv.v === COVER_SCHEMA_V2 && cv.mode === 'custom' ? 'Eigenes Cover' : tplName;
   const n = cfg.items.length;
+  const book = cookbookActiveBook();
+  const last = cookbookLastBuildFor(book.id);
+  const byId = Object.fromEntries(state.recipes.map(r => [r.id, r]));
+  const recipes = cookbookOrderedSections(cfg).flatMap(s => s.recipes);
+  const pagesList = last && Object.keys(last.pages).length ? `<div class="cb-pages">
+      <h3 class="sub-title">Seiten im letzten PDF (${escapeHtml(cookbookPdfTemplateName(last.template))}, ${cookbookPlural(last.pageCount, 'Seite', 'Seiten')})</h3>
+      <ul class="cb-pages-list">${recipes.filter(r => last.pages[r.id]).map(r => `<li><span>${escapeHtml((byId[r.id] || r).title || 'Ohne Titel')}</span><span class="cb-pages-n">${cookbookPlural(last.pages[r.id], 'Seite', 'Seiten')}</span></li>`).join('')}</ul>
+      <button type="button" class="text-btn" data-action="export-cookbook">PDF-Seite ansehen</button>
+    </div>` : '';
+  const nut = cookbookPdfNutrition(cfg);
+  const author = String(cfg.author || '').trim();
   return `
       <section class="panel cb-final">
         <h2 class="section-title" id="cbStepTitle" tabindex="-1">Vorschau &amp; PDF</h2>
         <div class="cb-final-grid">
           <div class="cover-preview" aria-label="Vorschau des Titelblatts">${coverPreviewHtml(layout)}</div>
-          <dl class="cb-summary">
-            <div><dt>Rezepte</dt><dd>${n} ${n === 1 ? 'Rezept' : 'Rezepte'}${cfg.chapters.length ? `, ${cfg.chapters.length} ${cfg.chapters.length === 1 ? 'Kapitel' : 'Kapitel'}` : ''}</dd></div>
-            <div><dt>Titelblatt</dt><dd>${escapeHtml(tplName)}</dd></div>
-            <div><dt>Seitenstil</dt><dd>${escapeHtml(tpl.name)}</dd></div>
+          <div class="cb-summary-wrap"><dl class="cb-summary">
+            <div><dt>Inhalt</dt><dd id="cbSummaryText">${escapeHtml(sum.text)}</dd></div>
+            <div><dt>Titelblatt</dt><dd>${escapeHtml(coverName)}</dd></div>
+            <div><dt>Seitenstil</dt><dd>${escapeHtml(cookbookPdfTemplateName(tplId))}</dd></div>
+            <div><dt>Name</dt><dd>${author ? escapeHtml(author) : 'Kein Name'}</dd></div>
+            ${state.showNutrition ? `<div><dt>Nährwerte</dt><dd>${COOKBOOK_NUTRITION_LABEL[nut]}</dd></div>` : ''}
           </dl>
+          <button type="button" class="text-btn cb-summary-edit" data-action="cb-step" data-id="2">Gestaltung ändern</button></div>
         </div>
-        <h3 class="sub-title">Prüfung</h3>
-        ${warnings.length ? `<ul class="cb-warnings">${warnings.map(w => `<li class="cb-warn cb-warn--${w.level}">${escapeHtml(w.text)}</li>`).join('')}</ul>` : '<p class="hint-line">Keine Auffälligkeiten gefunden.</p>'}
-        <p class="hint-line">Inhaltsverzeichnis und Seitenzahlen werden automatisch erstellt.</p>
+        <h3 class="sub-title" id="cbHintsTitle">Prüfung</h3>
+        ${hints.length ? `<ul class="cb-warnings" aria-labelledby="cbHintsTitle">${hints.map(cookbookHintHtml).join('')}</ul>` : '<p class="hint-line">Keine Auffälligkeiten gefunden.</p>'}
+        ${pagesList}
+        <p class="hint-line">Inhaltsverzeichnis und Seitenzahlen werden automatisch erstellt. Die Vorschau zeigt genau die Datei, die du danach herunterlädst.</p>
         <button class="primary-btn primary-btn--block" data-action="export-cookbook" ${n ? '' : 'disabled'}>${ICONS.pdf} PDF-Vorschau erstellen</button>
       </section>`;
 }
@@ -1242,20 +1312,22 @@ function formView() {
               <input type="file" accept="image/*" id="f-image" aria-label="Foto auswählen">
             </div></div>
           <div class="field-row field-row--2">
-            <div class="field"><label for="f-servings">Menge</label><input type="number" id="f-servings" min="1" value="${Number(r.servings) > 0 ? r.servings : ''}" placeholder="${Number(r.servings) > 0 ? '' : 'unbekannt'}"></div>
-            <div class="field"><label for="f-serving-mode">Einheit</label><select id="f-serving-mode"><option value="portions" ${servingMode(r) === 'portions' ? 'selected' : ''}>Portionen</option><option value="pieces" ${servingMode(r) === 'pieces' ? 'selected' : ''}>Stück</option></select></div>
+            <div class="field"><label for="f-serving-mode">Ertrag</label><select id="f-serving-mode" aria-describedby="f-yield-hint" onchange="formYieldModeChanged(this)"><option value="portions" ${servingMode(r) === 'portions' ? 'selected' : ''}>Portionen</option><option value="pieces" ${servingMode(r) === 'pieces' ? 'selected' : ''}>Stück</option><option value="total" ${servingMode(r) === 'total' ? 'selected' : ''}>Gesamtertrag (z. B. 1 Glas)</option></select></div>
+            <div class="field"><label for="f-servings">Anzahl</label><input type="number" id="f-servings" min="1" value="${Number(r.servings) > 0 ? r.servings : ''}" placeholder="${Number(r.servings) > 0 ? '' : 'unbekannt'}"></div>
           </div>
+          <div class="field" id="f-yield-label-field"${servingMode(r) === 'portions' ? ' hidden' : ''}><label for="f-yield-label">Bezeichnung</label><input type="text" id="f-yield-label" maxlength="40" value="${escapeAttr(servingMode(r) === 'portions' ? '' : (r.yieldLabel || ''))}" placeholder="${servingMode(r) === 'total' ? 'z. B. Glas, ml, Blech' : 'z. B. Cookies, Stück'}"></div>
+          <p class="hint-line" id="f-yield-hint">${escapeHtml(formYieldHint(servingMode(r)))}</p>
           <div class="field-row field-row--2">
-            <div class="field"><label for="f-time">Zeit (Min.)</label><input type="number" id="f-time" min="0" value="${r.timeMinutes > 0 ? r.timeMinutes : ''}" placeholder="${r.timeMinutes > 0 ? '' : 'unbekannt'}"></div>
+            <div class="field"><label for="f-time">Gesamtzeit (Min.)</label><input type="number" id="f-time" min="0" value="${r.timeMinutes > 0 ? r.timeMinutes : ''}" placeholder="${r.timeMinutes > 0 ? '' : 'unbekannt'}"></div>
             <div class="field"><label for="f-difficulty">Schwierigkeit</label><select id="f-difficulty">${['', 'Einfach', 'Mittel', 'Anspruchsvoll'].map(d => `<option value="${escapeAttr(d)}" ${(r.difficulty || '') === d ? 'selected' : ''}>${d || 'Keine Angabe'}</option>`).join('')}</select></div>
           </div>
           <details class="field-more"${(r.prepMinutes || r.restMinutes || r.cookMinutes) ? ' open' : ''}><summary>Weitere Zeitangaben (optional)</summary>
             <div class="field-row field-row--3">
-              <div class="field"><label for="f-prep">Vorbereitungszeit (Min.)</label><input type="number" id="f-prep" min="0" value="${r.prepMinutes || ''}"></div>
-              <div class="field"><label for="f-rest">Ruhen (Min.)</label><input type="number" id="f-rest" min="0" value="${r.restMinutes || ''}"></div>
-              <div class="field"><label for="f-cook">Garen/Backen (Min.)</label><input type="number" id="f-cook" min="0" value="${r.cookMinutes || ''}"></div>
+              <div class="field"><label for="f-prep">Vorbereitung (Min.)</label><input type="number" id="f-prep" min="0" value="${r.prepMinutes || ''}"></div>
+              <div class="field"><label for="f-cook">Garen oder Backen (Min.)</label><input type="number" id="f-cook" min="0" value="${r.cookMinutes || ''}"></div>
+              <div class="field"><label for="f-rest">Ruhen oder Kühlen (Min.)</label><input type="number" id="f-rest" min="0" value="${r.restMinutes || ''}"></div>
             </div>
-            <p class="hint-line">Nur ausfüllen, was du sicher weisst. Leere Felder bleiben unbekannt und werden nicht erfunden.</p>
+            <p class="hint-line">Gesamtzeit heisst: vom Start bis zum Servieren. Sie wird nicht automatisch addiert, weil Schritte parallel laufen können. Leere Felder bleiben unbekannt.</p>
           </details>
         </section>
         <section class="form-step ${step === 1 ? 'is-active' : ''}" data-form-step="1" aria-label="Kategorien">
@@ -1288,7 +1360,7 @@ function formView() {
               <li class="${realCount ? 'ok' : 'warn'}">${realCount} Zutat${realCount === 1 ? '' : 'en'}${missingAmounts ? `, davon ${missingAmounts} ohne Mengenangabe` : ''}</li>
               <li class="${stepCount ? 'ok' : 'warn'}">${stepCount} Zubereitungsschritt${stepCount === 1 ? '' : 'e'}</li>
             </ul>
-            ${(() => { const iss = typeof recipeQualityIssues === 'function' ? recipeQualityIssues(r) : []; return iss.length ? `<h3 class="sub-title">Hinweise</h3><ul class="review-list">${iss.map(i => `<li class="warn">${escapeHtml(i.text)}</li>`).join('')}</ul><p class="hint-line">Nichts wird automatisch geändert. Nach dem Speichern kannst du Vorschläge auf der Rezeptseite einzeln übernehmen.</p>` : ''; })()}
+            ${(() => { const iss = typeof recipeQualityIssues === 'function' ? recipeQualityIssues(r) : []; return iss.length ? `<h3 class="sub-title">Hinweise</h3><div class="recipe-check recipe-check--form">${recipeCheckListHtml(r, iss, true)}</div><p class="hint-line">Nichts wird automatisch geändert. Nach dem Speichern kannst du Vorschläge auf der Rezeptseite einzeln übernehmen.</p>` : ''; })()}
           </div>
           ${!isNew ? `<button type="button" class="text-btn danger-link" data-action="confirm-delete" data-id="${escapeAttr(r.id)}">${ICONS.trash} Rezept löschen</button>` : ''}
         </section>
@@ -1307,8 +1379,8 @@ function formView() {
    Sie wird beim Tippen ohne Neuaufbau aktualisiert (updateFormAside in actions-v2.js). */
 function formAsideBodyHtml(r) {
   const title = (r.title || '').trim();
-  const portions = Number(r.servings) > 0 ? servingLabel(r, r.servings) : '';
-  const meta = [portions, r.timeMinutes > 0 ? `${r.timeMinutes} Min.` : '', r.difficulty || ''].filter(Boolean);
+  const portions = Number(r.servings) > 0 ? yieldText(r) : '';
+  const meta = [portions, timeInfo(r).cardText ? timeInfo(r).cardText + ' Gesamtzeit' : '', r.difficulty || ''].filter(Boolean);
   const ings = realIngredients(r).length;
   const missing = qtyMissingIngredients(realIngredients(r)).length;
   const steps = (r.steps || []).filter(s => (s.text || '').trim()).length;

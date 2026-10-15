@@ -73,7 +73,7 @@ async def main():
         check('Konto abgemeldet: keine Passwort-/Löschen-Aktionen', 'Konto löschen' not in t and 'Passwort ändern' not in t)
         await go(page, 'settings-sync')
         t = await text(page)
-        check('Abgleich abgemeldet: Zweck, «Zum Abgleichen anmelden», kein «An»', 'Deine Änderungen werden auf deinen angemeldeten Geräten übernommen.' in t and 'Zum Abgleichen anmelden' in t and 'Jetzt abgleichen' not in t, t[:200])
+        check('Abgleich abgemeldet: Zweck, «Zum Abgleichen anmelden», kein «An»', 'Hält deine Rezepte und unterstützten Daten auf deinen Geräten aktuell.' in t and 'Zum Abgleichen anmelden' in t and 'Jetzt abgleichen' not in t, t[:200])
         check('Summary-Texte ehrlich (nie «An»)', await page.evaluate("settingsSyncSummary() === 'Nicht angemeldet' && cloudSettingsSummary() === 'Nicht angemeldet' && settingsAccountSummary() === 'Nicht angemeldet'"))
         # Weg zur Konto-Seite und Rückkehr nach der Anmeldung
         add_user('anna@example.test')
@@ -134,8 +134,9 @@ async def main():
         await go(page, 'settings-account')
         t = await text(page)
         check('Konto angemeldet: «Angemeldet» mit E-Mail', 'Angemeldet' in t and 'anna@example.test' in t)
-        check('Konto angemeldet: Verweis «Öffentliches Profil bearbeiten» (Route friends-profile), als freiwillig bezeichnet',
-              await page.evaluate("!!document.querySelector('[data-action=goto-view][data-view=friends-profile]')") and 'Öffentliches Profil bearbeiten' in t and 'Freiwillig' in t)
+        # v0.83: öffentliches Profil = Rezeptbibliothek (lib-pubprofile), Freunde-Profil getrennt; nicht mehr «nur für Freunde nötig»
+        check('Konto angemeldet: «Öffentliches Profil» (lib-pubprofile) und «Profil für Freunde» (friends-profile) getrennt, Einladungscode privat',
+              await page.evaluate("!!document.querySelector('[data-action=goto-view][data-view=friends-profile]') && !!document.querySelector('[data-action=goto-view][data-view=lib-pubprofile]')") and 'Öffentliches Profil' in t and 'Profil für Freunde' in t and 'Einladungscode bleibt privat' in t and 'Nur nötig, wenn du Rezepte mit Freunden' not in t)
         check('Konto angemeldet: Löschen ist nachgeordnet (letzter Abschnitt) und Passwortfelder stehen nicht auf der Seite',
               await page.evaluate("document.querySelectorAll('.kd-sec')[document.querySelectorAll('.kd-sec').length - 1].classList.contains('kd-sec--danger') && !document.querySelector('input[type=password]')"))
         check('Konto angemeldet: «Abmelden» erklärt den Umgang mit lokalen Daten', 'bleiben auf diesem Gerät' in t and 'zusammengeführt' in t)
@@ -188,7 +189,7 @@ async def main():
         # ---------- Sicherung ----------
         await go(page, 'settings-backup')
         t = await text(page)
-        check('Sicherung: Zweck, beide Aktionen, «Noch keine Sicherung heruntergeladen»', 'Lade eine Kopie deiner Daten als Datei herunter.' in t and 'Sicherung herunterladen' in t and 'Sicherung importieren' in t and 'Noch keine Sicherung heruntergeladen' in t, t[:160])
+        check('Sicherung: Zweck, beide Aktionen, «Noch keine Sicherung heruntergeladen»', 'Erstellt eine Datei, mit der du deine Daten später wiederherstellen kannst.' in t and 'Sicherung herunterladen' in t and 'Sicherung importieren' in t and 'Noch keine Sicherung heruntergeladen' in t, t[:160])
         check('Sicherung: Unterschied Abgleich/Sicherungsdatei erklärt, keine pauschale Zusage, kein PDF-Backup',
               'Abgleich oder Sicherung?' in t and 'bewahrt einen bestimmten Stand' in t and 'musst keine Sicherung' not in t and 'PDF-Dateien' in t and 'lassen sich nicht importieren' in t)
         check('Sicherung: Satz «Die Datei ergänzt deine Daten…» wird nicht pauschal benutzt', 'Vorhandene Einträge bleiben erhalten' not in t and 'ersetzen die vorhandenen' in t)

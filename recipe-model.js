@@ -166,6 +166,18 @@ function nutritionBasis(r) {
   return { kind: 'total', divisor: 1, label: 'für das gesamte Rezept' };
 }
 
+// Schrittweite fuer «Menge anpassen»: bei Gesamtertrag in Masseinheiten (500 ml, 250 g) in ganzen Rezeptmengen, sonst 1
+function yieldStep(r) {
+  if (servingMode(r) === 'total' && yieldKnown(r) && /^(ml|cl|dl|l|liter|g|gramm|kg)$/i.test(String(r.yieldLabel || '').trim())) return Number(r.servings);
+  return 1;
+}
+// Erklaerung im Editor je Ertragsart
+function formYieldHint(mode) {
+  if (mode === 'pieces') return 'Wie viele Stück das Rezept ergibt, zum Beispiel 12 Cookies.';
+  if (mode === 'total') return 'Die ganze Menge des Rezepts, zum Beispiel 1 Glas oder 500 ml. Nährwerte gelten dann für das gesamte Rezept.';
+  return 'Für wie viele Portionen das Rezept reicht. Leer lassen, wenn du es nicht weisst.';
+}
+
 /* ---------- Zeiten (v0.83) ----------
    timeMinutes = Gesamtzeit (wie Bibliothek und Filter), prepMinutes = Vorbereitung (aktive Arbeit),
    cookMinutes = Garen/Backen, restMinutes = Ruhen/Kuehlen. Nichts wird summiert oder ueberschrieben:

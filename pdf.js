@@ -363,6 +363,7 @@ async function renderSectionsToPdf(opts) {
   const pageWidthMm = 210, pageHeightMm = 297;
   let firstPage = true;
   const recipeStart = {};       // recipeId -> Seite (1-basiert)
+  const recipePages = new Map();   // recipeId -> tatsaechlich erzeugte PDF-Seiten (nach dem Rendern, inkl. Fortsetzungsseiten)
   const recipeTitles = [];      // [{ id, title, chapter, page }]
   const tocLinks = [];          // [{ page, x, y, w, h, target }]
   const urlLinks = [];          // [{ page, url, x, y, w, h }]
@@ -442,6 +443,10 @@ async function renderSectionsToPdf(opts) {
     }
     canvas.width = 0; canvas.height = 0;
     if (section.dataset.rpage && pageNo) localPages[pageNo] = { n: +section.dataset.rpage, K: +section.dataset.rtotal || 1 };
+    if ((kind === 'recipe' || kind === 'continuation') && section.dataset.recipeId && pageNo) {
+      const after = pdf.getNumberOfPages();   // Sicherheitsschnitt kann mehrere Seiten erzeugen
+      recipePages.set(section.dataset.recipeId, (recipePages.get(section.dataset.recipeId) || 0) + Math.max(1, after - pageNo + 1));
+    }
     if (kind === 'cover') skipNumbers.add(pageNo);
     if (kind === 'chapter') skipNumbers.add(pageNo);
     if (kind === 'recipe' && section.dataset.recipeId && !(section.dataset.recipeId in recipeStart)) {
@@ -480,7 +485,7 @@ async function renderSectionsToPdf(opts) {
   } catch (e) { /* Metadaten sind ein Zusatz */ }
   pdfProgress(opts, sections.length, sections.length, 'render');
   const out = pdf.output('blob');
-  try { out.pageCount = pdf.getNumberOfPages(); out.slicedPages = sliced; out.recipeStart = recipeStart; } catch (e) {}
+  try { out.pageCount = pdf.getNumberOfPages(); out.slicedPages = sliced; out.recipeStart = recipeStart; out.recipePages = recipePages; } catch (e) {}
   return out;
 }
 
@@ -527,11 +532,14 @@ function pdfFrameFor(dims, box) {
   w = Math.round(w * 10) / 10;
   return { w, h: Math.round((w / ar) * 10) / 10, bw: box.w, bh: box.h };
 }
-const PDF_DENSITY_PHOTO = { normal: { w: 58, h: 42 }, compact: { w: 44, h: 28 }, 'compact-columns': { w: 44, h: 28 } };
-function pdfDensityOpts(density, imgUrl, dims) {
-  const frame = imgUrl && dims ? pdfFrameFor(dims, PDF_DENSITY_PHOTO[density] || PDF_DENSITY_PHOTO.normal) : null;
-  return { frame, tight: density !== 'normal', density };
+const PDF_DENSITY_PHOTO = { normal: { w: 58, h: 42 }, compact: { w: 44, h: 28 }, 'compact-columns': { w: 44, h: 28 }, dense: { w: 38, h: 24 } };
+function pdfDensityOpts(density, imgUrl, dims, dense) {
+  const frame = imgUrl && dims ? pdfFrameFor(dims, (dense ? PDF_DENSITY_PHOTO.dense : PDF_DENSITY_PHOTO[density]) || PDF_DENSITY_PHOTO.normal) : null;
+  return { frame, tight: density !== 'normal', density, dense: !!dense };
 }
+/* v83: dichter Einseiten-Versuch nur, wenn der beste kompakte Kandidat knapp ueberlaeuft (hoechstens so viel, wie engere Abstaende
+   und das kleinere Foto realistisch einsparen) und nicht aus einem anderen Grund abgelehnt wurde. */
+const PDF_DENSE_MAX_OVERFLOW_MM = 30;
 /* Anzahl Zutatengruppen mit Inhalt (Voraussetzung fuer den Dreispalten-Kandidaten) */
 function pdfGroupCount(m) { return (m.ingredients || []).filter((it) => it.type === 'group' && it.size > 0).length; }
 
@@ -889,6 +897,19 @@ async function buildRecipePdfPage(r, previousLayout, nutritionDetail, chapter) {
     }
   }
   if (densities.length < 3) log.candidates.push({ density: 'compact-columns', skipped: 'weniger als drei Zutatengruppen' });
+  // v83: letzter Einseiten-Versuch mit engeren Abstaenden (gleiche Schriftgroessen) auf der besten kompakten Variante
+  const tried = log.candidates.filter((c) => !c.skipped && c.density !== 'normal' && !c.reject);
+  const base = tried.length ? tried.reduce((a, b) => (b.heightMm < a.heightMm ? b : a)) : null;
+  if (base && base.overflowMm <= PDF_DENSE_MAX_OVERFLOW_MM) {
+    const html = pvRecipePage(m, r, img, pdfDensityOpts(base.density, img, dims, true), detail);
+    const meas = pdfMeasureCandidate(html, base.density + '+dicht');
+    log.candidates.push(meas);
+    if (meas.fits) {
+      log.plan = `1 Seite (${base.density}, dicht)`;
+      pdfPlanLogOut(log);
+      return { htmlPages: pdfMarkRecipePages([html]), layout: (img ? 'photo' : 'text') + '-' + base.density + '-dense', density: base.density, dense: true, tier: 3, pageCount: 1, imageState, planLog: log };
+    }
+  }
   const multi = pdfPlanMultiPage(m, r, img, dims, detail, log);
   const bad = multi.html.map((h, i) => (pdfFits(h) ? -1 : i + 1)).filter((x) => x > 0);
   log.plan = `${multi.html.length} Seiten (${multi.density}, ${multi.how})` + (bad.length ? `, Ueberlauf auf Seite ${bad.join(', ')}` : '');
@@ -901,6 +922,22 @@ async function buildRecipePdfPage(r, previousLayout, nutritionDetail, chapter) {
 }
 /* Entwicklungsprotokoll: getestete Dichten, gemessene Ueberlaeufe, gewaehlter Plan */
 let PDF_PLAN_LOGS = [];
+/* Schnittstelle fuer die Oberflaeche (v83, H3 zeigt an). Erst NACH dem Rendern gesetzt; vorher null (nie eine Seitenzahl vorab versprechen).
+     pdfLastPageCounts: Map(recipeId -> tatsaechliche Seiten im zuletzt erzeugten PDF)
+     pdfLastPlan: { kind: 'single'|'cookbook', template, totalPages, createdAt, recipes: [{ id, title, pages, startPage, density, plan }] }
+   Ein abgebrochener oder fehlgeschlagener Lauf setzt beide auf null (keine veralteten Zahlen). */
+var pdfLastPageCounts = null, pdfLastPlan = null;
+function pdfPublishPlan(kind, templateId, blob, recipes, planLogs) {
+  const counts = new Map(blob && blob.recipePages ? blob.recipePages : []);
+  const logs = planLogs || [];
+  pdfLastPageCounts = counts;
+  pdfLastPlan = {
+    kind, template: templateId, totalPages: blob ? blob.pageCount || 0 : 0, createdAt: Date.now(),
+    recipes: recipes.map((r, i) => { const lg = logs[i] || {}; const c = (lg.candidates || []).find((x) => x.fits); return { id: r.id, title: r.title || '', pages: counts.get(r.id) || 0, startPage: (blob && blob.recipeStart && blob.recipeStart[r.id]) || null, density: c ? c.density : ((lg.multi && lg.multi[0] && lg.multi[0].density) || ''), plan: lg.plan || '' }; }),
+  };
+  try { window.pdfLastPageCounts = pdfLastPageCounts; window.pdfLastPlan = pdfLastPlan; } catch (e) { /* nur Schnittstelle */ }
+}
+function pdfClearPlan() { pdfLastPageCounts = null; pdfLastPlan = null; try { window.pdfLastPageCounts = null; window.pdfLastPlan = null; } catch (e) { /* nur Schnittstelle */ } }
 function pdfPlanLogOut(log) {
   PDF_PLAN_LOGS.push(log);
   try { console.debug('[Savora PDF-Plan]', log.recipe, '·', log.style, '·', log.candidates.map((c) => c.skipped ? `${c.density}: übersprungen (${c.skipped})` : `${c.density}: ${c.heightMm} mm${c.fits ? ' passt' : c.reject ? ' abgelehnt (' + c.reject + ')' : ' Überlauf ' + c.overflowMm + ' mm'}`).join(' | '), '→', log.plan); } catch (e) { /* nur Protokoll */ }
@@ -951,6 +988,7 @@ async function pdfBuildSingleImpl(id, nutritionDetail, opts) {
   if (!r) return null;
   const templateId = (opts && opts.template) || pdfDefaultTemplateId();
   pdfSetContext(templateId, '', (opts && opts.author) || '', false);   // «Name im PDF» (Exportdialog), leer = nicht drucken
+  pdfClearPlan();
   try {
     pdfProgress(opts, 0, 1, 'prepare');
     await ensurePdfLibs();   // Fehler (offline/Timeout) frueh und mit verstaendlicher Meldung
@@ -964,6 +1002,7 @@ async function pdfBuildSingleImpl(id, nutritionDetail, opts) {
     if (!blob) return null;
     blob.plannedPages = htmlPages.length;
     blob.planLog = planLog;
+    pdfPublishPlan('single', templateId, blob, [r], [planLog]);
     blob.imageIssues = imageState === 'failed' || imageState === 'lowres' ? [{ id: r.id, title: r.title || '', state: imageState }] : [];   // fuer die Anzeige im Dialog (Foto nicht ladbar / niedrige Aufloesung)
     return { blob, filename: `savora-${slugifyTitle(r.title)}.pdf` };
   } finally {
@@ -983,6 +1022,7 @@ async function pdfBuildCookbookImpl(nutritionDetail, opts) {
   const sections = cookbookOrderedSections(cfg);
   const recipes = sections.flatMap(s => s.recipes);
   if (!recipes.length) return null;
+  pdfClearPlan();
   try {
     await ensurePdfLibs();   // Fehler (offline/Timeout) frueh und mit verstaendlicher Meldung
     const templateId = (opts && opts.template) || cfg.pdfTemplate || pdfDefaultTemplateId();
@@ -1059,6 +1099,7 @@ async function pdfBuildCookbookImpl(nutritionDetail, opts) {
     blob.plannedPages = planned;
     blob.planLog = planLogs;
     blob.imageIssues = imageIssues;
+    pdfPublishPlan('cookbook', templateId, blob, recipes, planLogs);
     // Inhaltsverzeichnis gegen die tatsaechlichen Rezeptanfaenge pruefen (Planung und PDF muessen uebereinstimmen)
     const mismatch = built.rows.filter((row) => row.kind === 'recipe' && blob.recipeStart && blob.recipeStart[row.id] !== row.page);
     if (mismatch.length) console.warn('PDF: Inhaltsverzeichnis weicht von den Seiten ab', mismatch.map((x) => x.title));

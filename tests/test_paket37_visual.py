@@ -171,7 +171,7 @@ async def main():
                     tabs: Array.from(document.querySelectorAll('.tab-v2')).map(t => Math.round(t.getBoundingClientRect().height)), tools: Array.from(document.querySelectorAll('.detail-tools [data-action]')).map(b => b.dataset.action) })""")
                 check(tag + 'Rezept ohne Foto (Ansicht): kein Bildband, Titel gross in Lilita One', not nd['hero'] and not nd['letter'] and 'Lilita One' in nd['fam'] and nd['fs'] >= 32, str(nd))
                 check(tag + 'Rezeptansicht: "Kochen starten", Zeit/Menge, Zutatenzeile mind. 52 px, Reiter mind. 48 px', (nd['cook'] or '').strip() == 'Kochen starten' and nd['time'] and nd['ing'] >= 52 and all(x >= 48 for x in nd['tabs']), str(nd))
-                check(tag + 'Rezeptansicht: Einkaufen, Planen, Bearbeiten, Teilen erreichbar', nd['tools'] == ['add-to-shopping', 'open-plan-recipe', 'edit-recipe', 'share-recipe'], str(nd['tools']))
+                check(tag + 'Rezeptansicht: Einkaufsliste, Wochenplan, Bearbeiten, Teilen (Menü, v0.83) erreichbar', nd['tools'] == ['add-to-shopping', 'open-plan-recipe', 'edit-recipe', 'open-share-menu'], str(nd['tools']))
                 await show_view("state.view='detail';state.activeRecipeId='r_legacy_1'")
                 wp = await page.evaluate("""() => { const i = document.querySelector('img.hero-img'); if (!i) return null; const cs = getComputedStyle(i); const r = i.getBoundingClientRect(); return { fit: cs.objectFit, nat: [i.naturalWidth, i.naturalHeight], box: [Math.round(r.width), Math.round(r.height)] }; }""")
                 check(tag + 'Rezept mit Foto: Bild wird zugeschnitten, nie gestreckt (object-fit cover)', wp is not None and wp['fit'] == 'cover', str(wp))
