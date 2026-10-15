@@ -446,9 +446,19 @@ function coverAutoAlign(model, input) {
       }
       return sepX || r.y >= q.y + q.h + gapY - 1e-6 || q.y >= r.y + r.h + gapY - 1e-6;
     });
-    const groupOf = (dy) => (dy > 0 ? [id].concat(followers) : [id]);
+    // Nachfolger wandern nur mit, wenn das verschobene Feld (bzw. ein schon mitwanderndes) sie sonst beruehren wuerde
+    const groupOf = (dx, dy) => {
+      const grp = [id];
+      if (dy > 0 && !dx) followers.forEach((f) => {
+        const q = inkOf(L, f);
+        const hits = grp.some((g) => { const a = g === id ? U : inkOf(L, g); const r = { x: a.x, y: a.y + dy, w: a.w, h: a.h };
+          return !(r.x >= q.x + q.w + gapX || q.x >= r.x + r.w + gapX || r.y >= q.y + q.h + gapY || q.y >= r.y + r.h + gapY); });
+        if (hits) grp.push(f);
+      });
+      return grp;
+    };
     const okAt = (dx, dy) => {
-      const grp = groupOf(dy);
+      const grp = groupOf(dx, dy);
       const obst = all.filter(x => !grp.includes(x.o));
       return grp.every((g) => { const q = g === id ? U : inkOf(L, g); const r = { x: q.x + dx, y: q.y + dy, w: q.w, h: q.h }; return inSafe(r) && free(r, ORDER.indexOf(g) >= 0 ? q : null, ORDER.indexOf(g), obst); });
     };
@@ -460,7 +470,7 @@ function coverAutoAlign(model, input) {
     const mmOf = ([dx, dy]) => Math.hypot(dx * W, dy * H) / MM;
     const best = cands.filter(([dx, dy]) => (dx || dy) && okAt(dx, dy)).sort((p1, p2) => mmOf(p1) - mmOf(p2))[0];
     if (!best) { unresolved[id] = 'kein Platz'; continue; }
-    const grp = groupOf(best[1]);
+    const grp = groupOf(best[0], best[1]);
     // Felder festhalten, die ohne eigene Position fliessen (sonst bewegen sie sich mit)
     const before = {}; ORDER.forEach((o) => { const p = posOf(L, o); if (p) before[o] = p; });
     const next = coverModelSanitize(m);
