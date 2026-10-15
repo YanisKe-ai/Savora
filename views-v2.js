@@ -1158,8 +1158,18 @@ function cookbookPageStyleChoice(cfg) {
       ${Object.values(PDF_TEMPLATES).map(t => `<button type="button" role="radio" aria-checked="${cur === t.id}" class="pdf-tpl-opt ${cur === t.id ? 'active' : ''}" data-action="cb-page-style" data-id="${escapeAttr(t.id)}"><span class="pdf-tpl-swatch pdf-tpl-swatch-${t.id.toLowerCase()}" aria-hidden="true"></span><b>${t.name}</b><small>${t.hint}</small></button>`).join('')}
     </div>`;
 }
+/* 0.83.1: Satz unter «Name», passend zur Wahl, wo der Name gedruckt wird */
+function cookbookNameWhereText(author, pn) {
+  if (!author) return 'Kein Name eingetragen. Im PDF erscheint kein Name.';
+  const n = `«${escapeHtml(author)}»`;
+  if (pn === 'cover') return `${n} steht nur auf dem Titelblatt.`;
+  if (pn === 'footer') return `${n} steht nur in der Fusszeile jeder Rezeptseite. Im Editor oben bleibt er sichtbar, damit du ihn bearbeiten kannst.`;
+  if (pn === 'none') return `${n} bleibt gespeichert, wird aber nicht gedruckt. Im Editor oben bleibt er sichtbar, damit du ihn bearbeiten kannst.`;
+  return `${n} steht auf dem Titelblatt und in der Fusszeile jeder Rezeptseite.`;
+}
 function cookbookStepDesign(cfg) {
   const nut = cookbookPdfNutrition(cfg);
+  const pn = cookbookPrintName(cfg);
   const author = String(cfg.author || '').trim();
   const sender = String(state.senderName || '').trim();
   return `
@@ -1176,9 +1186,12 @@ function cookbookStepDesign(cfg) {
         <h2 class="section-title" id="cbPdfOptsTitle">Im PDF</h2>
         <div class="cb-opt">
           <h3 class="sub-title">Name</h3>
-          <p class="hint-line" id="cbNameWhere">${author ? `«${escapeHtml(author)}» steht auf dem Titelblatt und in der Fusszeile jeder Rezeptseite.` : 'Kein Name eingetragen. Im PDF erscheint kein Name.'} Den Namen änderst du oben beim Titelblatt im Feld «Name». Leer lassen, wenn kein Name gedruckt werden soll.</p>
+          <p class="hint-line" id="cbNameWhere">${cookbookNameWhereText(author, pn)} Den Namen änderst du oben beim Titelblatt im Feld «Name».</p>
           ${!author && sender ? `<button type="button" class="outline-btn outline-btn--small" data-action="cb-use-sender-name">«${escapeHtml(sender)}» als Name eintragen</button>` : ''}
-          ${author ? '<button type="button" class="text-btn" data-action="cb-clear-name">Keinen Namen im PDF zeigen</button>' : ''}
+          <p class="hint-line" id="cbPrintNameLabel">Wo soll der Name stehen?</p>
+          <div class="cb-print-name" role="radiogroup" aria-labelledby="cbPrintNameLabel">
+            ${COOKBOOK_PRINT_NAME.map(v => `<label class="check-line"><input type="radio" name="cbPrintName" value="${v}" data-cb-print-name ${pn === v ? 'checked' : ''}> <span>${COOKBOOK_PRINT_NAME_LABEL[v]}</span></label>`).join('')}
+          </div>
         </div>
         ${state.showNutrition ? `<div class="cb-opt">
           <h3 class="sub-title" id="cbNutLabel">Nährwerte</h3>
@@ -1228,6 +1241,7 @@ function cookbookStepPreview(cfg) {
             <div><dt>Titelblatt</dt><dd>${escapeHtml(coverName)}</dd></div>
             <div><dt>Seitenstil</dt><dd>${escapeHtml(cookbookPdfTemplateName(tplId))}</dd></div>
             <div><dt>Name</dt><dd>${author ? escapeHtml(author) : 'Kein Name'}</dd></div>
+            ${author ? `<div><dt>Name im PDF</dt><dd id="cbSummaryPrintName">${COOKBOOK_PRINT_NAME_LABEL[cookbookPrintName(cfg)]}</dd></div>` : ''}
             ${state.showNutrition ? `<div><dt>Nährwerte</dt><dd>${COOKBOOK_NUTRITION_LABEL[nut]}</dd></div>` : ''}
           </dl>
           <button type="button" class="text-btn cb-summary-edit" data-action="cb-step" data-id="2">Gestaltung ändern</button></div>

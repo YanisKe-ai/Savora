@@ -209,6 +209,8 @@ function cookbookSetActive(id) {
                                                Rezepte ohne berechnete Nährwerte drucken ohnehin keine Box, also gleiches PDF wie bisher)
      author       Name auf Titelblatt und in der Fusszeile (wie bisher; leer = nicht gedruckt). Der frühere Name «nur für dieses PDF»
                   im Exportdialog wurde nie gespeichert; es gibt daher keinen Altwert, der verloren gehen kann.
+     printName    'both' | 'cover' | 'footer' | 'none'   (NEU 0.83.1; wo der Name gedruckt wird. Fehlt oder unbekannt = 'both', also wie bisher:
+                  Titelblatt und Fusszeile, sofern ein Name eingetragen ist. «Nicht drucken» behaelt den Namen in author, statt ihn zu loeschen.)
    Cover-Editor (Schritt «Gestalten»), Zusammenfassung, Export und Vorschau lesen nur diese Werte. */
 const COOKBOOK_NUTRITION_LEVELS = ['off', 'compact', 'full'];
 const COOKBOOK_NUTRITION_LABEL = { off: 'Aus', compact: 'Kompakt', full: 'Erweitert' };
@@ -216,6 +218,12 @@ function cookbookPdfNutrition(cfg) {
   if (!state.showNutrition) return 'off';
   const v = cfg && cfg.pdfNutrition;
   return COOKBOOK_NUTRITION_LEVELS.includes(v) ? v : 'compact';
+}
+const COOKBOOK_PRINT_NAME = ['both', 'cover', 'footer', 'none'];
+const COOKBOOK_PRINT_NAME_LABEL = { both: 'Titelblatt und Fusszeile', cover: 'Nur Titelblatt', footer: 'Nur Fusszeile', none: 'Nicht drucken' };
+function cookbookPrintName(cfg) {
+  const v = cfg && cfg.printName;
+  return COOKBOOK_PRINT_NAME.includes(v) ? v : 'both';
 }
 function cookbookPdfTemplate(cfg) {
   const id = (cfg && cfg.pdfTemplate) || (typeof pdfDefaultTemplateId === 'function' ? pdfDefaultTemplateId() : 'pur');
