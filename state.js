@@ -93,8 +93,6 @@ let bodyScrollLockY = null;
 
 function lockBodyScroll(y) {
   bodyScrollLockY = (typeof y === 'number') ? y : window.scrollY;
-  // Klassische Scrollleiste (Windows/Linux): Platz behalten, sonst wird die Seite beim Sperren breiter und neu umbrochen
-  if (window.innerWidth > document.documentElement.clientWidth) document.documentElement.style.scrollbarGutter = 'stable';
   document.body.style.position = 'fixed';
   document.body.style.top = `-${bodyScrollLockY}px`;
   document.body.style.left = '0';
@@ -108,7 +106,6 @@ function unlockBodyScroll() {
   document.body.style.left = '';
   document.body.style.right = '';
   document.body.style.width = '';
-  document.documentElement.style.scrollbarGutter = '';
   if (y !== null) window.scrollTo(0, y);
   bodyScrollLockY = null;
 }
