@@ -567,6 +567,16 @@ function libDraftSet(recipeId, patch) {
   writeJsonKey(libDraftKey(), all);
   return all[recipeId];
 }
+// Entwuerfe, die ohne Anmeldung begonnen wurden, gehen nach der Anmeldung nicht verloren (nur an dieses Konto, einmalig)
+function libDraftAdoptLocal() {
+  const localKey = 'savora-lib-drafts:local';
+  const local = readJsonKey(localKey, null);
+  if (!local || typeof local !== 'object' || !cloudUserId()) return;
+  const all = libDraftAll();
+  Object.keys(local).forEach(k => { if (!all[k]) all[k] = local[k]; });
+  writeJsonKey(libDraftKey(), all);
+  try { localStorage.removeItem(localKey); } catch (e) {}
+}
 function libDraftClear(recipeId) { const all = libDraftAll(); delete all[recipeId]; writeJsonKey(libDraftKey(), all); }
 
 /* ---------- Veroeffentlichen und verwalten (nur angemeldet) ---------- */

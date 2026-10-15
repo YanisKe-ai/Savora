@@ -94,6 +94,7 @@ async function cloudAuthSignIn(email, password) {
   const res = await cloudFetch('/auth/v1/token?grant_type=password', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email, password }) }, false);
   cloudStoreTokenResponse(await res.json());
   if (typeof libReset === 'function') libReset();   // Verwaltungsdaten eines frueheren Kontos verwerfen
+  if (typeof libDraftAdoptLocal === 'function') libDraftAdoptLocal();   // vor der Anmeldung begonnene Entwuerfe diesem Konto zuordnen
   await cloudPrepareFirstSync();
   if (typeof libStartup === 'function') setTimeout(() => { libLoadMine(); libLoadPubProfile(); libModCheck(); }, 500);
   return true;
@@ -523,7 +524,7 @@ async function handleCloudAction(action, id, el) {
           // Rueckkehr zur beabsichtigten Aktion (z. B. Veroeffentlichen); der Entwurf liegt kontogebunden im Speicher
           if (typeof lib !== 'undefined' && lib.returnTo && lib.returnTo.view) {
             const ret = lib.returnTo; lib.returnTo = null;
-            if (ret.view === 'lib-publish' && ret.recipeId) lib.publish = { recipeId: ret.recipeId, step: 1, publicationId: ret.publicationId || null, expectedVersion: ret.expectedVersion || null };
+            if (ret.view === 'lib-publish' && ret.recipeId && typeof libOpenPublish === 'function') { libOpenPublish(ret.recipeId, ret.publicationId ? { publicationId: ret.publicationId, expectedVersion: ret.expectedVersion } : undefined); showToast('Angemeldet. Der Abgleich startet.'); await cloudSyncNow(); return true; }
             state.view = ret.view;
           }
           render(); showToast('Angemeldet. Der Abgleich startet.');
