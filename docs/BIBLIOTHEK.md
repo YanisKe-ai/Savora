@@ -48,5 +48,8 @@ Löschen nur über die Storage-Oberfläche oder API (Supabase verhindert direkte
 - Keine Garantie für Moderation, Richtigkeit oder Allergiefreiheit; Ernährungsangaben stammen von den Autorinnen und Autoren.
 - Datenschutz: Abschnitt zur Rezeptbibliothek in `legal.js` (öffentliche Daten, Speicherort Zürich, Löschung, Meldungen).
 
+## Ertragsart «Gesamtertrag» (ab 0.83.0, Paket 46)
+Rezepte mit Gesamtertrag (z. B. «1 Glas», «500 ml») behalten diese Angabe in der Bibliothek. Geräte, die noch mit 0.82 laufen (alter Zwischenspeicher, Update noch nicht bestätigt), zeigen solche Rezepte bis zum Update als Portionen an. Nach dem Aktualisieren stimmt die Anzeige; gespeicherte Kopien lassen sich über «Neue Version» bzw. im Editor korrigieren.
+
 ## Nicht umgesetzt (bewusst)
 Kommentare, Nachrichten, Follower, Likes, Ranglisten. Dynamische Vorschaubilder für soziale Netzwerke (Open Graph) sind nicht eingerichtet: GitHub Pages liefert nur statische Seiten; geteilte Links zeigen die allgemeine Savora-Vorschau.

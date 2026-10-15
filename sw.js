@@ -138,6 +138,7 @@ const SHELL_ASSETS = [
   './actions-v2.js',
   './cloud.js',
   './share.js',
+  './recipe-picker.js',
   './library.js',
   './library-views.js',
   './library-publish.js',

@@ -77,6 +77,17 @@ function showUndoToast(msg, onUndo, onExpire) {
   undoState = { timer, el, onExpire };
 }
 
+/* Editor: Ertragsart gewechselt (ohne Neuaufbau, damit Eingaben bleiben) */
+function formYieldModeChanged(sel) {
+  const mode = sel && sel.value;
+  const field = document.getElementById('f-yield-label-field');
+  const input = document.getElementById('f-yield-label');
+  const hint = document.getElementById('f-yield-hint');
+  if (field) field.hidden = mode === 'portions';
+  if (input) input.placeholder = mode === 'total' ? 'z. B. Glas, ml, Blech' : 'z. B. Cookies, Stück';
+  if (hint && typeof formYieldHint === 'function') hint.textContent = formYieldHint(mode);
+}
+
 /* ---------- Form data collection ---------- */
 function collectFormData() {
   const r = state.editingRecipe;
@@ -114,8 +125,11 @@ function collectFormData() {
     r.ingredients.push(base);
   });
   const modeEl = document.getElementById('f-serving-mode');
-  if (modeEl) r.servingMode = modeEl.value === 'pieces' ? 'pieces' : 'portions';
-  if (r.servingMode !== 'pieces') delete r.yieldLabel;   // Bezeichnung (z. B. Schälchen) gilt nur fuer Stueck
+  if (modeEl) r.servingMode = modeEl.value === 'pieces' || modeEl.value === 'total' ? modeEl.value : 'portions';
+  // Bezeichnung (z. B. «Cookies» bei Stück, «Glas» oder «ml» bei Gesamtertrag); bei Portionen gibt es keine
+  const labelEl = document.getElementById('f-yield-label');
+  if (labelEl && r.servingMode !== 'portions') { const l = labelEl.value.trim().slice(0, 40); if (l) r.yieldLabel = l; else delete r.yieldLabel; }
+  if (r.servingMode === 'portions') delete r.yieldLabel;
   r.steps = Array.from(document.querySelectorAll('#stepRows [data-step-row]')).map(row => ({
     text: row.querySelector('.step-text-input').value.trim(),
   }));
@@ -650,11 +664,22 @@ async function dispatchAction(action, id, el, e) {
       break;
     }
     case 'serv-inc': case 'serv-dec': {
+      // «Menge anpassen»: nur die Anzeige (servings bleibt unveraendert); Gesamtertrag in ml/g springt in ganzen Rezeptmengen
       const r = state.recipes.find(x => x.id === id);
+      const step = typeof yieldStep === 'function' ? yieldStep(r) : 1;
       const current = state.servingsOverride[id] || r.lastServings || r.servings || 1;
-      const next = Math.max(1, current + (action === 'serv-inc' ? 1 : -1));
+      const next = Math.max(step, current + (action === 'serv-inc' ? step : -step));
       state.servingsOverride[id] = next;
       r.lastServings = next;
+      await dbPut(r);
+      render();
+      break;
+    }
+    case 'serv-reset': {
+      const r = state.recipes.find(x => x.id === id);
+      if (!r) break;
+      delete state.servingsOverride[id];
+      delete r.lastServings;
       await dbPut(r);
       render();
       break;
@@ -1107,7 +1132,7 @@ async function dispatchAction(action, id, el, e) {
       await dbPut(r);
       state._nutritionDetailResult = await recalculateAndStoreNutrition(r);
       render();
-      showToast('Fertiggewicht gespeichert');
+      showToast('Gewicht nach dem Kochen gespeichert');
       break;
     }
 
