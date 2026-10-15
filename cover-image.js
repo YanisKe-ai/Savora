@@ -7,7 +7,8 @@
                                          (es kann aus dem Cache nochmals geliefert werden). Fehler oder unbekannte ID -> null.
      coverImageRemove(id[, { force }]) -> Promise<void>   loescht nur IDs mit Praefix 'cover-' (nie Rezeptbilder). Ist die ID noch in einem Kochbuch gespeichert
                                          (z. B. nach «Duplizieren» geteilt), bleibt das Bild erhalten, ausser force: true.
-     coverImageIdsInUse()             -> string[]   Cover-Bild-IDs aus ALLEN Kochbuch-Projekten (fuer Sicherung, Abgleich, Aufraeumen)
+     coverImageIdsInUse()             -> string[]   Cover-Bild-IDs aus ALLEN Kochbuch-Projekten (Hintergrundbild cover.image.id UND Zusatzbilder
+                                         cover.images[].imgId; fuer Sicherung, Abgleich, Aufraeumen)
      coverImageGc()                   -> Promise<number>   NUR manuell: loescht Cover-Bilder, die in keinem Kochbuch mehr stehen. Nie automatisch.
      coverImageSyncNote()             -> string|''   ehrlicher Hinweis, wenn Bilder (noch) nicht zwischen Geraeten abgeglichen werden
    Cover-Bilder werden von den Loeschroutinen fuer Rezeptbilder nie beruehrt: sie loeschen nur ihre eigenen Rezept-imageId. */
@@ -155,8 +156,9 @@ function coverImageIdsInUse() {
   const ids = new Set();
   try {
     cookbookBooks().forEach((b) => {
-      const im = b && b.config && b.config.cover && b.config.cover.image;
+      const cv = b && b.config && b.config.cover, im = cv && cv.image;
       if (im && typeof im.id === 'string' && im.id.startsWith(COVER_IMG_PREFIX)) ids.add(im.id);
+      if (cv && Array.isArray(cv.images)) cv.images.forEach((e) => { if (e && typeof e.imgId === 'string' && e.imgId.startsWith(COVER_IMG_PREFIX)) ids.add(e.imgId); });   // Zusatzbilder
     });
   } catch (e) { /* ohne lesbare Kochbuecher: nichts als «in Gebrauch» behaupten */ }
   return Array.from(ids);
