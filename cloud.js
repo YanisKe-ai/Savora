@@ -520,6 +520,12 @@ async function handleCloudAction(action, id, el) {
       try {
         if (action === 'cloud-sign-in') {
           await cloudAuthSignIn(email, password);
+          // Rueckkehr zur beabsichtigten Aktion (z. B. Veroeffentlichen); der Entwurf liegt kontogebunden im Speicher
+          if (typeof lib !== 'undefined' && lib.returnTo && lib.returnTo.view) {
+            const ret = lib.returnTo; lib.returnTo = null;
+            if (ret.view === 'lib-publish' && ret.recipeId) lib.publish = { recipeId: ret.recipeId, step: 1, publicationId: ret.publicationId || null, expectedVersion: ret.expectedVersion || null };
+            state.view = ret.view;
+          }
           render(); showToast('Angemeldet. Der Abgleich startet.');
           await cloudSyncNow(); render();
         } else if (action === 'cloud-sign-up') {

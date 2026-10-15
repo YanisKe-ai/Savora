@@ -348,7 +348,7 @@ function moreView() {
       ${pageTitle('Mehr')}
       ${settingsGroup('Austauschen',
         settingsRow({ icon: ICONS.share, title: 'Freunde &amp; Rezepte', summary: moreFriendsSummary(), view: 'friends', badge: moreFriendsBadge() }))}
-      ${typeof libMoreRowsHtml === 'function' ? settingsGroup('Rezeptbibliothek', libMoreRowsHtml()) : ''}
+      ${typeof libMoreRowsHtml === 'function' ? libMoreRowsHtml() : ''}
       ${settingsGroup('Werkzeuge',
         settingsRow({ icon: ICONS.scale, title: 'Einheiten umrechnen', summary: 'Gewicht, Volumen, Temperatur und Zutaten', view: 'unitconverter' }))}
       ${settingsGroup('Verwalten', [
