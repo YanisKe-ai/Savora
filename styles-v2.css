@@ -3728,8 +3728,7 @@ body.keyboard-open .rp-foot { padding-bottom: 0.75rem; }
    Bei grosser Systemschrift (z. B. 24 px) gelten 320 bis 430 px als schmal. */
 /* Nie ein Vorfahre eines offenen Dialogs: Container-Eingrenzung macht ihn zum Bezug für position: fixed, Knöpfe im Dialog waren dann nicht mehr klickbar. Darum zählt im Dialog das Blatt selbst. */
 #app:not(:has(.home-head, .lib-head, .lib-filter-bar, .modal-backdrop)), .modal-sheet { container: s831 / inline-size; }
-/* Startseite/Entdecken: nur die Liste (Geschwister des Kopfs) ist Bezugsrahmen */
-#app:has(.home-head, .lib-head, .lib-filter-bar) > main { container: s831 / inline-size; }
+/* Startseite/Entdecken: kein Bezugsrahmen. Ein Container auf <main> verschob nach dem Schliessen eines Fensters die Scrollposition (Scroll-Verankerung, Linux-CI 260 -> 256). */
 /* Auswahldialog: Hintergrund hat eine feste Höhe (sichtbarer Bereich), daher auch als Höhen-Container nutzbar (Bildschirmtastatur) */
 .modal-backdrop.rp-backdrop { container: s831 / size; }
 
