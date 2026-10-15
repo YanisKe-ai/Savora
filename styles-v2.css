@@ -3726,7 +3726,8 @@ body.keyboard-open .rp-foot { padding-bottom: 0.75rem; }
 /* Bezugsrahmen «schmal in rem»: #app (ausser auf Startseite und Entdecken, deren Kopf eine eigene unbenannte Container-Abfrage hat) und die Dialoghintergründe.
    Bei normaler Schrift (16 px) ist auch ein 320-px-Handy mit klassischer Scrollleiste breiter als 18.5rem, die Regeln greifen dann nicht.
    Bei grosser Systemschrift (z. B. 24 px) gelten 320 bis 430 px als schmal. */
-#app:not(:has(.home-head, .lib-head, .lib-filter-bar)), .modal-backdrop { container: s831 / inline-size; }
+/* Nie ein Vorfahre eines offenen Dialogs: Container-Eingrenzung macht ihn zum Bezug für position: fixed, Knöpfe im Dialog waren dann nicht mehr klickbar. Darum zählt im Dialog das Blatt selbst. */
+#app:not(:has(.home-head, .lib-head, .lib-filter-bar, .modal-backdrop)), .modal-sheet { container: s831 / inline-size; }
 /* Startseite/Entdecken: nur die Liste (Geschwister des Kopfs) ist Bezugsrahmen */
 #app:has(.home-head, .lib-head, .lib-filter-bar) > main { container: s831 / inline-size; }
 /* Auswahldialog: Hintergrund hat eine feste Höhe (sichtbarer Bereich), daher auch als Höhen-Container nutzbar (Bildschirmtastatur) */
