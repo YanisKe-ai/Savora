@@ -3503,6 +3503,9 @@ body:has(.lp) .topbar--sub .topbar-title { overflow-wrap: normal; hyphens: auto;
 .stepper button:disabled { opacity: 0.4; cursor: default; }
 .nutrition-basis-title { font-size: 1rem; font-weight: 700; margin: 0 0 0.25rem; color: var(--text); }
 .nutrition-basis-note { font-size: 0.875rem; color: var(--text-soft); margin: 0 0 0.5rem; }
+.nutrition-confidence-badge.nutrition-coverage { text-transform: none; letter-spacing: normal; }
+.nutrition-weight-field { margin: 0.75rem 0; }
+.nutrition-weight-save { width: 100%; margin-bottom: 0.75rem; }
 
 /* ===== v83 Schritte, Hinweise, Teilen ===== */
 /* Schritte: deutliche Nummer, Überschrift separat, Text darunter mit guter Zeilenlänge */
@@ -3636,6 +3639,3 @@ body.keyboard-open .rp-foot { padding-bottom: 0.75rem; }
 @media (min-width: 640px) { .modal-sheet.rp-sheet { border-radius: 1.5rem; max-height: min(86vh, var(--rp-vvh, 86vh)); } }
 @media (hover: hover) and (pointer: fine) { .rp-row:not(.is-selected):hover { border-color: var(--text-soft); } }
 @media (prefers-reduced-motion: reduce) { .rp-close, .rp-seg-btn { transition: none; } .rp-close:active { transform: none; } }
-.nutrition-confidence-badge.nutrition-coverage { text-transform: none; letter-spacing: normal; }
-.nutrition-weight-field { margin: 0.75rem 0; }
-.nutrition-weight-save { width: 100%; margin-bottom: 0.75rem; }
