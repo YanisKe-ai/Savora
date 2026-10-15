@@ -280,8 +280,9 @@ function recipeImageHtml(r, cls, size) {
 }
 function recipeMetaLine(r, full) {
   const parts = [];
-  if (r.timeMinutes) parts.push(`${r.timeMinutes} Min.`);
-  if (full && r.servings) parts.push(servingMode(r) === 'pieces' ? `${r.servings} Stück` : `${r.servings} ${r.servings === 1 ? 'Portion' : 'Portionen'}`);
+  const ct = timeInfo(r).cardText;   // Zeitbasis ueberall: Gesamtzeit (timeMinutes)
+  if (ct) parts.push(ct);
+  if (full && yieldKnown(r)) parts.push(yieldShort(r));
   return parts.join(' · ');
 }
 function favButton(r, extraCls) {
@@ -293,7 +294,7 @@ function recipeCard(r, phone) {
   const titleHl = highlightHtml(r.title || 'Ohne Titel', state.query);
   if (phone === true) {
     /* Handy-Raster: Foto 4:3 (oder ruhiger Platzhalter), Titel, Zeit nur wenn bekannt, Favoritenknopf als Geschwister (kein verschachtelter Knopf) */
-    const time = r.timeMinutes > 0 ? `<span class="rcard-meta rcard-meta--time">${ICONS.clock}<span>${r.timeMinutes} Min.</span></span>` : '';
+    const time = timeInfo(r).cardText ? `<span class="rcard-meta rcard-meta--time" title="Gesamtzeit">${ICONS.clock}<span>${timeInfo(r).cardText}</span></span>` : '';
     return `<article class="rcard rcard--phone" data-flip-id="${escapeAttr(r.id)}">
     <button type="button" class="rcard-main" data-action="open-recipe" data-id="${escapeAttr(r.id)}" aria-label="${title} öffnen">
       ${photo ? recipeImageHtml(r, 'rcard-img', 'thumb') : `<span class="rcard-img rcard-ph" aria-hidden="true">${ICONS.bookOpen}</span>`}
@@ -322,7 +323,7 @@ function recipeRow(r, phone) {
     /* Handy-Liste: quadratisches Foto (oder ruhiger Platzhalter), Titel, Zeit nur wenn bekannt, eigener Favoritenknopf als Geschwister (kein verschachtelter Knopf) */
     const title = escapeHtml(r.title || 'Ohne Titel');
     const titleHl = highlightHtml(r.title || 'Ohne Titel', state.query);
-    const time = r.timeMinutes > 0 ? `<span class="rrow-meta rrow-meta--time">${ICONS.clock}<span>${r.timeMinutes} Min.</span></span>` : '';
+    const time = timeInfo(r).cardText ? `<span class="rrow-meta rrow-meta--time" title="Gesamtzeit">${ICONS.clock}<span>${timeInfo(r).cardText}</span></span>` : '';
     return `<article class="rrow rrow--phone" data-flip-id="${escapeAttr(r.id)}">
     <button type="button" class="rrow-main" data-action="open-recipe" data-id="${escapeAttr(r.id)}" aria-label="${title} öffnen">
       ${photo ? recipeImageHtml(r, 'rrow-img', 'thumb') : `<span class="rrow-img rrow-ph" aria-hidden="true">${ICONS.bookOpen}</span>`}
@@ -512,19 +513,21 @@ function ingredientsPanel(r) {
   const checked = checkedSetFor(r.id);
   const groups = getIngredientGroups(r);
   const showTitles = groups.length > 1 || (groups[0] && groups[0].title !== 'Zutaten');
+  // «Menge anpassen» rechnet nur die Anzeige um; das gespeicherte Rezept bleibt unveraendert (Bearbeiten ist eine eigene Aktion).
+  const scaled = !unknownYield && servings !== r.servings;
   return `${unknownYield ? `<div class="amount-row amount-row--unknown">
-      <span class="amount-row-label">Menge</span>
-      <span class="hint-line">Ergibt: nicht angegeben, es gelten die Originalmengen.</span>
-      <button class="outline-btn outline-btn--small" data-action="edit-recipe" data-id="${escapeAttr(r.id)}">Angabe ergänzen</button>
+      <span class="amount-row-label">Ertrag unbekannt</span>
+      <span class="hint-line">Es gelten die Originalmengen. Mit einer Ertragsangabe kannst du die Menge anpassen.</span>
+      <button class="outline-btn outline-btn--small" data-action="edit-recipe" data-id="${escapeAttr(r.id)}">Ertrag ergänzen</button>
     </div>` : `<div class="amount-row">
-      <span class="amount-row-label">Menge</span>
-      <div class="stepper" role="group" aria-label="Menge anpassen">
-        <button data-action="serv-dec" data-id="${escapeAttr(r.id)}" aria-label="Weniger">${ICONS.minus}</button>
+      <span class="amount-row-label" id="amount-label-${escapeAttr(r.id)}">Menge anpassen</span>
+      <div class="stepper" role="group" aria-labelledby="amount-label-${escapeAttr(r.id)}">
+        <button data-action="serv-dec" data-id="${escapeAttr(r.id)}" aria-label="Weniger"${servings <= yieldStep(r) ? ' disabled' : ''}>${ICONS.minus}</button>
         <span class="stepper-value" aria-live="polite">${escapeHtml(servingLabel(r, servings))}</span>
         <button data-action="serv-inc" data-id="${escapeAttr(r.id)}" aria-label="Mehr">${ICONS.plus}</button>
       </div>
     </div>`}
-    ${!unknownYield && servings !== (r.servings || 1) ? `<p class="hint-line">Original: ${escapeHtml(servingLabel(r, r.servings || 1))}. Mengen werden immer vom Original berechnet.</p>` : ''}
+    ${scaled ? `<p class="hint-line amount-scaled-hint">Angepasst. Das Rezept selbst bleibt bei ${escapeHtml(servingLabel(r, r.servings))}. <button type="button" class="text-btn" data-action="serv-reset" data-id="${escapeAttr(r.id)}">Original</button></p>` : ''}
     ${groups.length ? groups.map(g => `<section class="ing-group">
       ${showTitles ? `<h3 class="ing-group-title">${escapeHtml(g.title)}</h3>` : ''}
       <ul class="ing-list">
@@ -587,9 +590,11 @@ function detailView() {
     : heroImgId
       ? `<div class="hero"><div class="hero-img placeholder" data-lazy-img="full" data-image-id="${escapeHtml(heroImgId)}" data-img-class="hero-img" data-img-alt="${escapeHtml(r.title || '')}" style="view-transition-name: recipe-hero-img;"></div></div>`
       : '';
-  const extraTimes = [r.prepMinutes ? `Vorbereitungszeit ${r.prepMinutes} Min.` : '', r.restMinutes ? `Ruhen ${r.restMinutes} Min.` : '', r.cookMinutes ? `Garen/Backen ${r.cookMinutes} Min.` : ''].filter(Boolean);
-  // Zeit und Menge zuerst und gross; Teilzeiten (Vorbereitungszeit, Ruhen, Garen) leiser in einer zweiten Zeile
-  const facts = [r.timeMinutes ? `${r.timeMinutes} Min.` : '', yieldKnown(r) ? `Ergibt ${servingLabel(r, servings)}` : 'Ergibt: offen', r.difficulty || ''].filter(Boolean);
+  // Ertrag zuerst und gross («Für 4 Portionen», «Ergibt 1 Glas»); darunter eine kompakte Zeitzeile mit klar benannten Zeiten
+  // («30 Min. Gesamtzeit · 1 Std. Ruhen»). Nichts wird summiert: Arbeitsschritte koennen parallel laufen.
+  const tInfo = timeInfo(r);
+  const extraTimes = tInfo.text ? [tInfo.text] : [];
+  const facts = [yieldText(r, servings), r.difficulty || ''].filter(Boolean);
   const sourceText = r.sharedBy
     ? `${ICONS.sparkle}<span>Geteilt von ${escapeHtml(r.sharedBy)}</span>`
     : r.source && !/^https?:\/\//i.test(r.source) ? `${ICONS.link}<span>Quelle: ${escapeHtml(r.source)}</span>`   // freier Quellentext (kein Link)
@@ -619,7 +624,7 @@ function detailView() {
           ${favButton(r, 'detail-fav')}
         </div>
         <p class="detail-meta-v2">${facts.map(f => `<span class="fact">${escapeHtml(f)}</span>`).join('')}</p>
-        ${extraTimes.length ? `<p class="detail-times">${extraTimes.map(escapeHtml).join(' · ')}</p>` : ''}
+        ${extraTimes.length ? `<p class="detail-times">${ICONS.clock}<span>${extraTimes.map(escapeHtml).join(' · ')}</span></p>` : ''}
       </div>
       <button class="primary-btn primary-btn--block cook-start-inline" data-action="start-cook" data-id="${escapeAttr(r.id)}">${ICONS.play} Kochen starten</button>
       <div class="detail-tools" role="group" aria-label="Weitere Aktionen zum Rezept">
@@ -1213,20 +1218,22 @@ function formView() {
               <input type="file" accept="image/*" id="f-image" aria-label="Foto auswählen">
             </div></div>
           <div class="field-row field-row--2">
-            <div class="field"><label for="f-servings">Menge</label><input type="number" id="f-servings" min="1" value="${Number(r.servings) > 0 ? r.servings : ''}" placeholder="${Number(r.servings) > 0 ? '' : 'unbekannt'}"></div>
-            <div class="field"><label for="f-serving-mode">Einheit</label><select id="f-serving-mode"><option value="portions" ${servingMode(r) === 'portions' ? 'selected' : ''}>Portionen</option><option value="pieces" ${servingMode(r) === 'pieces' ? 'selected' : ''}>Stück</option></select></div>
+            <div class="field"><label for="f-serving-mode">Ertrag</label><select id="f-serving-mode" aria-describedby="f-yield-hint" onchange="formYieldModeChanged(this)"><option value="portions" ${servingMode(r) === 'portions' ? 'selected' : ''}>Portionen</option><option value="pieces" ${servingMode(r) === 'pieces' ? 'selected' : ''}>Stück</option><option value="total" ${servingMode(r) === 'total' ? 'selected' : ''}>Gesamtertrag (z. B. 1 Glas)</option></select></div>
+            <div class="field"><label for="f-servings">Anzahl</label><input type="number" id="f-servings" min="1" value="${Number(r.servings) > 0 ? r.servings : ''}" placeholder="${Number(r.servings) > 0 ? '' : 'unbekannt'}"></div>
           </div>
+          <div class="field" id="f-yield-label-field"${servingMode(r) === 'portions' ? ' hidden' : ''}><label for="f-yield-label">Bezeichnung</label><input type="text" id="f-yield-label" maxlength="40" value="${escapeAttr(servingMode(r) === 'portions' ? '' : (r.yieldLabel || ''))}" placeholder="${servingMode(r) === 'total' ? 'z. B. Glas, ml, Blech' : 'z. B. Cookies, Stück'}"></div>
+          <p class="hint-line" id="f-yield-hint">${escapeHtml(formYieldHint(servingMode(r)))}</p>
           <div class="field-row field-row--2">
-            <div class="field"><label for="f-time">Zeit (Min.)</label><input type="number" id="f-time" min="0" value="${r.timeMinutes > 0 ? r.timeMinutes : ''}" placeholder="${r.timeMinutes > 0 ? '' : 'unbekannt'}"></div>
+            <div class="field"><label for="f-time">Gesamtzeit (Min.)</label><input type="number" id="f-time" min="0" value="${r.timeMinutes > 0 ? r.timeMinutes : ''}" placeholder="${r.timeMinutes > 0 ? '' : 'unbekannt'}"></div>
             <div class="field"><label for="f-difficulty">Schwierigkeit</label><select id="f-difficulty">${['', 'Einfach', 'Mittel', 'Anspruchsvoll'].map(d => `<option value="${escapeAttr(d)}" ${(r.difficulty || '') === d ? 'selected' : ''}>${d || 'Keine Angabe'}</option>`).join('')}</select></div>
           </div>
           <details class="field-more"${(r.prepMinutes || r.restMinutes || r.cookMinutes) ? ' open' : ''}><summary>Weitere Zeitangaben (optional)</summary>
             <div class="field-row field-row--3">
-              <div class="field"><label for="f-prep">Vorbereitungszeit (Min.)</label><input type="number" id="f-prep" min="0" value="${r.prepMinutes || ''}"></div>
-              <div class="field"><label for="f-rest">Ruhen (Min.)</label><input type="number" id="f-rest" min="0" value="${r.restMinutes || ''}"></div>
-              <div class="field"><label for="f-cook">Garen/Backen (Min.)</label><input type="number" id="f-cook" min="0" value="${r.cookMinutes || ''}"></div>
+              <div class="field"><label for="f-prep">Vorbereitung (Min.)</label><input type="number" id="f-prep" min="0" value="${r.prepMinutes || ''}"></div>
+              <div class="field"><label for="f-cook">Garen oder Backen (Min.)</label><input type="number" id="f-cook" min="0" value="${r.cookMinutes || ''}"></div>
+              <div class="field"><label for="f-rest">Ruhen oder Kühlen (Min.)</label><input type="number" id="f-rest" min="0" value="${r.restMinutes || ''}"></div>
             </div>
-            <p class="hint-line">Nur ausfüllen, was du sicher weisst. Leere Felder bleiben unbekannt und werden nicht erfunden.</p>
+            <p class="hint-line">Gesamtzeit heisst: vom Start bis zum Servieren. Sie wird nicht automatisch addiert, weil Schritte parallel laufen können. Leere Felder bleiben unbekannt.</p>
           </details>
         </section>
         <section class="form-step ${step === 1 ? 'is-active' : ''}" data-form-step="1" aria-label="Kategorien">
@@ -1278,8 +1285,8 @@ function formView() {
    Sie wird beim Tippen ohne Neuaufbau aktualisiert (updateFormAside in actions-v2.js). */
 function formAsideBodyHtml(r) {
   const title = (r.title || '').trim();
-  const portions = Number(r.servings) > 0 ? servingLabel(r, r.servings) : '';
-  const meta = [portions, r.timeMinutes > 0 ? `${r.timeMinutes} Min.` : '', r.difficulty || ''].filter(Boolean);
+  const portions = Number(r.servings) > 0 ? yieldText(r) : '';
+  const meta = [portions, timeInfo(r).cardText ? timeInfo(r).cardText + ' Gesamtzeit' : '', r.difficulty || ''].filter(Boolean);
   const ings = realIngredients(r).length;
   const missing = qtyMissingIngredients(realIngredients(r)).length;
   const steps = (r.steps || []).filter(s => (s.text || '').trim()).length;

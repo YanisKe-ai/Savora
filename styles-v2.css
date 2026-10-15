@@ -3493,3 +3493,13 @@ body:has(.lp) .topbar--sub .topbar-title { overflow-wrap: normal; hyphens: auto;
 @media (min-width: 768px) { .lib-switch-btn { white-space: nowrap; } }
 .lib-byline .lib-meta-line > span { display: block; min-width: 0; }
 .lib-author-link { display: inline-flex; align-items: center; justify-content: flex-start; text-align: left; vertical-align: middle; max-width: 100%; overflow-wrap: anywhere; }
+
+/* ===== v83 Ertrag, Nährwerte, Zeit ===== */
+.field[hidden] { display: none; }
+.detail-times { display: flex; align-items: flex-start; gap: 0.5rem; }
+.detail-times svg { flex: 0 0 auto; width: 1em; height: 1em; margin-top: 0.2em; }
+.amount-scaled-hint { display: flex; flex-wrap: wrap; align-items: center; gap: 0 0.5rem; }
+.amount-scaled-hint .text-btn { min-height: 44px; }
+.stepper button:disabled { opacity: 0.4; cursor: default; }
+.nutrition-basis-title { font-size: 1rem; font-weight: 700; margin: 0 0 0.25rem; color: var(--text); }
+.nutrition-basis-note { font-size: 0.875rem; color: var(--text-soft); margin: 0 0 0.5rem; }
