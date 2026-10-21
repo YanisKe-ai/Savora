@@ -152,7 +152,7 @@
 /* Zutatenzeile: Menge (fett, nie umbrochen) und Name getrennt ausgerichtet; alle Zeilen einer Gruppe teilen die Mengenspalte (Subgrid).
    Keine Zellkaestchen, keine Zebrazeilen, kein Tabellenraster. */
 .pv-ing { grid-column: 1 / -1; display: grid; grid-template-columns: subgrid; padding: 0; border: 0; background: transparent; font-size: var(--pv-fs-ing); line-height: var(--pv-lh-ing); break-inside: avoid; }
-.pv-ing-amt { grid-column: 1; font-weight: 700; color: var(--pv-ink); white-space: nowrap; overflow-wrap: normal; word-break: normal; font-variant-numeric: tabular-nums; }
+.pv-ing-amt { grid-column: 1; font-weight: 700; color: var(--pv-ink); white-space: nowrap; overflow-wrap: normal; word-break: normal; font-variant-numeric: normal; }   /* v87: nicht tabular, html2canvas misst tabellarisch und zeichnet proportional («15  g») */
 .pv-ing-name { grid-column: -2 / -1; min-width: 0; overflow-wrap: break-word; word-break: normal; hyphens: none; }
 .pv-ing-note { color: var(--pv-muted); }
 .pv-ing[data-stack] .pv-ing-amt { grid-column: 1 / -1; white-space: normal; }

@@ -93,7 +93,7 @@ function pdfBuildModel(recipe, nutritionResult, opts) {
     nutritionBasis: basis.basis, nutritionBasisLabel: basis.label, nutritionView: pdfNutritionView(nutritionResult), nutritionNote: pdfNutritionNote(nutritionResult, servings),
   };
   m.warnings = pdfModelWarnings(m);
-  return m;
+  return typeof pdfTextFinish === 'function' ? pdfTextFinish(m, recipe) : m;   // v87: Druckaufbereitung aus pdf-model.js (idempotent)
 }
 
 /* ---------- Bausteine ---------- */
@@ -314,8 +314,8 @@ function pvNutritionBox(result, detailLevel, pieces, basis, basisNote) {
     return `<div class="pv-nut-cell"><b>${pvEsc(v)}</b> <em>${pvEsc(def.unit)}</em><i>${pvEsc(label || def.label)}</i></div>`;
   };
   const cells = PDF_CTX.tpl.id === 'pur'   // Pur: Reihenfolge und Bezeichnung wie in der Vorlage (Energie, Fett, Kohlenhydrate, Eiweiss)
-    ? [cell('energyKcal', 'Energie'), cell('fat', 'Fett'), cell('carbohydrates', 'Kohlenhydrate'), cell('protein', 'Eiweiss'), cell('fiber', 'Ballaststoffe')]
-    : [cell('energyKcal', 'Energie'), cell('protein', 'Protein'), cell('carbohydrates', 'Kohlenhydrate'), cell('fat', 'Fett'), cell('fiber', 'Ballaststoffe')];
+    ? [cell('energyKcal', 'Energie'), cell('fat', 'Fett'), cell('carbohydrates', 'Kohlenhydrate'), cell('protein', 'Eiweiss'), cell('fiber', (typeof pdfNutrientLabel === 'function' ? pdfNutrientLabel('fiber') : 'Nahrungsfasern'))]
+    : [cell('energyKcal', 'Energie'), cell('protein', 'Protein'), cell('carbohydrates', 'Kohlenhydrate'), cell('fat', 'Fett'), cell('fiber', (typeof pdfNutrientLabel === 'function' ? pdfNutrientLabel('fiber') : 'Nahrungsfasern'))];
   if (detailLevel === 'full') cells.push(cell('sugars', 'Zucker'), cell('saturatedFat', 'ges. Fett'), cell('salt', 'Salz'));
   const shown = cells.filter(Boolean);
   if (!shown.length) return '';
@@ -323,7 +323,7 @@ function pvNutritionBox(result, detailLevel, pieces, basis, basisNote) {
   const partialHint = result.pdfPartial && !/zu tief/.test(String(basisNote || '')) ? ((result.pdfMissing || []).length && result.pdfMissing.length <= 2 ? ' Ohne ' + pvEsc(result.pdfMissing.join(' und ')) + ' gerechnet, Werte eher zu tief.' : ' Nicht alle Zutaten eingerechnet, Werte eher zu tief.') : '';
   const hint = `${pvEsc(nutritionSourceLabel(result.sourceDataVersions))}.${partialHint} Geschätzte Werte, je nach Zutaten und Mengen können sie abweichen. Keine medizinische Aussage.${result.rangeUsed ? ' Menge als Bereich angegeben, Ergebnis als Spanne.' : ''}${result.needsServings && !basisNote ? ' Es fehlt die Angabe, wie viel das Rezept ergibt: Pro-Portion-Werte erst nach Klärung.' : ''}${(result.approximations || []).length ? ' Angenähert: ' + pvEsc(result.approximations.map((a) => a.name).join(', ')) + '.' : ''}${(result.unquantified || []).length ? ' Ohne Mengenangabe nicht eingerechnet: ' + pvEsc(result.unquantified.join(', ')) + '.' : ''}${basisNote ? ' ' + pvEsc(String(basisNote).replace(/^Geschätzte Werte, Abweichungen sind möglich\.\s*/, '')) : ''}`;   // Schätzsatz steht schon vorne, nicht doppelt
   if (PDF_CTX.tpl.pop && detailLevel !== 'full') {
-    const line = [['energyKcal', null], ['protein', 'Eiweiss'], ['carbohydrates', 'Kohlenhydrate'], ['fat', 'Fett'], ['fiber', 'Ballaststoffe']].map(([k, lab]) => {
+    const line = [['energyKcal', null], ['protein', 'Eiweiss'], ['carbohydrates', 'Kohlenhydrate'], ['fat', 'Fett'], ['fiber', (typeof pdfNutrientLabel === 'function' ? pdfNutrientLabel('fiber') : 'Nahrungsfasern')]].map(([k, lab]) => {
       const v = typeof nutValueText === 'function' ? nutValueText(result, total ? 'total' : 'portion', k) : null;
       return v === null || v === undefined || v === '' || v === 'NaN' ? '' : pvEsc(v + '\u00a0' + NUTRIENT_KEYS[k].unit) + (lab ? ' ' + lab : '');
     }).filter(Boolean).map((t) => `<span>${t}</span>`).join('');
@@ -360,8 +360,23 @@ function pvNoteParaHtml(title, text) {
   return t ? `<b class="pv-note-title">${pvEsc(t)}:</b>${x ? ' ' + pvEsc(x) : ''}` : pvEsc(x);
 }
 function pvNoteParas(m) {
-  if (Array.isArray(m.noteParas) && m.noteParas.length) {
-    return m.noteParas.map((p) => (typeof p === 'string' ? pvNoteParaHtml('', p) : pvNoteParaHtml(p && p.title, p && p.text))).filter(Boolean).map((h) => `<p>${h}</p>`);
+  if (Array.isArray(m.noteParts) && m.noteParts.length) {
+    // Gliederung aus pdf-model.js: heading = Zwischentitel auf eigener Zeile (bleibt mit dem folgenden Absatz zusammen),
+    // lead = «Titel: Text», text = Zeile; gap = Leerzeile davor (groesserer Abstand)
+    const out = []; let head = null, headGap = false;
+    m.noteParts.forEach((p) => {
+      if (!p) return;
+      if (p.kind === 'heading') {
+        if (head !== null) out.push({ gap: headGap, html: `<b class="pv-note-head">${pvEsc(head)}</b>` });
+        head = String(p.title || '').trim(); headGap = !!p.gap; return;
+      }
+      const inner = p.kind === 'lead' ? pvNoteParaHtml(p.title, p.text) : pvEsc(String(p.text || '').trim());
+      if (!inner && head === null) return;
+      out.push({ gap: !!p.gap || headGap, html: (head !== null ? `<b class="pv-note-head">${pvEsc(head)}</b>${inner ? '\n' : ''}` : '') + inner });
+      head = null; headGap = false;
+    });
+    if (head !== null) out.push({ gap: headGap, html: `<b class="pv-note-head">${pvEsc(head)}</b>` });
+    return out.map((o, i) => `<p${o.gap && i > 0 ? ' class="pv-gap"' : ''}>${o.html}</p>`);
   }
   const notes = String(m.notes || '').replace(/\r\n?/g, '\n').trim();
   if (!notes) return [];
@@ -391,7 +406,8 @@ function pvNoteParas(m) {
 function pvExtrasBlocks(m, nutritionDetail) {
   const out = [];
   const tips = (m.tips || []).map((t) => String(t == null ? '' : t).trim()).filter(Boolean);
-  if (tips.length) out.push({ key: 'tips', cls: 'pv-tips', label: tips.length > 1 ? 'Hinweise' : 'Hinweis', paras: tips.map((t) => { const mm = PV_NOTE_TITLE_RX.exec(t); const rest = mm ? t.slice(mm[0].length).trim() : ''; return `<p>${mm && rest ? pvNoteParaHtml(mm[1], rest) : pvEsc(t)}</p>`; }) });   // v87: «Titel:» fett wie in den Notizen
+  if (tips.length) out.push({ key: 'tips', cls: 'pv-tips', label: tips.length > 1 ? 'Hinweise' : 'Hinweis', paras: (Array.isArray(m.tipParts) && m.tipParts.length === tips.length ? m.tipParts.map((t) => `<p>${pvNoteParaHtml(t.title, t.text)}</p>`)
+    : tips.map((t) => { const mm = PV_NOTE_TITLE_RX.exec(t); const rest = mm ? t.slice(mm[0].length).trim() : ''; return `<p>${mm && rest ? pvNoteParaHtml(mm[1], rest) : pvEsc(t)}</p>`; })) });   // v87: «Titel:» fett wie in den Notizen
   const notes = String(m.notes || '').trim();
   const log = (m.log || []).filter((n) => n && String(n.text || '').trim());
   if (notes || log.length) out.push({ key: 'notes', cls: 'pv-notes', label: 'Notizen', paras: (notes ? pvNoteParas(m) : []).concat(log.map((n) => `<p><b>${pvEsc(new Date(n.date).toLocaleDateString('de-CH'))}:</b> ${pvEsc(String(n.text).trim())}</p>`)) });
