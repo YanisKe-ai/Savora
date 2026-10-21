@@ -15,7 +15,6 @@
     font-display: swap;
   }
 
-
   :root {
     /* ============ FARB-TOKENS (Rohwerte) ============ */
     /* Feast x Bloom (Uebergabepaket 03_DESIGN_TOKENS.json). Die alten Variablennamen bleiben
@@ -851,20 +850,6 @@
   .nutrition-card { background: var(--bg-elevated); border-radius: var(--radius-m); padding: 1rem; }
   .nutrition-card-loading { color: var(--text-muted); font-size: 0.875rem; text-align: center; padding: 1.5rem 1rem; }
   .nutrition-empty-text { font-size: 0.875rem; color: var(--text-muted); margin: 0 0 0.75rem; }
-  .nutrition-compact-heading { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 0.75rem; }
-  .nutrition-confidence-badge { font-size: 0.875rem; font-weight: 700; padding: 0.25rem 0.5rem; border-radius: 999px; text-transform: uppercase; letter-spacing: 0.02em; }
-  .nutrition-confidence-badge.tone-high { background: rgba(63,125,78,0.16); color: var(--success); }
-  .nutrition-confidence-badge.tone-medium { background: var(--warning-bg); color: var(--warning-text); border: 1px solid var(--warning-border); }
-  .nutrition-confidence-badge.tone-low { background: rgba(162,67,47,0.14); color: var(--danger); }
-  .nutrition-review-link { background: none; border: none; color: var(--accent); font-size: 0.875rem; font-weight: 600; padding: 0.125rem 0; text-decoration: underline; }
-  .nutrition-compact-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 0.5rem; }
-  @media (max-width: 420px) { .nutrition-compact-grid { grid-template-columns: repeat(3, 1fr); } }
-  .nutrition-compact-stat { display: flex; flex-direction: column; align-items: center; text-align: center; gap: 0.125rem; }
-  .nutrition-compact-value { font-family: var(--font-display); font-optical-sizing: auto; font-size: 0.9375rem; color: var(--text); font-variant-numeric: tabular-nums; }
-  .nutrition-compact-label { font-size: 0.875rem; color: var(--text-muted); line-height: 1.2; }
-  .nutrition-compact-actions { display: flex; align-items: center; justify-content: space-between; margin-top: 1rem; padding-top: 0.75rem; border-top: 1px solid var(--border); }
-  .nutrition-detail-link, .nutrition-recalc-link { background: none; border: none; color: var(--text); font-size: 0.875rem; font-weight: 600; display: flex; align-items: center; gap: 0.25rem; min-height: var(--tap-min); }
-  .nutrition-detail-link svg, .nutrition-recalc-link svg { width: 15px; height: 15px; }
 
   .nutrition-modal-subtitle { font-size: 0.875rem; color: var(--text-muted); margin: -0.5rem 0 1rem; }
   .nutrition-match-list { list-style: none; margin: 0 0 0.75rem; padding: 0; display: flex; flex-direction: column; gap: 0.5rem; }
@@ -894,16 +879,6 @@
   .nutrition-segmented { display: flex; background: var(--bg-elevated); border-radius: var(--radius-s); padding: 0.25rem; gap: 0.25rem; margin-bottom: 1rem; }
   .nutrition-segmented button { flex: 1; border: none; background: none; padding: 0.5rem 0.5rem; border-radius: 8px; font-size: 0.875rem; font-weight: 600; color: var(--text-muted); min-height: 48px; }
   .nutrition-segmented button.active { background: var(--card-bg); color: var(--text); box-shadow: 0 1px 3px rgba(0,0,0,0.08); }
-  .nutrition-confidence-line { display: flex; align-items: flex-start; gap: 0.5rem; flex-wrap: wrap; margin-bottom: 0.5rem; }
-  .nutrition-confidence-detail { font-size: 0.875rem; color: var(--text-muted); flex: 1; min-width: 140px; }
-  .nutrition-hint-text { font-size: 0.875rem; color: var(--warning-text); margin: 0.5rem 0 0; }
-  .nutrition-group { margin-top: 1.25rem; }
-  .nutrition-group-title { font-family: var(--font-display); font-optical-sizing: auto; font-size: 0.9062rem; color: var(--text); margin: 0 0 0.5rem; padding-bottom: 0.5rem; border-bottom: 1px solid var(--border); }
-  .nutrition-nutrient-row { display: flex; align-items: center; justify-content: space-between; padding: 0.25rem 0; font-size: 0.875rem; color: var(--text); }
-  .nutrition-nutrient-row span:last-child { color: var(--text-muted); font-variant-numeric: tabular-nums; }
-  .nutrition-source-line { font-size: 0.875rem; color: var(--text-muted); display: flex; align-items: center; gap: 0.5rem; margin-top: 1.25rem; }
-  .nutrition-source-line svg { width: 13px; height: 13px; flex-shrink: 0; }
-  .nutrition-disclaimer { font-size: 0.875rem; color: var(--text-muted); line-height: 1.4; margin-top: 0.5rem; }
   .nutrition-select-actions { display: flex; flex-direction: column; gap: 0.5rem; margin: 0.25rem 0 1rem; }
   .nutrition-prep-hint { font-size: 0.875rem; color: var(--accent); display: flex; align-items: center; gap: 0.25rem; margin-top: 0.125rem; }
   .nutrition-prep-hint svg { width: 10px; height: 10px; }

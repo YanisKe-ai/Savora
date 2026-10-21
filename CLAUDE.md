@@ -28,6 +28,9 @@ Savora ist eine Vanilla-JS-PWA (persönliches Kochbuch), live über GitHub Pages
 12. **Plattformabhängige Referenzbilder:** Pixel-Referenzen nie auf dem Mac erzeugen und auf Linux vergleichen; im selben Lauf gegen den alten Stand rendern (z. B. `git archive`) oder Layout-Schnappschüsse mit fester Messfunktion.
 13. **Feste Wartezeiten in Tests:** statt `wait_for_timeout(80)` auf den Zustand warten (`wait_for_function`); Linux-CI ist langsamer.
 14. **Visuelle Treue:** Wenn der Nutzer Referenzbilder oder Code-Vorlagen liefert, diese 1:1 umsetzen und mit Vergleichsbild prüfen, bevor «fertig» gemeldet wird.
+15. **Testbefehl prüfen:** `run_all.py` erwartet Namen ohne `test_` und `.py` (z. B. `flows`); ein falsch aufgerufener Lauf meldet «FEHLGESCHLAGEN» in 0 s und zählt nicht als Ergebnis. `test_flows` braucht vorher `migration` (gemeinsame Sicherungsdatei).
+16. **Uhrzeit nie schätzen:** vor jeder Zeitangabe `TZ=Europe/Zurich date` ausführen.
+17. **Reiter und Scrollen im Rezept (v86.1/86.2):** Reservierte Mindesthöhe beim Reiterwechsel nie stehen lassen (iPhone zeigte grosse leere Flächen). Vor dem Umblenden messen, danach liest der Browser eine gekürzte Scrollposition. iPhone/Safari begrenzt die Scrollposition beim Kleinerwerden der Seite nicht sofort: nach Zuklappen selbst aufs Seitenende begrenzen. Kopfbereich nicht höher machen: die erste Zutat muss ohne Scrollen sichtbar bleiben (`test_paket1`, `test_paket7`).
 
 ## Zusammenarbeit (so arbeiten wir)
 - **Aufträge:** Der Nutzer liefert oft ZIP-Pakete (Prompt, Abnahmeliste, Referenzbilder, Code-Vorlagen). Immer in einen neuen leeren Ordner entpacken (nie ausführen ausser Referenz-HTML zur Ansicht), Prompt vollständig lesen, alle Bilder ansehen, Vorlagen verbindlich umsetzen (nicht neu interpretieren).
@@ -35,13 +38,16 @@ Savora ist eine Vanilla-JS-PWA (persönliches Kochbuch), live über GitHub Pages
 - **Tempo ohne Risiko:** Der Nutzer will Tempo. Nicht auf Rückfragen warten, wenn die Entscheidung naheliegt; Annahmen offen nennen. Früh einen Entwurfs-PR hochladen, damit die Linux-Prüfung parallel läuft.
 - **Selbstständig:** Wenn der Nutzer schlafen geht, alle Aufträge der Reihe nach selbstständig erledigen, mergen bei grün, und am Morgen eine knappe Zusammenfassung geben (was live ist, was offen ist, was nicht getestet wurde).
 - **Remote Control:** Der Nutzer folgt oft vom iPhone. CI-Stand und Ergebnisse in eigenen Worten mit Uhrzeit melden (die App-Statusleisten sieht er dort nicht).
+- **Nur nötige Tests:** Testumfang bei jeder Aufgabe neu prüfen. Helfer testen nur ihre neuen Tests und die bestehenden, die genau ihre geänderten Funktionen prüfen; Screenshots nur für sichtbar geänderte Fälle (keine volle Matrix). Integrator: Schnelltests plus betroffene Tests. Die volle Prüfung macht die CI.
+- **Auto-Fix:** Für jeden neuen PR die automatische Fehlerbehebung einschalten (vom Nutzer gewünscht) und rote Prüfungen selbst beheben.
+- **Rückmeldungen vom iPhone** (Bilder als HEIC, Bildschirmaufnahmen als MP4): HEIC mit `sips` umwandeln, Videos mit `ffmpeg` in Einzelbilder zerlegen; den Fall lokal auf 390 px nachstellen und als Test festhalten.
 
 ## Skills (installiert, regelmässig einsetzen)
 - **Zu Beginn grösserer UI-Arbeit:** `impeccable` (Hierarchie, Konsistenz, Barrierefreiheit), `design-taste-frontend` (Typografie, Abstände, Farbe), `emil-design-eng` (Interaktion, Übergänge, reduced-motion), `ui-ux-pro-max` (UX-Regeln). Savora-Design (Tokens, Schriften, Logo) bleibt massgebend; Skills ersetzen keine Vorlagen des Nutzers.
 - **Tests und CI:** `playwright-best-practices` (stabile Tests), `diagnose-ci-failures` (CI-Logs lesen, Plan), `savora-release` (Projektregeln).
 - **Parallelarbeit:** `worktrees` (getrennte Arbeitsordner).
 - **Prüfung:** `web-design-guidelines`, `web-perf`, `security-audit` (bei Konto/Sync/Daten).
-- **Neue Skills:** `find-skills` nur zum Suchen; nichts ungeprüft installieren.
+- **Neue Skills:** Der Nutzer erlaubt das Installieren passender Skills über `find-skills` (`npx skills add <paket> -g -y`). Viele Installationen und seriöse Quelle bevorzugen, Inhalt kurz prüfen (keine Downloads oder versteckten Befehle), Skills mit Konto oder Abo nur nach Rückfrage. Bewährt: `mobile-native` (Handy-Eigenheiten), `diagnosing-bugs`, `ux-writing`.
 
 ## Helfer (Subagenten)
 - **Vor dem Start:** Besitz-Karte schreiben (welcher Helfer welche Dateien ändert), feste Schnittstellen (Funktionsnamen, Datenform) vorab festlegen, Vertrag/Plan als Datei im Scratchpad ablegen und in jedem Auftrag verlinken.
