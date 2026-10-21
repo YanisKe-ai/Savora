@@ -38,6 +38,26 @@ async def main():
         await page.click('#tab-steps'); await page.click('#tab-ingredients'); await page.click('#tab-steps'); await page.wait_for_timeout(150)
         mh = await page.evaluate("Array.from(document.querySelectorAll('.tab-panel')).filter(p => p.hidden && p.style.minHeight).length")
         check('Keine angesammelte Mindesthöhe in versteckten Reitern', mh == 0, str(mh))
+        # v86.2: «Mehr Werte und Optionen» auf, ganz nach unten, wieder zu: keine leere Fläche, keine stehende Reservierung
+        await page.evaluate("async () => { state.detailTab = 'ingredients'; render(); window.scrollTo(0, 0); }")
+        await page.wait_for_timeout(150)
+        await page.click('#tab-nutrition'); await page.wait_for_timeout(200)
+        await page.evaluate("async () => { await hydrateNutritionCards(); }"); await page.wait_for_timeout(200)
+        await page.evaluate("() => { const d = document.querySelector('#panel-nutrition details.nut-more'); d.open = true; }"); await page.wait_for_timeout(200)
+        await page.evaluate("window.scrollTo(0, document.documentElement.scrollHeight)"); await page.wait_for_timeout(200)
+        await page.evaluate("() => { document.querySelector('#panel-nutrition details.nut-more').open = false; }"); await page.wait_for_timeout(300)
+        z = await page.evaluate("""() => { const p = document.getElementById('panel-nutrition'); const last = p.querySelector('details.nut-more').getBoundingClientRect();
+          return { mh: p.style.minHeight, bottomGap: document.documentElement.scrollHeight - (scrollY + innerHeight), summaryInView: last.bottom > 0 && last.top < innerHeight, below: innerHeight - p.getBoundingClientRect().bottom }; }""")
+        check('Zuklappen: keine stehende Reservierung, Seite endet am Bildschirmrand', z['mh'] == '' and z['bottomGap'] <= 1 and z['summaryInView'], str(z))
+        # Reservierung nach Reiterwechsel schrumpft beim Hochscrollen
+        await page.evaluate("async () => { state.detailTab = 'steps'; render(); }"); await page.wait_for_timeout(150)
+        await page.evaluate("window.scrollTo(0, 200)"); await page.wait_for_timeout(100)
+        await page.click('#tab-ingredients'); await page.wait_for_timeout(700)   # direkt nach dem Wechsel (500 ms) bleibt die Reservierung bewusst stehen
+        r0 = await page.evaluate("parseFloat(document.getElementById('panel-ingredients').style.minHeight) || 0")
+        for _ in range(4):
+            await page.mouse.wheel(0, -120); await page.wait_for_timeout(120)
+        r1 = await page.evaluate("parseFloat(document.getElementById('panel-ingredients').style.minHeight) || 0")
+        check('Hochscrollen: reservierter Platz schrumpft', r0 > 0 and r1 < r0, f'{r0} -> {r1}')
         check('Keine JS-Fehler', not errs, str(errs))
         await b.close()
     print('\nFEHLGESCHLAGEN:', FAIL if FAIL else 'keine')
