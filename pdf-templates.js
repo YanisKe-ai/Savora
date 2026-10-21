@@ -229,7 +229,7 @@ const PV_HONEY = {
   rel: [0.40, 0.72, 0.44, 1.00, 0.46, 0.65],      // Laenge relativ zum laengsten Tropfen
   r:   [1.45, 1.8, 1.35, 2.1, 1.45, 1.75],        // Radius des Tropfenendes in mm bei 68 mm Breite (breiter Kasten: mitskaliert)
   lean:[0.10, -0.07, 0.08, -0.05, 0.06, -0.09],    // leichte Schraeglage: organisch, nicht sechsmal gleich
-  depth: { normal: 9, compact: 8, dense: 6.5 },    // laengster Tropfen in mm unter der Kastenkante; «dense» nur wenn der Platz knapp ist
+  depth: { normal: 9, compact: 6, dense: 5 },      // laengster Tropfen in mm unter der Kastenkante; kompakt/dicht nur wenn der Platz knapp ist (alle sechs Tropfen bleiben)
   overlap: 1,                                      // so weit beginnt die Kante in der Flaeche (keine Naht)
   widths: { narrow: 68, wide: 184 }                // Kastenbreiten (pdf-print.css: --pv-col-ing-w 68 mm; Satzbreite 210 − 2 × 13 mm)
 };
