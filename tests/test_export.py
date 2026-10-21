@@ -45,7 +45,7 @@ async def main():
                 for s in f['steps']:
                     t = s['text'].strip()
                     if t.lower().startswith('quelle:'):
-                        if t.split(':', 1)[1].strip().split('/')[0] not in norm: missing.append('Quelle ' + t[:30])
+                        if t.split(':', 1)[1].strip().split('/')[0] in norm: missing.append('Quelle gedruckt (v0.87: nie im PDF) ' + t[:30])
                         continue
                     if t and len(t) > 25 and ' '.join(t.split()[:3]) not in norm: missing.append('Schritt ' + t[:30])
             check(f'Vorlage {tpl}: alle Titel, Zutaten und Schritte stehen im PDF-Text', not missing, f'{npages} Seiten, fehlt: {missing[:4]}')

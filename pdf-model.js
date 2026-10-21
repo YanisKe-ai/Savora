@@ -192,14 +192,27 @@ function pdfTipHasContent(t) {
      entfaellt eine allgemeine Ueberschrift ("Tipps & Hinweise"), eine besondere wird dem Hinweis vorangestellt.
    - Hinweise ohne Inhalt (nur "Tipp:") erzeugen keinen Block. */
 function pdfSplitSteps(recipe) {
-  const entries = stepEntries(recipe).map((e) => Object.assign({}, e, { text: String(e.text).trim() }));
-  entries.forEach((e) => { e.kind = e.heading ? 'heading' : pdfClassifyStepText(e.text); });
+  const raw = stepEntries(recipe).map((e) => Object.assign({}, e, { text: String(e.text).trim() }));
+  raw.forEach((e) => { e.kind = e.heading ? 'heading' : pdfClassifyStepText(e.text); });
   // Feinschliff V2: steht die gespeicherte Quelle woertlich am Ende des letzten Schritts, nur in der Exportdarstellung entfernen
-  const lastStep = entries.filter((e) => e.kind === 'step').pop();
+  const lastStep = raw.filter((e) => e.kind === 'step').pop();
   if (lastStep) {
     const cut = pdfStripSourceTail(lastStep.text, pdfSourceStrings(recipe));
     if (cut.removed) { if (cut.text) lastStep.text = cut.text; else lastStep.kind = 'source'; }
   }
+  // v0.87: Text fuer den Druck bereinigen (keine Links/Quellen, Gedankenstriche) und Schrittueberschrift auf eigener Zeile abtrennen
+  const entries = [];
+  raw.forEach((e) => {
+    if (e.kind === 'source') { entries.push(e); return; }
+    const text = pdfPrintText(e.text);
+    if (!text) { entries.push(Object.assign(e, { kind: 'source' })); return; }   // Schritt bestand nur aus Link/Quelle
+    e.text = text;
+    if (e.kind === 'step') {
+      const sp = pdfStepTitleSplit(text);
+      if (sp) { entries.push(Object.assign({}, e, { kind: 'heading', text: sp.title, split: true })); entries.push(Object.assign(e, { text: sp.text })); return; }
+    }
+    entries.push(e);
+  });
   const steps = []; const tips = []; const sources = [];
   for (let i = 0; i < entries.length; i++) {
     const e = entries[i];
@@ -209,7 +222,10 @@ function pdfSplitSteps(recipe) {
       while (j < entries.length && entries[j].kind === 'heading') { run.push(entries[j]); j++; }
       const next = entries[j];
       if (next && next.kind === 'step') {
-        run.forEach((h) => steps.push({ type: 'heading', text: h.text.replace(/:$/, '').trim() }));
+        // v0.87: mehrere Ueberschriften direkt hintereinander (die erste ohne eigene Schritte, z. B. Carbonara «Kombinieren»,
+        // «Cremig vollenden») stehen nicht allein: sie werden zu einer Ueberschrift ueber dem folgenden Schritt zusammengefasst.
+        const titles = run.map((h) => h.text.replace(/:$/, '').trim()).filter(Boolean);
+        if (titles.length) steps.push({ type: 'heading', text: titles.join(' · ') });
       } else {
         // Ueberschrift ohne folgenden Arbeitsschritt: nicht allein stehen lassen
         const last = run[run.length - 1];
@@ -425,4 +441,192 @@ function pdfModelWarnings(m) {
   if (unsure) w.push(unsure === 1 ? 'Eine Zutat lässt sich nicht sicher in Menge und Namen trennen und erscheint im Originaltext.' : `${unsure} Zutaten lassen sich nicht sicher in Menge und Namen trennen und erscheinen im Originaltext.`);
   if (m.servings && m.servings.kind === 'unknown' && m.ingredients.some((i) => i.type === 'ing')) w.push('Es fehlt die Angabe, wie viel das Rezept ergibt.');
   return w;
+}
+
+/* ---------- v0.87 Textaufbereitung fuer den Druck (nur Ausgabe, die Rezeptdaten bleiben unveraendert) ----------
+   Nutzerregel: Im PDF erscheinen NIE Rezept-Links oder Quellen-URLs (keine Quellzeile, keine Adressen in Schritten,
+   Hinweisen, Notizen oder Zutaten). Ausnahme: die Herkunft aus der Savora-Rezeptbibliothek (sourceOrigin) ist eine
+   Namensnennung ohne Link und bleibt (PDF_KEEP_LIBRARY_ORIGIN).
+   Felder, die pdfTextFinish dem Modell zusaetzlich gibt (additiv, fuer pdf-templates.js):
+     noteParts[]  {kind:'heading'|'lead'|'text', title, text, gap}  Notizen Absatz fuer Absatz
+                  heading = Zwischentitel auf eigener Zeile («Hinweise», «Allergene:»), title ohne Doppelpunkt, text ''
+                  lead    = «Titel: Text» am Zeilenanfang («Fleisch zu dick schneiden: …»), title ohne Doppelpunkt
+                  text    = gewoehnliche Zeile; gap = true, wenn davor eine Leerzeile stand
+     tipParts[]   {title, text} je Hinweis (title '' ohne «Titel:»-Anfang)
+   Geaendert im bestehenden Modell: source/sourceText/sourceUrl/sourceUrlText leer, notes ohne Links,
+   steps/tips/ingredients ohne Links und mit festen Gedankenstrich-Abstaenden, Gruppentitel «Zutaten» direkt unter dem
+   Kastentitel ausgeblendet (show:false), nutritionView[].label mit den Begriffen der App (pdfNutrientLabel). */
+
+const PDF_KEEP_LIBRARY_ORIGIN = true;
+const PDF_MD_LINK_RE = /!?\[([^\]\n]*)\]\(\s*<?([^()\s<>]+(?:\([^()\s]*\))?[^()\s<>]*)>?\s*\)/g;
+const PDF_HTTP_RE = /<?\b(?:https?:\/\/|www\.)[^\s<>"'\])]*[^\s<>"'\]).,;:!?]>?/gi;
+// Blosse Domain («kookmutsjes.com»): Endung klein geschrieben, damit Tippfehler ohne Leerzeichen («kochen.De») bleiben
+const PDF_DOMAIN_RE = /(^|[^\w@.\/-])((?:[A-Za-z0-9][A-Za-z0-9-]*\.)+(?:ch|com|de|org|net|at|io|eu|info|fr|it|nl|be|li|co\.uk|uk)(?:\/[^\s<>"')\]]*[^\s<>"')\].,;:!?])?)(?![\w-])/g;
+const PDF_DOMAIN_ONE = new RegExp(PDF_DOMAIN_RE.source);   // ohne g: fuer test() ohne lastIndex
+// «Quelle: Name» am Zeilenende faellt immer weg; die weiteren Beschriftungen (siehe, Link, mehr unter) nur, wenn ihr Link entfernt wurde
+const PDF_SOURCE_WORD = '(?:quelle|quellen|source|rezeptquelle|originalrezept|rezept\\s+(?:von|nach|aus))';
+const PDF_LINK_WORD = '(?:quelle|quellen|source|rezeptquelle|originalrezept|original|rezept\\s+(?:von|nach|aus)|link|links|webseite|website|mehr\\s+unter|mehr\\s+dazu|siehe|via|unter|auf)';
+const PDF_SOURCE_TAIL_RE = new RegExp('(^|[.!?…]\\s+|\\s[–—-]\\s|\\(\\s*)' + PDF_SOURCE_WORD + '\\s*:\\s*[^\\n.!?:]{0,80}?[.]?\\s*\\)?\\s*$', 'i');
+const PDF_LABEL_BEFORE_X_RE = new RegExp('[ \\t]*\\b' + PDF_LINK_WORD + '[ \\t]*:?[ \\t]*(?=\\u0000)', 'gi');
+const PDF_EMPTY_LABEL_RE = new RegExp('(^|\\s|\\()' + PDF_LINK_WORD + '\\s*:?\\s*(?=$|[).,;])', 'gi');
+
+/* URLs, Markdown-Links und Quellen-Anhaengsel aus einer Zeile entfernen. [Text](url) wird zu «Text», ausser der Text
+   ist selbst eine Adresse; dann faellt alles weg. Liefert die bereinigte Zeile (eventuell ''). */
+function pdfStripLinksLine(line) {
+  let t = String(line || '');
+  if (!/[.:\/\[]/.test(t)) return t;
+  const before = t;
+  const X = '\u0000';   // Platzhalter fuer eine entfernte Adresse, damit eine Beschriftung direkt davor mit wegfaellt
+  t = t.replace(PDF_MD_LINK_RE, (m, label) => { const l = String(label || '').trim(); return !l || /(:\/\/|www\.)/i.test(l) || PDF_DOMAIN_ONE.test(' ' + l) ? X : l; });
+  t = t.replace(PDF_HTTP_RE, X);
+  t = t.replace(PDF_DOMAIN_RE, (m, pre) => pre + X);
+  if (t === before) {   // kein Link: nur ein «Quelle: Name» am Ende entfernen
+    return PDF_SOURCE_TAIL_RE.test(t) ? pdfTidyLine(t.replace(PDF_SOURCE_TAIL_RE, (m, pre) => (/[.!?…]/.test(pre) ? pre.trim() : ''))) : t;
+  }
+  // Beschriftung direkt vor der Adresse («siehe», «auf», «Quelle:», «Link:»), leere Klammern
+  t = t.replace(PDF_LABEL_BEFORE_X_RE, '').split(X).join('');
+  t = t.replace(PDF_EMPTY_LABEL_RE, (m, pre) => pre).replace(/\(\s*[,;:–-]?\s*\)|\[\s*\]/g, '');
+  if (PDF_SOURCE_TAIL_RE.test(t)) t = t.replace(PDF_SOURCE_TAIL_RE, (m, pre) => (/[.!?…]/.test(pre) ? pre.trim() : ''));
+  if (/^[^.!?\n]{0,30}:\s*$/.test(t)) return '';   // nur eine Beschriftung uebrig («Tipp: siehe …»)
+  t = pdfTidyLine(t);
+  return /^[A-ZÄÖÜ]/.test(before.trim()) && /^[a-zäöü]/.test(t) ? t.charAt(0).toUpperCase() + t.slice(1) : t;
+}
+function pdfTidyLine(t) {
+  return String(t).replace(/[ \t]{2,}/g, ' ').replace(/[ \t]+([.,;:!?)])/g, '$1').replace(/\(\s+/g, '(').replace(/([.,;:])\1+/g, '$1')
+    .replace(/^[\s·|:,;]+/, '').replace(/[\s·|,;:–—-]+$/, '').trim();
+}
+
+/* Gedankenstrich mit Abstand: html2canvas zeichnet den Abstand nach einem Strich nicht («Zuschnitt –bitte», belegt im
+   Testbild pdfa/text/experiment). Mit geschuetzten Leerzeichen auf beiden Seiten erscheint er richtig. Fehlt in den Daten
+   ein Abstand («Zuschnitt –bitte», «Pfanne ab– sonst»), wird er ergaenzt. Bereiche («1–2», «20–30») und Bindestriche
+   («Ei-Käse», «Ei- und») bleiben, ein freistehender Bindestrich zwischen Woertern («gut - sonst») wird zum Gedankenstrich. */
+function pdfFixDashes(text) {
+  return String(text || '').replace(/(\S)([ \t ]*)([–—]|-(?=[ \t ]))([ \t ]*)(?=\S)/g, (m, a, sp1, d, sp2) => {
+    if (!sp1 && !sp2) return m;
+    if (d === '-' && !sp1) return m;
+    if (/\d/.test(a) && !sp1) return m;   // «20– 30» bleibt wie erfasst
+    return a + PDF_NB + (d === '-' ? '–' : d) + PDF_NB;
+  });
+}
+
+/* Ein Text fuer den Druck: Zeilenumbrueche bleiben, Links/Quellen weg, Gedankenstriche fest. */
+function pdfPrintText(text) {
+  const lines = String(text == null ? '' : text).replace(/\r\n?|[\u2028\u2029]/g, '\n').split('\n');
+  const out = lines.map((l) => { const c = pdfStripLinksLine(l); return c === l ? l.replace(/[ \t]+$/, '') : c; });
+  // Zeilen, die nur aus einer Quelle bestanden, fallen weg; Leerzeilen bleiben (hoechstens eine hintereinander)
+  const keep = [];
+  out.forEach((l, i) => { if (!l.trim() && lines[i].trim()) return; if (!l.trim() && (!keep.length || !keep[keep.length - 1].trim())) return; keep.push(l); });
+  while (keep.length && !keep[keep.length - 1].trim()) keep.pop();
+  return pdfFixDashes(keep.join('\n')).trim();
+}
+
+/* Schrittueberschrift auf eigener Zeile (Karamellsauce: «Weissen Zucker karamellisieren⏎Den weissen Zucker …»):
+   erste Zeile kurz (hoechstens 6 Woerter, 48 Zeichen), ohne Satzzeichen am Ende und ohne Ziffern, danach folgt Text.
+   Ist der Zeilenumbruch beim Import verloren gegangen («Butter einarbeiten Die Pfanne vom Herd nehmen.»), gilt dasselbe,
+   wenn der Titel auf eine Grundform endet (…en, …ern, …eln) und danach ein Satz mit Artikel oder Praeposition beginnt. */
+const PDF_STEP_SENTENCE_START = /^(Den|Die|Der|Das|Dem|Des|Ein|Eine|Einen|Einem|Einer|Mit|Bei|In|Im|Auf|Zum|Zur|Nach|Nun|Dann|Jetzt|Alles|Alle|Etwas|Für|Vom|Am|Sobald|Wenn|Während|Zuerst|Anschliessend|Anschließend|Danach|Inzwischen|Unter|Sie|Es)$/;
+function pdfTitleOk(title) {
+  return !!title && title.length <= 48 && !/[.!?;,:]$/.test(title) && !/\d/.test(title) && !/:/.test(title) && title.split(/\s+/).length <= 6 && /^[A-ZÄÖÜa-zäöü]/.test(title);
+}
+function pdfStepTitleSplit(text) {
+  const t = String(text || '').replace(/[\u2028\u2029]/g, '\n');
+  const m = /^([^\n]+)\n+([\s\S]*\S[\s\S]*)$/.exec(t);
+  if (m) {
+    const title = m[1].trim().replace(/:$/, '').trim();
+    return pdfTitleOk(title) ? { title, text: m[2].trim() } : null;
+  }
+  const w = t.trim().split(/ +/);
+  for (let k = 1; k <= Math.min(6, w.length - 4); k++) {
+    if (!PDF_STEP_SENTENCE_START.test(w[k])) continue;
+    const title = w.slice(0, k).join(' ');
+    if (/^[a-zäöüß]+(en|ern|eln)$/.test(w[k - 1]) && /^[A-ZÄÖÜ]/.test(title) && pdfTitleOk(title) && /[.!?]$/.test(t.trim())) return { title, text: w.slice(k).join(' ') };
+    return null;
+  }
+  return null;
+}
+
+/* «Titel: Text» am Anfang einer Zeile: Titel hoechstens 7 Woerter, beginnt gross, ohne Satzzeichen */
+const PDF_LEAD_RE = /^([A-ZÄÖÜ][^\n:.!?;()]{0,58}?)\s*:\s+(\S[\s\S]*)$/;
+function pdfLeadSplit(line) {
+  const m = PDF_LEAD_RE.exec(String(line || '').trim());
+  if (!m || m[1].trim().split(/\s+/).length > 7) return null;
+  return { title: m[1].trim(), text: m[2].trim() };
+}
+
+/* Notizen in Absaetze mit Zwischentiteln zerlegen (Bulgogi, Karamellsauce). Steht ein Titel mitten in einer langen Zeile
+   nach einem Satzende («… zart gart. Fleisch nicht lange genug mariniert: Weniger …»), beginnt dort ein neuer Absatz. */
+function pdfNoteParts(text) {
+  const src = String(text || '').replace(/\r\n?/g, '\n');
+  if (!src.trim()) return [];
+  const lines = [];
+  src.split('\n').forEach((l) => {
+    // Satzende nur nach einem Wort mit mindestens 3 Zeichen (nicht nach «z. B.» oder «ca.»)
+    const split = l.replace(/([A-Za-zÄÖÜäöüß0-9)]{3,}[.!?])[ \t]+(?=([A-ZÄÖÜ][^\n:.!?;()]{2,58}?)[ \t]*:[ \t]+\S)/g, (m, p, t) => (t.trim().split(/\s+/).length <= 7 ? p + '\n' : m));
+    split.split('\n').forEach((x) => lines.push(x));
+  });
+  const parts = [];
+  let gap = false;
+  lines.forEach((l, i) => {
+    const t = l.trim();
+    if (!t) { gap = parts.length > 0; return; }
+    const nextText = !!(lines[i + 1] || '').trim();
+    let part;
+    const label = /^([A-ZÄÖÜa-zäöü][^:\n.!?;]{0,58}):$/.exec(t);
+    const lead = label ? null : pdfLeadSplit(t);
+    if (label && label[1].trim().split(/\s+/).length <= 6) part = { kind: 'heading', title: label[1].trim(), text: '' };
+    else if (lead) part = { kind: 'lead', title: lead.title, text: lead.text };
+    else if (nextText && t.length <= 40 && t.split(/\s+/).length <= 4 && !/[.!?;:,]/.test(t) && !/\d/.test(t) && /^[A-ZÄÖÜ]/.test(t)) part = { kind: 'heading', title: t, text: '' };
+    else part = { kind: 'text', title: '', text: t };
+    part.gap = gap; gap = false;
+    parts.push(part);
+  });
+  return parts;
+}
+
+/* Bezeichnung eines Naehrwerts wie in der App (Reiter «Nährwerte», nutrition-ui.js NUT_TABLE_ROWS: «Nahrungsfasern»,
+   «Eiweiss»), sonst wie in NUTRIENT_KEYS. short: knappe Form fuer enge Raster («Zucker», «ges. Fettsäuren»). */
+const PDF_NUT_SHORT = { sugars: 'Zucker', saturatedFat: 'ges. Fettsäuren' };
+function pdfNutrientLabel(key, short) {
+  if (short && PDF_NUT_SHORT[key]) return PDF_NUT_SHORT[key];
+  const row = typeof NUT_TABLE_ROWS !== 'undefined' ? NUT_TABLE_ROWS.find((r) => r.key === key) : null;
+  if (row) return row.label;
+  if (key === 'fiber') return 'Nahrungsfasern';
+  if (key === 'protein') return 'Eiweiss';
+  return (typeof NUTRIENT_KEYS !== 'undefined' && NUTRIENT_KEYS[key]) ? NUTRIENT_KEYS[key].label : key;
+}
+
+/* Gruppentitel, der nur den Kastentitel wiederholt («Zutaten» unter «Zutaten») */
+function pdfIsBoxTitleGroup(title) { return /^\s*zutaten\s*:?\s*$/i.test(String(title || '')); }
+
+/* Letzter Schritt von pdfBuildModel: Modell fuer den Druck bereinigen (siehe Kopf dieses Abschnitts). Veraendert nur das
+   Modell (eine Kopie), nie das Rezept (recipe wird nur gelesen). Mehrfacher Aufruf ist unschaedlich. */
+function pdfTextFinish(m, recipe) {
+  if (!m || m._v87text) return m;
+  m._v87text = true;
+  m.source = ''; m.sourceText = ''; m.sourceUrl = ''; m.sourceUrlText = '';
+  // Ohne eigene Quelle steht die Herkunft in der langen Form («Aus der Savora-Rezeptbibliothek, von Name»)
+  m.sourceOrigin = PDF_KEEP_LIBRARY_ORIGIN && recipe ? pdfLibraryOriginText(recipe, false) : (PDF_KEEP_LIBRARY_ORIGIN ? m.sourceOrigin || '' : '');
+  m.notes = pdfPrintText(m.notes);
+  m.noteParts = pdfNoteParts(m.notes);
+  m.log = (m.log || []).map((x) => Object.assign({}, x, { text: pdfPrintText(x.text) })).filter((x) => String(x.text || '').trim());
+  m.tips = (m.tips || []).map((t) => pdfPrintText(t)).filter(Boolean);
+  m.tipParts = m.tips.map((t) => pdfLeadSplit(t) || { title: '', text: t });
+  m.ingredients = (m.ingredients || []).map((it, i) => {
+    if (it.type === 'group') return (i === 0 && pdfIsBoxTitleGroup(it.title)) ? Object.assign({}, it, { show: false }) : it;
+    const c = Object.assign({}, it);
+    ['name', 'note', 'raw'].forEach((k) => { if (c[k]) c[k] = pdfPrintText(c[k]).replace(/\n+/g, ' '); });
+    if (!c.name && it.name) c.name = it.name;   // nie eine Zutat ganz verlieren
+    return c;
+  });
+  (m.nutritionView || []).forEach((v) => { v.label = pdfNutrientLabel(v.key); });
+  return m;
+}
+
+/* Einbindung ohne Eingriff in pdf-templates.js: pdf-model.js wird nach pdf-templates.js geladen (index.html) und
+   ergaenzt pdfBuildModel um pdfTextFinish. Ruft pdfBuildModel spaeter selbst pdfTextFinish auf, bleibt das wirkungslos. */
+if (typeof pdfBuildModel === 'function' && !pdfBuildModel.__v87text) {
+  const pdfBuildModelBase = pdfBuildModel;
+  // eslint-disable-next-line no-global-assign
+  pdfBuildModel = function (recipe, nutritionResult, opts) { return pdfTextFinish(pdfBuildModelBase(recipe, nutritionResult, opts), recipe); };
+  pdfBuildModel.__v87text = true;
 }
