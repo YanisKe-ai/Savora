@@ -514,7 +514,10 @@ def erwartete_texte(rez):
         if not n: continue
         if n.endswith(':') and not i.get('amount') and not i.get('unit'): continue   # Gruppentitel
         ings.append([w for w in _tok(f"{i.get('unit','')} {n}") if len(w) >= 3 and not w.isdigit()])   # Zahlen werden ggf. umformatiert (0.75 -> ¾, 1000 g -> 1 kg), daher nur Woerter
-    steps = [(s['text'].strip(), _tok(s['text'])) for s in rez['steps'] if s['text'].strip()]
+    # v0.87 Nutzerregel: Quellen und Links stehen nie im PDF. Ein als Schritt gespeicherter Quellenvermerk («Quelle: …») wird nicht
+    # erwartet, Adressen in Schritten auch nicht (pdf-model.js pdfPrintText).
+    url = re.compile(r'\[[^\]]*\]\([^)]*\)|https?://\S+|www\.\S+|\b[\w-]+(?:\.[\w-]+)*\.(?:ch|com|de|org|net|at)\b\S*')
+    steps = [(s['text'].strip(), _tok(url.sub(' ', s['text']))) for s in rez['steps'] if s['text'].strip() and not re.match(r'\s*(quelle|source|rezept (von|nach))\b', s['text'], re.I)]
     return ings, steps
 
 def _seitenende(seite, n):
