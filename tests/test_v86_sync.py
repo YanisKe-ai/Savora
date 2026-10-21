@@ -88,7 +88,8 @@ async def main():
         s = await stored(pa, 'r_sync_1')
         check('Speichern einer alten Kopie behaelt nutritionMap', s['title'] == 'Neuer Titel' and set(s.get('nutritionMap') or {}) == {'butter', 'meine sauce'})
         # Zuruecksetzen = Grabstein, Lookup faellt auf global zurueck
-        await pa.evaluate("nutritionSyncRemember('r_sync_1', 'butter', null, null)")
+        fg = await pa.evaluate("(async () => [await nutritionSyncForget('r_sync_1', 'butter'), await nutritionSyncForget('r_sync_1', 'butter'), await nutritionSyncForget('r_sync_1', 'gibtsnicht')])()")
+        check('Forget: setzt Grabstein, zweites Mal und ohne Eintrag schreibt nichts', fg[0]['changed'] and not fg[1]['changed'] and not fg[2]['changed'], str(fg))
         lk = await pa.evaluate("dbGetAll().then(l => { const r = l.find(x => x.id === 'r_sync_1'); return [nutritionSyncLookup(r, 'butter'), nutritionSyncLookup(r, ['xyz', 'meine sauce']), nutritionSyncLookup({}, 'butter'), nutritionSyncLookup(null, 'x')]; })")
         check('Zurueckgesetzte Zuordnung: Lookup null', lk[0] is None)
         check('Lookup mit Schluesselliste findet eigenes Lebensmittel', lk[1] and lk[1]['foodId'] == cf['id'] and lk[1]['customFood']['nutrientsPer100g']['energyKcal'] == 321 and lk[1]['customFood']['nutrientsPer100g']['fat'] == 12.5, str(lk[1])[:200])

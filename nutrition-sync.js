@@ -205,6 +205,13 @@ async function nutritionSyncRemember(recipeId, normalizedIngredient, matchObj, c
   return { changed: true };
 }
 
+/* Zuordnung im Rezept entfernen (Matcher ruft das beim Zuruecksetzen auf). Gleicher Speicherweg wie Remember.
+   Der Eintrag wird zum Grabstein { foodId: null, deleted: true, updatedAt }: fuer Lookup ist er weg (null), und die
+   Zusammenfuehrung mit einem anderen Geraet belebt die alte Zuordnung nicht wieder. Ohne Eintrag: nichts schreiben. */
+async function nutritionSyncForget(recipeId, normalizedIngredient) {
+  return nutritionSyncRemember(recipeId, normalizedIngredient, null, null);
+}
+
 /* Speicherstand im Arbeitsspeicher nachfuehren, ohne neu zu zeichnen. */
 function nsPatchState(recipeId, map) {
   try {
