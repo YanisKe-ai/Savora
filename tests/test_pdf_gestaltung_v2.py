@@ -55,7 +55,7 @@ MEASURE = r"""() => {
     body: step ? pt(page.querySelector('.pv-step-text')) : null, bodyLh: step ? parseFloat(cs('.pv-step-text').lineHeight) / parseFloat(cs('.pv-step-text').fontSize) : null,
     ing: ings.length ? { pt: pt(ings[0]), lh: parseFloat(getComputedStyle(ings[0]).lineHeight) / parseFloat(getComputedStyle(ings[0]).fontSize), bg: ings.map((r) => getComputedStyle(r).backgroundColor), border: ings.map((r) => getComputedStyle(r).borderBottomWidth + getComputedStyle(r.querySelector('.pv-ing-amt') || r).borderRightWidth) } : null,
     heading: pt(page.querySelector('.pv-h')), group: pt(page.querySelector('.pv-ing-group')),
-    panel: panel ? { bg: getComputedStyle(panel).backgroundColor, wave: !!panel.querySelector('.pv-wave-b') && getComputedStyle(panel.querySelector('.pv-wave-b')).display !== 'none', waveBg: panel.querySelector('.pv-wave-b') ? getComputedStyle(panel.querySelector('.pv-wave-b')).backgroundImage.slice(0, 30) : '' } : null,
+    panel: panel ? { bg: getComputedStyle(panel).backgroundColor, wave: !!panel.querySelector('.pv-honey') && getComputedStyle(panel.querySelector('.pv-honey')).display !== 'none', waveBg: panel.querySelector('.pv-honey') ? getComputedStyle(panel.querySelector('.pv-honey')).backgroundImage.slice(0, 30) : '' } : null,
     no: no ? { w: no.getBoundingClientRect().width / MM, h: no.getBoundingClientRect().height / MM, radius: getComputedStyle(no).borderTopLeftRadius, border: parseFloat(getComputedStyle(no).borderTopWidth), pt: pt(no) } : null,
     stepPad: step ? parseFloat(getComputedStyle(page.querySelectorAll('.pv-step')[1]).paddingTop) / MM : null,
     groups: groups.map((g) => ({ w: g.getBoundingClientRect().width / MM, full: g.hasAttribute('data-fullwidth'), one: g.hasAttribute('data-onecol') })),

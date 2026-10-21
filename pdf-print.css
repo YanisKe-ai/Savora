@@ -358,14 +358,7 @@
 .pv-cols[data-dense].pv-tpl-prise-pop { --pv-panel-pad: 3mm 4mm 2.5mm; }
 .pv-cols[data-dense].pv-tpl-pur { --pv-panel-pad: 3mm 4mm; }
 
-/* ===== v88.1 Tropfenkante (Prise Pop) =====
-   Statt der Wellenkante haengen unterschiedlich lange, runde Tropfen unter der gelben Zutatenflaeche (Wunsch Nutzer 21.10.2026).
-   Die Kante beginnt 1 mm in der Flaeche (keine Haarlinie). Breite Flaeche: unter «Zubereitung» (links) nur kurze Tropfen, damit nichts
-   in die Ueberschrift ragt; schmale Spalte: laengere Tropfen, darum mehr Abstand nach unten. */
-.pv-tpl-prise-pop .pv-wave-b { top: calc(100% - 1mm); height: 10mm; background: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='1760' height='100' viewBox='0 -1 1760 101' preserveAspectRatio='none'%3E%3Cpath fill='%23FFE181' d='M0 0H1760V12H1689.0Q1667.0 12 1667.0 34.0V45.0A17.0 17.0 0 0 1 1633.0 45.0V34.0Q1633.0 12 1611.0 12H1466.0Q1444.0 12 1444.0 34.0V76.0A24.0 24.0 0 0 1 1396.0 76.0V34.0Q1396.0 12 1374.0 12H1235.0Q1213.0 12 1213.0 34.0V34.0A13.0 13.0 0 0 1 1187.0 34.0V34.0Q1187.0 12 1165.0 12H1042.0Q1020.0 12 1020.0 34.0V64.0A20.0 20.0 0 0 1 980.0 64.0V34.0Q980.0 12 958.0 12H827.0Q805.0 12 805.0 34.0V45.0A15.0 15.0 0 0 1 775.0 45.0V34.0Q775.0 12 753.0 12H604.0Q582.0 12 582.0 34.0V74.0A22.0 22.0 0 0 1 538.0 74.0V34.0Q538.0 12 516.0 12H347.0Q325.0 12 325.0 34.0V35.0A15.0 15.0 0 0 1 295.0 35.0V34.0Q295.0 12 273.0 12H119.0Q97.0 12 97.0 34.0V34.0A17.0 17.0 0 0 1 63.0 34.0V34.0Q63.0 12 41.0 12H0Z'/%3E%3C/svg%3E") center top / 100% 100% no-repeat; }
-.pv-recipe[data-density^="compact"].pv-tpl-prise-pop .pv-wave-b { height: 7mm; }
-.pv-tpl-prise-pop .pv-ing-narrow .pv-wave-b { height: 8mm; background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='680' height='110' viewBox='0 -1 680 111' preserveAspectRatio='none'%3E%3Cpath fill='%23FFE181' d='M0 0H680V12H630.0Q608.0 12 608.0 34.0V52.0A18.0 18.0 0 0 1 572.0 52.0V34.0Q572.0 12 550.0 12H468.0Q446.0 12 446.0 34.0V84.0A26.0 26.0 0 0 1 394.0 84.0V34.0Q394.0 12 372.0 12H298.0Q276.0 12 276.0 34.0V38.0A16.0 16.0 0 0 1 244.0 38.0V34.0Q244.0 12 222.0 12H136.0Q114.0 12 114.0 34.0V80.0A24.0 24.0 0 0 1 66.0 80.0V34.0Q66.0 12 44.0 12H0Z'/%3E%3C/svg%3E"); }
-.pv-recipe[data-density^="compact"].pv-tpl-prise-pop .pv-ing-narrow .pv-wave-b { height: 6mm; }
-.pv-tpl-prise-pop .pv-ing-narrow { margin-bottom: 7mm; }
-.pv-recipe[data-density^="compact"].pv-tpl-prise-pop .pv-ing-narrow { margin-bottom: 5mm; }
-
+/* ===== v88.2 Honigkante (Prise Pop) =====
+   Sechs Honigtropfen unter der gelben Zutatenflaeche. Form, Hoehe und reservierter Abstand kommen aus pdf-templates.js (PV_HONEY,
+   pvHoneyEdge): echte Kastenbreite in mm, keine Streckung ueber die Kastenhoehe. Die Kante beginnt 1 mm in der Flaeche (keine Naht). */
+.pv-tpl-prise-pop .pv-honey { display: block; position: absolute; top: calc(100% - 1mm); left: 0; right: 0; background-position: left top; background-size: 100% 100%; background-repeat: no-repeat; pointer-events: none; }
