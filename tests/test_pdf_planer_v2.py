@@ -248,11 +248,17 @@ async def main():
             path = os.path.join(OUTDIR, f'kochbuch_{tpl}.pdf'); open(path, 'wb').write(base64.b64decode(r['b64']))
             k = seiten(path); st = r['start']['v2_lang']; nl = len([1 for x in r['log'] if x]) and int(re.match(r'(\d+)', r['log'][1]['plan']).group(1))
             ok = True; info = []
+            # v87 (Punkt 14): mit pvPageNumberMarks zeigt die Fusszeile im Kochbuch nur «Seite X»; die rezeptlokale Zaehlung steht als
+            # «Fortsetzung · n / K» im Kopf der Folgeseiten (nicht zusaetzlich unten). Ohne den Aufruf in pdf.js gilt die alte Darstellung.
+            eine = await page.evaluate("() => typeof pdfAddPageNumbers === 'function' && String(pdfAddPageNumbers).includes('pvPageNumberMarks')")
             for i in range(nl):
                 pt = flat(pdftext(path, st + i)); info.append(pt[-60:])
-                ok = ok and f'Seite {st + i}' in pt and f'{i + 1} / {nl}' in pt
+                if eine:
+                    ok = ok and f'Seite {st + i}' in pt and (i == 0 or f'Fortsetzung · {i + 1} / {nl}' in pt) and not re.search(r'(?<!· )\b%d / %d\b' % (i + 1, nl), pt)
+                else:
+                    ok = ok and f'Seite {st + i}' in pt and f'{i + 1} / {nl}' in pt
             kt = flat(pdftext(path, r['start']['v2_kurz']))
-            check(f'[{tpl}] Kochbuch: Buchseite «Seite X» und rezeptlokal «n / {nl}» getrennt', ok and nl >= 2, ' || '.join(info))
+            check(f'[{tpl}] Kochbuch: Buchseite «Seite X» und rezeptlokal «n / {nl}» getrennt' + (' (eine Zaehlung in der Fusszeile)' if eine else ''), ok and nl >= 2, ' || '.join(info))
             check(f'[{tpl}] Kochbuch: einseitiges Rezept ohne «1 / 1», mit Buchseite', '1 / 1' not in kt and f'Seite {r["start"]["v2_kurz"]}' in kt, kt[-80:])
         check('Keine Seitenfehler', not errs, '; '.join(errs[:3]))
         await b.close()
