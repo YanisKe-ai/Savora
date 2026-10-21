@@ -336,15 +336,31 @@ async function handleActionV2(action, id, el, e) {
       const newPanel = document.getElementById('panel-' + id);
       if (!newPanel) { state.detailTab = id; render(); return true; }
       const prevH = oldPanel ? oldPanel.offsetHeight : 0;
+      // v86.1: alles Messen VOR dem Umblenden (danach kuerzt der Browser die Scrollposition sofort)
+      const y0 = window.scrollY;
+      const bar = document.querySelector('.tabbar-v2');
+      const sticky = !!bar && getComputedStyle(bar).position === 'sticky';
+      const stickTop = sticky ? (parseFloat(getComputedStyle(bar).top) || 0) : 0;
+      let barNatural = 0;
+      if (sticky) { const pos = bar.style.position; bar.style.position = 'static'; barNatural = bar.getBoundingClientRect().top + y0; bar.style.position = pos; }
+      const stuck = sticky && y0 > barNatural - stickTop + 1;
       state.detailTab = id;
       linkSyncEntry();
       const dm = document.querySelector('.detail-main'); if (dm) dm.dataset.tab = id;   // breites Layout richtet sich danach
-      document.querySelectorAll('.tab-panel').forEach(p => { p.hidden = p !== newPanel; });
+      document.querySelectorAll('.tab-panel').forEach(p => { p.hidden = p !== newPanel; p.style.minHeight = ''; });
+      if (prevH) newPanel.style.minHeight = prevH + 'px';   // zuerst wie bisher: gleiche Hoehe, kein Sprung
       document.querySelectorAll('.tab-v2[role="tab"]').forEach(t => {
         const on = t.dataset.id === id;
         t.classList.toggle('is-active', on); t.setAttribute('aria-selected', String(on)); t.tabIndex = on ? 0 : -1;
       });
-      if (prevH) newPanel.style.minHeight = prevH + 'px';
+      // Klebt die Reiterleiste, beginnt der neue Inhalt direkt unter ihr. Reserviert wird nur Platz bis zum Bildschirmende,
+      // nie die Hoehe des alten Reiters (sonst grosse leere Flaeche unter kurzen Reitern, iPhone-Rueckmeldung v86.1).
+      if (prevH && stuck) {
+        newPanel.style.minHeight = '';
+        const below = window.innerHeight - stickTop - bar.offsetHeight;
+        if (newPanel.offsetHeight < below) newPanel.style.minHeight = below + 'px';
+        window.scrollTo(0, Math.max(0, barNatural - stickTop));
+      }
       return true;
     }
     case 'nutrition-show-tab': {   // v86: Kurzzeile im Kopf öffnet den Reiter Nährwerte und scrollt dorthin

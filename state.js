@@ -274,7 +274,13 @@ function render(skipHistoryPush) {
 
   const applyScroll = () => {
     if (hasModal) return; // Hintergrund bleibt gesperrt, eigenes Scrollen ist hier nicht relevant
-    if (targetY !== null) { window.scrollTo(0, targetY); return; }
+    if (targetY !== null) {
+      // v86.1: gemerkte Stelle erreichbar machen (der Reiter war beim Merken evtl. hoeher reserviert als jetzt)
+      const missing = targetY + window.innerHeight - document.documentElement.scrollHeight;
+      const panel = missing > 0.5 ? document.querySelector('.tab-panel:not([hidden])') : null;
+      if (panel) panel.style.minHeight = (panel.offsetHeight + missing) + 'px';
+      window.scrollTo(0, targetY); return;
+    }
     if (!viewChanged) {
       if (preservedY !== null) window.scrollTo(0, preservedY);
     } else if (scrollMemory[state.view] != null && ((typeof TAB_VIEWS !== 'undefined' && TAB_VIEWS.includes(state.view)) || (skipHistoryPush && remembersScroll(state.view)))) {
