@@ -516,9 +516,9 @@ function pdfFrameFor(dims, box) {
   return { w, h: Math.round((w / ar) * 10) / 10, bw: box.w, bh: box.h };
 }
 const PDF_DENSITY_PHOTO = { normal: { w: 58, h: 42 }, compact: { w: 44, h: 28 }, 'compact-columns': { w: 44, h: 28 }, dense: { w: 38, h: 24 } };
-function pdfDensityOpts(density, imgUrl, dims, dense) {
+function pdfDensityOpts(density, imgUrl, dims, dense, layout) {
   const frame = imgUrl && dims ? pdfFrameFor(dims, (dense ? PDF_DENSITY_PHOTO.dense : PDF_DENSITY_PHOTO[density]) || PDF_DENSITY_PHOTO.normal) : null;
-  return { frame, tight: density !== 'normal', density, dense: !!dense };
+  return { frame, tight: density !== 'normal', density, dense: !!dense, layout: layout || 'stack' };
 }
 /* v83: dichter Einseiten-Versuch nur, wenn der beste kompakte Kandidat knapp ueberlaeuft (hoechstens so viel, wie engere Abstaende
    und das kleinere Foto realistisch einsparen) und nicht aus einem anderen Grund abgelehnt wurde. */
@@ -855,6 +855,91 @@ function pdfPlanMultiPage(m, recipe, imgUrl, dims, detail, log) {
   return { html: best.html, tier: 4, density: best.density, how: best.how };
 }
 
+/* ---------- v88: Seitenplanung im Layout «Spalten» (Zutaten links, Zubereitung rechts) ----------
+   Feste Regeln (Nutzerwahl 21.10.2026), alle an der echten Messung (pdfFits) geprueft:
+   1. Eine Seite, wenn immer moeglich: normal, kompakt, dicht (Einseiten-Kandidaten in buildRecipePdfPage), erst dann mehrere Seiten.
+   2. Mehrere Seiten: jede Seite mit mindestens PDF_MIN_STEPS_PER_PAGE Schritten (ausser das Rezept hat weniger; dann wird die
+      Grenze stufenweise gelockert), Schritte werden nicht geteilt, Hinweise/Notizen/Naehrwerte stehen immer beim letzten Schritt
+      (nie allein auf einer Seite), jede Seite mindestens ca. ein Drittel gefuellt (PDF_MIN_PAGE_FILL).
+   3. Seite 1 wird zuerst gefuellt (so viele Schritte wie passen), danach gleicht der Planer nur aus, wenn die letzte Seite zu leer waere.
+   Passen die Zutaten nicht in die Spalte der ersten Seite oder ist ein einzelner Schritt laenger als eine Seite, liefert der Planer
+   null und buildRecipePdfPage faellt auf das Oben/unten-Layout mit dem bisherigen Planer zurueck. */
+const PDF_MIN_STEPS_PER_PAGE = 3;
+const PDF_MIN_PAGE_FILL = 1 / 3;
+const PDF_PAGE_BODY_TOP_MM = 14, PDF_PAGE_BODY_BOTTOM_MM = 21;   // Seitenrand oben und Fussbereich (pdf-print.css .pv-page padding)
+/* Fuellgrad einer Seite: gemessene Inhaltshoehe im Verhaeltnis zur nutzbaren Hoehe (0 bis 1) */
+function pdfPageFill(html) {
+  const body = PAGE_HEIGHT_MM - PDF_PAGE_BODY_TOP_MM - PDF_PAGE_BODY_BOTTOM_MM;
+  return Math.max(0, (measureSectionHeightMm(pdfStripImg(html)) - PDF_PAGE_BODY_TOP_MM - PDF_PAGE_BODY_BOTTOM_MM) / body);
+}
+/* Passt eine Seite des Spaltenlayouts? Wie pdfFits, aber die Reserve PDF_FIT_SAFETY_MM (Nachplanung, wenn der Druckbereich hoeher
+   setzt als die Messung, z. B. Safari) gilt nur fuer den Fliesstext: auf Seite 1 fuer die rechte Spalte und alles darunter, nicht
+   fuer eine laengere Zutatenspalte daneben. Sonst passte bei langer Zutatenliste nach einer Nachplanung gar nichts mehr. */
+function pdfColsFits(html) {
+  return pdfWithProbe(pdfStripImg(html), (el) => {
+    el.style.minHeight = '0';
+    pdfClampFrameText(el);
+    const top = el.getBoundingClientRect().top, H = el.getBoundingClientRect().height / MM_PX;
+    const ing = el.querySelector('.pv-col-ing'), main = el.querySelector('.pv-col-main');
+    let grow = PDF_FIT_SAFETY_MM;
+    if (ing && main && grow > 0) {
+      const L = (ing.getBoundingClientRect().bottom - top) / MM_PX, R = (main.getBoundingClientRect().bottom - top) / MM_PX;
+      grow = Math.max(0, R + grow - Math.max(L, R));
+    }
+    return H + grow <= PAGE_HEIGHT_MM + PAGE_FIT_TOLERANCE_MM;
+  }) || false;
+}
+/* Schritte auf Seiten verteilen (Rueckgabe: Liste [von, bis) je Seite) oder null. page(p, von, bis, mitZusatz) liefert das Seiten-HTML. */
+function pdfColsDistribute(n, page, minPer) {
+  const cuts = []; let i = 0;
+  if (!n) return pdfColsFits(page(0, 0, 0, true)) ? [[0, 0]] : null;
+  while (i < n) {
+    const p = cuts.length; let end = -1;
+    if (p > 8) return null;
+    for (let c = n - i; c >= 1; c--) {
+      const e = i + c, rest = n - e;
+      if (c < Math.min(minPer, n - i) || (rest > 0 && rest < minPer)) continue;
+      if (pdfColsFits(page(p, i, e, rest === 0))) { end = e; break; }
+    }
+    if (end < 0) return null;
+    cuts.push([i, end]); i = end;
+  }
+  // letzte Seite zu leer: Schritte von der Vorseite nachziehen, solange die Vorseite genug Schritte behaelt und alles passt
+  for (let guard = 0; guard < 20 && cuts.length > 1; guard++) {
+    const L = cuts.length - 1, last = cuts[L], prev = cuts[L - 1];
+    if (pdfPageFill(page(L, last[0], last[1], true)) >= PDF_MIN_PAGE_FILL) break;
+    if (prev[1] - prev[0] - 1 < minPer) break;
+    if (!pdfColsFits(page(L, last[0] - 1, last[1], true))) break;
+    prev[1]--; last[0]--;
+  }
+  return cuts;
+}
+function pdfPlanColumns(m, recipe, imgUrl, dims, detail, log) {
+  const ingU = pvIngredientUnits(m.ingredients);
+  if (!ingU.length) return null;
+  const steps = pvStepUnits(m.steps), extras = pvExtrasUnits(m, detail);
+  const variants = [];
+  ['normal', 'compact'].forEach((density) => {
+    const o = pdfDensityOpts(density, imgUrl, dims, false, 'cols');
+    const ctx = { m, recipe, imgUrl: o.frame ? imgUrl : null, frame: o.frame, tight: o.tight, density, detail, layout: 'cols' };
+    const page = (p, a, b, withEx, total) => pvPage(ctx, { first: p === 0, n: p + 1, total: total || 9, ing: p === 0 ? ingU : [], steps: steps.slice(a, b), extras: withEx ? extras : [] });
+    if (!pdfColsFits(page(0, 0, 0, false))) { if (log) log.multi.push({ density, layout: 'cols', pages: 0, how: 'Zutaten passen nicht in die Spalte' }); return; }
+    let cuts = null, minPer = PDF_MIN_STEPS_PER_PAGE;
+    for (; minPer >= 1 && !cuts; minPer--) cuts = pdfColsDistribute(steps.length, page, minPer);
+    if (!cuts) { if (log) log.multi.push({ density, layout: 'cols', pages: 0, how: 'kein gueltiger Umbruch (Schritt laenger als eine Seite)' }); return; }
+    const K = cuts.length;
+    const html = cuts.map(([a, b], p) => page(p, a, b, p === K - 1, K));
+    if (!html.every((h) => pdfColsFits(h))) { if (log) log.multi.push({ density, layout: 'cols', pages: K, how: 'Endmessung mit Seitenzahl passt nicht' }); return; }
+    const how = 'Spalten, ganze Schritte, ' + cuts.map(([a, b]) => b - a).join(' + ') + ' Schritte' + (minPer + 1 < PDF_MIN_STEPS_PER_PAGE ? ' (Mindestzahl gelockert)' : '');
+    if (log) log.multi.push({ density, layout: 'cols', pages: K, how });
+    variants.push({ html, density, how });
+  });
+  if (!variants.length) return null;
+  // weniger Seiten gewinnen; bei Gleichstand die normale Dichte
+  const best = variants.reduce((a, b) => (b.html.length < a.html.length ? b : a));
+  return { html: best.html, tier: 4, density: best.density, how: best.how };
+}
+
 /* Seiten eines Rezepts mit rezeptlokaler Zaehlung versehen (Fusszeile «n / K», auch im Kochbuch getrennt von der Buchseite). */
 function pdfMarkRecipePages(pages) {
   const K = pages.length;
@@ -875,6 +960,29 @@ async function buildRecipePdfPage(r, previousLayout, nutritionDetail, chapter) {
   const imageState = !imgUrl ? 'none' : !photoOk ? 'failed' : (!imageResolutionSufficientForFrame(dims.width, 60) ? 'lowres' : 'ok');
   const img = photoOk ? imgUrl : null;
   const log = { recipe: m.title, style: PDF_CTX.tpl.id, candidates: [], multi: [], plan: '' };
+  // v88: zuerst das Layout «Spalten» (normal, kompakt, dicht), danach das Oben/unten-Layout als Rueckfall (eine Seite geht vor)
+  // Nachplanung mit Reserve (Druckbereich setzte hoeher als gemessen): bewaehrter Oben/unten-Planer wie bis 0.87, damit die Reserve
+  // auf die ganze Seite wirkt und das Rezept sicher umbricht statt abgeschnitten zu werden.
+  const colsOk = !(PDF_FIT_SAFETY_MM > 0);
+  if (colsOk && m.ingredients.some((it) => it.type === 'ing')) {
+    let bestCols = null;
+    // je Dichte zuerst Zusatzbloecke rechts unter dem letzten Schritt, dann (falls vorhanden) ueber die volle Breite unter den Spalten
+    const wideOk = m.steps.length && pvExtrasUnits(m, detail).length;
+    for (const [d, dense] of [['normal', false], ['compact', false], ['compact', true]]) {
+      if (dense && (!bestCols || bestCols.overflowMm > PDF_DENSE_MAX_OVERFLOW_MM)) break;
+      for (const wide of wideOk ? [false, true] : [false]) {
+        const html = pvRecipePage(m, r, img, Object.assign(pdfDensityOpts(d, img, dims, dense, 'cols'), { extrasWide: wide }), detail);
+        const meas = Object.assign(pdfMeasureCandidate(html, d + (dense ? '+dicht' : '')), { layout: 'cols' + (wide ? '-breit' : '') });
+        log.candidates.push(meas);
+        if (meas.fits) {
+          log.plan = `1 Seite (Spalten${wide ? ', Zusatz breit' : ''}, ${d}${dense ? ', dicht' : ''})`;
+          pdfPlanLogOut(log);
+          return { htmlPages: pdfMarkRecipePages([html]), layout: (img ? 'photo' : 'text') + '-cols' + (d === 'normal' ? '' : '-' + d) + (dense ? '-dense' : ''), density: d, dense, tier: dense ? 3 : (d === 'normal' ? 1 : 2), pageCount: 1, imageState, planLog: log };
+        }
+        if (!meas.reject && (!bestCols || meas.heightMm < bestCols.heightMm)) bestCols = meas;
+      }
+    }
+  }
   const densities = ['normal', 'compact'].concat(pdfGroupCount(m) >= 3 ? ['compact-columns'] : []);
   for (let i = 0; i < densities.length; i++) {
     const d = densities[i];
@@ -889,7 +997,7 @@ async function buildRecipePdfPage(r, previousLayout, nutritionDetail, chapter) {
   }
   if (densities.length < 3) log.candidates.push({ density: 'compact-columns', skipped: 'weniger als drei Zutatengruppen' });
   // v83: letzter Einseiten-Versuch mit engeren Abstaenden (gleiche Schriftgroessen) auf der besten kompakten Variante
-  const tried = log.candidates.filter((c) => !c.skipped && c.density !== 'normal' && !c.reject);
+  const tried = log.candidates.filter((c) => !c.skipped && c.density !== 'normal' && !c.reject && !/^cols/.test(c.layout || ''));
   const base = tried.length ? tried.reduce((a, b) => (b.heightMm < a.heightMm ? b : a)) : null;
   if (base && base.overflowMm <= PDF_DENSE_MAX_OVERFLOW_MM) {
     const html = pvRecipePage(m, r, img, pdfDensityOpts(base.density, img, dims, true), detail);
@@ -901,7 +1009,7 @@ async function buildRecipePdfPage(r, previousLayout, nutritionDetail, chapter) {
       return { htmlPages: pdfMarkRecipePages([html]), layout: (img ? 'photo' : 'text') + '-' + base.density + '-dense', density: base.density, dense: true, tier: 3, pageCount: 1, imageState, planLog: log };
     }
   }
-  const multi = pdfPlanMultiPage(m, r, img, dims, detail, log);
+  const multi = (colsOk && pdfPlanColumns(m, r, img, dims, detail, log)) || pdfPlanMultiPage(m, r, img, dims, detail, log);
   const bad = multi.html.map((h, i) => (pdfFits(h) ? -1 : i + 1)).filter((x) => x > 0);
   log.plan = `${multi.html.length} Seiten (${multi.density}, ${multi.how})` + (bad.length ? `, Ueberlauf auf Seite ${bad.join(', ')}` : '');
   pdfPlanLogOut(log);

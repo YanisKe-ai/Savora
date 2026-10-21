@@ -107,7 +107,8 @@ async def main():
             if pages.get(next(r['title'] for r in HIRNKOST_RECIPES if r['id'] == rid), 1) > 1:
                 steps = [b for b in d['blocks'] if 'pv-step-text' in b['cls']]
                 lowest = max((b['b'] for b in steps), default=0)
-                check(f'{rid}: erste Seite gefuellt (Schritte reichen bis mindestens 200 mm)', lowest >= 200, f'{lowest} mm')
+                # v88: Seitenregel «mindestens 3 Schritte je Seite» geht vor dem Fuellen (Manti 4 + 3, Karamell 3 + 3): Seite 1 mindestens zur Haelfte
+                check(f'{rid}: erste Seite gefuellt (Schritte reichen bis mindestens 150 mm)', lowest >= 150, f'{lowest} mm')
         # Fusszeile auf jeder Rezeptseite
         bad = []
         for p in range(3, n + 1):
