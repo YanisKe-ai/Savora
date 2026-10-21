@@ -155,7 +155,7 @@ async def main():
             check(f'[{tpl}] knapp: Kandidat compact passt bei n={nn}, normal scheiterte', bool(p) and p.get('n') == 1 and p['density'] == 'compact' and not p['log']['candidates'][0]['fits'], logtext(p['log']) if p and p.get('log') else str(p))
             if p and p.get('n') == 1:
                 path, r = await export(page, 'v2_knapp', tpl, f'knapp_{tpl}')
-                check(f'[{tpl}] knapp: echtes PDF 1 Seite, data-density compact', seiten(path) == 1 and r['log']['plan'].startswith('1 Seite (compact)'), r['log']['plan'])
+                check(f'[{tpl}] knapp: echtes PDF 1 Seite, data-density compact', seiten(path) == 1 and re.match(r'1 Seite \((Spalten[^,]*, )?compact', r['log']['plan']), r['log']['plan'])   # v88: Spaltenlayout zuerst
                 check(f'[{tpl}] knapp: Hinweis im PDF, Quelle nicht (v0.87 Nutzerregel)', 'Kurzer Hinweis' in flat(pdftext(path)) and 'Testquelle' not in flat(pdftext(path)))
 
             # --- drei geeignete Gruppen: compact-columns nur, wenn 1 und 2 scheitern ---
@@ -165,7 +165,7 @@ async def main():
             check(f'[{tpl}] drei Gruppen: compact-columns gewaehlt bei n={nn}', ok3, logtext(p['log']) if p and p.get('log') else str(p))
             if ok3:
                 cd = p['log']['candidates']
-                check(f'[{tpl}] drei Gruppen: normal und compact vorher gemessen und gescheitert', [x['density'] for x in cd] == ['normal', 'compact', 'compact-columns'] and not cd[0]['fits'] and not cd[1]['fits'], logtext(p['log']))
+                check(f'[{tpl}] drei Gruppen: normal und compact vorher gemessen und gescheitert', [x['density'] for x in cd if not x.get('layout')][:3] == ['normal', 'compact', 'compact-columns'] and not any(x['fits'] for x in cd if not x['density'].startswith('compact-columns')), logtext(p['log']))
                 path, r = await export(page, 'v2_drei', tpl, f'dreigruppen_{tpl}')
                 check(f'[{tpl}] drei Gruppen: echtes PDF 1 Seite', seiten(path) == 1, logtext(r['log']))
                 dreigr_n = nn
@@ -209,7 +209,7 @@ async def main():
             path, r = await export(page, 'v2_hinweis', tpl, f'hinweis_{tpl}')
             k = seiten(path); t = flat(pdftext(path))
             print('  Hinweis/Quelle zuletzt: ' + logtext(r['log']))
-            check(f'[{tpl}] Hinweis/Quelle zuletzt: normal scheitert, compact vor Mehrseitigkeit geprueft', not r['log']['candidates'][0]['fits'] and r['log']['candidates'][1]['density'] == 'compact' and plan_konsistent(r['log'], k), logtext(r['log']))
+            check(f'[{tpl}] Hinweis/Quelle zuletzt: normal scheitert, compact vor Mehrseitigkeit geprueft', not r['log']['candidates'][0]['fits'] and any(c['density'] == 'compact' for c in r['log']['candidates']) and plan_konsistent(r['log'], k), logtext(r['log']))
             check(f'[{tpl}] Hinweis/Quelle zuletzt: Hinweis vollstaendig, keine Quelle und kein Link (v0.87)', 'Dieser Hinweis ist der letzte Block' in t and t.count('Quelle mit langer Angabe') == 0 and 'example.org' not in t, t[-300:])
 
             # --- Quelle woertlich im letzten Schritt: genau einmal, Daten unveraendert ---
