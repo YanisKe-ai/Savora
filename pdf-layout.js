@@ -72,6 +72,20 @@ const PAGE_HEIGHT_MM = 297;
 /* Nur noch Subpixel-Rundung (0,3 mm). Vorher 2 mm: Seiten bis 299 mm galten als «passt», das Raster war
    dann bis zu 2 mm hoeher als die A4-Seite und der untere Rand (Fusszeile) wurde im PDF abgeschnitten. */
 const PAGE_FIT_TOLERANCE_MM = 0.3;
+/* v87: zusaetzliche Reserve der Planung in mm (Standard 0). pdf.js erhoeht sie nur fuer ein Rezept, dessen Seite im Druckbereich
+   trotz Planung hoeher als A4 war, und plant es dann neu (statt die Seite im Raster zu schneiden). */
+let PDF_FIT_SAFETY_MM = 0;
+/* v87: Textvergroesserung des Browsers abschalten. Ursache der zu grossen Schrift (Analyse Punkt 2): Safari auf dem iPhone vergroessert
+   Fliesstext in Bloecken, die breiter als der Bildschirm sind (Text-Autosizing). Die PDF-Seiten sind 210 mm = 794 px breit, das iPhone
+   390 px: Zubereitung und Notizen wurden mit etwa 1,5-facher Schrift gemessen und teils auch so gerastert. WebKit laesst Bloecke mit
+   fester Hoehe aus, darum waren nur die Seiten gross, die nicht in 297 mm passten (keine feste Hoehe, pdf.js pdfRasterizeSection).
+   text-size-adjust: 100% schaltet das fuer Messflaeche, Druckbereich und den html2canvas-Klon ab; auf dem Mac/Chrome ohne Wirkung. */
+const PDF_NO_AUTOSIZE_CSS = '-webkit-text-size-adjust:100%;text-size-adjust:100%;';
+function pdfNoAutosize(el) {
+  if (!el || !el.style) return;
+  el.style.setProperty('-webkit-text-size-adjust', '100%');
+  el.style.setProperty('text-size-adjust', '100%');
+}
 
 let _pdfProbeEl = null;
 function pdfMeasureProbe() {
@@ -80,7 +94,7 @@ function pdfMeasureProbe() {
     _pdfProbeEl.id = 'pdfMeasureProbe';
     // Punkt 39: unsichtbar rendern (ausserhalb des Sichtbereichs, nicht display:none — sonst
     // liefert der Browser 0 als Hoehe), tatsaechliche Hoehe messen, danach wieder leeren.
-    _pdfProbeEl.style.cssText = 'position:fixed;left:-9999px;top:0;width:210mm;';
+    _pdfProbeEl.style.cssText = 'position:fixed;left:-9999px;top:0;width:210mm;' + PDF_NO_AUTOSIZE_CSS;
     document.body.appendChild(_pdfProbeEl);
   }
   return _pdfProbeEl;
@@ -143,5 +157,5 @@ function cleanupPdfMeasureProbe() {
 }
 
 function candidateFitsOnePage(html) {
-  return measureSectionHeightMm(html) <= PAGE_HEIGHT_MM + PAGE_FIT_TOLERANCE_MM;
+  return measureSectionHeightMm(html) <= PAGE_HEIGHT_MM + PAGE_FIT_TOLERANCE_MM - PDF_FIT_SAFETY_MM;
 }
