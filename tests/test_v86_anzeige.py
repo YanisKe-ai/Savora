@@ -52,7 +52,10 @@ async def main():
         for k in CASES: res[k] = await ev(OPEN, k)
         v = res['voll']
         check('Voll: Kurzzeile «ca. … kcal · … Eiweiss · … Kohlenhydrate · … Fett pro Portion»', v['line'] and v['line'].startswith('ca. ') and 'kcal' in v['line'] and 'Eiweiss' in v['line'] and 'Kohlenhydrate' in v['line'] and 'Fett' in v['line'] and 'pro Portion' in v['line'], str(v['line']))
-        check('Kurzzeile: Tippfläche mindestens 44 px', v['lineH'] >= 44, str(v['lineH']))
+        lh = await ev("async () => { state.detailTab = 'ingredients'; render(); await hydrateNutritionCards(); await new Promise(r => setTimeout(r, 60)); const l = document.querySelector('.nut-line:not(.nut-line--pending)'); return l ? l.getBoundingClientRect().height : 0; }")
+        check('Kurzzeile unter den Zutaten: Tippfläche mindestens 44 px', lh >= 44, str(lh))
+        first = await ev("() => { state.activeRecipeId = 'v86_voll'; state.detailTab = 'ingredients'; render(); const e = document.querySelector('.ing-check'), l = document.querySelector('.nut-line'); return !!(e && l && l.getBoundingClientRect().top > e.getBoundingClientRect().bottom); }")
+        check('Kurzzeile steht unter der Zutatenliste', first)
         check('Voll: Tabelle in LIV-Reihenfolge mit Überschrift', v['rows'] == ['Energie', 'Fett', 'davon gesättigte Fettsäuren', 'Kohlenhydrate', 'davon Zucker', 'Nahrungsfasern', 'Eiweiss', 'Salz'] and v['caption'] == 'Nährwerte pro Portion', str(v['rows']) + v['caption'])
         check('Voll: kein grünes Hinweisband, «Richtwerte» genau einmal, kein «geschätzt»', not v['band'] and v['panel'].count('Richtwerte') == 1 and 'eschätzt' not in v['panel'], v['panel'][:200])
         check('Voll: Energie in einer Zeile (kcal und kJ), keine Dopplung', v['panel'].count('Energie') == 1 and 'kJ' in v['panel'])
@@ -77,7 +80,7 @@ async def main():
           const btn = () => document.querySelector('.cook-start-inline').getBoundingClientRect().top; const a = btn(); const pending = !!document.querySelector('.nut-line--pending');
           const t0 = performance.now(); while (document.querySelector('.nut-line--pending') && performance.now() - t0 < 8000) await new Promise(r => setTimeout(r, 20));
           return { a, b: btn(), pending, line: !!document.querySelector('.nut-line:not(.nut-line--pending)') }; }""")
-        check('Kein Layoutsprung: Platz reserviert, Knopf bleibt stehen', jump['pending'] and jump['line'] and abs(jump['a'] - jump['b']) < 1, str(jump))
+        check('Kein Layoutsprung: Platz reserviert, Knopf bleibt stehen (Zeile unter den Zutaten)', jump['pending'] and jump['line'] and abs(jump['a'] - jump['b']) < 1, str(jump))
         sync = await ev("() => { render(); return !!document.querySelector('.nut-line:not(.nut-line--pending)'); }")
         check('Zweites Zeichnen: Kurzzeile sofort da (Zwischenspeicher)', sync)
         # Antippen öffnet den Reiter Nährwerte

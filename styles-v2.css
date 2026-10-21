@@ -4645,3 +4645,6 @@ body:has(.cookbook-main) .toast-action { width: max-content; max-width: min(92vw
   .nut-table th, .nut-table td, .nut-more { border-color: CanvasText; }
   .nut-line:focus-visible, .nut-more > summary:focus-visible { outline-color: Highlight; }
 }
+/* v86 Nachtrag: Kurzzeile steht unter der Zutatenliste (nicht im Kopf), mit feiner Trennlinie */
+.nut-line { margin: 1rem 0 0; padding: 0.5rem 0 0.25rem; border-top: 1px solid var(--hairline); border-radius: 0; }
+@media (forced-colors: active) { .nut-line { border-top-color: CanvasText; } }

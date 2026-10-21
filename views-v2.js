@@ -933,7 +933,8 @@ function ingredientsPanel(r) {
         }).join('')}
       </ul>
     </section>`).join('') : `<p class="hint-line">Noch keine Zutaten erfasst.</p>`}
-    ${checked.size ? `<button class="text-btn" data-action="reset-ingredient-checks" data-id="${escapeAttr(r.id)}">Häkchen zurücksetzen</button>` : ''}`;
+    ${checked.size ? `<button class="text-btn" data-action="reset-ingredient-checks" data-id="${escapeAttr(r.id)}">Häkchen zurücksetzen</button>` : ''}
+    ${typeof nutritionLineSlot === 'function' ? nutritionLineSlot(r) : ''}`;   // v86: Nährwert-Kurzzeile direkt unter den Zutaten, die erste Zutat bleibt ohne Scrollen sichtbar
 }
 function stepsPanel(r) {
   const entries = stepEntries(r);
@@ -1018,7 +1019,6 @@ function detailView() {
           ${favButton(r, 'detail-fav')}
         </div>
         <p class="detail-meta-v2">${facts.map(f => `<span class="fact">${escapeHtml(f)}</span>`).join('')}${extraTimes.length ? `<span class="fact detail-times">${ICONS.clock}<span>${extraTimes.map(escapeHtml).join(' · ')}</span></span>` : ''}</p>
-        ${typeof nutritionLineSlot === 'function' ? nutritionLineSlot(r) : ''}
       </div>
       <button class="primary-btn primary-btn--block cook-start-inline" data-action="start-cook" data-id="${escapeAttr(r.id)}">${ICONS.play} Kochen starten</button>
       <div class="detail-tools" role="group" aria-label="Weitere Aktionen zum Rezept">

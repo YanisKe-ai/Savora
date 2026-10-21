@@ -159,8 +159,8 @@ async def main():
             b1: [m1.nutritionBasis, m1.nutritionBasisLabel], b2: [m2.nutritionBasis, m2.nutritionBasisLabel], b3: [m3.nutritionBasis, m3.nutritionBasisLabel], m3kcal: v(m3, 'energyKcal'), b4: [m4.nutritionBasis, m4.nutritionView.length, m4.nutritionNote],
             note1: m1.nutritionNote, note3: m3.nutritionNote, note5: m5.nutritionNote, b5: m5.nutritionBasis, range: v(m6, 'energyKcal').text, same: m1.nutrition === base }; }""")
         check('kcal ganzzahlig (523,7 -> 524)', nut['kcal']['value'] == 524 and nut['kcal']['text'] == '524' and nut['kcal']['unit'] == 'kcal', str(nut['kcal']))
-        check('Gramm mit hoechstens einer Nachkommastelle (12,345 -> 12,3; 61,04 -> 61)', nut['prot']['text'] == '12,3' and nut['kh']['text'] == '61', str((nut['prot'], nut['kh'])))
-        check('mg ab 100 ganzzahlig (842), µg unter 100 mit einer Stelle (12,3 und 0,3)', nut['na']['text'] == '842' and nut['jod']['text'] == '12,3' and nut['b12']['text'] == '0,3', str((nut['na'], nut['jod'], nut['b12'])))
+        check('Gramm nach v86-Regel: ab 10 g ganz (12,345 -> 12; 61,04 -> 61)', nut['prot']['text'] == '12' and nut['kh']['text'] == '61', str((nut['prot'], nut['kh'])))
+        check('mg/µg nach v86-Regel: ab 10 ganz (842, 12), unter 1 zwei Stellen (0,25)', nut['na']['text'] == '842' and nut['jod']['text'] == '12' and nut['b12']['text'] == '0,25', str((nut['na'], nut['jod'], nut['b12'])))
         check('Fehlende Werte sind null, nie 0; gemessene 0 bleibt 0', nut['fat']['value'] is None and nut['fat']['text'] is None and nut['vitK']['value'] is None and nut['salt']['value'] == 0, str((nut['fat'], nut['vitK'], nut['salt'])))
         check('Bezugsgroesse: pro Portion / pro Stueck / gesamt (Ausbeute fehlt) / keine ohne Ergebnis', nut['b1'] == ['portion', 'pro Portion'] and nut['b2'] == ['piece', 'pro Stück'] and nut['b3'] == ['total', 'für das gesamte Rezept'] and nut['b4'] == [None, 0, ''], str((nut['b1'], nut['b2'], nut['b3'], nut['b4'])))
         check('Ausbeute fehlt: Gesamtwerte statt Portionswerte', nut['m3kcal']['value'] == 2095, str(nut['m3kcal']))

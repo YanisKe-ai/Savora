@@ -149,7 +149,7 @@ function nutUiPrewarm() {
   idle(() => { run(); });
 }
 
-/* ---------- Kurzzeile im Rezeptkopf (Plan 1 und 3) ----------
+/* ---------- Kurzzeile unter den Zutaten (Plan 1 und 3) ----------
    «ca. 520 kcal · 24 g Eiweiss · 58 g Kohlenhydrate · 21 g Fett pro Portion», bei Teilsumme «mind.».
    Nur bei vollen oder teilweisen Werten, sonst gar nichts (kein Leerzustand im Lesemodus). */
 const NUT_LINE_KEYS = [['energyKcal', ''], ['protein', 'Eiweiss'], ['carbohydrates', 'Kohlenhydrate'], ['fat', 'Fett']];
