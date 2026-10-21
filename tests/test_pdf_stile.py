@@ -174,14 +174,14 @@ async def main():
                 t = {lv: ' '.join(ex_alle[('einzel', rid, stil, lv)].text().split()) for lv in ('off', 'compact', 'full')}
                 if re.search(r'Nährwerte|kcal', t['off']): nw.append(f'{rid}: «aus» zeigt Naehrwerte')
                 if 'kcal' not in t['compact'] or 'ges. Fett' in t['compact']: nw.append(f'{rid}: «kompakt» falsch')
-                if not all(w in t['full'] for w in ('kcal', 'Ballaststoffe', 'Zucker', 'ges. Fett', 'Salz')): nw.append(f'{rid}: «erweitert» zeigt nicht alle Werte')
+                if not all(w in t['full'] for w in ('kcal', 'Nahrungsfasern', 'Zucker', 'ges. Fett', 'Salz')): nw.append(f'{rid}: «erweitert» zeigt nicht alle Werte')
                 if not re.search(r'pro (Portion|Stück)', t['compact']): nw.append(f'{rid}: Bezugsgroesse fehlt')
                 if re.search(r'\b0\s*(g|kcal)\b.*\bnull\b', t['full']): nw.append(f'{rid}: Nullwert-Text')
             tb = {lv: ' '.join(ex_alle[('buch', 'ref', stil, lv)].text().split()) for lv in ('off', 'compact', 'full') if ('buch', 'ref', stil, lv) in ex_alle}
             if len(tb) == 3:
                 if re.search(r'Nährwerte|kcal', tb['off']): nw.append('Kochbuch «aus» zeigt Naehrwerte')
                 if 'kcal' not in tb['compact'] or 'ges. Fett' in tb['compact']: nw.append('Kochbuch «kompakt» falsch')
-                if not all(w in tb['full'] for w in ('kcal', 'Ballaststoffe', 'Zucker', 'ges. Fett', 'Salz')): nw.append('Kochbuch «erweitert» zeigt nicht alle Werte')
+                if not all(w in tb['full'] for w in ('kcal', 'Nahrungsfasern', 'Zucker', 'ges. Fett', 'Salz')): nw.append('Kochbuch «erweitert» zeigt nicht alle Werte')
             check(P + 'Naehrwerte aus / kompakt / erweitert korrekt (Einzelrezept und Kochbuch), mit Bezugsgroesse', not nw, str(nw[:3]))
             # Einzelrezept und Kochbuch: gleiche Typografie, gleiche Seitenzahl
             diffs = []

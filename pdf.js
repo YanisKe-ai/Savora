@@ -290,6 +290,7 @@ function pdfAddPageNumbers(pdf, skipPages, localPages) {
     pdf.setFontSize(8.5);
     pdf.setTextColor(c[0], c[1], c[2]);
     const loc = localPages && localPages[i];
+    if (typeof pvPageNumberMarks === 'function') { pvPageNumberMarks(i, loc || null, book, total).forEach((mk) => pdf.text(mk.text, mk.x, 290.2, { align: mk.align })); continue; }   // v87: Darstellung aus pdf-templates.js (eine Zaehlung)
     if (book) {
       pdf.text('Seite ' + String(i), 195, 290.2, { align: 'right' });
       if (loc && loc.K > 1) pdf.text(loc.n + ' / ' + loc.K, 105, 290.2, { align: 'center' });
