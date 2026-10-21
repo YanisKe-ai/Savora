@@ -4652,8 +4652,8 @@ body:has(.cookbook-main) .toast-action { width: max-content; max-width: min(92vw
 /* ===== v86.1 Rezeptkopf Handy ===== */
 /* Infozeile «Für 4 Portionen | Mittel | 15 Min.»: beim Umbruch beginnt keine Zeile mit einem Trennstrich.
    Trennstriche sitzen links an jedem Eintrag; der Rand am Zeilenanfang liegt ausserhalb des sichtbaren Bereichs. */
-.detail-meta-v2 { align-items: center; margin-left: -1rem; clip-path: inset(-0.5rem -0.5rem -0.5rem 1rem); }
-.detail-meta-v2 > .fact, .detail-meta-v2 > .fact + .fact { margin: 0 1rem 0 0; padding-left: 1rem; border-left: 0; box-shadow: inset 1px 0 0 var(--border); }
+.detail-meta-v2 { align-items: center; column-gap: 1rem; margin-left: -1rem; clip-path: inset(-0.5rem -0.5rem -0.5rem 1rem); }
+.detail-meta-v2 > .fact, .detail-meta-v2 > .fact + .fact { margin: 0; padding-left: 1rem; border-left: 0; box-shadow: inset 1px 0 0 var(--border); }
 @media (forced-colors: active) { .detail-meta-v2 > .fact { box-shadow: none; border-left: 1px solid CanvasText; } }
 .detail-meta-v2 > .detail-times { margin-top: 0; }
 
