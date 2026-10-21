@@ -1984,6 +1984,7 @@ function cookbookOpenPart(part, focusId, opts) {
   if (typeof ceFlush === 'function') ceFlush();
   const changed = cookbookDesignPart() !== next;
   state.cbDesignPart = next;
+  if (focusId === 'cbAuthor' && typeof ce !== 'undefined' && ce) ce.tab = 'text';   // Namensfeld liegt im Reiter «Texte»
   if (next === 'pages') document.documentElement.style.scrollPaddingTop = '';   // Polster der angehefteten Vorschau gilt nur im Teil «Titelblatt»
   if (state.view !== 'cookbook' || (parseInt(state.cookbookStep, 10) || 1) !== 2) return;
   if (changed || focusId) render();

@@ -4326,7 +4326,7 @@ body.keyboard-open .update-card, body:has(.modal-backdrop) .update-card { displa
 .cover-picker.ce .ce-field, .cover-picker.ce .ce-field.is-sel { gap: 0.5rem; padding: 1rem 0; border: 0; border-radius: var(--r-ctl); background: transparent; }
 .cover-picker.ce .ce-field + .ce-field { border-top: 1px solid var(--hairline); border-radius: 0; }
 .cover-picker.ce .ce-field:first-child { padding-top: 0.25rem; }
-.cover-picker.ce .ce-field.is-sel { margin: 0 -0.75rem; padding: 1rem 0.75rem 1.5rem; background: var(--surface-soft); border-radius: var(--r-ctl); border-top-color: transparent; }
+.cover-picker.ce .ce-field.is-sel { margin: 0 -0.5rem; padding: 1rem 0.5rem 1.5rem; background: var(--surface-soft); border-radius: var(--r-ctl); border-top-color: transparent; }
 .cover-picker.ce .ce-field.is-sel + .ce-field { border-top-color: transparent; }
 .cover-picker.ce .ce-fhead { flex-wrap: wrap; align-items: center; justify-content: flex-start; gap: 0 0.25rem; min-height: 1.5rem; }
 .cover-picker.ce .ce-fhead > label:first-child { flex: 1 1 auto; min-width: 0; font-size: 0.9375rem; font-weight: 700; color: var(--text); }

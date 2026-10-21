@@ -893,7 +893,7 @@ document.addEventListener('click', (e) => {
       ce.sel = null; ce.imgMove = false; ce.tab = v === 'custom' ? 'bg' : 'text'; ceRenderAll(); break;
     }
     case 'tab': ce.tab = v; ce.imgMove = false; ceRenderTabs(); ceRenderPanels(); ceSyncOverlay(); ceRevealTabs(); ceFadePanel(); break;
-    case 'template': if (coverValidTemplateId(b.dataset.id) !== coverValidTemplateId(ce.model.templateId)) ce.fadeNext = true; ceChange((m) => { m.templateId = coverValidTemplateId(b.dataset.id); }, { now: true }); ceRenderAll(); break;
+    case 'template': if (coverValidTemplateId(b.dataset.id) !== coverValidTemplateId(ce.model.templateId)) ce.fadeNext = true; ceChange((m) => { m.templateId = coverValidTemplateId(b.dataset.id); }, { now: true }); ceRenderAll(); { const g = document.querySelector('.cover-picker.ce .cover-grid'); if (g) { delete g.dataset.centered; ceCenterMotif(); } } break;   // gewähltes Motiv ins Bild holen (auch per Pfeiltaste)
     case 'select': ceSelect(ce.sel === id ? null : id); break;
     case 'deselect': { ceSelect(null); const s2 = document.querySelector(`.ce-field[data-f="${id}"] [data-ce="select"]`); if (s2) s2.focus({ preventScroll: true }); break; }
     case 'open-pages': {
