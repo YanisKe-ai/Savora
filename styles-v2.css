@@ -4208,3 +4208,43 @@ button.pairing-main:active { transform: scale(0.98); }
   .cb-part--pages .pdf-tpl-choice { grid-template-columns: minmax(0, 1fr); }
   .cb-part--pages .nutrition-segmented { flex-wrap: wrap; border-radius: 1rem; }
 }
+
+/* ===== v85 Update-Karte ===== */
+/* Gut sichtbarer Hinweis auf eine neue Version: Karte über der unteren Navigation (Handy) bzw. unten rechts (Desktop) */
+.update-card { position: fixed; z-index: calc(var(--z-modal, 1000) + 5); left: 1rem; right: 1rem; bottom: calc(var(--nav-h, 3.75rem) + env(safe-area-inset-bottom, 0rem) + 0.75rem);
+  display: grid; grid-template-columns: auto minmax(0, 1fr); column-gap: 1rem; row-gap: 1rem; align-items: center; overflow: hidden; isolation: isolate;
+  padding: 1.25rem; border-radius: var(--r-card, 1.25rem); background: var(--tomato); color: var(--on-tomato);
+  box-shadow: 0 2px 4px rgba(37, 39, 32, .12), 0 24px 48px -16px rgba(120, 30, 20, .55);
+  animation: updateCardIn 420ms var(--ease-out, cubic-bezier(0.23, 1, 0.32, 1)) both; }
+.update-card-glow { position: absolute; inset: auto -3rem -5rem auto; width: 14rem; height: 14rem; border-radius: 50%; z-index: -1; pointer-events: none;
+  background: radial-gradient(circle, rgba(255, 255, 255, .28), rgba(255, 255, 255, 0) 70%); }
+.update-card-icon { position: relative; width: 3.5rem; height: 3.5rem; border-radius: 1rem; display: grid; place-items: center; align-self: start;
+  background: rgba(255, 255, 255, .18); box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .28); }
+.update-card-icon svg { width: 2rem; height: 2rem; animation: updateCardSpin 2.4s var(--ease-in-out, ease-in-out) infinite; }
+.update-card-body { min-width: 0; }
+.update-card .update-card-kicker { color: inherit; display: flex; align-items: center; gap: 0.5rem; margin: 0 0 0.25rem; font-size: 0.875rem; font-weight: 700; letter-spacing: .02em; opacity: .92; }
+.update-card-dot { width: 0.5rem; height: 0.5rem; border-radius: 50%; background: currentColor; box-shadow: 0 0 0 0 currentColor; animation: updateCardPing 1.8s ease-out infinite; }
+.update-card .update-card-title { color: inherit; margin: 0; font-family: var(--font-display, inherit); font-size: 1.375rem; line-height: 1.2; font-weight: 800; }
+.update-card .update-card-text { color: inherit; margin: 0.25rem 0 0; font-size: 0.9375rem; line-height: 1.45; opacity: .95; }
+.update-card .update-card-btn { grid-column: 1 / -1; min-height: 3.25rem; width: 100%; margin: 0; padding: 0 1.25rem; border: 0; border-radius: var(--radius-pill, 999px);
+  background: #FFFFFF; color: #8F2A1E; font: inherit; font-size: 1.0625rem; font-weight: 800; letter-spacing: .01em; cursor: pointer;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, .12); transition: transform 140ms var(--ease-out, ease-out), box-shadow 140ms var(--ease-out, ease-out); }
+.update-card .update-card-btn:active { transform: scale(0.97); }
+.update-card .update-card-btn:focus-visible { outline: 3px solid #FFFFFF; outline-offset: 3px; }
+.update-card .update-card-btn[disabled] { opacity: .85; cursor: progress; }
+.update-card.is-updating .update-card-icon svg { animation-duration: 0.9s; }
+[data-theme="dark"] .update-card { box-shadow: 0 2px 4px rgba(0, 0, 0, .4), 0 24px 48px -16px rgba(0, 0, 0, .8); }
+[data-theme="dark"] .update-card .update-card-btn { background: #1B1A17; color: #FFB09A; }
+[data-theme="dark"] .update-card .update-card-btn:focus-visible { outline-color: #1B1A17; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .update-card .update-card-btn { background: #1B1A17; color: #FFB09A; } }
+body.keyboard-open .update-card { bottom: calc(env(safe-area-inset-bottom, 0rem) + 0.75rem); }
+@media (min-width: 900px) {
+  .update-card { left: auto; right: 2rem; bottom: 2rem; width: 26rem; }
+}
+@keyframes updateCardIn { from { opacity: 0; transform: translateY(1.5rem) scale(0.96); } to { opacity: 1; transform: none; } }
+@keyframes updateCardSpin { 0%, 70% { transform: rotate(0deg) scale(1); } 85% { transform: rotate(90deg) scale(1.12); } 100% { transform: rotate(180deg) scale(1); } }
+@keyframes updateCardPing { 0% { box-shadow: 0 0 0 0 rgba(255, 255, 255, .7); } 80%, 100% { box-shadow: 0 0 0 0.5rem rgba(255, 255, 255, 0); } }
+@media (prefers-reduced-motion: reduce) {
+  .update-card, .update-card-icon svg, .update-card-dot { animation: none; }
+}
+@media (forced-colors: active) { .update-card { border: 2px solid CanvasText; } .update-card .update-card-btn { border: 2px solid ButtonText; } }
