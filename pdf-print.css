@@ -314,3 +314,46 @@
 .pv-recipe[data-dense] .pv-extra { margin-bottom: 1.5mm; }
 .pv-recipe[data-dense].pv-photo-side .pv-head-grid { min-height: 24mm; }
 .pv-recipe[data-dense] .pp-groups { row-gap: 1.4mm; }
+
+/* ===== v88 Layout «Spalten»: Zutaten links schmal, Zubereitung rechts breit, Foto oben =====
+   Erste Rezeptseite (data-layout="cols"): Kopf ueber die ganze Breite, darunter zwei Spalten. Links 68 mm (37 % der 184 mm
+   Satzbreite) die Zutaten, Gruppen untereinander mit feiner Linie; rechts 108 mm Zubereitung, danach Hinweise/Notizen und
+   Naehrwerte direkt beim letzten Schritt. Die Ueberschriften «Zutaten» und «Zubereitung» stehen auf derselben Hoehe (die rechte
+   Spalte beginnt um den oberen Innenabstand der Zutatenflaeche tiefer). Schriftgroessen wie bisher (Text 11 pt, Zutaten 10,5 pt).
+   Folgeseiten: Schritte ueber die volle Breite (gleiches Aussehen wie bisher). */
+.pv-cols { --pv-col-ing-w: 68mm; --pv-col-gap: 8mm; --pv-ing-pad-top: 5mm; }
+.pv-cols.pv-tpl-prise-pop { --pv-panel-pad: 5mm 5mm 3mm; }
+.pv-cols.pv-tpl-pur { --pv-panel-pad: 4.5mm 4.5mm 4mm; --pv-ing-pad-top: 4.5mm; }
+.pv-cols[data-density^="compact"] { --pv-col-gap: 7mm; --pv-ing-pad-top: 3.5mm; }
+.pv-cols[data-density^="compact"].pv-tpl-prise-pop { --pv-panel-pad: 3.5mm 4mm 2.5mm; }
+.pv-cols[data-density^="compact"].pv-tpl-pur { --pv-panel-pad: 3.5mm 4mm; }
+.pv-cols .pv-body { display: grid; grid-template-columns: var(--pv-col-ing-w) minmax(0, 1fr); column-gap: var(--pv-col-gap); align-items: start; }
+.pv-cols .pv-col-ing, .pv-cols .pv-col-main { min-width: 0; }
+.pv-cols .pv-col-main { display: flex; flex-direction: column; gap: 5mm; padding-top: var(--pv-ing-pad-top); }
+.pv-cols[data-density^="compact"] .pv-col-main { gap: 3mm; }
+.pv-cols[data-dense] .pv-col-main { gap: 2.2mm; }
+.pv-cols .pv-col-main > * { flex: none; }
+/* schmale Zutatenspalte: Mengenspalte enger, Gruppen untereinander */
+.pv-cols .pv-ing-narrow { --pv-amt-w: 13mm; }
+.pp-groups.pp-list { display: block; }
+.pp-list > .pp-group { column-gap: 2.5mm; }
+.pp-list > .pp-group::before { display: none; }
+.pp-list > .pp-group:nth-child(n+3) { border-top: 0; padding-top: 0; }
+.pp-list > .pp-group + .pp-group { margin-top: 3mm; padding-top: 2.6mm; border-top: .25mm solid var(--pv-group-rule); }
+.pv-cols[data-density^="compact"] .pp-list > .pp-group + .pp-group { margin-top: 2mm; padding-top: 1.8mm; }
+.pv-cols[data-dense] .pp-list > .pp-group + .pp-group { margin-top: 1.6mm; padding-top: 1.5mm; }
+/* Hinweise/Notizen in der breiten Spalte: Beschriftung ueber dem Text statt links daneben (die Spalte ist schmaler als die Seite) */
+.pv-cols .pv-col-main .pv-tips, .pv-cols .pv-col-main .pv-notes { grid-template-columns: minmax(0, 1fr); }
+.pv-cols .pv-col-main .pv-notebox { row-gap: 1.2mm; align-items: start; }
+.pv-cols .pv-col-main .pv-notebox > .pv-label { top: 0; }
+.pv-cols .pv-col-main .pv-notebox > .pv-extra-body + .pv-label { margin-top: 1.6mm; }
+.pv-cols .pv-col-main .pv-tips .pv-label, .pv-cols .pv-col-main .pv-notes .pv-label, .pv-cols .pv-col-main .pv-extra-body { grid-column: 1; }
+/* Naehrwerte (Pur, Raster) in der breiten Spalte: hoechstens vier Zellen je Reihe, damit «Kohlenhydrate» nicht in die Nachbarzelle laeuft */
+.pv-cols .pv-col-main .pv-nut-grid { grid-template-columns: repeat(auto-fill, minmax(23mm, 1fr)); }
+.pv-cols .pv-col-main .pv-extra:last-child { margin-bottom: 0; }
+/* Zusatzbloecke ueber die volle Breite unter den Spalten (data-extras="wide") */
+.pv-cols[data-extras="wide"] .pv-body + .pv-extras { margin-top: 0; }
+/* dichter Spalten-Versuch: Zutatenflaeche und rechte Spalte beginnen 0,5 mm frueher (letzter Einseiten-Versuch) */
+.pv-cols[data-dense] { --pv-ing-pad-top: 3mm; }
+.pv-cols[data-dense].pv-tpl-prise-pop { --pv-panel-pad: 3mm 4mm 2.5mm; }
+.pv-cols[data-dense].pv-tpl-pur { --pv-panel-pad: 3mm 4mm; }
