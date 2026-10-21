@@ -4394,3 +4394,204 @@ body.keyboard-open .update-card, body:has(.modal-backdrop) .update-card { displa
   .cover-picker.ce .ce-tabswrap { top: var(--ce-top, 0px); padding-top: 0.5rem; border-image: none; box-shadow: 0 1px 0 var(--hairline); }
 }
 @media (min-width: 1100px) { .cover-picker.ce .ce-body { grid-template-columns: minmax(0, min(28.75rem, 40%)) minmax(0, 1fr); column-gap: 2.5rem; } }
+/* ===== v85 Auswahl ===== */
+/* Kochbuch-Assistent: Rahmen (Stepper, klebende Fussleiste), Schritt 1 «Im Kochbuch» nach Kapiteln, Schritt 3 «Vorschau & PDF».
+   Ein Block, überschreibt die älteren cb-Regeln gezielt über .cookbook-main. Abstände in rem auf der 4er-Skala. */
+
+/* --- Stepper: eine Zeile, 2.75rem hoch, keine Kästen --- */
+.cookbook-main .cb-steps ol { display: flex; align-items: center; gap: 0.5rem; margin: 0.5rem 0 1rem; padding: 0; grid-template-columns: none; }
+.cookbook-main .cb-step { display: flex; align-items: center; gap: 0.5rem; flex: 1 1 auto; min-width: 0; }
+.cookbook-main .cb-step:last-child { flex: 0 1 auto; }
+.cookbook-main .cb-step:not(:last-child)::after { content: ""; flex: 1 1 auto; min-width: 0.75rem; height: 2px; border-radius: 1px; background: var(--hairline); }
+.cookbook-main .cb-step.is-done:not(:last-child)::after { background: var(--text-soft); }
+
+.cookbook-main .cb-step button { width: auto; min-width: 2.75rem; min-height: 2.75rem; flex: 0 1 auto; flex-direction: row; justify-content: flex-start; gap: 0.5rem; padding: 0 0.25rem; border: none; border-radius: var(--radius-pill, 999px); background: transparent; color: var(--text-soft); font-size: 0.9375rem; font-weight: 700; text-align: left; line-height: 1.2; }
+.cookbook-main .cb-step-no { flex: none; width: 1.75rem; height: 1.75rem; border: 2px solid color-mix(in srgb, var(--text) 22%, transparent); color: var(--text-soft); font-size: 0.875rem; font-weight: 700; }
+.cookbook-main .cb-step.is-done .cb-step-no { border-color: var(--text-soft); color: var(--text); }
+.cookbook-main .cb-step.is-current button { background: transparent; color: var(--text); border: none; }
+.cookbook-main .cb-step.is-current .cb-step-no { background: var(--tomato); border-color: var(--tomato); color: var(--on-tomato); }
+.cookbook-main .cb-step-label { min-width: 0; overflow-wrap: anywhere; }
+@media (hover: hover) and (pointer: fine) { .cookbook-main .cb-step:not(.is-current) button:hover { color: var(--text); } .cookbook-main .cb-step:not(.is-current) button:hover .cb-step-no { border-color: var(--text-soft); } }
+@media (max-width: 559px) { .cookbook-main .cb-step:not(.is-current) .cb-step-label { display: none; } }
+/* Grosse Systemschrift oder sehr schmal: aktuelle Beschriftung darf umbrechen, Linien werden kurz (nie seitlicher Überlauf) */
+.cookbook-main .cb-steps { container: cbsteps / inline-size; }
+@media (max-width: 559px) { @container cbsteps (min-width: 22rem) { .cookbook-main .cb-step.is-current .cb-step-label { white-space: nowrap; } } }
+@container cbsteps (max-width: 20rem) {
+  .cookbook-main .cb-steps ol { gap: 0.25rem; }
+  .cookbook-main .cb-step { gap: 0.25rem; }
+  .cookbook-main .cb-step.is-current .cb-step-label { white-space: normal; font-size: 0.875rem; hyphens: auto; overflow-wrap: anywhere; }
+  .cookbook-main .cb-step:not(:last-child)::after { min-width: 0.25rem; }
+}
+
+/* --- Fussleiste: klebt über der unteren Navigation --- */
+.cookbook-main .cb-step-footer { position: sticky; bottom: calc(var(--nav-h) + env(safe-area-inset-bottom, 0px)); z-index: var(--z-sticky); display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 0.75rem; margin: 1rem 0 0; padding: 0.75rem 0; background: var(--bg); box-shadow: -2rem 0 0 var(--bg), 2rem 0 0 var(--bg), 0 -1px 0 var(--hairline), -2rem -1px 0 var(--hairline), 2rem -1px 0 var(--hairline); }
+.cookbook-main .cb-step-footer > button { flex: none; min-height: 2.75rem; }
+.cookbook-main .cb-step-footer > .primary-btn { min-width: 8rem; justify-content: center; margin-left: auto; }
+.cb-footer-status { flex: 1 1 8rem; min-width: 0; color: var(--text-soft); font-size: 0.9375rem; font-variant-numeric: tabular-nums; }
+.cookbook-main[data-cb-step="3"] .cb-step-footer { position: static; box-shadow: none; }
+body.keyboard-open .cookbook-main .cb-step-footer { position: static; }
+/* Fokus nie hinter der klebenden Leiste (Schritt 1; Schritt 2 hat einen eigenen, angehefteten Cover-Editor und bleibt unverändert) */
+html:has(main.cookbook-main[data-cb-step="1"]) { scroll-padding-bottom: calc(var(--nav-h) + 5rem + env(safe-area-inset-bottom, 0px)); }
+@media (min-width: 900px) { html:not(#lp) body .cookbook-main .cb-step-footer { bottom: 0; box-shadow: 0 -1px 0 var(--hairline); } html:has(main.cookbook-main[data-cb-step="1"]) { scroll-padding-bottom: 5rem; } }
+/* Meldung mit «Rückgängig»: Breite nach Inhalt (sonst begrenzt left: 50% sie auf die halbe Bildschirmbreite) */
+body:has(.cookbook-main) .toast-action { width: max-content; max-width: min(92vw, 30rem); }
+@media (max-width: 899px) { body:has(.cookbook-main[data-cb-step="1"]) .toast, body:has(.cookbook-main[data-cb-step="2"]) .toast { bottom: calc(var(--nav-h) + 5rem + env(safe-area-inset-bottom, 0px)); } }
+
+/* --- Schritt 1: Abschnitte --- */
+.cookbook-main[data-cb-step="1"] .section-title { font-family: var(--font-sans); font-size: 1.25rem; font-weight: 800; line-height: 1.2; letter-spacing: 0; margin: 0 0 0.25rem; }
+.cookbook-main .cb-group-n { font-weight: 400; color: var(--text-soft); font-variant-numeric: tabular-nums; }
+.cookbook-main .cb-count { margin: 0 0 0.5rem; font-size: 0.9375rem; }
+.cookbook-main .cb-bulk { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 0.25rem 0.5rem; margin: 0 0 0.75rem; }
+.cookbook-main .cb-bulk--add { justify-content: flex-start; }
+.cookbook-main .cb-bulk .text-btn { display: inline-flex; align-items: center; gap: 0.25rem; padding: 0 0.5rem; }
+.cookbook-main .cb-bulk .cb-jump { margin-left: -0.5rem; }
+.cookbook-main .cb-bulk .cb-jump svg { width: 1.125rem; height: 1.125rem; }
+.cookbook-main .cb-bulk .cb-clear { margin-left: auto; color: var(--text-soft); font-weight: 600; }
+.cookbook-main .cb-empty .hint-line { margin: 0 0 0.5rem; }
+.cookbook-main .cb-group-title { margin: 1.25rem 0 0.25rem; font-family: var(--font-sans); font-size: 0.9375rem; font-weight: 700; color: var(--text-soft); line-height: 1.3; overflow-wrap: anywhere; }
+.cookbook-main .cb-bulk + .cb-group-title, .cookbook-main .cb-count + .cb-group-title { margin-top: 0.5rem; }
+.cookbook-main .cb-list { list-style: none; margin: 0; padding: 0; }
+#cbMore { scroll-margin-top: 5rem; }
+#cbMoreTitle:focus, #cbStepTitle:focus, #cbChaptersTitle:focus { outline: none; }
+#cbMoreTitle:focus-visible, #cbChaptersTitle:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 0.25rem; border-radius: 0.25rem; }
+
+/* --- Rezeptzeile: alles in einer Zeile --- */
+.cookbook-main .cb-item { position: relative; display: grid; grid-template-columns: 1.5rem minmax(0, 1fr) auto; align-items: center; gap: 0.5rem; min-height: 3.5rem; padding: 0.25rem 0; border-bottom: 1px solid var(--hairline); flex-wrap: nowrap; }
+.cookbook-main .cb-item-no { width: auto; text-align: right; font-size: 0.875rem; font-weight: 700; color: var(--text-soft); font-variant-numeric: tabular-nums; }
+.cookbook-main .cb-item-title { font-family: var(--font-sans); font-size: 1rem; font-weight: 600; line-height: 1.3; color: var(--text); overflow-wrap: anywhere; hyphens: auto; min-width: 0; }
+.cookbook-main .cb-item-actions { display: flex; align-items: center; gap: 0.25rem; }
+.cookbook-main .cb-item-actions .icon-btn { width: 2.75rem; height: 2.75rem; min-width: 2.75rem; color: var(--text-soft); }
+.cookbook-main .cb-item-actions .icon-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.cookbook-main .cb-item-actions .icon-btn svg { width: 1.125rem; height: 1.125rem; }
+.cookbook-main .cb-item select.cb-item-chapter { display: none; }
+.cookbook-main .cb-item::after { content: ""; position: absolute; inset: 0; border-radius: 0.5rem; background: var(--surface-selected); opacity: 0; pointer-events: none; z-index: -1; }
+.cookbook-main .cb-list { position: relative; z-index: 0; isolation: isolate; }
+.cookbook-main .cb-item.is-moved::after { animation: cbRowFlash 400ms var(--ease-out, ease-out); }
+@keyframes cbRowFlash { 0% { opacity: 0; } 30% { opacity: 1; } 100% { opacity: 0; } }
+@media (prefers-reduced-motion: reduce) { .cookbook-main .cb-item.is-moved::after { animation: none; } }
+
+/* Kapitelauswahl in der Zeile, wenn die Liste breit genug ist (Desktop, linke Spalte) */
+.cookbook-main .cb-book { container: cbbook / inline-size; }
+@container cbbook (min-width: 30rem) {
+  .cookbook-main .cb-item select.cb-item-chapter { display: block; width: 9rem; min-height: 2.75rem; margin-right: 0.25rem; padding: 0 2.25rem 0 0.75rem; font: inherit; font-size: 0.9375rem; color: var(--text); background-color: var(--card-bg); background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%235B5E52' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 0.75rem center; background-size: 1rem; border: 1px solid color-mix(in srgb, var(--text) 18%, transparent); border-radius: var(--r-ctl); -webkit-appearance: none; appearance: none; text-overflow: ellipsis; max-width: none; }
+  .cookbook-main .cb-item select.cb-item-chapter:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 1px; }
+}
+[data-theme="dark"] .cookbook-main .cb-item select.cb-item-chapter { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23BDB9AC' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E"); }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .cookbook-main .cb-item select.cb-item-chapter { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23BDB9AC' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E"); } }
+
+/* --- Weitere Rezepte --- */
+.cookbook-main .cb-item--out { grid-template-columns: minmax(0, 1fr) auto; }
+.cookbook-main .cb-item--out .cb-item-title { font-weight: 500; color: var(--text); }
+.cookbook-main .cb-add-one { display: inline-flex; align-items: center; gap: 0.5rem; min-height: 2.75rem; white-space: nowrap; }
+.cookbook-main .cb-add-one svg { width: 1.125rem; height: 1.125rem; flex: none; }
+@media (max-width: 399px) {
+  .cookbook-main .cb-add-one { width: 2.75rem; min-width: 2.75rem; padding: 0; justify-content: center; border-radius: 50%; }
+  .cookbook-main .cb-add-one .cb-add-label { display: none; }
+}
+
+/* --- Kapitel: eine Zeile pro Kapitel --- */
+.cookbook-main .cb-chapter-list { list-style: none; margin: 0.25rem 0 0; padding: 0; }
+.cookbook-main .cb-chapter { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; align-items: center; gap: 0.5rem; min-height: 3rem; margin: 0; padding: 0.125rem 0; border-bottom: 1px solid var(--hairline); flex-wrap: nowrap; }
+.cookbook-main .cb-chapter input.cb-chapter-name { width: 100%; min-width: 0; min-height: 2.75rem; margin: 0 0 0 -0.5rem; padding: 0 0.5rem; border: none; border-radius: 0.5rem; background: transparent; box-shadow: none; color: var(--text); font: inherit; font-size: 1rem; font-weight: 600; text-overflow: clip; }
+@media (hover: hover) and (pointer: fine) { .cookbook-main .cb-chapter input.cb-chapter-name:hover { background: var(--surface-soft); } }
+.cookbook-main .cb-chapter input.cb-chapter-name:focus { background: var(--surface-soft); outline: 2px solid var(--focus-ring); outline-offset: 0; box-shadow: none; }
+.cookbook-main .cb-chapter-n { color: var(--text-soft); font-size: 0.875rem; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.cookbook-main .cb-chapter .icon-btn { width: 2.75rem; height: 2.75rem; min-width: 2.75rem; color: var(--text-soft); }
+.cookbook-main .cb-chapters .inline-add { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 0.75rem; }
+.cookbook-main .cb-chapters .inline-add input { flex: 1 1 12rem; min-width: 0; min-height: 2.75rem; }
+.cookbook-main .cb-chapters .inline-add .outline-btn { flex: none; min-height: 2.75rem; padding: 0 1rem; }
+.cookbook-main .cb-chapters .inline-add + .field-error { margin: 0.25rem 0 0; }
+.cookbook-main #cbNewChapter[aria-invalid="true"] { border-color: var(--danger); }
+.cookbook-main .cb-chapter-pages { margin-top: 1rem; font-weight: 600; }
+.cookbook-main .cb-check-hint { margin: 0 0 0 2.25rem; font-size: 0.875rem; line-height: 1.45; }
+
+/* Handy: Schritt 1 ohne Kartenhülle, Abschnitte durch Abstand und Titel getrennt */
+@media (max-width: 559px) {
+  .cookbook-main[data-cb-step="1"] > .panel { padding: 0; border: none !important; background: transparent; box-shadow: none; border-radius: 0; margin: 0; }
+  .cookbook-main[data-cb-step="1"] > .panel + .panel { margin-top: 2rem; }
+}
+@media (min-width: 560px) and (max-width: 899px) { .cookbook-main[data-cb-step="1"] > .panel + .panel { margin-top: 1rem; } }
+
+/* Fenster: Menü einer Rezeptzeile und eines Kapitels */
+.modal-sheet .cb-menu-sub { margin: -0.75rem 0 0.75rem; }
+.modal-sheet .cb-menu-label { margin: 0.5rem 0 0.25rem; font-family: var(--font-sans); font-size: 0.9375rem; font-weight: 700; color: var(--text-soft); }
+.modal-sheet .cb-menu-radios { display: grid; margin-bottom: 0.75rem; }
+.modal-sheet .cb-radio { min-height: 3.25rem; font-size: 1rem; border-bottom: 1px solid var(--hairline); }
+.modal-sheet .cb-radio span { min-width: 0; overflow-wrap: anywhere; }
+.modal-sheet .cb-menu-actions { margin-bottom: 0.5rem; }
+
+/* --- Schritt 3: Vorschau & PDF --- */
+.cookbook-main .cb-final .cb-final-grid { grid-template-columns: minmax(4rem, 6.5rem) minmax(0, 1fr); gap: 1rem; align-items: start; }
+.cookbook-main .cb-final .cover-preview { width: 100%; }
+.cookbook-main .cb-summary { gap: 0.25rem; }
+.cookbook-main .cb-summary div { display: grid; grid-template-columns: 6rem minmax(0, 1fr); gap: 0.5rem; align-items: baseline; }
+.cookbook-main .cb-summary dt { font-size: 0.875rem; font-weight: 400; color: var(--text-soft); overflow-wrap: anywhere; hyphens: auto; }
+.cookbook-main .cb-summary-wrap, .cookbook-main .cb-summary { min-width: 0; }
+.cookbook-main .cb-summary dd { font-size: 0.9375rem; font-weight: 600; line-height: 1.35; hyphens: auto; }
+.cookbook-main .cb-summary dd.is-empty { font-weight: 400; color: var(--text-soft); }
+.cookbook-main .cb-summary-wrap { gap: 0.25rem; }
+@media (max-width: 399px) { .cookbook-main .cb-summary div { grid-template-columns: minmax(0, 1fr); gap: 0; } .cookbook-main .cb-summary div + div { margin-top: 0.25rem; } }
+@media (min-width: 560px) { .cookbook-main .cb-final .cb-final-grid { grid-template-columns: minmax(4rem, 10rem) minmax(0, 1fr); } }
+.cookbook-main .cb-review #cbHintsTitle { margin: 1.5rem 0 0; font-family: var(--font-sans); font-size: 1.125rem; font-weight: 800; }
+.cookbook-main .cb-hints-title { margin: 1rem 0 0.25rem; font-family: var(--font-sans); font-size: 0.9375rem; font-weight: 700; color: var(--text); }
+.cookbook-main .cb-warnings { margin: 0; gap: 0; }
+.cookbook-main .cb-warnings .cb-warn { display: flex; flex-wrap: wrap; align-items: center; gap: 0.25rem 0.75rem; padding: 0.5rem 0; border-radius: 0; background: transparent; color: var(--text); font-size: 0.9375rem; border-bottom: 1px solid var(--hairline); }
+.cookbook-main .cb-warnings .cb-warn > .cb-hint-body { flex: 1 1 8rem; min-width: 0; }
+.cookbook-main .cb-warnings .cb-warn > .cb-hint-acts { flex: 0 1 auto; max-width: 100%; margin-left: auto; }
+.cookbook-main .cb-warnings .cb-warn:has(> .cb-hint-icon) { align-items: flex-start; }
+.cookbook-main .cb-warnings .cb-warn:has(> .cb-hint-icon) > .cb-hint-body { flex-basis: calc(100% - 2rem); }
+.cookbook-main .cb-warnings .cb-warn:has(> .cb-hint-icon) > .cb-hint-acts { margin-left: 1.75rem; }
+.cookbook-main .cb-hint-icon { flex: none; }
+.cookbook-main .cb-hint-icon { display: flex; padding-top: 0.125rem; color: var(--text-soft); }
+.cookbook-main .cb-hint-icon svg { width: 1.125rem; height: 1.125rem; }
+.cookbook-main .cb-hint-level { text-transform: none; letter-spacing: 0; min-width: 0; padding: 0; }
+.cookbook-main .cb-hint-body { gap: 0; }
+.cookbook-main .cb-hint-text { line-height: 1.45; }
+.cookbook-main .cb-hint-text--recipe { display: grid; }
+.cookbook-main .cb-hint-text--recipe b { font-size: 1rem; font-weight: 600; overflow-wrap: anywhere; }
+.cookbook-main .cb-hint-text--recipe span { font-size: 0.875rem; color: var(--text-soft); }
+.cookbook-main .cb-warnings--info .cb-hint-text { color: var(--text-soft); }
+.cookbook-main .cb-warnings--error .cb-warn { margin-bottom: 0.25rem; padding: 0.5rem 0.75rem; border: none; border-radius: var(--r-ctl); background: var(--danger-soft); color: var(--danger); }
+.cookbook-main .cb-warnings--error .cb-hint-icon, .cookbook-main .cb-warnings--error .cb-hint-text { color: var(--danger); }
+.cookbook-main .cb-hint-go { min-height: 2.75rem; max-width: 100%; margin: 0; padding: 0 1rem; color: var(--text); text-decoration: none; white-space: normal; text-align: center; }
+.cookbook-main .cb-hint-details summary { list-style: none; display: inline-flex; align-items: center; gap: 0.25rem; min-height: 2.75rem; margin-left: -0.25rem; padding: 0 0.25rem; color: var(--text); font-weight: 600; cursor: pointer; }
+.cookbook-main .cb-hint-details summary::-webkit-details-marker { display: none; }
+.cookbook-main .cb-hint-details summary svg { width: 1.125rem; height: 1.125rem; flex: none; transition: transform 160ms var(--ease-out, ease-out); }
+.cookbook-main .cb-hint-details[open] summary svg { transform: rotate(90deg); }
+@media (prefers-reduced-motion: reduce) { .cookbook-main .cb-hint-details summary svg { transition: none; } }
+.cookbook-main .cb-hint-details ul { margin: 0 0 0.25rem; padding-left: 1.5rem; color: var(--text); }
+.cookbook-main .cb-all-ok { display: flex; align-items: center; gap: 0.5rem; margin: 0.5rem 0 0; color: var(--text); font-weight: 600; }
+.cookbook-main .cb-all-ok svg { width: 1.25rem; height: 1.25rem; color: var(--text-soft); flex: none; }
+.cookbook-main .cb-final > [data-action="export-cookbook"] { position: sticky; bottom: calc(var(--nav-h) + 0.75rem + env(safe-area-inset-bottom, 0px)); z-index: var(--z-sticky); margin-top: 1.25rem; box-shadow: var(--lift-2); }
+.cookbook-main .cb-export-hint { margin: 0.5rem 0 0; font-size: 0.875rem; }
+@media (min-width: 900px) {
+  html:not(#lp) body .cookbook-main .cb-final > [data-action="export-cookbook"] { bottom: 1rem; }
+  html:not(#lp) body .cookbook-main .cb-final { display: grid; grid-template-columns: minmax(0, min(16rem, 40%)) minmax(0, 1fr); column-gap: 2rem; align-items: start; }
+  html:not(#lp) body .cookbook-main .cb-final > * { grid-column: 2; }
+  html:not(#lp) body .cookbook-main .cb-final > #cbStepTitle { grid-column: 1 / -1; }
+  html:not(#lp) body .cookbook-main .cb-final > .cb-final-grid { grid-column: 1; grid-row: 2 / span 5; position: sticky; top: 5.5rem; grid-template-columns: minmax(0, 1fr); }
+  html:not(#lp) body .cookbook-main .cb-final > .cb-review #cbHintsTitle { margin-top: 0; }
+  html:not(#lp) body .cookbook-main .cb-summary div { grid-template-columns: 5.5rem minmax(0, 1fr); }
+}
+
+/* --- Desktop Schritt 1: Buch links, rechts «Weitere Rezepte» über «Kapitel» --- */
+@media (min-width: 900px) {
+  html:not(#lp) body .cookbook-main[data-cb-step="1"] { grid-template-columns: minmax(0, 3fr) minmax(0, 2fr); row-gap: 1.5rem; }
+  html:not(#lp) body .cookbook-main[data-cb-step="1"] > .cb-steps { margin-bottom: 0; }
+  html:not(#lp) body .cookbook-main[data-cb-step="1"] > .cb-book { grid-column: 1; grid-row: 2 / span 2; }
+  html:not(#lp) body .cookbook-main[data-cb-step="1"] > .cb-more { grid-column: 2; grid-row: 2; }
+  html:not(#lp) body .cookbook-main[data-cb-step="1"] > .cb-chapters { grid-column: 2; grid-row: 3; }
+  html:not(#lp) body .cookbook-main[data-cb-step="1"] > .cb-more + .cb-chapters { grid-row: 3; }
+  html:not(#lp) body .cookbook-main[data-cb-step="1"] > .cb-book:not(:has(~ .cb-more)) { grid-row: 2 / span 2; }
+  html:not(#lp) body .cookbook-main[data-cb-step="1"] > .cb-book:not(:has(~ .cb-more)) ~ .cb-chapters { grid-row: 2; }
+  html:not(#lp) body .cookbook-main[data-cb-step="1"] > .cb-step-footer { grid-row: 4; margin-top: 0; }
+  html:not(#lp) body .cookbook-main[data-cb-step="1"] .cb-jump { display: none; }
+  html:not(#lp) body .cookbook-main[data-cb-step="1"] > .cb-book { position: relative; }
+  html:not(#lp) body .cookbook-main[data-cb-step="1"] > .cb-book > .cb-bulk { position: absolute; top: 1.25rem; right: 1.5rem; margin: 0; }
+  html:not(#lp) body .cookbook-main[data-cb-step="1"] > .cb-book > .cb-bulk + .cb-group-title { margin-top: 1rem; }
+}
+/* Suche in «Weitere Rezepte»: Lupe sitzt im Feld */
+.cookbook-main .cb-rp-search { position: relative; }
+.cookbook-main .cb-rp-search .rp-search-icon { z-index: 1; top: 0.875rem; }
+/* «Bewegung reduzieren»: Knöpfe der klebenden Fussleiste ohne Übergang (der Zeiger steht nach «Weiter» oft auf dem nächsten Knopf) */
+@media (prefers-reduced-motion: reduce) { .cookbook-main .cb-step-footer > button { transition: none; } }

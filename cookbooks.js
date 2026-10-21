@@ -303,22 +303,27 @@ function cookbookReview(cfg) {
     try {
       coverLayout(coverInputFromConfig(cfg)).warnings.forEach((w) => {
         if (!w || !w.message) return;
-        out.push({ level: (!w.kind || w.kind === 'cut' || w.kind === 'outside') ? 'error' : 'check', text: 'Titelblatt: ' + w.message, target: coverTarget });
+        out.push({ level: (!w.kind || w.kind === 'cut' || w.kind === 'outside') ? 'error' : 'check', kind: 'cover', text: 'Titelblatt: ' + w.message, target: coverTarget });
       });
     } catch (e) { /* Cover-Pruefung nicht verfuegbar */ }
   }
   if (cfg.items.length > 40) out.push({ level: 'check', text: `Ein Kochbuch mit ${cfg.items.length} Rezepten dauert beim Erstellen einige Minuten und braucht viel Speicher auf deinem Gerät. Teile es bei Bedarf in mehrere Kochbücher auf.`, target: { action: 'cb-step', id: '1', label: 'Rezepte auswählen' } });
+  // v85: ein Eintrag pro Rezept (Gründe zusammengefasst), kurze Texte; Reihenfolge wie im PDF
   const noPhoto = [];
-  cfg.items.forEach((it) => {
+  const ordered = typeof cookbookItemGroups === 'function' ? cookbookItemGroups(cfg).flatMap(g => g.items) : cfg.items;
+  ordered.forEach((it) => {
     const r = byId[it.recipeId]; if (!r) return;
     const t = r.title || 'Ohne Titel';
-    if (!realIngredients(r).length) out.push({ level: 'check', text: `«${t}» hat keine Zutaten.`, target: recipeTarget(r) });
-    if (!(r.steps || []).some(s => (s.text || '').trim())) out.push({ level: 'check', text: `«${t}» hat keine Zubereitungsschritte.`, target: recipeTarget(r) });
-    if (typeof recipeIssuesSummary === 'function') { const w = recipeIssuesSummary(r); if (w) out.push({ level: 'check', text: w, target: recipeTarget(r) }); }
+    const reasons = [];
+    if (!realIngredients(r).length) reasons.push('Keine Zutaten');
+    if (!(r.steps || []).some(s => (s.text || '').trim())) reasons.push('Keine Zubereitung');
+    const q = typeof recipeQualityIssues === 'function' ? recipeQualityIssues(r).length : 0;
+    if (q) reasons.push(q === 1 ? '1 Hinweis zur Qualität' : `${q} Hinweise zur Qualität`);
+    if (reasons.length) out.push({ level: 'check', kind: 'recipe', name: t, reasons, text: `${t}: ${reasons.join(', ')}`, target: recipeTarget(r) });
     if (!r.image && !r.imageId) noPhoto.push(r);
   });
-  const tt = (r) => '«' + (r.title || 'Ohne Titel') + '»';
-  if (noPhoto.length) out.push({ level: 'info', text: noPhoto.length === 1 ? `${tt(noPhoto[0])} hat kein Foto. Die Seite wird ohne Bild gestaltet.` : `${noPhoto.length} Rezepte haben kein Foto. Ihre Seiten werden ohne Bild gestaltet: ${noPhoto.map(tt).join(', ')}.`, target: noPhoto.length === 1 ? recipeTarget(noPhoto[0]) : null });
+  const tn = (r) => r.title || 'Ohne Titel';
+  if (noPhoto.length) out.push({ level: 'info', kind: 'no-photo', text: noPhoto.length === 1 ? `«${tn(noPhoto[0])}» hat kein Foto.` : `${noPhoto.length} Rezepte ohne Foto: ${noPhoto.map(tn).join(', ')}.`, target: noPhoto.length === 1 ? recipeTarget(noPhoto[0]) : null });
   if (cfg.coverRecipeId) {
     const r = byId[cfg.coverRecipeId];
     if (!r || (!r.image && !r.imageId)) out.push({ level: 'check', text: 'Das gewählte Titelbild ist nicht mehr verfügbar.', target: coverTarget });
@@ -444,6 +449,115 @@ function cookbookModals() {
         <button class="ghost-btn" data-action="close-modal">Abbrechen</button>
         <button class="primary-btn danger-btn-fill" data-action="cb-delete-confirm" data-id="${escapeHtml(b.id)}">Kochbuch löschen</button>
       </div>`);
+  }
+  return '';
+}
+
+/* ---------- v85: Kochbuch-Assistent, Schritt 1 nach Kapiteln (Reihenfolge = PDF-Reihenfolge) ----------
+   Gleiche Regel wie cookbookOrderedSections (recipe-model.js): Kapitel in ihrer Reihenfolge, Rezepte ohne oder mit
+   unbekanntem Kapitel am Schluss. Ohne Kapitel gibt es genau eine Gruppe (chapter null). Datenmodell unveraendert. */
+function cookbookItemChapterKnown(cfg, it) { return !!it.chapterId && (cfg.chapters || []).some(c => c.id === it.chapterId); }
+function cookbookItemGroups(cfg) {
+  const items = cfg.items || [];
+  const groups = (cfg.chapters || []).map(c => ({ chapter: c, items: items.filter(it => it.chapterId === c.id) }));
+  const loose = items.filter(it => !cookbookItemChapterKnown(cfg, it));
+  if (loose.length) groups.push({ chapter: null, items: loose });
+  return groups.filter(g => g.items.length);
+}
+/* Gruppe eines Rezepts und Platz darin: { group, k, n, pos, total, chapterName } (pos ueber alle Gruppen, 1 bis total) */
+function cookbookItemPlace(cfg, recipeId) {
+  let pos = 0;
+  const groups = cookbookItemGroups(cfg);
+  const total = groups.reduce((a, g) => a + g.items.length, 0);
+  for (const g of groups) {
+    const k = g.items.findIndex(it => it.recipeId === recipeId);
+    if (k >= 0) return { group: g, k, n: g.items.length, pos: pos + k + 1, total, chapterName: g.chapter ? (g.chapter.name || 'Ohne Namen') : ((cfg.chapters || []).length ? 'Ohne Kapitel' : '') };
+    pos += g.items.length;
+  }
+  return null;
+}
+/* Satz «Platz 2 von 3 in «Hauptgänge»» bzw. «Platz 2 von 7» */
+function cookbookPlaceText(p) {
+  if (!p) return '';
+  return p.chapterName ? `Platz ${p.k + 1} von ${p.n} in «${p.chapterName}»` : `Platz ${p.k + 1} von ${p.n}`;
+}
+/* Verschiebt ein Rezept innerhalb seiner Gruppe (delta -1/1 oder to 'first'/'last'). Gibt true zurueck, wenn sich etwas geaendert hat. */
+function cookbookMoveItemInGroup(cfg, recipeId, delta, to) {
+  const p = cookbookItemPlace(cfg, recipeId);
+  if (!p) return false;
+  const g = p.group.items, it = g[p.k];
+  if (to === 'first' || to === 'last') {
+    if ((to === 'first' && p.k === 0) || (to === 'last' && p.k === g.length - 1)) return false;
+    const anchor = to === 'first' ? g[0] : g[g.length - 1];
+    cfg.items.splice(cfg.items.indexOf(it), 1);
+    const ai = cfg.items.indexOf(anchor);
+    cfg.items.splice(to === 'first' ? ai : ai + 1, 0, it);
+    return true;
+  }
+  const k2 = p.k + delta;
+  if (!delta || k2 < 0 || k2 >= g.length) return false;
+  const a = cfg.items.indexOf(it), b = cfg.items.indexOf(g[k2]);
+  [cfg.items[a], cfg.items[b]] = [cfg.items[b], cfg.items[a]];
+  return true;
+}
+/* Kapitel wechseln: das Rezept kommt ans Ende seiner neuen Gruppe (ans Ende von items; andere Gruppen behalten ihre Reihenfolge) */
+function cookbookSetItemChapter(cfg, recipeId, chapterId) {
+  const i = cfg.items.findIndex(x => x.recipeId === recipeId);
+  if (i < 0) return false;
+  const it = cfg.items[i];
+  const next = chapterId && (cfg.chapters || []).some(c => c.id === chapterId) ? chapterId : '';
+  if ((cookbookItemChapterKnown(cfg, it) ? it.chapterId : '') === next) return false;
+  it.chapterId = next;
+  cfg.items.splice(i, 1); cfg.items.push(it);
+  return true;
+}
+function cookbookChapterCountText(n) { return n === 0 ? 'leer' : n === 1 ? '1 Rezept' : `${n} Rezepte`; }
+
+/* Fenster im Kochbuch-Editor: Menue einer Rezeptzeile und Menue eines Kapitels */
+function cookbookEditorModals() {
+  const m = state.modal;
+  if (!m || state.view !== 'cookbook') return '';
+  if (m.type === 'cb-item-menu') {
+    const cfg = getCookbookConfig();
+    const r = state.recipes.find(x => x.id === m.id);
+    const p = cookbookItemPlace(cfg, m.id);
+    if (!r || !p) return '';
+    const it = p.group.items[p.k];
+    const cur = cookbookItemChapterKnown(cfg, it) ? it.chapterId : '';
+    const t = r.title || 'Ohne Titel';
+    const id = escapeAttr(r.id);
+    const radio = (val, label) => `<label class="check-line cb-radio"><input type="radio" name="cbItemChapter" data-cb-item-chapter="${id}" value="${escapeAttr(val)}" ${cur === val ? 'checked' : ''}> <span>${escapeHtml(label)}</span></label>`;
+    const chapters = cfg.chapters.length
+      ? `<h3 class="cb-menu-label" id="cbItemChLabel">Kapitel</h3>
+        <div class="cb-menu-radios" role="radiogroup" aria-labelledby="cbItemChLabel">${cfg.chapters.map(c => radio(c.id, c.name || 'Ohne Namen')).join('')}${radio('', 'Ohne Kapitel')}</div>`
+      : '<p class="hint-line">Kapitel legst du unten unter «Kapitel» an.</p>';
+    return sheet('cb-item-menu-title', t, `
+      <p class="hint-line cb-menu-sub">${escapeHtml(cookbookPlaceText(p))}</p>
+      ${chapters}
+      <div class="menu-list cb-menu-actions">
+        <button type="button" class="menu-item" data-action="cb-move-item" data-id="${id}" data-to="first" ${p.k === 0 ? 'disabled' : ''}>${ICONS.arrowUp}<span>Ganz nach oben</span></button>
+        <button type="button" class="menu-item" data-action="cb-move-item" data-id="${id}" data-to="last" ${p.k === p.n - 1 ? 'disabled' : ''}>${ICONS.arrowDown}<span>Ganz nach unten</span></button>
+        <button type="button" class="menu-item menu-item--danger menu-item--hint" data-action="cb-remove-item" data-id="${id}">${ICONS.x}<span class="menu-item-text"><span>Aus dem Kochbuch nehmen</span><span class="menu-item-hint">Das Rezept selbst bleibt erhalten.</span></span></button>
+      </div>
+      <div class="form-actions"><button type="button" class="ghost-btn" data-action="close-modal">Schliessen</button></div>`);
+  }
+  if (m.type === 'cb-chapter-menu') {
+    const cfg = getCookbookConfig();
+    const i = cfg.chapters.findIndex(c => c.id === m.id);
+    if (i < 0) return '';
+    const c = cfg.chapters[i];
+    const n = cfg.items.filter(it => it.chapterId === c.id).length;
+    const id = escapeAttr(c.id);
+    const name = c.name || 'Ohne Namen';
+    return sheet('cb-chapter-menu-title', name, `
+      <p class="hint-line cb-menu-sub">Kapitel ${i + 1} von ${cfg.chapters.length}, ${cookbookChapterCountText(n)}</p>
+      <div class="menu-list cb-menu-actions">
+        <button type="button" class="menu-item" data-action="cb-chapter-rename" data-id="${id}">${ICONS.edit}<span>Umbenennen</span></button>
+        <button type="button" class="menu-item" data-action="cb-move-chapter" data-id="${id}" data-delta="-1" ${i === 0 ? 'disabled' : ''}>${ICONS.arrowUp}<span>Nach oben</span></button>
+        <button type="button" class="menu-item" data-action="cb-move-chapter" data-id="${id}" data-delta="1" ${i === cfg.chapters.length - 1 ? 'disabled' : ''}>${ICONS.arrowDown}<span>Nach unten</span></button>
+        <button type="button" class="menu-item menu-item--danger menu-item--hint" data-action="cb-delete-chapter" data-id="${id}">${ICONS.trash}<span class="menu-item-text"><span>Kapitel löschen</span><span class="menu-item-hint">${n === 0 ? 'Das Kapitel ist leer.' : n === 1 ? 'Das Rezept bleibt im Kochbuch, dann ohne Kapitel.' : `Die ${n} Rezepte bleiben im Kochbuch, dann ohne Kapitel.`}</span></span></button>
+      </div>
+      <div class="form-actions"><button type="button" class="ghost-btn" data-action="close-modal">Schliessen</button></div>`);
   }
   return '';
 }

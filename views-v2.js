@@ -1807,45 +1807,89 @@ function cookbookStepper(step) {
     return `<li class="cb-step ${cur ? 'is-current' : ''} ${t.n < step ? 'is-done' : ''}"><button type="button" data-action="cb-step" data-id="${t.n}" ${cur ? 'aria-current="step"' : ''} aria-label="Schritt ${t.n} von 3: ${t.label}${t.n < step ? ', erledigt' : ''}"><span class="cb-step-no" aria-hidden="true">${t.n < step ? ICONS.check : t.n}</span><span class="cb-step-label">${t.label}</span></button></li>`;
   }).join('')}</ol></nav>`;
 }
-function cookbookStepFooter(step) {
+function cookbookStepFooter(step, cfg) {
+  const n = cfg && Array.isArray(cfg.items) ? cfg.items.length : 0;
+  const status = step === 1 ? `<span class="cb-footer-status">${n ? cookbookPlural(n, 'Rezept', 'Rezepte') + ' im Kochbuch' : 'Noch kein Rezept im Kochbuch'}</span>` : '<span></span>';
   return `<div class="cb-step-footer">
-    ${step > 1 ? `<button class="ghost-btn" data-action="cb-step" data-id="${step - 1}">${ICONS.chevronLeft} Zurück</button>` : '<span></span>'}
+    ${step > 1 ? `<button class="ghost-btn" data-action="cb-step" data-id="${step - 1}">${ICONS.chevronLeft} Zurück</button>` : status}
     ${step < 3 ? `<button class="primary-btn" data-action="cb-step" data-id="${step + 1}" aria-label="Weiter zu «${COOKBOOK_STEPS[step].label}»">Weiter ${ICONS.chevronRight}</button>` : ''}
   </div>`;
 }
-function cookbookStepSelect(cfg) {
+/* v85: eine Zeile je Rezept (Nummer, Name, Pfeile, Menü). Nummer in PDF-Reihenfolge; Pfeile tauschen innerhalb der Gruppe. */
+function cookbookItemRowHtml(r, it, pos, k, n, cfg) {
+  const t = r.title || 'Ohne Titel';
+  const id = escapeAttr(r.id);
+  const cur = cookbookItemChapterKnown(cfg, it) ? it.chapterId : '';
+  const sel = cfg.chapters.length ? `<select class="cb-item-chapter" aria-label="Kapitel für ${escapeAttr(t)}" data-cb-item-chapter="${id}"><option value="">Ohne Kapitel</option>${cfg.chapters.map(c => `<option value="${escapeAttr(c.id)}" ${cur === c.id ? 'selected' : ''}>${escapeHtml(c.name || 'Ohne Namen')}</option>`).join('')}</select>` : '';
+  return `<li class="cb-item" data-cb-row="${id}">
+    <span class="cb-item-no" aria-hidden="true">${pos}</span>
+    <span class="cb-item-title">${escapeHtml(t)}</span>
+    <span class="cb-item-actions">${sel}
+      <button type="button" class="icon-btn icon-btn--small" data-action="cb-move-item" data-id="${id}" data-delta="-1" ${k === 0 ? 'disabled' : ''} aria-label="${escapeAttr(t)} nach oben">${ICONS.arrowUp}</button>
+      <button type="button" class="icon-btn icon-btn--small" data-action="cb-move-item" data-id="${id}" data-delta="1" ${k === n - 1 ? 'disabled' : ''} aria-label="${escapeAttr(t)} nach unten">${ICONS.arrowDown}</button>
+      <button type="button" class="icon-btn icon-btn--small" data-action="cb-item-menu" data-id="${id}" aria-haspopup="dialog" aria-label="Weitere Aktionen für «${escapeAttr(t)}»">${ICONS.moreH}</button>
+    </span></li>`;
+}
+function cookbookBookSectionHtml(cfg, missing) {
   const byId = Object.fromEntries(state.recipes.map(r => [r.id, r]));
+  const total = state.recipes.length;
+  const n = cfg.items.length;
+  const groups = cookbookItemGroups(cfg);
+  const named = cfg.chapters.length > 0;
+  let pos = 0;
+  const list = groups.map((g, gi) => {
+    const title = named ? `<h3 class="cb-group-title" id="cbGroup${gi}">${escapeHtml(g.chapter ? (g.chapter.name || 'Ohne Namen') : 'Ohne Kapitel')} <span class="cb-group-n">· ${g.items.length}</span></h3>` : '';
+    const rows = g.items.map((it, k) => { pos += 1; return cookbookItemRowHtml(byId[it.recipeId], it, pos, k, g.items.length, cfg); }).join('');
+    return `${title}<ul class="cb-list" ${named ? `aria-labelledby="cbGroup${gi}"` : 'aria-label="Rezepte im Kochbuch"'}>${rows}</ul>`;
+  }).join('');
+  const count = !total ? 'Du hast noch keine Rezepte. Lege zuerst Rezepte an, dann kannst du sie hier auswählen.'
+    : `${n} von ${total} ${total === 1 ? 'Rezept' : 'Rezepten'}.${n ? ' So erscheinen sie im PDF.' : ''}`;
+  const jump = missing.length ? `<button type="button" class="text-btn cb-jump" data-action="cb-jump-more">${missing.length === 1 ? '1 weiteres Rezept' : `${missing.length} weitere Rezepte`} ${ICONS.arrowDown}</button>` : '';
+  const bulk = total && n ? `<div class="cb-bulk">${jump}<button type="button" class="text-btn cb-clear" data-action="cb-clear-all">Alle entfernen</button></div>` : '';
+  const empty = total && !n ? `<div class="cb-empty"><p class="hint-line">Noch kein Rezept im Kochbuch. Nimm unten Rezepte auf.</p><div class="cb-bulk"><button type="button" class="outline-btn outline-btn--small" data-action="cb-add-all">Alle aufnehmen</button>${jump}</div></div>` : '';
+  return `<section class="panel cb-book" aria-labelledby="cbStepTitle">
+      <h2 class="section-title" id="cbStepTitle" tabindex="-1">Im Kochbuch</h2>
+      <p class="hint-line cb-count" id="cbSelCount" aria-live="polite">${count}</p>
+      ${bulk}${empty}${list}
+    </section>`;
+}
+function cookbookMoreSectionHtml(cfg, missing) {
+  if (!missing.length) return '';
+  const showAddAll = cfg.items.length > 0;   // bei leerem Buch steht «Alle aufnehmen» schon oben (nur einmal)
+  return `<section class="panel cb-more" id="cbMore" aria-labelledby="cbMoreTitle">
+      <h2 class="section-title" id="cbMoreTitle" tabindex="-1">Weitere Rezepte <span class="cb-group-n">· ${missing.length}</span></h2>
+      <p class="hint-line cb-count">Noch nicht im Kochbuch.</p>
+      <div class="cb-bulk cb-bulk--add">
+        ${showAddAll ? '<button type="button" class="outline-btn outline-btn--small" data-action="cb-add-all">Alle aufnehmen</button>' : ''}
+        ${typeof cbColButtonHtml === 'function' ? cbColButtonHtml() : ''}
+      </div>
+      ${typeof rpCookbookSearchHtml === 'function' ? rpCookbookSearchHtml(missing.length) : ''}
+      <ul class="cb-list cb-list--out" aria-labelledby="cbMoreTitle">${missing.map(r => `<li class="cb-item cb-item--out"><span class="cb-item-title">${escapeHtml(r.title || 'Ohne Titel')}</span><button type="button" class="outline-btn outline-btn--small cb-add-one" data-action="cb-add-item" data-id="${escapeAttr(r.id)}" aria-label="${escapeAttr(r.title || 'Ohne Titel')} ins Kochbuch aufnehmen">${ICONS.plus}<span class="cb-add-label">Aufnehmen</span></button></li>`).join('')}</ul>
+    </section>`;
+}
+function cookbookChaptersSectionHtml(cfg) {
+  const rows = cfg.chapters.map((c) => {
+    const n = cfg.items.filter(it => it.chapterId === c.id).length;
+    const id = escapeAttr(c.id);
+    return `<li class="cb-chapter"><input type="text" class="cb-chapter-name" aria-label="Name des Kapitels" data-cb-chapter="${id}" value="${escapeAttr(c.name)}" autocomplete="off">
+      <span class="cb-chapter-n">${cookbookChapterCountText(n)}</span>
+      <button type="button" class="icon-btn icon-btn--small" data-action="cb-chapter-menu" data-id="${id}" aria-haspopup="dialog" aria-label="Weitere Aktionen für Kapitel «${escapeAttr(c.name || 'Ohne Namen')}»">${ICONS.moreH}</button></li>`;
+  }).join('');
+  return `<section class="panel cb-chapters" aria-labelledby="cbChaptersTitle">
+      <h2 class="section-title" id="cbChaptersTitle" tabindex="-1">Kapitel</h2>
+      ${rows ? `<ul class="cb-chapter-list" aria-labelledby="cbChaptersTitle">${rows}</ul>` : '<p class="hint-line">Mit Kapiteln gliederst du das Buch, zum Beispiel in Vorspeisen und Desserts. Ohne Kapitel stehen alle Rezepte in einer Liste.</p>'}
+      <div class="inline-add"><label for="cbNewChapter" class="sr-only">Name des neuen Kapitels</label><input type="text" id="cbNewChapter" placeholder="Neues Kapitel, z. B. Desserts" autocomplete="off" enterkeyhint="done"><button type="button" class="outline-btn" data-action="cb-add-chapter">Kapitel hinzufügen</button></div>
+      ${cfg.chapters.length ? `<label class="check-row cb-chapter-pages"><input type="checkbox" data-cb-flag="chapterPages" aria-describedby="cbChapterPagesHint" ${cfg.chapterPages ? 'checked' : ''}> <span>Kapitelseiten</span></label>
+      <p class="hint-line cb-check-hint" id="cbChapterPagesHint">Jedes Kapitel beginnt auf einer eigenen Seite. Sonst stehen die Kapitel nur im Inhaltsverzeichnis.</p>` : ''}
+    </section>`;
+}
+function cookbookStepSelect(cfg) {
   const inBook = new Set(cfg.items.map(it => it.recipeId));
   const missing = state.recipes.filter(r => !inBook.has(r.id));
   return `
-      <section class="panel">
-        <h2 class="section-title" id="cbStepTitle" tabindex="-1">Rezepte auswählen</h2>
-        <p class="hint-line" id="cbSelCount" aria-live="polite">${cfg.items.length} von ${state.recipes.length} ${state.recipes.length === 1 ? 'Rezept' : 'Rezepten'} im Kochbuch.${state.recipes.length ? ' Die Reihenfolge hier ist die Reihenfolge im Buch.' : ''}</p>
-        ${state.recipes.length ? `<div class="cb-bulk">
-          ${missing.length ? '<button class="outline-btn outline-btn--small" data-action="cb-add-all">Alle aufnehmen</button>' : ''}
-          ${missing.length && typeof cbColButtonHtml === 'function' ? cbColButtonHtml() : ''}
-          ${cfg.items.length ? '<button class="text-btn" data-action="cb-clear-all">Alle entfernen</button>' : ''}
-        </div>` : '<p class="hint-line">Du hast noch keine Rezepte. Lege zuerst Rezepte an, dann kannst du sie hier auswählen.</p>'}
-        ${cfg.items.map((it, n) => { const r = byId[it.recipeId]; return `<div class="cb-item">
-          <span class="cb-item-no">${n + 1}</span>
-          <span class="cb-item-title">${escapeHtml(r.title || 'Ohne Titel')}</span>
-          ${cfg.chapters.length ? `<select aria-label="Kapitel für ${escapeHtml(r.title || '')}" data-cb-item-chapter="${escapeAttr(r.id)}"><option value="">Ohne Kapitel</option>${cfg.chapters.map(c => `<option value="${escapeHtml(c.id)}" ${it.chapterId === c.id ? 'selected' : ''}>${escapeHtml(c.name)}</option>`).join('')}</select>` : ''}
-          <span class="cb-item-actions">
-            <button class="icon-btn icon-btn--small" data-action="cb-move-item" data-id="${escapeAttr(r.id)}" data-delta="-1" ${n === 0 ? 'disabled' : ''} aria-label="${escapeHtml(r.title || '')} nach oben">${ICONS.arrowUp}</button>
-            <button class="icon-btn icon-btn--small" data-action="cb-move-item" data-id="${escapeAttr(r.id)}" data-delta="1" ${n === cfg.items.length - 1 ? 'disabled' : ''} aria-label="${escapeHtml(r.title || '')} nach unten">${ICONS.arrowDown}</button>
-            <button class="icon-btn icon-btn--small" data-action="cb-remove-item" data-id="${escapeAttr(r.id)}" aria-label="${escapeHtml(r.title || '')} aus dem Kochbuch nehmen">${ICONS.x}</button>
-          </span></div>`; }).join('')}
-        ${missing.length ? `<h3 class="sub-title">Nicht im Kochbuch</h3>${typeof rpCookbookSearchHtml === 'function' ? rpCookbookSearchHtml(missing.length) : ''}${missing.map(r => `<div class="cb-item cb-item--out"><span class="cb-item-title">${escapeHtml(r.title || 'Ohne Titel')}</span><button type="button" class="outline-btn outline-btn--small" data-action="cb-add-item" data-id="${escapeAttr(r.id)}" aria-label="${escapeHtml(r.title || 'Ohne Titel')} ins Kochbuch aufnehmen">${ICONS.plus} Aufnehmen</button></div>`).join('')}` : ''}
-      </section>
-      <section class="panel">
-        <h2 class="section-title">Kapitel</h2>
-        ${cfg.chapters.map((c, n) => `<div class="cb-chapter"><input type="text" aria-label="Kapitelname" data-cb-chapter="${escapeHtml(c.id)}" value="${escapeHtml(c.name)}">
-          <button class="icon-btn icon-btn--small" data-action="cb-move-chapter" data-id="${escapeHtml(c.id)}" data-delta="-1" ${n === 0 ? 'disabled' : ''} aria-label="Kapitel nach oben">${ICONS.arrowUp}</button>
-          <button class="icon-btn icon-btn--small" data-action="cb-move-chapter" data-id="${escapeHtml(c.id)}" data-delta="1" ${n === cfg.chapters.length - 1 ? 'disabled' : ''} aria-label="Kapitel nach unten">${ICONS.arrowDown}</button>
-          <button class="icon-btn icon-btn--small" data-action="cb-delete-chapter" data-id="${escapeHtml(c.id)}" aria-label="Kapitel ${escapeHtml(c.name)} löschen">${ICONS.trash}</button></div>`).join('') || '<p class="hint-line">Ohne Kapitel erscheinen alle Rezepte in einer Liste.</p>'}
-        ${cfg.chapters.length ? `<label class="check-row"><input type="checkbox" data-cb-flag="chapterPages" ${cfg.chapterPages ? 'checked' : ''}> <span>Eigene Seite vor jedem Kapitel (sonst nur im Inhaltsverzeichnis)</span></label>` : ''}
-        <div class="inline-add"><label for="cbNewChapter" class="sr-only">Name des neuen Kapitels</label><input type="text" id="cbNewChapter" placeholder="Neues Kapitel, z. B. Hauptgänge"><button class="primary-btn" data-action="cb-add-chapter">Kapitel hinzufügen</button></div>
-      </section>`;
+      ${cookbookBookSectionHtml(cfg, missing)}
+      ${cookbookMoreSectionHtml(cfg, missing)}
+      ${cookbookChaptersSectionHtml(cfg)}`;
 }
 function cookbookPageStyleChoice(cfg) {
   const cur = pdfNormTpl(cfg.pdfTemplate || pdfDefaultTemplateId());   // alte IDs A/B/C gelten als pur/prise-pop
@@ -1969,14 +2013,31 @@ function cookbookOpenPart(part, focusId, opts) {
     if (r.top < top || r.top > window.innerHeight * 0.5) window.scrollBy(0, r.top - top - 16);
   });
 }
-/* Ein Prüfhinweis mit Ziel (Rezept prüfen, Cover bearbeiten, Kapitel bearbeiten, PDF-Seite ansehen) */
+/* Ein Prüfhinweis mit Ziel (Rezept prüfen, Cover bearbeiten, Kapitel bearbeiten). v85: Stufe nur für Hilfstechnik als Text,
+   sichtbar über die Gruppe; Rezepthinweise als Name plus Grund, ein Knopf pro Rezept. */
 function cookbookHintHtml(h) {
   const lvl = { error: 'Fehler', check: 'Prüfen', info: 'Info' }[h.level] || 'Info';
   const t = h.target;
-  const btn = t ? `<button type="button" class="text-btn cb-hint-go" data-action="${escapeAttr(t.action)}" ${t.id != null ? `data-id="${escapeAttr(t.id)}"` : ''}>${escapeHtml(t.label)}</button>` : '';
+  const btn = t ? `<button type="button" class="outline-btn outline-btn--small cb-hint-go" data-action="${escapeAttr(t.action)}" ${t.id != null ? `data-id="${escapeAttr(t.id)}"` : ''}>${escapeHtml(t.label)}</button>` : '';
   const details = h.kind === 'empty-chapters' && h.names && h.names.length
-    ? `<details class="cb-hint-details"><summary>Leere Kapitel anzeigen</summary><ul>${h.names.map(n => `<li>${escapeHtml(n || 'Ohne Namen')}</li>`).join('')}</ul><p class="hint-line">Die Kapitel bleiben im Kochbuch erhalten. Sobald du ihnen Rezepte zuordnest, erscheinen sie im PDF.</p></details>` : '';
-  return `<li class="cb-warn cb-warn--${h.level === 'check' ? 'warn' : h.level}" data-level="${h.level}"><span class="cb-hint-level">${lvl}</span><div class="cb-hint-body"><p class="cb-hint-text">${escapeHtml(h.text)}</p>${details}${btn}</div></li>`;
+    ? `<details class="cb-hint-details"><summary>${ICONS.chevronRight}<span>Leere Kapitel anzeigen</span></summary><ul>${h.names.map(n => `<li>${escapeHtml(n || 'Ohne Namen')}</li>`).join('')}</ul><p class="hint-line">Die Kapitel bleiben im Kochbuch erhalten. Sobald du ihnen Rezepte zuordnest, erscheinen sie im PDF.</p></details>` : '';
+  const text = h.kind === 'recipe'
+    ? `<p class="cb-hint-text cb-hint-text--recipe"><b>${escapeHtml(h.name)}</b> <span>${escapeHtml(h.reasons.join(', '))}</span></p>`
+    : `<p class="cb-hint-text">${escapeHtml(h.text)}</p>`;
+  const icon = h.level !== 'check' ? `<span class="cb-hint-icon" aria-hidden="true">${ICONS.info}</span>` : '';
+  return `<li class="cb-warn cb-warn--${h.level === 'check' ? 'warn' : h.level}" data-level="${h.level}">${icon}<div class="cb-hint-body"><span class="cb-hint-level sr-only">${lvl}:</span>${text}${details}</div>${btn ? `<div class="cb-hint-acts">${btn}</div>` : ''}</li>`;
+}
+/* Prüfung gruppiert nach Stufe (Reihenfolge Fehler, Prüfen, Info bleibt über alle Listen erhalten) */
+function cookbookHintsHtml(hints) {
+  if (!hints.length) return `<p class="cb-all-ok">${ICONS.check}<span>Alles bereit. Keine Hinweise.</span></p>`;
+  const groups = [['error', 'Muss behoben werden'], ['check', 'Bitte ansehen'], ['info', 'Gut zu wissen']];
+  return groups.map(([lvl, title]) => {
+    const hs = hints.filter(h => h.level === lvl);
+    if (!hs.length) return '';
+    const hid = 'cbHints-' + lvl;
+    return `<h4 class="cb-hints-title" id="${hid}">${title}${lvl === 'check' ? ` <span class="cb-group-n">· ${hs.length}</span>` : ''}</h4>
+      <ul class="cb-warnings cb-warnings--${lvl}" aria-labelledby="${hid}">${hs.map(cookbookHintHtml).join('')}</ul>`;
+  }).join('');
 }
 function cookbookStepPreview(cfg) {
   const hints = cookbookReview(cfg);
@@ -2007,17 +2068,19 @@ function cookbookStepPreview(cfg) {
             <div><dt>Inhalt</dt><dd id="cbSummaryText">${escapeHtml(sum.text)}</dd></div>
             <div><dt>Titelblatt</dt><dd>${escapeHtml(coverName)}</dd></div>
             <div><dt>Seitenstil</dt><dd>${escapeHtml(cookbookPdfTemplateName(tplId))}</dd></div>
-            <div><dt>Name</dt><dd>${author ? escapeHtml(author) : 'Kein Name'}</dd></div>
+            <div><dt>Name</dt><dd${author ? '' : ' class="is-empty"'}>${author ? escapeHtml(author) : 'nicht eingetragen'}</dd></div>
             ${author ? `<div><dt>Name im PDF</dt><dd id="cbSummaryPrintName">${COOKBOOK_PRINT_NAME_LABEL[cookbookPrintName(cfg)]}</dd></div>` : ''}
             ${state.showNutrition ? `<div><dt>Nährwerte</dt><dd>${COOKBOOK_NUTRITION_LABEL[nut]}</dd></div>` : ''}
           </dl>
           <button type="button" class="text-btn cb-summary-edit" data-action="cb-step" data-id="2">Gestaltung ändern</button></div>
         </div>
-        <h3 class="sub-title" id="cbHintsTitle">Prüfung</h3>
-        ${hints.length ? `<ul class="cb-warnings" aria-labelledby="cbHintsTitle">${hints.map(cookbookHintHtml).join('')}</ul>` : '<p class="hint-line">Alles in Ordnung. Keine Hinweise.</p>'}
+        <div class="cb-review">
+          <h3 class="sub-title" id="cbHintsTitle">Prüfung</h3>
+          ${cookbookHintsHtml(hints)}
+        </div>
+        <button class="primary-btn primary-btn--block" data-action="export-cookbook" ${n ? '' : 'disabled aria-describedby="cbHints-error"'}>${ICONS.pdf} PDF-Vorschau erstellen</button>
+        <p class="hint-line cb-export-hint">Inhaltsverzeichnis und Seitenzahlen kommen automatisch dazu. Du siehst das PDF zuerst als Vorschau.</p>
         ${pagesList}
-        <p class="hint-line">Inhaltsverzeichnis und Seitenzahlen werden automatisch erstellt. Die Vorschau zeigt genau die Datei, die du danach herunterlädst.</p>
-        <button class="primary-btn primary-btn--block" data-action="export-cookbook" ${n ? '' : 'disabled'}>${ICONS.pdf} PDF-Vorschau erstellen</button>
       </section>`;
 }
 function cookbookDesignerView() {
@@ -2030,12 +2093,13 @@ function cookbookDesignerView() {
     <main class="has-tabbar cookbook-main" data-cb-step="${step}">
       ${cookbookStepper(step)}
       ${step === 1 ? cookbookStepSelect(cfg) : step === 2 ? cookbookStepDesign(cfg) : cookbookStepPreview(cfg)}
-      ${cookbookStepFooter(step)}
+      ${cookbookStepFooter(step, cfg)}
     </main>
     ${bottomNav()}
     ${pdfExportModal()}
     ${ceModalHtml()}
     ${typeof cbColModalHtml === 'function' ? cbColModalHtml() : ''}
+    ${typeof cookbookEditorModals === 'function' ? cookbookEditorModals() : ''}
   `;
 }
 

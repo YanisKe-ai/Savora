@@ -27,6 +27,10 @@ localStorage-Schlüssel `savora-cookbook-projects`:
 - Neue Bücher starten mit leerem Titel, Untertitel und Namen, leerer Auswahl und dem heutigen Datum (einmalig gespeichert, danach nie mehr automatisch geändert).
 - Code: `cookbooks.js` (Speicher, Migration, Anlegen, Umbenennen, Duplizieren, Löschen, Ansicht «Kochbücher»).
 
+## Reihenfolge im Editor (0.85)
+
+Schritt 1 «Im Kochbuch» zeigt die Rezepte nach Kapiteln gruppiert, genau in der Reihenfolge des PDFs (`cookbookItemGroups` in `cookbooks.js`, gleiche Regel wie `cookbookOrderedSections`): Kapitel in ihrer Reihenfolge, Rezepte ohne oder mit unbekanntem Kapitel am Schluss. Die Pfeile tauschen nur innerhalb einer Gruppe, ein Kapitelwechsel setzt das Rezept ans Ende der neuen Gruppe. Das Datenformat (`items`, `chapters`, `chapterPages`) bleibt unverändert.
+
 ## Migration
 
 Fehlt `savora-cookbook-projects`, entsteht beim ersten Zugriff das erste Projekt aus der alten Einzelkonfiguration `savora-cookbook-config` (sonst aus einer leeren Konfiguration). Name: `savora-cookbook-title`, sonst «Mein Kochbuch». Zeitpunkt und Quelle stehen im Feld `migration`.
