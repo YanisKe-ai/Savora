@@ -79,7 +79,9 @@ let PDF_FIT_SAFETY_MM = 0;
    Fliesstext in Bloecken, die breiter als der Bildschirm sind (Text-Autosizing). Die PDF-Seiten sind 210 mm = 794 px breit, das iPhone
    390 px: Zubereitung und Notizen wurden mit etwa 1,5-facher Schrift gemessen und teils auch so gerastert. WebKit laesst Bloecke mit
    fester Hoehe aus, darum waren nur die Seiten gross, die nicht in 297 mm passten (keine feste Hoehe, pdf.js pdfRasterizeSection).
-   text-size-adjust: 100% schaltet das fuer Messflaeche, Druckbereich und den html2canvas-Klon ab; auf dem Mac/Chrome ohne Wirkung. */
+   text-size-adjust: 100% schaltet das fuer Messflaeche, Druckbereich und den html2canvas-Klon ab; auf dem Mac/Chrome ohne Wirkung.
+   v88: Gilt fuer JEDE Messung im Druckbereich, auch die Nachmessung pdfOverflowByRecipe (pdf.js) vor dem Rastern. Dort fehlte es:
+   Safari mass den Fliesstext mit 22 bis 24 px statt 14,67 px, plante mit falscher Reserve neu und brach alle Rezepte zu frueh um. */
 const PDF_NO_AUTOSIZE_CSS = '-webkit-text-size-adjust:100%;text-size-adjust:100%;';
 function pdfNoAutosize(el) {
   if (!el || !el.style) return;

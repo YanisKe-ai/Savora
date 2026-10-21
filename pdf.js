@@ -1054,6 +1054,11 @@ async function pdfNutritionForExport(r) {
 function pdfOverflowByRecipe(container) {
   const out = {};
   if (!container) return out;
+  /* v88 (MESS): Text-Autosizing hier abschalten, BEVOR gemessen wird. Belegt im iOS-Simulator (Mobile Safari): ohne diese Zeile setzte Safari
+     im Druckbereich den Fliesstext von 14,67 px auf 22 bis 24 px (Messflaeche richtig: 14,67 px). Sloppy Joe mass so 385,7 statt 285,6 mm,
+     galt als zu hoch und wurde mit rund 100 mm Reserve neu geplant: alle Rezepte zwei Seiten, Seiten halb leer. Vorher wurde
+     text-size-adjust erst in renderSectionsToPdf gesetzt, also nach dieser Nachmessung. */
+  pdfNoAutosize(container);
   Array.from(container.children).forEach((sec) => {
     const kind = sec.dataset.pageKind || '';
     if ((kind !== 'recipe' && kind !== 'continuation') || !sec.dataset.recipeId) return;
