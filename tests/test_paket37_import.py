@@ -98,7 +98,7 @@ async def main():
         ings = [x.replace(NB, ' ') for x in pdf['ings']]
         check('PDF: Kategorie auf Deutsch (Backen), kein Schlüssel "baking"', pdf['cat'] == 'Backen' and 'baking' not in pdf['text'], pdf['cat'])
         check('PDF: 125 g Parmesan, 1–2 EL, 500 g', '125 g|Parmesan' in ings and '1–2 EL|Olivenöl' in ings and '500 g|Kartoffeln' in ings, str(ings))
-        check('PDF: Teilzeiten, keine Gesamtzeit; Quelle als Text', any(f.startswith('Vorbereitung=') for f in pdf['facts']) and not any(f.startswith(('Zeit=', 'Gesamtzeit=')) for f in pdf['facts']) and 'Eigenes Testrezept' in pdf['source'], str(pdf['facts']))
+        check('PDF: Teilzeiten, keine Gesamtzeit; keine Quellzeile (v0.87 Nutzerregel, Quelle bleibt in den Daten)', any(f.startswith('Vorbereitung=') for f in pdf['facts']) and not any(f.startswith(('Zeit=', 'Gesamtzeit=')) for f in pdf['facts']) and pdf['source'] == '' and 'Eigenes Testrezept' not in pdf['text'], str(pdf['facts']))
         blob = await ev(f"""async () => {{ const res = await buildSinglePdf('{rid}', 'off'); return res && res.blob ? res.blob.size : 0; }}""")
         check('PDF wird erzeugt', blob > 3000, str(blob))
 
