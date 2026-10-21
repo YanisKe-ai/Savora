@@ -21,6 +21,7 @@ const state = {
   cookScale: (() => { try { return Math.max(0, Math.min(2, parseInt(localStorage.getItem('savora-cook-scale') || '0', 10) || 0)); } catch (e) { return 0; } })(),
   cookbookTitle: localStorage.getItem(COOKBOOK_TITLE_KEY) || '',
   cookbookStep: 1,   // Schritt im Kochbuch-Editor: 1 Rezepte auswaehlen, 2 Gestalten, 3 Vorschau und PDF
+  cbDesignPart: 'cover',   // v85: Teil in Schritt 2 «Gestalten»: 'cover' (Titelblatt) oder 'pages' (Rezeptseiten); nicht gespeichert
   senderName: localStorage.getItem(SENDER_NAME_KEY) || '',
   lastBackupAt: localStorage.getItem(LAST_BACKUP_KEY) || null,
   timers: {}, // id -> { remaining, total, running, done, intervalId }

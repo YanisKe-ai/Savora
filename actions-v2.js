@@ -1116,12 +1116,18 @@ async function handleActionV2(action, id, el, e) {
       showToast(action === 'cb-clear-name' ? 'Name im PDF entfernt' : 'Name fürs PDF eingetragen');
       return true;
     }
+    case 'cb-design-part': {   // v85: Teil in Schritt 2 wechseln (Titelblatt | Rezeptseiten); speichert offene Cover-Eingaben zuerst
+      cookbookOpenPart(id, el && el.dataset.focus);
+      return true;
+    }
     case 'cb-step': {
       // Bewegung M2 (motion-cover.js): Doppelklick auf Weiter/Zurueck ueberspringt keinen Schritt; Inhalt wechselt ruhig, Logik sofort
       if (typeof motionStepIgnore === 'function' && motionStepIgnore(el, e)) return true;
       const n = Math.min(3, Math.max(1, parseInt(id, 10) || 1));
       const from = Math.min(3, Math.max(1, parseInt(state.cookbookStep, 10) || 1));
       state.cookbookStep = n;
+      // v85: aus Schritt 1 und aus dem Prüfhinweis «Cover bearbeiten» zuerst das Titelblatt; «Gestaltung ändern» behält den letzten Teil
+      if (n === 2 && (from === 1 || (el && el.classList && el.classList.contains('cb-hint-go')))) state.cbDesignPart = 'cover';
       const go = () => { render(); window.scrollTo(0, 0); const h = document.getElementById('cbStepTitle'); if (h) focusWithoutScroll(h); };
       if (typeof motionCookbookStep === 'function' && state.view === 'cookbook') motionCookbookStep(from, n, go); else go();
       return true;
@@ -1269,6 +1275,24 @@ document.addEventListener('keydown', (e) => {
   focusWithoutScroll(tabs[i]);
 });
 
+/* v85: Segment «Titelblatt | Rezeptseiten» (Reiterliste): Pfeiltasten, Pos1/Ende wechseln den Teil */
+document.addEventListener('keydown', (e) => {
+  const tab = e.target && e.target.closest ? e.target.closest('.cb-part-tab[role="tab"]') : null;
+  if (!tab || !['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(e.key) || e.altKey || e.ctrlKey || e.metaKey) return;
+  const tabs = Array.from(document.querySelectorAll('.cb-part-tab[role="tab"]'));
+  let i = tabs.indexOf(tab);
+  if (e.key === 'ArrowLeft') i = (i - 1 + tabs.length) % tabs.length;
+  else if (e.key === 'ArrowRight') i = (i + 1) % tabs.length;
+  else if (e.key === 'Home') i = 0; else i = tabs.length - 1;
+  e.preventDefault();
+  cookbookOpenPart(tabs[i].dataset.id);
+});
+/* v85: «Im Cover bearbeiten» (data-cover-edit, cover-editor.js) oeffnet Schritt 2; der Cover-Editor steht nur im Teil «Titelblatt».
+   Laeuft in der Einfangphase, also vor coverOpenEditor. */
+document.addEventListener('click', (e) => {
+  const b = e.target && e.target.closest && e.target.closest('[data-cover-edit]');
+  if (b && !b.disabled) { if (typeof ceFlush === 'function') ceFlush(); state.cbDesignPart = 'cover'; }
+}, true);
 
 /* Paket 37: Pfeiltasten in Auswahlgruppen (role="radiogroup", z. B. Titelblatt-Vorlagen, Sortierung, Mahlzeit, Design).
    Pfeile bewegen den Fokus und waehlen; Enter und Leertaste waehlen das fokussierte Element (native Buttons). */

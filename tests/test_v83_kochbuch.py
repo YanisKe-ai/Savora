@@ -78,7 +78,7 @@ async def main():
         check('«Kapitel bearbeiten» öffnet Schritt 1, alle sechs Kapitel bleiben erhalten', True)
 
         # ---------- Gestalten: Naehrwerte und Name in derselben Konfiguration ----------
-        await ev("() => { state.showNutrition = true; state.cookbookStep = 2; render(); }")
+        await ev("() => { state.showNutrition = true; state.cookbookStep = 2; state.cbDesignPart = 'pages'; render(); }")   # v85: Nährwerte und Name im Teil «Rezeptseiten»
         await page.wait_for_selector('[data-action="cb-pdf-nutrition"]')
         cur = await ev("() => document.querySelector('[data-action=cb-pdf-nutrition][aria-checked=true]').dataset.level")
         check('Ohne gespeicherte Angabe: Nährwerte «Kompakt» (gleiches PDF wie bisher)', cur == 'compact', cur)
@@ -88,6 +88,8 @@ async def main():
         await page.click('[data-action="cb-use-sender-name"]')
         await page.wait_for_function("() => getCookbookConfig().author === 'Anna Muster'")
         where = await ev("() => document.getElementById('cbNameWhere').textContent")
+        await page.click('.cb-part-tab[data-id="cover"]')   # v85: Feld «Name» steht im Teil «Titelblatt»
+        await page.wait_for_selector('#cbAuthor')
         cover_name = await ev("() => (document.getElementById('cbAuthor') || {}).value")
         check('Name: gleiche Angabe im Cover-Editor (Feld «Name») und in «Im PDF»', cover_name == 'Anna Muster' and 'Titelblatt und in der Fusszeile' in where, f'{cover_name} | {where}')
 
@@ -190,12 +192,12 @@ async def main():
             for w in (390, 1280):
                 await page.set_viewport_size({'width': w, 'height': 900})
                 await ev("(t) => { state.theme = t; applyTheme(); }", theme)
-                for view, step in (('cookbooks', 0), ('cookbook', 2), ('cookbook', 3)):
-                    await ev("([v, s]) => { state.view = v; state.cookbookStep = s || 1; render(); window.scrollTo(0, 0); }", [view, step])
+                for view, step, part in (('cookbooks', 0, ''), ('cookbook', 2, 'cover'), ('cookbook', 2, 'pages'), ('cookbook', 3, '')):
+                    await ev("([v, s, p]) => { state.view = v; state.cookbookStep = s || 1; state.cbDesignPart = p || 'cover'; render(); window.scrollTo(0, 0); }", [view, step, part])
                     await page.wait_for_timeout(250)
                     ov = await ev("() => document.documentElement.scrollWidth - document.documentElement.clientWidth")
-                    check(f'{view}{step or ""} {w}px {theme}: kein horizontales Scrollen', ov <= 0, str(await overflow_info(page)))
-                    await page.screenshot(path=os.path.join(OUT, f'v83_{view}{step or ""}_{w}_{theme}.png'), full_page=True)
+                    check(f'{view}{step or ""}{part} {w}px {theme}: kein horizontales Scrollen', ov <= 0, str(await overflow_info(page)))
+                    await page.screenshot(path=os.path.join(OUT, f'v83_{view}{step or ""}{"_" + part if part == "pages" else ""}_{w}_{theme}.png'), full_page=True)
         check('Keine JS-Fehler', not errs, str(errs[:3]))
         await b.close()
     print('\n' + ('ALLE OK' if not FAIL else f'{len(FAIL)} FEHLER: ' + '; '.join(FAIL)))

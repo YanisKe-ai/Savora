@@ -1862,40 +1862,112 @@ function cookbookNameWhereText(author, pn) {
   if (pn === 'none') return `${n} bleibt gespeichert, wird aber nicht gedruckt. Im Editor oben bleibt er sichtbar, damit du ihn bearbeiten kannst.`;
   return `${n} steht auf dem Titelblatt und in der Fusszeile jeder Rezeptseite.`;
 }
-function cookbookStepDesign(cfg) {
+/* v85: Schritt «Gestalten» in zwei Teilen (Segment «Titelblatt | Rezeptseiten»). Zustand state.cbDesignPart, nur im Speicher.
+   Titelblatt = Cover-Editor (cover-editor.js), Rezeptseiten = Seitenstil, Name im PDF, Nährwerte. */
+const COOKBOOK_DESIGN_PARTS = [{ id: 'cover', label: 'Titelblatt' }, { id: 'pages', label: 'Rezeptseiten' }];
+const COOKBOOK_STYLE_SHORT = { 'pur': 'Ruhig und hell, spart Tinte.', 'prise-pop': 'Rote Titel, gelbe Zutaten.' };   // Kurztext nur hier; PDF-Dialog nutzt weiter PDF_TEMPLATES.hint
+function cookbookDesignPart() { return state.cbDesignPart === 'pages' ? 'pages' : 'cover'; }
+function cookbookPartTabs(part) {
+  return `<div class="cb-parts" role="tablist" aria-label="Was du gestaltest">${COOKBOOK_DESIGN_PARTS.map(t => {
+    const on = t.id === part;
+    return `<button type="button" class="cb-part-tab" role="tab" id="cbPartTab-${t.id}" aria-selected="${on}" aria-controls="cbPart-${t.id}" tabindex="${on ? 0 : -1}" data-action="cb-design-part" data-id="${t.id}">${t.label}</button>`;
+  }).join('')}</div>`;
+}
+/* Satz unter «Name im PDF»: kurz, ohne Verweis «oben» (Name und Wahl stehen jetzt beisammen) */
+function cookbookNameWhereShort(author, pn) {
+  if (!author) return 'Kein Name eingetragen. Im PDF erscheint kein Name.';
+  const n = `«${escapeHtml(author)}»`;
+  if (pn === 'cover') return `${n} steht nur auf dem Titelblatt.`;
+  if (pn === 'footer') return `${n} steht nur in der Fusszeile jeder Rezeptseite.`;
+  if (pn === 'none') return `${n} bleibt gespeichert, wird aber nicht gedruckt.`;
+  return `${n} steht auf dem Titelblatt und in der Fusszeile jeder Rezeptseite.`;
+}
+function cookbookPageStyleCards(cfg) {
+  const cur = pdfNormTpl(cfg.pdfTemplate || pdfDefaultTemplateId());   // alte IDs A/B/C gelten als pur/prise-pop
+  return `<div class="pdf-tpl-choice" role="radiogroup" aria-labelledby="cbStyleTitle">
+      ${Object.values(PDF_TEMPLATES).map(t => `<button type="button" role="radio" aria-checked="${cur === t.id}" class="pdf-tpl-opt ${cur === t.id ? 'active' : ''}" data-action="cb-page-style" data-id="${escapeAttr(t.id)}"><span class="pdf-tpl-swatch pdf-tpl-swatch-${t.id.toLowerCase()}" aria-hidden="true"></span><b>${t.name}</b><small>${COOKBOOK_STYLE_SHORT[t.id] || t.hint}</small></button>`).join('')}
+    </div>`;
+}
+function cookbookPagesPart(cfg) {
   const nut = cookbookPdfNutrition(cfg);
   const pn = cookbookPrintName(cfg);
   const author = String(cfg.author || '').trim();
   const sender = String(state.senderName || '').trim();
-  return `
-      <section class="panel">
-        <h2 class="section-title" id="cbStepTitle" tabindex="-1">Titelblatt</h2>
-        ${coverPickerHtml(cfg)}
-      </section>
-      <section class="panel">
-        <h2 class="section-title">Seitenstil der Rezepte</h2>
-        <p class="hint-line">Gilt für alle Rezeptseiten dieses Kochbuchs. Das Titelblatt oben ist davon unabhängig.</p>
-        ${cookbookPageStyleChoice(cfg)}
-      </section>
-      <section class="panel cb-pdf-opts" aria-labelledby="cbPdfOptsTitle">
-        <h2 class="section-title" id="cbPdfOptsTitle">Im PDF</h2>
-        <div class="cb-opt">
-          <h3 class="sub-title">Name</h3>
-          <p class="hint-line" id="cbNameWhere">${cookbookNameWhereText(author, pn)} Den Namen änderst du oben beim Titelblatt im Feld «Name».</p>
-          ${!author && sender ? `<button type="button" class="outline-btn outline-btn--small" data-action="cb-use-sender-name">«${escapeHtml(sender)}» als Name eintragen</button>` : ''}
-          <p class="hint-line" id="cbPrintNameLabel">Wo soll der Name stehen?</p>
+  return `<section class="cb-part cb-part--pages" id="cbPart-pages" role="tabpanel" aria-labelledby="cbPartTab-pages">
+      <div class="cb-pgroup">
+        <h3 class="cb-pgroup-title" id="cbStyleTitle">Seitenstil</h3>
+        ${cookbookPageStyleCards(cfg)}
+      </div>
+      <div class="cb-pdf-opts">
+        <section class="cb-pgroup cb-opt" aria-labelledby="cbPdfOptsTitle">
+          <div class="cb-pgroup-head">
+            <h3 class="cb-pgroup-title" id="cbPdfOptsTitle">Name im PDF</h3>
+            <button type="button" class="text-btn cb-name-edit" data-action="cb-design-part" data-id="cover" data-focus="cbAuthor">${author ? 'Name ändern' : 'Name eintragen'}</button>
+          </div>
+          <p class="cb-name-where" id="cbNameWhere">${cookbookNameWhereShort(author, pn)}</p>
+          ${!author && sender ? `<button type="button" class="outline-btn outline-btn--small cb-name-sender" data-action="cb-use-sender-name">«${escapeHtml(sender)}» als Name eintragen</button>` : ''}
+          <p class="cb-plabel" id="cbPrintNameLabel">Wo soll der Name stehen?</p>
           <div class="cb-print-name" role="radiogroup" aria-labelledby="cbPrintNameLabel">
             ${COOKBOOK_PRINT_NAME.map(v => `<label class="check-line"><input type="radio" name="cbPrintName" value="${v}" data-cb-print-name ${pn === v ? 'checked' : ''}> <span>${COOKBOOK_PRINT_NAME_LABEL[v]}</span></label>`).join('')}
           </div>
-        </div>
-        ${state.showNutrition ? `<div class="cb-opt">
-          <h3 class="sub-title" id="cbNutLabel">Nährwerte</h3>
-          <div class="nutrition-segmented" role="radiogroup" aria-labelledby="cbNutLabel">
+        </section>
+        ${state.showNutrition ? `<section class="cb-pgroup cb-opt" aria-labelledby="cbNutLabel">
+          <h3 class="cb-pgroup-title" id="cbNutLabel">Nährwerte</h3>
+          <div class="nutrition-segmented" role="radiogroup" aria-labelledby="cbNutLabel" aria-describedby="cbNutHint">
             ${COOKBOOK_NUTRITION_LEVELS.map(l => `<button type="button" role="radio" aria-checked="${nut === l}" class="${nut === l ? 'active' : ''}" data-action="cb-pdf-nutrition" data-level="${l}">${COOKBOOK_NUTRITION_LABEL[l]}</button>`).join('')}
           </div>
-          <p class="hint-line">Gedruckt nur bei Rezepten mit berechneten Nährwerten.</p>
-        </div>` : ''}
-      </section>`;
+          <p class="hint-line" id="cbNutHint">Nur bei Rezepten mit berechneten Nährwerten.</p>
+        </section>` : ''}
+      </div>
+    </section>`;
+}
+function cookbookStepDesign(cfg) {
+  const part = cookbookDesignPart();
+  return `
+      <div class="cb-design" data-part="${part}">
+        <h2 class="sr-only" id="cbStepTitle" tabindex="-1">Gestalten</h2>
+        ${cookbookPartTabs(part)}
+        ${part === 'cover'
+          ? `<section class="cb-part cb-part--cover" id="cbPart-cover" role="tabpanel" aria-labelledby="cbPartTab-cover">${coverPickerHtml(cfg)}<button type="button" class="cb-part-next" data-action="cb-design-part" data-id="pages"><span class="cb-part-next-text"><b>Weiter mit Rezeptseiten</b><small>Seitenstil, Name im PDF, Nährwerte</small></span>${ICONS.chevronRight}</button></section>`
+          : cookbookPagesPart(cfg)}
+      </div>`;
+}
+/* Teil wechseln: ungespeicherte Eingaben des Cover-Editors zuerst sichern, dann neu zeichnen.
+   focusId: Element im neuen Teil (z. B. 'cbAuthor'); sonst bleibt der Fokus auf dem Reiter. */
+function cookbookOpenPart(part, focusId, opts) {
+  opts = opts || {};
+  const next = part === 'pages' ? 'pages' : 'cover';
+  if (typeof ceFlush === 'function') ceFlush();
+  const changed = cookbookDesignPart() !== next;
+  state.cbDesignPart = next;
+  if (next === 'pages') document.documentElement.style.scrollPaddingTop = '';   // Polster der angehefteten Vorschau gilt nur im Teil «Titelblatt»
+  if (state.view !== 'cookbook' || (parseInt(state.cookbookStep, 10) || 1) !== 2) return;
+  if (changed || focusId) render();
+  const wrap = document.querySelector('.cb-design');
+  const panel = document.getElementById('cbPart-' + next);
+  if (changed && panel && panel.animate && !(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches)) {
+    panel.animate([{ opacity: 0.4 }, { opacity: 1 }], { duration: 160, easing: 'cubic-bezier(0.23, 1, 0.32, 1)' });
+  }
+  const target = focusId && document.getElementById(focusId);
+  if (target) {
+    // zwei Bilder warten: erst dann steht das Polster der angehefteten Vorschau (scrollPaddingTop); Feld mittig im freien Bereich darunter
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      const t = document.getElementById(focusId); if (!t) return;
+      t.focus({ preventScroll: true });
+      const pad = parseInt(document.documentElement.style.scrollPaddingTop, 10) || 0, r = t.getBoundingClientRect();
+      window.scrollBy(0, r.top - (pad + Math.max(0, (window.innerHeight - pad - r.height) / 3)));
+    }));
+    return;
+  }
+  const tab = document.getElementById('cbPartTab-' + next);
+  if (tab && opts.focusTab !== false) focusWithoutScroll(tab);
+  // Segment im Bild halten (z. B. nach «Weiter mit Rezeptseiten» am Ende des langen Titelblatts)
+  if (wrap) requestAnimationFrame(() => {   // nach dem Zeichnen messen (die Seite wird beim Wechsel deutlich kuerzer)
+    const w = document.querySelector('.cb-design'); if (!w) return;
+    const tb = document.querySelector('.topbar'), top = tb && /sticky|fixed/.test(getComputedStyle(tb).position) ? tb.getBoundingClientRect().height : 0;
+    const r = w.getBoundingClientRect();
+    if (r.top < top || r.top > window.innerHeight * 0.5) window.scrollBy(0, r.top - top - 16);
+  });
 }
 /* Ein Prüfhinweis mit Ziel (Rezept prüfen, Cover bearbeiten, Kapitel bearbeiten, PDF-Seite ansehen) */
 function cookbookHintHtml(h) {

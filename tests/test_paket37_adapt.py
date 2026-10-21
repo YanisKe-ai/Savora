@@ -45,7 +45,8 @@ VIEWS = [
  ('shopping',"state.view='shopping'"),
  ('cookbooks',"state.view='cookbooks'"),
  ('cb1',"state.view='cookbook';state.cookbookStep=1"),
- ('cb2',"state.view='cookbook';state.cookbookStep=2"),
+ ('cb2',"state.view='cookbook';state.cookbookStep=2;state.cbDesignPart='cover'"),
+ ('cb2p',"state.view='cookbook';state.cookbookStep=2;state.cbDesignPart='pages'"),   # v85: Teil «Rezeptseiten»
  ('cb3',"state.view='cookbook';state.cookbookStep=3"),
  ('settings',"state.view='settings'"),
  ('sdisplay',"state.view='settings-display'"),
