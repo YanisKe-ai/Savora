@@ -594,6 +594,14 @@ async function libUpload(path, blob) {
     throw e;
   }
 }
+/* Persoenliches nie veroeffentlichen (v0.86): Naehrwert-Zuordnungen enthalten eigene Lebensmittel. Der Entwurf ist schon
+   eine Positivliste (libDraftFromRecipe); das hier ist die zweite Sicherung, falls ein Aufrufer ein ganzes Rezept uebergibt. */
+function libStripPrivateFields(d) {
+  if (!d || typeof d !== 'object') return d;
+  const o = Object.assign({}, d);
+  delete o.nutritionMap;
+  return o;
+}
 /* Ablauf: Bilder vorbereiten und hochladen, dann in EINEM Aufruf veroeffentlichen. Scheitert etwas, bleibt die bisherige
    Fassung (bzw. nichts) oeffentlich. Request-ID und Dateinamen bleiben fuer Wiederholungen gleich (keine Dubletten). */
 async function libPublish(o) {
@@ -625,7 +633,7 @@ async function libPublish(o) {
   if (typeof o.onProgress === 'function') o.onProgress('publish');
   const res = await libApi('savora_pub_publish', {
     p_request_id: requestId, p_publication_id: pubId, p_expected_version: o.expectedVersion || null,
-    p_recipe: draft, p_image_path: imagePath, p_thumb_path: thumbPath, p_source_local_id: String(recipe.id).slice(0, 120),
+    p_recipe: libStripPrivateFields(draft), p_image_path: imagePath, p_thumb_path: thumbPath, p_source_local_id: String(recipe.id).slice(0, 120),
     p_terms_version: LIB_TERMS_VERSION, p_terms_accepted: o.termsAccepted === true,
   });
   if (gen !== lib.gen) throw libErr('Das Konto wurde gewechselt.');

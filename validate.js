@@ -115,6 +115,35 @@ function valStringList(v, label, errors) {
   v.forEach((x, n) => { if (typeof x !== 'string' || x.length > 200) errors.push(`${label}, Eintrag ${n + 1}: muss Text bis 200 Zeichen sein`); });
 }
 
+/* Naehrwert-Zuordnungen im Rezept (recipe.nutritionMap, v0.86, siehe nutrition-sync.js). Optional; ungueltige Eintraege
+   werden einzeln entfernt, das Rezept bleibt immer gueltig. Ergebnis { map | null, dropped } . */
+const VAL_NUTRITION_MAP_MAX = 500;
+function valNutritionMap(m) {
+  if (!valIsObj(m)) return { map: null, dropped: m === undefined || m === null ? 0 : 1 };
+  const out = {}; let dropped = 0, n = 0;
+  Object.keys(m).forEach(k => {
+    const e = m[k];
+    const okKey = typeof k === 'string' && k.length > 0 && k.length <= 300 && k !== '__proto__';
+    const at = valIsObj(e) && valIsNum(e.updatedAt) && e.updatedAt >= 0 ? e.updatedAt : null;
+    if (!okKey || at === null || n >= VAL_NUTRITION_MAP_MAX) { dropped++; return; }
+    if (e.deleted === true) { out[k] = { foodId: null, deleted: true, updatedAt: at }; n++; return; }
+    if (typeof e.foodId !== 'string' || !VAL_ID_RE.test(e.foodId)) { dropped++; return; }
+    const x = { foodId: e.foodId, source: typeof e.source === 'string' ? e.source.slice(0, 20) : '', name: typeof e.name === 'string' ? e.name.slice(0, 300) : '', updatedAt: at };
+    const cf = e.customFood;
+    if (valIsObj(cf) && cf.id === e.foodId && valIsObj(cf.nutrientsPer100g)) {
+      const nut = {};
+      Object.keys(cf.nutrientsPer100g).slice(0, 80).forEach(nk => { const v = cf.nutrientsPer100g[nk]; if (/^[A-Za-z0-9_]{1,40}$/.test(nk)) nut[nk] = valIsNum(v) && v >= 0 ? v : null; });
+      const c = { id: cf.id, name: typeof cf.name === 'string' ? cf.name.slice(0, 300) : '', nutrientsPer100g: nut, density: valIsNum(cf.density) && cf.density > 0 ? cf.density : null };
+      if (typeof cf.category === 'string' && cf.category) c.category = cf.category.slice(0, 100);
+      if (typeof cf.brand === 'string' && cf.brand) c.brand = cf.brand.slice(0, 100);
+      if (valIsNum(cf.updatedAt)) c.updatedAt = cf.updatedAt;
+      x.customFood = c;
+    }
+    out[k] = x; n++;
+  });
+  return { map: n ? out : null, dropped };
+}
+
 /* Ein Rezeptobjekt pruefen.
    Ergebnis: { ok, errors: [Text], warnings: [Text], recipe } . recipe ist eine tiefe Kopie mit allen Zusatzfeldern; eine
    unzulaessige Bildquelle ist darin entfernt (und als Hinweis gemeldet). Bei ok === false ist recipe null. */
@@ -180,6 +209,12 @@ function validateRecipe(raw) {
   if (recipe.publicTips !== undefined && recipe.publicTips !== null && !(typeof recipe.publicTips === 'string' && recipe.publicTips.length <= VAL_MAX_PUBLIC_TIPS)) {
     delete recipe.publicTips;
     warnings.push('Die Kochtipps aus der Rezeptbibliothek waren ungültig und wurden entfernt');
+  }
+  // Naehrwert-Zuordnungen (v0.86): optional, ungueltige Eintraege einzeln entfernen
+  if (recipe.nutritionMap !== undefined) {
+    const nm = valNutritionMap(recipe.nutritionMap);
+    if (nm.map) recipe.nutritionMap = nm.map; else delete recipe.nutritionMap;
+    if (nm.dropped) warnings.push('Einige Nährwert-Zuordnungen waren ungültig und wurden nicht übernommen');
   }
   return { ok: true, errors, warnings, recipe };
 }
