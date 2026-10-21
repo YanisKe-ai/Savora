@@ -178,6 +178,10 @@ function shareRecipeFromPayload(payload, fromHandle) {
   if (po) r.publicOrigin = po;
   const tips = shareStr(o.publicTips, VAL_MAX_PUBLIC_TIPS);
   if (tips) r.publicTips = tips;
+  // Naehrwert-Zuordnungen des Absenders duerfen mit (v0.86), aber nur gepruefte Eintraege
+  delete r.nutritionMap;
+  const nm = typeof valNutritionMap === 'function' ? valNutritionMap(o.nutritionMap).map : null;
+  if (nm) r.nutritionMap = nm;
   if (fromHandle) r.sharedBy = fromHandle;
   return r;
 }
