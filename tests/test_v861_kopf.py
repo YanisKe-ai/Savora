@@ -32,9 +32,9 @@ async def main():
         await page.click('#tab-ingredients'); await page.wait_for_timeout(250)
         g = await page.evaluate("""() => { const bar = document.querySelector('.tabbar-v2').getBoundingClientRect(); const first = document.querySelector('#panel-ingredients .ing-check').getBoundingClientRect();
           const p = document.getElementById('panel-ingredients'); const last = Array.from(p.querySelectorAll('.ing-check')).pop().getBoundingClientRect();
-          return { gapTop: first.top - bar.bottom, panelH: p.getBoundingClientRect().height, contentH: last.bottom - p.getBoundingClientRect().top, vh: innerHeight }; }""")
-        check('Reiterwechsel (klebend): Zutaten beginnen direkt unter den Reitern', 0 <= g['gapTop'] < 120, str(g))
-        check('Reiterwechsel: höchstens Platz bis Bildschirmende reserviert, keine riesige Leerfläche', g['panelH'] - g['contentH'] < g['vh'], str(g))
+          return { atEnd: document.documentElement.scrollHeight - (scrollY + innerHeight) <= 1, gapTop: first.top - bar.bottom, panelH: p.getBoundingClientRect().height, contentH: last.bottom - p.getBoundingClientRect().top, vh: innerHeight }; }""")
+        check('Reiterwechsel (klebend): Zutaten beginnen direkt unter den Reitern oder die Seite endet am Rand', 0 <= g['gapTop'] < 120 or g['atEnd'], str(g))
+        check('Reiterwechsel: keine Leerfläche unter dem Inhalt', g['panelH'] - g['contentH'] < 120, str(g))
         await page.click('#tab-steps'); await page.click('#tab-ingredients'); await page.click('#tab-steps'); await page.wait_for_timeout(150)
         mh = await page.evaluate("Array.from(document.querySelectorAll('.tab-panel')).filter(p => p.hidden && p.style.minHeight).length")
         check('Keine angesammelte Mindesthöhe in versteckten Reitern', mh == 0, str(mh))
@@ -49,15 +49,12 @@ async def main():
         z = await page.evaluate("""() => { const p = document.getElementById('panel-nutrition'); const last = p.querySelector('details.nut-more').getBoundingClientRect();
           return { mh: p.style.minHeight, bottomGap: document.documentElement.scrollHeight - (scrollY + innerHeight), summaryInView: last.bottom > 0 && last.top < innerHeight, below: innerHeight - p.getBoundingClientRect().bottom }; }""")
         check('Zuklappen: keine stehende Reservierung, Seite endet am Bildschirmrand', z['mh'] == '' and z['bottomGap'] <= 1 and z['summaryInView'], str(z))
-        # Reservierung nach Reiterwechsel schrumpft beim Hochscrollen
+        # v86.4: Reiterwechsel reserviert keinen Platz (keine leere Fläche, kein Mitreagieren beim Scrollen)
         await page.evaluate("async () => { state.detailTab = 'steps'; render(); }"); await page.wait_for_timeout(150)
         await page.evaluate("window.scrollTo(0, 200)"); await page.wait_for_timeout(100)
-        await page.click('#tab-ingredients'); await page.wait_for_timeout(700)   # direkt nach dem Wechsel (500 ms) bleibt die Reservierung bewusst stehen
-        r0 = await page.evaluate("parseFloat(document.getElementById('panel-ingredients').style.minHeight) || 0")
-        for _ in range(4):
-            await page.mouse.wheel(0, -120); await page.wait_for_timeout(120)
-        r1 = await page.evaluate("parseFloat(document.getElementById('panel-ingredients').style.minHeight) || 0")
-        check('Hochscrollen: reservierter Platz schrumpft', r0 > 0 and r1 < r0, f'{r0} -> {r1}')
+        await page.click('#tab-ingredients'); await page.wait_for_timeout(200)
+        r = await page.evaluate("({ mh: document.getElementById('panel-ingredients').style.minHeight, gap: document.documentElement.scrollHeight - (scrollY + innerHeight) })")
+        check('Reiterwechsel ohne Reservierung, Seite nie über das Ende hinaus', r['mh'] == '' and r['gap'] >= -1, str(r))
         check('Keine JS-Fehler', not errs, str(errs))
         await b.close()
     print('\nFEHLGESCHLAGEN:', FAIL if FAIL else 'keine')

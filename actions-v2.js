@@ -330,8 +330,7 @@ async function handleActionV2(action, id, el, e) {
 
     /* ----- Rezeptdetail ----- */
     case 'set-detail-tab': {
-      // Nur umblenden, nicht neu rendern. Das neue Panel bekommt mindestens die Hoehe des alten,
-      // damit ein kuerzeres Panel die Scrollposition nicht nach oben klemmt.
+      // Nur umblenden, nicht neu rendern.
       const oldPanel = document.querySelector('.tab-panel:not([hidden])');
       const newPanel = document.getElementById('panel-' + id);
       if (!newPanel) { state.detailTab = id; render(); return true; }
@@ -348,18 +347,19 @@ async function handleActionV2(action, id, el, e) {
       linkSyncEntry();
       const dm = document.querySelector('.detail-main'); if (dm) dm.dataset.tab = id;   // breites Layout richtet sich danach
       document.querySelectorAll('.tab-panel').forEach(p => { p.hidden = p !== newPanel; p.style.minHeight = ''; });
-      if (prevH) { newPanel.style.minHeight = prevH + 'px'; window.__detailReserveAt = performance.now(); }   // zuerst wie bisher: gleiche Hoehe, kein Sprung
       document.querySelectorAll('.tab-v2[role="tab"]').forEach(t => {
         const on = t.dataset.id === id;
         t.classList.toggle('is-active', on); t.setAttribute('aria-selected', String(on)); t.tabIndex = on ? 0 : -1;
       });
-      // Klebt die Reiterleiste, beginnt der neue Inhalt direkt unter ihr. Reserviert wird nur Platz bis zum Bildschirmende,
-      // nie die Hoehe des alten Reiters (sonst grosse leere Flaeche unter kurzen Reitern, iPhone-Rueckmeldung v86.1).
-      if (prevH && stuck) {
-        newPanel.style.minHeight = '';
-        const below = window.innerHeight - stickTop - bar.offsetHeight;
-        if (newPanel.offsetHeight < below) newPanel.style.minHeight = below + 'px';
-        window.scrollTo(0, Math.max(0, barNatural - stickTop));
+      // v86.4: genau EIN Scrollbefehl, keine Reservierung, kein Mitreagieren beim Scrollen (das kaempfte auf dem iPhone mit
+      // dem Nachschwingen und liess die Seite kurz leer einfrieren). Klebt die Reiterleiste, beginnt der neue Inhalt direkt
+      // unter ihr; sonst bleibt die Stelle. Ist der neue Reiter kuerzer, endet die Seite am Bildschirmrand (selbst begrenzt,
+      // weil Safari das nicht sofort tut).
+      if (prevH) {
+        const max = Math.max(0, document.documentElement.scrollHeight - window.innerHeight);
+        const want = stuck ? Math.max(0, barNatural - stickTop) : y0;
+        const target = Math.min(want, max);
+        if (Math.abs(window.scrollY - target) > 0.5) window.scrollTo(0, target);
       }
       return true;
     }
@@ -1921,32 +1921,14 @@ async function hvHandleAction(action, id, el, e) {
   return false;
 }
 
-/* ---------- v86.2: keine leere Fläche im Rezept ----------
-   Beim Reiterwechsel reserviert der neue Reiter kurz Platz (damit die Seite nicht springt). Dieser Platz darf nicht
-   stehen bleiben: Beim Hochscrollen schrumpft er auf das Nötige, und beim Zuklappen eines Bereichs (z. B. «Mehr Werte
-   und Optionen») fällt er ganz weg. Danach wird die Scrollposition auf das Seitenende begrenzt; iPhone/Safari tut das
-   beim Kleinerwerden der Seite nicht sofort und zeigt sonst eine leere Fläche. */
-function detailReserveFit(release) {
-  const p = document.querySelector('.tab-panel:not([hidden])');
-  const y = window.scrollY;
-  if (p && p.style.minHeight) {
-    p.style.minHeight = '';
-    if (!release) {
-      const need = y + window.innerHeight - document.documentElement.scrollHeight;
-      if (need > 0.5) p.style.minHeight = (p.offsetHeight + need) + 'px';
-    }
-  }
-  const max = Math.max(0, document.documentElement.scrollHeight - window.innerHeight);
-  if (release ? y > max + 0.5 : Math.abs(window.scrollY - y) > 0.5) window.scrollTo(0, release ? max : y);
-}
-let detailReserveRaf = 0, detailReserveLastY = 0;
-window.addEventListener('scroll', () => {
-  const y = window.scrollY, up = y < detailReserveLastY; detailReserveLastY = y;
-  if (!up || detailReserveRaf || performance.now() - (window.__detailReserveAt || 0) < 500 || !document.querySelector('.tab-panel[style*="min-height"]:not([hidden])')) return;
-  detailReserveRaf = requestAnimationFrame(() => { detailReserveRaf = 0; detailReserveFit(false); });
-}, { passive: true });
+/* ---------- v86.2/86.4: keine leere Fläche im Rezept ----------
+   Zuklappen eines Bereichs in einem Reiter (z. B. «Mehr Werte und Optionen») macht die Seite kuerzer. iPhone/Safari
+   begrenzt die Scrollposition dann nicht sofort und zeigt eine leere Flaeche: hier einmal selbst aufs Seitenende begrenzen.
+   Bewusst KEIN Scroll-Listener (v86.2 hatte einen; er kaempfte auf dem iPhone mit dem Nachschwingen). */
 document.addEventListener('toggle', (e) => {
   const d = e.target;
   if (!(d instanceof HTMLDetailsElement) || d.open || !d.closest('.tab-panel')) return;
-  detailReserveFit(true);
+  document.querySelectorAll('.tab-panel').forEach(p => { p.style.minHeight = ''; });
+  const max = Math.max(0, document.documentElement.scrollHeight - window.innerHeight);
+  if (window.scrollY > max + 0.5) window.scrollTo(0, max);
 }, true);
