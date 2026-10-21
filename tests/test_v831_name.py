@@ -26,7 +26,7 @@ SETUP = """async (name) => {
   cfg.chapters = []; cfg.title = 'Namenbuch'; cfg.author = name; cfg.pdfTemplate = 'pur';
   delete cfg.printName;   // bestehendes Buch ohne das neue Feld
   saveCookbookConfig(cfg);
-  state.view = 'cookbook'; state.cookbookStep = 2; render();
+  state.view = 'cookbook'; state.cookbookStep = 2; state.cbDesignPart = 'pages'; render();   // v85: Name im PDF steht im Teil «Rezeptseiten»
 }"""
 
 def norm(s):
@@ -118,7 +118,7 @@ async def main():
               return { dd: dd && dd.textContent, cover: blocks.some(bl => bl.key === 'name' && bl.lines.join(' ').includes(c.author)) }; }""", pn)
             check(f'Zusammenfassung «{LABEL[pn]}», Titelblatt-Vorschau mit Name: {pn in ("both", "cover")}', r['dd'] == LABEL[pn] and r['cover'] == (pn in ('both', 'cover')), str(r))
         await page.screenshot(path=os.path.join(OUT, f'v831_zusammenfassung{tag}.png'))
-        await ev("() => { state.cookbookStep = 2; render(); }")
+        await ev("() => { state.cookbookStep = 2; state.cbDesignPart = 'pages'; render(); }")
         el = await page.query_selector('.cb-pdf-opts')
         if el: await el.screenshot(path=os.path.join(OUT, f'v831_gestalten_im_pdf{tag}.png'))
 
