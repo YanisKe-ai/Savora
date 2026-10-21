@@ -33,7 +33,7 @@
   --pv-cont-font: var(--pv-font); --pv-cont-weight: 600; --pv-cont-size: 13pt; --pv-cont-color: var(--pv-accent);
   --pv-badge-bg: transparent; --pv-badge-pad: 0;
   --pv-fs-body: 11pt; --pv-lh: 1.45; --pv-fs-ing: 10.5pt; --pv-lh-ing: 1.38; --pv-fs-meta: 10.5pt; --pv-fs-small: 8.5pt;
-  --pv-fs-source: 9pt; --pv-fs-tip: 9pt; --pv-fs-label: 11pt;
+  --pv-fs-source: 9pt; --pv-fs-tip: 10pt; --pv-fs-label: 11pt;   /* v87: Hinweise/Notizen 10 pt (vorher 9 pt), Lesbarkeit */
   --pv-amt-w: 22mm; --pv-step-no-w: 11mm; --pv-circle: 10mm;
 }
 /* ---------- Tokens: Prise Pop ---------- */
@@ -81,9 +81,20 @@
 .pv-recipe[data-density^="compact"] .pv-title { margin-bottom: 2mm; }
 .pp-meta { display: flex; flex-wrap: wrap; gap: 2mm 6mm; margin: 3mm 0 0; padding-top: 2mm; font-size: var(--pv-fs-meta); line-height: 1.4; }
 .pv-recipe[data-density^="compact"] .pp-meta { margin-top: 0; padding-top: 2mm; }
+/* v87: Zeitangaben als eine Gruppe (bricht als Ganzes in die naechste Zeile, innen nur wenn sie allein zu breit ist) */
+.pp-meta .pp-times { display: flex; flex-wrap: wrap; gap: inherit; min-width: 0; }
+.pp-meta > span { padding-bottom: .8mm; margin-bottom: -.8mm; }   /* Linux-Reserve: Unterlaengen bleiben im Raster sichtbar */
 .pv-photo-wrap { position: relative; flex: none; display: grid; place-items: center; margin: 0; padding: 0; }
 .pv-photo { position: relative; background: transparent; border-radius: 0; }
 .pv-photo img { display: block; width: 100%; height: 100%; object-fit: contain; }
+/* v87 (Prise Pop): eine Fotogroesse fuer alle Rezepte und Dichten, oben rechts buendig mit dem Titelblock; das Foto fuellt die Box
+   (pdf.js schneidet es vor dem Rastern mittig zu). Der Kopf ist so hoch wie das Foto, der Titel steht unten buendig mit dem Foto. */
+.pv-tpl-prise-pop { --pv-photo-w: 44mm; --pv-photo-h: 29mm; }
+.pv-photo-wrap.pv-photo-fix, .pv-photo-fix .pv-photo { width: var(--pv-photo-w); height: var(--pv-photo-h); }
+.pv-photo-fix { place-items: stretch; }
+.pv-photo-fix .pv-photo, .pv-photo-fix img { border-radius: 2mm; }
+.pv-photo-fix img { object-fit: cover; object-position: 50% 50%; }
+.pv-tpl-prise-pop.pv-photo-side .pv-head-grid, .pv-recipe[data-density].pv-tpl-prise-pop.pv-photo-side .pv-head-grid { min-height: var(--pv-photo-h); align-items: end; }
 
 /* ---------- Abschnittsueberschriften ---------- */
 .pv-h { font-family: var(--pv-h-font); font-weight: var(--pv-h-weight); font-size: var(--pv-h-size); color: var(--pv-accent); line-height: var(--pv-h-lh); margin: 0 0 3mm; padding-bottom: 1.2mm; break-after: avoid; }
@@ -104,6 +115,19 @@
 .pp-group { position: relative; min-width: 0; break-inside: avoid; display: grid; grid-template-columns: minmax(var(--pv-amt-w), max-content) minmax(0, 1fr); column-gap: 2mm; row-gap: 1.1mm; align-content: start; }
 .pv-recipe[data-density^="compact"] .pp-group { row-gap: .6mm; }
 .pp-group.pv-ing-col-noamt { grid-template-columns: minmax(0, 1fr); }
+/* v87 (Prise Pop): zwei ausgeglichene Spalten, Gruppen je Spalte untereinander, feine senkrechte Linie dazwischen */
+.pp-groups.pp-stack { align-items: stretch; }
+/* Kein position:relative in den Spalten: html2canvas setzte den Text darin rund 2 mm tiefer als der Browser (am Raster gemessen,
+   pruefe_raender in test_pdf_stile); die Trennlinie ist darum ein linker Rand der zweiten Spalte statt eines ::before. */
+.pp-stack > .pp-col { display: block; min-width: 0; }
+.pp-stack > .pp-col > .pp-group + .pp-group { margin-top: 3.5mm; }
+.pp-stack > .pp-col + .pp-col { margin-left: -4.5mm; padding-left: 4.25mm; border-left: .25mm solid var(--pv-group-rule); }
+.pp-stack .pp-group::before { display: none; }
+.pp-stack > .pp-col-cont { padding-top: calc(var(--pv-group-size) * var(--pv-group-lh) + .9mm); }
+.pv-recipe[data-density^="compact"] .pp-stack > .pp-col-cont { padding-top: calc(var(--pv-group-size) * var(--pv-group-lh) + .4mm); }
+.pp-stack .pp-group:nth-child(n+3) { border-top: 0; padding-top: 0; }
+.pv-recipe[data-density^="compact"] .pp-stack > .pp-col > .pp-group + .pp-group { margin-top: 2mm; }
+.pv-recipe[data-density^="compact"] .pp-stack > .pp-col + .pp-col { margin-left: -4mm; padding-left: 3.75mm; }
 /* feine Trennlinien: senkrecht zwischen den beiden Spalten, waagrecht ueber der zweiten Reihe */
 .pp-group:nth-child(even)::before { content: ''; position: absolute; left: -4.5mm; top: 0; bottom: 0; border-left: .25mm solid var(--pv-group-rule); }
 .pp-group:nth-child(n+3) { border-top: .25mm solid var(--pv-group-rule); padding-top: 3mm; }
@@ -128,7 +152,7 @@
 /* Zutatenzeile: Menge (fett, nie umbrochen) und Name getrennt ausgerichtet; alle Zeilen einer Gruppe teilen die Mengenspalte (Subgrid).
    Keine Zellkaestchen, keine Zebrazeilen, kein Tabellenraster. */
 .pv-ing { grid-column: 1 / -1; display: grid; grid-template-columns: subgrid; padding: 0; border: 0; background: transparent; font-size: var(--pv-fs-ing); line-height: var(--pv-lh-ing); break-inside: avoid; }
-.pv-ing-amt { grid-column: 1; font-weight: 700; color: var(--pv-ink); white-space: nowrap; overflow-wrap: normal; word-break: normal; font-variant-numeric: tabular-nums; }
+.pv-ing-amt { grid-column: 1; font-weight: 700; color: var(--pv-ink); white-space: nowrap; overflow-wrap: normal; word-break: normal; font-variant-numeric: normal; }   /* v87: nicht tabular, html2canvas misst tabellarisch und zeichnet proportional («15  g») */
 .pv-ing-name { grid-column: -2 / -1; min-width: 0; overflow-wrap: break-word; word-break: normal; hyphens: none; }
 .pv-ing-note { color: var(--pv-muted); }
 .pv-ing[data-stack] .pv-ing-amt { grid-column: 1 / -1; white-space: normal; }
@@ -159,6 +183,10 @@
 .pv-recipe[data-density^="compact"].pv-tpl-prise-pop .pv-step-no { padding-bottom: 4mm; }
 .pv-recipe[data-density^="compact"].pv-tpl-prise-pop .pv-step-no { border-width: .45mm; }
 .pv-tpl-prise-pop .pv-step[data-cont] .pv-step-no { border-color: transparent; }
+/* v87: Folgeteil eines geteilten Schritts liest sich als Weiterfuehrung: keine Nummer, kein kleines «Fortsetzung ·» im Text
+   (der Seitenkopf zeigt «Fortsetzung · n / K») */
+.pv-step[data-cont] .pv-step-no { visibility: hidden; }
+.pv-step[data-cont] .pv-step-text > .pv-cont { display: none; }
 .pv-step-body { display: block; min-width: 0; }
 .pv-step-text { display: block; white-space: pre-line; min-width: 0; overflow-wrap: break-word; }
 .pv-step-heading { font: 700 11pt/1.3 var(--pv-font); color: var(--pv-ink); margin: 3mm 0 1.5mm; break-after: avoid; }
@@ -169,7 +197,7 @@
 .pv-tpl-prise-pop .pv-tomato { display: block; flex: none; width: 20mm; height: 16mm; background: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='80' viewBox='0 0 100 80' fill='none' stroke='%23B93B2C' stroke-width='3.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M49 26C25 11 13 32 22 51c6 15 17 20 28 19 14 1 27-14 29-29 2-15-13-25-30-15Z'/%3E%3Cpath d='m49 26-12-9 11 2 1-12 5 12 10-3-9 10m-6 0 2 9m36-16 7-8m-7 20 10-1'/%3E%3C/svg%3E") center / 100% 100% no-repeat; }
 
 /* ---------- Hinweise, Notizen, Naehrwerte, Quelle ---------- */
-.pv-extras { margin-top: auto; padding-top: 0; }
+.pv-extras { margin-top: 0; padding-top: 0; }   /* v87: direkt nach den Schritten, nicht unten an den Seitenrand geklebt */
 .pv-extra { margin: 0 0 3mm; break-inside: avoid; }
 .pv-recipe[data-density^="compact"] .pv-extra { margin-bottom: 2mm; }
 .pv-extra p { margin: 0 0 1.5mm; font-size: var(--pv-fs-body); line-height: var(--pv-lh); white-space: pre-line; }
@@ -180,6 +208,15 @@
 .pv-extra-body, .pv-tips > p, .pv-notes > p { grid-column: 2; min-width: 0; }
 .pv-tips p, .pv-notes p { font-size: var(--pv-fs-tip); line-height: 1.4; margin: 0 0 1.2mm; }
 .pv-tips p:last-child, .pv-notes p:last-child { margin-bottom: 0; }
+/* v87: ein Kasten fuer Hinweise und Notizen; je Block eine Zeile im Raster (Beschriftung links, Absaetze rechts).
+   Beschriftung und erste Textzeile stehen auf derselben Grundlinie (oben buendig); html2canvas setzt grosse Schrift etwas tiefer,
+   darum sitzt die Beschriftung 0,6 mm hoeher. */
+.pv-notebox { row-gap: 3mm; align-items: baseline; }
+.pv-notebox > .pv-label { position: relative; top: -.6mm; }
+.pv-tpl-prise-pop { --pv-tip-size: 13pt; --pv-fs-tip: 10pt; }
+.pv-tpl-prise-pop .pv-tips p, .pv-tpl-prise-pop .pv-notes p { line-height: 1.45; margin-bottom: 1.4mm; }
+.pv-extra p.pv-gap { margin-top: 2.6mm; }
+.pv-note-title, .pv-note-head { font-weight: 700; color: var(--pv-ink); }
 .pv-extras-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); column-gap: 9mm; align-items: start; }
 /* Naehrwerte: duenne Linie, Raster mit festen Zellen (fehlende Werte fehlen, nie 0); Prise Pop kompakt als Zeile */
 .pv-nutri { border-top: .2mm solid var(--pv-foot-rule, #DED8CA); padding-top: 2mm; font-size: var(--pv-fs-small); line-height: 1.35; }
@@ -204,7 +241,7 @@
 /* ---------- Fusszeile ----------
    Feine Linie ueber die ganze Breite, links Buchtitel/Autor bzw. «Savora» (hoechstens 75 mm breit, max. 2 Zeilen ueber pdfClampText),
    die Mitte bleibt frei: dort setzt pdf.js «n / K» als Vektortext (105 mm / 290,2 mm). Kein overflow:hidden (Text sitzt im Raster tiefer). */
-.pv-foot { position: absolute; left: 13mm; width: 75mm; bottom: 5.5mm; height: 9mm; display: flex; align-items: flex-end; font-size: 8.5pt; line-height: 1.3; font-weight: 400; color: var(--pv-muted); overflow: visible; }
+.pv-foot { position: absolute; left: 13mm; width: 75mm; bottom: 6.5mm; height: 9mm; display: flex; align-items: flex-end; font-size: 8.5pt; line-height: 1.3; font-weight: 400; color: var(--pv-muted); overflow: visible; }
 .pv-foot span { display: block; max-width: 100%; white-space: normal; overflow-wrap: break-word; padding-bottom: 1.1mm; }
 /* feine Linie ueber dem Fussbereich (Rezeptseiten), als Pseudo-Element: kein Text, kein Bild */
 .pv-recipe::after { content: ''; position: absolute; left: 13mm; right: 13mm; bottom: 14.5mm; border-top: .2mm solid var(--pv-foot-rule, #DED8CA); }
@@ -214,6 +251,10 @@
 .pv-cont-head { display: flex; justify-content: space-between; align-items: baseline; gap: 6mm; margin: 0 0 -1mm; overflow: visible; }
 .pv-cont-head span { min-width: 0; white-space: normal; overflow-wrap: break-word; font-family: var(--pv-cont-font); font-weight: var(--pv-cont-weight); font-size: var(--pv-cont-size); color: var(--pv-cont-color); line-height: 1.2; }
 .pv-cont-head i { flex: none; white-space: nowrap; font-style: normal; font-size: 8.5pt; font-weight: 400; line-height: 1.3; color: var(--pv-ink); background: var(--pv-badge-bg); padding: var(--pv-badge-pad); border-radius: 6mm; }
+/* v87 (Prise Pop): Marke «Fortsetzung · n / K» vollstaendig und ruhig. Feste Hoehe mit Rundung = halbe Hoehe (html2canvas zeichnet
+   groessere Radien falsch, die Pille wirkte angeschnitten); unten mehr Innenabstand, weil der Text im Raster tiefer sitzt. */
+.pv-tpl-prise-pop .pv-cont-head { align-items: center; }
+.pv-tpl-prise-pop .pv-cont-head i { display: block; box-sizing: border-box; height: 6.2mm; line-height: 3.8mm; padding: .7mm 3.2mm 1.7mm; border-radius: 3.1mm; color: var(--pv-muted); }
 
 /* ---------- Inhaltsverzeichnis, Kapitel ---------- */
 .pv-toc { padding-top: 24mm; }
@@ -248,7 +289,7 @@
 /* Seitenrahmen, Reihenfolge von oben nach unten:
      Kopfzone    14 mm Seitenrand, Fortsetzungsseiten zeigen .pv-cont-head (max. 2 Zeilen)
      Hauptinhalt Rest bis 276 mm (21 mm Fussbereich unten); nur gegen diesen Bereich wird gemessen und umbrochen
-     Fusszone    282,5 bis 291,5 mm: .pv-foot (links, max. 2 Zeilen) und Seitenzahl «n / K» (Mitte, jsPDF bei 105 mm / 290,2 mm)
+     Fusszone    281,5 bis 290,5 mm: .pv-foot (links, max. 2 Zeilen) und Seitenzahl (pvPageNumberMarks, jsPDF-Grundlinie 290,2 mm)
    Beim Rastern setzt pdf.js die Hoehe der Seite auf exakt 297 mm (Rundungsfehler ausgeschlossen). */
 #printRoot > .pv-page:not(.pv-cover2) { box-sizing: border-box; min-height: 297mm; }
 #printRoot > section { overflow: visible; }

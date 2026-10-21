@@ -63,7 +63,8 @@ JS_ING = """(rows) => rows.map(r => { const rec = { id: 'x', title: 'T', ingredi
 
 JS_STEPS = """(spec) => { const rec = Object.assign({ id: 's', title: 'T', servings: 4, ingredients: [{ amount: '1', unit: 'g', name: 'X' }], steps: [] }, spec.rec);
   rec.steps = spec.steps.map(t => ({ text: t })); const before = JSON.stringify(rec); const m = pdfBuildModel(rec, null, spec.opts || {});
-  return { steps: m.steps, tips: m.tips, source: m.source, sourceText: m.sourceText, sourceUrl: m.sourceUrl, sourceUrlText: m.sourceUrlText, notes: m.notes, cat: m.category, catKind: m.categoryKind, catAll: m.categoryAll,
+  const si = pdfSourceInfo(rec, pdfSplitSteps(rec).sources);   // v0.87: Quelle nur noch als Hilfsfunktion (das Modell druckt keine Quelle)
+  return { si, steps: m.steps, tips: m.tips, source: m.source, sourceText: m.sourceText, sourceUrl: m.sourceUrl, sourceUrlText: m.sourceUrlText, notes: m.notes, cat: m.category, catKind: m.categoryKind, catAll: m.categoryAll,
     servings: m.servings, warnings: m.warnings, unchanged: before === JSON.stringify(rec) }; }"""
 
 async def main():
@@ -78,7 +79,7 @@ async def main():
         # 1) Zutatenmatrix
         res = await ev(JS_ING, [m[0] for m in MATRIX])
         for (inp, exp), got in zip(MATRIX, res):
-            ok = len(got) == 1 and got[0][0] == exp[0] and got[0][1] == exp[1] and got[0][2] == exp[2] and got[0][3] == exp[3]
+            ok = len(got) == 1 and got[0][0] == exp[0] and got[0][1].replace(NB, ' ') == exp[1] and got[0][2] == exp[2] and got[0][3] == exp[3]
             check(f'Zutat {inp} -> {exp[0]!r} | {exp[1]!r} | {exp[2]!r}', ok, str(got).replace(NB, '~'))
         byin = {json.dumps(m[0], ensure_ascii=False): g[0] for m, g in zip(MATRIX, res)}
         check('Unsichere Zeile behaelt den Originaltext vollstaendig (raw)', byin['["2", "Zwiebel", "rot, gehackt"]'][4] == '2 Zwiebel rot, gehackt' and byin['["", "g", "Mehl"]'][4] == 'g Mehl' and byin['["1.000", "", "Mehl"]'][4] == '1.000 Mehl', '')
@@ -96,7 +97,8 @@ async def main():
         check('Hinweise: allgemeine Ueberschrift "Tipps & Hinweise" bleibt nicht allein am Ende der Anleitung', r['steps'][-1]['type'] == 'step' and not any(s['type'] == 'heading' and 'Tipps' in s['text'] for s in r['steps']), str(r['steps']))
         check('Hinweis-Inhalt bleibt sichtbar (genau einmal)', r['tips'] == ['Haltbarkeit: Gut verschlossen etwa 2 Wochen haltbar.'], str(r['tips']))
         check('Nutzernotiz bleibt erhalten und getrennt von den Hinweisen', r['notes'] == 'Meine eigene Notiz', r['notes'])
-        check('Quelle: Wortlaut unveraendert, URL getrennt erkannt', r['source'] == 'Quelle: bettybossi.ch/rezept/chocolate-chip-cookies' and r['sourceUrl'] == 'https://bettybossi.ch/rezept/chocolate-chip-cookies' and r['sourceUrlText'] == 'bettybossi.ch/rezept/chocolate-chip-cookies' and r['sourceText'] == 'bettybossi.ch/rezept/chocolate-chip-cookies', str(r))
+        check('Quelle (pdfSourceInfo): Wortlaut unveraendert, URL getrennt erkannt', r['si']['source'] == 'Quelle: bettybossi.ch/rezept/chocolate-chip-cookies' and r['si']['sourceUrl'] == 'https://bettybossi.ch/rezept/chocolate-chip-cookies' and r['si']['sourceUrlText'] == 'bettybossi.ch/rezept/chocolate-chip-cookies' and r['si']['sourceText'] == 'bettybossi.ch/rezept/chocolate-chip-cookies', str(r['si']))
+        check('v0.87 Nutzerregel: das PDF-Modell zeigt keine Quelle und keinen Link (Daten bleiben)', r['source'] == '' and r['sourceText'] == '' and r['sourceUrl'] == '' and r['sourceUrlText'] == '' and r['unchanged'], str(r['source']))
         check('Echter Zwischentitel mit folgendem Schritt bleibt', r['steps'][0] == {'type': 'heading', 'text': 'Teig'} and r['steps'][1]['no'] == 1, str(r['steps']))
         check('Rezept bleibt unveraendert', r['unchanged'])
         r = await ev(JS_STEPS, {'steps': ['Mehl mischen und backen, bis alles gar ist.', 'Hinweise']})
@@ -104,18 +106,18 @@ async def main():
         r = await ev(JS_STEPS, {'steps': ['Mehl mischen und backen, bis alles gar ist.', 'Für später', 'Tipp: Kühl und dunkel lagern.']})
         check('Besondere Ueberschrift vor einem Hinweis geht nicht verloren', len(r['tips']) == 1 and 'Für später' in r['tips'][0] and 'Kühl und dunkel lagern' in r['tips'][0] and r['steps'][-1]['type'] == 'step', str(r))
         r = await ev(JS_STEPS, {'steps': ['Vorbereitung', 'Backen', 'Ofen heizen und alles backen.']})
-        check('Aufeinanderfolgende Zwischentitel gehen nicht verloren', [s['text'] for s in r['steps'] if s['type'] == 'heading'] == ['Vorbereitung', 'Backen'], str(r['steps']))
+        check('Aufeinanderfolgende Zwischentitel gehen nicht verloren (v0.87: eine Ueberschrift, nicht allein stehend)', [s['text'] for s in r['steps'] if s['type'] == 'heading'] == ['Vorbereitung · Backen'], str(r['steps']))
         r = await ev(JS_STEPS, {'steps': ['Einfrieren Sie den Teig vor dem Backen für eine Stunde.', 'Variante 2: Mit Nüssen statt Schokolade.', 'Tipp, der kein Doppelpunkt braucht.']})
         check('Mehrdeutiges Wort ohne Doppelpunkt (Einfrieren Sie ...) bleibt ein Schritt, "Variante 2:" und "Tipp" werden Hinweise', len(r['steps']) == 1 and len(r['tips']) == 2, str(r))
         r = await ev(JS_STEPS, {'steps': ['Alles mischen und backen, bis es fertig ist.'], 'rec': {'source': {'title': 'Betty Bossi', 'url': 'https://www.bettybossi.ch/de/rezept?id=1&x=2'}}})
-        check('Quellenobjekt: Titel als Text, URL getrennt (nicht verloren)', r['source'] == 'Betty Bossi' and r['sourceUrl'] == 'https://www.bettybossi.ch/de/rezept?id=1&x=2', str(r))
+        check('Quellenobjekt: Titel als Text, URL getrennt (nicht verloren)', r['si']['source'] == 'Betty Bossi' and r['si']['sourceUrl'] == 'https://www.bettybossi.ch/de/rezept?id=1&x=2' and r['sourceUrl'] == '', str(r['si']))
         lang = 'https://example.com/rezepte/' + 'sehr-lang-' * 25 + 'ende.html'
         r = await ev(JS_STEPS, {'steps': ['Alles mischen und backen, bis es fertig ist.'], 'rec': {'source': lang}})
-        check('Lange URL: ganzer Text und volle URL', r['source'] == lang and r['sourceUrl'] == lang, str(len(r['source'])))
+        check('Lange URL: ganzer Text und volle URL', r['si']['source'] == lang and r['si']['sourceUrl'] == lang and r['source'] == '', str(len(r['si']['source'])))
         r = await ev(JS_STEPS, {'steps': ['Alles mischen und backen, bis es fertig ist.'], 'rec': {'source': 'Quelle: Tante Marta, siehe www.marta.ch/kuchen. Danke für alles!'}})
-        check('Quelle mit Satz: Satz bleibt vollstaendig, URL ohne Schlusspunkt erkannt', r['source'] == 'Quelle: Tante Marta, siehe www.marta.ch/kuchen. Danke für alles!' and r['sourceUrl'] == 'https://www.marta.ch/kuchen', str(r))
+        check('Quelle mit Satz: Satz bleibt vollstaendig, URL ohne Schlusspunkt erkannt', r['si']['source'] == 'Quelle: Tante Marta, siehe www.marta.ch/kuchen. Danke für alles!' and r['si']['sourceUrl'] == 'https://www.marta.ch/kuchen', str(r['si']))
         r = await ev(JS_STEPS, {'steps': ['Alles mischen und backen, bis es fertig ist.'], 'rec': {'source': 'Oma Rosa, Version 1.5 vom Sonntag'}})
-        check('Keine URL erfunden (Zahl mit Punkt ist keine Adresse)', r['sourceUrl'] == '', str(r))
+        check('Keine URL erfunden (Zahl mit Punkt ist keine Adresse)', r['si']['sourceUrl'] == '', str(r['si']))
         check('pdfClassifyStepText bleibt fuer Kochmodus und Rezeptpruefung global', await ev("typeof pdfClassifyStepText === 'function' && pdfClassifyStepText('Tipp: x') === 'tip' && pdfClassifyStepText('Mehl sieben') === 'step'"))
 
         # 3) Kategorie: Ursache Manti/Sloppy Joe und Kapitel

@@ -179,13 +179,13 @@ async def teil_pdf():
     origin = dict(ORIGIN, authorName='Anna Müller-Grünenfelder')
     async with PdfSession(os.path.join(OUT, 'pdf_herkunft')) as s:
         for stil in TEMPLATE_IDS:
-            for rid, erwartet in (('pdf_carbonara', 'Quelle Aus der Savora-Rezeptbibliothek, von Anna Müller-Grünenfelder'), ('pdf_sloppy', 'Bibliothek: Anna Müller-Grünenfelder'), ('pdf_zweiseiten', 'Aus der Savora-Rezeptbibliothek, von Anna')):
+            for rid, erwartet in (('pdf_carbonara', 'Quelle Aus der Savora-Rezeptbibliothek, von Anna Müller-Grünenfelder'), ('pdf_sloppy', 'Quelle Aus der Savora-Rezeptbibliothek, von Anna Müller-Grünenfelder'), ('pdf_zweiseiten', 'Aus der Savora-Rezeptbibliothek, von Anna')):
                 await s.page.evaluate("(id) => { delete state.recipes.find(x => x.id === id).publicOrigin; }", rid)
                 ohne = await s.single(rid, stil, 'off', name=f'herkunft_{rid}_{stil}_ohne')
                 await s.page.evaluate("([id, po]) => { state.recipes.find(x => x.id === id).publicOrigin = po; }", [rid, origin])
                 mit = await s.single(rid, stil, 'off', name=f'herkunft_{rid}_{stil}_mit')
                 t = ' '.join(mit.text().replace(' ', ' ').split())
-                check(f'PDF {stil} {rid}: Herkunft im Text', erwartet in t and 'rezept=' not in t, t[-160:])
+                check(f'PDF {stil} {rid}: Herkunft im Text, keine eigene Quelle/Link (v0.87: «Quelle: kookmutsjes.com» wird nicht gedruckt, die Bibliotheks-Herkunft als Namensnennung schon)', erwartet in t and 'rezept=' not in t and 'kookmutsjes' not in t, t[-160:])
                 check(f'PDF {stil} {rid}: keine zusaetzliche Seite', mit.seiten() == ohne.seiten(), f'{ohne.seiten()} -> {mit.seiten()}')
                 a, b = alle_pruefungen(ohne), alle_pruefungen(mit)
                 neu = {k: len(b[k]) - len(a[k]) for k in ('raender', 'ueberlappung', 'schrift', 'wortbruch', 'ueberschriften', 'bilder', 'fortsetzung') if len(b[k]) > len(a[k])}

@@ -9,7 +9,7 @@ wenn die tatsaechlichen Breiten passen), (4) erst dann zwei oder mehr Seiten. Ge
   lange Mengen verhindern den Dreispalter; langes Rezept mehrseitig ohne isolierten Anfangsschritt
   Quelle/Hinweis als letzter ueberlaufender Block: alle Kandidaten zuerst, nichts weggelassen
   ueberlange Gruppe und ueberlanger Schritt: verlustfrei segmentiert («Fortsetzung», Schrittnummer bleibt)
-  Quelle genau einmal (auch wenn sie woertlich im letzten Schritt steht; Originaldaten unveraendert)
+  Quelle nie im PDF (v0.87 Nutzerregel, auch wenn sie woertlich im letzten Schritt steht; Originaldaten unveraendert)
   gleiches Ergebnis bei 390 und 1440 px Fensterbreite; Fusszeile «n / K»; Kochbuch: rezeptlokale Zaehlung getrennt von «Seite X»
 Ausgabe: /tmp/savora-tests/planer_v2/*.pdf (+ PNG bei SAVORA_PLANER_PNG=1)."""
 import asyncio, base64, json, os, re, subprocess, sys
@@ -141,7 +141,7 @@ async def main():
             check(f'[{tpl}] Sloppy: alle Zutaten im PDF', not fehlt, str(fehlt))
             fehlt = [s['text'][:40] for s in SLOPPY['steps'] if zusammen(s['text']) not in z]
             check(f'[{tpl}] Sloppy: alle 11 Schritte vollstaendig im PDF', not fehlt, str(fehlt))
-            check(f'[{tpl}] Sloppy: Quelle genau einmal', t.count('kookmutsjes.com') == 1, str(t.count('kookmutsjes.com')))
+            check(f'[{tpl}] Sloppy: keine Quelle im PDF (v0.87 Nutzerregel)', t.count('kookmutsjes') == 0, str(t.count('kookmutsjes')))
             for p in range(1, k + 1):
                 check(f'[{tpl}] Sloppy: Fusszeile «{p} / {k}» auf Seite {p}', f'{p} / {k}' in flat(pdftext(path, p)))
 
@@ -156,7 +156,7 @@ async def main():
             if p and p.get('n') == 1:
                 path, r = await export(page, 'v2_knapp', tpl, f'knapp_{tpl}')
                 check(f'[{tpl}] knapp: echtes PDF 1 Seite, data-density compact', seiten(path) == 1 and r['log']['plan'].startswith('1 Seite (compact)'), r['log']['plan'])
-                check(f'[{tpl}] knapp: Hinweis und Quelle im PDF', 'Kurzer Hinweis' in flat(pdftext(path)) and 'Testquelle' in flat(pdftext(path)))
+                check(f'[{tpl}] knapp: Hinweis im PDF, Quelle nicht (v0.87 Nutzerregel)', 'Kurzer Hinweis' in flat(pdftext(path)) and 'Testquelle' not in flat(pdftext(path)))
 
             # --- drei geeignete Gruppen: compact-columns nur, wenn 1 und 2 scheitern ---
             mk3 = lambda n: rezept('v2_drei', 'Drei Gruppen', [SATZ + ' ' + SATZ] * n, [('Teig', 7), ('Füllung', 7), ('Garnitur', 7)], image=bool(foto))
@@ -210,12 +210,12 @@ async def main():
             k = seiten(path); t = flat(pdftext(path))
             print('  Hinweis/Quelle zuletzt: ' + logtext(r['log']))
             check(f'[{tpl}] Hinweis/Quelle zuletzt: normal scheitert, compact vor Mehrseitigkeit geprueft', not r['log']['candidates'][0]['fits'] and r['log']['candidates'][1]['density'] == 'compact' and plan_konsistent(r['log'], k), logtext(r['log']))
-            check(f'[{tpl}] Hinweis/Quelle zuletzt: Hinweis und Quelle vollstaendig, Quelle einmal', 'Dieser Hinweis ist der letzte Block' in t and t.count('Quelle mit langer Angabe') == 1, t[-300:])
+            check(f'[{tpl}] Hinweis/Quelle zuletzt: Hinweis vollstaendig, keine Quelle und kein Link (v0.87)', 'Dieser Hinweis ist der letzte Block' in t and t.count('Quelle mit langer Angabe') == 0 and 'example.org' not in t, t[-300:])
 
             # --- Quelle woertlich im letzten Schritt: genau einmal, Daten unveraendert ---
             path, r = await export(page, 'v2_qschritt', tpl, f'quelle_im_schritt_{tpl}')
             t = flat(pdftext(path))
-            check(f'[{tpl}] Quelle im letzten Schritt: im PDF genau einmal', t.count('kookmutsjes.com') == 1 and 'Im Ofen backen.' in t, t[:300])
+            check(f'[{tpl}] Quelle im letzten Schritt: nicht im PDF (v0.87 Nutzerregel), Schritt bleibt', t.count('kookmutsjes') == 0 and 'Im Ofen backen.' in t, t[:300])
             orig = await page.evaluate("() => state.recipes.find(x => x.id === 'v2_qschritt').steps.map(s => s.text)")
             check(f'[{tpl}] Quelle im letzten Schritt: Originaldaten unveraendert', orig[-1] == 'Im Ofen backen. Quelle: kookmutsjes.com', str(orig))
 
@@ -248,11 +248,17 @@ async def main():
             path = os.path.join(OUTDIR, f'kochbuch_{tpl}.pdf'); open(path, 'wb').write(base64.b64decode(r['b64']))
             k = seiten(path); st = r['start']['v2_lang']; nl = len([1 for x in r['log'] if x]) and int(re.match(r'(\d+)', r['log'][1]['plan']).group(1))
             ok = True; info = []
+            # v87 (Punkt 14): mit pvPageNumberMarks zeigt die Fusszeile im Kochbuch nur «Seite X»; die rezeptlokale Zaehlung steht als
+            # «Fortsetzung · n / K» im Kopf der Folgeseiten (nicht zusaetzlich unten). Ohne den Aufruf in pdf.js gilt die alte Darstellung.
+            eine = await page.evaluate("() => typeof pdfAddPageNumbers === 'function' && String(pdfAddPageNumbers).includes('pvPageNumberMarks')")
             for i in range(nl):
                 pt = flat(pdftext(path, st + i)); info.append(pt[-60:])
-                ok = ok and f'Seite {st + i}' in pt and f'{i + 1} / {nl}' in pt
+                if eine:
+                    ok = ok and f'Seite {st + i}' in pt and (i == 0 or f'Fortsetzung · {i + 1} / {nl}' in pt) and not re.search(r'(?<!· )\b%d / %d\b' % (i + 1, nl), pt)
+                else:
+                    ok = ok and f'Seite {st + i}' in pt and f'{i + 1} / {nl}' in pt
             kt = flat(pdftext(path, r['start']['v2_kurz']))
-            check(f'[{tpl}] Kochbuch: Buchseite «Seite X» und rezeptlokal «n / {nl}» getrennt', ok and nl >= 2, ' || '.join(info))
+            check(f'[{tpl}] Kochbuch: Buchseite «Seite X» und rezeptlokal «n / {nl}» getrennt' + (' (eine Zaehlung in der Fusszeile)' if eine else ''), ok and nl >= 2, ' || '.join(info))
             check(f'[{tpl}] Kochbuch: einseitiges Rezept ohne «1 / 1», mit Buchseite', '1 / 1' not in kt and f'Seite {r["start"]["v2_kurz"]}' in kt, kt[-80:])
         check('Keine Seitenfehler', not errs, '; '.join(errs[:3]))
         await b.close()

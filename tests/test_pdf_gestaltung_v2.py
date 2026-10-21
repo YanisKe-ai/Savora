@@ -135,7 +135,10 @@ async def main():
             check(f'[{tpl}] lange Zeilen: breite Gruppe einspaltig', r['groups'][2]['full'] and r['groups'][2]['one'], str(r['groups']))
             check(f'[{tpl}] langer Titel: gleiche Grösse, umbrochen (Kopf wächst)', near(r['title']['pt'], 32 if pop else 30) and r['title']['h'] > 20, str(r['title']))
             ph = await page.evaluate(PHOTO, tpl)
-            check(f'[{tpl}] Foto in 58 × 42 mm, contain, ohne Farbform und Maske', near(ph['w'], 58, .3) and near(ph['h'], 42, .3) and not ph['blob'] and ph['fit'] == 'contain' and ph['radius'] == '0px', str(ph))
+            if tpl == 'prise-pop':   # v87 (Punkt 15): einheitliche Fotobox 44 × 29 mm, Foto fuellt die Box (vor dem Rastern zugeschnitten), 2 mm Rundung
+                check(f'[{tpl}] Foto einheitlich 44 × 29 mm, cover, ohne Farbform', near(ph['w'], 44, .3) and near(ph['h'], 29, .3) and not ph['blob'] and ph['fit'] == 'cover' and near(float(ph['radius'].replace('px', '')) * 25.4 / 96, 2, .1), str(ph))
+            else:
+                check(f'[{tpl}] Foto in 58 × 42 mm, contain, ohne Farbform und Maske', near(ph['w'], 58, .3) and near(ph['h'], 42, .3) and not ph['blob'] and ph['fit'] == 'contain' and ph['radius'] == '0px', str(ph))
         st = await page.evaluate("() => [pdfTemplateById('pur').fonts.join(','), pvPageOfText(1, 2)]")
         check('Pur lädt Public Sans (nicht mehr Carlito als Textschrift)', 'Public Sans Pur' in st[0], st[0])
         check('Seitenzählung «1 / 2» in beiden Stilen', st[1] == '1 / 2', st[1])
