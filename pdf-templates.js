@@ -229,7 +229,7 @@ const PV_HONEY = {
   rel: [0.40, 0.72, 0.44, 1.00, 0.46, 0.65],      // Laenge relativ zum laengsten Tropfen
   r:   [1.45, 1.8, 1.35, 2.1, 1.45, 1.75],        // Radius des Tropfenendes in mm bei 68 mm Breite (breiter Kasten: mitskaliert)
   lean:[0.10, -0.07, 0.08, -0.05, 0.06, -0.09],    // leichte Schraeglage: organisch, nicht sechsmal gleich
-  depth: { normal: 9, compact: 6, dense: 5 },      // laengster Tropfen in mm unter der Kastenkante; kompakt/dicht nur wenn der Platz knapp ist (alle sechs Tropfen bleiben)
+  depth: { normal: 9, compact: 7, dense: 4.5 },    // laengster Tropfen in mm unter der Kastenkante; kurz («dense») nur wenn der Platz sonst nicht reicht (alle sechs Tropfen bleiben)
   overlap: 1,                                      // so weit beginnt die Kante in der Flaeche (keine Naht)
   widths: { narrow: 68, wide: 184 }                // Kastenbreiten (pdf-print.css: --pv-col-ing-w 68 mm; Satzbreite 210 − 2 × 13 mm)
 };
@@ -639,7 +639,7 @@ function pvLayout(ctx) { return ctx && ctx.layout === 'cols' ? 'cols' : 'stack';
 function pvPage(ctx, pg) {
   const tpl = PDF_CTX.tpl, m = ctx.m, density = pvDensity(ctx);
   const photoOn = !!(pg.first && ctx.imgUrl && ctx.frame);
-  const narrow = pg.first && pvLayout(ctx) === 'cols' ? pvIngNarrowPanel(pg.ing || [], 'Zutaten', density, !!ctx.dense) : '';
+  const narrow = pg.first && pvLayout(ctx) === 'cols' ? pvIngNarrowPanel(pg.ing || [], 'Zutaten', density, !!(ctx.dense || ctx.honeyMin)) : '';
   const cls = ['pv-page', 'pv-recipe', pg.first ? '' : 'pv-cont-page', tpl.cls, density !== 'normal' ? 'pv-tight' : '', photoOn ? 'pv-photo-side' : 'pv-photo-none', pvLayout(ctx) === 'cols' ? 'pv-cols' : ''].filter(Boolean).join(' ');
   const head = pg.first ? pvHeadHtml(ctx) : pvContinuationHead(m.title, pg.n, pg.total);
   // ctx.extrasWide: Hinweise/Notizen/Naehrwerte ueber die volle Breite unter den Spalten (Planer waehlt das, wenn die Zubereitung
@@ -647,7 +647,7 @@ function pvPage(ctx, pg) {
   const wide = !!(narrow && ctx.extrasWide && (pg.extras || []).length);
   const body = narrow
     ? `<div class="pv-body"><div class="pv-col-ing">${narrow}</div><div class="pv-col-main">${pvStepsHtml(pg.steps || [], 'Zubereitung', false)}${wide ? '' : pvExtrasGroupHtml(pg.extras)}</div></div>${wide ? pvExtrasGroupHtml(pg.extras) : ''}`
-    : `${pvIngPanel(pg.ing || [], pg.first ? 'Zutaten' : 'Zutaten <span class="pv-cont">· Fortsetzung</span>', density, !!ctx.dense)}
+    : `${pvIngPanel(pg.ing || [], pg.first ? 'Zutaten' : 'Zutaten <span class="pv-cont">· Fortsetzung</span>', density, !!(ctx.dense || ctx.honeyMin))}
     ${pvStepsHtml(pg.steps || [], 'Zubereitung', !pg.first)}
     ${pvExtrasGroupHtml(pg.extras)}`;
   return `<section class="${cls}" lang="de" data-recipe-id="${pvEsc(m.id)}" data-page-kind="${pg.first ? 'recipe' : 'continuation'}" data-layout="${pvLayout(ctx)}"${narrow && ctx.extrasWide && (pg.extras || []).length ? ' data-extras="wide"' : ''} data-density="${density}"${ctx.dense ? ' data-dense="1"' : ''} data-continuation="${pg.first ? 'false' : 'true'}">
