@@ -1035,7 +1035,8 @@ async function dispatchAction(action, id, el, e) {
       const r = state.recipes.find(x => x.id === id);
       if (!r) break;
       const relevant = (r.ingredients || []).filter(i => i.name && i.name.trim() && !isIngredientHeaderRow(i) && !isQualitativeIngredient(i));
-      state.nutritionMatchItems = await matchIngredients(relevant, r.steps);
+      state.nutritionMatchItems = await matchIngredients(relevant, r.steps, r);
+      state.nutritionMatchCov = await nutMatchCoverage(r);
       openModal({ type: 'nutrition', recipeId: id, stage: 'match' }, `[data-action="nutrition-open-match"][data-id="${escapeAttr(id)}"]`);
       break;
     }
@@ -1056,7 +1057,8 @@ async function dispatchAction(action, id, el, e) {
     case 'nutrition-accept-suggestions': {
       const rr = state.recipes.find(x => x.id === state.modal.recipeId);
       for (const it of state.nutritionMatchItems) if (it.status === 'uncertain' && it.food && it.food.id) await confirmIngredientMatch(it.ingredient.name, it.food.id);
-      state.nutritionMatchItems = await matchIngredients(state.nutritionMatchItems.map(it => it.ingredient), rr && rr.steps);
+      state.nutritionMatchItems = await matchIngredients(state.nutritionMatchItems.map(it => it.ingredient), rr && rr.steps, rr);
+      state.nutritionMatchCov = await nutMatchCoverage(rr);
       state.modal.stage = 'match';
       render();
       showToast('Vorschläge übernommen');
@@ -1068,6 +1070,7 @@ async function dispatchAction(action, id, el, e) {
       const rCM = state.recipes.find(x => x.id === state.modal.recipeId);
       const idx = state.nutritionMatchItems.findIndex(it => it.ingredient.name === name);
       if (idx > -1) state.nutritionMatchItems[idx] = { ingredient: state.nutritionMatchItems[idx].ingredient, ...(await matchIngredient(name, rCM && rCM.steps)) };
+      state.nutritionMatchCov = await nutMatchCoverage(rCM);
       state.modal.stage = 'match';
       render();
       showToast('Zuordnung gespeichert');
@@ -1079,6 +1082,7 @@ async function dispatchAction(action, id, el, e) {
       const rRM = state.recipes.find(x => x.id === state.modal.recipeId);
       const idx = state.nutritionMatchItems.findIndex(it => it.ingredient.name === name);
       if (idx > -1) state.nutritionMatchItems[idx] = { ingredient: state.nutritionMatchItems[idx].ingredient, ...(await matchIngredient(name, rRM && rRM.steps)) };
+      state.nutritionMatchCov = await nutMatchCoverage(rRM);
       render();
       break;
     }
@@ -1103,6 +1107,7 @@ async function dispatchAction(action, id, el, e) {
       const rCF = state.recipes.find(x => x.id === state.modal.recipeId);
       const idx = state.nutritionMatchItems.findIndex(it => it.ingredient.name === name);
       if (idx > -1) state.nutritionMatchItems[idx] = { ingredient: state.nutritionMatchItems[idx].ingredient, ...(await matchIngredient(name, rCF && rCF.steps)) };
+      state.nutritionMatchCov = await nutMatchCoverage(rCF);
       state.modal.stage = 'match';
       render();
       showToast('Eigenes Lebensmittel gespeichert');

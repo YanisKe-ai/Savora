@@ -72,11 +72,19 @@ function nutUiCoverage(result) {
   if (!result) return null;
   const c = result.coverage;
   let counted, total, missing;
+  if (!c && result.relevantCount === undefined && result.matchedCount === undefined) {
+    return { counted: null, total: null, missing: [], partial: false, enough: true };   // altes/handgebautes Ergebnis ohne Zählung
+  }
+  if (typeof nutritionCoverageOf === 'function') {   // Vertrag RECHNUNG: dieselbe Zählung wie nutritionStatusFor und der Zuordnen-Dialog
+    const k = nutritionCoverageOf(result);
+    counted = k.counted; total = k.total;
+    missing = (k.missing || []).map((m) => typeof m === 'string' ? { name: m } : (m || {})).filter((m) => m.name);
+    const enough0 = total > 0 && counted / total >= 0.5;
+    return { counted, total, missing, partial: counted < total, enough: enough0 };
+  }
   if (c && typeof c.total === 'number') {
     counted = Number(c.counted) || 0; total = c.total;
     missing = (c.missing || []).map((m) => typeof m === 'string' ? { name: m } : (m || {})).filter((m) => m.name);
-  } else if (result.relevantCount === undefined && result.matchedCount === undefined) {
-    return { counted: null, total: null, missing: [], partial: false, enough: true };   // altes/handgebautes Ergebnis ohne Zählung
   } else {
     const unq = result.unquantified || [];
     total = (Number(result.relevantCount) || 0) + unq.length;
@@ -348,6 +356,15 @@ async function hydrateNutritionCards() {
 function cssAttrNut(v) { return String(v).replace(/["\\]/g, '\\$&'); }
 
 /* ---------- Matching-Screen (Punkt 71-73) ---------- */
+/* v86: gleiche Zählung wie Reiter und PDF (nutritionCoverageOf, Vertrag RECHNUNG). Probe-Rechnung ohne Speichern. */
+async function nutMatchCoverage(recipe) {
+  if (!recipe || typeof calculateRecipeNutrition !== 'function') return null;
+  try { const res = await calculateRecipeNutrition(recipe); const c = nutUiCoverage(res); return c && c.total !== null ? c : null; } catch (e) { return null; }
+}
+function nutMatchCoverageText(cov, sure, all) {
+  if (cov) return cov.total ? `${cov.counted} von ${cov.total} Zutaten eingerechnet` : 'Keine berechenbaren Zutaten';
+  return `${sure} von ${all} Zutaten erkannt`;
+}
 function nutritionStatusIcon(status) {
   if (status === 'matched') return `<span class="nutrition-status-icon ok">${ICONS.check}</span>`;
   if (status === 'uncertain') return `<span class="nutrition-status-icon warn">!</span>`;
@@ -392,7 +409,7 @@ function nutritionMatchStage(recipe) {
   const reviewItems = items.filter((i) => i.status !== 'matched');
   return `
     <h2 class="modal-title" id="nutrition-modal-title">Zutaten zuordnen</h2>
-    <p class="nutrition-modal-subtitle">${sureCount} von ${items.length} Zutaten erkannt</p>
+    <p class="nutrition-modal-subtitle">${nutMatchCoverageText(state.nutritionMatchCov, sureCount, items.length)}</p>
     ${reviewItems.some((i) => i.status === 'uncertain' && i.food) ? `<button type="button" class="outline-btn nutrition-accept-all" data-action="nutrition-accept-suggestions">Alle Vorschläge übernehmen</button>` : ''}
     ${reviewItems.length ? `<ul class="nutrition-match-list">${reviewItems.map(nutritionMatchRow).join('')}</ul>` : ''}
     ${sureCount ? `<details class="nutrition-sure-details">

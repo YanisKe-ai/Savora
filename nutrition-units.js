@@ -184,8 +184,8 @@ function lookupPieceWeight(normalizedName, unitKind) {
 
 /* Gebinde-/Bundgewichte (geschaetzt, gaengige Packungsgroessen). Key = Teil des Zutatennamens. */
 const PACK_WEIGHT_TABLE = {
-  container: [['joghurt', 180], ['sahne', 200], ['rahm', 200], ['crème fraîche', 150], ['quark', 250], ['passata', 700], ['bouillon', 200], ['fond', 400], ['tomate', 400], ['mais', 285], ['bohne', 240], ['kichererbse', 240], ['linse', 240], ['erbse', 250], ['thon', 112], ['thunfisch', 112], ['kokos', 400], ['champignon', 230], ['ananas', 340], ['mandarine', 175], ['sardine', 90], ['maroni', 200]],
-  pack: [['joghurt', 180], ['sahne', 200], ['rahm', 200], ['passata', 700], ['backpulver', 15], ['vanillezucker', 8], ['vanillin', 1], ['trockenhefe', 7], ['hefe', 7], ['puddingpulver', 40], ['gelatine', 10], ['butter', 250], ['mozzarella', 125], ['blätterteig', 250], ['pizzateig', 250], ['mürbeteig', 250], ['teig', 250], ['mascarpone', 250], ['quark', 250], ['frischkäse', 200], ['speck', 150], ['tofu', 200], ['spinat', 450], ['rahm', 200], ['sahne', 200], ['sauerrahm', 180]],
+  container: [['joghurt', 180], ['sahne', 200], ['rahm', 200], ['crème fraîche', 150], ['quark', 250], ['passata', 700], ['bouillon', 200], ['fond', 400], ['pesto', 190], ['tomate', 400], ['mais', 285], ['bohne', 240], ['kichererbse', 240], ['linse', 240], ['erbse', 250], ['thon', 112], ['thunfisch', 112], ['kokos', 400], ['champignon', 230], ['ananas', 340], ['mandarine', 175], ['sardine', 90], ['maroni', 200]],
+  pack: [['joghurt', 180], ['sahne', 200], ['rahm', 200], ['passata', 700], ['backpulver', 15], ['vanillezucker', 8], ['vanillin', 1], ['trockenhefe', 7], ['hefe', 7], ['puddingpulver', 40], ['gelatine', 10], ['butter', 250], ['mozzarella', 125], ['blätterteig', 250], ['pizzateig', 250], ['mürbeteig', 250], ['teig', 250], ['mascarpone', 250], ['quark', 250], ['frischkäse', 200], ['speck', 150], ['tofu', 200], ['spinat', 450], ['rahm', 200], ['sahne', 200], ['sauerrahm', 180], ['pesto', 190], ['mais', 285]],
   bunch: [['petersilie', 50], ['schnittlauch', 25], ['basilikum', 30], ['koriander', 30], ['dill', 30], ['minze', 30], ['rucola', 100], ['radieschen', 150], ['frühlingszwiebel', 120], ['lauchzwiebel', 120], ['rüebli', 400], ['karotte', 400], ['spargel', 500], ['mangold', 400], ['thymian', 15], ['rosmarin', 15]],
   cube: [['hefe', 42], ['bouillon', 10], ['brühe', 10], ['fond', 10]],
 };
@@ -206,7 +206,7 @@ const DENSITY_HINTS = [
   [/reis|griess|couscous|bulgur|quinoa|hirse/, 0.8], [/linse|kichererbse|bohne/, 0.8],
   [/mandel|haselnuss|baumnuss|erdnuss|cashew|pinienkern|kerne|samen|sesam|chia|leinsamen/, 0.5],
   [/paprika \(gewürz\)|zimt|kurkuma|curry|muskat|pfeffer|gewürz/, 0.45], [/rosine|getrocknet/, 0.65],
-  [/reibkäse|parmesan|sbrinz/, 0.4],
+  [/reibkäse|parmesan|sbrinz/, 0.4], [/petersilie|basilikum|schnittlauch|koriander|dill|minze|kerbel|kräuter/, 0.25], [/pesto/, 1.0],
   [/honig|sirup|agave|ahorn|melasse|dicksaft/, 1.4], [/tomatenpüree|tomatenmark/, 1.1], [/ketchup|sojasauce|worcester/, 1.15],
   [/mayonnaise/, 0.95], [/erdnussbutter|hummus|konfitüre|senf/, 1.1],
   [/butter|margarine|schmalz|kokosfett/, 0.95],
@@ -235,7 +235,7 @@ function nutMlPerUnit(kind) {
    Gibt NIE einen erfundenen Wert zurueck — wenn keine verlaessliche Umrechnung moeglich ist,
    kommt grams:null + needsConfirmation:true zurueck (siehe Punkt 74 "wichtige Fehlerfaelle"). */
 function resolveIngredientGrams(ing, food) {
-  const q = qtyFromIngredient(ing);
+  const q = qtyFromIngredientLoose(ing);
   if (q.kind === 'range') {
     // Bereich: beide Grenzen getrennt aufloesen, nichts mitteln. grams bleibt null, damit alte Aufrufer keinen Exaktwert lesen.
     const lo = resolveIngredientGramsAt(ing, food, q.min), hi = resolveIngredientGramsAt(ing, food, q.max);
@@ -246,12 +246,32 @@ function resolveIngredientGrams(ing, food) {
   return resolveIngredientGramsAt(ing, food, amt);
 }
 
+const BOUILLON_CONCENTRATE_FACTOR = 50;   // 10 g Konzentrat ergeben rund 500 g Bouillon (ca. 4,5 g Salz)
+function nutBouillonConcentrateGrams(ing, food, amt, canonical, normalizedName) {
+  if (!food || !/^bouillon,/i.test(food.name || '') || food.source === 'custom') return null;
+  const words = normalizedName + ' ' + normalizeIngredientText(ing.bracketText || '');
+  const conc = /würfel|wuerfel|pulver|paste|konzentrat|instant|gekörnt|granulat/.test(words);
+  const kind = canonical || (String(ing.unit || '').trim() === '' ? 'piece' : null);
+  if (kind === 'cube') return amt * 10;
+  if (kind === 'piece' && /würfel|wuerfel/.test(words)) return amt * 10;
+  if (kind === 'tsp') return amt * 5;                      // Bouillon misst man nicht im Teeloeffel: gemeint ist Pulver
+  if (kind === 'tbsp') return amt * 15;
+  if (kind === 'pinch') return amt * 0.4;
+  if (conc && (kind === 'g' || kind === 'kg' || kind === 'mg')) return amt * NUTRITION_WEIGHT_TO_GRAMS[kind];
+  if (conc && kind === 'pack') return amt * 10;
+  return null;
+}
+
 function resolveIngredientGramsAt(ing, food, amt) {
   if (amt === null || isNaN(amt)) {
     return { grams: null, estimated: false, needsConfirmation: true, reason: 'no-amount' };
   }
   const canonical = normalizeNutritionUnit(ing.unit);
   const normalizedName = normalizeIngredientText(ing.name);
+  // v0.86 (F7): Bouillonwuerfel, -pulver und -paste sind Konzentrat. Die Datenbank kennt nur die zubereitete Bouillon,
+  // darum wird die Konzentratmenge in zubereitete Bouillon umgerechnet (1 Wuerfel = 10 g = 0,5 l; 1 TL Pulver = 5 g = 2,5 dl).
+  const bc = nutBouillonConcentrateGrams(ing, food, amt, canonical, normalizedName);
+  if (bc !== null) return { grams: bc * BOUILLON_CONCENTRATE_FACTOR, estimated: true, needsConfirmation: false, reason: 'bouillon-concentrate', concentrate: true };
 
   // Kein Einheitentext, aber eine Zahl -> in der Regel gemeint als Stueckzahl ("2 Eier").
   const unitKind = canonical || (String(ing.unit || '').trim() === '' ? 'piece' : null);
