@@ -151,6 +151,7 @@ async def main():
         await page.fill('#cbTitle', 'Täglich Äpfel & Öl'); await page.fill('#cbSubtitle', 'Aus Omas Küche'); await page.fill('#cbAuthor', 'Familie Müller')
         await page.click('.cover-opt[aria-label="Citrus"]'); await page.wait_for_timeout(300)
         await page.fill('#cbDate', '2025-05-17'); await page.dispatch_event('#cbDate', 'change')
+        await page.click('.cb-part-tab[data-id="pages"]'); await page.wait_for_selector('.pdf-tpl-opt')   # v85: Seitenstil steht im Teil «Rezeptseiten»
         await page.click('.pdf-tpl-opt:nth-child(2)')   # zweiter Stil: früher B (Kräftig), jetzt Prise Pop; await page.wait_for_timeout(300)
         await ev("() => { state.view = 'cookbooks'; render(); }"); await page.wait_for_selector('.cbk-card')
         meta = await page.inner_text('.cbk-card:nth-child(2) .cbk-meta')
@@ -163,12 +164,15 @@ async def main():
         ch = await ev("() => getCookbookConfig().chapters.map(c => c.name)")
         check('Wiederöffnen: Auswahl, Reihenfolge und Kapitel wie gespeichert', order2 == order and ch == ['Hauptgänge'], str((order2, ch)))
         await page.click('[data-action="cb-step"][data-id="2"]'); await page.wait_for_selector('#cbTitle')
-        again = await ev("""() => ({ t: cbTitle.value, s: cbSubtitle.value, a: cbAuthor.value, d: cbDate.value, cover: document.querySelector('.cover-opt[aria-checked="true"]').dataset.id, style: document.querySelector('.pdf-tpl-opt[aria-checked="true"]').dataset.id })""")
+        again = await ev("""() => ({ t: cbTitle.value, s: cbSubtitle.value, a: cbAuthor.value, d: cbDate.value, cover: document.querySelector('.cover-opt[aria-checked="true"]').dataset.id })""")
+        await page.click('.cb-part-tab[data-id="pages"]'); await page.wait_for_selector('.pdf-tpl-opt')   # v85: Seitenstil im Teil «Rezeptseiten»
+        again['style'] = await ev("""() => document.querySelector('.pdf-tpl-opt[aria-checked="true"]').dataset.id""")
         check('Wiederöffnen: Texte, Titelblatt, Datum und Seitenstil wie gespeichert, Datum nicht auf heute gesetzt', again == {'t': 'Täglich Äpfel & Öl', 's': 'Aus Omas Küche', 'a': 'Familie Müller', 'd': '2025-05-17', 'cover': 'citrus', 'style': again['style']} and again['style'] in ('B', 'prise-pop'), str(again))
         names = await ev("() => Object.values(PDF_TEMPLATES).map(t => t.name)")
         txt = await page.inner_text('.cookbook-main')
         check('Seitenstil mit verständlichen Namen, keine A/B/C-Bezeichnung in der Bedienung', names in (['Klassisch', 'Kräftig', 'Schlicht (zum Drucken)'], ['Pur', 'Prise Pop']) and 'A ·' not in txt and 'B ·' not in txt and 'C ·' not in txt and txt.count('Seitenstil') >= 1, str(names))
 
+        await page.click('.cb-part-tab[data-id="cover"]'); await page.wait_for_selector('.cover-grid')   # v85: zurück zum Teil «Titelblatt»
         # ---------- 5. Fünfzehn Cover ohne fehlende Dateien, klare Auswahl ----------
         radios = await ev("""() => Array.from(document.querySelectorAll('.cover-grid [role="radio"]')).map(b => ({ id: b.dataset.id, name: b.getAttribute('aria-label') }))""")
         check('Genau fünfzehn Cover mit Namen als Radiogruppe', [r['id'] for r in radios] == IDS and [r['name'] for r in radios] == COVER_NAMES, str(radios))

@@ -52,6 +52,37 @@ document.addEventListener('input', (e) => {
   }, 700);
 });
 
+/* v85 Kochbuch-Editor: Enter im Feld «Neues Kapitel» fügt hinzu; Tippen entfernt den Fehler am Feld */
+document.addEventListener('keydown', (e) => {
+  if (e.key !== 'Enter' || !e.target || e.target.id !== 'cbNewChapter' || e.isComposing) return;
+  e.preventDefault();
+  const b = document.querySelector('[data-action="cb-add-chapter"]'); if (b) b.click();
+});
+document.addEventListener('input', (e) => { if (e.target && e.target.id === 'cbNewChapter') cbChapterFieldError(e.target, true); });
+function cbChapterFieldError(input, clear) {
+  if (!input) return;
+  const old = document.getElementById('cbNewChapterError');
+  if (clear) { if (old) { old.remove(); input.removeAttribute('aria-invalid'); input.removeAttribute('aria-describedby'); } return; }
+  input.setAttribute('aria-invalid', 'true'); input.setAttribute('aria-describedby', 'cbNewChapterError');
+  if (!old) { const p = document.createElement('p'); p.className = 'field-error'; p.id = 'cbNewChapterError'; p.setAttribute('role', 'alert'); p.textContent = 'Bitte einen Namen eingeben.'; const row = input.closest('.inline-add'); (row || input).insertAdjacentElement('afterend', p); }
+  focusWithoutScroll(input);
+}
+/* Fenster schliessen (über history.back, siehe closeModal) und danach den Fokus auf ein bestimmtes Element setzen */
+function cbAfterModal(sel, after) {
+  if (!state.modal) { render(); const f = document.querySelector(sel); if (f) focusWithoutScroll(f); if (after) after(f); return; }
+  modalTriggerSelector = sel;
+  if (after) window.addEventListener('popstate', () => setTimeout(() => { let f = null; try { f = document.querySelector(sel); } catch (err) { f = null; } after(f); }, 0), { once: true });
+  closeModal();
+}
+/* Kurzes Aufleuchten der verschobenen Zeile (nur ohne «Bewegung reduzieren») */
+function cbFlashRow(id) {
+  if (typeof prefersReducedMotion === 'function' && prefersReducedMotion()) return;
+  const row = document.querySelector(`.cb-item[data-cb-row="${cssAttr(id)}"]`);
+  if (!row) return;
+  row.classList.remove('is-moved'); void row.offsetWidth; row.classList.add('is-moved');
+  setTimeout(() => row.classList.remove('is-moved'), 450);
+}
+
 /* Enter im Namensfeld speichert (Kochbuch anlegen oder umbenennen) */
 document.addEventListener('keydown', (e) => {
   if (e.key !== 'Enter' || !e.target || e.target.id !== 'cbNameInput' || e.isComposing) return;
@@ -84,7 +115,18 @@ document.addEventListener('change', (e) => {
     }
     else if (t.matches('[data-cb-field]')) cfg[t.dataset.cbField] = t.value.trim();
     else if (t.matches('[data-cb-chapter]')) { const c = cfg.chapters.find(x => x.id === t.dataset.cbChapter); if (c) c.name = t.value.trim() || c.name; }
-    else if (t.matches('[data-cb-item-chapter]')) { const it = cfg.items.find(x => x.recipeId === t.dataset.cbItemChapter); if (it) it.chapterId = t.value; }
+    else if (t.matches('[data-cb-item-chapter]')) {   // v85: Kapitel wechseln (Zeile auf breiten Bildschirmen oder Zeilenmenü): ans Ende der neuen Gruppe
+      const rid = t.dataset.cbItemChapter;
+      if (!cookbookSetItemChapter(cfg, rid, t.value)) return;
+      saveCookbookConfig(cfg);
+      const r = state.recipes.find(x => x.id === rid);
+      const ch = cfg.chapters.find(c => c.id === t.value);
+      const msg = `«${(r && r.title) || 'Ohne Titel'}» ist jetzt ${ch ? `im Kapitel «${ch.name || 'Ohne Namen'}»` : 'ohne Kapitel'}.`;
+      if (state.modal && state.modal.type === 'cb-item-menu') cbAfterModal(`[data-action="cb-item-menu"][data-id="${escapeAttr(rid)}"]`, () => cbFlashRow(rid));
+      else { render(); const again = document.querySelector(`select[data-cb-item-chapter="${cssAttr(rid)}"]`); if (again) focusWithoutScroll(again); cbFlashRow(rid); }
+      announceLive(msg);
+      return;
+    }
     else return;
     saveCookbookConfig(cfg);
     render();
@@ -1041,52 +1083,144 @@ async function handleActionV2(action, id, el, e) {
     case 'cb-add-chapter': {
       const input = document.getElementById('cbNewChapter');
       const name = input ? input.value.trim() : '';
-      if (!name) { showToast('Bitte einen Kapitelnamen eingeben'); return true; }
+      if (!name) { cbChapterFieldError(input); return true; }
       const cfg = getCookbookConfig();
-      cfg.chapters.push({ id: 'ch_' + Date.now().toString(36), name });
+      cfg.chapters.push({ id: 'ch_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5), name });
       saveCookbookConfig(cfg); render();
+      const again = document.getElementById('cbNewChapter'); if (again) focusWithoutScroll(again);   // mehrere Kapitel schnell hintereinander
+      announceLive(`Kapitel «${name}» hinzugefügt.`);
       return true;
     }
     case 'cb-delete-chapter': {
       const cfg = getCookbookConfig();
-      cfg.chapters = cfg.chapters.filter(c => c.id !== id);
+      const idx = cfg.chapters.findIndex(c => c.id === id);
+      if (idx < 0) return true;
+      const ch = { ...cfg.chapters[idx] };
+      const members = cfg.items.filter(it => it.chapterId === id).map(it => it.recipeId);
+      cfg.chapters.splice(idx, 1);
       cfg.items.forEach(it => { if (it.chapterId === id) it.chapterId = ''; });
-      saveCookbookConfig(cfg); render();
+      saveCookbookConfig(cfg);
+      cbAfterModal('#cbChaptersTitle');
+      showToast(`Kapitel «${ch.name || 'Ohne Namen'}» gelöscht.`, 'success', false, { actionLabel: 'Rückgängig', duration: 8000, onAction: () => {
+        const c = getCookbookConfig();
+        if (!c.chapters.some(x => x.id === ch.id)) c.chapters.splice(Math.min(idx, c.chapters.length), 0, ch);
+        c.items.forEach(it => { if (members.includes(it.recipeId) && !cookbookItemChapterKnown(c, it)) it.chapterId = ch.id; });
+        saveCookbookConfig(c); if (state.view === 'cookbook') render();
+        announceLive(`Kapitel «${ch.name || 'Ohne Namen'}» wiederhergestellt.`);
+      } });
       return true;
     }
-    case 'cb-move-chapter': case 'cb-move-item': {
+    case 'cb-move-chapter': {
       const cfg = getCookbookConfig();
-      const list = action === 'cb-move-chapter' ? cfg.chapters : cfg.items;
-      const i = list.findIndex(x => (x.id || x.recipeId) === id);
+      const list = cfg.chapters;
+      const i = list.findIndex(x => x.id === id);
       const j = i + parseInt(el.dataset.delta, 10);
       if (i < 0 || j < 0 || j >= list.length) return true;
       [list[i], list[j]] = [list[j], list[i]];
       saveCookbookConfig(cfg); render();
-      const again = document.querySelector(`[data-action="${action}"][data-id="${cssAttr(id)}"][data-delta="${el.dataset.delta}"]:not([disabled])`) || document.querySelector(`[data-action="${action}"][data-id="${cssAttr(id)}"]:not([disabled])`);
+      const again = document.querySelector(`[data-action="cb-move-chapter"][data-id="${cssAttr(id)}"][data-delta="${el.dataset.delta}"]:not([disabled])`) || document.querySelector(`[data-action="cb-move-chapter"][data-id="${cssAttr(id)}"]:not([disabled])`);
       if (again) focusWithoutScroll(again);
+      announceLive(`Kapitel «${list[j].name || 'Ohne Namen'}» ist jetzt an Stelle ${j + 1} von ${list.length}.`);
       return true;
     }
-    case 'cb-remove-item': case 'cb-add-item': {
+    case 'cb-move-item': {   // v85: tauscht innerhalb der Gruppe (Kapitel), damit jeder Pfeil im PDF wirkt; data-to="first|last" aus dem Zeilenmenü
       const cfg = getCookbookConfig();
-      if (action === 'cb-remove-item') cfg.items = cfg.items.filter(it => it.recipeId !== id);
-      else if (!cfg.items.some(it => it.recipeId === id)) cfg.items.push({ recipeId: id, chapterId: '' });
+      const to = el.dataset.to || '';
+      const delta = parseInt(el.dataset.delta, 10) || 0;
+      if (!cookbookMoveItemInGroup(cfg, id, delta, to)) return true;
+      saveCookbookConfig(cfg);
+      const p = cookbookItemPlace(cfg, id);
+      const r = state.recipes.find(x => x.id === id);
+      const msg = `«${(r && r.title) || 'Ohne Titel'}» ist jetzt auf ${cookbookPlaceText(p)}.`;
+      if (to) { cbAfterModal(`[data-action="cb-item-menu"][data-id="${escapeAttr(id)}"]`, () => cbFlashRow(id)); announceLive(msg); return true; }
+      render();
+      const again = document.querySelector(`[data-action="cb-move-item"][data-id="${cssAttr(id)}"][data-delta="${delta}"]:not([disabled])`) || document.querySelector(`[data-action="cb-move-item"][data-id="${cssAttr(id)}"][data-delta]:not([disabled])`);
+      if (again) focusWithoutScroll(again);
+      cbFlashRow(id);
+      announceLive(msg);
+      return true;
+    }
+    case 'cb-remove-item': {
+      const cfg = getCookbookConfig();
+      const at = cfg.items.findIndex(it => it.recipeId === id);
+      if (at < 0) return true;
+      const gone = { ...cfg.items[at] };
+      // Fokusziel danach: Menü der nächsten Zeile in PDF-Reihenfolge, sonst der vorherigen, sonst der Titel
+      const order = cookbookItemGroups(cfg).flatMap(g => g.items.map(it => it.recipeId));
+      const oi = order.indexOf(id);
+      const next = order[oi + 1] || order[oi - 1];
+      cfg.items.splice(at, 1);
+      saveCookbookConfig(cfg);
+      const sel = next ? `[data-action="cb-item-menu"][data-id="${escapeAttr(next)}"]` : '#cbStepTitle';
+      if (state.modal && state.modal.type === 'cb-item-menu') cbAfterModal(sel);
+      else { render(); const f = document.querySelector(sel); if (f) focusWithoutScroll(f); }
+      const r = state.recipes.find(x => x.id === id);
+      const t = (r && r.title) || 'Ohne Titel';
+      showToast(`«${t}» aus dem Kochbuch genommen.`, 'success', false, { actionLabel: 'Rückgängig', duration: 8000, onAction: () => {
+        const c = getCookbookConfig();
+        if (!c.items.some(it => it.recipeId === gone.recipeId)) c.items.splice(Math.min(at, c.items.length), 0, gone);
+        saveCookbookConfig(c); if (state.view === 'cookbook') render();
+        announceLive(`«${t}» ist wieder im Kochbuch.`);
+      } });
+      return true;
+    }
+    case 'cb-add-item': {
+      const cfg = getCookbookConfig();
+      if (cfg.items.some(it => it.recipeId === id)) return true;
+      // Fokusziel danach: nächster «Aufnehmen»-Knopf darunter, sonst der vorherige, sonst der Titel «Im Kochbuch»
+      const outs = Array.from(document.querySelectorAll('.cb-item--out [data-action="cb-add-item"]')).map(b => b.dataset.id);
+      const oi = outs.indexOf(id);
+      const next = outs[oi + 1] || outs[oi - 1];
+      cfg.items.push({ recipeId: id, chapterId: '' });
       saveCookbookConfig(cfg); render();
+      const f = (next && document.querySelector(`.cb-item--out [data-action="cb-add-item"][data-id="${cssAttr(next)}"]`)) || document.getElementById('cbStepTitle');
+      if (f) focusWithoutScroll(f);
+      const r = state.recipes.find(x => x.id === id);
+      announceLive(`«${(r && r.title) || 'Ohne Titel'}» aufgenommen. ${cookbookPlural(cfg.items.length, 'Rezept', 'Rezepte')} im Kochbuch.`);
       return true;
     }
     case 'cb-add-all': {
       const cfg = getCookbookConfig();
+      const before = cfg.items.length;
       state.recipes.forEach(r => { if (!cfg.items.some(it => it.recipeId === r.id)) cfg.items.push({ recipeId: r.id, chapterId: '' }); });
       saveCookbookConfig(cfg); render();
+      const h = document.getElementById('cbStepTitle'); if (h) focusWithoutScroll(h);
+      announceLive(`${cookbookPlural(cfg.items.length - before, 'Rezept', 'Rezepte')} aufgenommen. ${cookbookPlural(cfg.items.length, 'Rezept', 'Rezepte')} im Kochbuch.`);
       return true;
     }
     case 'cb-from-col': cbColOpen(); return true;
     case 'cb-col-pick': cbColPick(id); return true;
     case 'cb-col-back': cbColBack(); return true;
     case 'cb-col-confirm': cbColConfirm(); return true;
-    case 'cb-clear-all': {   // nimmt nur die Auswahl zurueck; Rezepte bleiben unveraendert erhalten
+    case 'cb-clear-all': {   // nimmt nur die Auswahl zurueck; Rezepte bleiben unveraendert erhalten. v85: mit «Rückgängig»
       const cfg = getCookbookConfig();
+      const prev = cfg.items.map(it => ({ ...it }));
+      if (!prev.length) return true;
       cfg.items = [];
       saveCookbookConfig(cfg); render();
+      const h = document.getElementById('cbStepTitle'); if (h) focusWithoutScroll(h);
+      showToast(`${cookbookPlural(prev.length, 'Rezept', 'Rezepte')} aus dem Kochbuch genommen.`, 'success', false, { actionLabel: 'Rückgängig', duration: 8000, onAction: () => {
+        const c = getCookbookConfig();
+        c.items = prev.map(it => ({ ...it }));
+        saveCookbookConfig(c); if (state.view === 'cookbook') render();
+        announceLive(`${cookbookPlural(prev.length, 'Rezept', 'Rezepte')} wieder im Kochbuch.`);
+      } });
+      return true;
+    }
+    case 'cb-item-menu':
+      openModal({ type: 'cb-item-menu', id }, `[data-action="cb-item-menu"][data-id="${escapeAttr(id)}"]`);
+      return true;
+    case 'cb-chapter-menu':
+      openModal({ type: 'cb-chapter-menu', id }, `[data-action="cb-chapter-menu"][data-id="${escapeAttr(id)}"]`);
+      return true;
+    case 'cb-chapter-rename':
+      cbAfterModal(`[data-cb-chapter="${escapeAttr(id)}"]`, (f) => { if (f && f.select) f.select(); });
+      return true;
+    case 'cb-jump-more': {
+      const sec = document.getElementById('cbMore'), h = document.getElementById('cbMoreTitle');
+      if (!sec) return true;
+      sec.scrollIntoView({ behavior: prefersReducedMotion() ? 'auto' : 'smooth', block: 'start' });
+      if (h) focusWithoutScroll(h);
       return true;
     }
     case 'cb-page-style': {
@@ -1116,12 +1250,18 @@ async function handleActionV2(action, id, el, e) {
       showToast(action === 'cb-clear-name' ? 'Name im PDF entfernt' : 'Name fürs PDF eingetragen');
       return true;
     }
+    case 'cb-design-part': {   // v85: Teil in Schritt 2 wechseln (Titelblatt | Rezeptseiten); speichert offene Cover-Eingaben zuerst
+      cookbookOpenPart(id, el && el.dataset.focus);
+      return true;
+    }
     case 'cb-step': {
       // Bewegung M2 (motion-cover.js): Doppelklick auf Weiter/Zurueck ueberspringt keinen Schritt; Inhalt wechselt ruhig, Logik sofort
       if (typeof motionStepIgnore === 'function' && motionStepIgnore(el, e)) return true;
       const n = Math.min(3, Math.max(1, parseInt(id, 10) || 1));
       const from = Math.min(3, Math.max(1, parseInt(state.cookbookStep, 10) || 1));
       state.cookbookStep = n;
+      // v85: aus Schritt 1 und aus dem Prüfhinweis «Cover bearbeiten» zuerst das Titelblatt; «Gestaltung ändern» behält den letzten Teil
+      if (n === 2 && (from === 1 || (el && el.classList && el.classList.contains('cb-hint-go')))) state.cbDesignPart = 'cover';
       const go = () => { render(); window.scrollTo(0, 0); const h = document.getElementById('cbStepTitle'); if (h) focusWithoutScroll(h); };
       if (typeof motionCookbookStep === 'function' && state.view === 'cookbook') motionCookbookStep(from, n, go); else go();
       return true;
@@ -1269,6 +1409,24 @@ document.addEventListener('keydown', (e) => {
   focusWithoutScroll(tabs[i]);
 });
 
+/* v85: Segment «Titelblatt | Rezeptseiten» (Reiterliste): Pfeiltasten, Pos1/Ende wechseln den Teil */
+document.addEventListener('keydown', (e) => {
+  const tab = e.target && e.target.closest ? e.target.closest('.cb-part-tab[role="tab"]') : null;
+  if (!tab || !['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(e.key) || e.altKey || e.ctrlKey || e.metaKey) return;
+  const tabs = Array.from(document.querySelectorAll('.cb-part-tab[role="tab"]'));
+  let i = tabs.indexOf(tab);
+  if (e.key === 'ArrowLeft') i = (i - 1 + tabs.length) % tabs.length;
+  else if (e.key === 'ArrowRight') i = (i + 1) % tabs.length;
+  else if (e.key === 'Home') i = 0; else i = tabs.length - 1;
+  e.preventDefault();
+  cookbookOpenPart(tabs[i].dataset.id);
+});
+/* v85: «Im Cover bearbeiten» (data-cover-edit, cover-editor.js) oeffnet Schritt 2; der Cover-Editor steht nur im Teil «Titelblatt».
+   Laeuft in der Einfangphase, also vor coverOpenEditor. */
+document.addEventListener('click', (e) => {
+  const b = e.target && e.target.closest && e.target.closest('[data-cover-edit]');
+  if (b && !b.disabled) { if (typeof ceFlush === 'function') ceFlush(); state.cbDesignPart = 'cover'; }
+}, true);
 
 /* Paket 37: Pfeiltasten in Auswahlgruppen (role="radiogroup", z. B. Titelblatt-Vorlagen, Sortierung, Mahlzeit, Design).
    Pfeile bewegen den Fokus und waehlen; Enter und Leertaste waehlen das fokussierte Element (native Buttons). */
