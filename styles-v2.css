@@ -4211,7 +4211,7 @@ button.pairing-main:active { transform: scale(0.98); }
 
 /* ===== v85 Update-Karte ===== */
 /* Gut sichtbarer Hinweis auf eine neue Version: Karte über der unteren Navigation (Handy) bzw. unten rechts (Desktop) */
-.update-card { position: fixed; z-index: calc(var(--z-modal, 1000) + 5); left: 1rem; right: 1rem; bottom: calc(var(--nav-h, 3.75rem) + env(safe-area-inset-bottom, 0rem) + 0.75rem);
+.update-card { position: fixed; z-index: calc(var(--z-modal, 1000) - 1); left: 1rem; right: 1rem; bottom: calc(var(--nav-h, 3.75rem) + env(safe-area-inset-bottom, 0rem) + 0.75rem);
   display: grid; grid-template-columns: auto minmax(0, 1fr); column-gap: 1rem; row-gap: 1rem; align-items: center; overflow: hidden; isolation: isolate;
   padding: 1.25rem; border-radius: var(--r-card, 1.25rem); background: var(--tomato); color: var(--on-tomato);
   box-shadow: 0 2px 4px rgba(37, 39, 32, .12), 0 24px 48px -16px rgba(120, 30, 20, .55);
@@ -4226,18 +4226,23 @@ button.pairing-main:active { transform: scale(0.98); }
 .update-card-dot { width: 0.5rem; height: 0.5rem; border-radius: 50%; background: currentColor; box-shadow: 0 0 0 0 currentColor; animation: updateCardPing 1.8s ease-out infinite; }
 .update-card .update-card-title { color: inherit; margin: 0; font-family: var(--font-display, inherit); font-size: 1.375rem; line-height: 1.2; font-weight: 800; }
 .update-card .update-card-text { color: inherit; margin: 0.25rem 0 0; font-size: 0.9375rem; line-height: 1.45; opacity: .95; }
-.update-card .update-card-btn { grid-column: 1 / -1; min-height: 3.25rem; width: 100%; margin: 0; padding: 0 1.25rem; border: 0; border-radius: var(--radius-pill, 999px);
+.update-card-actions { grid-column: 1 / -1; display: flex; gap: 0.75rem; }
+.update-card .update-card-later { flex: none; min-height: 3.25rem; padding: 0 1rem; border: 0; border-radius: var(--radius-pill, 999px); background: rgba(255, 255, 255, .16); color: inherit; font: inherit; font-size: 1rem; font-weight: 700; cursor: pointer; }
+.update-card .update-card-later:focus-visible { outline: 3px solid currentColor; outline-offset: 2px; }
+.update-card .update-card-btn { flex: 1 1 auto; min-height: 3.25rem; width: auto; margin: 0; padding: 0 1.25rem; border: 0; border-radius: var(--radius-pill, 999px);
   background: #FFFFFF; color: #8F2A1E; font: inherit; font-size: 1.0625rem; font-weight: 800; letter-spacing: .01em; cursor: pointer;
   box-shadow: 0 1px 2px rgba(0, 0, 0, .12); transition: transform 140ms var(--ease-out, ease-out), box-shadow 140ms var(--ease-out, ease-out); }
 .update-card .update-card-btn:active { transform: scale(0.97); }
 .update-card .update-card-btn:focus-visible { outline: 3px solid #FFFFFF; outline-offset: 3px; }
 .update-card .update-card-btn[disabled] { opacity: .85; cursor: progress; }
 .update-card.is-updating .update-card-icon svg { animation-duration: 0.9s; }
+[data-theme="dark"] .update-card .update-card-later { background: rgba(27, 26, 23, .12); }
 [data-theme="dark"] .update-card { box-shadow: 0 2px 4px rgba(0, 0, 0, .4), 0 24px 48px -16px rgba(0, 0, 0, .8); }
 [data-theme="dark"] .update-card .update-card-btn { background: #1B1A17; color: #FFB09A; }
 [data-theme="dark"] .update-card .update-card-btn:focus-visible { outline-color: #1B1A17; }
 @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .update-card .update-card-btn { background: #1B1A17; color: #FFB09A; } }
-body.keyboard-open .update-card { bottom: calc(env(safe-area-inset-bottom, 0rem) + 0.75rem); }
+/* Nie über offener Tastatur oder einem Dialog: dort wird gearbeitet; nach dem Schliessen erscheint die Karte wieder */
+body.keyboard-open .update-card, body:has(.modal-backdrop) .update-card { display: none; }
 @media (min-width: 900px) {
   .update-card { left: auto; right: 2rem; bottom: 2rem; width: 26rem; }
 }
