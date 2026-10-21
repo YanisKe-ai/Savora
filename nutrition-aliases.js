@@ -143,7 +143,8 @@ const NUTRITION_ALIAS_TABLE = [
   [['kichererbsen', 'kichererbse', 'kichererbsen dose', 'gekochte kichererbsen'], 'Kichererbse, gekocht (ohne Zugabe von Fett und Salz)'],
   [['linsen', 'linse', 'rote linsen', 'braune linsen', 'tellerlinsen', 'belugalinsen', 'berglinsen'], 'Linse, ganz, getrocknet'],
   [['erbsen', 'erbse', 'grüne erbsen', 'tiefkühlerbsen', 'zuckererbsen', 'gartenerbsen'], 'Erbse, grün, tiefgekühlt'],
-  [['mais', 'maiskörner', 'zuckermais', 'mais dose', 'maiskörner dose'], 'Mais, roh'],
+  [['mais dose', 'maiskörner dose', 'mais aus der dose', 'maiskörner aus der dose', 'dosenmais', 'mais konserve', 'zuckermais dose', 'mais abgetropft', 'maiskörner abgetropft'], 'Zuckermais (Konserve)'],
+  [['mais', 'maiskörner', 'zuckermais'], 'Mais, roh'],
   [['tofu', 'naturtofu', 'tofu natur', 'festen tofu'], 'Tofu, fest, nature (Durchschnitt)'],
   [['ingwer', 'frischer ingwer', 'ingwerwurzel', 'ingwerstück'], 'Ingwer, roh'],
   [['petersilie', 'glatte petersilie', 'krause petersilie', 'peterli'], 'Petersilie, roh'],
@@ -197,7 +198,7 @@ const NUTRITION_ALIAS_TABLE = [
   [['cognac', 'weinbrand', 'brandy', 'armagnac', 'grappa', 'obstbrand'], 'Branntwein aus Wein (z.B.Cognac, Brandy)'],
   [['whisky', 'wodka', 'vodka', 'gin', 'likör', 'amaretto', 'schnaps'], 'Branntwein aus Getreide, 40 vol% (z.B. Whisky)', 'ca'],
   [['bier', 'lagerbier', 'helles bier', 'dunkles bier'], 'Bier, Lager'],
-  [['limette', 'limetten', 'limettensaft'], 'Zitrone, roh', 'ca'],
+  [['limette', 'limetten'], 'Zitrone, roh', 'ca'],
   [['feige', 'feigen', 'frische feigen'], 'Feige, roh'],
   [['getrocknete feigen', 'dörrfeigen'], 'Feige, getrocknet'],
   [['mandarine', 'mandarinen', 'clementine', 'clementinen', 'satsuma'], 'Mandarine, roh'],
@@ -230,13 +231,26 @@ const NUTRITION_ALIAS_TABLE = [
   [['couscous', 'couscous trocken'], 'Couscous-Körner (vorgekochtes Hartweizengriess), gekocht (ohne Zugabe von Fett und Salz)'],
   [['quinoa'], 'Quinoa, roh'],
   [['hirse', 'hirsekörner'], 'Hirse, Korn geschält'],
+  /* v0.86: haeufige Zutaten, die vorher fehlten oder falsch gesucht wurden */
+  [['koriander', 'koriander frisch', 'korianderblätter', 'koriandergrün', 'koriander blätter', 'korianderkraut', 'cilantro', 'koriander gehackt'], 'Petersilie, roh', 'ca'],   // frisches Kraut, Naehrwerte wie Petersilie (keine eigene Angabe in der Datenbank)
+  [['dill frisch', 'minze frisch', 'kerbel frisch', 'thai basilikum', 'kräuter frisch', 'frische kräuter', 'gemischte kräuter', 'kräutermischung frisch'], 'Petersilie, roh', 'ca'],
+  [['pesto', 'pesto genovese', 'basilikumpesto', 'grünes pesto', 'pesto grün', 'pesto alla genovese', 'bärlauchpesto'], 'Pestosauce, grün'],
+  [['rotes pesto', 'pesto rosso', 'pesto rot', 'tomatenpesto'], 'Pestosauce, rot'],
+  [['bouillonwürfel', 'brühwürfel', 'gemüsebrühwürfel', 'gemüsebouillonwürfel', 'bouillonpulver', 'gemüsebouillonpulver', 'gemüsebrühe pulver', 'bouillon pulver', 'gemüsebouillon pulver', 'bouillonpaste', 'gemüsebouillonpaste', 'instantbouillon', 'gekörnte brühe', 'gekörnte gemüsebrühe', 'streuwürze bouillon', 'bouillon würfel', 'gemüsebouillon würfel'], 'Bouillon, Gemüse, zubereitet'],
+  [['fleischbouillonwürfel', 'rindsbouillonwürfel', 'fleischbrühwürfel', 'rinderbrühwürfel', 'fleischbouillonpulver', 'rindsbouillonpulver'], 'Bouillon, Fleisch, zubereitet'],
+  [['hühnerbouillonwürfel', 'geflügelbouillonwürfel', 'hühnerbrühwürfel', 'hühnerbouillonpulver', 'geflügelbouillonpulver', 'pouletbouillonwürfel', 'pouletbouillonpulver'], 'Bouillon, Geflügel, zubereitet'],
+  [['frischkäse', 'doppelrahmfrischkäse', 'philadelphia', 'rahmfrischkäse'], 'Frischkäse, Doppelrahm'],
+  [['buttermilch'], 'Buttermilch'],
+  [['kokosrahm', 'kokoscreme', 'kokossahne', 'coconut cream'], 'Kokosnussmilch', 'ca'],
+  [['limettensaft', 'saft einer limette', 'limettensaft frisch'], 'Zitronensaft', 'ca'],
+  [['bratbutter', 'butterschmalz', 'ghee', 'eingesottene butter'], 'Vorzugsbutter', 'ca'],
 ];
 
 /* Zutaten ohne Naehrwert-Beitrag: werden nicht mitgerechnet und zaehlen nicht als Fehler. */
 const NUTRITION_NON_CALORIC_TERMS = ['kaffee', 'espresso', 'schwarzer kaffee', 'tee', 'teebeutel', 'beutel tee', 'grüner tee', 'schwarzer tee', 'kräutertee', 'tasse kaffee', 'wasser', 'leitungswasser', 'mineralwasser', 'kaltes wasser', 'warmes wasser', 'heisses wasser', 'lauwarmes wasser', 'eiswürfel', 'eis', 'kochwasser', 'nudelwasser', 'sprudelwasser', 'wasser lauwarm', 'wasser kalt', 'wasser warm', 'wasser heiss', 'salzwasser', 'tafelwasser', 'eiswasser'];
 
 /* Gewuerze/Triebmittel: bei Kleinstmengen (Prise, Msp, TL, bis 10 g) vernachlaessigbar. */
-const NUTRITION_NEGLIGIBLE_TERMS = ['tabasco', 'chilischote', 'chilischoten', 'peperoncino', 'peperoncini', 'chilis', 'rote chili', 'grüne chili', 'gelatine', 'gelatineblatt', 'gelatineblätter', 'bouillonwürfel', 'brühwürfel', 'gemüsebrühwürfel', 'gemüsebouillonwürfel', 'fleischbouillonwürfel', 'hühnerbouillonwürfel', 'fondor', 'aromat', 'streuwürze', 'maggi', 'sojasosse würze', 'knoblauchpulver', 'zwiebelpulver', 'paprikaflocken', 'pul biber', 'pulbiber', 'chili flocken', 'sumach', 'kurkumapulver', 'ingwerpulver', 'zimtstange', 'zitronengras', 'currypaste', 'harissa', 'sambal oelek', 'senfkörner', 'koriandersamen', 'gewürzmischung', 'rauchsalz', 'kräutersalz', 'selleriesalz', 'pfeffer', 'schwarzer pfeffer', 'pfeffer aus der mühle', 'gemahlener pfeffer', 'weisser pfeffer', 'pfefferkörner', 'backpulver', 'natron', 'backnatron', 'weinsteinbackpulver', 'muskat', 'muskatnuss', 'muskatnuss gerieben', 'curry', 'currypulver', 'kurkuma', 'gelbwurz', 'oregano', 'thymian', 'rosmarin', 'majoran', 'lorbeer', 'lorbeerblatt', 'lorbeerblätter', 'chili', 'chilipulver', 'chiliflocken', 'cayenne', 'cayennepfeffer', 'kreuzkümmel', 'kümmel', 'kardamom', 'gewürznelken', 'nelken', 'vanille', 'vanilleschote', 'vanilleextrakt', 'vanillearoma', 'vanillepaste', 'gewürz', 'gewürze', 'gewürzmischung', 'kräuter', 'kräuter der provence', 'italienische kräuter', 'salbei', 'estragon', 'koriander gemahlen', 'safran', 'zitronenschale', 'orangenschale', 'zitronenabrieb', 'zitronenzeste', 'garam masala', 'ras el hanout', 'paprika edelsüss ', 'salz und pfeffer', 'pfeffer und salz', 'sternanis', 'anis', 'fenchelsamen', 'sumach', 'wacholderbeeren', 'liebstöckel', 'bohnenkraut', 'dill', 'kerbel', 'minze', 'pfefferminze', 'zitronenmelisse', 'weinstein', 'aroma', 'lebensmittelfarbe', 'backaroma', 'bittermandelaroma', 'rumaroma', 'zitronenaroma'];
+const NUTRITION_NEGLIGIBLE_TERMS = ['tabasco', 'chilischote', 'chilischoten', 'peperoncino', 'peperoncini', 'chilis', 'rote chili', 'grüne chili', 'gelatine', 'gelatineblatt', 'gelatineblätter', 'fondor', 'aromat', 'streuwürze', 'maggi', 'sojasosse würze', 'knoblauchpulver', 'zwiebelpulver', 'paprikaflocken', 'pul biber', 'pulbiber', 'chili flocken', 'sumach', 'kurkumapulver', 'ingwerpulver', 'zimtstange', 'zitronengras', 'currypaste', 'harissa', 'sambal oelek', 'senfkörner', 'koriandersamen', 'gewürzmischung', 'rauchsalz', 'kräutersalz', 'selleriesalz', 'pfeffer', 'schwarzer pfeffer', 'pfeffer aus der mühle', 'gemahlener pfeffer', 'weisser pfeffer', 'pfefferkörner', 'backpulver', 'natron', 'backnatron', 'weinsteinbackpulver', 'muskat', 'muskatnuss', 'muskatnuss gerieben', 'curry', 'currypulver', 'kurkuma', 'gelbwurz', 'oregano', 'thymian', 'rosmarin', 'majoran', 'lorbeer', 'lorbeerblatt', 'lorbeerblätter', 'chili', 'chilipulver', 'chiliflocken', 'cayenne', 'cayennepfeffer', 'kreuzkümmel', 'kümmel', 'kardamom', 'gewürznelken', 'nelken', 'vanille', 'vanilleschote', 'vanilleextrakt', 'vanillearoma', 'vanillepaste', 'gewürz', 'gewürze', 'gewürzmischung', 'kräuter', 'kräuter der provence', 'italienische kräuter', 'salbei', 'estragon', 'koriander gemahlen', 'safran', 'zitronenschale', 'orangenschale', 'zitronenabrieb', 'zitronenzeste', 'garam masala', 'ras el hanout', 'paprika edelsüss ', 'salz und pfeffer', 'pfeffer und salz', 'sternanis', 'anis', 'fenchelsamen', 'sumach', 'wacholderbeeren', 'liebstöckel', 'bohnenkraut', 'dill', 'kerbel', 'minze', 'pfefferminze', 'zitronenmelisse', 'weinstein', 'aroma', 'lebensmittelfarbe', 'backaroma', 'bittermandelaroma', 'rumaroma', 'zitronenaroma'];
 
 const NUTRITION_NEGLIGIBLE_MAX_GRAMS = 10;
 
@@ -397,6 +411,14 @@ function nutPrepareIngredient(ing) {
   { const c0 = nutCleanIngredientName(name);
     bracketText = c0.bracketText;
     if (!c0.name && unit && !normalizeNutritionUnit(unit) && !(typeof qtyIsUnitWord === 'function' && qtyIsUnitWord(unit))) { name = unit; unit = ''; } }
+  // v0.86 (F8): Menge im Namen bei leerem Mengenfeld ("200 g Mehl", "ca. 2 EL Öl") fuer die Rechnung nachlesen
+  if (noAmount() && !unit && typeof qtyParseLine === 'function' && /^\s*(?:ca\.?|circa|etwa|ungefähr|rund|~)?\s*[\d½¼¾⅓⅔⅛]/i.test(name)) {
+    const pl = qtyParseLine(name);
+    if (pl && (pl.kind === 'exact' || pl.kind === 'range') && pl.name) { amount = pl.amount; unit = pl.unit; name = pl.name; }
+  }
+  // "kleine Dose Mais", "1 Glas Pesto" mit dem Gebinde im Namen: Gebinde als Einheit nehmen
+  { const gm = /^(?:(?:eine?|einer|1)\s+)?(?:kleine|kleinen|grosse|grossen|mittlere)?\s*(dosen|dose|gläser|glas|becher|packungen|packung|päckchen|beutel|bund|würfel|tuben|tube)\s+(.{2,})$/i.exec(name);
+    if (gm && !unit && !/^(von|mit)\b/i.test(gm[2])) { unit = gm[1]; name = gm[2].trim(); if (noAmount()) amount = 1; } }
   // Saft von N Zitrone/Limette/Orange
   if ((m = /^saft\s+(?:von|einer?|eines?|einem)\s*([\d.,\/]+|halben?|einer?|eine)?\s*(zitrone|limette|orange)n?\b/i.exec(name)) || (m = /^saft\s+(?:von\s+)?([\d.,\/]+)\s*(zitrone|limette|orange)n?\b/i.exec(name))) {
     const count = nutParseFraction(m[1]) || 1;
@@ -433,5 +455,10 @@ function nutPrepareIngredient(ing) {
   { const c1 = nutCleanIngredientName(name);   // Klammern (auch eckige) gehoeren nicht zum Namen: "Ei (verquirlen)" -> "Ei"
     name = c1.name; if (c1.bracketText) bracketText = (bracketText ? bracketText + ' ' : '') + c1.bracketText; }
   { const en = nutTranslateEn(name.split(',')[0]); if (en) name = en; }   // englische Zeile: Berechnung arbeitet mit dem deutschen Begriff
+  // v0.86: "1 Dose Mais", "2 Dosen Tomaten": Gebinde Dose bedeutet Konserve, falls die Alias-Tabelle eine Konserven-Variante kennt
+  if (/^(dose|dosen|can|cans)\.?$/i.test(unit) && name && !/\bdose\b/i.test(name)) {
+    const hit = lookupNutritionAlias(name + ' dose');
+    if (hit && hit.kind === 'food' && /\bdose\b/.test(hit.key || '')) name = name + ' Dose';
+  }
   return { amount, unit, name, bracketText };
 }
