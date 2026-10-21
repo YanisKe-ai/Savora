@@ -11,7 +11,10 @@ os.environ.setdefault('SAVORA_MOCK_PORT', '50101')
 from bibliothek_helfer import *   # noqa: F401,F403
 
 SETUP = """async () => {
-  const mk = (id, title, extra) => Object.assign(emptyRecipe(), { id, title, servings: 4, ingredients: [{ amount: '200', unit: 'g', name: 'Zucker' }], steps: [{ text: 'Kochen.' }] }, extra || {});
+  // Feste, gleiche Zeitstempel: loadRecipes sortiert nach updatedAt (neueste zuerst). Mit Date.now() aus emptyRecipe()
+  // fielen die Rezepte auf langsamen Rechnern (Linux-CI) in verschiedene Millisekunden, dann kam r_i_d vor r_i_a.
+  const T = 1700000000000;
+  const mk = (id, title, extra) => Object.assign(emptyRecipe(), { id, title, createdAt: T, updatedAt: T, servings: 4, ingredients: [{ amount: '200', unit: 'g', name: 'Zucker' }], steps: [{ text: 'Kochen.' }] }, extra || {});
   const list = [mk('r_i_a', 'Apfelkuchen'), mk('r_i_b', 'Birchermuesli', { favorite: true }), mk('r_i_c', 'Currysuppe', { favorite: true }),
                 mk('r_i_d', 'Dinkelbrot'), mk('r_i_e', 'Erdbeertorte'), mk('r_i_f', 'Fladenbrot')];
   for (const r of list) await dbPut(r);
