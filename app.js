@@ -36,7 +36,10 @@ function showUpdateBanner(registration) {
       <h2 class="update-card-title" id="updateCardTitle">Neue Version von Savora</h2>
       <p class="update-card-text" id="updateCardText">Tippe auf «Jetzt aktualisieren». Deine Rezepte, Pläne und Kochbücher bleiben erhalten.</p>
     </div>
-    <button type="button" class="toast-undo-btn update-card-btn">Jetzt aktualisieren</button>`;
+    <div class="update-card-actions">
+      <button type="button" class="update-card-later">Später</button>
+      <button type="button" class="toast-undo-btn update-card-btn">Jetzt aktualisieren</button>
+    </div>`;
   document.body.appendChild(el);
   // Neue Versionsnummer anzeigen, wenn erreichbar (ohne Cache); sonst bleibt «Update bereit»
   fetch('VERSION?t=' + Date.now(), { cache: 'no-store' }).then(r => r.ok ? r.text() : '').then(v => {
@@ -46,10 +49,18 @@ function showUpdateBanner(registration) {
   }).catch(() => {});
   const btn = el.querySelector('.update-card-btn');
   btn.addEventListener('click', () => {
+    // Wartet kein neuer Worker (mehr), einfach neu laden statt einen gesperrten Knopf zu hinterlassen
+    if (!registration.waiting) { location.reload(); return; }
     btn.disabled = true; btn.setAttribute('aria-busy', 'true'); btn.textContent = 'Wird aktualisiert …';
     el.classList.add('is-updating');
-    if (registration.waiting) registration.waiting.postMessage({ type: 'SKIP_WAITING' });
+    registration.waiting.postMessage({ type: 'SKIP_WAITING' });
   });
+  // «Später»: Karte für diese Sitzung schliessen; beim nächsten Start erscheint sie wieder
+  el.querySelector('.update-card-later').addEventListener('click', () => {
+    el.remove();
+    if (typeof showToast === 'function') showToast('Das Update wird beim nächsten Öffnen von Savora angeboten.', 'info');
+  });
+  if (typeof announceLive === 'function') announceLive('Neue Version von Savora bereit. Jetzt aktualisieren oder später.', false);
 }
 
 function registerServiceWorkerWithUpdatePrompt() {
