@@ -361,4 +361,5 @@
 /* ===== v88.2 Honigkante (Prise Pop) =====
    Sechs Honigtropfen unter der gelben Zutatenflaeche. Form, Hoehe und reservierter Abstand kommen aus pdf-templates.js (PV_HONEY,
    pvHoneyEdge): echte Kastenbreite in mm, keine Streckung ueber die Kastenhoehe. Die Kante beginnt 1 mm in der Flaeche (keine Naht). */
-.pv-tpl-prise-pop .pv-honey { display: block; position: absolute; top: calc(100% - 1mm); left: 0; right: 0; background-position: left top; background-size: 100% 100%; background-repeat: no-repeat; pointer-events: none; }
+.pv-tpl-prise-pop .pv-honey { display: block; position: absolute; left: 0; right: 0; pointer-events: none; }
+.pv-tpl-prise-pop .pv-honey svg { display: block; width: 100%; height: 100%; overflow: visible; }

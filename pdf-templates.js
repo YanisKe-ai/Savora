@@ -227,22 +227,22 @@ function pvWideGroupHtml(list, gi) {
 const PV_HONEY = {
   pos: [0.08, 0.24, 0.41, 0.59, 0.77, 0.93],      // Tropfenmitte relativ zur Kastenbreite
   rel: [0.40, 0.72, 0.44, 1.00, 0.46, 0.65],      // Laenge relativ zum laengsten Tropfen
-  r:   [1.6, 1.95, 1.5, 2.3, 1.6, 1.9],          // Radius des runden Tropfenendes in mm (Grundgroesse)
-  lean:[0.10, -0.06, 0.08, -0.04, 0.06, -0.08],    // leichte Schraeglage des Halses: organisch, nicht sechsmal gleich
-  depth: { normal: 10, compact: 7.5 },             // laengster Tropfen in mm unter der Kastenkante
+  r:   [1.45, 1.8, 1.35, 2.1, 1.45, 1.75],        // Radius des Tropfenendes in mm bei 68 mm Breite (breiter Kasten: mitskaliert)
+  lean:[0.10, -0.07, 0.08, -0.05, 0.06, -0.09],    // leichte Schraeglage: organisch, nicht sechsmal gleich
+  depth: { normal: 10, compact: 8 },               // laengster Tropfen in mm unter der Kastenkante (Vorgabe 8–12 mm)
   overlap: 1,                                      // so weit beginnt die Kante in der Flaeche (keine Naht)
-  widths: { narrow: 68, wide: 184 }                // Kastenbreiten der Layouts (pdf-print.css: --pv-col-ing-w, Satzbreite)
+  widths: { narrow: 68, wide: 184 }                // Kastenbreiten (pdf-print.css: --pv-col-ing-w 68 mm; Satzbreite 210 − 2 × 13 mm)
 };
 function pvHoneyDepth(density) { return density && density !== 'normal' ? PV_HONEY.depth.compact : PV_HONEY.depth.normal; }
 function pvHoneyPath(W, D) {
-  const o = PV_HONEY.overlap, k = D / PV_HONEY.depth.normal, rs = 0.82 + 0.18 * k;
+  const o = PV_HONEY.overlap, k = D / PV_HONEY.depth.normal, rs = (0.82 + 0.18 * k) * Math.min(1.8, Math.max(1, W / PV_HONEY.widths.narrow));
   const f = (v) => (Math.round(v * 100) / 100).toString();
   const sh = o + 0.25;                               // Scheitel der Bogen zwischen den Tropfen (knapp unter der Kastenkante)
   const edgeY = sh;                                  // aussen laeuft die Kante weich in den ersten bzw. letzten Tropfen
   const drops = PV_HONEY.pos.map((p, i) => {
-    const r = PV_HONEY.r[i] * rs, yb = o + D * PV_HONEY.rel[i], lean = PV_HONEY.lean[i] * r;
-    const n = r * (PV_HONEY.rel[i] < 0.5 ? 0.86 : 0.74);                 // Hals nur leicht schmaler als das Ende (nicht abgeschnuert)
-    const yn = sh + 0.5 * Math.max(0.9, yb - 1.9 * r - sh);             // Hals
+    const yb = o + D * PV_HONEY.rel[i], r = Math.min(PV_HONEY.r[i] * rs, (yb - sh) / 3.4), lean = PV_HONEY.lean[i] * r;
+    const n = r * (PV_HONEY.rel[i] < 0.5 ? 0.7 : 0.6);                   // Hals deutlich schmaler als das volle Ende
+    const yn = sh + 0.45 * Math.max(0.9, yb - 2.4 * r - sh);            // Hals
     return { cx: p * W, r, yb, n, yn, lean };
   });
   // Von einem Scheitel (x0, y0, waagrecht) weich in den Hals (x1, y1, senkrecht): grosse Rundung wie fliessender Honig
@@ -252,10 +252,10 @@ function pvHoneyPath(W, D) {
   drops.forEach((t, i) => {
     const L = t.cx - t.n + t.lean, R = t.cx + t.n + t.lean, mid = t.yn + 0.55 * (t.yb - t.r - t.yn);
     d += flare(x0, y0, L, t.yn);
-    d += `C${f(L)} ${f(mid)} ${f(t.cx - t.r)} ${f(t.yb - 1.9 * t.r)} ${f(t.cx - t.r)} ${f(t.yb - t.r)}`;   // Hals → volles Ende
-    d += `C${f(t.cx - t.r)} ${f(t.yb - 0.45 * t.r)} ${f(t.cx - 0.55 * t.r)} ${f(t.yb)} ${f(t.cx)} ${f(t.yb)}`;
-    d += `C${f(t.cx + 0.55 * t.r)} ${f(t.yb)} ${f(t.cx + t.r)} ${f(t.yb - 0.45 * t.r)} ${f(t.cx + t.r)} ${f(t.yb - t.r)}`;
-    d += `C${f(t.cx + t.r)} ${f(t.yb - 1.9 * t.r)} ${f(R)} ${f(mid)} ${f(R)} ${f(t.yn)}`;
+    d += `C${f(L)} ${f(mid)} ${f(t.cx - t.r)} ${f(t.yb - 2.1 * t.r)} ${f(t.cx - t.r)} ${f(t.yb - 1.2 * t.r)}`;   // Hals → volles, laengliches Ende
+    d += `C${f(t.cx - t.r)} ${f(t.yb - 0.55 * t.r)} ${f(t.cx - 0.55 * t.r)} ${f(t.yb)} ${f(t.cx)} ${f(t.yb)}`;
+    d += `C${f(t.cx + 0.55 * t.r)} ${f(t.yb)} ${f(t.cx + t.r)} ${f(t.yb - 0.55 * t.r)} ${f(t.cx + t.r)} ${f(t.yb - 1.2 * t.r)}`;
+    d += `C${f(t.cx + t.r)} ${f(t.yb - 2.1 * t.r)} ${f(R)} ${f(mid)} ${f(R)} ${f(t.yn)}`;
     const nt = drops[i + 1];
     const nx = nt ? (R + nt.cx - nt.n + nt.lean) / 2 : W, ny = nt ? sh : edgeY;
     // Hals → naechster Scheitel (Spiegel von flare)
@@ -264,12 +264,12 @@ function pvHoneyPath(W, D) {
   });
   return d + 'V0Z';
 }
-/* Kante als <i> unter dem Kasten. Rueckgabe { html, reserve } – reserve (mm) ist der Abstand, den der Kasten nach unten braucht. */
+/* Kante als <i> mit eingebettetem Inline-SVG (als CSS-Hintergrund zeichnet html2canvas eine Haarlinie an der Unterkante).
+   Rueckgabe { html, reserve }: reserve = Platz unter dem Kasten (fliesst in die Seitenmessung ein). */
 function pvHoneyEdge(kind, density, color) {
-  const W = PV_HONEY.widths[kind] || PV_HONEY.widths.wide, D = pvHoneyDepth(density), H = PV_HONEY.overlap + D + 0.4;
-  const svg = `<svg xmlns='http://www.w3.org/2000/svg' width='${W}mm' height='${H}mm' viewBox='0 0 ${W} ${H}' preserveAspectRatio='none'><path fill='${color || '#FFE181'}' d='${pvHoneyPath(W, D)}'/></svg>`;
-  const uri = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg).replace(/'/g, '%27').replace(/\(/g, '%28').replace(/\)/g, '%29');
-  return { html: `<i class="pv-wave pv-honey" aria-hidden="true" style="height:${H}mm;background-image:url(${uri})"></i>`, reserve: D + 1.5 };
+  const W = PV_HONEY.widths[kind] || PV_HONEY.widths.wide, D = pvHoneyDepth(density), A = PV_HONEY.overlap, H = A + D + 0.4;
+  const svg = `<svg class="pv-honey-svg" xmlns="http://www.w3.org/2000/svg" width="${W}mm" height="${H}mm" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" focusable="false"><path fill="${color || '#FFE181'}" d="${pvHoneyPath(W, D)}"/></svg>`;
+  return { html: `<i class="pv-wave pv-honey" aria-hidden="true" style="top:calc(100% - ${A}mm);height:${H}mm">${svg}</i>`, reserve: D + 1.5 };
 }
 /* Kante nur fuer Prise Pop und nur am letzten Zutatenabschnitt; sonst ruhige, gerade Abschlusskante. */
 function pvIngEdge(atoms, kind, density) {
