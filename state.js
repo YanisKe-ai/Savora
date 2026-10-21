@@ -278,7 +278,7 @@ function render(skipHistoryPush) {
       // v86.1: gemerkte Stelle erreichbar machen (der Reiter war beim Merken evtl. hoeher reserviert als jetzt)
       const missing = targetY + window.innerHeight - document.documentElement.scrollHeight;
       const panel = missing > 0.5 ? document.querySelector('.tab-panel:not([hidden])') : null;
-      if (panel) { panel.style.minHeight = (panel.offsetHeight + missing) + 'px'; window.__detailReserveAt = performance.now(); }   // programmatisches Scrollen schrumpft die Reservierung nicht
+      if (panel) panel.style.minHeight = (panel.offsetHeight + missing) + 'px';
       window.scrollTo(0, targetY); return;
     }
     if (!viewChanged) {
