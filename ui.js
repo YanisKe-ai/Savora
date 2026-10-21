@@ -1112,19 +1112,14 @@ async function dispatchAction(action, id, el, e) {
       const r = state.recipes.find(x => x.id === (state.modal && state.modal.recipeId));
       if (!r) break;
       await recalculateAndStoreNutrition(r);
+      if (typeof nutUiCacheClear === 'function') nutUiCacheClear();   // Zuordnungen gelten für alle Rezepte
       closeModal();
       showToast('Nährwerte berechnet');
       break;
     }
-    case 'nutrition-open-detail': {
-      const r = state.recipes.find(x => x.id === id);
-      if (!r) break;
-      state._nutritionDetailResult = await dbGetNutritionResult(r.id);
-      openModal({ type: 'nutrition-detail', recipeId: id }, `[data-action="nutrition-open-detail"][data-id="${escapeAttr(id)}"]`);
-      break;
-    }
     case 'nutrition-set-mode':
       state.nutritionDetailMode = el.dataset.mode;
+      state.nutritionMoreOpen = true;   // Auswahl steht in «Mehr Werte und Optionen», das offen bleibt
       render();
       break;
     case 'nutrition-save-finished-weight': {
@@ -1134,7 +1129,9 @@ async function dispatchAction(action, id, el, e) {
       const num = parseFloat((raw || '').replace(',', '.'));
       r.nutritionFinishedWeight = (!isNaN(num) && num > 0) ? num : null;
       await dbPut(r);
-      state._nutritionDetailResult = await recalculateAndStoreNutrition(r);
+      await recalculateAndStoreNutrition(r);
+      if (typeof nutUiCacheClear === 'function') nutUiCacheClear(r.id);
+      state.nutritionMoreOpen = true;
       render();
       showToast('Gewicht nach dem Kochen gespeichert');
       break;

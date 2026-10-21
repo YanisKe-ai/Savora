@@ -79,7 +79,7 @@ async def main():
         check('UI: Spanne mit Gedankenstrich + Dezimalkomma-Format, Hinweis, kein Exaktwert', '–' in ui and 'kcal' in ui and 'Menge als Bereich angegeben, Ergebnis als Spanne' in ui and any(ch.isdigit() for ch in ui), ui.replace('\n', ' ')[:200])
         ui2 = await ev("""async ([ings, sv]) => { await ensureSwissDataSeeded(); const res = await calculateRecipeNutrition({ id: 'rg', servings: sv, steps: [], ingredients: ings });
           const d = document.createElement('div'); d.innerHTML = nutritionCompactInner({ id: 'rg', servings: sv, ingredients: ings }, res); return d.textContent; }""", [EXACT, None])
-        check('UI: unbekannte Ausbeute zeigt Hinweis und Gesamtwerte', 'Es fehlt die Angabe, was das Rezept ergibt' in ui2 and 'Geschätzte Nährwerte für das gesamte Rezept' in ui2, ui2.replace('\n', ' ')[:200])
+        check('UI: unbekannte Ausbeute zeigt Hinweis und Gesamtwerte', 'Es fehlt die Angabe, was das Rezept ergibt' in ui2 and 'Nährwerte für das gesamte Rezept' in ui2, ui2.replace('\n', ' ')[:200])
         pdf = await ev("""async ([ings, sv]) => { await ensureSwissDataSeeded(); const res = await calculateRecipeNutrition({ id: 'rg', servings: sv, steps: [], ingredients: ings }); return pvNutritionBox(res, 'full', false); }""", [RANGE, 9])
         check('PDF: Spanne und Hinweis', '–' in pdf and 'Menge als Bereich angegeben' in pdf, pdf[:160])
         check('Keine Seitenfehler', not errs, str(errs[:3]))

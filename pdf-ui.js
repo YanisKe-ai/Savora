@@ -9,12 +9,12 @@ async function defaultPdfNutritionDetail(target, recipeId) {
     if (target === 'single') {
       const rec = state.recipes.find((x) => x.id === recipeId);
       const st = rec ? await nutritionStatusFor(rec) : { status: 'not-calculated' };
-      return st.status === 'calculated' ? 'compact' : 'off';
+      return (st.status === 'calculated' || st.status === 'partial') ? 'compact' : 'off';
     }
     // Kochbuch: reicht, wenn IRGENDEIN Rezept bereits Naehrwerte hat, dass der Umfang-Schalter
     // sinnvoll auf "kompakt" vorbelegt ist — Rezepte ohne Ergebnis zeigen ohnehin keine Box.
     for (const r of state.recipes) {
-      if ((await nutritionStatusFor(r)).status === 'calculated') return 'compact';
+      const s2 = (await nutritionStatusFor(r)).status; if (s2 === 'calculated' || s2 === 'partial') return 'compact';
     }
     return 'off';
   } catch (e) {

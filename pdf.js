@@ -943,10 +943,15 @@ function pdfPlanLogOut(log) {
   try { console.debug('[Savora PDF-Plan]', log.recipe, '·', log.style, '·', log.candidates.map((c) => c.skipped ? `${c.density}: übersprungen (${c.skipped})` : `${c.density}: ${c.heightMm} mm${c.fits ? ' passt' : c.reject ? ' abgelehnt (' + c.reject + ')' : ' Überlauf ' + c.overflowMm + ' mm'}`).join(' | '), '→', log.plan); } catch (e) { /* nur Protokoll */ }
 }
 
-/* Naehrwerte nur, wenn vollstaendig und aktuell berechnet (sonst weglassen statt Teilsummen zu drucken) */
+/* Naehrwerte, wenn aktuell berechnet und mindestens die Haelfte der Zutaten eingerechnet ist (v86, Plan 11).
+   Teilsumme: das Ergebnis traegt pdfPartial und pdfMissing, die Box schreibt «mindestens» und «ohne X gerechnet». */
 async function pdfNutritionForExport(r) {
   const st = await nutritionStatusFor(r);
-  return st.status === 'calculated' ? st.result : null;
+  if (!st.result) return null;
+  const view = typeof nutUiView === 'function' ? nutUiView(r, st) : { kind: st.status === 'calculated' ? 'full' : 'none' };
+  if (view.kind === 'full') return st.result;
+  if (view.kind === 'partial') return Object.assign({}, st.result, { pdfPartial: true, pdfMissing: (view.cov.missing || []).map((m) => m.name).filter(Boolean) });
+  return null;
 }
 
 function pdfSetContext(templateId, bookTitle, author, logo, book) {

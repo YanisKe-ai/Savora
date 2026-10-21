@@ -265,15 +265,16 @@ function pvNutritionBox(result, detailLevel, pieces, basis, basisNote) {
   const shown = cells.filter(Boolean);
   if (!shown.length) return '';
   const cols = Math.min(shown.length, detailLevel === 'full' ? 4 : 5);
-  const hint = `${pvEsc(nutritionSourceLabel(result.sourceDataVersions))}. Geschätzte Werte, je nach Zutaten und Mengen können sie abweichen. Keine medizinische Aussage.${result.rangeUsed ? ' Menge als Bereich angegeben, Ergebnis als Spanne.' : ''}${result.needsServings && !basisNote ? ' Es fehlt die Angabe, wie viel das Rezept ergibt: Pro-Portion-Werte erst nach Klärung.' : ''}${(result.approximations || []).length ? ' Angenähert: ' + pvEsc(result.approximations.map((a) => a.name).join(', ')) + '.' : ''}${(result.unquantified || []).length ? ' Ohne Mengenangabe nicht eingerechnet: ' + pvEsc(result.unquantified.join(', ')) + '.' : ''}${basisNote ? ' ' + pvEsc(String(basisNote).replace(/^Geschätzte Werte, Abweichungen sind möglich\.\s*/, '')) : ''}`;   // Schätzsatz steht schon vorne, nicht doppelt
+  const partialHint = result.pdfPartial ? ((result.pdfMissing || []).length && result.pdfMissing.length <= 2 ? ' Ohne ' + pvEsc(result.pdfMissing.join(' und ')) + ' gerechnet, Werte eher zu tief.' : ' Nicht alle Zutaten eingerechnet, Werte eher zu tief.') : '';
+  const hint = `${pvEsc(nutritionSourceLabel(result.sourceDataVersions))}.${partialHint} Geschätzte Werte, je nach Zutaten und Mengen können sie abweichen. Keine medizinische Aussage.${result.rangeUsed ? ' Menge als Bereich angegeben, Ergebnis als Spanne.' : ''}${result.needsServings && !basisNote ? ' Es fehlt die Angabe, wie viel das Rezept ergibt: Pro-Portion-Werte erst nach Klärung.' : ''}${(result.approximations || []).length ? ' Angenähert: ' + pvEsc(result.approximations.map((a) => a.name).join(', ')) + '.' : ''}${(result.unquantified || []).length ? ' Ohne Mengenangabe nicht eingerechnet: ' + pvEsc(result.unquantified.join(', ')) + '.' : ''}${basisNote ? ' ' + pvEsc(String(basisNote).replace(/^Geschätzte Werte, Abweichungen sind möglich\.\s*/, '')) : ''}`;   // Schätzsatz steht schon vorne, nicht doppelt
   if (PDF_CTX.tpl.pop && detailLevel !== 'full') {
     const line = [['energyKcal', null], ['protein', 'Eiweiss'], ['carbohydrates', 'Kohlenhydrate'], ['fat', 'Fett'], ['fiber', 'Ballaststoffe']].map(([k, lab]) => {
       const v = typeof nutValueText === 'function' ? nutValueText(result, total ? 'total' : 'portion', k) : null;
       return v === null || v === undefined || v === '' || v === 'NaN' ? '' : pvEsc(v + '\u00a0' + NUTRIENT_KEYS[k].unit) + (lab ? ' ' + lab : '');
     }).filter(Boolean).map((t) => `<span>${t}</span>`).join('');
-    return `<div class="pv-nutri pv-nutline" data-detail="compact"><div class="pv-nutline-row"><b>Nährwerte ${pvEsc(pvNutBasisText(result, pieces, basis))}</b>${line}</div><div class="pv-small">${hint}</div></div>`;
+    return `<div class="pv-nutri pv-nutline" data-detail="compact"><div class="pv-nutline-row"><b>Nährwerte ${pvEsc(pvNutBasisText(result, pieces, basis))}${result.pdfPartial ? ' (mind.)' : ''}</b>${line}</div><div class="pv-small">${hint}</div></div>`;
   }
-  return `<div class="pv-nutri" data-detail="${detailLevel === 'full' ? 'full' : 'compact'}"><div class="pv-label">Nährwerte</div><div class="pv-nut-basis">${pvEsc(pvNutBasisText(result, pieces, basis))} · geschätzt</div><div class="pv-nut-grid" style="--pv-nut-cols:${cols}">${shown.join('')}</div>
+  return `<div class="pv-nutri" data-detail="${detailLevel === 'full' ? 'full' : 'compact'}"><div class="pv-label">Nährwerte</div><div class="pv-nut-basis">${pvEsc(pvNutBasisText(result, pieces, basis))} · ${result.pdfPartial ? 'mindestens' : 'geschätzt'}</div><div class="pv-nut-grid" style="--pv-nut-cols:${cols}">${shown.join('')}</div>
     <div class="pv-small">${hint}</div></div>`;
 }
 

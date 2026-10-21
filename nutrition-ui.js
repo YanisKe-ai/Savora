@@ -8,25 +8,47 @@
    in der Detailansicht folgt demselben Lazy-Muster (data-lazy-nutrition), da das Ergebnis aus
    IndexedDB async geladen werden muss und der erste Render synchron bleiben soll. */
 
-/* Zahlen mit Dezimalkomma (Schweizer/deutsche Schreibweise) */
-function nutFmt(v) { return String(v).replace('.', ','); }
+/* ---------- v0.86: Anzeige «schlicht, klar, nicht störend» ----------
+   Kurzzeile im Rezeptkopf, ruhige Tabelle im Reiter (LIV-Reihenfolge), Teilsumme bei teilweise erkannten Zutaten.
+   Rundung: formatNutrient/formatNutrientRange aus nutrition-model.js (Vertrag RECHNUNG); fehlt die Funktion, gilt
+   dieselbe Regel lokal (nutUiFormat). App und PDF nutzen beide nutValueText, darum runden sie gleich. */
 
-/* Wert oder Spanne als Text ("120–170"), ohne Einheit; null wenn nichts bekannt.
-   mode: 'portion' | '100g' | 'total'. Bei einer Spanne gibt es bewusst keinen Exaktwert. */
-function nutValueText(result, mode, key) {
+/* Gleiche Regel wie formatNutrient (Plan 6): kcal/kJ ganz; g ab 10 ganz, darunter eine Stelle, >0 und <0,1 «< 0,1»;
+   Salz unter 1 g zwei Stellen; Dezimalkomma. null bleibt null (unbekannt ist nie 0). */
+function nutUiFormatLocal(value, key) {
+  if (value === null || value === undefined || typeof value !== 'number' || !isFinite(value)) return null;
+  const def = (typeof NUTRIENT_KEYS !== 'undefined' && NUTRIENT_KEYS[key]) || {};
+  const comma = (n) => String(n).replace('.', ',');
+  if (value <= 0) return '0';
+  if (def.unit === 'kcal' || def.unit === 'kJ') return comma(Math.round(value));
+  if (key === 'salt' && value < 1) return value < 0.01 ? '< 0,01' : comma(Math.round(value * 100) / 100);
+  if (value >= 10) return comma(Math.round(value));
+  if (value < 0.1) return '< 0,1';
+  return comma(Math.round(value * 10) / 10);
+}
+function nutUiFormat(value, key) {
+  if (typeof formatNutrient === 'function') { try { return formatNutrient(value, key); } catch (e) { /* lokale Regel */ } }
+  return nutUiFormatLocal(value, key);
+}
+function nutUiFormatRange(min, max, key) {
+  if (typeof formatNutrientRange === 'function') { try { return formatNutrientRange(min, max, key); } catch (e) { /* lokale Regel */ } }
+  const a = nutUiFormatLocal(min, key), b = nutUiFormatLocal(max, key);
+  if (a === null || b === null) return a === null ? b : a;
+  return a === b ? a : a + '–' + b;
+}
+
+/* Wert oder Spanne als Text («9–11»), ohne Einheit; null wenn nichts bekannt.
+   mode: 'portion' | '100g' | 'total'. factor: nur für «Gesamtes Rezept» (folgt den eingestellten Portionen, F6). */
+function nutValueText(result, mode, key, factor) {
+  if (!result) return null;
+  const f = Number(factor) > 0 ? Number(factor) : 1;
   const exactSrc = mode === '100g' ? result.nutrientsPer100g : mode === 'total' ? result.nutrientsTotal : result.nutrientsPerPortion;
   const rangeSrc = mode === '100g' ? result.nutrientsPer100gRange : mode === 'total' ? result.nutrientsTotalRange : result.nutrientsPerPortionRange;
-  const v = roundNutrientForDisplay(exactSrc ? exactSrc[key] : null);
-  if (v !== null) return nutFmt(v);
+  const v = exactSrc ? exactSrc[key] : null;
+  if (typeof v === 'number' && isFinite(v)) return nutUiFormat(v * f, key);
   const r = rangeSrc ? rangeSrc[key] : null;
-  if (result.rangeUsed && r && r.min !== r.max) return nutFmt(roundNutrientForDisplay(r.min)) + '–' + nutFmt(roundNutrientForDisplay(r.max));
+  if (result.rangeUsed && r && typeof r.min === 'number' && typeof r.max === 'number') return nutUiFormatRange(r.min * f, r.max * f, key);
   return null;
-}
-const NUT_RANGE_HINT = 'Menge als Bereich angegeben, Ergebnis als Spanne.';
-const NUT_SERVINGS_HINT = 'Es fehlt die Angabe, was das Rezept ergibt. Deshalb gelten die Nährwerte für das ganze Rezept. Trage ein, was das Rezept ergibt, um Werte pro Portion zu sehen.';   // gleicher Satz wie im PDF (pdf-model.js)
-const NUT_MISSING_HINT = 'Ein Strich («–») bedeutet: Der Wert ist nicht bekannt, weil er für einige Zutaten fehlt. Er zählt nicht als 0.';
-function nutritionResultHints(result) {
-  return (result.rangeUsed ? `<p class="nutrition-hint-text">${NUT_RANGE_HINT}</p>` : '') + (result.needsServings ? `<p class="nutrition-hint-text">${NUT_SERVINGS_HINT}</p>` : '');
 }
 
 /* ---------- Bezugsbasis (v0.83) ----------
@@ -37,141 +59,293 @@ function nutBasisFor(recipe, result) {
   if (result && (result.needsServings || result.wholeRecipe) && b.kind !== 'total') return { kind: 'total', divisor: 1, label: 'für das gesamte Rezept' };
   return b;
 }
-// Ueberschrift: «Geschätzte Nährwerte für das gesamte Rezept» | «… pro Portion» | «… pro Stück»
-function nutBasisHeading(recipe, result) { return 'Geschätzte Nährwerte ' + nutBasisFor(recipe, result).label; }
-// Nachvollziehbare Angabe statt einer Genauigkeitsstufe: «6 von 7 Zutaten berücksichtigt»
-function nutCoverageText(result) {
-  const total = result.relevantCount || 0;
-  if (!total) return 'Keine berechenbare Zutat';
-  return `${result.matchedCount || 0} von ${total} Zutat${total === 1 ? '' : 'en'} berücksichtigt`;
-}
-// Farbe der Angabe folgt dem Anteil berücksichtigter Zutaten (nicht einer abstrakten Genauigkeitsstufe)
-function nutCoverageTone(result) {
-  const total = result.relevantCount || 0, ok = result.matchedCount || 0;
-  if (!total) return 'low';
-  return ok >= total ? 'high' : ok / total >= 0.75 ? 'medium' : 'low';
-}
-// Zusatzzeile bei Gesamtertrag: Bezug offenlegen, ohne eine Portion zu erfinden
-function nutBasisNote(recipe, result) {
-  const info = typeof yieldInfo === 'function' ? yieldInfo(recipe) : null;
-  if (info && info.kind === 'total' && !(result && result.needsServings)) return `Bezug: ${typeof yieldText === 'function' ? yieldText(recipe) : ''}. Eine Portion ist nicht festgelegt.`;
-  return '';
+// Faktor für «Gesamtes Rezept»: eingestellte Portionen / Rezeptportionen (pro Portion bleibt gleich)
+function nutUiScale(recipe) {
+  if (!recipe || typeof servingsFactor !== 'function' || typeof currentServings !== 'function') return 1;
+  const f = servingsFactor(recipe, currentServings(recipe));
+  return Number(f) > 0 ? f : 1;
 }
 
-/* ---------- Kompakte Karte (Punkt 24) — Platzhalter + Nachladen ---------- */
+/* Einheitliche Zählung (Plan 5). Vertrag: result.coverage/partial/enoughForEstimate (RECHNUNG). Fehlt das Feld,
+   wird es aus matchedCount/relevantCount/unresolvedIngredients/unquantified abgeleitet (Zutat ohne Menge = fehlt). */
+function nutUiCoverage(result) {
+  if (!result) return null;
+  const c = result.coverage;
+  let counted, total, missing;
+  if (c && typeof c.total === 'number') {
+    counted = Number(c.counted) || 0; total = c.total;
+    missing = (c.missing || []).map((m) => typeof m === 'string' ? { name: m } : (m || {})).filter((m) => m.name);
+  } else if (result.relevantCount === undefined && result.matchedCount === undefined) {
+    return { counted: null, total: null, missing: [], partial: false, enough: true };   // altes/handgebautes Ergebnis ohne Zählung
+  } else {
+    const unq = result.unquantified || [];
+    total = (Number(result.relevantCount) || 0) + unq.length;
+    counted = Number(result.matchedCount) || 0;
+    missing = (result.unresolvedIngredients || []).map((u) => ({ name: u.name, reason: u.reason })).concat(unq.map((n) => ({ name: n, reason: 'no-amount' })));
+  }
+  const partial = typeof result.partial === 'boolean' ? result.partial : counted < total;
+  const enough = typeof result.enoughForEstimate === 'boolean' ? result.enoughForEstimate : (total > 0 && counted / total >= 0.5);
+  return { counted, total, missing, partial, enough };
+}
+
+function nutUiHasIngredients(recipe) {
+  const list = typeof nutritionIngredientsFor === 'function' ? nutritionIngredientsFor(recipe) : (recipe.ingredients || []);
+  return list.some((i) => i && i.name && String(i.name).trim());
+}
+
+/* Anzeigezustand aus Status + Ergebnis:
+   full | partial (≥ Hälfte, Teilsumme) | few (zu wenig) | empty | none (nie berechnet) | stale | failed */
+function nutUiView(recipe, st) {
+  const status = st ? st.status : 'not-calculated';
+  const result = st ? st.result : null;
+  if (status === 'failed') return { kind: 'failed', result: null, cov: null };
+  if (status === 'not-calculated' || !result) return { kind: 'none', result: null, cov: null };
+  if (status === 'stale') return { kind: 'stale', result, cov: null };
+  const cov = nutUiCoverage(result);
+  if (status === 'empty' || cov.total === 0) return { kind: 'empty', result, cov };
+  if (!cov.enough) return { kind: 'few', result, cov };
+  if (cov.partial || status === 'partial') return { kind: 'partial', result, cov: Object.assign({}, cov, { partial: true }) };
+  return { kind: 'full', result, cov };
+}
+
+/* ---------- Zwischenspeicher: ruhiges Neuzeichnen ohne «Wird geladen» und ohne Layoutsprung ----------
+   Savora zeichnet bei jedem render() alles neu. Der letzte bekannte Stand je Rezept wird synchron gezeigt,
+   hydrateNutritionCards prüft danach asynchron und ersetzt nur, wenn sich etwas geändert hat. Nur Anzeige-Cache. */
+const NUT_UI_CACHE = new Map();
+let nutUiWarmed = false;
+function nutUiSig(recipe) {
+  const ings = (recipe.ingredients || []).map((i) => [i && i.amount, i && i.unit, i && i.name]);
+  return JSON.stringify([ings, recipe.servings, recipe.servingMode || '', recipe.yieldLabel || '', recipe.nutritionFinishedWeight || null, recipe.nutritionMap || null]);
+}
+function nutUiCached(recipe) {
+  const c = recipe && NUT_UI_CACHE.get(recipe.id);
+  return c && c.sig === nutUiSig(recipe) ? c.st : null;
+}
+function nutUiRemember(recipe, st) {
+  if (!recipe || !st || st.status === 'failed' || st.status === 'not-calculated' || st.status === 'stale') return;
+  NUT_UI_CACHE.set(recipe.id, { sig: nutUiSig(recipe), st });
+}
+function nutUiCacheClear(recipeId) { if (recipeId) NUT_UI_CACHE.delete(recipeId); else NUT_UI_CACHE.clear(); }
+// Einmal pro Sitzung im Leerlauf die gespeicherten Ergebnisse lesen (nur lesen, nichts rechnen), damit die Kurzzeile
+// beim Öffnen eines Rezepts sofort dasteht.
+function nutUiPrewarm() {
+  if (nutUiWarmed || !state.showNutrition || !(state.recipes || []).length || typeof nutritionStatusFor !== 'function') return;
+  nutUiWarmed = true;
+  const run = async () => {
+    for (const r of state.recipes.slice(0, 400)) {
+      if (nutUiCached(r)) continue;
+      try { nutUiRemember(r, await nutritionStatusFor(r)); } catch (e) { /* nur Vorrat */ }
+    }
+  };
+  const idle = window.requestIdleCallback || ((fn) => setTimeout(fn, 400));
+  idle(() => { run(); });
+}
+
+/* ---------- Kurzzeile im Rezeptkopf (Plan 1 und 3) ----------
+   «ca. 520 kcal · 24 g Eiweiss · 58 g Kohlenhydrate · 21 g Fett pro Portion», bei Teilsumme «mind.».
+   Nur bei vollen oder teilweisen Werten, sonst gar nichts (kein Leerzustand im Lesemodus). */
+const NUT_LINE_KEYS = [['energyKcal', ''], ['protein', 'Eiweiss'], ['carbohydrates', 'Kohlenhydrate'], ['fat', 'Fett']];
+function nutUiLineText(recipe, view) {
+  if (!view || (view.kind !== 'full' && view.kind !== 'partial')) return null;
+  const b = nutBasisFor(recipe, view.result);
+  const mode = b.kind === 'total' ? 'total' : 'portion';
+  const f = mode === 'total' ? nutUiScale(recipe) : 1;
+  const items = NUT_LINE_KEYS.map(([k, lab]) => {
+    const v = nutValueText(view.result, mode, k, f);
+    return v === null ? null : `${v}\u00a0${NUTRIENT_KEYS[k].unit}${lab ? ' ' + lab : ''}`;
+  }).filter(Boolean);
+  if (!items.length) return null;
+  return { prefix: view.kind === 'partial' ? 'mind.' : 'ca.', items, basis: b.label };
+}
+function nutUiLineHtml(recipe, view) {
+  const t = nutUiLineText(recipe, view);
+  if (!t) return '';
+  const parts = t.items.map((s, i) => `<span class="nut-line-item">${i === 0 ? t.prefix + '\u00a0' : ''}${escapeHtml(s)}</span>`).join('<span class="nut-line-sep" aria-hidden="true"> · </span>');
+  return `<button type="button" class="nut-line" data-nut-line data-recipe-id="${escapeAttr(recipe.id)}" data-action="nutrition-show-tab" data-id="${escapeAttr(recipe.id)}"><span class="nut-line-text">${parts} <span class="nut-line-basis">${escapeHtml(t.basis)}</span></span><span class="sr-only">. Alle Nährwerte ansehen</span></button>`;
+}
+// Platz im Kopf: mit bekanntem Stand sofort die Zeile; sonst eine reservierte, leere Fläche (kein Verschieben beim Nachladen)
+function nutritionLineSlot(recipe) {
+  if (!state.showNutrition || !recipe) return '';
+  const st = nutUiCached(recipe);
+  if (st) return nutUiLineHtml(recipe, nutUiView(recipe, st));
+  if (!nutUiHasIngredients(recipe)) return '';
+  return `<div class="nut-line nut-line--pending" data-nut-line data-recipe-id="${escapeAttr(recipe.id)}" aria-hidden="true"></div>`;
+}
+
+/* ---------- Reiter «Nährwerte» (Plan 2, 3, 4, 10) ---------- */
+const NUT_TABLE_ROWS = [
+  { key: 'energyKcal', label: 'Energie' },
+  { key: 'fat', label: 'Fett' },
+  { key: 'saturatedFat', label: 'davon gesättigte Fettsäuren', sub: true },
+  { key: 'carbohydrates', label: 'Kohlenhydrate' },
+  { key: 'sugars', label: 'davon Zucker', sub: true },
+  { key: 'fiber', label: 'Nahrungsfasern' },
+  { key: 'protein', label: 'Eiweiss' },
+  { key: 'salt', label: 'Salz' },
+];
+const NUT_SERVINGS_HINT = 'Es fehlt die Angabe, was das Rezept ergibt. Darum gelten die Werte für das ganze Rezept.';
+const NUT_MISSING_HINT = 'Ein «–» heisst: Wert unbekannt, nicht 0.';
+const NUT_FOOT = 'Aus den Zutaten berechnet, Richtwerte.';
+
+/* Bezüge: pro Portion/Stück (nicht bei Gesamtertrag), gesamtes Rezept, pro 100 g nur mit gewogenem Endgewicht */
+function nutDetailModes(recipe, result) {
+  const b = nutBasisFor(recipe, result);
+  const modes = [];
+  if (b.kind !== 'total') modes.push({ id: 'portion', label: b.kind === 'piece' ? 'Pro Stück' : 'Pro Portion' });
+  modes.push({ id: 'total', label: 'Gesamtes Rezept' });
+  if (result && result.finishedWeight > 0) modes.push({ id: '100g', label: 'Pro 100 g' });
+  return modes;
+}
+function nutUiMode(recipe, result) {
+  const modes = nutDetailModes(recipe, result);
+  return modes.some((m) => m.id === state.nutritionDetailMode) ? state.nutritionDetailMode : modes[0].id;
+}
+function nutUiCaption(recipe, result, mode) {
+  if (mode === '100g') return 'Nährwerte pro 100 g';
+  if (mode === 'portion') return 'Nährwerte ' + nutBasisFor(recipe, result).label;
+  const known = typeof yieldKnown === 'function' ? yieldKnown(recipe) : Number(recipe.servings) > 0;
+  const n = typeof currentServings === 'function' ? currentServings(recipe) : recipe.servings;
+  const lab = known && typeof servingLabel === 'function' ? servingLabel(recipe, n) : '';
+  return 'Nährwerte für das gesamte Rezept' + (lab ? ` (${lab})` : '');
+}
+function nutUiMissingNote(cov) {
+  const names = cov.missing.map((m) => m.name).filter(Boolean);
+  const n = Math.max(names.length, (cov.total || 0) - (cov.counted || 0));
+  if (names.length && names.length <= 2 && n <= 2) return `Ohne ${names.join(' und ')} gerechnet. Die Werte sind eher etwas zu tief.`;
+  return `${n} Zutaten fehlen in der Rechnung. Die Werte sind eher zu tief.`;
+}
+function nutUiMatchBtn(recipe, cls) {
+  return `<button type="button" class="${cls || 'text-btn'} nut-match-btn" data-action="nutrition-open-match" data-id="${escapeAttr(recipe.id)}">Zutaten zuordnen</button>`;
+}
+function nutUiValuesPanel(recipe, view) {
+  const result = view.result;
+  const mode = nutUiMode(recipe, result);
+  const f = mode === 'total' ? nutUiScale(recipe) : 1;
+  const val = (key) => nutValueText(result, mode, key, f);
+  let dash = false;
+  const rows = NUT_TABLE_ROWS.map((row) => {
+    const v = val(row.key);
+    if (v === null) dash = true;
+    const kj = row.key === 'energyKcal' && v !== null ? val('energyKj') : null;
+    return `<tr class="${row.sub ? 'is-sub' : ''}"><th scope="row">${row.label}</th><td>${v === null ? '–' : escapeHtml(v) + '\u00a0' + NUTRIENT_KEYS[row.key].unit}${kj !== null ? `<span class="nut-kj"> · ${escapeHtml(kj)}\u00a0kJ</span>` : ''}</td></tr>`;
+  }).join('');
+  // Weitere Werte (Mineralstoffe, Vitamine) nur mit bekanntem Wert, kein Meer aus Strichen
+  const mainKeys = new Set(NUT_TABLE_ROWS.map((r) => r.key).concat(['energyKj']));
+  const extra = Object.keys(NUTRIENT_KEYS).filter((k) => !mainKeys.has(k)).map((k) => ({ k, v: val(k) })).filter((x) => x.v !== null);
+  const modes = nutDetailModes(recipe, result);
+  const caption = nutUiCaption(recipe, result, mode);
+  const hasSource = result.sourceDataVersions && Object.keys(result.sourceDataVersions).length > 0;
+  const approx = result.approximations || [];
+  const foot = NUT_FOOT + (result.rangeUsed ? ' Menge als Bereich angegeben, Ergebnis als Spanne.' : '') + (dash ? ' ' + NUT_MISSING_HINT : '');
+  return `
+    <table class="nut-table">
+      <caption class="nut-caption">${escapeHtml(caption)}</caption>
+      <tbody>${rows}</tbody>
+    </table>
+    ${view.kind === 'partial' ? `<p class="nut-note">${escapeHtml(nutUiMissingNote(view.cov))} ${nutUiMatchBtn(recipe)}</p>` : ''}
+    ${result.needsServings ? `<p class="nut-note">${NUT_SERVINGS_HINT} <button type="button" class="text-btn" data-action="edit-recipe" data-id="${escapeAttr(recipe.id)}">Ertrag ergänzen</button></p>` : ''}
+    <p class="nut-foot">${escapeHtml(foot)}</p>
+    <details class="nut-more" data-nut-more ${state.nutritionMoreOpen ? 'open' : ''}>
+      <summary>Mehr Werte und Optionen</summary>
+      <div class="nut-more-body">
+        ${modes.length > 1 ? `<div class="nutrition-segmented nut-modes" role="radiogroup" aria-label="Bezug der Nährwerte">
+          ${modes.map((m) => `<button type="button" role="radio" aria-checked="${mode === m.id}" class="${mode === m.id ? 'active' : ''}" data-action="nutrition-set-mode" data-mode="${m.id}">${m.label}</button>`).join('')}
+        </div>` : ''}
+        ${extra.length ? `<table class="nut-table nut-table--extra"><caption class="sr-only">Weitere Nährwerte</caption><tbody>${extra.map((x) => `<tr><th scope="row">${NUTRIENT_KEYS[x.k].label}</th><td>${escapeHtml(x.v)}\u00a0${NUTRIENT_KEYS[x.k].unit}</td></tr>`).join('')}</tbody></table>` : ''}
+        <div class="field nutrition-weight-field">
+          <label for="nutritionFinishedWeight">Gewicht nach dem Kochen (g, optional)</label>
+          <input type="number" min="1" inputmode="decimal" id="nutritionFinishedWeight" value="${recipe.nutritionFinishedWeight || ''}" aria-describedby="nutritionFinishedWeightHint">
+          <p class="hint-line" id="nutritionFinishedWeightHint">Für Werte pro 100 g. Beim Kochen verdampft Wasser, darum zählt das Gewicht des fertigen Gerichts.</p>
+        </div>
+        <div class="nut-more-actions">
+          <button type="button" class="ghost-btn nutrition-weight-save" data-action="nutrition-save-finished-weight" data-id="${escapeAttr(recipe.id)}">Gewicht speichern</button>
+          ${nutUiMatchBtn(recipe)}
+        </div>
+        ${approx.length ? `<p class="nut-foot">Ähnliches Lebensmittel verwendet: ${approx.map((a) => escapeHtml(a.name) + ' (wie ' + escapeHtml(String(a.food || '').split(',')[0]) + ')').join(', ')}</p>` : ''}
+        ${hasSource ? `<p class="nut-foot">Quelle: ${escapeHtml(nutritionSourceLabel(result.sourceDataVersions))}. Keine medizinische Aussage.</p>` : ''}
+      </div>
+    </details>`;
+}
+function nutUiPanelHtml(recipe, view) {
+  switch (view.kind) {
+    case 'full': case 'partial': return nutUiValuesPanel(recipe, view);
+    case 'few': return `<p class="nut-state">Zu wenige Zutaten erkannt für eine Schätzung.</p>
+      <p class="nut-foot">${view.cov.counted} von ${view.cov.total} Zutaten erkannt.</p>${nutUiMatchBtn(recipe, 'outline-btn')}`;
+    case 'empty': return nutUiHasIngredients(recipe)
+      ? `<p class="nut-state">Keine Zutat lässt sich berechnen.</p><p class="nut-foot">Wasser, Salz und Gewürze in kleinen Mengen zählen nicht.</p>${nutUiMatchBtn(recipe, 'outline-btn')}`
+      : `<p class="nut-state">Noch keine Zutaten.</p><p class="nut-foot">Nährwerte werden aus den Zutaten berechnet.</p>`;
+    case 'stale': return `<p class="nut-state">Die Nährwerte sind nicht aktuell.</p>${nutUiMatchBtn(recipe, 'outline-btn')}`;
+    case 'failed': return `<p class="nut-state">Die Nährwerte konnten nicht gelesen werden.</p>`;
+    default: return `<p class="nut-state">Noch nicht berechnet.</p><button type="button" class="outline-btn" data-action="nutrition-open-match" data-id="${escapeAttr(recipe.id)}">Nährwerte berechnen</button>`;
+  }
+}
+/* Inhalt des Reiters aus einem Ergebnis (auch für Tests und Vorschau). Ohne Ergebnis: «Noch nicht berechnet». */
+function nutritionCompactInner(recipe, result) {
+  return nutUiPanelHtml(recipe, nutUiView(recipe, result ? { status: 'calculated', result } : null));
+}
+
+/* Platzhalter im Reiter. Mit bekanntem Stand sofort fertig gezeichnet, sonst kurz «Wird geladen …». */
 function nutritionCardSection(recipeId) {
+  const recipe = (state.recipes || []).find((r) => r.id === recipeId);
+  const st = recipe ? nutUiCached(recipe) : null;
+  if (st) return `<div class="nutrition-section"><div data-lazy-nutrition data-recipe-id="${escapeAttr(recipeId)}" class="nut-panel">${nutUiPanelHtml(recipe, nutUiView(recipe, st))}</div></div>`;
   return `<div class="nutrition-section">
-    <div data-lazy-nutrition data-recipe-id="${escapeAttr(recipeId)}" class="nutrition-card nutrition-card-loading">
+    <div data-lazy-nutrition data-recipe-id="${escapeAttr(recipeId)}" class="nut-panel nutrition-card-loading">
       <span class="nutrition-loading-text">Wird geladen …</span>
     </div>
   </div>`;
 }
 
-/* Zutatenstatus fuer die Transparenz der Schaetzung: erkannt, unklar, fehlende Menge. */
-function nutritionIngredientStatus(recipe, result) {
-  const list = result.unresolvedIngredients || [];
-  const missing = list.filter(u => u.reason && u.reason !== 'not-found' && u.reason !== 'uncertain-match');
-  const unclear = list.filter(u => u.reason === 'not-found' || u.reason === 'uncertain-match');
-  const matched = result.matchedCount || 0;
-  const reasonText = (u) => u.reason === 'uncertain-match' ? `unsicher${u.candidate ? ', evtl. ' + escapeHtml(u.candidate) : ''}` : u.reason === 'not-found' ? 'nicht gefunden' : u.reason === 'no-name' ? 'Zutatenname fehlt (nur ein Hinweis in Klammern)' : 'Menge fehlt oder nicht umrechenbar';
-  return `<div class="nutri-status">
-    <div class="nutri-status-row">
-      <span class="nutri-pill nutri-pill--ok">${matched} erkannt</span>
-      ${unclear.length ? `<span class="nutri-pill nutri-pill--warn">${unclear.length} unklar</span>` : ''}
-      ${missing.length ? `<span class="nutri-pill nutri-pill--warn">${missing.length} ohne Menge</span>` : ''}
-    </div>
-    ${(result.approximations || []).length ? `<p class="nutrition-hint-text">Ähnliches Lebensmittel verwendet: ${(result.approximations || []).map(a => escapeHtml(a.name) + ' (wie ' + escapeHtml(a.food.split(',')[0]) + ')').join(', ')}</p>` : ''}
-    ${(result.unquantified || []).length ? `<p class="nutrition-hint-text">Ohne Mengenangabe nicht eingerechnet: ${(result.unquantified || []).map(escapeHtml).join(', ')}</p>` : ''}
-    ${list.length ? `<details class="nutri-status-details"><summary>Nicht eingerechnet (${list.length})</summary><ul>${list.map(u => `<li><strong>${escapeHtml(u.name)}</strong>: ${reasonText(u)}</li>`).join('')}</ul>
-      <button type="button" class="text-btn" data-action="nutrition-open-match" data-id="${escapeAttr(recipe.id)}">Zuordnung korrigieren</button></details>` : ''}
-  </div>`;
+const NUT_UI_BOUND = new WeakSet();
+function nutUiBindToggle(node) {
+  node.querySelectorAll('[data-nut-more]').forEach((d) => { if (NUT_UI_BOUND.has(d)) return; NUT_UI_BOUND.add(d); d.addEventListener('toggle', () => { state.nutritionMoreOpen = d.open; }); });
 }
 
-/* Unvollstaendig: KEINE Portionswerte zeigen (eine Teilsumme wuerde wie ein vollstaendiger Wert wirken). */
-function nutritionIncompleteInner(recipe, result) {
-  const total = result.relevantCount || 0;
-  return `
-    <p class="nutrition-empty-text"><strong>Unvollständig berechnet:</strong> ${result.matchedCount || 0} von ${total} Zutaten konnten eingerechnet werden. Eine Portionssumme wäre daher zu niedrig und wird nicht angezeigt.</p>
-    ${nutritionIngredientStatus(recipe, result)}
-    <div class="nutrition-compact-actions">
-      <button type="button" class="primary-btn" data-action="nutrition-open-match" data-id="${escapeAttr(recipe.id)}">${ICONS.apple} Zutaten zuordnen</button>
-    </div>`;
-}
-
-function confidenceBadgeClass(confidence) {
-  return confidence === 'high' ? 'high' : confidence === 'medium' ? 'medium' : 'low';
-}
-
-function nutritionCompactInner(recipe, result) {
-  if (!result) {
-    return `
-      <p class="nutrition-empty-text">Noch nicht berechnet.</p>
-      <button type="button" class="primary-btn" data-action="nutrition-open-match" data-id="${escapeAttr(recipe.id)}">Nährwerte berechnen</button>
-    `;
-  }
-  const cmode = nutBasisFor(recipe, result).kind === 'total' ? 'total' : 'portion';   // Gesamtertrag oder Ausbeute unbekannt: Gesamtwerte statt Pro-Portion
-  let anyMissing = false;
-  const rows = NUTRITION_COMPACT_KEYS.map((key) => {
-    const def = NUTRIENT_KEYS[key];
-    const val = nutValueText(result, cmode, key);
-    if (val === null) anyMissing = true;
-    return `<div class="nutrition-compact-stat">
-      <span class="nutrition-compact-value">${val === null ? '–' : tickerHtml(val, 'nut-' + recipe.id + '-' + key)}${val === null ? '' : ' ' + def.unit}</span>
-      <span class="nutrition-compact-label">${def.label}</span>
-    </div>`;
-  }).join('');
-  const note = nutBasisNote(recipe, result);
-  return `
-    <h3 class="nutrition-basis-title">${escapeHtml(nutBasisHeading(recipe, result))}</h3>
-    ${note ? `<p class="nutrition-basis-note">${escapeHtml(note)}</p>` : ''}
-    <div class="nutrition-compact-heading">
-      <span class="nutrition-confidence-badge nutrition-coverage tone-${nutCoverageTone(result)}">${escapeHtml(nutCoverageText(result))}</span>
-      ${result.unresolvedCount > 0 ? `<button type="button" class="nutrition-review-link" data-action="nutrition-open-match" data-id="${escapeAttr(recipe.id)}">${result.unresolvedCount} Zutat${result.unresolvedCount === 1 ? '' : 'en'} prüfen</button>` : ''}
-    </div>
-    <div class="nutrition-compact-grid">${rows}</div>
-    ${anyMissing ? `<p class="nutrition-hint-text">${NUT_MISSING_HINT}</p>` : ''}
-    ${nutritionResultHints(result)}
-    ${nutritionIngredientStatus(recipe, result)}
-    <div class="nutrition-compact-actions">
-      <button type="button" class="nutrition-detail-link" data-action="nutrition-open-detail" data-id="${escapeAttr(recipe.id)}">Alle Nährwerte ${ICONS.chevronRight}</button>
-      <button type="button" class="nutrition-recalc-link" data-action="nutrition-open-match" data-id="${escapeAttr(recipe.id)}">${ICONS.swap} Neu berechnen</button>
-    </div>
-  `;
-}
-
-/* Wird aus ui.js/bindEvents nach jedem render() aufgerufen (gleiches Muster wie
-   hydrateLazyImages in images.js). Ersetzt den Platzhalter-Inhalt, OHNE einen vollen
-   render() auszuloesen — die Nutzung von IndexedDB-Daten darf den ersten Render nicht
-   blockieren. */
+/* Wird aus ui.js/bindEvents nach jedem render() aufgerufen (gleiches Muster wie hydrateLazyImages).
+   Füllt Reiter und Kurzzeile, ohne einen vollen render() auszulösen. Ersetzt nur, wenn sich etwas ändert. */
 async function hydrateNutritionCards() {
-  const nodes = document.querySelectorAll('[data-lazy-nutrition]');
-  for (const node of nodes) {
-    const recipeId = node.dataset.recipeId;
+  const nodes = Array.from(document.querySelectorAll('[data-lazy-nutrition], [data-nut-line]'));
+  const ids = Array.from(new Set(nodes.map((n) => n.dataset.recipeId)));
+  for (const recipeId of ids) {
     const recipe = state.recipes.find((r) => r.id === recipeId);
     if (!recipe) continue;
+    let view;
     try {
       let st = await nutritionStatusFor(recipe);
-      // Nichts berechnet oder veraltet: automatisch neu rechnen (lokal, dauert Millisekunden), damit man keinen Zwischenschritt braucht
+      // Nichts berechnet oder veraltet: automatisch still neu rechnen (lokal, Millisekunden), kein Zwischenschritt
       if (st.status === 'not-calculated' || st.status === 'stale') {
         try { await recalculateAndStoreNutrition(recipe); st = await nutritionStatusFor(recipe); } catch (e) { console.warn('Automatische Berechnung fehlgeschlagen', e); }
       }
-      node.classList.remove('nutrition-card-loading');
-      if (st.status === 'not-calculated') node.innerHTML = nutritionCompactInner(recipe, null);
-      else if (st.status === 'stale') node.innerHTML = `
-          <p class="nutrition-empty-text">${ICONS.sparkle} Die Nährwerte sind veraltet (Zutaten, Portionen oder die Berechnung haben sich geändert). Bitte neu berechnen.</p>
-          <button type="button" class="primary-btn" data-action="nutrition-open-match" data-id="${escapeAttr(recipe.id)}">${ICONS.swap} Neu berechnen</button>`;
-      else if (st.status === 'failed') node.innerHTML = `<p class="nutrition-empty-text">Die Nährwerte konnten nicht gelesen werden.</p>`;
-      else if (st.status === 'incomplete') node.innerHTML = nutritionIncompleteInner(recipe, st.result);
-      else node.innerHTML = nutritionCompactInner(recipe, st.result);
-      node.querySelectorAll('[data-action]').forEach((el) => el.addEventListener('click', onAction));
-      if (typeof initTickers === 'function') initTickers(node);
+      nutUiRemember(recipe, st);
+      view = nutUiView(recipe, st);
     } catch (err) {
-      console.warn('Die Nährwert-Karte konnte nicht geladen werden.', err);
-      node.classList.remove('nutrition-card-loading');
-      node.innerHTML = `<p class="nutrition-empty-text">Nährwerte konnten nicht geladen werden.</p>`;
+      console.warn('Die Nährwerte konnten nicht geladen werden.', err);
+      view = { kind: 'failed', result: null, cov: null };
     }
+    document.querySelectorAll(`[data-lazy-nutrition][data-recipe-id="${cssAttrNut(recipeId)}"]`).forEach((node) => {
+      const tpl = document.createElement('template'); tpl.innerHTML = nutUiPanelHtml(recipe, view);
+      const wasLoading = node.classList.contains('nutrition-card-loading');
+      node.classList.remove('nutrition-card-loading');
+      if (!wasLoading && node.innerHTML === tpl.innerHTML) { nutUiBindToggle(node); return; }   // unverändert: nichts ersetzen (Fokus, offenes «Mehr» bleiben)
+      node.innerHTML = tpl.innerHTML;
+      node.querySelectorAll('[data-action]').forEach((el) => el.addEventListener('click', onAction));
+      nutUiBindToggle(node);
+    });
+    document.querySelectorAll(`[data-nut-line][data-recipe-id="${cssAttrNut(recipeId)}"]`).forEach((slot) => {
+      const html = nutUiLineHtml(recipe, view);
+      if (!html) { slot.remove(); return; }
+      const tpl = document.createElement('template'); tpl.innerHTML = html.trim();
+      const btn = tpl.content.firstElementChild;
+      const pending = slot.classList.contains('nut-line--pending');
+      if (!pending && slot.textContent === btn.textContent) return;
+      if (pending) btn.classList.add('nut-line--in');
+      slot.replaceWith(btn);
+      btn.addEventListener('click', onAction);
+    });
   }
+  nutUiPrewarm();
 }
+function cssAttrNut(v) { return String(v).replace(/["\\]/g, '\\$&'); }
 
 /* ---------- Matching-Screen (Punkt 71-73) ---------- */
 function nutritionStatusIcon(status) {
@@ -217,7 +391,7 @@ function nutritionMatchStage(recipe) {
   const sureCount = items.filter((i) => i.status === 'matched').length;
   const reviewItems = items.filter((i) => i.status !== 'matched');
   return `
-    <h2 class="modal-title" id="nutrition-modal-title">Nährwerte vorbereiten</h2>
+    <h2 class="modal-title" id="nutrition-modal-title">Zutaten zuordnen</h2>
     <p class="nutrition-modal-subtitle">${sureCount} von ${items.length} Zutaten erkannt</p>
     ${reviewItems.some((i) => i.status === 'uncertain' && i.food) ? `<button type="button" class="outline-btn nutrition-accept-all" data-action="nutrition-accept-suggestions">Alle Vorschläge übernehmen</button>` : ''}
     ${reviewItems.length ? `<ul class="nutrition-match-list">${reviewItems.map(nutritionMatchRow).join('')}</ul>` : ''}
@@ -304,94 +478,6 @@ function nutritionModal(recipe) {
   return `<div class="modal-backdrop" data-action="close-modal">
     <div class="modal-sheet" role="dialog" aria-modal="true" aria-labelledby="nutrition-modal-title" tabindex="-1" onclick="event.stopPropagation()">
       ${inner}
-    </div>
-  </div>`;
-}
-
-/* ---------- Vollstaendige Detailansicht (Punkt 25) ---------- */
-const NUTRITION_GROUP_ORDER = [
-  { key: 'energy', label: 'Energie' },
-  { key: 'macro', label: 'Makronährstoffe' },
-  { key: 'mineral', label: 'Mineralstoffe' },
-  { key: 'vitamin', label: 'Vitamine' },
-];
-
-function nutritionValueFor(result, key, mode) {
-  return nutValueText(result, mode || state.nutritionDetailMode, key);
-}
-/* Angebotene Bezuege der Detailansicht. Pro 100 g nur mit gewogenem Endgewicht: das Zutatengewicht ist bei gekochten
-   oder reduzierten Rezepten nicht das Endgewicht (Wasser verdampft). Gesamtertrag: kein «pro Portion». */
-function nutDetailModes(recipe, result) {
-  const whole = nutBasisFor(recipe, result).kind === 'total';
-  const piece = nutBasisFor(recipe, result).kind === 'piece';
-  const modes = [];
-  if (!whole) modes.push({ id: 'portion', label: piece ? 'Pro Stück' : 'Pro Portion' });
-  modes.push({ id: 'total', label: 'Gesamtes Rezept' });
-  if (result && result.finishedWeight > 0) modes.push({ id: '100g', label: 'Pro 100 g' });
-  return modes;
-}
-
-function nutritionDetailGroup(group, result, mode) {
-  const keys = Object.keys(NUTRIENT_KEYS).filter((k) => NUTRIENT_KEYS[k].group === group.key);
-  const rows = keys.map((key) => {
-    const def = NUTRIENT_KEYS[key];
-    // F07: alle Ansichten gleich runden (Gesamt zeigte sonst Gleitkomma-Reste wie 22.648500000000006).
-    const val = nutritionValueFor(result, key, mode);
-    return `<div class="nutrition-nutrient-row">
-      <span>${def.label}</span>
-      <span>${val === null ? '–' : val + ' ' + def.unit}</span>
-    </div>`;
-  }).join('');
-  return `<div class="nutrition-group">
-    <h4 class="nutrition-group-title">${group.label}</h4>
-    ${rows}
-  </div>`;
-}
-
-function nutritionDetailModal(recipe, result) {
-  if (!state.modal || state.modal.type !== 'nutrition-detail' || state.modal.recipeId !== recipe.id) return '';
-  if (!result) {
-    return `<div class="modal-backdrop" data-action="close-modal">
-      <div class="modal-sheet" role="dialog" aria-modal="true" tabindex="-1" onclick="event.stopPropagation()">
-        <h2 class="modal-title">Nährwerte</h2>
-        <p class="nutrition-empty-text">Noch nicht berechnet.</p>
-        <button type="button" class="ghost-btn" data-action="close-modal" style="width:100%;">Schliessen</button>
-      </div>
-    </div>`;
-  }
-  const modes = nutDetailModes(recipe, result);
-  const mode = modes.some((m) => m.id === state.nutritionDetailMode) ? state.nutritionDetailMode : modes[0].id;
-  const modeHeading = mode === '100g' ? 'Geschätzte Nährwerte pro 100 g' : mode === 'total' ? 'Geschätzte Nährwerte für das gesamte Rezept' : nutBasisHeading(recipe, result);
-  const note = nutBasisNote(recipe, result);
-  const hasRealSource = result.sourceDataVersions && Object.keys(result.sourceDataVersions).length > 0;
-  const sourceLabel = hasRealSource ? nutritionSourceLabel(result.sourceDataVersions) : null;
-  return `<div class="modal-backdrop" data-action="close-modal">
-    <div class="modal-sheet" role="dialog" aria-modal="true" aria-labelledby="nutrition-detail-title" tabindex="-1" onclick="event.stopPropagation()">
-      <h2 class="modal-title" id="nutrition-detail-title">Nährwerte</h2>
-      ${modes.length > 1 ? `<div class="nutrition-segmented" role="radiogroup" aria-label="Bezug der Nährwerte">
-        ${modes.map((m) => `<button type="button" role="radio" aria-checked="${mode === m.id}" class="${mode === m.id ? 'active' : ''}" data-action="nutrition-set-mode" data-mode="${m.id}">${m.label}</button>`).join('')}
-      </div>` : ''}
-      <p class="nutrition-basis-title">${escapeHtml(modeHeading)}</p>
-      ${note ? `<p class="nutrition-basis-note">${escapeHtml(note)}</p>` : ''}
-      <div class="nutrition-confidence-line">
-        <span class="nutrition-confidence-badge nutrition-coverage tone-${nutCoverageTone(result)}">${escapeHtml(nutCoverageText(result))}</span>
-        <span class="nutrition-confidence-detail">${escapeHtml(result.confidenceDetail)}</span>
-      </div>
-      ${nutritionResultHints(result)}
-      <p class="nutrition-hint-text">${NUT_MISSING_HINT}</p>
-      <div class="field nutrition-weight-field">
-        <label for="nutritionFinishedWeight">Gewicht nach dem Kochen (g, optional)</label>
-        <input type="number" min="1" id="nutritionFinishedWeight" value="${recipe.nutritionFinishedWeight || ''}" aria-describedby="nutritionFinishedWeightHint">
-        <p class="hint-line" id="nutritionFinishedWeightHint">Werte pro 100 g gibt es nur mit dem Gewicht des fertigen Gerichts. Beim Kochen verdampft Wasser, darum reicht das Gewicht der Zutaten nicht.</p>
-      </div>
-      <button type="button" class="ghost-btn nutrition-weight-save" data-action="nutrition-save-finished-weight" data-id="${escapeAttr(recipe.id)}">Gewicht speichern</button>
-      ${NUTRITION_GROUP_ORDER.map((g) => nutritionDetailGroup(g, result, mode)).join('')}
-      ${sourceLabel ? `<p class="nutrition-source-line">${ICONS.book} ${escapeHtml(sourceLabel)}</p>` : ''}
-      <p class="nutrition-disclaimer">Geschätzte Werte. Je nach Zutaten und Mengen können sie abweichen. Keine medizinische Aussage und keine Grundlage für Entscheidungen bei Allergien oder Unverträglichkeiten.</p>
-      <div class="form-actions">
-        <button type="button" class="ghost-btn" data-action="nutrition-open-match" data-id="${escapeAttr(recipe.id)}">Zuordnung bearbeiten</button>
-        <button type="button" class="primary-btn" data-action="close-modal">Schliessen</button>
-      </div>
     </div>
   </div>`;
 }
