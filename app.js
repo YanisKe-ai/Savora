@@ -20,12 +20,34 @@ function renderStorageError(err) {
 function showUpdateBanner(registration) {
   const existing = document.getElementById('updateBanner');
   if (existing) existing.remove();
-  const el = document.createElement('div');
+  /* v85: gut sichtbare Karte über der Navigation statt kleinem Toast. Eigene Klasse (nicht .toast), damit
+     ein Rückgängig-Hinweis sie nicht verdrängt. Id und .toast-undo-btn bleiben (Tests, bestehende Abläufe). */
+  const el = document.createElement('section');
   el.id = 'updateBanner';
-  el.className = 'toast toast-undo';
-  el.innerHTML = `<span>Neue Version verfügbar</span><button type="button" class="toast-undo-btn">Aktualisieren</button>`;
+  el.className = 'update-card';
+  el.setAttribute('aria-labelledby', 'updateCardTitle');
+  el.setAttribute('aria-live', 'polite');
+  el.setAttribute('aria-describedby', 'updateCardText');
+  el.innerHTML = `
+    <div class="update-card-glow" aria-hidden="true"></div>
+    <div class="update-card-icon" aria-hidden="true">${typeof ICONS !== 'undefined' && ICONS.sparkle ? ICONS.sparkle : ''}</div>
+    <div class="update-card-body">
+      <p class="update-card-kicker"><span class="update-card-dot" aria-hidden="true"></span><span id="updateCardVersion">Update bereit</span></p>
+      <h2 class="update-card-title" id="updateCardTitle">Neue Version von Savora</h2>
+      <p class="update-card-text" id="updateCardText">Tippe auf «Jetzt aktualisieren». Deine Rezepte, Pläne und Kochbücher bleiben erhalten.</p>
+    </div>
+    <button type="button" class="toast-undo-btn update-card-btn">Jetzt aktualisieren</button>`;
   document.body.appendChild(el);
-  el.querySelector('.toast-undo-btn').addEventListener('click', () => {
+  // Neue Versionsnummer anzeigen, wenn erreichbar (ohne Cache); sonst bleibt «Update bereit»
+  fetch('VERSION?t=' + Date.now(), { cache: 'no-store' }).then(r => r.ok ? r.text() : '').then(v => {
+    v = String(v || '').trim();
+    const slot = document.getElementById('updateCardVersion');
+    if (slot && /^\d+\.\d+\.\d+$/.test(v)) slot.textContent = `Version ${v} ist da`;
+  }).catch(() => {});
+  const btn = el.querySelector('.update-card-btn');
+  btn.addEventListener('click', () => {
+    btn.disabled = true; btn.setAttribute('aria-busy', 'true'); btn.textContent = 'Wird aktualisiert …';
+    el.classList.add('is-updating');
     if (registration.waiting) registration.waiting.postMessage({ type: 'SKIP_WAITING' });
   });
 }
