@@ -958,9 +958,7 @@ function notesPanel(r) {
     <button class="ghost-btn" data-action="open-note-modal" data-id="${escapeAttr(r.id)}">${ICONS.plus} Notiz hinzufügen</button>`;
 }
 function nutritionPanel(r) {
-  let html = nutritionCardSection(r.id);
-  if (servingMode(r) === 'pieces') html = html.replace(/pro Portion/g, 'pro Stück').replace(/Pro Portion/g, 'Pro Stück');
-  return `<p class="estimate-note">${ICONS.info} Geschätzte Werte. Je nach Zutaten und Mengen können sie abweichen. Fehlende oder unklare Mengen fliessen nicht als exakte Werte ein.</p>${html}`;
+  return nutritionCardSection(r.id);   // v86: kein grünes Hinweisband mehr, der Reiter selbst nennt «Richtwerte» einmal
 }
 function detailView() {
   const r = state.recipes.find(x => x.id === state.activeRecipeId);
@@ -1020,6 +1018,7 @@ function detailView() {
           ${favButton(r, 'detail-fav')}
         </div>
         <p class="detail-meta-v2">${facts.map(f => `<span class="fact">${escapeHtml(f)}</span>`).join('')}${extraTimes.length ? `<span class="fact detail-times">${ICONS.clock}<span>${extraTimes.map(escapeHtml).join(' · ')}</span></span>` : ''}</p>
+        ${typeof nutritionLineSlot === 'function' ? nutritionLineSlot(r) : ''}
       </div>
       <button class="primary-btn primary-btn--block cook-start-inline" data-action="start-cook" data-id="${escapeAttr(r.id)}">${ICONS.play} Kochen starten</button>
       <div class="detail-tools" role="group" aria-label="Weitere Aktionen zum Rezept">
@@ -1051,7 +1050,6 @@ function detailView() {
     ${state.modal && state.modal.type === 'shop-select' ? shopSelectModal() : ''}
     ${state.modal && state.modal.type === 'plan-recipe' ? planRecipeModal() : ''}
     ${nutritionModal(r)}
-    ${nutritionDetailModal(r, state._nutritionDetailResult)}
     ${pdfExportModal()}
     ${shareSendModal()}
   `;

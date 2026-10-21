@@ -121,11 +121,11 @@ async def main():
           const t2 = document.querySelector('.result-line .tick'); const b = t2.getBoundingClientRect().width; return { a, b, ticking: t2.classList.contains('is-ticking') }; }""")
         check('Ticker: nach Ansichtswechsel zählt wieder, Breite ändert sich nie (kein Layoutsprung)', w['ticking'] and abs(w['a'] - w['b']) < 0.5, str(w))
         # Nährwerte: null bleibt unbekannt
-        h = await ev("""() => { const rec = emptyRecipe(); rec.id = 'x'; rec.servings = 2; const per = {}; NUTRITION_COMPACT_KEYS.forEach((k, i) => { per[k] = i === 0 ? 250 : (i === 1 ? 12.5 : null); });
+        h = await ev("""() => { const rec = emptyRecipe(); rec.id = 'x'; rec.servings = 2; const per = {}; NUTRITION_COMPACT_KEYS.forEach((k, i) => { per[k] = i === 0 ? 250 : (i === 1 ? 5.5 : null); });
           const html = nutritionCompactInner(rec, { nutrientsPerPortion: per, confidence: 'high', unresolvedCount: 0, needsServings: false, rangeUsed: false, ingredientStatus: [] });
-          const d = document.createElement('div'); d.innerHTML = html; const vals = Array.from(d.querySelectorAll('.nutrition-compact-value')).map(e => e.textContent.trim());
-          return { vals, ticks: d.querySelectorAll('.tick').length, dec: Array.from(d.querySelectorAll('.tick')).map(t => t.dataset.dec + ':' + t.dataset.tick) }; }""")
-        check('Ticker Nährwerte: Zahl mit Komma, unbekannte Werte bleiben «–», nie 0 erfunden', h['vals'][0].startswith('250') and h['vals'][1].startswith('12,5') and all(v == '–' for v in h['vals'][2:]) and h['ticks'] == 2 and h['dec'] == ['0:250', '1:12.5'], str(h))
+          const d = document.createElement('div'); d.innerHTML = html; const td = (lab) => { const th = Array.from(d.querySelectorAll('.nut-table th')).find(t => t.textContent.trim() === lab); return th ? th.nextElementSibling.textContent.trim() : null; };
+          return { vals: [td('Energie'), td('Eiweiss'), td('Kohlenhydrate'), td('Fett'), td('Nahrungsfasern')], ticks: d.querySelectorAll('.tick').length }; }""")
+        check('Nährwerte (v86 Tabelle, ohne Zähler): Zahl mit Komma, unbekannte Werte bleiben «–», nie 0 erfunden', h['vals'][0].startswith('250') and h['vals'][1].startswith('5,5') and all(v == '–' for v in h['vals'][2:]) and h['ticks'] == 0, str(h))
         t = await ev("() => [tickerHtml('120–170', 'k'), tickerHtml('abc<', 'k'), tickerHtml('', 'k'), tickerHtml('7', ''), tickerHtml(0, 'k').includes('data-tick=\"0\"')]")
         check('Ticker: Spannen, Text, leer und fehlender Schlüssel bleiben ohne Zähler', t[0] == '120–170' and t[1] == 'abc&lt;' and t[2] == '' and t[3] == '7' and t[4] is True, str(t))
         # Einkauf-Zähler

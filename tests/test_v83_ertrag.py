@@ -106,16 +106,16 @@ async def main():
                  piece: Object.assign({}, state.recipes.find(x => x.id === 'v83_karamell'), { id: 'v83_ns', servingMode: 'pieces', servings: 8, yieldLabel: 'Pralinen' }) })) {
               const n = await calculateRecipeNutrition(r);
               const html = nutritionCompactInner(r, n);
-              out[k] = { whole: n.wholeRecipe, per: n.nutrientsPerPortion.energyKcal, tot: n.nutrientsTotal.energyKcal, html, cov: nutCoverageText(n) };
+              const cv = nutUiCoverage(n); out[k] = { whole: n.wholeRecipe, per: n.nutrientsPerPortion.energyKcal, tot: n.nutrientsTotal.energyKcal, html, cov: cv.counted + ' von ' + cv.total };
             } return out; }""")
-        check('B: Gesamtrezept: keine Pro-Portion-Werte, Überschrift «für das gesamte Rezept»', nb['total']['whole'] and nb['total']['per'] is None and nb['total']['tot'] > 1000 and 'Geschätzte Nährwerte für das gesamte Rezept' in nb['total']['html'] and 'pro Portion' not in nb['total']['html'], str({k: v for k, v in nb['total'].items() if k != 'html'}))
-        check('B: Gesamtrezept nennt den Bezug (1 Glas)', 'Ergibt 1 Glas' in nb['total']['html'])
-        check('B: pro Portion bei 4 Portionen (Gesamt / 4)', 'Geschätzte Nährwerte pro Portion' in nb['portion']['html'] and abs(nb['portion']['per'] * 4 - nb['portion']['tot']) < 2, f"{nb['portion']['per']} {nb['portion']['tot']}")
-        check('B: pro Stück bei Stückzahl', 'Geschätzte Nährwerte pro Stück' in nb['piece']['html'] and abs(nb['piece']['per'] * 8 - nb['piece']['tot']) < 2)
-        check('B: «Mittlere Genauigkeit» ersetzt durch nachvollziehbare Angabe', all('Genauigkeit' not in v['html'] for v in nb.values()) and 'von 3 Zutaten berücksichtigt' in nb['total']['cov'], nb['total']['cov'])
+        check('B: Gesamtrezept: keine Pro-Portion-Werte, Überschrift «für das gesamte Rezept»', nb['total']['whole'] and nb['total']['per'] is None and nb['total']['tot'] > 1000 and 'Nährwerte für das gesamte Rezept' in nb['total']['html'] and 'pro Portion' not in nb['total']['html'], str({k: v for k, v in nb['total'].items() if k != 'html'}))
+        check('B: Gesamtrezept nennt den Bezug (1 Glas)', '(1 Glas)' in nb['total']['html'])   # v86: Bezug in der Tabellenüberschrift
+        check('B: pro Portion bei 4 Portionen (Gesamt / 4)', 'Nährwerte pro Portion' in nb['portion']['html'] and abs(nb['portion']['per'] * 4 - nb['portion']['tot']) < 2, f"{nb['portion']['per']} {nb['portion']['tot']}")
+        check('B: pro Stück bei Stückzahl', 'Nährwerte pro Stück' in nb['piece']['html'] and abs(nb['piece']['per'] * 8 - nb['piece']['tot']) < 2)
+        check('B: «Mittlere Genauigkeit» ersetzt durch nachvollziehbare Angabe', all('Genauigkeit' not in v['html'] for v in nb.values()) and nb['total']['cov'] == '3 von 3', nb['total']['cov'])
         miss = await ev("""async () => { const r = Object.assign({}, state.recipes.find(x => x.id === 'v83_karamell'), { id: 'v83_miss', ingredients: [{ amount: '200', unit: 'g', name: 'Zucker' }, { amount: '100', unit: 'g', name: 'Zzyzxwurzelpaste' }] });
-            const n = await calculateRecipeNutrition(r); return { cov: nutCoverageText(n), complete: n.complete, html: nutritionIncompleteInner(r, n) }; }""")
-        check('B: fehlende Zutatenzuordnung: «1 von 2 Zutaten», keine Summe', miss['cov'] == '1 von 2 Zutaten berücksichtigt' and miss['complete'] is False and 'Unvollständig' in miss['html'], str(miss['cov']))
+            const n = await calculateRecipeNutrition(r); const cv = nutUiCoverage(n); return { cov: cv.counted + ' von ' + cv.total, complete: n.complete, html: nutritionCompactInner(r, n) }; }""")
+        check('B: fehlende Zutatenzuordnung: «1 von 2», Hälfte erkannt: Teilsumme mit Hinweis (v86)', miss['cov'] == '1 von 2' and miss['complete'] is False and 'Ohne Zzyzxwurzelpaste gerechnet' in miss['html'], str(miss['cov']))
         m100 = await ev("""async () => { const r = state.recipes.find(x => x.id === 'v83_karamell'); const n = await calculateRecipeNutrition(r);
             const a = nutDetailModes(r, n).map(m => m.id); const r2 = Object.assign({}, r, { nutritionFinishedWeight: 380 }); const n2 = await calculateRecipeNutrition(r2);
             return [a, nutDetailModes(r2, n2).map(m => m.id), n2.nutrientsPer100g.energyKcal > 0]; }""")
@@ -136,9 +136,9 @@ async def main():
         check('B: Rezept mit Zutatengruppen gilt nach Berechnung nicht mehr als veraltet', st[4] in ('calculated', 'incomplete'), str(st))
         # Anzeige in der App (lazy Karte)
         await ev("() => { state.activeRecipeId = 'v83_karamell'; state.view = 'detail'; state.showNutrition = true; state.detailTab = 'nutrition'; render(); }")
-        await page.wait_for_function("document.querySelector('.nutrition-basis-title')", timeout=15000)
+        await page.wait_for_function("document.querySelector('#panel-nutrition .nut-caption')", timeout=15000)
         card = await ev("() => document.querySelector('[data-lazy-nutrition]').textContent.replace(/\\s+/g, ' ')")
-        check('B: App-Karte: «Geschätzte Nährwerte für das gesamte Rezept», keine 0 für Unbekanntes', 'Geschätzte Nährwerte für das gesamte Rezept' in card and 'pro Portion' not in card, card[:200])
+        check('B: App-Karte: «Nährwerte für das gesamte Rezept», keine 0 für Unbekanntes', 'Nährwerte für das gesamte Rezept' in card and 'pro Portion' not in card, card[:200])
         await page.screenshot(path=os.path.join(OUT, 'v83_naehrwerte_karamell.png'), full_page=True)
         # PDF-Datenmodell
         pm = await ev("""async () => { const r = state.recipes.find(x => x.id === 'v83_karamell'); const n = await calculateRecipeNutrition(r); const m = pdfBuildModel(r, n);
