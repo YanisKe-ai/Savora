@@ -231,8 +231,6 @@ button { -webkit-tap-highlight-color: transparent; }
 .note-card-title { font-size: 0.875rem; font-weight: 800; margin: 0 0 0.25rem; }
 .note-card-head { display: flex; align-items: center; justify-content: space-between; margin: -0.5rem -0.5rem 0.125rem 0; }
 .note-date { font-size: 0.875rem; font-weight: 700; color: var(--accent); }
-.estimate-note { display: flex; gap: 0.5rem; align-items: flex-start; font-size: 0.875rem; color: var(--text-soft); background: var(--surface-soft); border-radius: var(--radius-s); padding: 0.75rem 0.75rem; margin: 0 0 0.75rem; }
-.estimate-note svg { width: 16px; height: 16px; flex-shrink: 0; margin-top: 0.0625rem; }
 .tab-panel .nutrition-section { margin-top: 0; }
 .nutrition-card { background: var(--card-bg); border: 1px solid var(--border); }
 
@@ -418,15 +416,8 @@ input[type="text"], input[type="number"], input[type="search"], input:not([type]
 .inline-add input:focus, .cb-chapter input:focus, .shop-add input:focus { outline: none; border-color: var(--focus-ring); box-shadow: 0 0 0 3px rgba(185,59,44,0.15); }
 .field input:focus, .field textarea:focus, .field select:focus { border-color: var(--focus-ring); }
 @media (min-width: 720px) { .hero-img { max-height: 420px; } }
-
-.nutri-status { margin-top: 0.75rem; border-top: 1px solid var(--border); padding-top: 0.75rem; }
-.nutri-status-row { display: flex; flex-wrap: wrap; gap: 0.5rem; }
-.nutri-pill { font-size: 0.875rem; font-weight: 700; padding: 0.25rem 0.75rem; border-radius: 999px; background: var(--surface-soft); }
 .nutri-pill--ok { color: var(--success); }
 .nutri-pill--warn { background: var(--warning-bg); color: var(--warning-text); }
-.nutri-status-details { margin-top: 0.5rem; font-size: 0.875rem; }
-.nutri-status-details summary { cursor: pointer; min-height: 44px; display: flex; align-items: center; font-weight: 700; color: var(--text-soft); }
-.nutri-status-details ul { margin: 0 0 0.5rem; padding-left: 1.25rem; color: var(--text-soft); }
 /* Desktop: Kopfzeile an der Inhaltsbreite ausrichten statt am Fensterrand. */
 @media (min-width: 1240px) {
   .topbar { padding-left: calc((100vw - 1180px) / 2 + 32px); padding-right: calc((100vw - 1180px) / 2 + 32px); }
@@ -1478,7 +1469,6 @@ input[aria-invalid="true"], textarea[aria-invalid="true"] { border-color: var(--
   .shop-row, .shop-row *:not(.check-box), .plan-add { transition: none !important; }
 }
 
-
 /* ==========================================================================
    Paket 37: neue visuelle Sprache (persoenliches Kochbuch)
    Warme Flaechen, klare Typografie, ruhige Hierarchie, Tomatenrot nur fuer die Hauptaktion und aktive Zustaende.
@@ -1628,7 +1618,7 @@ html { scrollbar-color: var(--border) transparent; }
 .note-card p { font-size: 1.0625rem; line-height: 1.6; }
 .note-card-title, .note-date { font-size: 0.9375rem; }
 .meta-chip { font-size: 0.875rem; }
-.estimate-note, .nutrition-basis, .legal-stand { font-size: 0.9375rem; }
+.nutrition-basis, .legal-stand { font-size: 0.9375rem; }
 
 /* ----- Schaltflaechen und Eingaben ----- */
 .outline-btn { border: none !important; background: var(--surface-soft); color: var(--text); font-family: var(--font-sans); font-size: 1rem; font-weight: 600; border-radius: var(--radius-pill); }
@@ -1721,7 +1711,6 @@ html { scrollbar-color: var(--border) transparent; }
 .today-link { min-height: 44px; padding: 0 0.25rem; border: none; background: none; color: var(--text); font: inherit; font-weight: 600; text-decoration: underline; text-underline-offset: 0.2em; cursor: pointer; }
 .today-note { color: var(--text); }
 
-
 /* ===== Interaktionen (Paket 37) ===== */
 /* Drücken sichtbar in 100 bis 160 ms, immer mit der System-Ausgangskurve; nie transition: all */
 .fav-toggle, .icon-btn, .menu-item, .settings-row, .cover-opt, .pdf-tpl-opt { transition: transform 100ms var(--ease-out), background-color 140ms var(--ease-out), color 140ms var(--ease-out), border-color 140ms var(--ease-out); }
@@ -1766,7 +1755,6 @@ input[type="date"] { min-height: 3rem; }
 .cover-opt-name { text-align: center; overflow-wrap: anywhere; }
 .cover-opt.is-active .cover-opt-name { color: var(--text); }
 
-
 /* Grosse Systemschrift auf schmalen Handys: Schritte und Import-Zeilen reihen sich um, statt zu sprengen */
 .icon-btn:not(.icon-btn--small) { flex-shrink: 0; }
 .cb-steps ol { grid-template-columns: repeat(auto-fit, minmax(min(100%, 6.5rem), 1fr)); }
@@ -1783,7 +1771,6 @@ input[type="date"] { min-height: 3rem; }
 .bottom-nav .nav-label { white-space: normal; }
 /* Rezeraster auf dem Handy: Spaltenzahl folgt der Schriftgroesse (zwei Spalten normal, eine bei sehr grosser Systemschrift) */
 @media (max-width: 719px) { .rgrid { grid-template-columns: repeat(auto-fill, minmax(min(100%, 9.5rem), 1fr)); } }
-
 
 /* Feinschliff (Paket 37): Umrechnungs-Reiter auf sehr schmalen Bildschirmen in zwei Reihen (kein Seitwaerts-Scrollen, auch bei breiteren Schriften) */
 @media (max-width: 359px) { .uc-tabs { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
@@ -2338,7 +2325,6 @@ legend.tl-lead { padding: 0; }
 
 .tl--intro { max-width: none; }
 
-
 /* ============================================================
    Handy (unter 768 px): alle Hauptseiten-Titel auf derselben Höhe; Suche als runder Knopf neben «Filter»
    Titelzeile: feste Höhe 44 px, Titel mittig, gleiche Schrift und gleicher Abstand unter der Wortmarke auf Rezepte, Wochenplan,
@@ -2382,7 +2368,6 @@ legend.tl-lead { padding: 0; }
   .home-head--phone .filter-btn { width: 44px; padding: 0; }
   .home-head--phone .filter-btn .filter-btn-text { position: absolute; width: 1px; height: 1px; margin: 0; padding: 0; overflow: hidden; clip: rect(0 0 0 0); clip-path: inset(50%); white-space: nowrap; border: 0; }
 }
-
 
 /* ==========================================================================
    Feinschliff: fuenf ruhige Effekte (Ideen nach Magic UI, selbst gebaut).
@@ -2431,7 +2416,7 @@ body:has(.home-add-bar) .bottom-nav::before { display: none; }
 .tick { position: relative; display: inline-block; font-variant-numeric: tabular-nums; }
 .tick.is-ticking { color: transparent; }
 .tick.is-ticking::after { content: attr(data-live); content: attr(data-live) / ""; position: absolute; inset: 0; text-align: right; white-space: nowrap; color: var(--tick-color, currentColor); pointer-events: none; }
-.result-line, .nutrition-compact-value, .nav-badge { font-variant-numeric: tabular-nums; }
+.result-line, .nav-badge { font-variant-numeric: tabular-nums; }
 
 /* 3 Text Highlighter: Marker aus dem sanften Savora-Ton (--lime), Text bleibt in der Textfarbe (Kontrast mindestens 4,5 zu 1). */
 mark.hl {
@@ -2464,7 +2449,6 @@ mark.hl {
 .avc-c4 { background: color-mix(in srgb, var(--text-muted) 22%, var(--card-bg)); }
 .avc-c5 { background: var(--lime); }
 .avc-more { background: var(--surface-soft); color: var(--text-soft); }
-
 
 /* ==========================================================================
    Laptop: Platz und Abstände
@@ -2630,7 +2614,6 @@ mark.hl {
   .rcard:hover, .plan-day:hover, .cbk-card:hover, .primary-btn:active, .ghost-btn:active, .outline-btn:active, .filter-btn:active, .seg-btn:active, .bottom-nav button:active, .rcard:active { transform: none; }
 }
 
-
 /* ===== Ansicht Umschalter: Liste oder Raster auf dem Handy ===== */
 @media (max-width: 767px) {
   .result-row--phone .layout-toggle--phone { flex: none; order: 0; margin-left: auto; }
@@ -2649,7 +2632,6 @@ mark.hl {
   .rgrid--phone .rcard--phone .rcard-meta--time svg { width: 1rem; height: 1rem; }
   .rgrid--phone .rcard--phone .rcard-fav { position: absolute; right: -0.25rem; bottom: -0.25rem; top: auto; width: 2.75rem; height: 2.75rem; }
 }
-
 
 /* Überlauf-Korrektur: grosse Systemschrift (24 px) – Rezeptdetail und Kopf der Startseite */
 /* Menge: der Stepper bricht unter das Label, statt über den Rand zu ragen */
@@ -3500,9 +3482,6 @@ body:has(.lp) .topbar--sub .topbar-title { overflow-wrap: normal; hyphens: auto;
 .amount-scaled-hint { display: flex; flex-wrap: wrap; align-items: center; gap: 0 0.5rem; }
 .amount-scaled-hint .text-btn { min-height: 44px; }
 .stepper button:disabled { opacity: 0.4; cursor: default; }
-.nutrition-basis-title { font-size: 1rem; font-weight: 700; margin: 0 0 0.25rem; color: var(--text); }
-.nutrition-basis-note { font-size: 0.875rem; color: var(--text-soft); margin: 0 0 0.5rem; }
-.nutrition-confidence-badge.nutrition-coverage { text-transform: none; letter-spacing: normal; }
 .nutrition-weight-field { margin: 0.75rem 0; }
 .nutrition-weight-save { width: 100%; margin-bottom: 0.75rem; }
 
@@ -3650,7 +3629,6 @@ body.keyboard-open .rp-foot { padding-bottom: 0.75rem; }
 @media (min-width: 640px) { .modal-sheet.rp-sheet { border-radius: 1.5rem; max-height: min(86vh, var(--rp-vvh, 86vh)); } }
 @media (hover: hover) and (pointer: fine) { .rp-row:not(.is-selected):hover { border-color: var(--text-soft); } }
 @media (prefers-reduced-motion: reduce) { .rp-close, .rp-seg-btn { transition: none; } .rp-close:active { transform: none; } }
-.nutrition-confidence-badge.nutrition-coverage { text-transform: none; letter-spacing: normal; }
 .nutrition-weight-field { margin: 0.75rem 0; }
 .nutrition-weight-save { width: 100%; margin-bottom: 0.75rem; }
 
@@ -4044,7 +4022,7 @@ button.pairing-main:active { transform: scale(0.98); }
   .ing-check > .check-box { grid-row: 1 / span 2; }
   .ing-check > .ing-amount, .ing-check > .ing-name { grid-column: 2; min-width: 0; }
   .ing-check > .ing-amount:empty { display: none; }
-  .ing-name, .nutri-status-details li, .rp-item-title, .cb-item-title { hyphens: auto; }
+  .ing-name, .rp-item-title, .cb-item-title { hyphens: auto; }
   /* M3 Reiter: Verlauf am rechten Rand zeigt, dass weitere Reiter folgen */
   .tabbar-v2::after { content: ""; position: sticky; right: 0; flex: 0 0 2rem; margin-left: -0.75rem; background: linear-gradient(to right, transparent, var(--bg) 85%); box-shadow: inset 0 -1px 0 var(--hairline); pointer-events: none; }
   /* M5/M6 Kochbuch */
