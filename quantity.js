@@ -77,6 +77,19 @@ function parseQuantity(raw, unit) {
   return { kind: 'invalid', text: s };
 }
 function qtyFromIngredient(ing) { return parseQuantity(ing ? ing.amount : null, ing ? ing.unit : ''); }
+/* Fuer Rechnungen (Naehrwerte, v0.86 F8): "ca. 200", "etwa 200", "~200", "rund 200" im Mengenfeld zaehlen als 200.
+   Die Anzeige bleibt beim Originaltext ("ca. 200 g"), gespeichert wird nichts anderes. */
+const QTY_APPROX_PREFIX_RE = /^\s*(?:ca\.?|circa|zirka|etwa|ungefähr|ungefaehr|rund|approx\.?|~|≈)\s*/i;
+function qtyStripApprox(raw) {
+  if (typeof raw !== 'string') return raw;
+  const t = raw.replace(QTY_APPROX_PREFIX_RE, '');
+  return t === raw ? raw : t.trim();
+}
+function qtyFromIngredientLoose(ing) {
+  const q = parseQuantity(ing ? qtyStripApprox(ing.amount) : null, ing ? ing.unit : '');
+  if (ing && typeof ing.amount === 'string' && QTY_APPROX_PREFIX_RE.test(ing.amount) && qtyIsNumeric(q)) q.approx = true;
+  return q;
+}
 /* Gemeinsame Klassifikation einer Zutat fuer ALLE Zusammenfassungen (Import, Kontrolle, Editor, Einkauf, PDF):
    exact | range | missing | qualitative | ambiguous | invalid. Eine fehlende Menge bei "Salz nach Geschmack" oder
    "etwas Pfeffer" ist qualitativ, nicht fehlend. Ein Bereich ("1-2 EL") ist nie fehlend. */
