@@ -924,11 +924,14 @@ function ingredientsPanel(r) {
       <ul class="ing-list">
         ${g.ingredients.map(i => {
           const isChecked = checked.has(i._index);
-          const amt = scaledAmountLine(i, factor);
+          // v86.1: Menge steckt im Namen («½ TL Backpulver», Mengenfeld leer): nur für die Anzeige in Menge und Name teilen, Daten bleiben unverändert
+          const sp = (!String(i.amount || '').trim() && !String(i.unit || '').trim() && typeof parseIngredientLine === 'function') ? parseIngredientLine(String(i.name || '')) : null;
+          const shown = sp && sp.amount && sp.name ? Object.assign({}, i, { amount: sp.amount, unit: sp.unit || '', name: sp.name }) : i;
+          const amt = scaledAmountLine(shown, factor);
           return `<li><button type="button" class="ing-check ${isChecked ? 'is-checked' : ''}" data-action="toggle-ingredient-check" data-id="${escapeAttr(r.id)}" data-idx="${i._index}" role="checkbox" aria-checked="${isChecked}">
             <span class="check-box" aria-hidden="true">${ICONS.check}</span>
             <span class="ing-amount">${escapeHtml(amt)}</span>
-            <span class="ing-name">${highlightHtml(i.name, state.query)}</span>
+            <span class="ing-name">${highlightHtml(shown.name, state.query)}</span>
           </button></li>`;
         }).join('')}
       </ul>
