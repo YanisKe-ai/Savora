@@ -222,7 +222,7 @@ async def teil_pdf():
                     t2 = flach(ex.text(first=2))
                     title = fx[rid]['title']
                     check(f'[{stil}] {was}: Folgeseite nennt Rezeptname und «Fortsetzung»', 'fortsetzung' in t2.lower() and _ascii(title)[:25] in _ascii(t2), t2[:120])
-                texte[(stil, rid)] = _ascii(flach(ex.text()).replace('Fortsetzung', ''))
+                texte[(stil, rid)] = _ascii(flach(ex.text()).replace('Fortsetzung', '')).replace('fortsetzung', '')   # v87: Fortsetzungs-Titel (Gruppen ueber zwei Seiten) zaehlen nicht als Inhalt; Prise Pop verteilt lange Zutatenlisten auf zwei Spalten statt zwei Seiten
                 if rid in ('pdf_sloppy', 'pdf_zweiseiten', 'pdf_hochformat', 'pdf_langtitel') or k >= 3:
                     ex.render(80)
         for rid, was in faelle.items():
