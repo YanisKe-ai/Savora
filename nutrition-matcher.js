@@ -72,13 +72,30 @@ async function searchAllFoods(query, limit = 20) {
    daraus eine Zubereitungsart erkannt (Punkt 21), fliesst sie NUR ein, wenn die Zutatenzeile
    selbst noch keinen expliziten ernaehrungsrelevanten Zustand nennt (die explizite Angabe in
    der Zutat selbst hat Vorrang vor der aus dem Fliesstext erratenen). */
+/* Schluessel, unter denen eine Zuordnung gesucht wird (bereinigter Kern, voller Text, Originalzeile). Gemeinsam mit
+   nutritionMatchSignature (nutrition-calculator.js), damit die Frischepruefung genau dieselben Zuordnungen sieht. */
+function nutMatchKeysFor(rawNameIn, originalName) {
+  const cleanedName = nutCleanIngredientName(rawNameIn).name;
+  const normalized = normalizeIngredientText(cleanedName || rawNameIn);
+  return [normalized, normalizeIngredientText(rawNameIn), normalizeIngredientText(originalName)].filter((k, i, a) => k && a.indexOf(k) === i);
+}
+
+/* Rezept fuer den Sync-Lookup: ausdruecklich uebergeben, sonst das Rezept des offenen Zuordnen-Dialogs. */
+function nutRecipeForMatch(opts) {
+  if (opts && opts.recipe) return opts.recipe;
+  try {
+    if (typeof state !== 'undefined' && state && state.modal && state.modal.type === 'nutrition' && Array.isArray(state.recipes)) return state.recipes.find((x) => x.id === state.modal.recipeId) || null;
+  } catch (e) { /* kein Zustand verfuegbar */ }
+  return null;
+}
+
 async function matchIngredient(rawNameIn, steps, opts) {
   // Nur der eigentliche Zutatenname zaehlt: Klammerzusaetze ("(Ei verquirlen)", "[frisch]") werden nicht gesucht.
   // Eine fruehere Bestaetigung unter dem vollen Text (mit Klammern) bleibt trotzdem gueltig (siehe confirmKeys).
   const cleanedName = nutCleanIngredientName(rawNameIn).name;
   const rawName = cleanedName || rawNameIn;
   const normalized = normalizeIngredientText(rawName);
-  const confirmKeys = [normalized, normalizeIngredientText(rawNameIn), normalizeIngredientText(opts && opts.originalName)].filter((k, i, a) => k && a.indexOf(k) === i);
+  const confirmKeys = nutMatchKeysFor(rawNameIn, opts && opts.originalName);
   if (!normalized) {
     return { normalized, status: 'unmatched', food: null, candidates: [], confirmed: false, preparation: null, ingredientInfo: null };
   }
@@ -86,6 +103,22 @@ async function matchIngredient(rawNameIn, steps, opts) {
   const preparation = (!ingredientInfo.nutritionRelevantStates.length && steps)
     ? detectIngredientPreparation(rawName, steps)
     : null;
+
+  // 0) v0.86: Zuordnung, die im Rezept selbst mitreist (recipe.nutritionMap, synchronisiert), vor den lokal gelernten.
+  const recipeForMatch = nutRecipeForMatch(opts);
+  if (recipeForMatch && typeof nutritionSyncLookup === 'function') {
+    for (const key of confirmKeys) {
+      let hit = null;
+      try { hit = await nutritionSyncLookup(recipeForMatch, key); } catch (e) { hit = null; }
+      if (!hit) continue;
+      let food = hit.foodId ? await findFoodById(hit.foodId) : null;
+      if (!food && hit.customFood && hit.customFood.nutrientsPer100g) {
+        food = Object.assign({ source: 'custom', language: 'de', synonyms: [], density: null }, hit.customFood, { nutrientsPer100g: { ...emptyNutrients(), ...hit.customFood.nutrientsPer100g } });
+        if (!food.id) food.id = hit.foodId || ('custom-sync-' + key);
+      }
+      if (food) return { normalized, status: 'matched', food, candidates: [food], confirmed: true, viaRecipeMap: true, preparation, ingredientInfo };
+    }
+  }
 
   // 1) Bestaetigte Zuordnung hat Vorrang vor jeder automatischen Suche. Bewusst weiterhin ueber
   //    den vollen Originaltext normalisiert (nicht den bereinigten Kern) — eine einmal vom
@@ -153,30 +186,45 @@ async function matchIngredient(rawNameIn, steps, opts) {
 }
 
 /* Ordnet mehrere Zutaten in einem Rutsch zu (fuer den Matching-Screen, Punkt 71). */
-async function matchIngredients(ingredients, steps) {
+async function matchIngredients(ingredients, steps, recipe) {
   const results = [];
   for (const ing of ingredients) {
     const prepared = (typeof nutPrepareIngredient === 'function') ? nutPrepareIngredient(ing) : ing;
-    const result = await matchIngredient(prepared.name, steps, { originalName: ing.name });
+    const result = await matchIngredient(prepared.name, steps, { originalName: ing.name, recipe });
     results.push({ ingredient: ing, ...result });
   }
   return results;
 }
 
 /* Nutzer bestaetigt/aendert eine Zuordnung manuell (Punkt 72-73) — wird ab sofort bevorzugt. */
-async function confirmIngredientMatch(rawName, foodId) {
+async function confirmIngredientMatch(rawName, foodId, opts) {
   const normalized = normalizeIngredientText(rawName);
   if (!normalized) return null;
   const match = { normalizedIngredient: normalized, foodId, confirmedByUser: true, updatedAt: Date.now() };
   await dbPutNutritionMatch(match);
+  // v0.86: Zuordnung auch im Rezept ablegen (Sync ueber kind 'recipe'), falls nutrition-sync.js geladen ist
+  if (typeof nutritionSyncRemember === 'function') {
+    const recipe = nutRecipeForMatch(opts);
+    const recipeId = (opts && opts.recipeId) || (recipe && recipe.id) || null;
+    if (recipeId) {
+      let customFood = null;
+      try { if (String(foodId || '').startsWith('custom-')) customFood = await findFoodById(foodId); } catch (e) { customFood = null; }
+      try { await nutritionSyncRemember(recipeId, normalized, match, customFood || null); } catch (e) { console.warn('Zuordnung im Rezept nicht gespeichert', e); }
+    }
+  }
   return match;
 }
 
 /* Nutzer setzt eine gelernte Zuordnung zurueck (Punkt 73: "muss spaeter zuruecksetzen koennen"). */
-async function resetIngredientMatch(rawName) {
+async function resetIngredientMatch(rawName, opts) {
   const normalized = normalizeIngredientText(rawName);
   if (!normalized) return;
   await dbDeleteNutritionMatch(normalized);
+  // Zuordnung im Rezept ebenfalls entfernen, falls nutrition-sync.js das anbietet (sonst wuerde sie die Ruecksetzung ueberstimmen)
+  if (typeof nutritionSyncForget === 'function') {
+    const recipe = nutRecipeForMatch(opts);
+    if (recipe && recipe.id) { try { await nutritionSyncForget(recipe.id, normalized); } catch (e) { /* optional */ } }
+  }
 }
 
 /* ---------- Custom Foods (Punkt 9) ---------- */

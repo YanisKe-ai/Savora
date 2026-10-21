@@ -379,11 +379,16 @@ function pdfNutritionView(result) {
   const range = total ? result.nutrientsTotalRange : result.nutrientsPerPortionRange;
   return Object.keys(NUTRIENT_KEYS).map((key) => {
     const def = NUTRIENT_KEYS[key];
-    let value = pdfRoundNutrient(def.unit, exact ? exact[key] : null);
-    let text = pdfNutText(value);
+    const raw = exact ? exact[key] : null;
+    let value = pdfRoundNutrient(def.unit, raw);
+    // v0.86: gleiche Rundung wie die App (formatNutrient in nutrition-model.js)
+    let text = typeof formatNutrient === 'function' ? formatNutrient(raw, key) : pdfNutText(value);
     if (value === null && result.rangeUsed && range && range[key] && range[key].min !== range[key].max) {
-      const lo = pdfRoundNutrient(def.unit, range[key].min), hi = pdfRoundNutrient(def.unit, range[key].max);
-      if (lo !== null && hi !== null) text = pdfNutText(lo) + '–' + pdfNutText(hi);
+      if (typeof formatNutrientRange === 'function') text = formatNutrientRange(range[key].min, range[key].max, key);
+      else {
+        const lo = pdfRoundNutrient(def.unit, range[key].min), hi = pdfRoundNutrient(def.unit, range[key].max);
+        if (lo !== null && hi !== null) text = pdfNutText(lo) + '–' + pdfNutText(hi);
+      }
     }
     return { key, label: def.label, unit: def.unit, group: def.group, value, text };
   });
@@ -398,6 +403,13 @@ function pdfNutritionBasis(result, pieces) {
 function pdfNutritionNote(result, servings) {
   if (!result) return '';
   const parts = ['Geschätzte Werte, Abweichungen sind möglich.'];
+  // v0.86: teilweise berechnet (mind. die Haelfte der Zutaten): Untergrenze, fehlende Zutaten nennen
+  const cov = typeof nutritionCoverageOf === 'function' ? nutritionCoverageOf(result) : null;
+  if (cov && cov.total > 0 && cov.counted < cov.total) {
+    const names = (cov.missing || []).map((m) => m && m.name).filter(Boolean);
+    const n = cov.total - cov.counted;
+    parts.push(names.length && names.length === n && n <= 2 ? 'Ohne ' + names.join(' und ') + ' gerechnet, die Werte sind eher etwas zu tief.' : n + ' Zutaten fehlen in der Rechnung, die Werte sind eher zu tief.');
+  }
   if (result.rangeUsed) parts.push('Menge als Bereich angegeben, Ergebnis als Spanne.');
   if (result.needsServings) parts.push('Es fehlt die Angabe, was das Rezept ergibt. Deshalb gelten die Nährwerte für das ganze Rezept. Trage ein, was das Rezept ergibt, um Werte pro Portion zu sehen.');   // gleicher Satz wie in der App (nutrition-ui.js)
   else if (result.wholeRecipe && servings && servings.kind === 'total') parts.push('Werte für das gesamte Rezept (' + servings.label + '), eine Portion ist nicht festgelegt.');

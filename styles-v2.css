@@ -4595,3 +4595,56 @@ body:has(.cookbook-main) .toast-action { width: max-content; max-width: min(92vw
 .cookbook-main .cb-rp-search .rp-search-icon { z-index: 1; top: 0.875rem; }
 /* «Bewegung reduzieren»: Knöpfe der klebenden Fussleiste ohne Übergang (der Zeiger steht nach «Weiter» oft auf dem nächsten Knopf) */
 @media (prefers-reduced-motion: reduce) { .cookbook-main .cb-step-footer > button { transition: none; } }
+
+/* ===== v86 Nährwerte ===== */
+/* Kurzzeile im Rezeptkopf: Zweittext, ruhig, antippbar (44 px). Reservierte Fläche = gleiche Mindesthöhe, darum kein Sprung beim Nachladen. */
+.nut-line { display: flex; align-items: center; width: 100%; min-height: 2.75rem; margin: 0.25rem 0 0; padding: 0.25rem 0; border: 0; background: none; color: var(--text-soft); font: inherit; font-size: 0.9375rem; font-weight: 500; line-height: 1.45; text-align: left; font-variant-numeric: tabular-nums; cursor: pointer; border-radius: var(--r-ctl, 14px); -webkit-tap-highlight-color: transparent; }
+.nut-line--pending { cursor: default; }
+/* Zwei Zeilen reserviert: so lang ist die Zeile auf dem Handy und in der schmalen Spalte am Desktop */
+.nut-line { min-height: 3.25rem; min-height: calc(2lh + 0.5rem); }
+.nut-line-text { display: block; }
+.nut-line-item { white-space: nowrap; }
+.nut-line-basis { white-space: nowrap; }
+.nut-line--in { animation: nutLineIn 160ms var(--ease-out, ease-out); }
+@keyframes nutLineIn { from { opacity: 0; } to { opacity: 1; } }
+@media (hover: hover) and (pointer: fine) { .nut-line:not(.nut-line--pending):hover .nut-line-text { color: var(--text); text-decoration: underline; text-decoration-color: var(--hairline); text-underline-offset: 0.25rem; } }
+.nut-line:focus-visible { outline: 2px solid var(--violet); outline-offset: 2px; }
+.nut-line:not(.nut-line--pending):active { transform: scale(0.99); transition: transform 100ms var(--ease-out, ease-out); }
+#panel-nutrition { scroll-margin-top: calc(7.5rem + env(safe-area-inset-top, 0px)); }
+@media (prefers-reduced-motion: reduce) { .nut-line--in { animation: none; } .nut-line:active { transform: none; } }
+
+/* Reiter: eine ruhige Tabelle, keine Karte, keine Kacheln */
+.nut-panel { padding: 0.5rem 0 1rem; }
+.nut-panel.nutrition-card-loading { min-height: 18rem; color: var(--text-soft); font-size: 0.875rem; }
+.nut-table { width: 100%; border-collapse: collapse; font-size: 1rem; font-variant-numeric: tabular-nums; }
+.nut-caption { caption-side: top; text-align: left; font-size: 1.125rem; font-weight: 700; color: var(--text); padding: 0 0 0.5rem; }
+.nut-table th, .nut-table td { padding: 0.5rem 0; border-bottom: 1px solid var(--hairline); vertical-align: baseline; }
+.nut-table th { text-align: left; font-weight: 500; color: var(--text); padding-right: 1rem; }
+.nut-table td { text-align: right; font-weight: 600; color: var(--text); white-space: nowrap; }
+.nut-table tr.is-sub th { padding-left: 1rem; font-weight: 400; color: var(--text-soft); }
+.nut-table tr.is-sub td { font-weight: 400; color: var(--text-soft); }
+.nut-kj { font-weight: 400; color: var(--text-soft); font-size: 0.875rem; }
+.nut-note { margin: 0.75rem 0 0; font-size: 0.9375rem; line-height: 1.5; color: var(--text); }
+.nut-note .text-btn, .nut-more-actions .text-btn { padding: 0 0.25rem; min-height: 2.75rem; }
+.nut-foot { margin: 0.75rem 0 0; font-size: 0.875rem; line-height: 1.5; color: var(--text-soft); }
+.nut-state { margin: 0.5rem 0 0; font-size: 1rem; font-weight: 600; color: var(--text); }
+.nut-panel > .outline-btn { margin-top: 1rem; }
+.nut-more { margin-top: 1rem; border-top: 1px solid var(--hairline); }
+.nut-more > summary { display: flex; align-items: center; min-height: 2.75rem; cursor: pointer; font-size: 0.9375rem; font-weight: 600; color: var(--text-soft); list-style: none; }
+.nut-more > summary::-webkit-details-marker { display: none; }
+.nut-more > summary::after { content: ''; width: 0.5rem; height: 0.5rem; margin-left: 0.5rem; border-right: 2px solid currentColor; border-bottom: 2px solid currentColor; transform: translateY(-0.125rem) rotate(45deg); }
+.nut-more[open] > summary::after { transform: translateY(0.125rem) rotate(-135deg); }
+.nut-more > summary:focus-visible { outline: 2px solid var(--violet); outline-offset: 2px; border-radius: 0.25rem; }
+.nut-more-body { display: grid; gap: 0.75rem; padding: 0.25rem 0 0.5rem; }
+.nut-more-body .nutrition-weight-field { margin: 0; }
+.nut-more-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem 1rem; }
+.nut-table--extra { font-size: 0.9375rem; }
+.nut-table--extra th, .nut-table--extra td { font-weight: 400; color: var(--text-soft); padding: 0.25rem 0; }
+@media (forced-colors: active) {
+  .nut-line, .nut-table th, .nut-table td, .nut-foot, .nut-kj { color: CanvasText; }
+  .nut-table th, .nut-table td, .nut-more { border-color: CanvasText; }
+  .nut-line:focus-visible, .nut-more > summary:focus-visible { outline-color: Highlight; }
+}
+/* v86 Nachtrag: Kurzzeile steht unter der Zutatenliste (nicht im Kopf), mit feiner Trennlinie */
+.nut-line { margin: 1rem 0 0; padding: 0.5rem 0 0.25rem; border-top: 1px solid var(--hairline); border-radius: 0; }
+@media (forced-colors: active) { .nut-line { border-top-color: CanvasText; } }

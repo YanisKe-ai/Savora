@@ -39,8 +39,9 @@ async def main():
         wrong = [(r['line'], r['food']) for r in bres if (('Geschnetzeltes' in r['line'] and 'Currysauce' in (r['food'] or '')) or ('Chips' in r['line'] and 'Brot' in (r['food'] or '')))]
         check('Keine Fehlzuordnung zu Fertiggerichten (Geschnetzeltes, Chips)', not wrong, str(wrong))
         real = json.load(open(_os.path.join(TESTS, 'data', 'real_recipes_lines.json'), encoding='utf-8'))
-        rr = await ev("""async (data) => { const out = {}; for (const [t, lines] of Object.entries(data)) { const r = await calculateRecipeNutrition({ id: 'x', servings: 4, steps: [], ingredients: lines.map(l => ingPasteParseLine(l)) }); out[t] = { unresolved: r.unresolvedIngredients.map(u => u.name), kcal: r.nutrientsPerPortion.energyKcal, complete: r.complete }; } return out; }""", real)
-        check('Die vier echten Rezepte (Sloppy Joe, Manti, Carbonara, Cookies) sind vollständig berechenbar', all(v['complete'] and v['kcal'] > 100 for v in rr.values()), str({k: v['unresolved'] for k, v in rr.items() if v['unresolved']}))
+        rr = await ev("""async (data) => { const out = {}; for (const [t, lines] of Object.entries(data)) { const r = await calculateRecipeNutrition({ id: 'x', servings: 4, steps: [], ingredients: lines.map(l => ingPasteParseLine(l)) }); out[t] = { unresolved: r.unresolvedIngredients.map(u => u.name), kcal: r.nutrientsPerPortion.energyKcal, complete: r.complete, onlyNoAmount: (r.coverage ? r.coverage.missing : []).every(m => m.reason === 'no-amount') }; } return out; }""", real)
+        # v0.86: eine erkannte Zutat ohne Menge (Sloppy Joe: Käsescheiben, Sesam) zählt jetzt als «fehlt» (einheitliche Zählung), ist aber nicht ungeklärt
+        check('Die vier echten Rezepte (Sloppy Joe, Manti, Carbonara, Cookies) sind berechenbar, offen höchstens Zutaten ohne Menge', all(not v['unresolved'] and v['onlyNoAmount'] and v['kcal'] > 100 for v in rr.values()), str({k: v['unresolved'] for k, v in rr.items() if v['unresolved']}))
         check('Keine Seitenfehler', not errs, str(errs[:3]))
         await b.close()
     print('\nFEHLGESCHLAGEN:', FAIL or 'keine')

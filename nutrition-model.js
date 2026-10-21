@@ -146,3 +146,60 @@ function stemDe(word) {
   }
   return word;
 }
+
+/* ---------- Einheitliche Anzeige-Rundung fuer App und PDF (v0.86, F5) ----------
+   Liefert den Zahlentext mit Dezimalkomma OHNE Einheit, oder null (kein Wert, nie "0").
+   kcal/kJ ganzzahlig. Gramm: ab 10 ganz, ab 0,1 eine Nachkommastelle, darunter "< 0,1"; Salz unter 1 g zwei Stellen.
+   mg/µg: ab 10 ganz, ab 1 eine Stelle, ab 0,01 zwei Stellen, darunter "< 0,01". Gemessene 0 bleibt "0". */
+function nutUnitOfKey(key) {
+  if (key === 'kcal' || key === 'kJ' || key === 'g' || key === 'mg' || key === 'µg') return key;
+  return (typeof NUTRIENT_KEYS !== 'undefined' && NUTRIENT_KEYS[key]) ? NUTRIENT_KEYS[key].unit : 'g';
+}
+function nutRoundByRule(value, key) {
+  const unit = nutUnitOfKey(key);
+  const v = Math.abs(value);
+  if (unit === 'kcal' || unit === 'kJ') return { n: Math.round(value), d: 0 };
+  if (v === 0) return { n: 0, d: 0 };
+  if (unit === 'g') {
+    if (key === 'salt' && v < 1) {
+      if (v < 0.01) return { lt: '0,01' };
+      const r = Math.round(value * 100) / 100;
+      if (Math.abs(r) >= 1) return { n: Math.round(value * 10) / 10, d: 1 };
+      return { n: r, d: 2 };
+    }
+    if (v < 0.1) return { lt: '0,1' };
+    if (v < 10) { const r = Math.round(value * 10) / 10; return Math.abs(r) >= 10 ? { n: Math.round(value), d: 0 } : { n: r, d: 1 }; }
+    return { n: Math.round(value), d: 0 };
+  }
+  if (v < 0.01) return { lt: '0,01' };
+  if (v < 1) { const r = Math.round(value * 100) / 100; return Math.abs(r) >= 1 ? { n: Math.round(value * 10) / 10, d: 1 } : { n: r, d: 2 }; }
+  if (v < 10) { const r = Math.round(value * 10) / 10; return Math.abs(r) >= 10 ? { n: Math.round(value), d: 0 } : { n: r, d: 1 }; }
+  return { n: Math.round(value), d: 0 };
+}
+function formatNutrient(value, key) {
+  if (value === null || value === undefined || typeof value !== 'number' || !isFinite(value)) return null;
+  const r = nutRoundByRule(value, key);
+  if (r.lt) return '< ' + r.lt;
+  return r.n.toFixed(r.d).replace('.', ',');
+}
+/* Spanne gleich gerundet: "9–11". Fallen beide Grenzen auf denselben Text, kommt ein Einzelwert. */
+function formatNutrientRange(min, max, key) {
+  const a = formatNutrient(min, key), b = formatNutrient(max, key);
+  if (a === null && b === null) return null;
+  if (a === null) return b;
+  if (b === null) return a;
+  if (a === b) return a;
+  if (a.charAt(0) === '<') return 'bis ' + b;
+  return a + '–' + b;
+}
+
+/* Salz aus Natrium ableiten (F10): Salz = Natrium × 2,5 (Natrium in mg, Salz in g). Nur wenn Natrium bekannt ist.
+   Die Datenbank rundet Salz auf 0,1 g; eine 0 bei vorhandenem Natrium ist also "unter 0,05 g", kein Messwert 0. */
+function nutSaltFromSodium(per100) {
+  if (!per100) return null;
+  const na = per100.sodium;
+  if (typeof na !== 'number' || !isFinite(na)) return null;
+  const salt = per100.salt;
+  if (salt === null || salt === undefined || (salt === 0 && na > 0)) return Math.round(na * 2.5) / 1000;
+  return null;
+}

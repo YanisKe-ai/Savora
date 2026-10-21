@@ -347,6 +347,16 @@ async function handleActionV2(action, id, el, e) {
       if (prevH) newPanel.style.minHeight = prevH + 'px';
       return true;
     }
+    case 'nutrition-show-tab': {   // v86: Kurzzeile im Kopf öffnet den Reiter Nährwerte und scrollt dorthin
+      const tabBtn = document.getElementById('tab-nutrition');
+      if (!tabBtn) return true;
+      if (state.detailTab !== 'nutrition') tabBtn.click();
+      const panel = document.getElementById('panel-nutrition');   // nicht die klebende Reiterleiste: deren Lage ist beim Kleben nicht die echte
+      const reduce = !!(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches);
+      if (panel) panel.scrollIntoView({ block: 'start', behavior: reduce ? 'auto' : 'smooth' });
+      focusWithoutScroll(tabBtn);
+      return true;
+    }
     case 'toggle-ingredient-check': {
       const idx = parseInt(el.dataset.idx, 10);
       const set = checkedSetFor(id);

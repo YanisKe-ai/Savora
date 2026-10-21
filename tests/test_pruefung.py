@@ -140,7 +140,7 @@ async def data_tests(p):
 
     # F07 Naehrwerte
     txt = await page.evaluate(f"""async () => {{ const r = state.recipes.find(x => x.id === '{qa}'); const res = await calculateRecipeNutrition(r);
-       state.nutritionDetailMode = 'total'; return ['energy','macro','mineral','vitamin'].map(k => nutritionDetailGroup(NUTRITION_GROUP_ORDER.find(g => g.key === k), res)).join(' '); }}""")
+       state.nutritionDetailMode = 'total'; state.nutritionMoreOpen = true; return nutritionCompactInner(r, res); }}""")   # v86: Tabelle im Reiter statt Detail-Dialog
     check('F07 Gesamtwerte ohne Gleitkomma-Reste', not re.search(r'\d+\.\d{3,}', re.sub('<[^>]+>', ' ', txt)), re.findall(r'\d+\.\d{3,}', txt)[:3])
 
     # F08 Import

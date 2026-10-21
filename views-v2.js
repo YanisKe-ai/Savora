@@ -933,7 +933,8 @@ function ingredientsPanel(r) {
         }).join('')}
       </ul>
     </section>`).join('') : `<p class="hint-line">Noch keine Zutaten erfasst.</p>`}
-    ${checked.size ? `<button class="text-btn" data-action="reset-ingredient-checks" data-id="${escapeAttr(r.id)}">Häkchen zurücksetzen</button>` : ''}`;
+    ${checked.size ? `<button class="text-btn" data-action="reset-ingredient-checks" data-id="${escapeAttr(r.id)}">Häkchen zurücksetzen</button>` : ''}
+    ${typeof nutritionLineSlot === 'function' ? nutritionLineSlot(r) : ''}`;   // v86: Nährwert-Kurzzeile direkt unter den Zutaten, die erste Zutat bleibt ohne Scrollen sichtbar
 }
 function stepsPanel(r) {
   const entries = stepEntries(r);
@@ -958,9 +959,7 @@ function notesPanel(r) {
     <button class="ghost-btn" data-action="open-note-modal" data-id="${escapeAttr(r.id)}">${ICONS.plus} Notiz hinzufügen</button>`;
 }
 function nutritionPanel(r) {
-  let html = nutritionCardSection(r.id);
-  if (servingMode(r) === 'pieces') html = html.replace(/pro Portion/g, 'pro Stück').replace(/Pro Portion/g, 'Pro Stück');
-  return `<p class="estimate-note">${ICONS.info} Geschätzte Werte. Je nach Zutaten und Mengen können sie abweichen. Fehlende oder unklare Mengen fliessen nicht als exakte Werte ein.</p>${html}`;
+  return nutritionCardSection(r.id);   // v86: kein grünes Hinweisband mehr, der Reiter selbst nennt «Richtwerte» einmal
 }
 function detailView() {
   const r = state.recipes.find(x => x.id === state.activeRecipeId);
@@ -1051,7 +1050,6 @@ function detailView() {
     ${state.modal && state.modal.type === 'shop-select' ? shopSelectModal() : ''}
     ${state.modal && state.modal.type === 'plan-recipe' ? planRecipeModal() : ''}
     ${nutritionModal(r)}
-    ${nutritionDetailModal(r, state._nutritionDetailResult)}
     ${pdfExportModal()}
     ${shareSendModal()}
   `;
