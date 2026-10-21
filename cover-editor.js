@@ -36,6 +36,10 @@ const CE_ICON = {
   width: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 7 3 12l5 5M16 7l5 5-5 5M3 12h18"/></svg>',
   alignleft: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M4 6h16M4 12h10M4 18h13"/></svg>',
   aligncenter: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M4 6h16M7 12h10M5.5 18h13"/></svg>',
+  tune: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 7h9M17 7h3M4 17h3M11 17h9"/><circle cx="15" cy="7" r="2"/><circle cx="9" cy="17" r="2"/></svg>',
+  zoomin: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="6.5"/><path d="m20 20-4.4-4.4M11 8.5v5M8.5 11h5"/></svg>',
+  zoomout: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="6.5"/><path d="m20 20-4.4-4.4M8.5 11h5"/></svg>',
+  chev: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 6 6 6-6 6"/></svg>',
   alignright: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M4 6h16M10 12h10M7 18h13"/></svg>',
 };
 
@@ -45,7 +49,7 @@ const ce = {
   undo: [], redo: [], lastKey: '', lastT: 0,
   status: 'saved', saveTimer: 0, saveError: false,
   layout: null, drag: null, paintTok: 0, paintQueued: false, bgCache: {}, imgCache: {}, pendingRemove: new Set(),
-  fadeNext: false, paintError: '', alignMsg: '',   // Bewegung M2: naechstes fertiges Cover ueberblenden (nur diskrete Wechsel); letzter Zeichenfehler
+  fadeNext: false, paintError: '', alignMsg: '', bigPreview: false,   // Bewegung M2: naechstes fertiges Cover ueberblenden (nur diskrete Wechsel); letzter Zeichenfehler
 };
 
 /* ---------- Hilfen ---------- */
@@ -273,35 +277,47 @@ function cePositionBlock(id) {
 }
 function ceRotBlock(id) {
   const r = ceRotOf(id), sh = ceShort(id);
-  return `<div class="ce-ctl ce-rot"><label class="ce-lab" for="ce-rot-${id}">Drehung</label>
-    <div class="ce-range"><input type="range" id="ce-rot-${id}" data-ce-input="rot" data-f="${id}" data-k="rot-r-${id}" min="-180" max="180" step="1" value="${r}" aria-valuetext="${ceDeg(r)}">
-      <label class="ce-rotnum"><span class="sr-only">Drehung in Grad</span><input type="number" inputmode="decimal" min="-180" max="180" step="1" data-ce-input="rotnum" data-f="${id}" data-k="rot-n-${id}" value="${ceRound(r, 1)}"><span aria-hidden="true">°</span></label></div>
-    <div class="ce-seg ce-rotbtns" role="group" aria-label="${sh} drehen">
+  return `<div class="ce-ctl ce-rot">
+    <div class="ce-rothead"><label class="ce-lab" for="ce-rot-${id}">Drehung</label>
+      <label class="ce-rotnum"><span class="sr-only">Drehung in Grad</span><input type="number" inputmode="decimal" min="-180" max="180" step="1" data-ce-input="rotnum" data-f="${id}" data-k="rot-n-${id}" value="${ceRound(r, 1)}"><span aria-hidden="true">°</span></label>
+      <button type="button" class="ce-segbtn ce-rot0" data-ce="rot-step" data-f="${id}" data-d="0" data-k="rot-0-${id}" aria-label="Drehung von ${sh} aufheben" aria-pressed="${r === 0}">0°</button></div>
+    <div class="ce-range ce-rotbtns" role="group" aria-label="${sh} drehen">
       <button type="button" class="ce-segbtn" data-ce="rot-step" data-f="${id}" data-d="-15" data-k="rot-m-${id}" aria-label="${sh} 15 Grad gegen den Uhrzeigersinn drehen">−15°</button>
-      <button type="button" class="ce-segbtn" data-ce="rot-step" data-f="${id}" data-d="0" data-k="rot-0-${id}" aria-label="Drehung von ${sh} aufheben" aria-pressed="${r === 0}">0°</button>
+      <input type="range" id="ce-rot-${id}" data-ce-input="rot" data-f="${id}" data-k="rot-r-${id}" min="-180" max="180" step="1" value="${r}" aria-valuetext="${ceDeg(r)}">
       <button type="button" class="ce-segbtn" data-ce="rot-step" data-f="${id}" data-d="15" data-k="rot-p-${id}" aria-label="${sh} 15 Grad im Uhrzeigersinn drehen">+15°</button>
     </div>
-    <p class="ce-hint">Oder am runden Griff in der Vorschau drehen: rastet bei 0°, 15°, 30°, 45° und 90° ein, mit Umschalt frei. Taste R dreht um 1°, Umschalt+R um 15°.</p></div>`;
+    <p class="ce-hint">Oder am runden Griff in der Vorschau drehen.<span class="ce-hint-fine"> Rastet bei 15°-Schritten ein, Umschalt dreht frei. Taste R: 1°, Umschalt+R: 15°.</span></p></div>`;
 }
 function ceFieldControls(id) {
   const e = ceEff(id), rg = CE_PT_RANGE[id];
   return `<div class="ce-fbody">
-    <div class="ce-actions"><button type="button" class="ce-chip" data-ce="edit" data-f="${id}" data-k="edit-${id}">Text bearbeiten</button>${id === 'extra1' && ceTextOf('extra1') ? `<button type="button" class="ce-chip" data-ce="clear-extra" data-k="clear-extra">Zeile entfernen</button>` : ''}</div>
-    ${ceRange('fontPt', id, 'Schriftgrösse', rg[0], rg[1], 0.5, e.fontPt, 'pt', true)}
-    <div class="ce-ctl"><span class="ce-lab">Textfarbe</span>${ceSwatches('text', e.color, id)}</div>
-    <div class="ce-ctl"><span class="ce-lab">Ausrichtung</span>${ceSeg([['left', CE_ICON.alignleft, CE_ALIGN_LABEL.left], ['center', CE_ICON.aligncenter, CE_ALIGN_LABEL.center], ['right', CE_ICON.alignright, CE_ALIGN_LABEL.right]], e.align, `data-ce="align" data-f="${id}"`, 'Ausrichtung')}</div>
-    ${id === 'date' ? '' : ceRange('w', id, 'Breite', 10, 100, 1, e.w * 100, '%', false)}
-    ${id === 'title' ? `<div class="ce-ctl"><span class="ce-lab" id="cefont">Titelschrift</span><div class="ce-fonts" role="radiogroup" aria-labelledby="cefont">${COVER_TITLE_FONT_NAMES.map(n => `<button type="button" class="ce-font" role="radio" aria-checked="${e.font === n}" data-ce="font" data-v="${ceEsc(n)}" data-k="font-${n.replace(/\W/g, '')}" style="font-family:${COVER_FONT_TABLE[n].family};font-weight:${COVER_FONT_TABLE[n].weight}">${n.replace(' Extra Condensed', '')}</button>`).join('')}</div></div>` : ''}
-    ${ceRotBlock(id)}
-    ${cePositionBlock(id)}
-    <div class="ce-actions"><button type="button" class="ce-chip" data-ce="field-reset" data-f="${id}" data-k="fr-${id}">${CE_SHORT[id]} zurücksetzen</button></div>
+    <div class="ce-group" role="group" aria-labelledby="ceg-type-${id}"><h4 class="ce-gh" id="ceg-type-${id}">Schrift</h4>
+      ${ceRange('fontPt', id, 'Schriftgrösse', rg[0], rg[1], 0.5, e.fontPt, 'pt', true)}
+      ${id === 'title' ? `<div class="ce-ctl"><span class="ce-lab" id="cefont">Titelschrift</span><div class="ce-fonts" role="radiogroup" aria-labelledby="cefont">${COVER_TITLE_FONT_NAMES.map(n => `<button type="button" class="ce-font" role="radio" aria-checked="${e.font === n}" data-ce="font" data-v="${ceEsc(n)}" data-k="font-${n.replace(/\W/g, '')}" style="font-family:${COVER_FONT_TABLE[n].family};font-weight:${COVER_FONT_TABLE[n].weight}">${n.replace(' Extra Condensed', '')}</button>`).join('')}</div></div>` : ''}
+      <div class="ce-ctl"><span class="ce-lab">Textfarbe</span>${ceSwatches('text', e.color, id)}</div>
+      <div class="ce-ctl"><span class="ce-lab">Ausrichtung</span>${ceSeg([['left', CE_ICON.alignleft, CE_ALIGN_LABEL.left], ['center', CE_ICON.aligncenter, CE_ALIGN_LABEL.center], ['right', CE_ICON.alignright, CE_ALIGN_LABEL.right]], e.align, `data-ce="align" data-f="${id}"`, 'Ausrichtung')}</div>
+    </div>
+    <div class="ce-group" role="group" aria-labelledby="ceg-pos-${id}"><h4 class="ce-gh" id="ceg-pos-${id}">Lage</h4>
+      ${id === 'date' ? '' : ceRange('w', id, 'Breite', 10, 100, 1, e.w * 100, '%', false)}
+      ${ceRotBlock(id)}
+      ${cePositionBlock(id)}
+    </div>
+    <div class="ce-actions ce-actions--end"><button type="button" class="ce-chip ce-textbtn" data-ce="field-reset" data-f="${id}" data-k="fr-${id}">${CE_SHORT[id]} zurücksetzen</button></div>
   </div>`;
+}
+/* Wo der Name gedruckt wird (Einstellung im Teil «Rezeptseiten»; Funktion cookbookPrintName aus cookbooks.js) */
+const CE_NAME_WHERE = { both: 'Auch in der Fusszeile der Rezeptseiten.', cover: 'Nur auf dem Titelblatt.', footer: 'Nur in der Fusszeile.', none: 'Wird nicht gedruckt.' };
+function ceNameLine() {
+  let pn = 'both';
+  try { if (typeof cookbookPrintName === 'function') pn = cookbookPrintName(getCookbookConfig()); } catch (e) { /* Standard */ }
+  const can = typeof cookbookOpenPart === 'function';
+  return `<p class="ce-hint ce-nameline">${CE_NAME_WHERE[pn] || CE_NAME_WHERE.both}${can ? ` <button type="button" class="ce-linkbtn" data-ce="open-pages" data-k="open-pages" aria-label="Ändern, wo der Name gedruckt wird">Ändern</button>` : ''}</p>`;
 }
 function ceFieldCard(id) {
   const sel = ce.sel === id, inputId = id === 'title' ? 'cbTitle' : id === 'subtitle' ? 'cbSubtitle' : id === 'name' ? 'cbAuthor' : id === 'date' ? 'cbDate' : 'cbExtra1';
   let input;
   if (id === 'date') {
-    input = `<div class="ce-datebox"><input type="date" id="cbDate" data-cb-cover-date value="${ceEsc(ce.model.date || '')}"><label class="check-row"><input type="checkbox" data-cb-cover-flag="showDate" ${ce.model.showDate === false ? '' : 'checked'}> <span>Datum auf dem Titelblatt zeigen</span></label></div>`;
+    input = `<div class="ce-datebox"><input type="date" id="cbDate" data-cb-cover-date value="${ceEsc(ce.model.date || '')}"></div>`;
   } else if (id === 'extra1') {
     input = `<input type="text" id="cbExtra1" data-ce-input="extra1" maxlength="200" value="${ceEsc(ceF('extra1').text || '')}" autocomplete="off" placeholder="z. B. Für meine Familie">`;
   } else {
@@ -309,15 +325,22 @@ function ceFieldCard(id) {
     input = `<input type="text" id="${inputId}" data-cb-field="${dk}" value="${ceEsc(ceTextOf(id))}" autocomplete="off">`;
   }
   const hint = id === 'title' && !ce.texts.title.trim() ? '<p class="ce-hint">Ohne Titel bleibt das Titelblatt leer.</p>' : '';
+  const dateSwitch = id === 'date' ? `<label class="check-row ce-switch"><input type="checkbox" role="switch" data-cb-cover-flag="showDate" aria-label="Datum auf dem Titelblatt zeigen" ${ce.model.showDate === false ? '' : 'checked'}><span aria-hidden="true">Zeigen</span></label>` : '';
+  const tools = dateSwitch + (sel
+    ? `${id === 'date' ? '' : `<button type="button" class="ce-chip ce-textbtn" data-ce="edit" data-f="${id}" data-k="edit-${id}">Text bearbeiten</button>`}${id === 'extra1' && ceTextOf('extra1') ? `<button type="button" class="ce-chip ce-textbtn" data-ce="clear-extra" data-k="clear-extra">Zeile entfernen</button>` : ''}`
+    : '');
+  const btn = sel
+    ? `<button type="button" class="ce-chip ce-badge ce-done" data-ce="deselect" data-f="${id}" data-k="sel-${id}" aria-label="${CE_LABEL[id]} fertig gestaltet">Fertig</button>`
+    : `<button type="button" class="ce-chip ce-design" data-ce="select" data-f="${id}" data-k="sel-${id}" aria-label="${CE_LABEL[id]} auf dem Titelblatt gestalten">${CE_ICON.tune}<span class="ce-design-t">Gestalten</span></button>`;
   return `<div class="ce-field ${sel ? 'is-sel' : ''}" data-f="${id}">
-    <div class="ce-fhead"><label for="${inputId}">${CE_LABEL[id]}</label>${sel ? `<span class="ce-badge" data-k="sel-${id}">Ausgewählt</span>` : `<button type="button" class="ce-chip" data-ce="select" data-f="${id}" data-k="sel-${id}" aria-label="${CE_LABEL[id]} auf dem Titelblatt gestalten">Gestalten</button>`}</div>
-    ${input}${hint}${ceWarnItems([id])}
+    <div class="ce-fhead"><label for="${inputId}">${CE_LABEL[id]}</label>${tools}</div>
+    <div class="ce-frow">${input}${btn}</div>${hint}${id === 'name' ? ceNameLine() : ''}${ceWarnItems([id])}
     ${sel ? ceFieldControls(id) : ''}
   </div>`;
 }
 function ceTextTab() {
-  return `<div class="ce-sec">${CE_FIELD_ORDER.map(ceFieldCard).join('')}
-    <p class="ce-hint">Was leer bleibt, wird nicht gedruckt. Der Name erscheint auch in der Fusszeile der Rezeptseiten.</p></div>`;
+  return `<div class="ce-sec ce-texts">${CE_FIELD_ORDER.map(ceFieldCard).join('')}
+    <p class="ce-hint">Leere Felder werden nicht gedruckt.</p></div>`;
 }
 function ceBgTab() {
   const m = ce.model, im = m.image;
@@ -329,7 +352,7 @@ function ceBgTab() {
       : `<div class="ce-actions"><button type="button" class="ce-chip ce-chip--solid" data-ce="pick" data-k="pick" ${ce.imgBusy || !choose ? 'disabled' : ''}>${ce.imgBusy ? 'Bild wird geladen …' : 'Bild wählen'}</button></div>`}
     ${typeof coverImageSyncNote === 'function' && coverImageSyncNote() ? `<p class="ce-hint">${ceEsc(coverImageSyncNote())}</p>` : ''}
     <p class="ce-error" role="alert" ${ce.imgError ? '' : 'hidden'}>${ceEsc(ce.imgError)}</p>
-    <p class="ce-hint">JPEG, PNG oder WebP. HEIC-Fotos vom iPhone werden nicht unterstützt: Speichere sie vorher als JPEG. Das Bild bleibt auf diesem Gerät und wird nicht an Dritte gesendet.</p>
+    <p class="ce-hint">JPEG, PNG oder WebP, kein HEIC. Bleibt auf diesem Gerät.</p>
     ${im ? `<div class="ce-ctl"><span class="ce-lab">Darstellung</span>${ceSeg([['contain', 'Ganzes Bild anzeigen'], ['cover', 'Cover ausfüllen']], im.fit, 'data-ce="fit"', 'Darstellung des Bildes')}</div>
     <p class="ce-hint">${im.fit === 'cover' ? 'Das Bild füllt das Titelblatt, der Rand wird beschnitten. Wähle den Ausschnitt mit Zoom und Verschieben.' : 'Das ganze Bild bleibt sichtbar, freie Ränder zeigen die Hintergrundfarbe.'}</p>
     <div class="ce-ctl"><label class="ce-lab" for="ce-zoom">Ausschnitt vergrössern</label><div class="ce-range"><input type="range" id="ce-zoom" data-ce-input="zoom" data-k="zoom" min="${im.fit === 'cover' ? 1 : 0.3}" max="${im.fit === 'cover' ? 8 : 1}" step="0.01" value="${im.zoom}"><output class="ce-out" for="ce-zoom">${Math.round(im.zoom * 100)} %</output></div></div>
@@ -346,10 +369,10 @@ function ceImgTab() {
   const head = `<div class="ce-sec"><h3 class="ce-h">Bilder auf dem Titelblatt</h3>
     <input type="file" class="ce-file" data-ce-xfile accept="image/jpeg,image/png,image/webp" tabindex="-1" aria-hidden="true">
     <div class="ce-actions"><button type="button" class="ce-chip ce-chip--solid" data-ce="ximg-add" data-k="ximg-add" aria-describedby="ce-ximg-note" ${full || ce.imgBusy || !can ? 'disabled' : ''}>${ce.imgBusy ? 'Bild wird geladen …' : 'Bild hinzufügen'}</button></div>
-    <p class="ce-hint" id="ce-ximg-note">${full ? `Höchstens ${CE_IMG_MAX} Bilder pro Titelblatt. Entferne ein Bild, um ein neues hinzuzufügen.` : `Bis zu ${CE_IMG_MAX} eigene Bilder, z. B. Fotos oder Zeichnungen. ${list.length} von ${CE_IMG_MAX} verwendet.`}</p>
+    <p class="ce-hint" id="ce-ximg-note">${full ? `Höchstens ${CE_IMG_MAX} Bilder pro Titelblatt. Entferne ein Bild, um ein neues hinzuzufügen.` : `${list.length} von ${CE_IMG_MAX} Bildern.`}</p>
     <p class="ce-error" role="alert" ${ce.ximgError ? '' : 'hidden'}>${ceEsc(ce.ximgError)}</p>
     ${list.length ? `<ul class="ce-imglist">${items}</ul>` : ''}
-    <p class="ce-hint">JPEG, PNG oder WebP. HEIC-Fotos vom iPhone werden nicht unterstützt: Speichere sie vorher als JPEG. Bilder bleiben auf diesem Gerät.</p></div>`;
+    <p class="ce-hint">JPEG, PNG oder WebP, kein HEIC. Bleibt auf diesem Gerät.</p></div>`;
   if (!sel) return head + (list.length ? '<p class="ce-hint">Tippe ein Bild in der Liste oder in der Vorschau an, um es zu gestalten.</p>' : '');
   const sid = ceImgSid(sel), sh = ceShort(sid);
   return head + `<div class="ce-sec ce-imgctl" data-img="${sid}"><h3 class="ce-h">${sh} gestalten</h3>${ceWarnItems([ceWarnId(sid)])}
@@ -363,16 +386,15 @@ function ceArrTab() {
   const m = ce.model;
   const arr = `<div class="ce-sec"><h3 class="ce-h">Anordnung der Texte</h3>
     <div class="ce-arr" role="group" aria-label="Anordnung der Texte">${COVER_ARRANGEMENTS.map(a => `<button type="button" class="ce-segbtn ce-arrbtn" data-ce="arrange" data-v="${ceEsc(a)}" data-k="arr-${a.replace(/\W/g, '')}" aria-pressed="${m.arrange === a}">${a}</button>`).join('')}</div>
-    <p class="ce-hint">Setzt Titel, Untertitel und Name als Block. Texte und Farben bleiben, Schritt rückgängig machbar.</p></div>`;
+    <p class="ce-hint">Setzt Titel, Untertitel und Name gemeinsam. Rückgängig jederzeit.</p></div>`;
   const logo = `<div class="ce-sec"><h3 class="ce-h">Savora-Logo</h3>
     <label class="check-row"><input type="checkbox" data-cb-flag="showLogo" ${ce.texts.showLogo === false ? '' : 'checked'}> <span>Savora-Wortmarke auf dem Titelblatt zeigen</span></label>
     <div class="ce-ctl"><span class="ce-lab">Position</span>${ceSeg([['top-right', 'Oben rechts'], ['top-left', 'Oben links'], ['bottom-right', 'Unten rechts']], m.logo.pos, 'data-ce="logo-pos"', 'Position des Logos')}</div>
-    <div class="ce-ctl"><span class="ce-lab">Farbe des Logos</span>${ceSeg([['auto', 'Automatisch'], ['light', 'Hell'], ['dark', 'Dunkel']], m.logo.variant, 'data-ce="logo-var"', 'Farbe des Logos')}</div>
-    <p class="ce-hint">Die Wortmarke ist eine Grafik und lässt sich nicht als Text ändern.</p>${ceWarnItems(['logo'])}</div>`;
+    <div class="ce-ctl"><span class="ce-lab">Farbe des Logos</span>${ceSeg([['auto', 'Automatisch'], ['light', 'Hell'], ['dark', 'Dunkel']], m.logo.variant, 'data-ce="logo-var"', 'Farbe des Logos')}</div>${ceWarnItems(['logo'])}</div>`;
   const read = `<div class="ce-sec"><h3 class="ce-h">Lesbarkeit</h3>${ceSeg(CE_READ, m.readability, 'data-ce="readability"', 'Lesbarkeit des Textes')}
-    <p class="ce-hint">Hilft bei Fotos. Bei einfarbigem Hintergrund prüft Savora den Kontrast, bei Fotos kann das nicht garantiert werden.</p></div>`;
+    <p class="ce-hint">Hilft, wenn Text auf einem Foto steht.</p></div>`;
   const reset = `<div class="ce-sec ce-sec--reset"><h3 class="ce-h">Zurücksetzen</h3><div class="ce-actions"><button type="button" class="ce-chip" data-ce="arr-reset" data-k="arr-reset">Anordnung zurücksetzen</button><button type="button" class="ce-chip ce-chip--danger" data-ce="cover-reset" data-k="cover-reset">Cover zurücksetzen</button></div>
-    <p class="ce-hint">«Anordnung zurücksetzen» entfernt nur Positionen, Breiten und Drehungen der Texte. Texte, Farben, Hintergrund und Bilder bleiben.</p></div>`;
+    <p class="ce-hint">«Anordnung zurücksetzen» entfernt nur Lage, Breite und Drehung der Texte.</p></div>`;
   return arr + logo + read + reset;
 }
 function ceTabs() {
@@ -389,8 +411,8 @@ function ceWarnSummary() {
   if (!ws.length) return '';
   const id = ws[0].fieldId || (ws[0].key === 'slogan' ? 'subtitle' : ws[0].key);
   const canAlign = ws.some(w => (w.kind === 'overlap' || w.kind === 'margin') && !w.imageId);
-  return `<button type="button" class="ce-warnbar" data-ce="goto-warn" data-f="${ceEsc(id)}" data-k="warnbar"><span class="ce-warnbar-n">${ws.length}</span> ${ws.length === 1 ? 'Hinweis zum Titelblatt' : 'Hinweise zum Titelblatt'}: ${ceEsc(ws[0].message)}</button>`
-    + (canAlign ? `<button type="button" class="ce-chip ce-align-btn" data-ce="w-autoalign" data-k="warnbar-align">Automatisch ausrichten</button>` : '');
+  return `<div class="ce-warnrow"><button type="button" class="ce-warnbar" data-ce="goto-warn" data-f="${ceEsc(id)}" data-k="warnbar"><span class="ce-warnbar-n">${ws.length}</span> <span class="ce-warnbar-lab">${ws.length === 1 ? 'Hinweis' : 'Hinweise'}</span><span class="ce-warnbar-msg"> zum Titelblatt: ${ceEsc(ws[0].message)}</span>${CE_ICON.chev}</button>`
+    + (canAlign ? `<button type="button" class="ce-chip ce-align-btn" data-ce="w-autoalign" data-k="warnbar-align">Automatisch ausrichten</button>` : '') + '</div>';
 }
 /* v83: Ergebnis von «Automatisch ausrichten» (bleibt bis zur naechsten Aenderung sichtbar) */
 function ceAlignMsgHtml() { return ce.alignMsg ? `<p class="ce-align-msg" role="status">${ceEsc(ce.alignMsg)}</p>` : ''; }
@@ -423,17 +445,18 @@ function ceAutoAlign() {
 function ceEditorHtml() {
   ceEnsure(); ceRelayout();
   const custom = ce.model.mode === 'custom';
-  return `<div class="cover-picker ce" data-mode="${ce.model.mode}">
-    <div class="ce-mode" role="group" aria-label="Art des Titelblatts">
-      <button type="button" class="ce-modebtn" data-ce="mode" data-v="template" data-k="mode-template" aria-pressed="${!custom}">Vorlagen</button>
-      <button type="button" class="ce-modebtn" data-ce="mode" data-v="custom" data-k="mode-custom" aria-pressed="${custom}">Eigenes Cover</button>
-    </div>
+  return `<div class="cover-picker ce" data-mode="${ce.model.mode}"${ce.bigPreview ? ' data-big="1"' : ''}>
     <div class="ce-body">
+      <div class="ce-mode" role="group" aria-label="Art des Titelblatts">
+        <button type="button" class="ce-modebtn" data-ce="mode" data-v="template" data-k="mode-template" aria-pressed="${!custom}">Vorlagen</button>
+        <button type="button" class="ce-modebtn" data-ce="mode" data-v="custom" data-k="mode-custom" aria-pressed="${custom}">Eigenes Cover</button>
+      </div>
       <div class="ce-stage">
         <div class="ce-preview" aria-label="Vorschau des Titelblatts"><canvas class="ce-canvas" width="794" height="1123" role="img" aria-label="Vorschau des Titelblatts"></canvas><div class="ce-overlay"></div></div>
         <div class="ce-bar">
           <button type="button" class="ce-icon" data-ce="undo" data-k="undo" aria-label="Rückgängig" ${ce.undo.length ? '' : 'disabled'}>${CE_ICON.undo}</button>
           <button type="button" class="ce-icon" data-ce="redo" data-k="redo" aria-label="Wiederholen" ${ce.redo.length ? '' : 'disabled'}>${CE_ICON.redo}</button>
+          <button type="button" class="ce-icon ce-pvsize" data-ce="preview-size" data-k="pvsize" aria-label="Grosse Vorschau" aria-pressed="${ce.bigPreview}">${ce.bigPreview ? CE_ICON.zoomout : CE_ICON.zoomin}</button>
           <div class="ce-status" data-state="${ce.status}" role="status" aria-live="polite"><span class="ce-status-text">${ce.status === 'saving' ? 'Wird gespeichert …' : ce.status === 'error' ? 'Speichern nicht möglich – erneut versuchen' : 'Gespeichert'}</span><button type="button" class="ce-chip" data-ce="retry" data-k="retry" ${ce.status === 'error' ? '' : 'hidden'}>Erneut versuchen</button></div>
         </div>
         <div class="ce-warnslot">${ceWarnSummary()}${ceAlignMsgHtml()}</div>
@@ -475,7 +498,17 @@ function ceRenderPanels() {
 }
 function ceRenderTabs() {
   const w = document.querySelector('.ce-tabswrap'); if (!w) return;
-  const key = ceFocusKey(); w.innerHTML = ceTabs(); ceRestoreFocus(key);
+  const key = ceFocusKey(); w.innerHTML = ceTabs(); ceRestoreFocus(key); ceTabsFit();
+}
+/* v85: Reiter in einer Zeile; reicht der Platz nicht (320 px, grosse Schrift), wird die Reihe waagrecht scrollbar mit Ausblendrand, der aktive Reiter bleibt sichtbar */
+function ceTabsFit() {
+  const t = document.querySelector('.cover-picker.ce .ce-tabs'); if (!t) return;
+  t.removeAttribute('data-overflow');
+  if (t.scrollWidth <= t.clientWidth + 1) return;
+  t.dataset.overflow = '1';
+  const a = t.querySelector('.ce-tab.is-on'); if (!a) return;
+  const tr = t.getBoundingClientRect(), ar = a.getBoundingClientRect();
+  if (ar.right > tr.right - 32 || ar.left < tr.left) t.scrollLeft += Math.round(ar.left - tr.left - (tr.width - ar.width) / 2);
 }
 function ceRenderWarnings() {
   const slot = document.querySelector('.ce-warnslot'); if (slot) slot.innerHTML = ceWarnSummary() + ceAlignMsgHtml();
@@ -486,7 +519,7 @@ function ceRenderWarnings() {
     if ((old ? old.outerHTML.replace(/\s+/g, '') : '') === sig) return;
     const tmp = document.createElement('div'); tmp.innerHTML = html;
     if (old) old.remove();
-    if (tmp.firstElementChild) { const anchor = card.querySelector('input[type=text], .ce-datebox, input[type=date]'); (anchor ? anchor.closest('.ce-datebox') || anchor : card.firstElementChild).after(tmp.firstElementChild); }
+    if (tmp.firstElementChild) { const anchor = card.querySelector(':scope > .ce-nameline') || card.querySelector(':scope > .ce-frow'); (anchor || card.firstElementChild).after(tmp.firstElementChild); }
   });
   document.querySelectorAll('.ce-overlay [data-fr]').forEach((fr) => { fr.classList.toggle('is-warn', ceHasWarn(fr.dataset.fr)); });
   ceSetScrollPad();
@@ -503,14 +536,15 @@ function ceRenderAll() {
   if (ce.model.mode !== 'custom' && !grid) body.querySelector('.ce-stage').insertAdjacentHTML('afterend', `<div class="ce-motif">${ceTemplateGrid()}</div>`);
   else if (grid) { const cur = coverValidTemplateId(ce.model.templateId); grid.querySelectorAll('.cover-opt').forEach((b) => { const on = b.dataset.id === cur; b.classList.toggle('is-active', on); b.setAttribute('aria-checked', String(on)); const chk = b.querySelector('.cover-opt-check'); if (on && !chk) b.insertAdjacentHTML('beforeend', `<span class="cover-opt-check" aria-hidden="true">${ICONS.check}</span>`); if (!on && chk) chk.remove(); }); }
   ceRenderTabs(); ceRenderPanels(); ceRenderWarnings(); ceSyncOverlay(); cePaintSoon(); ceUpdateHistoryButtons(); ceSetStatus(ce.status);
-  ceRestoreFocus(key);
+  ceRestoreFocus(key); ceCenterMotif();
 }
 
-/* Reiterwechsel: Reiter bleiben sichtbar (nie unter Kopfleiste oder angehefteter Vorschau), kurzes Einblenden ohne Bewegung */
+/* Reiterwechsel: Reiter sind angeheftet (v85). Lag die Ansicht mitten im alten Bereich, beginnt der neue Bereich direkt unter den Reitern (ohne Animation). */
 function ceRevealTabs() {
-  const t = document.querySelector('.ce-tabswrap'); if (!t) return;
-  const pad = parseInt(document.documentElement.style.scrollPaddingTop, 10) || 0, r = t.getBoundingClientRect();
-  if (r.top < pad) window.scrollBy(0, r.top - pad);
+  const t = document.querySelector('.ce-tabswrap'), p = document.getElementById('cepanel'); if (!t || !p) return;
+  const tb = t.getBoundingClientRect(), pt = p.getBoundingClientRect().top;
+  if (tb.top < 0) { window.scrollBy(0, tb.top - (parseInt(document.documentElement.style.scrollPaddingTop, 10) || 0)); return; }
+  if (pt < tb.bottom - 1) window.scrollBy(0, Math.round(pt - tb.bottom));
 }
 function ceFadePanel() {
   const p = document.getElementById('cepanel');
@@ -628,6 +662,7 @@ function ceSelect(id, opts) {
   const want = id ? (ceIsImg(id) ? 'img' : 'text') : null;
   if (want && ce.tab !== want) { ce.tab = want; ceRenderTabs(); }
   ceSyncOverlay(); ceRenderPanels();
+  if (id && !ceIsImg(id) && !opts.focusFrame) { const row = document.querySelector(`.ce-field[data-f="${id}"]`); if (row) { const pad = parseInt(document.documentElement.style.scrollPaddingTop, 10) || 0, t = row.getBoundingClientRect().top; if (t < pad || t > window.innerHeight * 0.6) window.scrollBy(0, Math.round(t - pad)); } }
   if (id && opts.focusFrame) { const fr = document.querySelector(`.ce-frame[data-fr="${id}"]`); if (fr) fr.focus({ preventScroll: true }); }
 }
 
@@ -860,6 +895,24 @@ document.addEventListener('click', (e) => {
     case 'tab': ce.tab = v; ce.imgMove = false; ceRenderTabs(); ceRenderPanels(); ceSyncOverlay(); ceRevealTabs(); ceFadePanel(); break;
     case 'template': if (coverValidTemplateId(b.dataset.id) !== coverValidTemplateId(ce.model.templateId)) ce.fadeNext = true; ceChange((m) => { m.templateId = coverValidTemplateId(b.dataset.id); }, { now: true }); ceRenderAll(); break;
     case 'select': ceSelect(ce.sel === id ? null : id); break;
+    case 'deselect': { ceSelect(null); const s2 = document.querySelector(`.ce-field[data-f="${id}"] [data-ce="select"]`); if (s2) s2.focus({ preventScroll: true }); break; }
+    case 'open-pages': {
+      ceFlush();
+      if (typeof cookbookOpenPart === 'function') {
+        cookbookOpenPart('pages');
+        requestAnimationFrame(() => { const r = document.querySelector('input[data-cb-print-name]:checked') || document.querySelector('input[data-cb-print-name]'); if (r) r.focus(); });
+      }
+      break;
+    }
+    case 'preview-size': {
+      ce.bigPreview = !ce.bigPreview;
+      const root = ceRoot(); if (root) { if (ce.bigPreview) root.dataset.big = '1'; else delete root.dataset.big; }
+      b.setAttribute('aria-pressed', String(ce.bigPreview)); b.innerHTML = ce.bigPreview ? CE_ICON.zoomout : CE_ICON.zoomin;
+      ceSetScrollPad(); cePaintSoon();
+      const cv = document.querySelector('canvas.ce-canvas');
+      if (cv && cv.animate && !(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches)) cv.animate([{ opacity: 0.6 }, { opacity: 1 }], { duration: 120, easing: 'cubic-bezier(0.23, 1, 0.32, 1)' });
+      break;
+    }
     case 'goto-warn': { if (/^image:/.test(id || '') && ceImgOf('img-' + id.slice(6))) { ceSelect('img-' + id.slice(6)); break; } const t = CE_FIELD_ORDER.includes(id) ? id : null; if (t) { ceSelect(t); const c = document.querySelector(`.ce-field[data-f="${t}"]`); if (c) c.scrollIntoView({ block: 'nearest' }); } else { ce.tab = id === 'image' ? 'bg' : 'arr'; ceRenderTabs(); ceRenderPanels(); } break; }
     case 'edit': { const inp = document.querySelector(`.ce-field[data-f="${id}"] input[type=text]`); if (inp) { inp.focus(); inp.select && inp.select(); } break; }
     case 'clear-extra': ceChange((m) => { delete m.fields.extra1; }, { panels: true }); break;
@@ -993,15 +1046,41 @@ function ceSetTop() {
   const tb = document.querySelector('.topbar'), pos = tb ? getComputedStyle(tb).position : '';
   const top = (pos === 'sticky' || pos === 'fixed') ? Math.round(tb.getBoundingClientRect().height) : 0;
   root.style.setProperty('--ce-top', top + 'px');
+  ceObserveStage();
   ceSetScrollPad();
+  ceCenterMotif();
 }
-/* Beim Fokussieren oder Scrollen zu einem Bedienelement soll es nicht unter der angehefteten Vorschau landen */
+/* v85: Hoehe der angehefteten Vorschau (--ce-stage-h) fuer die angehefteten Reiter darunter; misst bei jeder Groessenaenderung neu (Hinweise, Lupe, Drehen des Geraets) */
+function ceObserveStage() {
+  const st = document.querySelector('.cover-picker.ce .ce-stage'); if (!st || typeof ResizeObserver !== 'function') return;
+  if (ce.stageObs && ce.stageObsEl === st) return;
+  if (ce.stageObs) ce.stageObs.disconnect();
+  ce.stageObsEl = st;
+  ce.stageObs = new ResizeObserver(() => { if (st.isConnected) ceSetScrollPad(); else { ce.stageObs.disconnect(); ce.stageObs = null; ce.stageObsEl = null; } });
+  ce.stageObs.observe(st);
+}
+/* Beim Fokussieren oder Scrollen zu einem Bedienelement soll es nicht unter der angehefteten Vorschau oder den angehefteten Reitern landen (WCAG 2.4.11) */
 function ceSetScrollPad() {
   const root = ceRoot(), st = root && root.querySelector('.ce-stage');
-  const sticky = st && getComputedStyle(st).position === 'sticky';
-  const top = parseInt(root && root.style.getPropertyValue('--ce-top'), 10) || 0;
-  const stacked = root && sticky && getComputedStyle(root.querySelector('.ce-body')).display !== 'grid';   // Handy/Tablet: Vorschau steht ueber den Bedienfeldern
-  document.documentElement.style.scrollPaddingTop = root ? (top + (stacked ? st.getBoundingClientRect().height : 0) + 8) + 'px' : '';
+  if (!root || !st) { document.documentElement.style.scrollPaddingTop = ''; return; }
+  const sticky = getComputedStyle(st).position === 'sticky';
+  const top = parseInt(root.style.getPropertyValue('--ce-top'), 10) || 0;
+  const stacked = sticky && getComputedStyle(root.querySelector('.ce-body')).display !== 'grid';   // Handy/Tablet: Vorschau steht ueber den Bedienfeldern
+  const sh = stacked ? Math.round(st.getBoundingClientRect().height) : 0;
+  if (root.style.getPropertyValue('--ce-stage-h') !== sh + 'px') root.style.setProperty('--ce-stage-h', sh + 'px');
+  const tw = root.querySelector('.ce-tabswrap'), tabsSticky = tw && getComputedStyle(tw).position === 'sticky';
+  const th = tabsSticky ? Math.round(tw.getBoundingClientRect().height) : 0;
+  document.documentElement.style.scrollPaddingTop = (top + sh + th + 8) + 'px';
+  ceTabsFit();
+}
+/* Motiv-Karussell (Handy): aktives Motiv waagrecht in die Mitte, ohne die Seite senkrecht zu bewegen */
+function ceCenterMotif() {
+  const g = document.querySelector('.cover-picker.ce .cover-grid'); if (!g || g.dataset.centered) return;
+  if (g.scrollWidth <= g.clientWidth + 1) return;
+  const a = g.querySelector('.cover-opt.is-active'); if (!a) return;
+  g.dataset.centered = '1';
+  const gr = g.getBoundingClientRect(), ar = a.getBoundingClientRect();
+  g.scrollLeft = Math.max(0, g.scrollLeft + (ar.left - gr.left) - (g.clientWidth - ar.width) / 2);
 }
 window.addEventListener('resize', () => { if (ceRoot()) { ceSetTop(); cePaintSoon(); } });
 
@@ -1034,15 +1113,22 @@ window.addEventListener('resize', () => { if (ceRoot()) { ceSetTop(); cePaintSoo
 /* v83: «Im Cover bearbeiten» aus der Prüfung (Kochbuch-Zusammenfassung): <button type="button" data-cover-edit="<fieldId>">.
    Wechselt zum Schritt «Gestalten», waehlt das betroffene Feld aus und zeigt es.
    fieldId: title | subtitle | name | extra1 | date | logo | image | image:<id> (= warnings[].fieldId aus coverLayout). */
-function coverOpenEditor(fieldId) {
+function coverOpenEditor(fieldId, opts) {
   if (typeof state === 'undefined') return;
+  opts = opts || {};
   state.cookbookStep = 2;
+  state.cbDesignPart = 'cover';   // v85: Teil «Titelblatt» (Zustand gehoert views/actions; hier nur gesetzt)
   if (typeof render === 'function') render();
   requestAnimationFrame(() => {
     if (!ceRoot()) return;
     ceEnsure(); ceRelayout();
     const id = String(fieldId || '');
     if (/^image:/.test(id) && ceImgOf('img-' + id.slice(6))) ceSelect('img-' + id.slice(6), { focusFrame: true });
+    else if (CE_FIELD_ORDER.includes(id) && opts.focus === 'input') {
+      // v85: «Name ändern» aus dem Teil «Rezeptseiten»: Reiter «Texte», Fokus direkt ins Eingabefeld
+      if (ce.tab !== 'text') { ce.tab = 'text'; ceRenderTabs(); ceRenderPanels(); }
+      const inp = document.querySelector(`.ce-field[data-f="${id}"] input`); if (inp) { inp.focus(); return; }
+    }
     else if (CE_FIELD_ORDER.includes(id)) ceSelect(id, { focusFrame: true });
     else { ce.tab = id === 'image' ? 'bg' : 'arr'; ceRenderTabs(); ceRenderPanels(); }
     const st = document.querySelector('.ce-stage'); if (st && st.scrollIntoView) st.scrollIntoView({ block: 'start' });

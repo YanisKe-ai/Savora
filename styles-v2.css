@@ -4108,3 +4108,141 @@ button.pairing-main:active { transform: scale(0.98); }
   .rrow-body { min-width: 0; }
   .cb-chapter > * { min-width: 0; }
 }
+
+/* ===== v85 Cover-Editor ===== */
+/* Teil «Titelblatt» im Schritt «Gestalten». Handy: Vorschau kompakt und angeheftet, Werkzeugspalte daneben, Reiter direkt darunter angeheftet,
+   Motive als Karussell, Textfelder als flache Liste. Ab 900 px: Vorschau links angeheftet, rechts Umschalter, Motive, Reiter, Bedienfeld.
+   --ce-stage-h (Hoehe der angehefteten Vorschau) setzt ceSetScrollPad in cover-editor.js. Nur rem und 4er-Skala. */
+.cover-picker.ce { --ce-surface: var(--bg); --ce-pv-h: min(28dvh, 15rem); gap: 0; }
+.panel .cover-picker.ce { --ce-surface: var(--card-bg); }
+.cover-picker.ce[data-big] { --ce-pv-h: min(42dvh, 22rem); }
+@media (max-height: 40rem) {
+  .cover-picker.ce { --ce-pv-h: min(22dvh, 9rem); }
+  .cover-picker.ce[data-big] { --ce-pv-h: min(36dvh, 15rem); }
+}
+.cover-picker.ce .ce-body { display: flex; flex-direction: column; gap: 0.75rem; }
+.cover-picker.ce .ce-mode { max-width: 28rem; }
+
+/* Angeheftete Vorschau: Vorschau mittig, Werkzeugspalte rechts, Hinweiszeile darunter. Die Flaeche reicht bis an den Bildschirmrand (border-image, ohne Breite im Layout). */
+.cover-picker.ce .ce-stage { position: sticky; top: var(--ce-top, 0px); z-index: 6; display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, auto) minmax(0, 1fr); grid-template-areas: ". pv bar ." "warn warn warn warn"; column-gap: 0.75rem; row-gap: 0; justify-items: stretch; padding: 0.5rem 0; background: var(--ce-surface); border-image: linear-gradient(var(--ce-surface), var(--ce-surface)) fill 0 / 0 / 0 100vw; }
+.cover-picker.ce .ce-preview { grid-area: pv; justify-self: center; width: calc(var(--ce-pv-h) * 794 / 1123); max-width: 100%; }
+.cover-picker.ce .ce-bar { grid-area: bar; display: flex; flex-direction: column; align-items: flex-start; align-self: start; gap: 0.25rem; width: auto; min-width: 0; min-height: 0; }
+.cover-picker.ce .ce-bar .ce-status-text { max-width: 100%; overflow-wrap: break-word; hyphens: auto; }
+.cover-picker.ce .ce-bar .ce-status { flex: none; max-width: min(100%, 7.5rem); flex-direction: column; align-items: flex-start; justify-content: flex-start; gap: 0.25rem; padding: 0.25rem 0 0 0.75rem; text-align: left; line-height: 1.3; }
+.cover-picker.ce .ce-pvsize[aria-pressed="true"] { background: var(--surface-soft); }
+/* Grosse Vorschau: Werkzeuge als Zeile unter der Vorschau, damit «Gespeichert» lesbar bleibt */
+.cover-picker.ce[data-big] .ce-stage { grid-template-columns: minmax(0, 1fr); grid-template-areas: "pv" "bar" "warn"; }
+.cover-picker.ce[data-big] .ce-bar { flex-direction: row; align-items: center; width: min(100%, 22rem); justify-self: center; padding-top: 0.25rem; }
+.cover-picker.ce[data-big] .ce-bar .ce-status { flex: 1 1 auto; flex-direction: row; align-items: center; justify-content: flex-end; max-width: none; padding: 0; text-align: right; }
+.cover-picker.ce .ce-painterr { grid-column: 1 / -1; margin-top: 0.5rem; }
+.cover-picker.ce .ce-warnslot { grid-area: warn; width: 100%; min-width: 0; }
+.cover-picker.ce .ce-warnslot:not(:empty) { padding-top: 0.5rem; }
+.cover-picker.ce .ce-warnrow { display: flex; align-items: center; gap: 0.5rem; min-width: 0; }
+.cover-picker.ce .ce-warnbar { flex: 1 1 auto; min-width: 0; display: flex; align-items: center; gap: 0.5rem; padding: 0 0.75rem; border: 0; border-radius: 0.75rem; box-shadow: inset 0 0 0 1px var(--danger); font-weight: 600; }
+.cover-picker.ce .ce-warnbar svg { flex: none; width: 1rem; height: 1rem; margin-left: auto; }
+.cover-picker.ce .ce-warnbar-msg { position: absolute; width: 0.0625rem; height: 0.0625rem; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.cover-picker.ce .ce-align-btn { flex: none; margin-top: 0; }
+.cover-picker.ce .ce-align-msg { margin-top: 0.5rem; }
+
+/* Motive: auf dem Handy eine Reihe, waagrecht wischen (natives Scrollen mit Einrasten), Ausblendrand rechts */
+.cover-picker.ce .ce-motif .ce-sec { gap: 0.5rem; }
+@media (max-width: 639.98px) {
+  .cover-picker.ce .cover-grid { display: flex; gap: 0.5rem; overflow-x: auto; overscroll-behavior-x: contain; scroll-snap-type: x mandatory; scroll-padding-inline: 0.25rem; padding: 0.25rem 2rem 0.5rem 0.25rem; scrollbar-width: none; -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 2rem), transparent); mask-image: linear-gradient(to right, #000 calc(100% - 2rem), transparent); }
+  .cover-picker.ce .cover-grid::-webkit-scrollbar { display: none; }
+  .cover-picker.ce .cover-opt { flex: 0 0 6rem; padding: 0.25rem; scroll-snap-align: start; }
+}
+@media (min-width: 640px) {
+  .cover-picker.ce .ce-motif { container-type: inline-size; }
+  .cover-picker.ce .cover-grid { grid-template-columns: repeat(5, minmax(0, 6.5rem)); justify-content: start; gap: 0.5rem; }
+  .cover-picker.ce .cover-opt { padding: 0.25rem; }
+}
+/* Schmale rechte Spalte (900 bis 1099 px oder grosse Systemschrift): weniger Spalten, Kacheln bleiben mindestens 44 px breit */
+@container (max-width: 22rem) { .cover-picker.ce .cover-grid { grid-template-columns: repeat(4, minmax(0, 6.5rem)); } }
+@container (max-width: 15rem) { .cover-picker.ce .cover-grid { grid-template-columns: repeat(3, minmax(0, 6.5rem)); } }
+
+/* Reiter: angeheftet direkt unter der Vorschau, eine Zeile, bei Platzmangel waagrecht scrollbar statt Umbruch */
+.cover-picker.ce .ce-side { grid-template-columns: minmax(0, 1fr); gap: 0.75rem; }
+.cover-picker.ce .cover-opt-name { overflow-wrap: break-word; hyphens: auto; }
+.cover-picker.ce .ce-tabswrap { position: sticky; top: calc(var(--ce-top, 0px) + var(--ce-stage-h, 0px)); z-index: 5; padding: 0.25rem 0 0.5rem; background: var(--ce-surface); border-image: linear-gradient(to bottom, var(--ce-surface) calc(100% - 1px), var(--hairline) calc(100% - 1px)) fill 0 / 0 / 0 100vw; }
+.cover-picker.ce .ce-tabs { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; }
+.cover-picker.ce .ce-tabs::-webkit-scrollbar { display: none; }
+.cover-picker.ce .ce-tabs[data-overflow] { padding-right: 2rem; -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 2rem), transparent); mask-image: linear-gradient(to right, #000 calc(100% - 2rem), transparent); }
+.cover-picker.ce .ce-tab { flex: 1 0 auto; padding: 0 0.75rem; font-size: 0.9375rem; white-space: nowrap; }
+/* Eine Auswahlsprache: aktiver Knopf auf heller Flaeche mit Tinten-Innenrand (Umschalter, Reiter, Segmente) */
+.cover-picker.ce .ce-tab.is-on, .cover-picker.ce .ce-modebtn[aria-pressed="true"] { background: var(--card-bg); box-shadow: inset 0 0 0 2px var(--text); }
+.cover-picker.ce .ce-panels { gap: 1.5rem; }
+
+/* Reiter «Texte»: flache Liste, Zeilen durch Haarlinien getrennt, keine Karten in Karten */
+.cover-picker.ce .ce-texts { gap: 0; }
+.cover-picker.ce .ce-texts > .ce-hint { padding-top: 0.75rem; }
+.cover-picker.ce .ce-field, .cover-picker.ce .ce-field.is-sel { gap: 0.5rem; padding: 1rem 0; border: 0; border-radius: var(--r-ctl); background: transparent; }
+.cover-picker.ce .ce-field + .ce-field { border-top: 1px solid var(--hairline); border-radius: 0; }
+.cover-picker.ce .ce-field:first-child { padding-top: 0.25rem; }
+.cover-picker.ce .ce-field.is-sel { margin: 0 -0.75rem; padding: 1rem 0.75rem 1.5rem; background: var(--surface-soft); border-radius: var(--r-ctl); border-top-color: transparent; }
+.cover-picker.ce .ce-field.is-sel + .ce-field { border-top-color: transparent; }
+.cover-picker.ce .ce-fhead { flex-wrap: wrap; align-items: center; justify-content: flex-start; gap: 0 0.25rem; min-height: 1.5rem; }
+.cover-picker.ce .ce-fhead > label:first-child { flex: 1 1 auto; min-width: 0; font-size: 0.9375rem; font-weight: 700; color: var(--text); }
+.cover-picker.ce .ce-frow { display: flex; align-items: center; gap: 0.5rem; min-width: 0; }
+.cover-picker.ce .ce-frow > input, .cover-picker.ce .ce-frow > .ce-datebox { flex: 1 1 auto; min-width: 0; }
+.cover-picker.ce .ce-datebox { display: block; }
+.cover-picker.ce .ce-datebox input[type="date"] { width: 100%; min-width: 0; }
+.cover-picker.ce .ce-design { flex: none; gap: 0.25rem; padding: 0 1rem 0 0.75rem; }
+.cover-picker.ce .ce-design svg { width: 1.125rem; height: 1.125rem; }
+.cover-picker.ce .ce-done { flex: none; min-height: 2.75rem; padding: 0 1.25rem; border-color: var(--text); border-radius: 999px; background: var(--text); color: var(--bg); font-size: 0.875rem; font-weight: 700; }
+.cover-picker.ce .ce-textbtn { min-height: 2.75rem; padding: 0 0.5rem; border: 0; background: transparent; color: var(--text-soft); text-decoration: underline; text-underline-offset: 0.2em; }
+.cover-picker.ce .ce-fhead .ce-textbtn:last-child { margin-right: -0.5rem; }
+.cover-picker.ce .ce-nameline { display: flex; flex-wrap: wrap; align-items: center; gap: 0 0.25rem; margin-top: -0.25rem; }
+.cover-picker.ce .ce-linkbtn { display: inline-flex; align-items: center; min-height: 2.75rem; padding: 0 0.5rem; border: 0; border-radius: 0.5rem; background: transparent; color: var(--violet); font: inherit; font-weight: 700; text-decoration: underline; text-underline-offset: 0.2em; cursor: pointer; }
+/* Schalter «Datum zeigen» (Checkbox mit role=switch; an = rot gefuellt wie Haekchen) */
+.cover-picker.ce .ce-switch { flex: none; display: inline-flex; align-items: center; gap: 0.5rem; min-height: 2.75rem; font-size: 0.875rem; font-weight: 600; color: var(--text-soft); cursor: pointer; }
+.cover-picker.ce .ce-switch input { -webkit-appearance: none; appearance: none; position: relative; flex: none; width: 2.75rem; height: 1.5rem; margin: 0; border-radius: 999px; background: var(--border); cursor: pointer; transition: background-color 120ms var(--ease-out); }
+.cover-picker.ce .ce-switch input::before { content: ""; position: absolute; top: 0.125rem; left: 0.125rem; width: 1.25rem; height: 1.25rem; border-radius: 50%; background: #FFFDF8; box-shadow: var(--lift-1); transition: transform 120ms var(--ease-out); }
+.cover-picker.ce .ce-switch input:checked { background: var(--tomato); }
+.cover-picker.ce .ce-switch input:checked::before { transform: translateX(1.25rem); }
+
+/* Werkzeuge eines Textfelds: zwei Gruppen «Schrift» und «Lage», Abstand statt Rahmen */
+.cover-picker.ce .ce-fbody { gap: 1.5rem; padding-top: 0.5rem; border-top: 0; }
+.cover-picker.ce .ce-group { display: grid; grid-template-columns: minmax(0, 1fr); gap: 0.75rem; min-width: 0; }
+.cover-picker.ce .ce-gh { margin: 0; font-size: 1rem; font-weight: 700; color: var(--text); }
+.cover-picker.ce .ce-fonts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.5rem; }
+.cover-picker.ce .ce-font { flex: none; min-width: 0; }
+.cover-picker.ce .ce-fbody .ce-swatches { flex-wrap: nowrap; gap: 0; margin: -0.25rem; padding: 0.25rem; overflow-x: auto; scrollbar-width: none; }
+.cover-picker.ce .ce-fbody .ce-swatches::-webkit-scrollbar { display: none; }
+.cover-picker.ce .ce-fbody .ce-swatch { flex: none; }
+.cover-picker.ce .ce-field.is-sel .ce-swatch.is-on .ce-swatch-dot { box-shadow: inset 0 0 0 1px rgba(37, 39, 32, 0.25), 0 0 0 3px var(--surface-soft), 0 0 0 5px var(--text); }
+.cover-picker.ce .ce-field.is-sel .ce-cell { background: var(--card-bg); box-shadow: inset 0 0 0 1px var(--border); }
+.cover-picker.ce .ce-rothead { display: flex; align-items: center; gap: 0.5rem; min-width: 0; }
+.cover-picker.ce .ce-rothead > .ce-lab { flex: 1 1 auto; min-width: 0; }
+.cover-picker.ce .ce-rot0 { flex: none; min-width: 3.5rem; }
+.cover-picker.ce .ce-rotbtns { gap: 0.5rem; }
+.cover-picker.ce .ce-rotbtns .ce-segbtn { flex: none; min-width: 3.5rem; padding: 0 0.5rem; }
+.cover-picker.ce .ce-hint-fine { display: none; }
+@media (hover: hover) and (pointer: fine) { .cover-picker.ce .ce-hint-fine { display: inline; } }
+.cover-picker.ce .ce-posrow { flex-wrap: wrap; gap: 1rem; }
+.cover-picker.ce .ce-grid3 { padding: 0; border: 0; }
+.cover-picker.ce .ce-exact { margin-top: 0; }
+.cover-picker.ce .ce-actions--end { margin-top: -0.75rem; }
+.cover-picker.ce .ce-actions--end .ce-textbtn { margin-left: -0.5rem; }
+.cover-picker.ce .ce-linkbtn:focus-visible, .cover-picker.ce .ce-switch input:focus-visible { outline: 3px solid var(--text); outline-offset: 2px; }
+@media (hover: hover) and (pointer: fine) { .cover-picker.ce .ce-textbtn:hover, .cover-picker.ce .ce-linkbtn:hover { color: var(--text); } }
+@media (prefers-reduced-motion: reduce) { .cover-picker.ce .ce-switch input, .cover-picker.ce .ce-switch input::before { transition: none; } }
+
+/* Ab 900 px: Vorschau links angeheftet (gross), rechts Umschalter, Motive, Reiter und Bedienfeld. Beim Wahl eines Motivs bleibt die Vorschau sichtbar. */
+@media (min-width: 900px) {
+  .cover-picker.ce .ce-body { display: grid; grid-template-columns: minmax(0, min(20rem, 40%)) minmax(0, 1fr); grid-template-rows: auto auto 1fr; grid-template-areas: "stage mode" "stage motif" "stage side"; align-items: start; column-gap: 2rem; row-gap: 1.5rem; }
+  .cover-picker.ce[data-mode="custom"] .ce-body { grid-template-rows: auto 1fr; grid-template-areas: "stage mode" "stage side"; }
+  .cover-picker.ce .ce-mode { grid-area: mode; }
+  .cover-picker.ce .ce-motif { grid-area: motif; }
+  .cover-picker.ce .ce-side { grid-area: side; }
+  .cover-picker.ce .ce-stage { grid-area: stage; top: calc(var(--ce-top, 0px) + 1rem); grid-template-columns: minmax(0, 1fr); grid-template-areas: "pv" "bar" "warn"; row-gap: 0.5rem; justify-items: center; padding: 0; background: transparent; border-image: none; }
+  .cover-picker.ce .ce-preview { width: min(100%, 28.75rem, calc(80dvh * 794 / 1123)); }
+  .cover-picker.ce .ce-bar { flex-direction: row; align-items: center; width: 100%; }
+  .cover-picker.ce .ce-bar .ce-status { flex: 1 1 auto; flex-direction: row; align-items: center; justify-content: flex-end; max-width: none; padding: 0; text-align: right; }
+  .cover-picker.ce .ce-pvsize { display: none; }
+  .cover-picker.ce .ce-warnslot:not(:empty) { padding-top: 0; }
+  .cover-picker.ce .ce-warnrow { flex-wrap: wrap; }
+  .cover-picker.ce .ce-warnbar { min-height: 2.75rem; padding: 0.5rem 0.75rem; text-align: left; }
+  .cover-picker.ce .ce-warnbar-msg { position: static; width: auto; height: auto; margin: 0; overflow: visible; clip: auto; white-space: normal; font-weight: 400; }
+  .cover-picker.ce .ce-tabswrap { top: var(--ce-top, 0px); padding-top: 0.5rem; border-image: none; box-shadow: 0 1px 0 var(--hairline); }
+}
+@media (min-width: 1100px) { .cover-picker.ce .ce-body { grid-template-columns: minmax(0, min(28.75rem, 40%)) minmax(0, 1fr); column-gap: 2.5rem; } }

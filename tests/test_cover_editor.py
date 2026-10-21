@@ -550,6 +550,7 @@ async def main():
             await page.click('[data-ce="mode"][data-v="custom"]'); await page.click('[data-ce="tab"][data-v="text"]'); await page.click('[data-ce="select"][data-f="title"]'); await page.wait_for_timeout(500)
             over = await ev("() => document.documentElement.scrollWidth - document.documentElement.clientWidth")
             check(f'{w} px: kein horizontales Scrollen', over <= 1, str(over))
+            await ev("() => window.scrollTo(0, 0)"); await page.wait_for_timeout(150)   # v85: Auswahl scrollt die Zeile unter die angeheftete Zone; Reihenfolge im Ruhezustand messen
             st, sd, pvb = await box(page, '.ce-stage'), await box(page, '.ce-side'), await box(page, '.ce-preview')
             if w >= 1100:
                 check(f'{w} px: Vorschau links (höchstens 460 px), Bedienfelder rechts', sd['x'] > st['x'] + st['w'] - 2 and pvb['w'] <= 461, f'{st} {sd} {pvb}')
@@ -579,8 +580,10 @@ async def main():
             await page.screenshot(path=f'/tmp/c3_shots2/editor_{w}_hell.png')
             await ev("() => window.scrollTo(0, 900)"); await page.wait_for_timeout(200)
             await page.click('[data-ce="tab"][data-v="arr"]'); await page.wait_for_timeout(300)
+            # v85: Reiter sind angeheftet (Handy direkt unter der angehefteten Vorschau, Desktop unter der Kopfleiste) und gehoeren selbst zum Fokus-Rand (scrollPaddingTop)
             tb = await box(page, '.ce-tabswrap'); pad = await ev("() => parseInt(document.documentElement.style.scrollPaddingTop) || 0")
-            check(f'{w} px: nach dem Reiterwechsel stehen die Reiter sichtbar unter Kopfleiste und Vorschau', tb['y'] >= pad - 2, f'{tb} {pad}')
+            under = await ev("() => { const s = document.querySelector('.ce-stage'), stacked = getComputedStyle(document.querySelector('.ce-body')).display !== 'grid'; const t = document.querySelector('.topbar'); return stacked ? s.getBoundingClientRect().bottom : (t ? t.getBoundingClientRect().bottom : 0); }")
+            check(f'{w} px: nach dem Reiterwechsel stehen die Reiter sichtbar unter Kopfleiste und Vorschau', tb['y'] >= under - 2 and tb['y'] + tb['h'] <= pad + 2 and tb['y'] + tb['h'] <= h, f'{tb} {pad} {under}')
             await page.screenshot(path=f'/tmp/c3_shots2/editor_{w}_anordnung.png')
             await browser.close()
         for w, h, tag in ((390, 844, '390'), (1440, 900, '1440')):
