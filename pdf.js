@@ -919,11 +919,11 @@ function pdfPlanColumns(m, recipe, imgUrl, dims, detail, log) {
   if (!ingU.length) return null;
   const steps = pvStepUnits(m.steps), extras = pvExtrasUnits(m, detail);
   const variants = [];
-  // v88.1: dritter Versuch mit kurzer Honigkante (Prise Pop), bevor auf das Oben/unten-Layout ausgewichen wird
-  [['normal', false], ['compact', false], ['compact', true]].forEach(([density, honeyMin]) => {
-    if (honeyMin && (variants.length || !(PDF_CTX.tpl && PDF_CTX.tpl.wave))) return;   // nur wenn sonst keine Spaltenvariante passt
+  // v88.1: dritter Versuch mit kleinerem Karoband (Prise Pop), bevor auf das Oben/unten-Layout ausgewichen wird
+  [['normal', false], ['compact', false], ['compact', true]].forEach(([density, edgeMin]) => {
+    if (edgeMin && (variants.length || !(PDF_CTX.tpl && PDF_CTX.tpl.wave))) return;   // nur wenn sonst keine Spaltenvariante passt
     const o = pdfDensityOpts(density, imgUrl, dims, false, 'cols');
-    const ctx = { m, recipe, imgUrl: o.frame ? imgUrl : null, frame: o.frame, tight: o.tight, density, detail, layout: 'cols', honeyMin };
+    const ctx = { m, recipe, imgUrl: o.frame ? imgUrl : null, frame: o.frame, tight: o.tight, density, detail, layout: 'cols', edgeMin };
     const page = (p, a, b, withEx, total) => pvPage(ctx, { first: p === 0, n: p + 1, total: total || 9, ing: p === 0 ? ingU : [], steps: steps.slice(a, b), extras: withEx ? extras : [] });
     if (!pdfColsFits(page(0, 0, 0, false))) { if (log) log.multi.push({ density, layout: 'cols', pages: 0, how: 'Zutaten passen nicht in die Spalte' }); return; }
     let cuts = null, minPer = PDF_MIN_STEPS_PER_PAGE;

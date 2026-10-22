@@ -55,7 +55,7 @@ MEASURE = r"""() => {
     body: step ? pt(page.querySelector('.pv-step-text')) : null, bodyLh: step ? parseFloat(cs('.pv-step-text').lineHeight) / parseFloat(cs('.pv-step-text').fontSize) : null,
     ing: ings.length ? { pt: pt(ings[0]), lh: parseFloat(getComputedStyle(ings[0]).lineHeight) / parseFloat(getComputedStyle(ings[0]).fontSize), bg: ings.map((r) => getComputedStyle(r).backgroundColor), border: ings.map((r) => getComputedStyle(r).borderBottomWidth + getComputedStyle(r.querySelector('.pv-ing-amt') || r).borderRightWidth) } : null,
     heading: pt(page.querySelector('.pv-h')), group: pt(page.querySelector('.pv-ing-group')),
-    panel: panel ? { bg: getComputedStyle(panel).backgroundColor, wave: !!panel.querySelector('.pv-honey') && getComputedStyle(panel.querySelector('.pv-honey')).display !== 'none', waveBg: panel.querySelector('.pv-honey svg path') ? 'svg' : '' } : null,
+    panel: panel ? { bg: getComputedStyle(panel).backgroundColor, wave: !!panel.querySelector('.pv-karo') && getComputedStyle(panel.querySelector('.pv-karo')).display !== 'none', waveBg: panel.querySelector('.pv-karo svg path') ? 'svg' : '' } : null,
     no: no ? { w: no.getBoundingClientRect().width / MM, h: no.getBoundingClientRect().height / MM, radius: getComputedStyle(no).borderTopLeftRadius, border: parseFloat(getComputedStyle(no).borderTopWidth), pt: pt(no) } : null,
     stepPad: step ? parseFloat(getComputedStyle(page.querySelectorAll('.pv-step')[1]).paddingTop) / MM : null,
     groups: groups.map((g) => ({ w: g.getBoundingClientRect().width / MM, full: g.hasAttribute('data-fullwidth'), one: g.hasAttribute('data-onecol') })),
@@ -104,7 +104,7 @@ async def main():
                 check(T + 'Fliesstext 11 pt / 1.45 (in jeder Dichte)', near(r['body'], 11) and near(r['bodyLh'], 1.45, .01), f"{r['body']} {r['bodyLh']}")
                 check(T + 'Zutaten 10.5 pt / 1.38 (in jeder Dichte)', near(r['ing']['pt'], 10.5) and near(r['ing']['lh'], 1.38, .01), str(r['ing']['pt']))
                 check(T + 'Zutatenzeilen ohne Zellkästchen, Zebra, Raster', all(x == 'rgba(0, 0, 0, 0)' for x in r['ing']['bg']) and all(x == '0px0px' for x in r['ing']['border']), str(set(r['ing']['bg'])) + str(set(r['ing']['border'])))
-                check(T + 'Zutatenfläche ' + ('#FFE181 mit SVG-Welle' if pop else '#F0F3ED ohne Welle'), r['panel']['bg'] == ('rgb(255, 225, 129)' if pop else 'rgb(240, 243, 237)') and r['panel']['wave'] == pop and (not pop or 'svg' in r['panel']['waveBg']), str(r['panel']))
+                check(T + 'Zutatenfläche ' + ('#FFE181 mit Karoband' if pop else '#F0F3ED ohne Welle'), r['panel']['bg'] == ('rgb(255, 225, 129)' if pop else 'rgb(240, 243, 237)') and r['panel']['wave'] == pop and (not pop or 'svg' in r['panel']['waveBg']), str(r['panel']))
                 want_h = (15 if dens != 'normal' else (17 if pop else 16))
                 check(T + f'Abschnittstitel {want_h} pt', near(r['heading'], want_h), str(r['heading']))
                 check(T + 'Gruppentitel ' + ('12.5' if pop else '11.5') + ' pt', near(r['group'], 12.5 if pop else 11.5), str(r['group']))
