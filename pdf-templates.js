@@ -138,7 +138,7 @@ function pvIngAtoms(ingredients) {
     if (it.type === 'group') { gi++; head = it; idx = 0; return; }
     atoms.push({ html: pvIngUnit(it), it, w: pvIngWeight(it), gi, head, idx: idx++, gSize: head ? head.size : 1, hasHead: !!(head && head.show) });
   });
-  if (atoms.length) atoms[atoms.length - 1].last = true;   // v88.2: nur der letzte Zutatenabschnitt bekommt die Honigkante
+  if (atoms.length) atoms[atoms.length - 1].last = true;   // v88.2: nur der letzte Zutatenabschnitt bekommt das Karoband
   return atoms;
 }
 /* Einheiten fuer den Umbruch (pdf.js fuellt Seite fuer Seite Einheit fuer Einheit):
@@ -218,64 +218,46 @@ function pvWideGroupHtml(list, gi) {
 }
 /* Zutatenflaeche einer Seite (beide Stile, gleiche Bausteine). units: Einheiten aus pvIngredientUnits (evtl. mit abgetrenntem
    Beginn einer Gruppe). density: 'normal' | 'compact' | 'compact-columns' (drei Gruppenspalten, keine breite Gruppe). */
-/* ---------- v88.2 Honigkante (Prise Pop) ----------
-   Untere Kante der gelben Zutatenflaeche: genau sechs zusammenhaengende Honigtropfen (Referenz «Honigfluss · 6 Tropfen» des Nutzers).
-   Eine feste Formdefinition fuer Einzelrezept, Kochbuch und Vorschau (alle nutzen pvPage). Die Kante ist ein eigener Bereich UNTER dem
-   Inhalt: Sie waechst nicht mit der Zutatenmenge. Der Pfad wird in Millimetern fuer die echte Kastenbreite berechnet (keine Verzerrung),
-   ist deterministisch (keine Zufallswerte) und besteht nur aus kubischen Bezierkurven (Ansatz → Hals → volles, rundes Ende).
-   Der Platz (Tropfenlaenge) ist als Abstand nach unten reserviert und fliesst so in die Seitenmessung ein. */
-const PV_HONEY = {
-  pos: [0.08, 0.24, 0.41, 0.59, 0.77, 0.93],      // Tropfenmitte relativ zur Kastenbreite
-  rel: [0.40, 0.72, 0.44, 1.00, 0.46, 0.65],      // Laenge relativ zum laengsten Tropfen
-  r:   [1.45, 1.8, 1.35, 2.1, 1.45, 1.75],        // Radius des Tropfenendes in mm bei 68 mm Breite (breiter Kasten: mitskaliert)
-  lean:[0.10, -0.07, 0.08, -0.05, 0.06, -0.09],    // leichte Schraeglage: organisch, nicht sechsmal gleich
-  depth: { normal: 9, compact: 7, dense: 4.5 },    // laengster Tropfen in mm unter der Kastenkante; kurz («dense») nur wenn der Platz sonst nicht reicht (alle sechs Tropfen bleiben)
-  overlap: 1,                                      // so weit beginnt die Kante in der Flaeche (keine Naht)
-  widths: { narrow: 68, wide: 184 }                // Kastenbreiten (pdf-print.css: --pv-col-ing-w 68 mm; Satzbreite 210 − 2 × 13 mm)
+/* ---------- v88.2 Bistro-Karo (Prise Pop) ----------
+   Unterer Abschluss der gelben Zutatenflaeche: ein Schachbrettband aus genau drei Reihen quadratischer Zellen, rot und gelb im Wechsel,
+   oben links rot (Referenz «Bistro-Karo» des Nutzers). Eine Definition fuer Einzelrezept, Kochbuch und Vorschau (alle nutzen pvPage).
+   Das Band liegt innerhalb der Karte am unteren Rand; sein Platz ist als Innenabstand unten reserviert und fliesst so in die
+   Seitenmessung ein. Die Zellen werden fuer die echte Kastenbreite berechnet (gerade Spaltenzahl, keine Verzerrung); bei Platzmangel
+   werden die Zellen kleiner, der Text nie. Die unteren Kartenrundungen beschneidet ein clipPath im SVG (kein overflow:hidden). */
+const PV_KARO = {
+  cell: { normal: 2.5, compact: 2.1, dense: 1.6 },   // gewuenschte Zellkante in mm
+  gap: { normal: 4, compact: 3.6, dense: 3 },        // Abstand letzte Textzeile → Band (html2canvas setzt Text rund 1 mm tiefer: sichtbar ca. 3 mm)
+  radius: 3,                                         // untere Kartenrundung (pdf-print.css: .pv-karo-on)
+  widths: { narrow: 68, wide: 184 },                 // Kastenbreiten (pdf-print.css: --pv-col-ing-w 68 mm; Satzbreite 210 − 2 × 13 mm)
+  red: '#B93B2C', yellow: '#FFE181'                  // Prise-Pop-Tokens --pv-accent und --pv-panel
 };
-function pvHoneyDepth(density, dense) { return dense || density === 'compact-columns' ? PV_HONEY.depth.dense : density && density !== 'normal' ? PV_HONEY.depth.compact : PV_HONEY.depth.normal; }
-function pvHoneyPath(W, D) {
-  const o = PV_HONEY.overlap, k = D / PV_HONEY.depth.normal, rs = (0.82 + 0.18 * k) * Math.min(1.8, Math.max(1, W / PV_HONEY.widths.narrow));
-  const f = (v) => (Math.round(v * 100) / 100).toString();
-  const sh = o + 0.25;                               // Scheitel der Bogen zwischen den Tropfen (knapp unter der Kastenkante)
-  const edgeY = sh;                                  // aussen laeuft die Kante weich in den ersten bzw. letzten Tropfen
-  const drops = PV_HONEY.pos.map((p, i) => {
-    const yb = o + D * PV_HONEY.rel[i], r = Math.min(PV_HONEY.r[i] * rs, (yb - sh) / 3.4), lean = PV_HONEY.lean[i] * r;
-    const n = r * (PV_HONEY.rel[i] < 0.5 ? 0.7 : 0.6);                   // Hals deutlich schmaler als das volle Ende
-    const yn = sh + 0.45 * Math.max(0.9, yb - 2.4 * r - sh);            // Hals
-    return { cx: p * W, r, yb, n, yn, lean };
-  });
-  // Von einem Scheitel (x0, y0, waagrecht) weich in den Hals (x1, y1, senkrecht): grosse Rundung wie fliessender Honig
-  const flare = (x0, y0, x1, y1) => `C${f(x0 + (x1 - x0) * 0.5)} ${f(y0)} ${f(x1)} ${f(y0 + (y1 - y0) * 0.2)} ${f(x1)} ${f(y1)}`;
-  let d = `M0 0V${f(edgeY)}`;
-  let x0 = 0, y0 = edgeY;
-  drops.forEach((t, i) => {
-    const L = t.cx - t.n + t.lean, R = t.cx + t.n + t.lean, mid = t.yn + 0.55 * (t.yb - t.r - t.yn);
-    d += flare(x0, y0, L, t.yn);
-    d += `C${f(L)} ${f(mid)} ${f(t.cx - t.r)} ${f(t.yb - 2.1 * t.r)} ${f(t.cx - t.r)} ${f(t.yb - 1.2 * t.r)}`;   // Hals → volles, laengliches Ende
-    d += `C${f(t.cx - t.r)} ${f(t.yb - 0.55 * t.r)} ${f(t.cx - 0.55 * t.r)} ${f(t.yb)} ${f(t.cx)} ${f(t.yb)}`;
-    d += `C${f(t.cx + 0.55 * t.r)} ${f(t.yb)} ${f(t.cx + t.r)} ${f(t.yb - 0.55 * t.r)} ${f(t.cx + t.r)} ${f(t.yb - 1.2 * t.r)}`;
-    d += `C${f(t.cx + t.r)} ${f(t.yb - 2.1 * t.r)} ${f(R)} ${f(mid)} ${f(R)} ${f(t.yn)}`;
-    const nt = drops[i + 1];
-    const nx = nt ? (R + nt.cx - nt.n + nt.lean) / 2 : W, ny = nt ? sh : edgeY;
-    // Hals → naechster Scheitel (Spiegel von flare)
-    d += `C${f(R)} ${f(t.yn - (t.yn - ny) * 0.8)} ${f(R + (nx - R) * 0.5)} ${f(ny)} ${f(nx)} ${f(ny)}`;
-    x0 = nx; y0 = ny;
-  });
-  return d + 'V0Z';
+let pvKaroSeq = 0;
+function pvKaroLevel(density, dense) { return dense || density === 'compact-columns' ? 'dense' : density && density !== 'normal' ? 'compact' : 'normal'; }
+/* Geometrie in mm: gerade Spaltenzahl, Zelle = Breite / Spalten, Bandhoehe = 3 Zellen. */
+function pvKaroGeometry(W, level) {
+  const columns = Math.max(2, 2 * Math.round(W / PV_KARO.cell[level] / 2));
+  const cell = W / columns;
+  return { columns, cell, height: 3 * cell };
 }
-/* Kante als <i> mit eingebettetem Inline-SVG (als CSS-Hintergrund zeichnet html2canvas eine Haarlinie an der Unterkante).
-   Rueckgabe { html, reserve }: reserve = Platz unter dem Kasten (fliesst in die Seitenmessung ein). */
-function pvHoneyEdge(kind, density, dense, color) {
-  const W = PV_HONEY.widths[kind] || PV_HONEY.widths.wide, D = pvHoneyDepth(density, dense), A = PV_HONEY.overlap, H = A + D + 0.4;
-  const svg = `<svg class="pv-honey-svg" xmlns="http://www.w3.org/2000/svg" width="${W}mm" height="${H}mm" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" focusable="false"><path fill="${color || '#FFE181'}" d="${pvHoneyPath(W, D)}"/></svg>`;
-  return { html: `<i class="pv-wave pv-honey" aria-hidden="true" style="top:calc(100% - ${A}mm);height:${H}mm">${svg}</i>`, reserve: D + 0.3 };   // Tropfen reichen D mm unter die Kastenkante (Kante beginnt 1 mm in der Flaeche)
+/* Band als <i> mit Inline-SVG (als CSS-Hintergrund zeichnet html2canvas eine Haarlinie an der Unterkante).
+   Rueckgabe { html, reserve }: reserve = Innenabstand unten (Abstand + Bandhoehe). */
+function pvKaroBand(kind, density, dense) {
+  const W = PV_KARO.widths[kind] || PV_KARO.widths.wide, level = pvKaroLevel(density, dense);
+  const { columns, cell, height } = pvKaroGeometry(W, level), R = PV_KARO.radius;
+  const f = (v) => (Math.round(v * 1000) / 1000).toString();
+  let red = '';
+  for (let row = 0; row < 3; row++) for (let col = 0; col < columns; col++) if ((row + col) % 2 === 0) red += `M${f(col * cell)} ${f(row * cell)}h${f(cell)}v${f(cell)}h${f(-cell)}Z`;
+  const id = 'pvkaro' + (++pvKaroSeq);
+  // Clip: oben gerade, unten die Kartenrundung (Radius R)
+  const clip = `M0 0H${f(W)}V${f(height - R)}A${R} ${R} 0 0 1 ${f(W - R)} ${f(height)}H${R}A${R} ${R} 0 0 1 0 ${f(height - R)}Z`;
+  const svg = `<svg class="pv-karo-svg" xmlns="http://www.w3.org/2000/svg" width="${f(W)}mm" height="${f(height)}mm" viewBox="0 0 ${f(W)} ${f(height)}" preserveAspectRatio="none" focusable="false"><defs><clipPath id="${id}"><path d="${clip}"/></clipPath></defs><g clip-path="url(#${id})"><rect width="${f(W)}" height="${f(height)}" fill="${PV_KARO.yellow}"/><path fill="${PV_KARO.red}" d="${red}"/></g></svg>`;
+  return { html: `<i class="pv-karo" aria-hidden="true" style="height:${f(height)}mm">${svg}</i>`, reserve: PV_KARO.gap[level] + height };
 }
-/* Kante nur fuer Prise Pop und nur am letzten Zutatenabschnitt; sonst ruhige, gerade Abschlusskante. */
+/* Band nur fuer Prise Pop und nur am letzten Zutatenabschnitt; sonst ruhige, gerade Abschlusskante. */
 function pvIngEdge(atoms, kind, density, dense) {
-  if (!PDF_CTX.tpl.wave || !atoms.some((a) => a.last)) return { html: '', style: '' };
-  const e = pvHoneyEdge(kind, density, dense);
-  return { html: e.html, style: ` style="margin-bottom:${e.reserve}mm"` };
+  if (!PDF_CTX.tpl.wave || !atoms.some((a) => a.last)) return { html: '', style: '', cls: '' };
+  const e = pvKaroBand(kind, density, dense);
+  return { html: e.html, style: ` style="padding-bottom:${(Math.round(e.reserve * 1000) / 1000)}mm"`, cls: ' pv-karo-on' };
 }
 function pvIngPanel(units, label, density, dense) {
   const atoms = [];
@@ -290,7 +272,7 @@ function pvIngPanel(units, label, density, dense) {
   let cells = gs.map((g) => ({ gi: g.gi, list: g.list }));
   // v87 (Prise Pop): ergibt das Gruppenraster stark ungleiche Spalten (z. B. lange Liste links, rechts nur «Garnitur»), stehen die
   // Zutaten in zwei ausgeglichenen Spalten (pvIngStackPanel). Sonst bleibt das Raster (Gruppen nebeneinander in Reihen).
-  if (PDF_CTX.tpl.pop && !cols3 && cells.length >= 2 && pvIngStackBetter(cells)) return pvIngStackPanel(atoms, label, wave, edge.style);
+  if (PDF_CTX.tpl.pop && !cols3 && cells.length >= 2 && pvIngStackBetter(cells)) return pvIngStackPanel(atoms, label, wave, edge.style, edge.cls);
   if (cells.length === 1 && cells[0].list.length > 2) cells = pvSplitCols(cells[0].list).filter((c) => c.length).map((list) => ({ gi: list[0].gi, list }));
   const wideAt = !cols3 && cells.length >= 3 && cells.length % 2 === 1 ? cells.length - 1 : -1;
   const cellHtml = cells.map((c, k) => {
@@ -298,7 +280,7 @@ function pvIngPanel(units, label, density, dense) {
     const h = colHtml(c.list);
     return `<div class="pp-group ${pvIngColClass(h)}" data-group="${c.gi}">${h}</div>`;
   }).join('');
-  return `<div class="pv-ing-panel"${edge.style}><h2 class="pv-h">${label || 'Zutaten'}</h2><div class="pp-groups${cols3 ? ' pv-ing-cols3' : ''}">${cellHtml}</div>${wave}</div>`;
+  return `<div class="pv-ing-panel${edge.cls}"${edge.style}><h2 class="pv-h">${label || 'Zutaten'}</h2><div class="pp-groups${cols3 ? ' pv-ing-cols3' : ''}">${cellHtml}</div>${wave}</div>`;
 }
 /* v87 (Prise Pop): Zutaten in zwei gleich hohen Spalten. Die Gruppen stehen in jeder Spalte untereinander (Reihenfolge oben nach
    unten, dann rechts). Geteilt wird bevorzugt zwischen Gruppen; nur wenn eine Gruppe die Spalten sonst stark ungleich macht, wird sie
@@ -336,7 +318,7 @@ function pvIngStackBetter(cells) {
   const stack = Math.max(h(l), h(r));
   return stack <= grid - 2.5;
 }
-function pvIngStackPanel(atoms, label, wave, edgeStyle) {
+function pvIngStackPanel(atoms, label, wave, edgeStyle, edgeCls) {
   const colHtml = (list) => {
     const groups = [];
     list.forEach((a, i) => { const g = groups[groups.length - 1]; if (g && g.gi === a.gi) g.list.push(a); else groups.push({ gi: a.gi, list: [a], cont: i === 0 && a.idx > 0 }); });
@@ -350,10 +332,10 @@ function pvIngStackPanel(atoms, label, wave, edgeStyle) {
   const [l, r] = pvIngBalance(atoms);
   // rechte Spalte setzt eine betitelte Gruppe fort: erste Zeile auf Hoehe der ersten Zutat links (unter dem Gruppentitel)
   const cols = [l, r].filter((c) => c.length).map((c) => `<div class="pp-col${c[0].idx > 0 && c[0].hasHead ? ' pp-col-cont' : ''}">${colHtml(c)}</div>`).join('');
-  return `<div class="pv-ing-panel"${edgeStyle || ''}><h2 class="pv-h">${label || 'Zutaten'}</h2><div class="pp-groups pp-stack">${cols}</div>${wave}</div>`;
+  return `<div class="pv-ing-panel${edgeCls || ''}"${edgeStyle || ''}><h2 class="pv-h">${label || 'Zutaten'}</h2><div class="pp-groups pp-stack">${cols}</div>${wave}</div>`;
 }
 /* v88: schmale Zutatenspalte (Layout «Spalten»: Zutaten links, Zubereitung rechts). Die Gruppen stehen untereinander, eine feine
-   Linie trennt sie; jede Gruppe hat ihre eigene Mengenspalte (Subgrid). Prise Pop: gelbe Flaeche mit Wellenkante wie bisher. */
+   Linie trennt sie; jede Gruppe hat ihre eigene Mengenspalte (Subgrid). Prise Pop: gelbe Flaeche mit Bistro-Karo am unteren Rand. */
 function pvIngNarrowPanel(units, label, density, dense) {
   const atoms = [];
   units.forEach((u) => (u.atoms || []).forEach((a) => atoms.push(a)));
@@ -367,7 +349,7 @@ function pvIngNarrowPanel(units, label, density, dense) {
     return `<div class="pp-group ${pvIngColClass(h)}" data-group="${g.gi}">${h}</div>`;
   }).join('');
   const edge = pvIngEdge(atoms, 'narrow', density, dense);
-  return `<div class="pv-ing-panel pv-ing-narrow"${edge.style}><h2 class="pv-h">${label || 'Zutaten'}</h2><div class="pp-groups pp-list">${groups}</div>${edge.html}</div>`;
+  return `<div class="pv-ing-panel pv-ing-narrow${edge.cls}"${edge.style}><h2 class="pv-h">${label || 'Zutaten'}</h2><div class="pp-groups pp-list">${groups}</div>${edge.html}</div>`;
 }
 function pvStepsHtml(units, label, deco) {
   const html = units.map((u) => u.html).join('');
@@ -639,7 +621,7 @@ function pvLayout(ctx) { return ctx && ctx.layout === 'cols' ? 'cols' : 'stack';
 function pvPage(ctx, pg) {
   const tpl = PDF_CTX.tpl, m = ctx.m, density = pvDensity(ctx);
   const photoOn = !!(pg.first && ctx.imgUrl && ctx.frame);
-  const narrow = pg.first && pvLayout(ctx) === 'cols' ? pvIngNarrowPanel(pg.ing || [], 'Zutaten', density, !!(ctx.dense || ctx.honeyMin)) : '';
+  const narrow = pg.first && pvLayout(ctx) === 'cols' ? pvIngNarrowPanel(pg.ing || [], 'Zutaten', density, !!(ctx.dense || ctx.edgeMin)) : '';
   const cls = ['pv-page', 'pv-recipe', pg.first ? '' : 'pv-cont-page', tpl.cls, density !== 'normal' ? 'pv-tight' : '', photoOn ? 'pv-photo-side' : 'pv-photo-none', pvLayout(ctx) === 'cols' ? 'pv-cols' : ''].filter(Boolean).join(' ');
   const head = pg.first ? pvHeadHtml(ctx) : pvContinuationHead(m.title, pg.n, pg.total);
   // ctx.extrasWide: Hinweise/Notizen/Naehrwerte ueber die volle Breite unter den Spalten (Planer waehlt das, wenn die Zubereitung
@@ -647,7 +629,7 @@ function pvPage(ctx, pg) {
   const wide = !!(narrow && ctx.extrasWide && (pg.extras || []).length);
   const body = narrow
     ? `<div class="pv-body"><div class="pv-col-ing">${narrow}</div><div class="pv-col-main">${pvStepsHtml(pg.steps || [], 'Zubereitung', false)}${wide ? '' : pvExtrasGroupHtml(pg.extras)}</div></div>${wide ? pvExtrasGroupHtml(pg.extras) : ''}`
-    : `${pvIngPanel(pg.ing || [], pg.first ? 'Zutaten' : 'Zutaten <span class="pv-cont">· Fortsetzung</span>', density, !!(ctx.dense || ctx.honeyMin))}
+    : `${pvIngPanel(pg.ing || [], pg.first ? 'Zutaten' : 'Zutaten <span class="pv-cont">· Fortsetzung</span>', density, !!(ctx.dense || ctx.edgeMin))}
     ${pvStepsHtml(pg.steps || [], 'Zubereitung', !pg.first)}
     ${pvExtrasGroupHtml(pg.extras)}`;
   return `<section class="${cls}" lang="de" data-recipe-id="${pvEsc(m.id)}" data-page-kind="${pg.first ? 'recipe' : 'continuation'}" data-layout="${pvLayout(ctx)}"${narrow && ctx.extrasWide && (pg.extras || []).length ? ' data-extras="wide"' : ''} data-density="${density}"${ctx.dense ? ' data-dense="1"' : ''} data-continuation="${pg.first ? 'false' : 'true'}">
