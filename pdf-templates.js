@@ -225,8 +225,8 @@ function pvWideGroupHtml(list, gi) {
    Seitenmessung ein. Die Zellen werden fuer die echte Kastenbreite berechnet (gerade Spaltenzahl, keine Verzerrung); bei Platzmangel
    werden die Zellen kleiner, der Text nie. Die unteren Kartenrundungen beschneidet ein clipPath im SVG (kein overflow:hidden). */
 const PV_KARO = {
-  cell: { normal: 2.5, compact: 2.1, dense: 1.6 },   // gewuenschte Zellkante in mm
-  gap: { normal: 4, compact: 3.6, dense: 3 },        // Abstand letzte Textzeile → Band (html2canvas setzt Text rund 1 mm tiefer: sichtbar ca. 3 mm)
+  cell: { normal: 2.5, compact: 2, dense: 1.45 },    // gewuenschte Zellkante in mm (eng: kleinere Zellen, nie kleinere Schrift)
+  gap: { normal: 4, compact: 3.2, dense: 2.6 },      // Abstand letzte Textzeile → Band (html2canvas setzt Text rund 1 mm tiefer: sichtbar ca. 3 mm)
   radius: 3,                                         // untere Kartenrundung (pdf-print.css: .pv-karo-on)
   widths: { narrow: 68, wide: 184 },                 // Kastenbreiten (pdf-print.css: --pv-col-ing-w 68 mm; Satzbreite 210 − 2 × 13 mm)
   red: '#B93B2C', yellow: '#FFE181'                  // Prise-Pop-Tokens --pv-accent und --pv-panel
