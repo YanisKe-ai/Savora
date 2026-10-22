@@ -257,7 +257,8 @@ function pvKaroBand(kind, density, dense) {
 function pvIngEdge(atoms, kind, density, dense) {
   if (!PDF_CTX.tpl.wave || !atoms.some((a) => a.last)) return { html: '', style: '', cls: '' };
   const e = pvKaroBand(kind, density, dense);
-  return { html: e.html, style: ` style="padding-bottom:${(Math.round(e.reserve * 1000) / 1000)}mm"`, cls: ' pv-karo-on' };
+  // Schmale Spalte: die Karte schliesst die Spalte ab, kein Abstand darunter (zaehlt sonst in die Spaltenhoehe)
+  return { html: e.html, style: ` style="padding-bottom:${(Math.round(e.reserve * 1000) / 1000)}mm${kind === 'narrow' ? ';margin-bottom:0' : ''}"`, cls: ' pv-karo-on' };
 }
 function pvIngPanel(units, label, density, dense) {
   const atoms = [];
