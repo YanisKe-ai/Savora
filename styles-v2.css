@@ -4664,3 +4664,31 @@ body:has(.cookbook-main) .toast-action { width: max-content; max-width: min(92vw
 @media (forced-colors: active) { .pdf-export-sheet .pdf-export-footer { border-top-color: CanvasText; } }
 /* keine doppelte Trennlinie direkt über der Knopffläche */
 .cookbook-main .cb-final .cb-review > ul:last-child > li:last-child { border-bottom-color: transparent; }
+
+/* ===== v89 F Profilbild-Vorlagen ===== */
+.lp-presets { margin: 0.25rem 0 0; padding: 0; border: 0; min-width: 0; }
+.lp-presets-legend { padding: 0; margin-bottom: 0.625rem; font-size: 0.875rem; font-weight: 600; color: var(--text-soft); }
+.lp-preset-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0.75rem; max-width: 30rem; }
+@media (min-width: 600px) { .lp-preset-grid { grid-template-columns: repeat(6, minmax(0, 1fr)); max-width: 36rem; } }
+.lp-preset { position: relative; display: block; min-width: 44px; aspect-ratio: 1; border-radius: 50%; cursor: pointer;
+  -webkit-tap-highlight-color: transparent; touch-action: manipulation; -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
+.lp-preset-input { position: absolute; inset: 0; width: 100%; height: 100%; margin: 0; opacity: 0; cursor: pointer; }
+.lp-preset-img { display: block; width: 100%; height: 100%; border-radius: 50%; object-fit: cover; background: var(--surface-soft);
+  outline: 1px solid var(--border); outline-offset: -1px; pointer-events: none;
+  transition: transform 140ms cubic-bezier(0.23, 1, 0.32, 1), box-shadow 160ms cubic-bezier(0.23, 1, 0.32, 1); }
+.lp-preset:active .lp-preset-img { transform: scale(0.95); }
+@media (hover: hover) and (pointer: fine) { .lp-preset:hover .lp-preset-img { transform: scale(1.04); } }
+.lp-preset:has(.lp-preset-input:checked) .lp-preset-img { box-shadow: 0 0 0 3px var(--card-bg, var(--bg-elevated)), 0 0 0 6px var(--accent); outline-color: transparent; }
+.lp-preset-check { position: absolute; right: -2px; bottom: -2px; display: none; align-items: center; justify-content: center; width: 26px; height: 26px;
+  border-radius: 50%; background: var(--accent); color: var(--bg); box-shadow: 0 0 0 2px var(--card-bg, var(--bg-elevated)); pointer-events: none; }
+.lp-preset-check svg { width: 16px; height: 16px; }
+.lp-preset:has(.lp-preset-input:checked) .lp-preset-check { display: inline-flex; }
+.lp-preset:has(.lp-preset-input:focus-visible) { outline: 3px solid var(--focus-ring); outline-offset: 8px; }
+.lp-preset-hint { margin: 0.625rem 0 0; min-height: 1.25em; }
+.lp-presets + .lp-avatar-row { margin-top: 0.75rem; }
+.lp-preset-more { min-height: 44px; margin-top: 0.5rem; }
+@media (prefers-reduced-motion: reduce) { .lp-preset-img { transition: none; } .lp-preset:active .lp-preset-img, .lp-preset:hover .lp-preset-img { transform: none; } }
+@media (forced-colors: active) {
+  .lp-preset:has(.lp-preset-input:checked) .lp-preset-img { outline: 4px solid Highlight; outline-offset: 2px; box-shadow: none; }
+  .lp-preset-check { background: Highlight; color: HighlightText; }
+}

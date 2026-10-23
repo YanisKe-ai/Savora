@@ -214,15 +214,39 @@ function libRecipeFromPublication(pub) {
   return r;
 }
 
+/* ---------- Profilbild-Vorlagen (v89): avatar_path «preset:NN» zeigt ein lokales Bild, ohne Speicher-Anfrage ---------- */
+const LIB_AVATAR_PRESETS = [
+  { id: '01', file: '01-pasta-pose', name: 'Pasta-Pose' },
+  { id: '02', file: '02-monsieur-croissant', name: 'Monsieur Croissant' },
+  { id: '03', file: '03-espresso', name: 'Espresso' },
+  { id: '04', file: '04-nase-fuer-geschmack', name: 'Nase für Geschmack' },
+  { id: '05', file: '05-olivenkennerin', name: 'Olivenkennerin' },
+  { id: '06', file: '06-haende-fuers-handwerk', name: 'Hände fürs Handwerk' },
+  { id: '07', file: '07-kuechenkritik', name: 'Küchenkritik' },
+  { id: '08', file: '08-pfeffermuehle', name: 'Pfeffermühle' },
+  { id: '09', file: '09-das-letzte-wort', name: 'Das letzte Wort' },
+  { id: '10', file: '10-geschmacksexplosion', name: 'Geschmacksexplosion' },
+  { id: '11', file: '11-oktopus-dirigent', name: 'Oktopus-Dirigent' },
+  { id: '12', file: '12-pilz-punk', name: 'Pilz-Punk' },
+];
+function libIsPresetPath(path) { return typeof path === 'string' && path.indexOf('preset:') === 0; }
+// Liefert die Vorlage zu «preset:NN» (oder zur Nummer «NN»), sonst null (unbekannte Werte zeigen den Buchstaben-Platzhalter).
+function libAvatarPreset(v) {
+  const m = /^(?:preset:)?(0[1-9]|1[0-2])$/.exec(String(v || ''));
+  return m ? LIB_AVATAR_PRESETS.find(x => x.id === m[1]) || null : null;
+}
+function libAvatarPresetSrc(v) { const p = libAvatarPreset(v); return p ? `assets/profilbilder/${p.file}.webp` : ''; }
+
 /* ---------- Bilder (signierte, kurzlebige Adressen) ---------- */
 function libImgSrc(path) {
+  if (libIsPresetPath(path)) return libAvatarPresetSrc(path);
   const hit = path && lib.signed.get(path);
   return hit && hit.exp > Date.now() ? hit.url : '';
 }
 async function libSignedUrls(paths) {
   const out = new Map();
   const need = [];
-  (paths || []).filter(p => typeof p === 'string' && p).forEach(p => {
+  (paths || []).filter(p => typeof p === 'string' && p && !libIsPresetPath(p)).forEach(p => {
     const hit = lib.signed.get(p);
     if (hit && hit.exp - 300000 > Date.now()) out.set(p, hit.url); else if (!need.includes(p)) need.push(p);
   });
@@ -243,7 +267,7 @@ async function libSignedUrls(paths) {
   return out;
 }
 function libPrefetchImages(paths, kind) {
-  const missing = (paths || []).filter(p => p && !libImgSrc(p));
+  const missing = (paths || []).filter(p => p && !libIsPresetPath(p) && !libImgSrc(p));
   if (!missing.length) return;
   libSignedUrls(missing).then(() => libRefresh(kind)).catch(() => { /* Bilder sind optional: Platzhalter bleibt */ });
 }
@@ -697,6 +721,8 @@ async function libSavePubProfile(o) {
   const gen = lib.gen, me = cloudUserId();
   const cur = lib.pubProfile.data || {};
   let avatar = o.removeAvatar ? null : (cur.avatar_path || null);
+  const preset = !o.avatarBlob && o.avatarPreset ? libAvatarPreset(o.avatarPreset) : null;
+  if (preset) avatar = 'preset:' + preset.id;   // Vorlage: kein Hochladen; eine frühere eigene Datei wird wie beim Entfernen nicht mehr verwendet
   if (o.avatarBlob) {
     const enc = await libEncode(o.avatarBlob, 512, 0.8);
     avatar = `${me}/avatar-${libRandHex(6)}.${enc.ext}`;
