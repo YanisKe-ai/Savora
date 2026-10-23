@@ -16,7 +16,7 @@
    - Kontrollierter Update-Flow: kein automatisches skipWaiting. Ein neuer Worker wartet, bis
      die Seite per postMessage({type:'SKIP_WAITING'}) explizit zustimmt.
 */
-const SW_VERSION = 'v110-kartentiefer';
+const SW_VERSION = 'v111-handyschnell';
 const CACHE_SHELL = 'savora-shell-' + SW_VERSION;
 const CACHE_RUNTIME = 'savora-runtime-' + SW_VERSION;
 const CACHE_DATA = 'savora-data-' + SW_VERSION;
@@ -25,6 +25,18 @@ const CACHE_PREFIX = 'savora-';   // Namensraum aller eigenen Caches (alte Versi
 // PDF-Vorschau-Bibliothek). Nicht Teil der Installation: cache-first nach dem ersten Abruf, oder
 // gesammelt per PREPARE_OFFLINE. Die kleinen Cover-Vorschaubilder stehen in SHELL_ASSETS.
 const OPTIONAL_ASSETS = [
+  './assets/profilbilder/01-pasta-pose.webp',
+  './assets/profilbilder/02-monsieur-croissant.webp',
+  './assets/profilbilder/03-espresso.webp',
+  './assets/profilbilder/04-nase-fuer-geschmack.webp',
+  './assets/profilbilder/05-olivenkennerin.webp',
+  './assets/profilbilder/06-haende-fuers-handwerk.webp',
+  './assets/profilbilder/07-kuechenkritik.webp',
+  './assets/profilbilder/08-pfeffermuehle.webp',
+  './assets/profilbilder/09-das-letzte-wort.webp',
+  './assets/profilbilder/10-geschmacksexplosion.webp',
+  './assets/profilbilder/11-oktopus-dirigent.webp',
+  './assets/profilbilder/12-pilz-punk.webp',
   './swiss-fcd-data.json',
   './vendor/pdfjs/pdf.min.js',
   './vendor/pdfjs/pdf.worker.min.js',

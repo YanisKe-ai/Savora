@@ -4667,7 +4667,7 @@ body:has(.cookbook-main) .toast-action { width: max-content; max-width: min(92vw
 
 /* ===== v89 F Profilbild-Vorlagen ===== */
 .lp-presets { margin: 0.25rem 0 0; padding: 0; border: 0; min-width: 0; }
-.lp-presets-legend { padding: 0; margin-bottom: 0.625rem; font-size: 0.875rem; font-weight: 600; color: var(--text-soft); }
+.lp-presets-legend { padding: 0; margin-bottom: 0.5rem; font-size: 0.875rem; font-weight: 600; color: var(--text-soft); }
 .lp-preset-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0.75rem; max-width: 30rem; }
 @media (min-width: 600px) { .lp-preset-grid { grid-template-columns: repeat(6, minmax(0, 1fr)); max-width: 36rem; } }
 .lp-preset { position: relative; display: block; min-width: 44px; aspect-ratio: 1; border-radius: 50%; cursor: pointer;
@@ -4684,7 +4684,7 @@ body:has(.cookbook-main) .toast-action { width: max-content; max-width: min(92vw
 .lp-preset-check svg { width: 16px; height: 16px; }
 .lp-preset:has(.lp-preset-input:checked) .lp-preset-check { display: inline-flex; }
 .lp-preset:has(.lp-preset-input:focus-visible) { outline: 3px solid var(--focus-ring); outline-offset: 8px; }
-.lp-preset-hint { margin: 0.625rem 0 0; min-height: 1.25em; }
+.lp-preset-hint { margin: 0.5rem 0 0; min-height: 1.25em; }
 .lp-presets + .lp-avatar-row { margin-top: 0.75rem; }
 .lp-preset-more { min-height: 44px; margin-top: 0.5rem; }
 @media (prefers-reduced-motion: reduce) { .lp-preset-img { transition: none; } .lp-preset:active .lp-preset-img, .lp-preset:hover .lp-preset-img { transform: none; } }
