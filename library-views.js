@@ -677,7 +677,7 @@ function libProfileView() {
     : (d.next && libHas('libLoadProfileMore')) ? `<div class="lib-more"><button type="button" class="ghost-btn lib-more-btn" data-action="lib-load-more" data-scope="profile" ${d.more === 'loading' ? 'aria-busy="true" aria-disabled="true"' : ''}>${d.more === 'loading' ? 'Lädt …' : 'Mehr laden'}</button></div>` : '';
   return shell(`
     <header class="lib-profile-head">
-      <span class="lib-avatar" aria-hidden="true">${avatar ? `<img src="${escapeAttr(avatar)}" alt="" width="160" height="160" onerror="this.remove()">` : ''}<span class="lib-avatar-initial">${escapeHtml(initial)}</span></span>
+      <span class="lib-avatar" aria-hidden="true">${avatar ? `<img src="${escapeAttr(avatar)}" alt="" width="160" height="160" decoding="async" onerror="this.remove()">` : ''}<span class="lib-avatar-initial">${escapeHtml(initial)}</span></span>
       <div class="lib-profile-text">
         <h1 class="lib-profile-name">${escapeHtml(name)}</h1>
         ${pr.bio ? `<p class="lib-profile-bio">${escapeHtml(pr.bio)}</p>` : ''}

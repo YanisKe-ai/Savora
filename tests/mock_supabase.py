@@ -516,7 +516,7 @@ def _lib_rpc(self, name, me, a):
             if not n: raise LibError('Gib einen Anzeigenamen ein.')
             if len(n) > 40: raise LibError('Der Anzeigename ist zu lang (höchstens 40 Zeichen).')
             if len(bio) > 160: raise LibError('Der Kurztext ist zu lang (höchstens 160 Zeichen).')
-            if av is not None:
+            if av is not None and not _re.fullmatch(r'preset:(0[1-9]|1[0-2])', av):   # v89: Profilbild-Vorlage, keine Datei
                 if not _re.fullmatch(_re.escape(me) + r'/avatar-[0-9a-f]{8,32}\.(jpg|webp)', av): raise LibError('Ungültiges Profilbild.')
                 if av not in PUB_OBJECTS: raise LibError('Das Profilbild wurde nicht vollständig hochgeladen. Bitte nochmals versuchen.')
             old = PUB_PROFILES.get(me); t = now_ts()
