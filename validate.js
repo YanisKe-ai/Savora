@@ -200,6 +200,12 @@ function validateRecipe(raw) {
     recipe.focalPoint = { x: 0.5, y: 0.5 };
     warnings.push('Der Bildausschnitt war ungültig und wurde auf die Mitte gesetzt');
   }
+  // Bewertung (v0.90): ganze Zahl 1 bis 5 oder null. Alles andere wird entfernt, das Rezept bleibt gueltig.
+  if (recipe.rating !== undefined && recipe.rating !== null && !(Number.isInteger(recipe.rating) && recipe.rating >= 1 && recipe.rating <= 5)) {
+    delete recipe.rating; delete recipe.ratedAt;
+    warnings.push('Die Bewertung war ungültig (erlaubt sind 1 bis 5 Sterne) und wurde nicht übernommen');
+  }
+  if (recipe.ratedAt !== undefined && recipe.ratedAt !== null && !(valIsNum(recipe.ratedAt) && recipe.ratedAt >= 0)) delete recipe.ratedAt;
   // Herkunft aus der Rezeptbibliothek: ungueltig heisst nur das Feld (bzw. Teilfeld) entfernen, das Rezept bleibt gueltig
   if (recipe.publicOrigin !== undefined && recipe.publicOrigin !== null) {
     const po = valPublicOrigin(recipe.publicOrigin, 'store');

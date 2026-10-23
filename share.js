@@ -11,7 +11,7 @@
 
 const SHARE_DONE_KEY = 'savora-share-done';
 const SHARE_INVITE_KEY = 'savora-share-invite';
-const SHARE_DROP_KEYS = ['id', 'favorite', 'cookCount', 'lastCookedAt', 'cookLog', 'createdAt', 'updatedAt', 'imageId', 'image', 'collections', 'collectionIds', 'sharedBy'];
+const SHARE_DROP_KEYS = ['id', 'favorite', 'rating', 'ratedAt', 'cookCount', 'lastCookedAt', 'cookLog', 'createdAt', 'updatedAt', 'imageId', 'image', 'collections', 'collectionIds', 'sharedBy'];
 const SHARE_MAX_IMAGE_CHARS = 1400000;
 const share = { gen: 0, sending: false, fetchedAt: 0, profile: undefined, connections: [], inbox: [], count: 0, loading: false, error: null, previewId: null, previewImage: null, timer: null, ui: {} };
 
@@ -60,6 +60,7 @@ async function shareRefresh() {
   } catch (e) { if (gen === share.gen) share.error = shareErrText(e); }
   finally { if (gen === share.gen) { share.loading = false; share.fetchedAt = Date.now(); } }
   if (gen === share.gen) shareRerender();
+  if (gen === share.gen && typeof hhSync === 'function') hhSync({ state: true });   // Einladungen zur gemeinsamen Einkaufsliste (household.js)
 }
 const SHARE_VIEWS = ['settings-share', 'settings-share-preview', 'settings', 'more', 'friends', 'friends-profile', 'friends-add'];
 function shareRerender() {
@@ -106,6 +107,7 @@ function shareHandleInviteLink() {
 }
 function shareReset() {
   share.gen++; share.loading = false; share.sending = false;
+  if (typeof hhReset === 'function') hhReset();
   share.fetchedAt = 0; share.profile = undefined; share.connections = []; share.inbox = []; share.count = 0; share.error = null; share.previewId = null; share.previewImage = null; share.ui = {};
   try { localStorage.removeItem(SHARE_DONE_KEY); sessionStorage.removeItem(SHARE_INVITE_KEY); } catch (e) {}
 }
@@ -119,13 +121,15 @@ function friendsSummary() {
   if (st === 'absent') return 'Profil einrichten';
   const n = share.inbox.length, req = share.connections.filter(c => c.state === 'incoming').length, f = share.connections.filter(c => c.state === 'connected').length;
   const parts = [];
+  const hhN = typeof hhInviteCount === 'function' ? hhInviteCount() : 0;
+  if (hhN) parts.push(hhN === 1 ? '1 Einladung zur Einkaufsliste' : `${hhN} Einladungen zur Einkaufsliste`);
   if (n) parts.push(n === 1 ? '1 neues Rezept' : `${n} neue Rezepte`);
   if (req) parts.push(req === 1 ? '1 Anfrage' : `${req} Anfragen`);
   if (parts.length) return parts.join(', ');
   return f ? (f === 1 ? '1 Freund' : `${f} Freunde`) : '@' + share.profile.handle;
 }
 // Zahl der neuen Rezepte und offenen Anfragen (nur echte Daten), z. B. fuer ein Abzeichen auf «Mehr».
-function friendsBadgeCount() { return cloudSignedIn() ? share.count : 0; }
+function friendsBadgeCount() { return cloudSignedIn() ? share.count + (typeof hhInviteCount === 'function' ? hhInviteCount() : 0) : 0; }
 function shareSettingsSummary() { return friendsSummary(); }
 
 /* ---------- Bereinigung ---------- */
@@ -280,14 +284,15 @@ function friendsReadyHtml() {
   const blocked = share.connections.filter(c => c.state === 'blocked');
   if (!share.loading && Date.now() - share.fetchedAt > 2000) setTimeout(shareRefresh, 0);   // beim Oeffnen frisch laden
   const tab = ['inbox', 'send', 'friends'].includes(share.ui.tab) ? share.ui.tab : 'inbox';
-  const counts = { inbox: share.inbox.length, send: 0, friends: incoming.length };
+  const hhInbox = typeof hhInboxHtml === 'function' ? hhInboxHtml() : '';
+  const counts = { inbox: share.inbox.length + (typeof hhInviteCount === 'function' ? hhInviteCount() : 0), send: 0, friends: incoming.length };
   const offlineBanner = share.error ? `<div class="tl-banner" role="status"><span>${escapeHtml(share.error)} Du siehst den Stand von vorhin.</span><button class="text-btn" data-action="share-refresh">Erneut versuchen</button></div>` : '';
   const tabs = `<div class="tl-tabs" role="tablist" aria-label="Freunde und Rezepte">${SHARE_TABS.map(([id, label]) => `<button type="button" role="tab" class="tl-tab" id="tl-tab-${id}" aria-selected="${tab === id}" aria-controls="tl-panel" tabindex="${tab === id ? 0 : -1}" data-action="share-tab" data-id="${id}">${label}${counts[id] ? `<span class="tl-badge" aria-label="${counts[id]} neu">${counts[id]}</span>` : ''}</button>`).join('')}</div>`;
   let panel;
   if (tab === 'inbox') {
     const note = incoming.length ? `<div class="tl-banner fr-note"><span>${incoming.length === 1 ? '1 offene Anfrage wartet' : `${incoming.length} offene Anfragen warten`} auf dich.</span><button class="text-btn" data-action="share-tab" data-id="friends">Anfragen ansehen</button></div>` : '';
     const rows = share.inbox.map(s => `<li class="tl-row tl-row--inbox">${shareAvatar({ display_name: s.from_name, handle: s.from_handle })}<div class="tl-row-text"><span class="share-title">${escapeHtml(s.title)}</span><span class="tl-sub">von ${shareWho({ display_name: s.from_name, handle: s.from_handle })}</span>${s.message ? `<span class="share-msg">„${escapeHtml(s.message)}“</span>` : ''}</div><div class="tl-row-actions"><button class="primary-btn primary-btn--small" data-action="share-open-preview" data-id="${escapeAttr(s.id)}" aria-label="Ansehen: ${escapeHtml(s.title)} von ${escapeHtml(shareName({ display_name: s.from_name, handle: s.from_handle }))}">Ansehen</button></div></li>`).join('');
-    panel = note + (share.inbox.length
+    panel = note + hhInbox + (share.inbox.length
       ? frSection('inbox', 'Erhaltene Rezepte', share.inbox.length, `<ul class="tl-list tl-card">${rows}</ul>`)
       : `<div class="tl-card tl-card--quiet"><p>Noch keine neuen Rezepte. Hier erscheinen Rezepte, die dir Freunde senden.</p><button class="ghost-btn primary-btn--small" data-action="share-tab" data-id="friends">Freunde ansehen</button></div>`);
   } else if (tab === 'send') {
@@ -464,7 +469,7 @@ function shareManageModal() {
   const n = escapeHtml(shareName(c)), h = escapeAttr(c.handle);
   return sheet('friend-manage-title', shareName(c), `
     ${c.display_name ? `<p class="settings-hint settings-hint--none">@${escapeHtml(c.handle)}</p>` : ''}
-    <div class="menu-list"><button class="menu-item" data-action="friend-send" data-id="${h}">${SHARE_SVG.send}<span>Rezept an ${n} senden</span></button></div>
+    <div class="menu-list"><button class="menu-item" data-action="friend-send" data-id="${h}">${SHARE_SVG.send}<span>Rezept an ${n} senden</span></button>${typeof hhFriendButtonHtml === 'function' ? hhFriendButtonHtml(c.handle, shareName(c)) : ''}</div>
     <h3 class="fr-sub">Freundschaft beenden</h3>
     <p class="tl-hint tl-hint--flush"><strong>Entfernen:</strong> Ihr könnt euch keine Rezepte mehr senden. Noch nicht übernommene Rezepte zwischen euch werden gelöscht. Was du schon übernommen hast, bleibt bei dir. Du kannst später wieder eine Anfrage senden.</p>
     <button class="ghost-btn primary-btn--block" data-action="share-remove" data-id="${h}">Freundschaft entfernen</button>
@@ -639,6 +644,6 @@ async function handleShareAction(action, id, el) {
       showToast('Abgelehnt');
       return true;
     }
-    default: return false;
+    default: return typeof handleHouseholdAction === 'function' && /^hh-/.test(action || '') ? handleHouseholdAction(action, id, el) : false;   // gemeinsame Einkaufsliste (household.js)
   }
 }

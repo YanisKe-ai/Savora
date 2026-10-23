@@ -63,7 +63,7 @@ function kdSignedOutForm() {
   const mode = state.cloudMode === 'reset' ? 'reset' : (state.cloudMode === 'signup' && CLOUD_SIGNUP_OPEN ? 'signup' : 'signin');
   const action = mode === 'signup' ? 'cloud-sign-up' : mode === 'reset' ? 'cloud-reset' : 'cloud-sign-in';
   const label = mode === 'signup' ? 'Konto erstellen' : mode === 'reset' ? 'Link zum Zurücksetzen senden' : 'Anmelden';
-  return `<form class="kd-form" onsubmit="return false" novalidate>
+  return `<form class="kd-form" data-no-submit novalidate>
     <div class="field"><label for="cloudEmail">E-Mail</label><input type="email" id="cloudEmail" autocomplete="username" inputmode="email" autocapitalize="off" spellcheck="false" value="${escapeAttr(state.cloudEmail || '')}"></div>
     ${mode !== 'reset' ? `<div class="field"><label for="cloudPassword">Passwort</label><input type="password" id="cloudPassword" autocomplete="${mode === 'signup' ? 'new-password' : 'current-password'}" minlength="8"></div>` : '<p class="kd-sub">Wir senden dir einen Link, mit dem du ein neues Passwort festlegst.</p>'}
     <p class="cloud-error" id="cloudError" role="alert"></p>
@@ -105,7 +105,7 @@ function settingsAccountView() {
 
 function kdPasswordModal() {
   return sheet('kdPwTitle', 'Passwort ändern', `
-    <form class="kd-form" onsubmit="return false" novalidate>
+    <form class="kd-form" data-no-submit novalidate>
       <div class="field"><label for="kontoPw1">Neues Passwort</label><input type="password" id="kontoPw1" autocomplete="new-password" minlength="8" aria-describedby="kontoPwHint"></div>
       <div class="field"><label for="kontoPw2">Neues Passwort wiederholen</label><input type="password" id="kontoPw2" autocomplete="new-password" minlength="8"></div>
       <p class="kd-sub" id="kontoPwHint">Mindestens 8 Zeichen.</p>
@@ -121,7 +121,7 @@ function kdDeleteModal() {
       <li>Dein Profil für Freunde & Rezepte und die Verbindungen dazu werden gelöscht.</li>
       <li>Die Rezepte und Daten auf diesem Gerät bleiben erhalten. Auf deinen anderen Geräten bleiben sie ebenfalls, sie werden aber nicht mehr abgeglichen.</li>
     </ul>
-    <form class="kd-form" onsubmit="return false" novalidate>
+    <form class="kd-form" data-no-submit novalidate>
       <div class="field"><label for="kontoDelConfirm">Zur Bestätigung LÖSCHEN eintippen</label><input type="text" id="kontoDelConfirm" autocomplete="off" autocapitalize="characters" spellcheck="false"></div>
       <p class="cloud-error" id="kontoDelError" role="alert"></p>
       <div class="form-actions"><button type="button" class="ghost-btn" data-action="close-modal">Abbrechen</button><button type="button" class="primary-btn kd-danger-btn" data-kd-primary id="kontoDelBtn" data-action="konto-delete-confirm" disabled>Konto endgültig löschen</button></div>
@@ -136,7 +136,7 @@ function kdSetError(id, msg) { const el = document.getElementById(id); if (el) e
    Runde und die Zahl der noch nicht übertragenen Änderungen. Die Anmeldung allein sagt nichts über «aktuell». */
 function kdSyncState() {
   if (!kdSignedIn()) return { kind: 'signed-out' };
-  const pending = Object.keys(cloudQueue()).length;
+  const pending = typeof cloudQueueCount === 'function' ? cloudQueueCount() : Object.keys(cloudQueue()).length;
   const last = readJsonKey(CLOUD_LAST_KEY, null);
   if (cloud.syncing) return { kind: 'syncing', pending, last };
   if (cloud.lastError) {
@@ -189,15 +189,60 @@ function settingsSyncView() {
   }
   const what = `<details class="kd-details"><summary>Was wird abgeglichen?</summary><div class="kd-details-body">
       <p class="kd-sub kd-sub--strong">Wird abgeglichen</p>
-      <ul class="kd-bullets"><li>Rezepte mit ihren Fotos</li><li>Wochenplan</li><li>Einkaufsliste</li><li>Sammlungen und Kochbücher</li><li>dein Name im PDF (privat, nicht Teil deines öffentlichen Profils)</li></ul>
+      <ul class="kd-bullets"><li>Rezepte mit ihren Fotos, auch «Zuletzt gelöscht»</li><li>Wochenplan</li><li>Einkaufsliste</li><li>Vorrat</li><li>Sammlungen und Kochbücher</li><li>dein Name im PDF (privat, nicht Teil deines öffentlichen Profils)</li></ul>
       <p class="kd-sub kd-sub--strong">Gilt nur auf diesem Gerät</p>
       <ul class="kd-bullets"><li>Darstellung und Farbschema</li><li>Einheiten und Nährwert-Anzeige</li><li>eigene Lebensmittel und gelernte Nährwert-Zuordnungen</li><li>Offline-Inhalte und Sicherungsdateien</li></ul>
-      <p class="kd-sub">Wenn zwei Geräte denselben Eintrag ändern, gilt der neuere Stand. Löschst du ein Rezept, verschwindet es auf allen angemeldeten Geräten. Der Abgleich läuft automatisch, solange Savora geöffnet ist.</p>
+      <p class="kd-sub">Wenn zwei Geräte denselben Eintrag ändern, gilt der neuere Stand. Haben beide Geräte dasselbe Rezept verschieden geändert, bleibt der ältere Stand zusätzlich als Kopie erhalten, z. B. «Rezept (Kopie von iPhone)». Löschst du ein Rezept, verschwindet es auf allen angemeldeten Geräten und liegt dort 30 Tage unter «Zuletzt gelöscht». Der Abgleich läuft automatisch, solange Savora geöffnet ist.</p>
     </div></details>`;
   const note = `<p class="kd-note">${ICONS.info}<span>Der Abgleich ist keine Sicherung: Er hält deine Geräte gleich, bewahrt aber keinen älteren Stand. Eine Kopie als Datei erstellst du unter «Sicherung &amp; Wiederherstellung».</span></p>
     <button type="button" class="ghost-btn kd-note-link" data-action="goto-view" data-view="settings-backup">${ICONS.download} Zu Sicherung &amp; Wiederherstellung</button>`;
-  return kdPage('Geräteabgleich', kdLeadHtml('Hält deine Rezepte und unterstützten Daten auf deinen Geräten aktuell.') + `<ul class="kd-bullets kd-bullets--lead" aria-label="Unterstützte Daten"><li>Rezepte mit ihren Fotos</li><li>Wochenplan</li><li>Einkaufsliste</li><li>Sammlungen und Kochbücher</li></ul>` + status + what + note) + kdModals();
+  return kdPage('Geräteabgleich', kdLeadHtml('Hält deine Rezepte und unterstützten Daten auf deinen Geräten aktuell.') + `<ul class="kd-bullets kd-bullets--lead" aria-label="Unterstützte Daten"><li>Rezepte mit ihren Fotos</li><li>Wochenplan</li><li>Einkaufsliste</li><li>Sammlungen und Kochbücher</li></ul>` + status + kdDeviceSectionHtml() + what + note) + kdModals();
 }
+/* Name dieses Geräts (v0.90): erscheint bei Konflikt-Kopien («Kopie von iPhone»). Leer = automatisch aus dem Gerätetyp. */
+function kdDeviceSectionHtml() {
+  let own = '';
+  try { own = localStorage.getItem(DEVICE_NAME_KEY) || ''; } catch (e) { /* nicht lesbar */ }
+  const auto = typeof savoraDeviceNameAuto === 'function' ? savoraDeviceNameAuto() : 'Gerät';
+  return kdSection('kdSyncDevice', 'Dieses Gerät', `
+      <div class="field"><label for="kontoDeviceName">Name dieses Geräts</label><input type="text" id="kontoDeviceName" maxlength="40" autocomplete="off" spellcheck="false" placeholder="${escapeAttr(auto)}" value="${escapeAttr(own)}" aria-describedby="kontoDeviceHint"></div>
+      <p class="kd-sub" id="kontoDeviceHint">Erscheint, wenn zwei Geräte dasselbe Rezept verschieden geändert haben: Der ältere Stand bleibt dann als «Kopie von ${escapeHtml(own.trim() || auto)}» erhalten. Leer lassen für «${escapeHtml(auto)}».</p>`);
+}
+function kdSaveDeviceName(value) {
+  const v = String(value || '').trim().slice(0, 40);
+  try { if (v) localStorage.setItem(DEVICE_NAME_KEY, v); else localStorage.removeItem(DEVICE_NAME_KEY); }
+  catch (e) { showToast('Der Name konnte nicht gespeichert werden.', 'error'); return; }
+  const hint = document.getElementById('kontoDeviceHint');
+  if (hint) { const auto = savoraDeviceNameAuto(); hint.textContent = `Erscheint, wenn zwei Geräte dasselbe Rezept verschieden geändert haben: Der ältere Stand bleibt dann als «Kopie von ${v || auto}» erhalten. Leer lassen für «${auto}».`; }
+  showToast(v ? `Gerätename gespeichert: ${v}` : 'Gerätename zurückgesetzt');
+}
+
+/* Speicher auf diesem Gerät (v0.90): belegter Platz und ob der Browser die Daten dauerhaft aufbewahrt. */
+async function kdStorageInfo() {
+  const out = { usage: null, quota: null, persisted: null, canPersist: false };
+  try {
+    if (navigator.storage && navigator.storage.estimate) { const e = await navigator.storage.estimate(); if (e) { out.usage = e.usage || 0; out.quota = e.quota || null; } }
+    if (navigator.storage && navigator.storage.persisted) out.persisted = await navigator.storage.persisted();
+    out.canPersist = !!(navigator.storage && navigator.storage.persist);
+  } catch (e) { /* nicht verfügbar */ }
+  return out;
+}
+function kdMb(bytes) { const mb = bytes / 1048576; return (mb < 10 ? Math.round(mb * 10) / 10 : Math.round(mb)).toLocaleString('de-CH'); }
+function kdStorageHtml(info) {
+  if (!info) return '<p class="kd-sub">Wird geprüft …</p>';
+  const used = info.usage !== null && info.quota ? `Belegt ${kdMb(info.usage)} MB von ${kdMb(info.quota)} MB` : 'Belegter Speicher: nicht bekannt';
+  const pers = info.persisted === null ? 'Dauerhaft gesichert: nicht bekannt' : `Dauerhaft gesichert: ${info.persisted ? 'Ja' : 'Nein'}`;
+  const warn = info.usage !== null && info.quota && info.usage / info.quota > 0.9 ? '<p class="kd-sub kd-sub--warn">Der Speicher ist fast voll. Lade eine Sicherung herunter und lösche nicht mehr benötigte Fotos.</p>' : '';
+  const hint = info.persisted === false ? `<p class="kd-sub">Ohne dauerhafte Sicherung darf der Browser bei Platzmangel Daten von Websites entfernen. Eine Sicherungsdatei schützt dich in jedem Fall.</p>${info.canPersist ? '<button type="button" class="ghost-btn kd-btn" data-action="konto-storage-persist">Dauerhaft speichern anfragen</button>' : ''}` : '';
+  return `<p class="kd-status"><strong class="kd-status-title">${escapeHtml(used)}</strong></p><p class="kd-sub">${escapeHtml(pers)}</p>${warn}${hint}`;
+}
+async function kdRefreshStorage() {
+  const el = document.getElementById('kontoStorageInfo');
+  if (!el) return;
+  const info = await kdStorageInfo();
+  const now = document.getElementById('kontoStorageInfo');
+  if (now) kdSetHtml(now, kdStorageHtml(info));
+}
+
 /* Kurztext für die Übersicht «Einstellungen» (echter Zustand statt «An») */
 function settingsSyncSummary() {
   const st = kdSyncState();
@@ -409,9 +454,11 @@ function kdRefreshOffline() {
   if (focusAction) { const b = el.querySelector(`[data-action="${focusAction}"]`); if (b && !b.disabled && document.activeElement !== b) b.focus({ preventScroll: true }); }
 }
 function settingsOfflineView() {
-  if (kd.offline.phase === 'idle' || Date.now() - (kd.offline.at || 0) > 30000) setTimeout(kdOfflineCheck, 0);   // beim Öffnen frisch prüfen (nicht bei jedem Neuzeichnen)
+  if (kd.offline.phase === 'idle' || Date.now() - (kd.offline.at || 0) > 30000) setTimeout(kdOfflineCheck, 0);
+  setTimeout(kdRefreshStorage, 0);   // beim Öffnen frisch prüfen (nicht bei jedem Neuzeichnen)
   const body = kdLeadHtml('Prüfe, welche Inhalte ohne Internet auf diesem Gerät verfügbar sind.')
     + kdSection('kdOffStatus', 'Status', `<div id="kontoOfflineBox">${kdOfflineBodyHtml()}</div>`)
+    + kdSection('kdOffStorage', 'Speicher auf diesem Gerät', `<div id="kontoStorageInfo" role="status" aria-live="polite">${kdStorageHtml(null)}</div>`)
     + `<p class="kd-note">${ICONS.info}<span>Deine eigenen Rezepte und Fotos liegen auf diesem Gerät und sind auch ohne Internet da. Der Geräteabgleich, Freunde &amp; Rezepte und der Abruf neuer Produktdaten brauchen eine Verbindung.</span></p>`;
   return kdPage('Ohne Internet', body) + kdModals();
 }
@@ -529,6 +576,13 @@ async function kdHandleAction(action, id, el) {
     }
     case 'konto-offline-prepare': kdOfflinePrepare(); return true;
     case 'konto-offline-check': kdOfflineCheck(); return true;
+    case 'konto-storage-persist': {
+      let ok = false;
+      try { ok = !!(navigator.storage && navigator.storage.persist && await navigator.storage.persist()); } catch (e) { ok = false; }
+      showToast(ok ? 'Der Browser bewahrt die Daten jetzt dauerhaft auf.' : 'Der Browser hat abgelehnt. Mach regelmässig eine Sicherung.', ok ? 'success' : 'info');
+      kdRefreshStorage();
+      return true;
+    }
     default: return null;
   }
 }
@@ -579,6 +633,18 @@ document.addEventListener('input', (e) => {
     if (b) b.disabled = t.value.trim().toUpperCase() !== 'LÖSCHEN';
   }
 });
+// Gerätename speichern, sobald das Feld verlassen oder mit Enter bestätigt wird
+document.addEventListener('change', (e) => {
+  const t = e.target;
+  if (t && t.id === 'kontoDeviceName') kdSaveDeviceName(t.value);
+});
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter' && !e.isComposing && e.target && e.target.id === 'kontoDeviceName') { e.preventDefault(); e.target.blur(); }
+});
+// Die Formulare werden nie abgeschickt (früher per Inline-Handler im Formular, jetzt ohne Inline-Code wegen CSP)
+document.addEventListener('submit', (e) => {
+  if (e.target && e.target.closest && e.target.closest('.kd-form')) e.preventDefault();
+}, true);
 // Enter in einem Formularfeld löst die Hauptaktion des Formulars aus (die Formulare selbst werden nie abgeschickt)
 document.addEventListener('keydown', (e) => {
   if (e.key !== 'Enter' || e.isComposing) return;

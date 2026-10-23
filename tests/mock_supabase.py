@@ -24,7 +24,13 @@ CLOCK = [datetime(2026, 1, 1, tzinfo=timezone.utc)]
 # ALLOWED_KINDS.clear(); ALLOWED_KINDS.update(KINDS_BEFORE_47)
 KINDS_BEFORE_47 = {'recipe', 'mealplan', 'shopping', 'setting'}
 KINDS_47 = KINDS_BEFORE_47 | {'collection', 'membership', 'pairing'}
-ALLOWED_KINDS = set(KINDS_47)
+KINDS_48 = KINDS_47 | {'pantry'}   # supabase/paket48-haushalt.sql: Datenart Vorrat
+ALLOWED_KINDS = set(KINDS_48)
+# Gemeinsame Haushaltsliste (supabase/paket48-haushalt.sql). HH_DISABLED[0] = True stellt den Stand ohne Paket 48 nach (RPC 404).
+HOUSEHOLDS = {}   # id -> {owner, name, created_at}
+HH_MEMBERS = {}   # (household_id, user_id) -> {status, invited_by, created_at, joined_at}
+HH_ITEMS = {}     # (household_id, id) -> {id, data, deleted, client_updated_at, server_updated_at, updated_by}
+HH_DISABLED = [False]
 
 def now_ts():
     CLOCK[0] = max(CLOCK[0] + timedelta(milliseconds=1), datetime.now(timezone.utc))
@@ -147,6 +153,7 @@ class H(BaseHTTPRequestHandler):
                 for k in [k for k in CONNS if uid in k]: del CONNS[k]
                 for k in [k for k, v in SHARES.items() if uid in (v['sender'], v['recipient'])]: del SHARES[k]
                 for k in [k for k in RECORDS if k[0] == uid]: del RECORDS[k]
+                for k in [k for k in HH_MEMBERS if k[1] == uid]: hh_remove_member(k[0], uid)
                 for e in [e for e, x in USERS.items() if x['id'] == uid]: del USERS[e]
                 return self.reply(204)
             if p.startswith('/storage/v1/object/list/savora-images') and method == 'POST':
@@ -263,11 +270,115 @@ class H(BaseHTTPRequestHandler):
             v = SHARES.get(a.get('p_id'))
             if v and v['recipient'] == me: del SHARES[a.get('p_id')]
             return self.reply(200)
+        if name.startswith('savora_hh_'):
+            if HH_DISABLED[0]: return self.reply(404, {'code': 'PGRST202', 'message': 'Could not find the function public.%s' % name})
+            return self.hh_rpc(name, me, a, err, by_handle, connected)
+        return self.reply(404, {'message': 'unbekannte Funktion ' + name})
+    def hh_rpc(self, name, me, a, err, by_handle, connected):
+        """Nachbau von supabase/paket48-haushalt.sql (gleiche Regeln und Meldungen)."""
+        def mine():
+            return next((h for (h, u), m in HH_MEMBERS.items() if u == me and m['status'] == 'active'), None)
+        def is_member(h, u):
+            if (HH_MEMBERS.get((h, u)) or {}).get('status') != 'active': return False
+            return all(connected(u, o) for (hh, o), m in HH_MEMBERS.items() if hh == h and o != u and m['status'] == 'active')
+        def state():
+            hid = mine(); hh = None
+            if hid:
+                h = HOUSEHOLDS[hid]
+                mem = [(m, u) for (x, u), m in HH_MEMBERS.items() if x == hid and u in PROFILES]
+                mem.sort(key=lambda t: (t[0]['status'], t[0]['joined_at'] or '9', PROFILES[t[1]]['handle']))
+                hh = {'id': hid, 'name': h['name'], 'is_owner': h['owner'] == me, 'active': is_member(hid, me),
+                      'members': [{'handle': PROFILES[u]['handle'], 'display_name': PROFILES[u]['display_name'], 'status': m['status'],
+                                   'is_me': u == me, 'is_owner': u == h['owner'], 'connected': u == me or connected(me, u)} for m, u in mem]}
+            inv = [{'household_id': x, 'from_handle': (PROFILES.get(m['invited_by']) or {}).get('handle'), 'from_name': (PROFILES.get(m['invited_by']) or {}).get('display_name'),
+                    'created_at': m['created_at'], 'members': sum(1 for (y, _), v in HH_MEMBERS.items() if y == x and v['status'] == 'active')}
+                   for (x, u), m in HH_MEMBERS.items() if u == me and m['status'] == 'invited' and (not m['invited_by'] or connected(me, m['invited_by']))]
+            inv.sort(key=lambda r: r['created_at'])
+            return self.reply(200, {'household': hh, 'invites': inv})
+        if name == 'savora_hh_state': return state()
+        if name == 'savora_hh_invite':
+            if me not in PROFILES: return err('Lege zuerst dein Profil an.')
+            o = by_handle(a.get('p_handle'))
+            if not o or o == me or not connected(me, o): return err('Du bist mit diesem Profil nicht verbunden.')
+            hid = mine()
+            if not hid:
+                hid = str(uuid.uuid4()); HOUSEHOLDS[hid] = {'owner': me, 'name': '', 'created_at': now_ts()}
+                HH_MEMBERS[(hid, me)] = {'status': 'active', 'invited_by': None, 'created_at': now_ts(), 'joined_at': now_ts()}
+            elif not is_member(hid, me): return err('Die gemeinsame Liste ist pausiert, weil nicht mehr alle verbunden sind.')
+            if (hid, o) in HH_MEMBERS: return state()
+            if sum(1 for (x, _) in HH_MEMBERS if x == hid) >= 8: return err('Ein Haushalt hat höchstens 8 Personen (mit offenen Einladungen).')
+            HH_MEMBERS[(hid, o)] = {'status': 'invited', 'invited_by': me, 'created_at': now_ts(), 'joined_at': None}
+            return state()
+        if name == 'savora_hh_accept':
+            hid = a.get('p_household')
+            if (HH_MEMBERS.get((hid, me)) or {}).get('status') != 'invited': return err('Diese Einladung gibt es nicht mehr.')
+            if mine(): return err('Du bist schon in einer gemeinsamen Liste. Verlasse sie zuerst.')
+            if any(not connected(me, u) for (x, u), m in HH_MEMBERS.items() if x == hid and m['status'] == 'active'):
+                return err('Du bist nicht mit allen Personen dieser Liste verbunden. Verbinde dich zuerst mit allen.')
+            HH_MEMBERS[(hid, me)].update(status='active', joined_at=now_ts())
+            return state()
+        if name == 'savora_hh_decline':
+            hid = a.get('p_household')
+            if (HH_MEMBERS.get((hid, me)) or {}).get('status') == 'invited': del HH_MEMBERS[(hid, me)]
+            return state()
+        if name == 'savora_hh_leave':
+            hid = mine()
+            if hid: hh_remove_member(hid, me)
+            return state()
+        if name == 'savora_hh_push':
+            hid = a.get('p_household'); rows = a.get('p_rows')
+            if not isinstance(rows, list): return err('Ungültige Daten.')
+            if len(rows) > 200: return err('Zu viele Einträge auf einmal (höchstens 200).')
+            if not is_member(hid, me): return err('Kein Zugriff auf diese Liste.')
+            cap = int(time.time() * 1000) + 60000; backup = {k: dict(v) for k, v in HH_ITEMS.items() if k[0] == hid}; n = 0
+            for r in rows:
+                rid = r.get('id') if isinstance(r, dict) else None
+                if not isinstance(rid, str) or not 1 <= len(rid) <= 100: return err('Ungültige Eintrags-ID.')
+                dele = bool(r.get('deleted')); cu = min(int(r.get('client_updated_at') or 0), cap); d = None if dele else r.get('data')
+                if not dele and not isinstance(d, dict): return err('Ungültiger Eintrag.')
+                if d is not None and len(json.dumps(d, ensure_ascii=False, separators=(',', ': ')).encode()) > 4000: return err('Ein Eintrag ist zu gross.')
+                old = HH_ITEMS.get((hid, rid))
+                if old and not (cu > old['client_updated_at'] or (cu == old['client_updated_at'] and dele and not old['deleted'])): continue
+                HH_ITEMS[(hid, rid)] = {'id': rid, 'data': d, 'deleted': dele, 'client_updated_at': cu, 'server_updated_at': now_ts(), 'updated_by': me}; n += 1
+            if sum(1 for (x, _), v in HH_ITEMS.items() if x == hid and not v['deleted']) > 1000:
+                for k in [k for k in HH_ITEMS if k[0] == hid]: del HH_ITEMS[k]
+                HH_ITEMS.update(backup)   # Transaktion zurueckrollen
+                return err('Die gemeinsame Liste ist voll (höchstens 1000 Einträge). Entferne zuerst erledigte Einträge.')
+            limit = _hh_dt(now_ts()) - timedelta(days=60)
+            for k in [k for k, v in HH_ITEMS.items() if k[0] == hid and v['deleted'] and _hh_dt(v['server_updated_at']) < limit]: del HH_ITEMS[k]
+            return self.reply(200, {'applied': n, 'server_time': now_ts()})
+        if name == 'savora_hh_pull':
+            hid = a.get('p_household'); since = a.get('p_since')
+            if not is_member(hid, me): return err('Kein Zugriff auf diese Liste.')
+            t = _hh_dt(since) if since else None
+            rows = [dict((k, v[k]) for k in ('id', 'data', 'deleted', 'client_updated_at', 'server_updated_at')) for (x, _), v in HH_ITEMS.items()
+                    if x == hid and ((not v['deleted']) if t is None else _hh_dt(v['server_updated_at']) > t)]
+            rows.sort(key=lambda r: _hh_dt(r['server_updated_at']))
+            return self.reply(200, {'server_time': now_ts(), 'rows': rows})
         return self.reply(404, {'message': 'unbekannte Funktion ' + name})
     def do_GET(self): self.handle_any('GET')
     def do_POST(self): self.handle_any('POST')
     def do_PUT(self): self.handle_any('PUT')
     def do_DELETE(self): self.handle_any('DELETE')
+
+def _hh_dt(iso):
+    return datetime.fromisoformat(str(iso).replace('Z', '+00:00'))
+
+def hh_remove_member(hid, uid):
+    """Wie Ausloeser savora_hh_member_gone: aktives Mitglied weg -> Erbe wird Besitzer, letzte Person loescht den Haushalt."""
+    m = HH_MEMBERS.pop((hid, uid), None)
+    if not m or m['status'] != 'active' or hid not in HOUSEHOLDS: return
+    rest = sorted(((v['joined_at'] or '9', v['created_at'], u) for (x, u), v in HH_MEMBERS.items() if x == hid and v['status'] == 'active'))
+    if not rest:
+        HOUSEHOLDS.pop(hid, None)
+        for k in [k for k in HH_MEMBERS if k[0] == hid]: del HH_MEMBERS[k]
+        for k in [k for k in HH_ITEMS if k[0] == hid]: del HH_ITEMS[k]
+    elif HOUSEHOLDS[hid]['owner'] in (None, uid):
+        HOUSEHOLDS[hid]['owner'] = rest[0][2]
+
+def hh_reset():
+    with LOCK:
+        HOUSEHOLDS.clear(); HH_MEMBERS.clear(); HH_ITEMS.clear(); HH_DISABLED[0] = False
 
 # =====================================================================================================
 # Nachbau der oeffentlichen Rezeptbibliothek (Vertrag §4, supabase/paket45-bibliothek.sql), nur fuer Tests.

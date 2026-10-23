@@ -16,7 +16,7 @@
    - Kontrollierter Update-Flow: kein automatisches skipWaiting. Ein neuer Worker wartet, bis
      die Seite per postMessage({type:'SKIP_WAITING'}) explizit zustimmt.
 */
-const SW_VERSION = 'v112-kueche';
+const SW_VERSION = 'v113-haushalt';
 const CACHE_SHELL = 'savora-shell-' + SW_VERSION;
 const CACHE_RUNTIME = 'savora-runtime-' + SW_VERSION;
 const CACHE_DATA = 'savora-data-' + SW_VERSION;
@@ -88,6 +88,8 @@ const SHELL_ASSETS = [
   './styles.css',
   './styles-v2.css',
   './pdf-print.css',
+  './theme-init.js',
+  './csp-compat.js',
   './icons.js',
   './db.js',
   './nutrition-model.js',
@@ -153,8 +155,12 @@ const SHELL_ASSETS = [
   './ui.js',
   './actions-v2.js',
   './cloud.js',
+  './trash.js',
+  './household.js',
   './share.js',
   './recipe-picker.js',
+  './mealplan-ics.js',
+  './pantry.js',
   './org.js',
   './library.js',
   './library-views.js',

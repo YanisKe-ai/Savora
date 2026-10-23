@@ -76,7 +76,7 @@ function libMediaHtml(path, cls, w, h, alt) {
   const src = libImg(path);
   return `<span class="${cls}" aria-hidden="${alt ? 'false' : 'true'}">
     <span class="lib-ph">${ICONS.bookOpen}</span>
-    ${src ? `<img src="${escapeAttr(src)}" alt="${escapeAttr(alt || '')}" width="${w}" height="${h}" loading="lazy" decoding="async" onload="this.classList.add('is-loaded')" onerror="this.remove()">` : ''}
+    ${src ? `<img src="${escapeAttr(src)}" alt="${escapeAttr(alt || '')}" width="${w}" height="${h}" loading="lazy" decoding="async" data-img-loaded data-img-remove-on-error>` : ''}
   </span>`;
 }
 function libCardHtml(card) {
@@ -339,7 +339,7 @@ function libFilterSheet() {
   if (!d) return '';
   const diets = libPublicDiets();
   return `<div class="modal-backdrop" data-action="close-modal">
-    <div class="modal-sheet filter-sheet lib-filter-sheet" role="dialog" aria-modal="true" aria-labelledby="lib-filter-title" tabindex="-1" onclick="event.stopPropagation()">
+    <div class="modal-sheet filter-sheet lib-filter-sheet" role="dialog" aria-modal="true" aria-labelledby="lib-filter-title" tabindex="-1" data-stop-click>
       <div class="sheet-handle" aria-hidden="true"></div>
       <div class="fs-head">
         <h2 class="fs-title" id="lib-filter-title">Rezepte filtern</h2>
@@ -677,7 +677,7 @@ function libProfileView() {
     : (d.next && libHas('libLoadProfileMore')) ? `<div class="lib-more"><button type="button" class="ghost-btn lib-more-btn" data-action="lib-load-more" data-scope="profile" ${d.more === 'loading' ? 'aria-busy="true" aria-disabled="true"' : ''}>${d.more === 'loading' ? 'Lädt …' : 'Mehr laden'}</button></div>` : '';
   return shell(`
     <header class="lib-profile-head">
-      <span class="lib-avatar" aria-hidden="true">${avatar ? `<img src="${escapeAttr(avatar)}" alt="" width="160" height="160" decoding="async" onerror="this.remove()">` : ''}<span class="lib-avatar-initial">${escapeHtml(initial)}</span></span>
+      <span class="lib-avatar" aria-hidden="true">${avatar ? `<img src="${escapeAttr(avatar)}" alt="" width="160" height="160" decoding="async" data-img-remove-on-error>` : ''}<span class="lib-avatar-initial">${escapeHtml(initial)}</span></span>
       <div class="lib-profile-text">
         <h1 class="lib-profile-name">${escapeHtml(name)}</h1>
         ${pr.bio ? `<p class="lib-profile-bio">${escapeHtml(pr.bio)}</p>` : ''}

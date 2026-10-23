@@ -31,12 +31,13 @@ async def main():
     html = open(os.path.join(ROOT, 'index.html'), encoding='utf-8').read()
     tags = re.findall(r'<script[^>]*\ssrc="([^"]+)"[^>]*>', html)
     plain = re.findall(r'<script\s+src="[^"]+"\s*>', html)
-    check('index.html: alle App-Skripte mit defer', len(tags) > 40 and not plain and len(re.findall(r'<script defer src=', html)) == len(tags), f'{len(tags)} Skripte')
+    sync_ok = ['theme-init.js']   # v90: Farbschema muss vor dem ersten Bild laufen (frueher Inline-Skript), darum synchron im head
+    check('index.html: alle App-Skripte mit defer (ausser theme-init.js)', len(tags) > 40 and [x for x in re.findall(r'<script\s+src="([^"]+)"\s*>', html)] == sync_ok and len(re.findall(r'<script defer src=', html)) == len(tags) - len(sync_ok), f'{len(tags)} Skripte')
     order = [t for t in tags]
     check('index.html: Reihenfolge der Kernskripte unveraendert (state vor views, ui vor app, app vor settings-konto)',
           order.index('state.js') < order.index('views-v2.js') < order.index('ui.js') < order.index('app.js') < order.index('settings-konto.js'))
-    check('index.html: pdf-print.css blockiert nicht (media=print, onload auf all, noscript-Ersatz)',
-          'href="pdf-print.css" media="print" onload="this.media=\'all\'"' in html and '<noscript><link rel="stylesheet" href="pdf-print.css"></noscript>' in html)
+    check('index.html: pdf-print.css blockiert nicht (media=print, data-print-css schaltet in theme-init.js auf all, noscript-Ersatz)',
+          'href="pdf-print.css" media="print" data-print-css' in html and '<noscript><link rel="stylesheet" href="pdf-print.css"></noscript>' in html)
     man = json.load(open(os.path.join(ROOT, 'manifest.json'), encoding='utf-8'))
     urls = [s['url'] for s in man.get('shortcuts', [])]
     check('manifest: drei Verknuepfungen mit Startparametern', urls == ['./index.html?aktion=einkauf', './index.html?aktion=wochenplan', './index.html?aktion=neu'], str(urls))

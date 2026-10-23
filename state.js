@@ -16,7 +16,7 @@ const state = {
   servingsOverride: {},
   theme: loadStoredTheme(),
   unitSystem: localStorage.getItem(UNIT_KEY) || 'metric',
-  sortBy: (() => { try { const v = localStorage.getItem('savora-sort'); return ['updated', 'added', 'az', 'cooked', 'time'].includes(v) ? v : 'updated'; } catch (e) { return 'updated'; } })(),
+  sortBy: (() => { try { const v = localStorage.getItem('savora-sort'); return ['updated', 'added', 'az', 'cooked', 'time', 'rating'].includes(v) ? v : 'updated'; } catch (e) { return 'updated'; } })(),
   showNutrition: (() => { try { return localStorage.getItem('savora-show-nutrition') !== '0'; } catch (e) { return true; } })(),
   cookScale: (() => { try { return Math.max(0, Math.min(2, parseInt(localStorage.getItem('savora-cook-scale') || '0', 10) || 0)); } catch (e) { return 0; } })(),
   cookbookTitle: localStorage.getItem(COOKBOOK_TITLE_KEY) || '',
