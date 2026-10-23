@@ -12,5 +12,15 @@
     { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
     { "src": "icon-192-maskable.png", "sizes": "192x192", "type": "image/png", "purpose": "maskable" },
     { "src": "icon-512-maskable.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
-  ]
+  ],
+  "shortcuts": [
+    { "name": "Einkaufsliste", "short_name": "Einkauf", "description": "Einkaufsliste öffnen", "url": "./index.html?aktion=einkauf", "icons": [{ "src": "icon-96.png", "sizes": "96x96", "type": "image/png" }] },
+    { "name": "Wochenplan", "short_name": "Wochenplan", "description": "Wochenplan öffnen", "url": "./index.html?aktion=wochenplan", "icons": [{ "src": "icon-96.png", "sizes": "96x96", "type": "image/png" }] },
+    { "name": "Neues Rezept", "short_name": "Neues Rezept", "description": "Ein neues Rezept erfassen", "url": "./index.html?aktion=neu", "icons": [{ "src": "icon-96.png", "sizes": "96x96", "type": "image/png" }] }
+  ],
+  "share_target": {
+    "action": "./index.html",
+    "method": "GET",
+    "params": { "title": "share_title", "text": "share_text", "url": "share_url" }
+  }
 }
