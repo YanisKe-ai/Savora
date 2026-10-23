@@ -671,13 +671,17 @@ async function handleActionV2(action, id, el, e) {
           }
         });
         if (state.cookStepIndex > 0) setTimeout(() => showToast(`Fortgesetzt bei Schritt ${state.cookStepIndex + 1}`, 'info'), 50);
+        state.cookMise = false;
       } else {
         state.cookStepIndex = 0;
+        state.cookMise = realIngredients(r).length > 0;   // v89: neu begonnen, zuerst Mise en place (überspringbar)
+        if (state.cookMiseChecked) delete state.cookMiseChecked[id];
       }
       state.view = 'cookmode';
       render();
       saveCookProgress();
-      speakCurrentStepIfEnabled();
+      if (!state.cookMise) speakCurrentStepIfEnabled();
+      if (state.cookVoiceControl && typeof cookVoiceStart === 'function') cookVoiceStart();
       state.wakeLockUnsupported = !('wakeLock' in navigator) && !SavoraNative.isNative;
       await requestWakeLock();
       if (state.view === 'cookmode') render();
@@ -693,8 +697,22 @@ async function handleActionV2(action, id, el, e) {
     case 'timer-plus':
       timerPlusMinute(el.dataset.timer);
       return true;
+    case 'cook-mise-done':
+      SavoraNative.haptic('light');
+      cookMiseDone();
+      return true;
+    case 'cook-mise-toggle':
+      cookMiseToggle(el);
+      return true;
+    case 'cook-voice-control':
+      state.cookVoiceControl = !state.cookVoiceControl;
+      if (state.cookVoiceControl) { cookVoiceStart(); showToast('Sprachsteuerung an: «weiter», «zurück», «Timer»'); }
+      else cookVoiceStop();
+      render();
+      return true;
     case 'cook-goto-timer':
     case 'cook-goto':
+      state.cookMise = false;
       state.cookStepIndex = parseInt(el.dataset.idx, 10) || 0;
       state.cookAllSteps = false;
       saveCookProgress();
@@ -732,6 +750,7 @@ async function handleActionV2(action, id, el, e) {
       state.cookProgressHandled = true; // popstate soll den eben gesicherten Stand nicht ueberschreiben
       releaseWakeLock();
       if ('speechSynthesis' in window) window.speechSynthesis.cancel();
+      cookAlarmStop(); cookVoiceStop(); state.cookMise = false;
       Object.values(state.timers).forEach(t => { if (t.intervalId) clearInterval(t.intervalId); t.intervalId = null; t.running = false; });
       state.timers = {}; SavoraNative.cancelAllTimers();
       state.cookFinished = false;
@@ -742,7 +761,9 @@ async function handleActionV2(action, id, el, e) {
       const note = ((document.getElementById('cookRunNote') || {}).value || '').trim();
       r.cookCount = (r.cookCount || 0) + 1;
       r.lastCookedAt = Date.now();
-      if (note) { r.cookLog = Array.isArray(r.cookLog) ? r.cookLog : []; r.cookLog.push({ id: uid(), date: Date.now(), text: note }); }
+      r.cookLog = Array.isArray(r.cookLog) ? r.cookLog : [];
+      r.cookLog.push({ id: uid(), date: r.lastCookedAt, text: note, cooked: true });   // v89: jeder Kochdurchgang im Verlauf, Notiz optional
+      cookAlarmStop(); cookVoiceStop(); state.cookMise = false;
       await dbPut(r);
       clearCookProgress();
       checkedSetFor(r.id).clear();

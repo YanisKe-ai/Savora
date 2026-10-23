@@ -65,6 +65,7 @@ async def main():
         await show(page, "() => { state.activeRecipeId = 'r_legacy_1'; state.view = 'detail'; render(); }", '.detail-main')
         await click(page, '[data-action="start-cook"]')
         await page.wait_for_selector('.cook-v2')
+        await page.evaluate("() => { const b = document.querySelector('[data-action=\"cook-mise-done\"]'); if (b) b.click(); }")   # v89: Vorbereitung (Mise en place) ueberspringen
         check('Kochmodus: KeepAwake aktiv', len(await calls(page, 'keepAwake')) >= 1 and await page.evaluate("!!state.wakeLock"))
         await click(page, '[data-action="cook-next"]')
         await click(page, '.timer-chip')

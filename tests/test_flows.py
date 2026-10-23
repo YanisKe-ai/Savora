@@ -110,6 +110,7 @@ async def main():
         await show(page, f"() => {{ state.activeRecipeId = '{zid}'; state.view = 'detail'; render(); }}", '.detail-main')
         await click(page, '[data-action="start-cook"]')
         await page.wait_for_selector('.cook-v2')
+        await page.evaluate("() => { const b = document.querySelector('[data-action=\"cook-mise-done\"]'); if (b) b.click(); }")   # v89: Vorbereitung (Mise en place) ueberspringen
         prog = await page.evaluate("document.querySelector('.cookmode-progress').textContent")
         ing_step = await page.evaluate("Array.from(document.querySelectorAll('.cook-ing')).map(e => e.textContent.trim())")
         await click(page, '.timer-chip')

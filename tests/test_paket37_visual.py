@@ -16,7 +16,7 @@ VIEWS = [
     ('Einstellungen', "state.view='settings'"),
 ]
 BADGES = '.chip-count, .nav-badge, .filter-count-badge'
-SERIF_OK = '.rcard-title, .rrow-title, .detail-title-v2, .cbk-name, .topbar--book .topbar-title, .cook-title-text'
+SERIF_OK = '.rcard-title, .rrow-title, .detail-title-v2, .cbk-name, .topbar--book .topbar-title, .cook-title-text, .cook-stepcount [aria-hidden], .cook-stepcount b, .cook-stepcount--text, .cook-mise-title, .cook-finish-v2 h2, .cook-alarm-copy strong'   # v89: Schrittzahl, Vorbereitung, Schlussbild und Timer-Ende im Kochmodus in Lilita
 
 JS_FONTS = """(serifOk) => {
   const out = {bad: [], serifElsewhere: [], families: {}};
