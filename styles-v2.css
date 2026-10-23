@@ -4933,7 +4933,7 @@ html:not(#lp) body .nudge-card--line .nudge-actions { margin-left: auto; }
   :root { --nav-h: min(3.75rem, 64px); }
   .bottom-nav .nav-icon svg { width: min(1.5rem, 26px); height: min(1.5rem, 26px); }
   html:not(#lp) body .bottom-nav .nav-label { display: block; max-width: 100%; white-space: nowrap; font-size: clamp(10px, calc((20vw - 4px) / 6.35), 13px); }
-  .bottom-nav .nav-badge { font-size: min(0.6875rem, 12px); }
+  .bottom-nav .nav-badge { font-size: 0.75rem; }
   .home-add-btn { font-size: min(1.0625rem, 20px); }
   .home-add-btn .home-add-label { min-width: 0; }
 }
