@@ -2,7 +2,7 @@
   python tests/ci_shards.py cmd <teil>   gibt die Befehle fuer einen Teil aus (wird von .github/workflows/tests.yml ausgefuehrt)
   python tests/ci_shards.py check        prueft, dass JEDER Test aus run_all.ALL in genau einem Teil laeuft (kein Test geht verloren)
 Die grossen Einzeltests paket42 (Handy-Bildvergleich, Breite) und paket37_adapt sind selbst aufgeteilt (Umgebungsvariablen
-SAVORA_P42_ONLY / SAVORA_P42_THEMES / SAVORA_ADAPT_PART). Die uebrigen Tests sind nach ihrer bisherigen Laufzeit (Sekunden) auf drei Gruppen verteilt."""
+SAVORA_P42_ONLY / SAVORA_P42_THEMES / SAVORA_ADAPT_PART). Die uebrigen Tests sind nach ihrer bisherigen Laufzeit (Sekunden) auf sechs Gruppen verteilt (v89: vorher drei, laengster Teil 16 Min.)."""
 import ast, os, re, sys
 HERE = os.path.dirname(os.path.abspath(__file__))
 SPECIAL = {'paket42', 'paket37_adapt'}
@@ -17,7 +17,7 @@ DAUER = {'v88_seite': 80, 'v88_mess': 40, 'v87_layout': 90, 'v87_design': 40, 'v
 def alle():
     src = open(os.path.join(HERE, 'run_all.py'), encoding='utf-8').read()
     return ast.literal_eval(re.search(r"^ALL = (\[.*?\])", src, re.M | re.S).group(1))
-def gruppen(n=3):
+def gruppen(n=6):
     namen = [t for t in alle() if t not in SPECIAL]
     # zusammengehoerig: die zwei Tests mit dem gemeinsamen Datenbank-Nachbau (Port 8796) bleiben zusammen, flows braucht migration (laeuft in jedem Teil zuerst)
     ketten = [['sync', 'paket36']]
@@ -40,6 +40,9 @@ def teile():
         'allgemein-1': f"{py} migration {' '.join(g[0])} --parallel 2",
         'allgemein-2': f"{py} migration {' '.join(g[1])} --parallel 2",
         'allgemein-3': f"{py} migration {' '.join(g[2])} --parallel 2",
+        'allgemein-4': f"{py} migration {' '.join(g[3])} --parallel 2",
+        'allgemein-5': f"{py} migration {' '.join(g[4])} --parallel 2",
+        'allgemein-6': f"{py} migration {' '.join(g[5])} --parallel 2",
     }
 def pruefen():
     g = gruppen(); ziel = [t for t in alle() if t != 'migration']
