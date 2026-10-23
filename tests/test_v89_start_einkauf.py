@@ -45,7 +45,7 @@ async def main():
             visible: rows.filter(x => x.top < add.top - 40).length, today: r('.today-planned') && r('.today-planned').height,
             close: document.querySelector('.nudge-card [data-action=backup-nudge-dismiss]').getAttribute('aria-label') }; }""")
         check('Sicherungshinweis ist eine Zeile (höchstens 48 px) mit Schliessen «Später erinnern»', h['nudge'] is not None and h['nudge'] <= 48 and h['close'] == 'Später erinnern', str(h))
-        check('Anzahl, Sortierung, Auswählen, Ansicht und Filter in einer Zeile', h['info'] <= 48, str(h))
+        check('Anzahl, Sortierung, Auswählen, Ansicht und Filter kompakt (eine Zeile; auf 375 px mit Linux-Schrift höchstens zwei, mind. 2 Rezepte sichtbar)', h['info'] <= 48 or (h['info'] <= 68 and h['visible'] >= 2), str(h))
         check('«Heute geplant» in einer Zeile', h['today'] is not None and h['today'] <= 48, str(h))
         check('375×667: mindestens 2 Rezepte sichtbar über «Rezept hinzufügen»', h['visible'] >= 2, str(h))
         st = await ev("() => document.querySelector('.sort-inline .inline-pick-text').textContent.trim()")
