@@ -11,7 +11,7 @@
 
 const SHARE_DONE_KEY = 'savora-share-done';
 const SHARE_INVITE_KEY = 'savora-share-invite';
-const SHARE_DROP_KEYS = ['id', 'favorite', 'cookCount', 'lastCookedAt', 'cookLog', 'createdAt', 'updatedAt', 'imageId', 'image', 'collections', 'collectionIds', 'sharedBy'];
+const SHARE_DROP_KEYS = ['id', 'favorite', 'rating', 'ratedAt', 'cookCount', 'lastCookedAt', 'cookLog', 'createdAt', 'updatedAt', 'imageId', 'image', 'collections', 'collectionIds', 'sharedBy'];
 const SHARE_MAX_IMAGE_CHARS = 1400000;
 const share = { gen: 0, sending: false, fetchedAt: 0, profile: undefined, connections: [], inbox: [], count: 0, loading: false, error: null, previewId: null, previewImage: null, timer: null, ui: {} };
 

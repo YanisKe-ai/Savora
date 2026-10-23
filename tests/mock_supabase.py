@@ -306,7 +306,7 @@ class H(BaseHTTPRequestHandler):
                 HH_MEMBERS[(hid, me)] = {'status': 'active', 'invited_by': None, 'created_at': now_ts(), 'joined_at': now_ts()}
             elif not is_member(hid, me): return err('Die gemeinsame Liste ist pausiert, weil nicht mehr alle verbunden sind.')
             if (hid, o) in HH_MEMBERS: return state()
-            if sum(1 for (x, _) in HH_MEMBERS if x == hid) >= 8: return err('Ein Haushalt hat hoechstens 8 Personen (mit offenen Einladungen).')
+            if sum(1 for (x, _) in HH_MEMBERS if x == hid) >= 8: return err('Ein Haushalt hat höchstens 8 Personen (mit offenen Einladungen).')
             HH_MEMBERS[(hid, o)] = {'status': 'invited', 'invited_by': me, 'created_at': now_ts(), 'joined_at': None}
             return state()
         if name == 'savora_hh_accept':
@@ -327,15 +327,15 @@ class H(BaseHTTPRequestHandler):
             return state()
         if name == 'savora_hh_push':
             hid = a.get('p_household'); rows = a.get('p_rows')
-            if not isinstance(rows, list): return err('Ungueltige Daten.')
-            if len(rows) > 200: return err('Zu viele Eintraege auf einmal (hoechstens 200).')
+            if not isinstance(rows, list): return err('Ungültige Daten.')
+            if len(rows) > 200: return err('Zu viele Einträge auf einmal (höchstens 200).')
             if not is_member(hid, me): return err('Kein Zugriff auf diese Liste.')
             cap = int(time.time() * 1000) + 60000; backup = {k: dict(v) for k, v in HH_ITEMS.items() if k[0] == hid}; n = 0
             for r in rows:
                 rid = r.get('id') if isinstance(r, dict) else None
-                if not isinstance(rid, str) or not 1 <= len(rid) <= 100: return err('Ungueltige Eintrags-ID.')
+                if not isinstance(rid, str) or not 1 <= len(rid) <= 100: return err('Ungültige Eintrags-ID.')
                 dele = bool(r.get('deleted')); cu = min(int(r.get('client_updated_at') or 0), cap); d = None if dele else r.get('data')
-                if not dele and not isinstance(d, dict): return err('Ungueltiger Eintrag.')
+                if not dele and not isinstance(d, dict): return err('Ungültiger Eintrag.')
                 if d is not None and len(json.dumps(d, ensure_ascii=False, separators=(',', ': ')).encode()) > 4000: return err('Ein Eintrag ist zu gross.')
                 old = HH_ITEMS.get((hid, rid))
                 if old and not (cu > old['client_updated_at'] or (cu == old['client_updated_at'] and dele and not old['deleted'])): continue
@@ -343,7 +343,7 @@ class H(BaseHTTPRequestHandler):
             if sum(1 for (x, _), v in HH_ITEMS.items() if x == hid and not v['deleted']) > 1000:
                 for k in [k for k in HH_ITEMS if k[0] == hid]: del HH_ITEMS[k]
                 HH_ITEMS.update(backup)   # Transaktion zurueckrollen
-                return err('Die gemeinsame Liste ist voll (hoechstens 1000 Eintraege). Entferne zuerst erledigte Eintraege.')
+                return err('Die gemeinsame Liste ist voll (höchstens 1000 Einträge). Entferne zuerst erledigte Einträge.')
             limit = _hh_dt(now_ts()) - timedelta(days=60)
             for k in [k for k, v in HH_ITEMS.items() if k[0] == hid and v['deleted'] and _hh_dt(v['server_updated_at']) < limit]: del HH_ITEMS[k]
             return self.reply(200, {'applied': n, 'server_time': now_ts()})

@@ -154,7 +154,7 @@ begin
     return public.savora_hh_state();   -- schon eingeladen oder schon Mitglied: nichts tun
   end if;
   if (select count(*) from public.savora_household_members where household_id = hid) >= 8 then
-    raise exception 'Ein Haushalt hat hoechstens 8 Personen (mit offenen Einladungen).';
+    raise exception 'Ein Haushalt hat höchstens 8 Personen (mit offenen Einladungen).';
   end if;
   insert into public.savora_household_members (household_id, user_id, status, invited_by) values (hid, other, 'invited', me);
   return public.savora_hh_state();
@@ -207,17 +207,17 @@ create or replace function public.savora_hh_push(p_household uuid, p_rows jsonb)
 language plpgsql volatile security definer set search_path = '' as $$
 declare me uuid := public.savora_need_user(); cap bigint := public.savora_hh_now_ms() + 60000; r jsonb; n int := 0; rid text; del boolean; cu bigint; d jsonb;
 begin
-  if p_rows is null or jsonb_typeof(p_rows) <> 'array' then raise exception 'Ungueltige Daten.'; end if;
-  if jsonb_array_length(p_rows) > 200 then raise exception 'Zu viele Eintraege auf einmal (hoechstens 200).'; end if;
+  if p_rows is null or jsonb_typeof(p_rows) <> 'array' then raise exception 'Ungültige Daten.'; end if;
+  if jsonb_array_length(p_rows) > 200 then raise exception 'Zu viele Einträge auf einmal (höchstens 200).'; end if;
   perform 1 from public.savora_households where id = p_household for update;   -- Schreiben pro Haushalt nacheinander
   if not public.savora_hh_is_member(p_household, me) then raise exception 'Kein Zugriff auf diese Liste.'; end if;
   for r in select value from jsonb_array_elements(p_rows) loop
     rid := r->>'id';
-    if rid is null or char_length(rid) not between 1 and 100 then raise exception 'Ungueltige Eintrags-ID.'; end if;
+    if rid is null or char_length(rid) not between 1 and 100 then raise exception 'Ungültige Eintrags-ID.'; end if;
     del := coalesce((r->>'deleted')::boolean, false);
     cu := least(coalesce((r->>'client_updated_at')::bigint, 0), cap);
     d := case when del then null else r->'data' end;
-    if not del and (d is null or jsonb_typeof(d) <> 'object') then raise exception 'Ungueltiger Eintrag.'; end if;
+    if not del and (d is null or jsonb_typeof(d) <> 'object') then raise exception 'Ungültiger Eintrag.'; end if;
     if d is not null and octet_length(d::text) > 4000 then raise exception 'Ein Eintrag ist zu gross.'; end if;
     insert into public.savora_household_items as t (household_id, id, data, deleted, client_updated_at, server_updated_at, updated_by)
       values (p_household, rid, d, del, cu, clock_timestamp(), me)
@@ -229,7 +229,7 @@ begin
     if found then n := n + 1; end if;
   end loop;
   if (select count(*) from public.savora_household_items where household_id = p_household and not deleted) > 1000 then
-    raise exception 'Die gemeinsame Liste ist voll (hoechstens 1000 Eintraege). Entferne zuerst erledigte Eintraege.';
+    raise exception 'Die gemeinsame Liste ist voll (höchstens 1000 Einträge). Entferne zuerst erledigte Einträge.';
   end if;
   delete from public.savora_household_items
     where household_id = p_household and deleted and server_updated_at < now() - interval '60 days';
