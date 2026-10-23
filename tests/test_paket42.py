@@ -31,7 +31,9 @@ QUICK = bool(os.environ.get('SAVORA_P42_QUICK'))
 PHONE_CHANGED_VIEWS = {'home', 'more', 'home-list', 'empty-home', 'detail-long', 'detail-photo', 'detail-short', 'settings', 'settings-data', 'settings-display', 'settings-share', 'settings-help',
                        'settings-about', 'mealplan', 'shopping', 'cookbooks', 'cookbook1', 'cookbook2', 'cookbook3', 'empty-shopping', 'empty-mealplan', 'empty-cookbooks',
                        # v0.83: Editor-Schritt 1 bewusst geaendert (Ertrag mit Art, Anzahl und Bezeichnung, Hinweis, «Gesamtzeit»); geprueft in test_v83_ertrag.py
-                       'edit-0', 'edit-short-0'}
+                       'edit-0', 'edit-short-0',
+                       # v0.89.1: Kochmodus neu, Editor mit Zutatenkarten und Schrittname, Import mit Link und Zwischenablage bewusst geaendert; geprueft in test_v89_kochmodus.py, test_v89_rezept_editor.py
+                       'cook', 'edit-1', 'edit-2', 'edit-3', 'edit-4', 'import', 'empty-import'}
 def view_of(fname): return fname[:-4].split('-', 2)[2]
 BOUNDED_VIEWS = {'settings', 'settings-data', 'settings-display', 'settings-help', 'settings-about', 'more', 'settings-share'}   # begrenzte Lesebreite; settings-share zeigt jetzt «Freunde & Rezepte»
 
