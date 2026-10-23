@@ -46,6 +46,9 @@ async def main():
                 ['Rezeptbibliothek', [['Meine Veröffentlichungen', 'Zum Veröffentlichen anmelden'], ['Öffentliches Profil', 'Nicht angemeldet']]],
                 ['Werkzeuge', [['Einheiten umrechnen', 'Gewicht, Volumen, Temperatur und Zutaten']]],
                 ['Verwalten', [['Einstellungen', 'Konto, Daten und App anpassen'], ['Hilfe & Kontakt', 'Antworten und Unterstützung'], ['Über Savora', 'Version, Datenschutz und Lizenzen']]]]
+        # v89: oben eine Statuszeile «Daten» (echter Sicherungsstand), danach die bisherigen Gruppen unverändert
+        check('Mehr: Statuszeile «Daten» zuerst', groups[0][0] == 'Daten' and len(groups[0][1]) == 1 and 'Sicherung' in groups[0][1][0][1], str(groups[:1]))
+        groups = groups[1:]
         check('Mehr: Gruppen Austauschen, Rezeptbibliothek, Werkzeuge, Verwalten mit den Vorgabetexten', groups == want, str(groups))
         check('Mehr: Seitentitel «Mehr» als h1', await ev("() => document.querySelector('main h1').textContent.trim()") == 'Mehr')
         check('Mehr: kein Farbschema auf der Übersicht', await ev("() => !document.querySelector('[data-action=\"set-theme\"]')"))

@@ -194,7 +194,8 @@ function settingsSyncView() {
       <ul class="kd-bullets"><li>Darstellung und Farbschema</li><li>Einheiten und Nährwert-Anzeige</li><li>eigene Lebensmittel und gelernte Nährwert-Zuordnungen</li><li>Offline-Inhalte und Sicherungsdateien</li></ul>
       <p class="kd-sub">Wenn zwei Geräte denselben Eintrag ändern, gilt der neuere Stand. Löschst du ein Rezept, verschwindet es auf allen angemeldeten Geräten. Der Abgleich läuft automatisch, solange Savora geöffnet ist.</p>
     </div></details>`;
-  const note = `<p class="kd-note">${ICONS.info}<span>Der Abgleich ist keine Sicherung: Er hält deine Geräte gleich, bewahrt aber keinen älteren Stand. Eine Kopie als Datei findest du unter <button type="button" class="kd-inline-link" data-action="goto-view" data-view="settings-backup">Sicherung &amp; Wiederherstellung</button>.</span></p>`;
+  const note = `<p class="kd-note">${ICONS.info}<span>Der Abgleich ist keine Sicherung: Er hält deine Geräte gleich, bewahrt aber keinen älteren Stand. Eine Kopie als Datei erstellst du unter «Sicherung &amp; Wiederherstellung».</span></p>
+    <button type="button" class="ghost-btn kd-note-link" data-action="goto-view" data-view="settings-backup">${ICONS.download} Zu Sicherung &amp; Wiederherstellung</button>`;
   return kdPage('Geräteabgleich', kdLeadHtml('Hält deine Rezepte und unterstützten Daten auf deinen Geräten aktuell.') + `<ul class="kd-bullets kd-bullets--lead" aria-label="Unterstützte Daten"><li>Rezepte mit ihren Fotos</li><li>Wochenplan</li><li>Einkaufsliste</li><li>Sammlungen und Kochbücher</li></ul>` + status + what + note) + kdModals();
 }
 /* Kurztext für die Übersicht «Einstellungen» (echter Zustand statt «An») */

@@ -187,7 +187,8 @@ function filterDraft() {
   return state.modal.draft;
 }
 function filterOptionHtml(type, dim, id, label, checked, extra) {
-  return `<label class="fs-opt ${extra ? 'fs-opt--extra' : ''}"><input class="fs-input" type="${type}" ${type === 'radio' ? 'name="fs-time"' : ''} data-fs-dim="${dim}" value="${escapeHtml(id)}" ${checked ? 'checked' : ''}><span class="fs-mark" aria-hidden="true">${ICONS.check}</span><span class="fs-text">${escapeHtml(label)}</span></label>`;
+  const wide = String(label || '').split(/\s+/).some(w => w.length > 11);   // v89 B: lange Wörter («Meeresfrüchte») ohne Silbentrennung: Option über die ganze Breite
+  return `<label class="fs-opt ${extra ? 'fs-opt--extra' : ''}${wide ? ' fs-opt--wide' : ''}"><input class="fs-input" type="${type}" ${type === 'radio' ? 'name="fs-time"' : ''} data-fs-dim="${dim}" value="${escapeHtml(id)}" ${checked ? 'checked' : ''}><span class="fs-mark" aria-hidden="true">${ICONS.check}</span><span class="fs-text">${escapeHtml(label)}</span></label>`;
 }
 function filterGroupHtml(key, title, inner, opts) {
   const id = `filter-group-${key}`;
@@ -416,11 +417,11 @@ const HV_SEARCH_MIN = 8;          // Suche in der Auswahl ab 8 eigenen Sammlunge
 const HV_NAME_MAX = 60;
 const HV_PSEUDO = ['all', 'favorites', 'quick', 'veggie', 'uncooked', 'frequent'];
 const HV_SORT_OPTIONS = [
-  { id: 'updated', label: 'Zuletzt bearbeitet' },
-  { id: 'added', label: 'Zuletzt hinzugefügt' },
-  { id: 'az', label: 'A bis Z' },
-  { id: 'time', label: 'Kürzeste Gesamtzeit' },
-  { id: 'cooked', label: 'Zuletzt gekocht' },
+  { id: 'updated', label: 'Zuletzt bearbeitet', short: 'Bearbeitet' },
+  { id: 'added', label: 'Zuletzt hinzugefügt', short: 'Neueste' },
+  { id: 'az', label: 'A bis Z', short: 'A bis Z' },
+  { id: 'time', label: 'Kürzeste Gesamtzeit', short: 'Schnellste' },
+  { id: 'cooked', label: 'Zuletzt gekocht', short: 'Gekocht' },
 ];
 
 function hvOrg() { return typeof orgCollections === 'function'; }
@@ -642,7 +643,7 @@ function homeView() {
             ${selBtn ? `<div class="hv-count-line">${resultLine}${selBtn}</div>` : resultLine}
             <span class="result-dot" aria-hidden="true">·</span>
             <div class="inline-pick sort-inline">
-              <span class="inline-pick-text">${escapeHtml(sortCur.label)}</span>${ICONS.arrowDown}
+              <span class="inline-pick-text">${escapeHtml(sortCur.label)}</span><span class="inline-pick-short" aria-hidden="true">${escapeHtml(sortCur.short || sortCur.label)}</span>${ICONS.arrowDown}
               <select class="inline-pick-select sort-select" id="sortSelect" aria-label="Sortierung">${sortOptions}</select>
             </div>
           </div>
@@ -671,6 +672,7 @@ function homeView() {
   /* Handy: Suche als runder Knopf neben dem Titel; geoeffnet liegt das Feld ueber der Zeile (kein Springen der Liste), die Zeile dahinter ist inert */
   const searchOpen = !!state.searchOpen, searchEnter = !!state.searchEnter; state.searchEnter = false;
   const hasQuery = !!state.query.trim();
+  const searching = searchOpen || hasQuery;   // v89 B: bei aktiver Suche «Heute geplant» und Sicherungshinweis ausblenden
   const searchBtn = `<button type="button" class="search-btn ${hasQuery ? 'is-active' : ''}" id="searchBtn" data-action="open-search" aria-label="Suchen" aria-expanded="${searchOpen}" aria-controls="searchPop" ${searchOpen ? 'inert' : ''}>${ICONS.search}</button>`;
   const searchPop = searchOpen ? `<div class="search-pop ${searchEnter ? 'is-entering' : ''}" id="searchPop" role="search">
       ${ICONS.search}
@@ -709,14 +711,16 @@ function homeView() {
     </div>
     <main class="has-tabbar home-main ${phone && state.recipes.length ? 'home-main--addbar' : ''} ${selecting ? 'is-selecting' : ''}">
       ${phone && typeof recipesSwitchHtml === 'function' ? recipesSwitchHtml() : ''}
-      ${todayPlannedHtml()}
-      ${(() => { const nb = backupNudgeInfo(); return nb ? `<div class="nudge-card" role="note">
+      ${searching ? '' : todayPlannedHtml()}
+      ${(() => { const nb = searching ? null : backupNudgeInfo(); return nb ? `<div class="nudge-card nudge-card--line" role="note">
+        <span class="nudge-ico" aria-hidden="true">${ICONS.shield || ICONS.info}</span>
         <p class="nudge-text">${nb.never ? 'Noch keine Sicherung' : 'Letzte Sicherung vor ' + nb.days + ' Tagen'}</p>
-        <div class="nudge-actions"><button class="text-btn" data-action="goto-view" data-view="settings-backup">Sichern</button><button class="text-btn text-btn--quiet" data-action="backup-nudge-dismiss">Später</button></div></div>` : ''; })()}
+        <div class="nudge-actions"><button class="text-btn" data-action="goto-view" data-view="settings-backup">Sichern</button><button class="icon-btn nudge-close" data-action="backup-nudge-dismiss" aria-label="Später erinnern">${ICONS.x}</button></div></div>` : ''; })()}
+      <div class="home-add-sentinel" aria-hidden="true"></div>
       ${content}
       ${selecting && !phone ? hvSelectBarHtml(list, scope) : ''}
     </main>
-    ${phone && state.recipes.length ? (selecting ? `<div class="home-add-bar home-sel-bar">${hvSelectBarHtml(list, scope)}</div>` : `<div class="home-add-bar"><button type="button" class="home-add-btn" data-action="open-add-menu">${ICONS.plus}<span>Rezept hinzufügen</span></button></div>`) : ''}
+    ${phone && state.recipes.length ? (selecting ? `<div class="home-add-bar home-sel-bar">${hvSelectBarHtml(list, scope)}</div>` : `<div class="home-add-bar"><button type="button" class="home-add-btn" data-action="open-add-menu" aria-label="Rezept hinzufügen">${ICONS.plus}<span class="home-add-label">Rezept hinzufügen</span></button></div>`) : ''}
     ${bottomNav()}
     ${filterSheetModal()}
     ${addMenuModal()}
@@ -1580,7 +1584,7 @@ function shoppingView() {
   const sections = SHOP_SECTIONS.filter(s => grouped[s]).map(s => `<section class="shop-section"><h2 class="shop-section-title">${escapeHtml(s)}</h2>${grouped[s].map(shoppingItemRow).join('')}</section>`).join('');
   const item = state.modal && state.modal.type === 'shop-item' ? state.shopping.find(x => x.id === state.modal.itemId) : null;
   return `
-    ${topbar('Einkauf', { actions: items.length ? `<button class="icon-btn" data-action="share-shopping" aria-label="Liste teilen oder kopieren">${ICONS.share}</button><button class="icon-btn" data-action="clear-all-shopping" aria-label="Ganze Einkaufsliste leeren">${ICONS.trash}</button>` : '' })}
+    ${topbar('Einkauf', { actions: items.length ? `<button class="icon-btn" data-action="share-shopping" aria-label="Liste teilen oder kopieren">${ICONS.share}</button><button class="icon-btn" data-action="open-shop-menu" aria-label="Weitere Aktionen zur Einkaufsliste" aria-haspopup="dialog">${ICONS.moreH}</button>` : '' })}
     <main class="has-tabbar shop-main">
       ${pageTitle('Einkaufsliste')}
       <div class="shop-add">
@@ -1600,7 +1604,26 @@ function shoppingView() {
     ${item ? shopItemModal(item) : ''}
     ${state.modal && state.modal.type === 'pick-recipes' ? pickRecipesModal() : ''}
     ${state.modal && state.modal.type === 'shop-select' ? shopSelectModal() : ''}
+    ${state.modal && state.modal.type === 'shop-menu' ? shopMenuModal() : ''}
+    ${state.modal && state.modal.type === 'shop-clear-confirm' ? shopClearConfirmModal() : ''}
   `;
+}
+/* v89 B: «Alles löschen» liegt im «…»-Menü und braucht eine Bestätigung. Die Aktion selbst (clear-all-shopping, mit Rückgängig) bleibt. */
+function shopMenuModal() {
+  const n = state.shopping.length;
+  const done = state.shopping.filter(i => i.checked).length;
+  return sheet('shop-menu-title', 'Einkaufsliste', `
+    <div class="menu-list">
+      <button class="menu-item" data-action="share-shopping">${ICONS.share}<span>Liste teilen oder kopieren</span></button>
+      ${done ? `<button class="menu-item" data-action="clear-checked-shopping">${ICONS.check}<span>Erledigte entfernen (${done})</span></button>` : ''}
+      <button class="menu-item menu-item--danger" data-action="shop-clear-ask" ${n ? '' : 'disabled'}>${ICONS.trash}<span>Ganze Liste löschen</span></button>
+    </div>`);
+}
+function shopClearConfirmModal() {
+  const n = state.shopping.length;
+  return sheet('shop-clear-title', 'Ganze Liste löschen?', `
+    <p class="hint-line shop-clear-text">${n === 1 ? '1 Eintrag wird' : `Alle ${n} Einträge werden`} von der Einkaufsliste entfernt. Direkt danach kannst du das noch rückgängig machen.</p>
+    <div class="form-actions"><button class="ghost-btn" data-action="close-modal">Abbrechen</button><button class="primary-btn kd-danger-btn" data-action="clear-all-shopping">Liste löschen</button></div>`);
 }
 function shopItemModal(i) {
   const canSplit = Array.isArray(i.sources) && i.sources.length > 1;
@@ -1682,7 +1705,7 @@ function mealplanView() {
       </div>
       <button type="button" class="plan-add" data-action="open-day-picker" data-date="${escapeAttr(key)}" aria-label="Rezept planen, ${dayName} ${dayDate}">${ICONS.plus}<span class="plan-add-label">Rezept planen</span></button>
       ${entries.length ? `<div class="plan-list">${rows}</div>` : ''}
-      ${recipeCount ? `<div class="plan-day-foot"><label class="day-select"><input type="checkbox" data-plan-day="${escapeAttr(key)}" ${selected ? 'checked' : ''}> Einkaufen</label></div>` : ''}
+      ${recipeCount ? `<div class="plan-day-foot"><label class="day-select"><input type="checkbox" data-plan-day="${escapeAttr(key)}" ${selected ? 'checked' : ''}> <span class="day-select-text">Zutaten dieses Tages einkaufen</span></label></div>` : ''}
     </section>`;
   }).join('');
   const selCount = Array.from(state.planSelectedDays).filter(k => days.some(d => fmtDateKey(d) === k)).length;
