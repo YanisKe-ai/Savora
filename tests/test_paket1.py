@@ -47,8 +47,8 @@ async def main():
         await page.wait_for_timeout(400)
         # Handy (390): neue Liste. Die Raster-Karten gibt es weiterhin auf dem Tablet (820), dort gelten die bisherigen Erwartungen unveraendert.
         check('Handy: Startseite mit 4 Rezepten: Rezepte sofort als Liste, kein "Zuletzt bearbeitet"', await page.evaluate("document.querySelectorAll('.recent-card').length") == 0 and await page.evaluate("document.querySelectorAll('.rrow--phone').length") == 4 and await page.evaluate("document.querySelectorAll('.rcard').length") == 0)
-        ph = await page.evaluate("Array.from(document.querySelectorAll('.rrow--phone')).filter(e => e.querySelector('.rrow-ph')).map(e => (e.querySelector('.ph-letter') ? 'buchstabe' : 'ok') + ':' + e.querySelector('.rrow-title').textContent.trim())")
-        check('Handy: Rezepte ohne Foto: ruhiger Platzhalter ohne Buchstaben (neu, bewusst)', len(ph) >= 2 and all(t.startswith('ok:') for t in ph) and any(t.endswith(':Gemüse-Curry') for t in ph), str(ph))
+        ph = await page.evaluate("Array.from(document.querySelectorAll('.rrow--phone')).filter(e => e.querySelector('.rrow-ph')).map(e => (e.querySelector('.ph-initial-letter') ? 'ok' : 'ohne-buchstabe') + ':' + e.querySelector('.rrow-title').textContent.trim())")
+        check('Handy: Rezepte ohne Foto: Kachel mit Anfangsbuchstabe (v89, bewusst)', len(ph) >= 2 and all(t.startswith('ok:') for t in ph) and any(t.endswith(':Gemüse-Curry') for t in ph), str(ph))
         await page.set_viewport_size({'width': 820, 'height': 1180}); await page.wait_for_timeout(600)
         check('Tablet: Startseite mit 4 Rezepten: Rezepte sofort, kein "Zuletzt bearbeitet"', await page.evaluate("document.querySelectorAll('.recent-card').length") == 0 and await page.evaluate("document.querySelectorAll('.rcard').length") == 4)
 

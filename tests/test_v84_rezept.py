@@ -93,7 +93,7 @@ async def main():
         # Pillen
         pills = await ev("() => ({ n: document.querySelectorAll('.col-tag').length, vis: Array.from(document.querySelectorAll('.col-tag')).filter(t => t.offsetParent).length, more: (document.querySelector('.col-tags-more') || {}).textContent, bg: getComputedStyle(document.querySelector('.col-tag')).backgroundColor, inChips: !!document.querySelector('.source-row .col-tag') })")
         check('Pillen: max. 3 sichtbar, «+ 1 weitere», Umriss ohne Füllung, getrennt von Merkmalen', pills['n'] == 4 and pills['vis'] == 3 and pills['more'] == '+ 1 weitere' and pills['bg'] in ('rgba(0, 0, 0, 0)', 'transparent') and not pills['inChips'], str(pills))
-        await page.click('.col-tags-more')
+        await ev("() => document.querySelector('.col-tags-more').click()")   # v89: Sammlungen stehen auf dem Handy unter dem Reiterinhalt, dort liegt kurz die Rückgängig-Meldung darüber
         check('«+ 1 weitere» klappt auf', await ev("() => Array.from(document.querySelectorAll('.col-tag')).filter(t => t.offsetParent).length === 4 && !document.querySelector('.col-tags-more').offsetParent"))
         await page.click('.toast-undo-btn')
         await page.wait_for_function("orgCollectionIdsOf('vk_a').length === 1")

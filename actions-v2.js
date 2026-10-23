@@ -1399,6 +1399,29 @@ async function handleActionV2(action, id, el, e) {
       render();
       return true;
     }
+    case 'add-tag': {   // v89: Schlagwort per Knopf (gleich wie Enter im Feld)
+      const inp = document.getElementById('f-tag-new');
+      const t = inp ? inp.value.trim() : '';
+      if (!t) { if (inp) inp.focus(); return true; }
+      state.editingRecipe = collectFormData();
+      state.editingRecipe.tags = state.editingRecipe.tags || [];
+      if (!state.editingRecipe.tags.includes(t)) state.editingRecipe.tags.push(t);
+      render();
+      const again = document.getElementById('f-tag-new'); if (again) again.focus();
+      return true;
+    }
+    case 'ing-quick-amount': {   // v89: ½, ¼ oder Bereich ins Mengenfeld der Zeile einfuegen (an der Schreibmarke, ohne Neuaufbau)
+      const row = el.closest('[data-ing-row]');
+      const inp = row && row.querySelector('.ing-amount-input');
+      if (!inp) return true;
+      const val = el.dataset.val || '';
+      const a = inp.selectionStart != null ? inp.selectionStart : inp.value.length, b = inp.selectionEnd != null ? inp.selectionEnd : inp.value.length;
+      inp.value = inp.value.slice(0, a) + val + inp.value.slice(b);
+      inp.focus();
+      try { inp.setSelectionRange(a + val.length, a + val.length); } catch (err) { /* aeltere Browser */ }
+      inp.dispatchEvent(new Event('input', { bubbles: true }));
+      return true;
+    }
     case 'convert-ingredient-row': {
       const row = el.closest('[data-ing-row]');
       const pos = Array.from(document.querySelectorAll('#ingRows [data-ing-row]')).indexOf(row);

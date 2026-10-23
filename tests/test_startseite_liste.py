@@ -122,7 +122,7 @@ async def main():
         by = {r['title']: r for r in rows}
         check('Zeilen: Foto quadratisch (Breite = Hoehe), Titel vorhanden, ohne Verzerrung (object-fit: cover)', all(abs(r['w'] - r['h']) < 1 and r['w'] >= 72 for r in rows) and all(r['fit'] == 'cover' for r in rows if not r['ph']), str([(r['title'], r['w'], r['h']) for r in rows]))
         check('Zeit nur wenn bekannt: Carbonara 10 Min., Curry ohne Zeit zeigt keine Zeit', by['Carbonara']['time'] and '10 Min.' in by['Carbonara']['time'] and by['Gemüse-Curry']['time'] is None, str([(r['title'], r['time']) for r in rows]))
-        check('Ohne Foto: ruhiger Platzhalter in gleicher Groesse, kein Buchstabe', by['Gemüse-Curry']['ph'] and by['Gemüse-Curry']['w'] == by['Carbonara']['w'] and by['Gemüse-Curry']['h'] == by['Carbonara']['h'], str(by['Gemüse-Curry']))
+        check('Ohne Foto: Platzhalter-Kachel (v89: mit Anfangsbuchstabe) in gleicher Groesse', by['Gemüse-Curry']['ph'] and by['Gemüse-Curry']['w'] == by['Carbonara']['w'] and by['Gemüse-Curry']['h'] == by['Carbonara']['h'], str(by['Gemüse-Curry']))
         check('Favoritenknopf: getrennt, kein verschachtelter Knopf, mindestens 44 px, Zustand und Name', all(r['nested'] == 0 and not r['favInMain'] and r['favW'] >= 44 and r['favH'] >= 44 for r in rows) and by['Sloppy Joe Buns']['pressed'] == 'true' and by['Sloppy Joe Buns']['label'] == 'Aus Favoriten entfernen' and by['Carbonara']['label'] == 'Zu Favoriten hinzufügen', str(by['Carbonara']))
         check('Titel und Favoritenknopf ueberlappen nicht', all(r['titleR'] <= r['favL'] + 0.5 for r in rows))
         # Favorit: toggelt, oeffnet nicht
