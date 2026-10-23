@@ -2080,7 +2080,7 @@ function cookbookStepPreview(cfg) {
           <h3 class="sub-title" id="cbHintsTitle">Prüfung</h3>
           ${cookbookHintsHtml(hints)}
         </div>
-        <button class="primary-btn primary-btn--block" data-action="export-cookbook" ${n ? '' : 'disabled aria-describedby="cbHints-error"'}>${ICONS.pdf} PDF-Vorschau erstellen</button>
+        <div class="cb-export-bar"><button class="primary-btn primary-btn--block" data-action="export-cookbook" ${n ? '' : 'disabled aria-describedby="cbHints-error"'}>${ICONS.pdf} PDF-Vorschau erstellen</button></div>
         <p class="hint-line cb-export-hint">Inhaltsverzeichnis und Seitenzahlen kommen automatisch dazu. Du siehst das PDF zuerst als Vorschau.</p>
         ${pagesList}
       </section>`;

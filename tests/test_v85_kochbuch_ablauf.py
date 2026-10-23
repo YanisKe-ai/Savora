@@ -51,8 +51,9 @@ async def main():
         foot = await ev("""() => { const f = document.querySelector('.cb-step-footer'), n = document.querySelector('.bottom-nav'), w = f.querySelector('.primary-btn');
           const fr = f.getBoundingClientRect(), nr = n.getBoundingClientRect(), wr = w.getBoundingClientRect();
           const hit = document.elementFromPoint(wr.left + wr.width / 2, wr.top + wr.height / 2);
-          return { inView: fr.top >= 0 && fr.bottom <= innerHeight, aboveNav: Math.abs(fr.bottom - nr.top) <= 1, hit: !!hit && w.contains(hit), status: f.querySelector('.cb-footer-status').textContent, scroll: scrollY }; }""")
-        check('Fussleiste beim Laden im Bild, direkt über der unteren Navigation', foot['inView'] and foot['aboveNav'] and foot['scroll'] == 0, str(foot))
+          return { inView: fr.top >= 0 && fr.bottom <= innerHeight, aboveNav: Math.abs(fr.bottom - innerHeight) <= 1 && getComputedStyle(n).display === 'none' && nr.height === 0, hit: !!hit && w.contains(hit), status: f.querySelector('.cb-footer-status').textContent, scroll: scrollY }; }""")
+        # v89: im Kochbuch-Assistenten keine untere Navigation (wie im Editor); die Fussleiste steht allein am unteren Rand
+        check('Fussleiste beim Laden im Bild, allein am unteren Rand (untere Navigation ausgeblendet)', foot['inView'] and foot['aboveNav'] and foot['scroll'] == 0, str(foot))
         check('«Weiter» ohne Scrollen antippbar, Status «7 Rezepte im Kochbuch»', foot['hit'] and foot['status'] == '7 Rezepte im Kochbuch', str(foot))
         first_footer_btn = await ev("() => document.querySelector('.cb-step-footer [data-action=\"cb-step\"]').textContent.trim()")
         check('Erster Schrittknopf der Fussleiste ist «Weiter»', first_footer_btn.startswith('Weiter'), first_footer_btn)
@@ -175,9 +176,9 @@ async def main():
         check('Prüfung gruppiert: «Bitte ansehen · n», «Gut zu wissen»', heads[:1] == ['Bitte ansehen · 1'] and 'Gut zu wissen' in heads, str(heads))
         check('Name leer: «nicht eingetragen»', 'nicht eingetragen' in await ev("() => document.querySelector('.cb-summary').innerText"))
         await ev("() => window.scrollTo(0, 300)"); await page.wait_for_timeout(100)
-        pdfb = await ev("""() => { const b = document.querySelector('.cb-final > [data-action="export-cookbook"]'); const r = b.getBoundingClientRect(); const n = document.querySelector('.bottom-nav').getBoundingClientRect();
-          const hit = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2); return { top: r.top, bottom: r.bottom, nav: n.top, hit: !!hit && b.contains(hit) }; }""")
-        check('PDF-Knopf bleibt beim Scrollen im Bild (über der Navigation, antippbar)', pdfb['bottom'] <= pdfb['nav'] and pdfb['top'] > 0 and pdfb['hit'], str(pdfb))
+        pdfb = await ev("""() => { const b = document.querySelector('.cb-final [data-action="export-cookbook"]'); const r = b.getBoundingClientRect();
+          const hit = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2); return { top: r.top, bottom: r.bottom, nav: innerHeight, hit: !!hit && b.contains(hit) }; }""")
+        check('PDF-Knopf bleibt beim Scrollen im Bild (über dem unteren Rand, antippbar)', pdfb['bottom'] <= pdfb['nav'] and pdfb['top'] > 0 and pdfb['hit'], str(pdfb))
 
         # ---------- Extreme Inhalte, 320 px, hell/dunkel ----------
         await ev("""async () => { const r = emptyRecipe(); r.id = 'r_lang'; r.title = 'Großmutters außergewöhnlich ausführlicher Süßkartoffel-Kürbis-Eintopf mit Crème fraîche und Röstzwiebeln'; r.ingredients = [{amount:'1', unit:'', name:'Kürbis'}]; r.steps = [{text:'Kochen.'}]; await dbPut(r); await loadRecipes();
