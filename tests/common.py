@@ -53,7 +53,7 @@ T0, T1 = TEMPLATE_IDS[0], TEMPLATE_IDS[-1]
 NO_SW = """Object.defineProperty(navigator, 'serviceWorker', { value: { register: () => Promise.reject(new Error('x')), addEventListener: () => {} } });""" + f" window.__T0 = {json.dumps(T0)}; window.__T1 = {json.dumps(T1)}; window.__TPLS = {json.dumps(TEMPLATE_IDS)};"
 async def open_ctx(p, w=390, h=844, motion="reduce"):
     browser = await p.chromium.launch()
-    ctx = await browser.new_context(viewport={"width": w, "height": h}, accept_downloads=True, reduced_motion=motion, timezone_id="UTC")   # feste Zeitzone: Tests sind ueberall gleich reproduzierbar
+    ctx = await browser.new_context(viewport={"width": w, "height": h}, accept_downloads=True, reduced_motion=motion, timezone_id="UTC", bypass_csp=os.environ.get('SAVORA_CSP_STRICT') != '1')   # feste Zeitzone: Tests sind ueberall gleich reproduzierbar
     await ctx.add_init_script(NO_SW + " try{localStorage.setItem('savora-splash-seen','1')}catch(e){}")
     if os.environ.get('SAVORA_TEST_CLASSIC_SCROLLBARS'):
         # Stellt die Linux-Umgebung von GitHub nach: dort haben Seiten klassische 15-px-Scrollbalken, auf dem Mac liegen sie ueber dem Inhalt.
