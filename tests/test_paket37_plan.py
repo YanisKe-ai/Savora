@@ -288,7 +288,10 @@ async def main():
         check('Position löschen entfernt sie', await ev(f"() => !state.shopping.some(i => i.id === '{some}')"))
         await ev("() => document.querySelector('.toast-action-btn').click()"); await page.wait_for_timeout(500)
         check('Rückgängig nach «Position löschen» stellt exakt wieder her', await ev(DB_SHOP) == s0)
-        await click(page, '[data-action="clear-all-shopping"]'); await page.wait_for_timeout(300)
+        # v89: «Ganze Liste löschen» liegt im «…»-Menü und wird bestätigt
+        await click(page, '[data-action="open-shop-menu"]'); await page.wait_for_timeout(200)
+        await click(page, '[data-action="shop-clear-ask"]'); await page.wait_for_timeout(200)
+        await click(page, '.modal-sheet [data-action="clear-all-shopping"]'); await page.wait_for_timeout(300)
         t2 = await ev("() => document.querySelector('.toast .toast-text').textContent")
         check('«Liste geleert» mit Rückgängig, Liste leer', t2 == 'Liste geleert' and await ev("() => state.shopping.length === 0"), t2)
         await ev("() => document.querySelector('.toast-action-btn').click()"); await page.wait_for_timeout(500)
