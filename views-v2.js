@@ -299,6 +299,16 @@ function recipeImageHtml(r, cls, size) {
   if (cls === 'plan-thumb' || cls === 'picker-thumb') return `<div class="${cls} placeholder"></div>`;   // kleine Vorschau in Listen: ruhige Flaeche, kein Buchstabe
   return '';
 }
+/* v89: Platzhalter fuer Rezepte ohne Foto: Kachel mit dem Anfangsbuchstaben in Lilita One auf zartem Tomatenton
+   (ersetzt das graue Buchsymbol). cls = Bildklasse der Stelle (z. B. 'rrow-img rrow-ph'), Groesse kommt von dort. */
+function recipeInitialLetter(r) {
+  const m = String((r && r.title) || '').match(/\p{L}|\p{N}/u);
+  return m ? m[0].toLocaleUpperCase('de-CH') : '';
+}
+function recipeInitialHtml(r, cls) {
+  const ch = recipeInitialLetter(r);
+  return `<span class="${escapeAttr(cls)} ph-initial" aria-hidden="true">${ch ? `<span class="ph-initial-letter">${escapeHtml(ch)}</span>` : ICONS.bookOpen}</span>`;
+}
 function recipeMetaLine(r, full) {
   const parts = [];
   const ct = timeInfo(r).cardText;   // Zeitbasis ueberall: Gesamtzeit (timeMinutes)
@@ -318,7 +328,7 @@ function recipeCard(r, phone) {
     const time = timeInfo(r).cardText ? `<span class="rcard-meta rcard-meta--time" title="Gesamtzeit">${ICONS.clock}<span>${timeInfo(r).cardText}</span></span>` : '';
     return `<article class="rcard rcard--phone${hvPickedCls(r)}" data-flip-id="${escapeAttr(r.id)}">
     <button type="button" class="rcard-main" ${hvMainAttrs(r, title)}>${hvPickMark(r)}
-      ${photo ? recipeImageHtml(r, 'rcard-img', 'thumb') : `<span class="rcard-img rcard-ph" aria-hidden="true">${ICONS.bookOpen}</span>`}
+      ${photo ? recipeImageHtml(r, 'rcard-img', 'thumb') : recipeInitialHtml(r, 'rcard-img rcard-ph')}
       <span class="rcard-body">
         <span class="rcard-title">${titleHl}</span>${searchIngredientHitHtml(r, state.query)}
         ${time}
@@ -347,7 +357,7 @@ function recipeRow(r, phone) {
     const time = timeInfo(r).cardText ? `<span class="rrow-meta rrow-meta--time" title="Gesamtzeit">${ICONS.clock}<span>${timeInfo(r).cardText}</span></span>` : '';
     return `<article class="rrow rrow--phone${hvPickedCls(r)}" data-flip-id="${escapeAttr(r.id)}">
     <button type="button" class="rrow-main" ${hvMainAttrs(r, title)}>${hvPickMark(r)}
-      ${photo ? recipeImageHtml(r, 'rrow-img', 'thumb') : `<span class="rrow-img rrow-ph" aria-hidden="true">${ICONS.bookOpen}</span>`}
+      ${photo ? recipeImageHtml(r, 'rrow-img', 'thumb') : recipeInitialHtml(r, 'rrow-img rrow-ph')}
       <span class="rrow-body">
         <span class="rrow-title">${titleHl}</span>${searchIngredientHitHtml(r, state.query)}
         ${time}
@@ -964,6 +974,11 @@ function notesPanel(r) {
 function nutritionPanel(r) {
   return nutritionCardSection(r.id);   // v86: kein grünes Hinweisband mehr, der Reiter selbst nennt «Richtwerte» einmal
 }
+/* v89: Rezeptaktionen. Volle Beschriftung fuer Screenreader und breite Ansichten, Kurzbeschriftung fuer den
+   kompakten Kopf auf niedrigen Handys (CSS blendet um, beide Texte bleiben im DOM, der Knopfname ist immer der volle Text). */
+function detailToolHtml(r, action, icon, label, short, extra) {
+  return `<button type="button" class="tool-action" data-action="${action}" data-id="${escapeAttr(r.id)}" aria-label="${escapeAttr(label)}"${extra || ''}>${icon}<span class="tool-label">${escapeHtml(label)}</span><span class="tool-label-short" aria-hidden="true">${escapeHtml(short)}</span></button>`;
+}
 function detailView() {
   const r = state.recipes.find(x => x.id === state.activeRecipeId);
   if (!r) { state.view = 'home'; return homeView(); }
@@ -1025,20 +1040,20 @@ function detailView() {
       </div>
       <button class="primary-btn primary-btn--block cook-start-inline" data-action="start-cook" data-id="${escapeAttr(r.id)}">${ICONS.play} Kochen starten</button>
       <div class="detail-tools" role="group" aria-label="Weitere Aktionen zum Rezept">
-        <button type="button" class="tool-action" data-action="add-to-shopping" data-id="${escapeAttr(r.id)}">${ICONS.cart}<span>Auf die Einkaufsliste</span></button>
-        <button type="button" class="tool-action" data-action="open-plan-recipe" data-id="${escapeAttr(r.id)}">${ICONS.calendar}<span>Zum Wochenplan</span></button>
-        <button type="button" class="tool-action" data-action="edit-recipe" data-id="${escapeAttr(r.id)}">${ICONS.edit}<span>Bearbeiten</span></button>
-        <button type="button" class="tool-action" data-action="open-share-menu" data-id="${escapeAttr(r.id)}" aria-haspopup="dialog">${ICONS.share}<span>Teilen</span></button>
+        ${detailToolHtml(r, 'add-to-shopping', ICONS.cart, 'Auf die Einkaufsliste', 'Einkauf')}
+        ${detailToolHtml(r, 'open-plan-recipe', ICONS.calendar, 'Zum Wochenplan', 'Planen')}
+        ${detailToolHtml(r, 'edit-recipe', ICONS.edit, 'Bearbeiten', 'Bearbeiten')}
+        ${detailToolHtml(r, 'open-share-menu', ICONS.share, 'Teilen', 'Teilen', ' aria-haspopup="dialog"')}
       </div>
-      ${source}
-      ${rcolTagsHtml(r)}
+      ${wide ? source + rcolTagsHtml(r) : ''}
       ${conflictBox}
       <div class="detail-aside-ing" role="region" aria-label="Zutaten">${wide ? `<h2 class="sr-only">Zutaten</h2>` + ingHtml : ''}</div>
       </div><div class="detail-col detail-col--content">
-      <div class="tabbar-v2" role="tablist" aria-label="Rezeptinhalt">
+      <div class="tabbar-v2" role="tablist" aria-label="Rezeptinhalt" data-tab-count="${tabs.length}">
         ${tabs.map(t => `<button role="tab" id="tab-${t.id}" class="tab-v2 ${tab === t.id ? 'is-active' : ''}" aria-selected="${tab === t.id}" aria-controls="panel-${t.id}" tabindex="${tab === t.id ? '0' : '-1'}" data-action="set-detail-tab" data-id="${escapeAttr(t.id)}">${t.label}</button>`).join('')}
       </div>
       ${tabs.map(t => `<div class="tab-panel" id="panel-${t.id}" role="tabpanel" aria-labelledby="tab-${t.id}" ${tab === t.id ? '' : 'hidden'}><h2 class="sr-only">${t.label}</h2>${panelHtml[t.id]}</div>`).join('')}
+      ${!wide && (source || rcolTagsHtml(r)) ? `<div class="detail-meta-below">${source}${rcolTagsHtml(r)}</div>` : ''}
       ${pairingSectionHtml(r)}
       ${recipeCheckHtml(r)}
       </div></div>
@@ -1255,7 +1270,7 @@ function pairingCardHtml(r, l, hide, idx) {
   const time = o ? timeInfo(o).cardText : '';
   const status = o ? '' : l.status === 'pending' ? 'Noch nicht verfügbar' : 'Nicht mehr vorhanden';
   const noteId = l.note ? `pairing-note-${idx}` : '';
-  const media = o && hasPhoto(o) ? recipeImageHtml(o, 'pairing-img', 'thumb') : `<span class="pairing-img pairing-ph" aria-hidden="true">${ICONS.bookOpen}</span>`;
+  const media = o && hasPhoto(o) ? recipeImageHtml(o, 'pairing-img', 'thumb') : (o ? recipeInitialHtml(o, 'pairing-img pairing-ph') : `<span class="pairing-img pairing-ph" aria-hidden="true">${ICONS.bookOpen}</span>`);
   const body = `<span class="pairing-body"><span class="pairing-title">${escapeHtml(title)}</span>${time ? `<span class="pairing-meta">${ICONS.clock}<span>${escapeHtml(time)}</span></span>` : ''}${status ? `<span class="pairing-meta pairing-status">${status}</span>` : ''}${l.note ? `<span class="pairing-note" id="${noteId}">${escapeHtml(l.note)}</span>` : ''}</span>`;
   const main = o
     ? `<button type="button" class="pairing-main" data-action="open-linked-recipe" data-id="${escapeAttr(o.id)}" data-from="${escapeAttr(r.id)}" data-link-key="${escapeAttr(l.key)}" aria-label="${escapeAttr(title)} öffnen"${noteId ? ` aria-describedby="${noteId}"` : ''}>${media}${body}</button>`
@@ -2109,11 +2124,14 @@ function cookbookDesignerView() {
 const FORM_STEPS = ['Basis', 'Kategorien', 'Zutaten', 'Zubereitung', 'Kontrolle'];
 function ingredientRow(i, idx) {
   const n = idx + 1;
-  // Reihenfolge wie im Rezept: Menge, Einheit, Name (schmal: Menge/Einheit oben, Name darunter)
+  // v89: jede Zutat ist eine eigene Karte, der Name steht zuerst und breit; Menge und Einheit darunter.
+  // Mengenfeld ohne inputmode=decimal: «½», «1/2» und Bereiche wie «2-3» muessen tippbar bleiben. Schnellknoepfe erscheinen nur beim Bearbeiten der Zeile.
+  const quick = (val, label, aria) => `<button type="button" class="ing-quick-btn" data-action="ing-quick-amount" data-val="${escapeAttr(val)}" aria-label="${escapeAttr(aria)}" onpointerdown="event.preventDefault()">${label}</button>`;
   return `<div class="repeat-row ing-row" data-ing-row="${idx}">
-    <div class="field ing-amount"><input type="text" inputmode="decimal" placeholder="Menge" aria-label="Zutat ${n}, Menge" class="ing-amount-input" value="${escapeHtml(String(i.amount ?? ''))}"></div>
-    <div class="field ing-unit"><input type="text" placeholder="Einheit" aria-label="Zutat ${n}, Einheit" class="ing-unit-input" value="${escapeHtml(i.unit || '')}"></div>
-    <div class="field ing-name"><input type="text" placeholder="Zutat" aria-label="Zutat ${n}, Name" class="ing-name-input" value="${escapeHtml(i.name || '')}"></div>
+    <div class="field ing-name"><input type="text" placeholder="Zutat, z. B. Mehl" aria-label="Zutat ${n}, Name" class="ing-name-input" autocomplete="off" enterkeyhint="next" value="${escapeHtml(i.name || '')}"></div>
+    <div class="field ing-amount"><input type="text" placeholder="Menge" aria-label="Zutat ${n}, Menge" class="ing-amount-input" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" enterkeyhint="next" value="${escapeHtml(String(i.amount ?? ''))}"></div>
+    <div class="field ing-unit"><input type="text" placeholder="Einheit" aria-label="Zutat ${n}, Einheit" class="ing-unit-input" autocomplete="off" enterkeyhint="next" value="${escapeHtml(i.unit || '')}"></div>
+    <div class="ing-quick" role="group" aria-label="Menge von Zutat ${n} schnell eingeben">${quick('½', '½', 'Halb einfügen')}${quick('¼', '¼', 'Viertel einfügen')}${quick('-', 'bis', 'Bereich einfügen, z. B. 2-3')}</div>
     <div class="ing-row-actions">
       <button type="button" class="ing-convert-btn" data-action="convert-ingredient-row" data-idx="${idx}" aria-label="Menge von Zutat ${n} in dein Masseinheiten-System umrechnen">${ICONS.swap}</button>
       <button class="repeat-row-remove" data-action="remove-ingredient" data-idx="${idx}" aria-label="Zutat ${n} entfernen">${ICONS.trash}</button>
@@ -2159,6 +2177,7 @@ function formView() {
         <nav class="form-stepper" aria-label="Erfassungsschritte">
           ${FORM_STEPS.map((s, n) => `<button type="button" class="form-step-btn ${n === step ? 'is-active' : ''} ${n < step ? 'is-done' : ''}" data-action="form-goto-step" data-idx="${n}" aria-current="${n === step ? 'step' : 'false'}"><span class="form-step-no">${n + 1}</span><span class="form-step-label">${s}</span></button>`).join('')}
         </nav>
+        <p class="form-step-caption" aria-hidden="true">Schritt ${step + 1} von ${FORM_STEPS.length}: <strong>${escapeHtml(FORM_STEPS[step])}</strong></p>
         <section class="form-step ${step === 0 ? 'is-active' : ''}" data-form-step="0" aria-label="Basis">
           <div class="field"><label for="f-title">Titel</label><input type="text" id="f-title" value="${escapeHtml(r.title)}" placeholder="z.B. Zitronen-Risotto"></div>
           <div class="field"><label for="f-image">Foto</label>
@@ -2194,8 +2213,8 @@ function formView() {
           ${chipSet('Gericht', 'dish-group-label', DISH_TYPE_OPTIONS, d => d.id, d => d.label, 'toggle-category', 'category', r.categoryTags)}
           <button type="button" class="ghost-btn" data-action="reanalyze-categories">${ICONS.sparkle} Kategorien automatisch vorschlagen</button>
           <div class="field field--spaced"><label for="f-tag-new">Eigene Schlagwörter</label>
-            <div class="tag-input-row" id="tagInputRow">${(r.tags || []).map(t => `<span class="tag-pill">${escapeHtml(t)}<button data-action="remove-tag" data-tag="${escapeHtml(t)}" aria-label="Schlagwort ${escapeHtml(t)} entfernen">${ICONS.x}</button></span>`).join('')}<input type="text" id="f-tag-new" placeholder="Schlagwort + Enter"></div>
-            <div class="field-hint">Eigene Stichwörter zum Wiederfinden, z.B. Familienrezept, Für Gäste, Von Oma.</div></div>
+            <div class="tag-input-row" id="tagInputRow">${(r.tags || []).map(t => `<span class="tag-pill">${escapeHtml(t)}<button data-action="remove-tag" data-tag="${escapeHtml(t)}" aria-label="Schlagwort ${escapeHtml(t)} entfernen">${ICONS.x}</button></span>`).join('')}<span class="tag-add"><input type="text" id="f-tag-new" placeholder="Neues Schlagwort" enterkeyhint="done" autocomplete="off" aria-describedby="f-tag-hint"><button type="button" class="outline-btn outline-btn--small tag-add-btn" data-action="add-tag">${ICONS.plus} Hinzufügen</button></span></div>
+            <div class="field-hint" id="f-tag-hint">Eigene Stichwörter zum Wiederfinden, z.B. Familienrezept, Für Gäste, Von Oma.</div></div>
         </section>
         <section class="form-step ${step === 2 ? 'is-active' : ''}" data-form-step="2" aria-label="Zutaten">
           <p class="hint-line">Mit Gruppen teilst du Zutaten z.B. in „Teig“ und „Füllung“. Gruppentitel landen nie in der Einkaufsliste.</p>

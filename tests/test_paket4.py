@@ -59,9 +59,9 @@ async def main():
               const a = q('.ing-amount-input'), u = q('.ing-unit-input'), n = q('.ing-name-input'), rm = q('.repeat-row-remove');
               return { a: [a.left, a.top, a.height], u: [u.left, u.top], n: [n.left, n.top, n.width], rm: [rm.width, rm.height], ov: document.documentElement.scrollWidth - document.documentElement.clientWidth } }""")
         s = await geo(390)
-        check('Schmal (390 px): Menge und Einheit oben, Name darunter', s['a'][0] < s['u'][0] and s['n'][1] > s['a'][1] + 20 and s['ov'] <= 0, str(s))
+        check('Schmal (390 px, v89): Name oben und breit, Menge und Einheit darunter', s['a'][0] < s['u'][0] and s['a'][1] > s['n'][1] + 20 and s['n'][2] > 250 and s['ov'] <= 0, str(s))
         w = await geo(800)
-        check('Breit (800 px): Menge, Einheit, Name in einer Zeile in dieser Reihenfolge', w['a'][0] < w['u'][0] < w['n'][0] and abs(w['n'][1] - w['a'][1]) < 4 and w['n'][2] > 200, str(w))
+        check('Breit (800 px, v89): Name, Menge, Einheit in einer Zeile in dieser Reihenfolge', w['n'][0] < w['a'][0] < w['u'][0] and abs(w['n'][1] - w['a'][1]) < 4 and w['n'][2] > 200, str(w))
         check('Tippflächen der Zeile mind. 44 px', s['a'][2] >= 43.5 and s['rm'][0] >= 43.5 and s['rm'][1] >= 43.5, str(s['rm']))
         n = await geo(320); check('320 px: kein Seitwärts-Scrollen', n['ov'] <= 0, str(n['ov']))
         # Dunkelmodus Vorschau lesbar (kein Ueberlauf)
