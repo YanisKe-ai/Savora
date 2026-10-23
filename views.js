@@ -39,6 +39,9 @@ function viewFor(view) {
     case 'paste-import': return pasteImportView();
     case 'shopping': return shoppingView();
     case 'mealplan': return mealplanView();
+    /* v90: Vorrat (pantry.js) und «Zuletzt gelöscht» (trash.js); fehlt die Datei, bleibt «Mehr» */
+    case 'pantry': return viewIfDefined(typeof pantryView === 'function' ? pantryView : null, () => moreView());
+    case 'trash': return viewIfDefined(typeof trashView === 'function' ? trashView : null, () => moreView());
     case 'unitconverter': return unitConverterView();
     case 'cookbook': return cookbookDesignerView();
     case 'cookbooks': return cookbooksView();
@@ -59,7 +62,7 @@ function viewFor(view) {
    mit allen Detailseiten, Freunde & Rezepte, Rechner, Hilfe, Über Savora und ihre Rechtstexte. */
 function isMoreSectionView(view) {
   view = String(view || '');
-  return view === 'more' || view === 'settings' || view.indexOf('settings-') === 0 || view.indexOf('friends') === 0 || view === 'unitconverter' || view === 'lib-mine' || view === 'lib-pubprofile' || view === 'lib-mod';
+  return view === 'more' || view === 'settings' || view.indexOf('settings-') === 0 || view.indexOf('friends') === 0 || view === 'unitconverter' || view === 'pantry' || view === 'trash' || view === 'lib-mine' || view === 'lib-pubprofile' || view === 'lib-mod';
 }
 
 /* Die sechs Einstellungsseiten fuer die lokale Abschnittsnavigation neben den Details (Tablet und Desktop).
@@ -103,7 +106,7 @@ function activeStructuredFilterCount() {
 function addMenuModal() {
   if (!state.modal || state.modal.type !== 'add-menu') return '';
   return `<div class="modal-backdrop" data-action="close-modal">
-    <div class="modal-sheet add-menu-sheet" role="dialog" aria-modal="true" aria-labelledby="add-menu-title" tabindex="-1" onclick="event.stopPropagation()">
+    <div class="modal-sheet add-menu-sheet" role="dialog" aria-modal="true" aria-labelledby="add-menu-title" tabindex="-1" data-stop-click>
       <h2 class="modal-title" id="add-menu-title">Rezept hinzufügen</h2>
       <div class="add-menu-options">
         <button type="button" class="add-menu-option" data-action="new-recipe">
@@ -174,9 +177,9 @@ function emptyFilterState() {
 
 function deleteModal(r) {
   return `<div class="modal-backdrop" data-action="close-modal">
-    <div class="modal-sheet" role="dialog" aria-modal="true" aria-labelledby="delete-modal-title" tabindex="-1" onclick="event.stopPropagation()">
+    <div class="modal-sheet" role="dialog" aria-modal="true" aria-labelledby="delete-modal-title" tabindex="-1" data-stop-click>
       <h2 class="modal-title" id="delete-modal-title">Rezept löschen?</h2>
-      <p style="font-size:0.875rem;color:var(--text-muted);">„${escapeHtml(r.title)}“ wird endgültig aus deinen Rezepten gelöscht.</p>
+      <p style="font-size:0.875rem;color:var(--text-muted);">„${escapeHtml(r.title)}“ wird gelöscht. Du findest es 30 Tage lang unter Mehr › Zuletzt gelöscht.</p>
       ${(() => {
         const pub = typeof libPublicationForRecipe === 'function' ? libPublicationForRecipe(r.id) : null;
         if (!pub || pub.status !== 'published') return '';
@@ -361,17 +364,24 @@ function moreDataRowHtml() {
   const signed = typeof cloudSignedIn === 'function' && cloudSignedIn();
   return settingsRow({ icon: ICONS.database || ICONS.download, title: signed ? 'Sicherung &amp; Abgleich' : 'Sicherung', summary: moreDataSummary(), view: signed ? 'settings-sync' : 'settings-backup' });
 }
+/* v90: «Zuletzt gelöscht» mit Anzahl (trash.js); ohne die Datei keine Zeile */
+function moreTrashRowHtml() {
+  if (typeof trashView !== 'function') return '';
+  const n = typeof trashCount === 'function' ? trashCount() : 0;
+  return settingsRow({ icon: ICONS.trash || ICONS.x, title: 'Zuletzt gelöscht', summary: n ? `${n} Rezept${n === 1 ? '' : 'e'}, 30 Tage wiederherstellbar` : 'Nichts gelöscht', view: 'trash', badge: n ? String(n) : '' });
+}
 function moreView() {
   return `
     ${topbar('Mehr')}
     <main class="has-tabbar settings-page settings-page--list">
       ${pageTitle('Mehr')}
-      ${settingsGroup('Daten', moreDataRowHtml())}
+      ${settingsGroup('Daten', moreDataRowHtml() + moreTrashRowHtml())}
       ${settingsGroup('Austauschen',
         settingsRow({ icon: ICONS.share, title: 'Freunde &amp; Rezepte', summary: moreFriendsSummary(), view: 'friends', badge: moreFriendsBadge() }))}
       ${typeof libMoreRowsHtml === 'function' ? settingsGroup('Rezeptbibliothek', libMoreRowsHtml()) : ''}
       ${settingsGroup('Werkzeuge',
-        settingsRow({ icon: ICONS.scale, title: 'Einheiten umrechnen', summary: 'Gewicht, Volumen, Temperatur und Zutaten', view: 'unitconverter' }))}
+        settingsRow({ icon: ICONS.scale, title: 'Einheiten umrechnen', summary: 'Gewicht, Volumen, Temperatur und Zutaten', view: 'unitconverter' })
+        + (typeof pantryView === 'function' ? settingsRow({ icon: ICONS.cart, title: 'Vorrat · Was kann ich kochen?', summary: 'Trag ein, was du hast, und sieh passende Rezepte', view: 'pantry' }) : ''))}
       ${settingsGroup('Verwalten', [
         settingsRow({ icon: ICONS.settings, title: 'Einstellungen', summary: 'Konto, Daten und App anpassen', view: 'settings' }),
         settingsRow({ icon: ICONS.lifeBuoy, title: 'Hilfe &amp; Kontakt', summary: 'Antworten und Unterstützung', view: 'settings-help' }),

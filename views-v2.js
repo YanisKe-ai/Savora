@@ -137,14 +137,15 @@ function applyAllFilters(recipes, spec) {
   if (dietary.size) list = list.filter(r => { const bad = new Set(dietConflicts(r).map(c => c.label)); return (r.diet || []).some(d => !bad.has(d) && (dietary.has(d) || (d === 'vegan' && dietary.has('vegetarisch')))); });
   if (category.size) list = list.filter(r => categoryFilterMatches(r, category));
   if (time.size) list = list.filter(r => timeBucketsFor(r.timeMinutes).some(b => time.has(b)));
-  if (more && more.size) { const ids = Array.from(more); list = list.filter(r => ids.some(id => hvScopeList(id, [r]).length)); }
+  if (more && more.has('rating4')) list = list.filter(r => recipeRating(r) >= 4);   // v90: ab 4 Sternen
+  if (more && more.size) { const ids = Array.from(more).filter(id => id !== 'rating4'); if (ids.length) list = list.filter(r => ids.some(id => hvScopeList(id, [r]).length)); }
   if (tags && tags.size) list = list.filter(r => (r.tags || []).some(t => tags.has(t)));
   return hvSortRecipes(list, state.sortBy);
 }
 
 /* Weitere Merkmale: nur Kochzustaende (v84: Sammlungen und «Rezepte von Freunden» stehen in der Sammlungsauswahl). */
 function moreFilterOptions() {
-  const opts = [{ id: 'uncooked', label: 'Noch nicht gekocht' }];
+  const opts = [{ id: 'uncooked', label: 'Noch nicht gekocht' }, { id: 'rating4', label: 'Ab 4 Sternen' }];
   if (state.recipes.some(isFrequentlyCooked) || state.activeFilters.more.has('frequent')) opts.push({ id: 'frequent', label: 'Häufig gekocht' });
   return opts;
 }
@@ -209,7 +210,7 @@ function filterSheetModal() {
   const tags = Array.from(new Set(state.recipes.flatMap(r => r.tags || []))).sort((a, b) => a.localeCompare(b, 'de'));
   const timeNone = d.time.size === 0;
   return `<div class="modal-backdrop" data-action="close-modal">
-    <div class="modal-sheet filter-sheet" role="dialog" aria-modal="true" aria-labelledby="filter-sheet-title" tabindex="-1" onclick="event.stopPropagation()">
+    <div class="modal-sheet filter-sheet" role="dialog" aria-modal="true" aria-labelledby="filter-sheet-title" tabindex="-1" data-stop-click>
       <div class="sheet-handle" aria-hidden="true"></div>
       <div class="fs-head">
         <h2 class="fs-title" id="filter-sheet-title">Rezepte filtern</h2>
@@ -316,6 +317,23 @@ function recipeMetaLine(r, full) {
   if (ct) parts.push(ct);
   if (full && yieldKnown(r)) parts.push(servingLabel(r, r.servings));   // «4 Portionen», «12 Stück», «1 Glas»
   return parts.join(' · ');
+}
+/* v90: Bewertung 1 bis 5 Sterne. Gültig sind nur ganze Zahlen 1 bis 5, alles andere heisst «nicht bewertet». */
+function recipeRating(r) {
+  const n = r && Number(r.rating);
+  return Number.isInteger(n) && n >= 1 && n <= 5 ? n : 0;
+}
+function ratingStarSvg(filled) {
+  return `<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false" fill="${filled ? 'currentColor' : 'none'}" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M12 3.2l2.7 5.6 6.1.8-4.5 4.2 1.1 6.1L12 17l-5.4 2.9 1.1-6.1-4.5-4.2 6.1-.8z"/></svg>`;
+}
+function ratingBlockHtml(r) {
+  const cur = recipeRating(r);
+  const star = (n) => `<button type="button" class="rate-star ${n <= cur ? 'is-on' : ''}" role="radio" aria-checked="${n === cur ? 'true' : 'false'}" tabindex="${(cur ? n === cur : n === 1) ? '0' : '-1'}" data-action="rate-recipe" data-id="${escapeAttr(r.id)}" data-val="${n}" aria-label="${n} von 5 Sternen">${ratingStarSvg(n <= cur)}</button>`;
+  return `<section class="rating-block" aria-labelledby="rating-h-${escapeAttr(r.id)}">
+    <h2 class="rating-title" id="rating-h-${escapeAttr(r.id)}">Deine Bewertung</h2>
+    <div class="rating-row" role="radiogroup" aria-labelledby="rating-h-${escapeAttr(r.id)}" data-rating-group>${[1, 2, 3, 4, 5].map(star).join('')}</div>
+    <p class="rating-hint" id="rating-hint" role="status" aria-live="polite">${cur ? `${cur} von 5 Sternen. Tippe den gleichen Stern nochmal an, um die Bewertung zu entfernen.` : 'Noch nicht bewertet.'}</p>
+  </section>`;
 }
 function favButton(r, extraCls) {
   return `<button type="button" class="fav-toggle ${extraCls || ''} ${r.favorite ? 'is-active' : ''}" data-action="toggle-fav" data-id="${escapeAttr(r.id)}" aria-pressed="${r.favorite ? 'true' : 'false'}" aria-label="${r.favorite ? 'Aus Favoriten entfernen' : 'Zu Favoriten hinzufügen'}">${r.favorite ? ICONS.bookmarkFilled : ICONS.bookmark}</button>`;
@@ -432,6 +450,7 @@ const HV_SORT_OPTIONS = [
   { id: 'az', label: 'A bis Z', short: 'A bis Z' },
   { id: 'time', label: 'Kürzeste Gesamtzeit', short: 'Schnellste' },
   { id: 'cooked', label: 'Zuletzt gekocht', short: 'Gekocht' },
+  { id: 'rating', label: 'Beste Bewertung', short: 'Bewertung' },
 ];
 
 function hvOrg() { return typeof orgCollections === 'function'; }
@@ -504,6 +523,13 @@ function hvAddedAt(r) {
   return 0;
 }
 function hvSortRecipes(list, by) {
+  if (by === 'rating') {   // v90: beste zuerst, ohne Bewertung am Ende, dann zuletzt bewertet, dann Titel
+    return list.slice().sort((a, b) => {
+      const x = recipeRating(a), y = recipeRating(b);
+      if (!x !== !y) return x ? -1 : 1;
+      return (y - x) || ((b.ratedAt || 0) - (a.ratedAt || 0)) || String(a.title || '').localeCompare(String(b.title || ''), 'de', { sensitivity: 'base' });
+    });
+  }
   if (by !== 'added') return sortRecipes(list, by);   // 'time': ohne Zeitangabe ans Ende (unverändert)
   const title = (r) => String(r.title || '');
   return list.slice().sort((a, b) => {
@@ -518,6 +544,7 @@ function hvSortHint(list) {
   const some = (fn) => list.some(fn) && !list.every(fn);
   if (state.sortBy === 'time' && some(r => !(r.timeMinutes > 0))) return 'Rezepte ohne Zeitangabe stehen am Ende.';
   if (state.sortBy === 'cooked' && some(r => !r.lastCookedAt)) return 'Noch nie gekochte Rezepte stehen am Ende.';
+  if (state.sortBy === 'rating' && some(r => !recipeRating(r))) return 'Rezepte ohne Bewertung stehen am Ende.';
   if (state.sortBy === 'added' && some(r => !hvAddedAt(r))) return 'Rezepte ohne bekanntes Datum stehen am Ende.';
   return '';
 }
@@ -851,7 +878,7 @@ function colDeleteModal(m) {
   if (!c) return '';
   const k = hvCounts().get(c.id) || 0;
   return `<div class="modal-backdrop" data-action="close-modal">
-    <div class="modal-sheet col-delete-sheet" role="dialog" aria-modal="true" aria-labelledby="colDelTitle" aria-describedby="colDelText" tabindex="-1" onclick="event.stopPropagation()">
+    <div class="modal-sheet col-delete-sheet" role="dialog" aria-modal="true" aria-labelledby="colDelTitle" aria-describedby="colDelText" tabindex="-1" data-stop-click>
       <div class="sheet-handle" aria-hidden="true"></div>
       <h2 class="modal-title" id="colDelTitle">Sammlung löschen?</h2>
       <p id="colDelText"><strong>Deine Rezepte bleiben erhalten.</strong></p>
@@ -1058,6 +1085,7 @@ function detailView() {
       </div>
       ${tabs.map(t => `<div class="tab-panel" id="panel-${t.id}" role="tabpanel" aria-labelledby="tab-${t.id}" ${tab === t.id ? '' : 'hidden'}><h2 class="sr-only">${t.label}</h2>${panelHtml[t.id]}</div>`).join('')}
       ${!wide && (source || rcolTagsHtml(r)) ? `<div class="detail-meta-below">${source}${rcolTagsHtml(r)}</div>` : ''}
+      ${ratingBlockHtml(r)}
       ${pairingSectionHtml(r)}
       ${recipeCheckHtml(r)}
       </div></div>
@@ -1085,7 +1113,7 @@ function textSourceHint(r) {
 }
 function sheet(id, title, body) {
   return `<div class="modal-backdrop" data-action="close-modal">
-    <div class="modal-sheet" role="dialog" aria-modal="true" aria-labelledby="${escapeAttr(id)}" tabindex="-1" onclick="event.stopPropagation()">
+    <div class="modal-sheet" role="dialog" aria-modal="true" aria-labelledby="${escapeAttr(id)}" tabindex="-1" data-stop-click>
       <div class="sheet-handle" aria-hidden="true"></div>
       <h2 class="modal-title" id="${escapeAttr(id)}">${escapeHtml(title)}</h2>
       ${body}
@@ -1576,7 +1604,7 @@ function stepIngredientsModal(r, stepIndex) {
   const groups = getIngredientGroups(r);
   const showTitles = hasNamedGroups(r);
   return `<div class="modal-backdrop modal-backdrop--top" data-action="close-modal">
-    <div class="modal-sheet" role="dialog" aria-modal="true" aria-labelledby="step-ings-title" tabindex="-1" onclick="event.stopPropagation()">
+    <div class="modal-sheet" role="dialog" aria-modal="true" aria-labelledby="step-ings-title" tabindex="-1" data-stop-click>
       <div class="sheet-handle" aria-hidden="true"></div>
       <h2 class="modal-title" id="step-ings-title">Zutaten für diesen Schritt</h2>
       <p class="hint-line">„${escapeHtml(String(step.text).slice(0, 90))}${String(step.text).length > 90 ? ' …' : ''}“</p>
@@ -1620,6 +1648,7 @@ function shoppingView() {
     ${topbar('Einkauf', { actions: items.length ? `<button class="icon-btn" data-action="share-shopping" aria-label="Liste teilen oder kopieren">${ICONS.share}</button><button class="icon-btn" data-action="open-shop-menu" aria-label="Weitere Aktionen zur Einkaufsliste" aria-haspopup="dialog">${ICONS.moreH}</button>` : '' })}
     <main class="has-tabbar shop-main">
       ${pageTitle('Einkaufsliste')}
+      ${typeof householdSwitchHtml === 'function' ? householdSwitchHtml() : ''}
       <div class="shop-add">
         <label for="shoppingAddInput" class="sr-only">Eigene Zutat hinzufügen</label>
         <input type="text" id="shoppingAddInput" placeholder="Eigene Zutat, z.B. 2 l Milch" enterkeyhint="done" autocomplete="off">
@@ -1755,6 +1784,7 @@ function mealplanView() {
         <button data-action="week-next" aria-label="Nächste Woche">${ICONS.chevronRight}</button>
       </div>
       <div class="plan-week">${dayCards}</div>
+      ${typeof handleIcsAction === 'function' && weekHasEntries ? `<button type="button" class="outline-btn outline-btn--block plan-ics-btn" data-action="mealplan-ics">${ICONS.calendar} In Kalender</button>` : ''}
       <button class="primary-btn primary-btn--block" data-action="mealplan-to-shopping" ${weekHasEntries ? '' : 'disabled'}>${ICONS.cart} ${selCount ? `Zutaten von ${selCount} Tag${selCount === 1 ? '' : 'en'} einkaufen` : 'Zutaten der Woche einkaufen'}</button>
     </main>
     ${bottomNav()}
@@ -2167,7 +2197,7 @@ function ingredientRow(i, idx) {
   const n = idx + 1;
   // v89: jede Zutat ist eine eigene Karte, der Name steht zuerst und breit; Menge und Einheit darunter.
   // Mengenfeld ohne inputmode=decimal: «½», «1/2» und Bereiche wie «2-3» muessen tippbar bleiben. Schnellknoepfe erscheinen nur beim Bearbeiten der Zeile.
-  const quick = (val, label, aria) => `<button type="button" class="ing-quick-btn" data-action="ing-quick-amount" data-val="${escapeAttr(val)}" aria-label="${escapeAttr(aria)}" onpointerdown="event.preventDefault()">${label}</button>`;
+  const quick = (val, label, aria) => `<button type="button" class="ing-quick-btn" data-action="ing-quick-amount" data-val="${escapeAttr(val)}" aria-label="${escapeAttr(aria)}" data-keep-focus>${label}</button>`;
   return `<div class="repeat-row ing-row" data-ing-row="${idx}">
     <div class="field ing-name"><input type="text" placeholder="Zutat, z. B. Mehl" aria-label="Zutat ${n}, Name" class="ing-name-input" autocomplete="off" enterkeyhint="next" value="${escapeHtml(i.name || '')}"></div>
     <div class="field ing-amount"><input type="text" placeholder="Menge" aria-label="Zutat ${n}, Menge" class="ing-amount-input" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" enterkeyhint="next" value="${escapeHtml(String(i.amount ?? ''))}"></div>
@@ -2227,7 +2257,7 @@ function formView() {
               <input type="file" accept="image/*" id="f-image" aria-label="Foto auswählen">
             </div></div>
           <div class="field-row field-row--2">
-            <div class="field"><label for="f-serving-mode">Ertrag</label><select id="f-serving-mode" aria-describedby="f-yield-hint" onchange="formYieldModeChanged(this)"><option value="portions" ${servingMode(r) === 'portions' ? 'selected' : ''}>Portionen</option><option value="pieces" ${servingMode(r) === 'pieces' ? 'selected' : ''}>Stück</option><option value="total" ${servingMode(r) === 'total' ? 'selected' : ''}>Gesamtertrag (z. B. 1 Glas)</option></select></div>
+            <div class="field"><label for="f-serving-mode">Ertrag</label><select id="f-serving-mode" aria-describedby="f-yield-hint" data-change-fn="formYieldModeChanged"><option value="portions" ${servingMode(r) === 'portions' ? 'selected' : ''}>Portionen</option><option value="pieces" ${servingMode(r) === 'pieces' ? 'selected' : ''}>Stück</option><option value="total" ${servingMode(r) === 'total' ? 'selected' : ''}>Gesamtertrag (z. B. 1 Glas)</option></select></div>
             <div class="field"><label for="f-servings">Anzahl</label><input type="number" id="f-servings" min="1" value="${Number(r.servings) > 0 ? r.servings : ''}" placeholder="${Number(r.servings) > 0 ? '' : 'unbekannt'}"></div>
           </div>
           <div class="field" id="f-yield-label-field"${servingMode(r) === 'portions' ? ' hidden' : ''}><label for="f-yield-label">Bezeichnung</label><input type="text" id="f-yield-label" maxlength="40" value="${escapeAttr(servingMode(r) === 'portions' ? '' : (r.yieldLabel || ''))}" placeholder="${servingMode(r) === 'total' ? 'z. B. Glas, ml, Blech' : 'z. B. Cookies, Stück'}"></div>

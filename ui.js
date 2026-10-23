@@ -48,6 +48,8 @@ function showToast(msg, type = 'success', assertive = false, opts) {
   const duration = type === 'error' ? 5500 : type === 'info' ? 4000 : 2500;
   toastTimer = setTimeout(() => { el.classList.add('is-leaving'); setTimeout(() => el.remove(), 160); }, duration);   // Ausgang kurz und gleichgerichtet zum Eingang
 }
+/* v90: Schnellknöpfe im Formular nehmen dem Eingabefeld den Fokus nicht (ersetzt das Inline-Attribut für pointerdown) */
+document.addEventListener('pointerdown', (e) => { const t = e.target; if (t && t.closest && t.closest('[data-keep-focus]')) e.preventDefault(); });
 document.addEventListener('keydown', (e) => {
   if (!toastAction || !(e.ctrlKey || e.metaKey) || e.shiftKey || e.altKey || e.key.toLowerCase() !== 'z') return;
   const t = e.target;
@@ -667,7 +669,20 @@ async function dispatchAction(action, id, el, e) {
       showUndoToast(
         `„${recipeToDelete.title}“ gelöscht`,
         () => { state.pendingDeletes.delete(id); state.recipes.push(recipeToDelete); state.recipes.sort((a, b) => b.updatedAt - a.updatedAt); render(); },
-        async () => { await dbDelete(id); state.pendingDeletes.delete(id); if (recipeToDelete.imageId) dbDeleteImage(recipeToDelete.imageId).catch(() => {}); }
+        async () => {
+          // v90: erst in «Zuletzt gelöscht» (Bild bleibt dort 30 Tage), dann aus der Sammlung nehmen
+          try {
+            if (typeof recipeTrashOnDelete === 'function') await recipeTrashOnDelete(recipeToDelete);
+            else { await dbDelete(id); if (recipeToDelete.imageId) dbDeleteImage(recipeToDelete.imageId).catch(() => {}); }
+          } catch (err) {
+            // Papierkorb nicht möglich (z. B. Speicher voll): das Rezept bleibt erhalten
+            state.pendingDeletes.delete(id);
+            if (!state.recipes.some(x => x.id === id)) { state.recipes.push(recipeToDelete); state.recipes.sort((a, b) => b.updatedAt - a.updatedAt); }
+            render(); showToast('Das Rezept konnte nicht gelöscht werden und bleibt erhalten', 'error');
+            return;
+          }
+          state.pendingDeletes.delete(id);
+        }
       );
       break;
     }

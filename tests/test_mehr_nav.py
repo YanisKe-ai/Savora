@@ -44,10 +44,10 @@ async def main():
         groups = await ev("() => Array.from(document.querySelectorAll('.settings-group')).map(g => [g.querySelector('.settings-group-title').textContent.trim(), Array.from(g.querySelectorAll('.settings-row')).map(r => [r.querySelector('.settings-row-title').textContent.trim(), r.querySelector('.settings-row-summary').textContent.trim()])])")
         want = [['Austauschen', [['Freunde & Rezepte', 'Empfangene Rezepte und Kontakte']]],
                 ['Rezeptbibliothek', [['Meine Veröffentlichungen', 'Zum Veröffentlichen anmelden'], ['Öffentliches Profil', 'Nicht angemeldet']]],
-                ['Werkzeuge', [['Einheiten umrechnen', 'Gewicht, Volumen, Temperatur und Zutaten']]],
+                ['Werkzeuge', [['Einheiten umrechnen', 'Gewicht, Volumen, Temperatur und Zutaten'], ['Vorrat · Was kann ich kochen?', 'Trag ein, was du hast, und sieh passende Rezepte']]],
                 ['Verwalten', [['Einstellungen', 'Konto, Daten und App anpassen'], ['Hilfe & Kontakt', 'Antworten und Unterstützung'], ['Über Savora', 'Version, Datenschutz und Lizenzen']]]]
-        # v89: oben eine Statuszeile «Daten» (echter Sicherungsstand), danach die bisherigen Gruppen unverändert
-        check('Mehr: Statuszeile «Daten» zuerst', groups[0][0] == 'Daten' and len(groups[0][1]) == 1 and 'Sicherung' in groups[0][1][0][1], str(groups[:1]))
+        # v89: oben eine Statuszeile «Daten» (echter Sicherungsstand), v90: dazu «Zuletzt gelöscht», danach die bisherigen Gruppen unverändert
+        check('Mehr: Statuszeile «Daten» zuerst', groups[0][0] == 'Daten' and len(groups[0][1]) == 2 and 'Sicherung' in groups[0][1][0][1] and groups[0][1][1][0] == 'Zuletzt gelöscht', str(groups[:1]))
         groups = groups[1:]
         check('Mehr: Gruppen Austauschen, Rezeptbibliothek, Werkzeuge, Verwalten mit den Vorgabetexten', groups == want, str(groups))
         check('Mehr: Seitentitel «Mehr» als h1', await ev("() => document.querySelector('main h1').textContent.trim()") == 'Mehr')

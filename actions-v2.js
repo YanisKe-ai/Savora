@@ -240,6 +240,30 @@ function linkSyncEntry() {
 let linkSyncTimer = 0;
 window.addEventListener('scroll', () => { clearTimeout(linkSyncTimer); linkSyncTimer = setTimeout(linkSyncEntry, 120); }, { passive: true });
 
+/* ---------- Bewertung (v90) ---------- */
+async function rateRecipe(id, val, fromTap) {
+  const r = state.recipes.find(x => x.id === id);
+  if (!r || !(val >= 1 && val <= 5)) return;
+  const was = recipeRating(r);
+  const next = fromTap && was === val ? 0 : val;   // nochmal antippen entfernt
+  if (next) { r.rating = next; r.ratedAt = Date.now(); } else { r.rating = null; r.ratedAt = Date.now(); }
+  await dbPut(r);   // normal vorgemerkt: das Feld reist mit dem Rezept
+  const group = document.querySelector('[data-rating-group]');
+  if (group) {   // an Ort und Stelle aktualisieren: kein Neuaufbau, kein Scrollsprung, Fokus bleibt
+    group.querySelectorAll('.rate-star').forEach(b => {
+      const n = parseInt(b.dataset.val, 10);
+      b.classList.toggle('is-on', n <= next);
+      b.setAttribute('aria-checked', n === next ? 'true' : 'false');
+      b.tabIndex = (next ? n === next : n === 1) ? 0 : -1;
+      b.innerHTML = ratingStarSvg(n <= next);
+    });
+    const hint = document.getElementById('rating-hint');
+    if (hint) hint.textContent = next ? `${next} von 5 Sternen. Tippe den gleichen Stern nochmal an, um die Bewertung zu entfernen.` : 'Bewertung entfernt. Noch nicht bewertet.';
+  }
+  announceLive(next ? `${next} von 5 Sternen` : 'Bewertung entfernt');
+}
+/* Pfeiltasten, Pos1 und Ende in der Sterngruppe erledigt der allgemeine Radiogruppen-Handler (Paket 37, weiter unten). */
+
 async function handleActionV2(action, id, el, e) {
   switch (action) {
     /* ----- Navigation mit Schutz vor Datenverlust ----- */
@@ -407,7 +431,7 @@ async function handleActionV2(action, id, el, e) {
       copy.id = uid();
       copy.title = (r.title || 'Rezept') + ' (Kopie)';
       copy.createdAt = Date.now(); copy.updatedAt = Date.now();
-      copy.favorite = false; copy.cookCount = 0; delete copy.lastCookedAt; copy.cookLog = [];
+      copy.favorite = false; copy.rating = null; delete copy.ratedAt; copy.cookCount = 0; delete copy.lastCookedAt; copy.cookLog = [];
       // Die Kopie ist ein eigenes Rezept: keine Bestands-IDs und keine Systemmarke uebernehmen (sonst lebt eine veraltete
       // Zuordnung aus recipe.collections wieder auf). Die aktuellen Sammlungen folgen unten ueber org.js.
       copy.collections = []; delete copy.collectionIds;
@@ -719,6 +743,11 @@ async function handleActionV2(action, id, el, e) {
       render();
       speakCurrentStepIfEnabled();
       return true;
+    case 'rate-recipe': {   // v90: Stern setzen; derselbe Stern nochmal entfernt die Bewertung
+      // Pfeiltasten klicken programmatisch (isTrusted false): das waehlt nur, entfernt nie. Tippen, Enter und Leertaste schalten um.
+      await rateRecipe(id, parseInt(el.dataset.val, 10), !(e && e.isTrusted === false));
+      return true;
+    }
     case 'set-sort':
       state.sortBy = el.dataset.id;
       try { localStorage.setItem(SORT_KEY, state.sortBy); } catch (err) {}
@@ -1459,6 +1488,10 @@ async function handleActionV2(action, id, el, e) {
       setTimeout(() => { if (state.view === 'form') { state.formStep = 0; state.editingRecipeSnapshot = '__import__'; } }, 0);
       return false;
     default:
+      if (typeof handleTrashAction === 'function' && await handleTrashAction(action, id, el, e)) return true;
+      if (typeof handlePantryAction === 'function' && await handlePantryAction(action, id, el, e)) return true;
+      if (typeof handleIcsAction === 'function' && await handleIcsAction(action, id, el, e)) return true;
+      if (typeof handleHouseholdAction === 'function' && await handleHouseholdAction(action, id, el, e)) return true;
       if (typeof handleLibraryViewAction === 'function' && await handleLibraryViewAction(action, id, el, e)) return true;
       if (typeof handleLibraryPublishAction === 'function' && await handleLibraryPublishAction(action, id, el, e)) return true;
       return typeof handleCloudAction === 'function' ? handleCloudAction(action, id, el, e) : false;

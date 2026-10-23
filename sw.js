@@ -155,6 +155,7 @@ const SHELL_ASSETS = [
   './ui.js',
   './actions-v2.js',
   './cloud.js',
+  './trash.js',
   './household.js',
   './share.js',
   './recipe-picker.js',

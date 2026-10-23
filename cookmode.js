@@ -455,7 +455,7 @@ function cookLinkOpen(otherId) {
 }
 function cookLinkSheet(id, title, body) {
   return `<div class="modal-backdrop modal-backdrop--top" data-action="close-modal">
-    <div class="modal-sheet cook-link-sheet" role="dialog" aria-modal="true" aria-labelledby="${id}" tabindex="-1" onclick="event.stopPropagation()">
+    <div class="modal-sheet cook-link-sheet" role="dialog" aria-modal="true" aria-labelledby="${id}" tabindex="-1" data-stop-click>
       <div class="sheet-handle" aria-hidden="true"></div>
       <div class="rp-head"><div class="rp-head-text"><h2 class="rp-title" id="${id}">${escapeHtml(title)}</h2></div>
         <button type="button" class="rp-close" data-action="close-modal" aria-label="Schliessen">${ICONS.x}</button></div>
