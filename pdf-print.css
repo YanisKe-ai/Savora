@@ -360,3 +360,12 @@
 .pv-tpl-prise-pop .pv-ing-panel.pv-karo-on { border-bottom-left-radius: 3mm; border-bottom-right-radius: 3mm; }
 .pv-tpl-prise-pop .pv-karo { display: block; position: absolute; left: 0; right: 0; bottom: 0; pointer-events: none; }
 .pv-tpl-prise-pop .pv-karo svg { display: block; width: 100%; height: 100%; overflow: visible; }
+
+/* ===== v88.3 Prise Pop: Zutatenkarte im Spaltenlayout etwas tiefer =====
+   Die Karte sass knapp unter Foto und Infozeile (3,5 mm), «Zutaten» aber fast 9 mm unter der Kartenkante: jetzt aussen und innen je rund 5 mm. Die Karte rueckt um
+   --pv-ing-shift nach unten, der Innenabstand oben wird um denselben Betrag kleiner: «Zutaten» und «Zubereitung» bleiben auf einer
+   Hoehe, die Seite braucht keinen zusaetzlichen Platz. */
+.pv-cols.pv-tpl-prise-pop { --pv-panel-pad: 2.5mm 5mm 3mm; --pv-ing-pad-top: 2.5mm; --pv-ing-shift: 2.5mm; }
+.pv-cols[data-density^="compact"].pv-tpl-prise-pop { --pv-panel-pad: 1.5mm 4mm 2.5mm; --pv-ing-pad-top: 1.5mm; --pv-ing-shift: 2mm; }
+.pv-cols[data-dense].pv-tpl-prise-pop { --pv-panel-pad: 1.5mm 4mm 2.5mm; --pv-ing-pad-top: 1.5mm; --pv-ing-shift: 1.5mm; }
+.pv-cols.pv-tpl-prise-pop .pv-body { margin-top: var(--pv-ing-shift); }
