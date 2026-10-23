@@ -48,7 +48,7 @@ async def main():
                 # Schritt 1: Fussleiste allein am unteren Rand
                 await ev("() => { state.cookbookStep = 1; render(); window.scrollTo(0, 0); }")
                 await page.wait_for_selector('.cb-step-footer .primary-btn')
-                f = await ev("() => { const f = document.querySelector('.cb-step-footer'), b = f.querySelector('.primary-btn'), r = f.getBoundingClientRect(), br = b.getBoundingClientRect(); const hit = document.elementFromPoint(br.left + br.width / 2, br.top + br.height / 2); return { bottom: r.bottom, vh: innerHeight, hit: !!hit && b.contains(hit), pad: parseFloat(getComputedStyle(f).paddingBottom), long: document.documentElement.scrollHeight > innerHeight + 1 }; }")
+                f = await ev("() => { const f = document.querySelector('.cb-step-footer'), b = f.querySelector('.primary-btn'), r = f.getBoundingClientRect(), br = b.getBoundingClientRect(); const hit = document.elementFromPoint(br.left + br.width / 2, br.top + br.height / 2); return { bottom: r.bottom, vh: innerHeight, hit: !!hit && b.contains(hit), pad: parseFloat(getComputedStyle(f).paddingBottom), long: document.documentElement.scrollHeight > innerHeight + 100 && scrollY + innerHeight < document.documentElement.scrollHeight - 40 }; }")
                 check(f'{tag} Schritt 1: Fussleiste im Bild (bei langer Seite unten bündig), «Weiter» antippbar', f['bottom'] <= f['vh'] + 1 and (not f['long'] or abs(f['bottom'] - f['vh']) <= 1) and f['hit'] and f['pad'] >= 12, str(f))
                 # Einzel-PDF-Dialog
                 rid = await ev("state.recipes[0].id")

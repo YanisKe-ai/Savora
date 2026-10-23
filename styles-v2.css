@@ -4659,7 +4659,7 @@ body:has(.cookbook-main) .toast-action { width: max-content; max-width: min(92vw
 .pdf-name-field .check-row { margin-top: 0.25rem; }
 .pdf-export-sheet .pdf-nutri-label { margin: 1.5rem 0 0.75rem; font-weight: 600; color: var(--text); }
 .pdf-export-sheet .pdf-export-footer { position: sticky; bottom: calc(-28px - env(safe-area-inset-bottom, 0px)); z-index: 2; margin: 1.25rem -20px calc(-28px - env(safe-area-inset-bottom, 0px)); padding: 0.75rem 20px calc(0.75rem + env(safe-area-inset-bottom, 0px)); border-top: 1px solid var(--hairline); background: var(--card-bg); }
-.pdf-export-sheet .pdf-export-footer > button { flex: 1 1 0; justify-content: center; min-height: 2.75rem; }
+.pdf-export-sheet .pdf-export-footer > button { flex: 1 1 0; justify-content: center; min-height: 2.75rem; white-space: nowrap; padding-inline: 0.75rem; }
 .pdf-export-sheet .pdf-export-footer > .primary-btn { flex-grow: 1.6; }
 @media (forced-colors: active) { .pdf-export-sheet .pdf-export-footer { border-top-color: CanvasText; } }
 /* keine doppelte Trennlinie direkt über der Knopffläche */
