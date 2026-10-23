@@ -78,6 +78,9 @@ async def main():
         check('Handy: kein breites Suchfeld mehr, Feld erst nach Tippen auf den Knopf', not st['field'] and not st['input'], str(st))
         check('Suchknopf: Kreis 44 px, Name «Suchen», Lupe, aria-expanded=false', abs(st['w'] - 44) <= 0.5 and abs(st['h'] - 44) <= 0.5 and st['radius'] in ('50%', '22px') and st['label'] == 'Suchen' and st['svg'] and st['exp'] == 'false', str(st))
         check('Suchknopf: rechts neben dem Titel, gleiche Zeile, gleiche Gestaltung wie «Filter» (Rand, Hintergrund), buendig am rechten Rand', st['right'] and st['sameRow'] and st['border'] == st['fborder'] and st['bg'] == st['fbg'] and st['rightEdge'] == 16, str(st))
+        # v0.89 B: bei offener Suche blenden sich Sicherungshinweis und «Heute geplant» bewusst aus (die Liste rueckt nach oben, siehe test_v89_start_einkauf).
+        # Hier geht es nur darum, dass das Suchfeld selbst nichts verschiebt: daher ohne Sicherungshinweis messen.
+        await ev("() => { state.lastBackupAt = new Date().toISOString(); render(); }"); await page.wait_for_timeout(200)
         main_top = await ev("() => document.querySelector('.home-main').getBoundingClientRect().top")
         row_top = await ev("() => document.querySelector('.rrow--phone').getBoundingClientRect().top")
         await shot(page, 'rezepte_hell.png')
