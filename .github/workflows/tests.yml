@@ -29,7 +29,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        teil: [handy-hell, handy-dunkel, breite-1, breite-2, layout, allgemein-1, allgemein-2, allgemein-3]
+        teil: [handy-hell, handy-dunkel, breite-1, breite-2, layout, allgemein-1, allgemein-2, allgemein-3, allgemein-4, allgemein-5, allgemein-6]
     steps:
       - uses: actions/checkout@v4
         with:

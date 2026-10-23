@@ -1,6 +1,9 @@
 /* Savora Service Worker
-   - CACHE_SHELL: App-Grundgerüst (HTML/CSS/JS-Module/Icons/Font) — network-first, damit online
-     immer die neueste Version geladen wird, offline greift der Cache als Fallback.
+   - CACHE_SHELL: App-Grundgerüst (HTML/CSS/JS-Module/Icons/Font). v89: cache-first. Die Schale wird bei
+     der Installation vollstaendig und am HTTP-Cache vorbei geladen; danach startet die App ohne Netz-Wartezeit
+     und immer aus einem zueinander passenden Satz Dateien. Neue Versionen kommen ausschliesslich ueber eine
+     neue SW_VERSION: der neue Worker installiert eine frische Schale, wartet, und die Karte «Jetzt
+     aktualisieren» schaltet um. Fehlt eine Datei im Cache, wird sie aus dem Netz geholt und nachgetragen.
    - CACHE_RUNTIME: alles andere — stale-while-revalidate mit Obergrenze.
    - CACHE_DATA: grosse optionale Dateien (Cover in Vollaufloesung, Naehrwertdatei, PDF-Vorschau).
      Sie gehoeren NICHT zur Installation: Fehlen oder Scheitern darf die App-Installation nie
@@ -13,7 +16,7 @@
    - Kontrollierter Update-Flow: kein automatisches skipWaiting. Ein neuer Worker wartet, bis
      die Seite per postMessage({type:'SKIP_WAITING'}) explizit zustimmt.
 */
-const SW_VERSION = 'v110-kartentiefer';
+const SW_VERSION = 'v111-handyschnell';
 const CACHE_SHELL = 'savora-shell-' + SW_VERSION;
 const CACHE_RUNTIME = 'savora-runtime-' + SW_VERSION;
 const CACHE_DATA = 'savora-data-' + SW_VERSION;
@@ -22,6 +25,18 @@ const CACHE_PREFIX = 'savora-';   // Namensraum aller eigenen Caches (alte Versi
 // PDF-Vorschau-Bibliothek). Nicht Teil der Installation: cache-first nach dem ersten Abruf, oder
 // gesammelt per PREPARE_OFFLINE. Die kleinen Cover-Vorschaubilder stehen in SHELL_ASSETS.
 const OPTIONAL_ASSETS = [
+  './assets/profilbilder/01-pasta-pose.webp',
+  './assets/profilbilder/02-monsieur-croissant.webp',
+  './assets/profilbilder/03-espresso.webp',
+  './assets/profilbilder/04-nase-fuer-geschmack.webp',
+  './assets/profilbilder/05-olivenkennerin.webp',
+  './assets/profilbilder/06-haende-fuers-handwerk.webp',
+  './assets/profilbilder/07-kuechenkritik.webp',
+  './assets/profilbilder/08-pfeffermuehle.webp',
+  './assets/profilbilder/09-das-letzte-wort.webp',
+  './assets/profilbilder/10-geschmacksexplosion.webp',
+  './assets/profilbilder/11-oktopus-dirigent.webp',
+  './assets/profilbilder/12-pilz-punk.webp',
   './swiss-fcd-data.json',
   './vendor/pdfjs/pdf.min.js',
   './vendor/pdfjs/pdf.worker.min.js',
@@ -289,21 +304,23 @@ self.addEventListener('fetch', (event) => {
   }
 
   if (event.request.mode === 'navigate' || isShellRequest(url)) {
-    // Network-first. Nur in den eigenen Shell-Cache lesen/schreiben (nie in fremde Caches schauen).
-    const fromShell = (req) => caches.open(CACHE_SHELL).then((c) => c.match(req));
-    event.respondWith(
-      fetch(event.request)
-        .then((res) => {
-          if (isExpectedResponse(url, res)) {
-            const copy = res.clone();
-            caches.open(CACHE_SHELL).then((cache) => cache.put(event.request, copy));
-            return res;
-          }
-          // Fehlerseite o.ae.: nie speichern; wenn vorhanden lieber die gespeicherte, funktionierende Datei liefern
-          return fromShell(event.request).then((cached) => cached || res);
-        })
-        .catch(() => fromShell(event.request).then((cached) => cached || (event.request.mode === 'navigate' ? fromShell('./index.html') : undefined) || Response.error()))
-    );
+    // v89 cache-first. Nur in den eigenen Shell-Cache lesen/schreiben (nie in fremde Caches schauen).
+    // Navigation: Startadressen mit Parametern (?rezept=, ?profil=, ?aktion=, Teilen) bekommen dieselbe App-Seite.
+    const isNav = event.request.mode === 'navigate';
+    event.respondWith((async () => {
+      const cache = await caches.open(CACHE_SHELL);
+      const cached = await cache.match(event.request, isNav && isShellRequest(url) ? { ignoreSearch: true } : undefined);
+      if (cached) return cached;
+      try {
+        const res = await fetch(event.request);
+        // Nur eine echte Shell-Datei nachtragen (keine fremde Seite wie p.html, keine Fehlerseite)
+        if (isShellRequest(url) && !url.search && isExpectedResponse(url, res)) await cache.put(event.request, res.clone());
+        return res;
+      } catch (err) {
+        if (isNav) { const page = await cache.match('./index.html'); if (page) return page; }
+        return Response.error();
+      }
+    })());
     return;
   }
 

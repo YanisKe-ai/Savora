@@ -66,8 +66,8 @@ function pdfStyleSwitchHtml(m) {
 function pdfNameFieldHtml(m) {
   const cb = m.target === 'cookbook';
   return `<div class="pdf-name-field">
-      <label class="check-row"><input type="checkbox" id="pdfNamePrint" ${m.printName ? 'checked' : ''}> <span>Name im PDF drucken</span></label>
       <div class="field"><label for="pdfNameInput">Name im PDF (freiwillig)</label><input type="text" id="pdfNameInput" maxlength="80" autocomplete="off" placeholder="z. B. Anna" value="${escapeHtml(m.pdfName || '')}" aria-describedby="pdfNameHint"></div>
+      <label class="check-row"><input type="checkbox" id="pdfNamePrint" ${m.printName ? 'checked' : ''}> <span>Name im PDF drucken</span></label>
       <p class="hint-line" id="pdfNameHint">${cb ? 'Erscheint auf dem Titelblatt und in der Fusszeile.' : 'Erscheint in der Fusszeile.'} Gedruckt wird er nur, wenn du ihn ankreuzt. Er gilt nur für dieses PDF und wird nicht geteilt.</p>
     </div>`;
 }
@@ -82,14 +82,14 @@ function pdfExportOptionsStage() {
     <p class="nutrition-modal-subtitle">Seitenstil</p>
     ${pdfStyleOptionsHtml(m, 'Seitenstil')}
     ${pdfNameFieldHtml(m)}
-    ${state.showNutrition ? `    <p class="nutrition-modal-subtitle">Nährwerte im PDF</p>
+    ${state.showNutrition ? `    <p class="nutrition-modal-subtitle pdf-nutri-label">Nährwerte im PDF</p>
     <div class="nutrition-segmented" role="radiogroup" aria-label="Nährwerte-Detailgrad">
       <button role="radio" aria-checked="${level === 'off'}" class="${level === 'off' ? 'active' : ''}" data-action="pdf-export-set-detail" data-level="off">Aus</button>
       <button role="radio" aria-checked="${level === 'compact'}" class="${level === 'compact' ? 'active' : ''}" data-action="pdf-export-set-detail" data-level="compact">Kompakt</button>
       <button role="radio" aria-checked="${level === 'full'}" class="${level === 'full' ? 'active' : ''}" data-action="pdf-export-set-detail" data-level="full">Erweitert</button>
     </div>` : ''}
     <p class="hint-line pdf-preview-hint">Du siehst das fertige PDF in der Vorschau und kannst dort zwischen den beiden Stilen wechseln.</p>
-    <div class="form-actions">
+    <div class="form-actions pdf-export-footer">
       <button class="ghost-btn" data-action="close-modal">Abbrechen</button>
       <button class="primary-btn" data-action="pdf-export-build">${ICONS.pdf} PDF erstellen</button>
     </div>

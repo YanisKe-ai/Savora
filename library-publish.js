@@ -37,7 +37,7 @@ const libPub = {
   success: null,                         // { recipeId, id, title }
   mine: { state: 'idle', items: [], error: null, at: 0 },
   prof: { state: 'idle', error: null, at: 0 },
-  form: null,                            // { name, bio, avatarBlob, avatarUrl, removeAvatar, suggested, error, saving, savedAt }
+  form: null,                            // { name, bio, avatarBlob, avatarUrl, removeAvatar, preset, showPresets, suggested, error, saving, savedAt }
   mod: { state: 'idle', status: 'open', items: [], error: null },
   modalBusy: false, modalError: '',
   tipsTimer: null,
@@ -596,6 +596,8 @@ document.addEventListener('change', (e) => {
     if (libPub.rights && libPub.rightsError) { libPub.rightsError = false; render(); }
   } else if (t.matches('[data-lp-avatar]')) {
     lpPickAvatar(t);
+  } else if (t.matches('[data-lp-preset]')) {
+    if (t.checked) lpPickPreset(t.value);
   }
 });
 
@@ -761,7 +763,7 @@ function lpFormEnsure() {
     // Vorschlag aus dem Freunde-Profil, nur vorausgefüllt: öffentlich wird er erst mit «Speichern»
     try { const fp = typeof share !== 'undefined' && share && share.profile; if (fp && fp.display_name) { name = String(fp.display_name).slice(0, LP_NAME_MAX); suggested = true; } } catch (e) { /* ohne Vorschlag */ }
   }
-  libPub.form = { name, bio: prof ? prof.bio || '' : '', avatarBlob: null, avatarUrl: null, removeAvatar: false, suggested, error: '', nameError: '', saving: false, savedAt: 0, signedAvatar: null };
+  libPub.form = { name, bio: prof ? prof.bio || '' : '', avatarBlob: null, avatarUrl: null, removeAvatar: false, preset: null, showPresets: false, suggested, error: '', nameError: '', saving: false, savedAt: 0, signedAvatar: null };
   return libPub.form;
 }
 function lpFormFromDom() {
@@ -772,9 +774,23 @@ function lpFormFromDom() {
   if (n && f.nameError && f.name.trim()) { f.nameError = ''; n.removeAttribute('aria-invalid'); const er = document.getElementById('lpProfNameErr'); if (er) er.textContent = ''; }
   const bc = document.getElementById('lpProfBioCount'); if (bc) bc.textContent = `${f.bio.length} / ${LP_BIO_MAX}`;
 }
+/* Profilbild-Vorlagen (v89): Tabelle und Abbildung liegen in library.js (LIB_AVATAR_PRESETS, libAvatarPreset). */
+function lpPresets() { return typeof LIB_AVATAR_PRESETS !== 'undefined' ? LIB_AVATAR_PRESETS : []; }
+function lpPresetOf(v) { return typeof libAvatarPreset === 'function' ? libAvatarPreset(v) : null; }
+function lpPresetSrc(v) { return typeof libAvatarPresetSrc === 'function' ? libAvatarPresetSrc(v) : ''; }
+function lpIsPresetPath(v) { return typeof v === 'string' && v.indexOf('preset:') === 0; }
+// Welche Vorlage ist gerade gewählt (im Formular neu gewählt oder gespeichert und unverändert)? Nummer «NN» oder ''.
+function lpCurrentPresetId(f, prof) {
+  if (f.preset) return f.preset;
+  if (f.avatarUrl || f.removeAvatar || !prof) return '';
+  const p = lpPresetOf(prof.avatar_path);
+  return p ? p.id : '';
+}
 function lpAvatarSrc(f, prof) {
   if (f.avatarUrl) return f.avatarUrl;
+  if (f.preset) return lpPresetSrc(f.preset);
   if (f.removeAvatar || !prof || !prof.avatar_path) return '';
+  if (lpIsPresetPath(prof.avatar_path)) return lpPresetSrc(prof.avatar_path);   // lokal, ohne Signieren; unbekannt: Buchstabe
   if (f.signedAvatar && f.signedAvatar.path === prof.avatar_path) return f.signedAvatar.url;
   if (typeof libSignedUrls === 'function' && !f.signedLoading && !lpOffline()) {
     f.signedLoading = true;
@@ -827,12 +843,42 @@ async function lpPickAvatar(input) {
     if (f.avatarUrl) { try { URL.revokeObjectURL(f.avatarUrl); } catch (e) { /* nicht kritisch */ } }
     f.avatarBlob = p.thumbBlob || p.fullBlob;
     f.avatarUrl = URL.createObjectURL(f.avatarBlob);
-    f.removeAvatar = false;
+    f.removeAvatar = false; f.preset = null;
   } catch (e) {
     f.error = (e && e.userMessage) || 'Dieses Bild kann nicht verwendet werden. Wähle ein anderes.';
   }
   render();
   const btn = document.querySelector('[data-action="lib-prof-avatar"]'); if (btn) focusWithoutScroll(btn);
+}
+function lpPickPreset(id) {
+  const p = lpPresetOf(id); if (!p) return;
+  const f = lpFormEnsure();
+  lpFormFromDom();
+  if (f.avatarUrl) { try { URL.revokeObjectURL(f.avatarUrl); } catch (e) { /* nicht kritisch */ } }
+  // Wie beim Entfernen: ein hochgeladenes Bild wird nicht mehr verwendet, gespeichert wird nur noch «preset:NN»
+  f.avatarBlob = null; f.avatarUrl = null; f.removeAvatar = false; f.preset = p.id; f.error = '';
+  render();
+  const r = document.querySelector(`.lp-preset-input[value="${p.id}"]`); if (r) focusWithoutScroll(r);
+}
+function lpPresetGalleryHtml(f, prof) {
+  const list = lpPresets(); if (!list.length) return '';
+  const cur = lpCurrentPresetId(f, prof);
+  const hasCustom = !!f.avatarUrl || (!!(prof && prof.avatar_path) && !f.removeAvatar && !lpIsPresetPath(prof.avatar_path) && !f.preset);
+  if (hasCustom && !f.showPresets) {
+    return `<button type="button" class="ghost-btn primary-btn--small lp-preset-more" data-action="lib-prof-presets" aria-expanded="false">Stattdessen eine Vorlage wählen</button>`;
+  }
+  const curName = cur ? (lpPresetOf(cur) || {}).name : '';
+  return `<fieldset class="lp-presets">
+      <legend class="lp-presets-legend">Vorlage wählen</legend>
+      <div class="lp-preset-grid">
+        ${list.map(p => `<label class="lp-preset" title="${escapeAttr(p.name)}">
+          <input type="radio" class="lp-preset-input" name="lpPreset" value="${p.id}" data-lp-preset aria-label="${escapeAttr(p.name)}"${p.id === cur ? ' checked' : ''}>
+          <img class="lp-preset-img" src="${escapeAttr(lpPresetSrc(p.id))}" alt="" width="384" height="384" loading="lazy" decoding="async">
+          <span class="lp-preset-check" aria-hidden="true">${LP_ICONS.ok}</span>
+        </label>`).join('')}
+      </div>
+      <p class="tl-hint lp-preset-hint">${curName ? `Gewählt: ${escapeHtml(curName)}` : 'Tippe auf ein Bild, um es zu übernehmen.'}</p>
+    </fieldset>`;
 }
 function libPubProfileView() {
   lpSync();
@@ -863,7 +909,8 @@ function lpProfileFormHtml(prof) {
   const f = lpFormEnsure();
   const count = lpPublishedCount();
   const src = lpAvatarSrc(f, prof);
-  const hasAvatar = !!src || (!!(prof && prof.avatar_path) && !f.removeAvatar);
+  const hasAvatar = !!src || !!f.preset || (!!(prof && prof.avatar_path) && !f.removeAvatar);
+  const hasCustom = !!f.avatarUrl || (!f.preset && !f.removeAvatar && !!(prof && prof.avatar_path) && !lpIsPresetPath(prof.avatar_path));
   const nameDescr = ['lpProfNameHint'].concat(f.nameError ? ['lpProfNameErr'] : []).join(' ');
   const saved = f.savedAt && Date.now() - f.savedAt < 8000;
   return `
@@ -884,14 +931,15 @@ function lpProfileFormHtml(prof) {
         </div>
         <div class="field lp-field">
           <span class="field-label" id="lpAvatarLabel">Profilbild (freiwillig)</span>
+          ${lpPresetGalleryHtml(f, prof)}
           <div class="lp-avatar-row">
-            ${lpAvatarHtml(f.name, src, 'lp-avatar--small')}
+            ${hasCustom ? lpAvatarHtml(f.name, src, 'lp-avatar--small') : ''}
             <label class="ghost-btn primary-btn--small lp-file-btn" data-action="lib-prof-avatar" tabindex="-1">
               <input type="file" accept="image/jpeg,image/png,image/webp" data-lp-avatar class="lp-file-input" aria-labelledby="lpAvatarLabel lpAvatarBtnText">
-              <span id="lpAvatarBtnText">${hasAvatar ? 'Anderes Bild wählen' : 'Bild wählen'}</span></label>
+              <span id="lpAvatarBtnText">${hasCustom ? 'Anderes eigenes Bild' : 'Eigenes Bild hochladen'}</span></label>
             ${hasAvatar ? '<button type="button" class="text-btn" data-action="lib-prof-avatar-remove">Bild entfernen</button>' : ''}
           </div>
-          <p class="tl-hint">Verwende nur ein Bild, das du veröffentlichen darfst.</p>
+          <p class="tl-hint">Lädst du ein eigenes Bild hoch, verwende nur eines, das du veröffentlichen darfst.</p>
         </div>
         <p class="lp-announce">${LP_ICONS.globe}<span>Änderungen sind sofort öffentlich sichtbar.</span></p>
         <p class="lp-field-error" id="lpProfError" role="alert">${escapeHtml(f.error || '')}</p>
@@ -924,7 +972,7 @@ async function lpSaveProfile(el) {
   f.saving = true; f.error = ''; f.nameError = '';
   render();
   try {
-    const res = await libSavePubProfile({ name, bio: f.bio.trim(), avatarBlob: f.avatarBlob || null, removeAvatar: !!f.removeAvatar });
+    const res = await libSavePubProfile({ name, bio: f.bio.trim(), avatarBlob: f.avatarBlob || null, avatarPreset: f.avatarBlob ? null : (f.preset || null), removeAvatar: !!f.removeAvatar });
     if (gen !== lpGen()) return;
     if (res && typeof res === 'object' && typeof lib !== 'undefined' && lib.pubProfile) lib.pubProfile.data = res;
     libPub.prof.state = 'ready'; libPub.prof.at = Date.now();
@@ -1192,10 +1240,15 @@ async function handleLibraryPublishAction(action, id, el) {
     case 'lib-prof-retry': libPub.prof.state = 'idle'; render(); lpLoadProfile(true); return true;
     case 'lib-prof-save': await lpSaveProfile(el); return true;
     case 'lib-prof-avatar': return true;   // Label öffnet die Dateiauswahl selbst
+    case 'lib-prof-presets': {
+      const f = lpFormEnsure(); lpFormFromDom(); f.showPresets = true; render();
+      const r = document.querySelector('.lp-preset-input'); if (r) focusWithoutScroll(r);
+      return true;
+    }
     case 'lib-prof-avatar-remove': {
       const f = lpFormEnsure(); lpFormFromDom();
       if (f.avatarUrl) { try { URL.revokeObjectURL(f.avatarUrl); } catch (e) { /* nicht kritisch */ } }
-      f.avatarBlob = null; f.avatarUrl = null; f.removeAvatar = true;
+      f.avatarBlob = null; f.avatarUrl = null; f.removeAvatar = true; f.preset = null;
       render();
       const b = document.querySelector('.lp-file-input'); if (b) focusWithoutScroll(b);
       announceLive('Profilbild entfernt. Speichere, damit es öffentlich wirkt.');

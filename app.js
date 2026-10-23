@@ -274,12 +274,83 @@ if (navigator.storage && typeof navigator.storage.persist === 'function') {
   navigator.storage.persist().then((granted) => { state.storagePersisted = !!granted; }).catch(() => {});
 }
 
+/* ---------- v89: Startadressen aus dem App-Symbol (Verknuepfungen) und «Teilen an Savora» ----------
+   manifest.json: shortcuts ?aktion=einkauf|wochenplan|neu, share_target (GET) ?share_title=&share_text=&share_url=.
+   Es wird nichts aus dem Netz geladen: geteilter Text und Link landen im Textimport, der Link als Quelle.
+   Die Parameter werden vor dem ersten Zeichnen aus der Adresse entfernt (Neuladen wiederholt die Aktion nicht). */
+const APP_START_PARAMS = ['aktion', 'share_title', 'share_text', 'share_url'];
+function appReadStartParams() {
+  let u;
+  try { u = new URL(location.href); } catch (e) { return null; }
+  const get = (k) => String(u.searchParams.get(k) || '').trim();
+  const action = get('aktion').toLowerCase();
+  const share = { title: get('share_title'), text: get('share_text'), url: get('share_url') };
+  if (!action && !share.title && !share.text && !share.url) return null;
+  APP_START_PARAMS.forEach((k) => u.searchParams.delete(k));
+  const s = u.searchParams.toString();
+  try { history.replaceState(history.state, '', u.pathname + (s ? '?' + s : '') + u.hash); } catch (e) { /* Adresse bleibt */ }
+  if (share.title || share.text || share.url) return { kind: 'share', share };
+  if (action === 'einkauf' || action === 'wochenplan' || action === 'neu') return { kind: action };
+  return null;
+}
+/* Nur http(s)-Links gelten als Quelle; fehlt ein eigener Link, wird der erste Link im Text genommen */
+function appShareSourceUrl(share) {
+  const ok = (v) => { try { const x = new URL(v); return x.protocol === 'https:' || x.protocol === 'http:' ? x.href : ''; } catch (e) { return ''; } };
+  if (share.url && ok(share.url)) return ok(share.url);
+  const m = String(share.text || '').match(/https?:\/\/[^\s<>"']+/i);
+  return m ? ok(m[0]) : '';
+}
+function appShareText(share, url) {
+  const parts = [];
+  if (share.title && !String(share.text || '').includes(share.title)) parts.push(share.title);
+  if (share.text) parts.push(share.text);
+  let text = parts.join('\n\n');
+  if (url && !text.includes(url)) text = text ? text + '\n\nQuelle: ' + url : 'Quelle: ' + url;
+  return text;
+}
+function appOpenShared(share) {
+  const url = appShareSourceUrl(share);
+  // Bevorzugt die Funktion des Textimports (ui.js), sonst der bestehende Import-Bildschirm mit vorbefuelltem Feld
+  if (typeof openTextImport === 'function') { openTextImport({ text: [share.title, share.text].filter(Boolean).join('\n\n'), url, title: share.title || '' }); return; }
+  if (typeof dispatchAction !== 'function') return;
+  dispatchAction('open-paste-import', null, null, null);
+  const text = appShareText(share, url);
+  let tries = 0;
+  const fill = () => {
+    const ta = document.getElementById('pasteText');
+    if (!ta) { if (++tries < 40) setTimeout(fill, 50); return; }
+    if (!ta.value) { ta.value = text; ta.dispatchEvent(new Event('input', { bubbles: true })); }
+    if (typeof showToast === 'function') showToast('Geteilter Text eingefügt. Prüfe ihn und tippe auf «Rezept-Entwurf erstellen».', 'info');
+  };
+  fill();
+}
+/* Vor dem ersten Zeichnen: Ansicht fuer Verknuepfungen setzen. Gibt die Nacharbeit nach render() zurueck. */
+function appApplyStart(start) {
+  if (!start) return null;
+  if (start.kind === 'einkauf') { state.view = 'shopping'; return null; }
+  if (start.kind === 'wochenplan') { state.view = 'mealplan'; return null; }
+  return () => {
+    if (start.kind === 'neu' && typeof dispatchAction === 'function') dispatchAction('new-recipe', null, null, null);
+    else if (start.kind === 'share') appOpenShared(start.share);
+  };
+}
+
+/* Schweizer Naehrwertdatei (rund 130 KB) erst nach dem ersten Bild laden: sie konkurriert sonst beim Kaltstart mit
+   den App-Dateien. Jede Abfrage wartet ohnehin selbst auf ensureSwissDataSeeded() (gemeinsames Versprechen). */
+function appSeedSwissLater() {
+  const run = () => ensureSwissDataSeeded().catch((err) => {
+    console.warn('Nutrition: Schweizer Datenbank konnte nicht geladen werden.', err);
+  });
+  // 2 s nach dem Laden, dann im Leerlauf: der erste Bildschirm (inkl. grösstem Element) steht dann sicher
+  const idle = () => setTimeout(() => (typeof requestIdleCallback === 'function' ? requestIdleCallback(run, { timeout: 2500 }) : run()), 2000);
+  if (document.readyState === 'complete') idle(); else window.addEventListener('load', idle, { once: true });
+}
+
 (async function init() {
   try {
     setupVisualViewportKeyboardHandling();
-    await loadRecipes();
-    await loadShopping();
-    await loadMealplan();
+    // v89: die drei Speicherbereiche unabhaengig voneinander und gleichzeitig lesen
+    await Promise.all([loadRecipes(), loadShopping(), loadMealplan()]);
     // Oeffentlicher Link (?rezept= / ?profil=): Ansicht direkt oeffnen, darunter «Entdecken» als Rueckweg in der App
     const libStart = typeof libHandleStartLink === 'function' && libHandleStartLink();
     if (libStart) {
@@ -289,7 +360,19 @@ if (navigator.storage && typeof navigator.storage.persist === 'function') {
       history.pushState(navHistorySnapshot(), '', libUrlFor(target));
       lastRenderedView = null;
     }
+    // v89: Verknuepfung/Teilen hat Vorrang vor der letzten Stelle; ein oeffentlicher Link vor beidem
+    const startParams = appReadStartParams();
+    const afterStart = libStart ? null : appApplyStart(startParams);
+    const restored = (libStart || startParams || typeof navRestoreLastView !== 'function') ? null : navRestoreLastView();
+    // Darunter liegt ein sauberer Rueckweg (Startseite bzw. Kochbuecher); render() legt die Ansicht darauf
+    if (restored) { try { history.replaceState({ view: restored.view === 'cookbook' ? 'cookbooks' : 'home', modalType: null, activeRecipeId: null }, ''); } catch (e) { /* ohne Rueckweg */ } }
     render(libStart);
+    if (afterStart) afterStart();
+    if (restored && restored.cookRecipeId && typeof dispatchAction === 'function') {
+      // Kochmodus ueber die bestehende Aktion: setzt den gespeicherten Schritt, Timer und abgehakte Zutaten fort
+      const el = document.createElement('button'); el.dataset.id = restored.cookRecipeId;
+      dispatchAction('start-cook', restored.cookRecipeId, el, null);
+    }
     if (typeof libStartup === 'function') libStartup();
     if ('serviceWorker' in navigator && !SavoraNative.isNative) {
       registerServiceWorkerWithUpdatePrompt();
@@ -298,10 +381,8 @@ if (navigator.storage && typeof navigator.storage.persist === 'function') {
     if (typeof cloudStartup === 'function') cloudStartup();
     if (typeof shareStartup === 'function') shareStartup();
     // Schweizer Naehrwertdatenbank im Hintergrund einspielen (einmalig, danach nur
-    // noch aus IndexedDB) — blockiert bewusst nicht den ersten Render.
-    ensureSwissDataSeeded().catch((err) => {
-      console.warn('Nutrition: Schweizer Datenbank konnte nicht geladen werden.', err);
-    });
+    // noch aus IndexedDB): v89 erst nach dem Laden der Seite, im Leerlauf.
+    appSeedSwissLater();
   } catch (err) {
     console.error('Savora Initialisierungsfehler:', err);
     renderStorageError(err);
