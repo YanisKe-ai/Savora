@@ -950,11 +950,11 @@ function stepsPanel(r) {
     if (e.heading) return `<li class="step-heading"><h3>${escapeHtml(String(e.text).trim().replace(/:$/, ''))}</h3></li>`;
     const parts = typeof stepDisplayParts === 'function' ? stepDisplayParts(e.text) : { title: '', text: e.text };
     return `<li class="step-item ${parts.title ? 'has-title' : ''}"><span class="step-no" aria-hidden="true">${++n}</span><div class="step-body"><span class="sr-only">Schritt ${n}: </span>${parts.title ? `<${titleTag} class="step-title">${escapeHtml(parts.title)}</${titleTag}>` : ''}<p>${escapeHtml(parts.text)}</p></div></li>`;
-  }).join('')}</ol>`;
+  }).join('')}</ol>${typeof cookLastCookedHtml === 'function' ? cookLastCookedHtml(r) : ''}`;
 }
 function notesPanel(r) {
-  const log = (r.cookLog || []).slice().sort((a, b) => (b.date || 0) - (a.date || 0));
-  return `${r.notes ? `<div class="note-card"><h3 class="note-card-title">Notiz</h3><p>${escapeHtml(r.notes)}</p></div>` : ''}
+  const log = (r.cookLog || []).filter(n => n && String(n.text || '').trim()).sort((a, b) => (b.date || 0) - (a.date || 0));   // v89: Kocheinträge ohne Notiz sind nur Verlauf
+  return `${typeof cookLastCookedHtml === 'function' ? cookLastCookedHtml(r) : ''}${r.notes ? `<div class="note-card"><h3 class="note-card-title">Notiz</h3><p>${escapeHtml(r.notes)}</p></div>` : ''}
     ${log.map(n => `<div class="note-card note-card--dated">
       <div class="note-card-head"><span class="note-date">${new Date(n.date).toLocaleDateString('de-CH', { day: 'numeric', month: 'long', year: 'numeric' })}</span>
       <button class="icon-btn icon-btn--small" data-action="delete-cook-note" data-id="${escapeAttr(r.id)}" data-note="${escapeHtml(n.id)}" aria-label="Notiz vom ${new Date(n.date).toLocaleDateString('de-CH')} löschen">${ICONS.trash}</button></div>
@@ -968,7 +968,7 @@ function detailView() {
   const r = state.recipes.find(x => x.id === state.activeRecipeId);
   if (!r) { state.view = 'home'; return homeView(); }
   const servings = currentServings(r);
-  const hasNotes = !!(r.notes || (r.cookLog || []).length);
+  const hasNotes = !!(r.notes || (r.cookLog || []).some(n => n && String(n.text || '').trim()));
   const wide = !!(window.matchMedia && matchMedia('(min-width: 900px)').matches);   // breit: Zutaten stehen links (Seitenspalte) statt im Reiter, nie doppelt im DOM
   const tabs = [
     { id: 'ingredients', label: 'Zutaten' },
@@ -1476,6 +1476,7 @@ function cookModeView() {
         ${ICONS.sparkle}
         <h2>Guten Appetit.</h2>
         <p>${escapeHtml(r.title)} ist fertig.</p>
+        ${r.lastCookedAt ? `<p class="cook-finish-last">Zuletzt gekocht am ${escapeHtml(new Date(r.lastCookedAt).toLocaleDateString('de-CH', { day: 'numeric', month: 'long', year: 'numeric' }))}</p>` : ''}
         <div class="field cook-note-field"><label for="cookRunNote">Notiz zu diesem Kochdurchgang (optional)</label>
           <textarea id="cookRunNote" rows="3" placeholder="z.B. 15 Minuten länger backen"></textarea></div>
       </div>
@@ -1487,6 +1488,22 @@ function cookModeView() {
   }
   const total = Math.max(steps.length, 1);
   const idx = Math.min(state.cookStepIndex, total - 1);
+  if (state.cookMise && idx !== 0) state.cookMise = false;   // Sprung zu einem anderen Schritt beendet die Vorbereitung
+  if (state.cookMise && idx === 0 && !state.cookAllSteps && typeof cookMiseView === 'function') {   // v89: Vorbereitung vor Schritt 1
+    return `<div class="cookmode-overlay cook-v2 cook-v2--mise cook-scale-${state.cookScale || 0}" role="main" aria-label="Kochmodus">
+      <div class="cookmode-top">
+        <button class="icon-btn" data-action="exit-cook" aria-label="Kochmodus verlassen">${ICONS.x}</button>
+        <span class="cook-stepcount cook-stepcount--text">Vorbereitung</span>
+        <span class="cook-top-spacer"></span>
+      </div>
+      <div class="cook-title-line"><span class="cook-title-text">${escapeHtml(r.title)}</span></div>
+      <div class="cookmode-body">${cookMiseView(r)}</div>
+      <div class="cookmode-nav">
+        <button data-action="cook-mise-done">Überspringen</button>
+        <button class="primary" data-action="cook-mise-done">Los geht's</button>
+      </div>
+    </div>`;
+  }
   const step = steps[idx] || { text: 'Für dieses Rezept sind noch keine Schritte erfasst.' };
   const isLast = idx >= total - 1;
   const match = step._sourceIndex !== undefined ? stepIngredientMatch(r, step) : { items: [], fixed: false, ambiguous: false };
@@ -1495,18 +1512,19 @@ function cookModeView() {
   const shownIngs = state.cookShowAllIngredients ? realIngredients(r).map(i => { const idx = r.ingredients.indexOf(i); return { ...i, _index: idx, _group: groupsById.get(idx) }; }) : stepIngs;
   const showGroups = hasNamedGroups(r);
   const factor = servingsFactor(r, currentServings(r));
-  const ingChips = shownIngs.map(i => `<button type="button" class="cook-ing ${checked.has(i._index) ? 'is-checked' : ''} ${i._ambiguous ? 'is-ambiguous' : ''}" data-action="toggle-ingredient-check" data-id="${escapeAttr(r.id)}" data-idx="${i._index}" role="checkbox" aria-checked="${checked.has(i._index)}"><span class="check-box" aria-hidden="true">${ICONS.check}</span>${escapeHtml(scaledAmountLine(i, factor))} ${escapeHtml(i.name)}${showGroups && i._group && (i._ambiguous || state.cookShowAllIngredients) ? `<span class="cook-ing-group">${escapeHtml(i._group)}</span>` : ''}</button>`).join('');
+  const ingChips = shownIngs.map(i => `<button type="button" class="cook-ing ${checked.has(i._index) ? 'is-checked' : ''} ${i._ambiguous ? 'is-ambiguous' : ''}" data-action="toggle-ingredient-check" data-id="${escapeAttr(r.id)}" data-idx="${i._index}" role="checkbox" aria-checked="${checked.has(i._index)}"><span class="check-box" aria-hidden="true">${ICONS.check}</span>${(a => a ? `<span class="cook-ing-amt">${escapeHtml(a)}</span>` : '')(scaledAmountLine(i, factor))} <span class="cook-ing-name">${escapeHtml(i.name)}</span>${showGroups && i._group && (i._ambiguous || state.cookShowAllIngredients) ? `<span class="cook-ing-group">${escapeHtml(i._group)}</span>` : ''}</button>`).join('');
   const matchNote = state.cookShowAllIngredients ? '' : match.fixed ? 'Von dir festgelegt' : match.ambiguous ? 'Vorschlag, nicht eindeutig' : (stepIngs.length ? 'Vorschlag' : '');
   const body = state.cookAllSteps
-    ? `<ol class="cook-all-steps">${steps.map((s, n) => `<li>${s._section ? `<div class="cook-section">${escapeHtml(s._section)}</div>` : ''}<button class="cook-all-step ${n === idx ? 'is-current' : ''}" data-action="cook-goto" data-idx="${n}"><span class="step-no">${n + 1}</span><span>${escapeHtml(s.text)}</span></button></li>`).join('')}</ol>`
+    ? `${typeof cookVoiceButtonHtml === 'function' ? `<div class="cook-voicectl-row">${cookVoiceButtonHtml()}</div>` : ''}<ol class="cook-all-steps">${steps.map((s, n) => `<li>${s._section ? `<div class="cook-section">${escapeHtml(s._section)}</div>` : ''}<button class="cook-all-step ${n === idx ? 'is-current' : ''}" data-action="cook-goto" data-idx="${n}"><span class="step-no">${n + 1}</span><span>${escapeHtml(s.text)}</span></button></li>`).join('')}</ol>`
     : `<div class="cook-step-card">
         ${step._section ? `<div class="cook-section">${escapeHtml(step._section)}</div>` : ''}
         <div class="cookmode-steptext">${renderStepWithTimers(step.text, idx)}</div>
+        ${typeof cookTimerStartButtons === 'function' ? cookTimerStartButtons(step.text, idx) : ''}
       </div>
       <div class="cook-ings">
-        <div class="cook-ings-head"><span>${state.cookShowAllIngredients ? 'Alle Zutaten' : (stepIngs.length ? 'Für diesen Schritt' : 'Keine Zutat im Schritt erkannt')}${matchNote ? ` <span class="cook-match-note">· ${matchNote}</span>` : ''}</span>
-          <span class="cook-ings-actions">${!state.cookShowAllIngredients && step._sourceIndex !== undefined ? `<button class="text-btn cook-ings-btn" data-action="cook-edit-step-ings" data-idx="${step._sourceIndex}">Anpassen</button>` : ''}<button class="text-btn cook-ings-btn" data-action="cook-toggle-all-ings">${state.cookShowAllIngredients ? 'Nur dieser Schritt' : 'Alle Zutaten'}</button></span></div>
+        <div class="cook-ings-head"><span>${state.cookShowAllIngredients ? 'Alle Zutaten' : (stepIngs.length ? 'Für diesen Schritt' : 'Keine Zutat im Schritt erkannt')}${matchNote ? ` <span class="cook-match-note">· ${matchNote}</span>` : ''}</span></div>
         ${ingChips ? `<div class="cook-ing-list">${ingChips}</div>` : ''}
+        <div class="cook-ings-actions cook-ings-actions--below">${!state.cookShowAllIngredients && step._sourceIndex !== undefined ? `<button class="text-btn cook-ings-btn" data-action="cook-edit-step-ings" data-idx="${step._sourceIndex}">Anpassen</button>` : ''}<button class="text-btn cook-ings-btn" data-action="cook-toggle-all-ings">${state.cookShowAllIngredients ? 'Nur dieser Schritt' : 'Alle Zutaten'}</button></div>
       </div>`;
   const refModal = state.modal && state.modal.type === 'step-ings' ? stepIngredientsModal(r, state.modal.stepIndex) : '';
   const linkModal = typeof cookLinkModalHtml === 'function' ? cookLinkModalHtml(r) : '';   // v84: «Passt dazu» nur als Vorschau
@@ -1514,11 +1532,11 @@ function cookModeView() {
   return `${refModal}${linkModal}<div class="cookmode-overlay cook-v2 cook-scale-${state.cookScale || 0}" role="main" aria-label="Kochmodus">
     <div class="cookmode-top">
       <button class="icon-btn" data-action="exit-cook" aria-label="Kochmodus verlassen">${ICONS.x}</button>
-      <span class="cookmode-progress" aria-live="polite">Schritt ${idx + 1} von ${total}</span>
+      <span class="cook-stepcount"><span aria-hidden="true"><b>${idx + 1}</b>/${total}</span><span class="cookmode-progress sr-only" aria-live="polite">Schritt ${idx + 1} von ${total}</span></span>
       <div class="cook-top-actions">
         <button class="icon-btn cook-font-btn" data-action="cook-font" aria-label="Schriftgrösse ändern, aktuell ${scaleLabel}"><span aria-hidden="true">Aa</span></button>
         <button class="icon-btn ${state.cookAllSteps ? 'is-active' : ''}" data-action="cook-toggle-all-steps" aria-pressed="${state.cookAllSteps}" aria-label="Alle Schritte anzeigen">${ICONS.listSteps}</button>
-        <button class="icon-btn" data-action="toggle-voice" aria-pressed="${!!state.voiceEnabled}" aria-label="Schritte vorlesen">${state.voiceEnabled ? ICONS.volume : ICONS.volumeOff}</button>
+        <button class="cook-pill-btn cook-read-btn ${state.voiceEnabled ? 'is-on' : ''}" data-action="toggle-voice" aria-pressed="${!!state.voiceEnabled}">${state.voiceEnabled ? ICONS.volume : ICONS.volumeOff}<span>Vorlesen</span></button>
       </div>
     </div>
     <div class="cook-progress" aria-hidden="true"><span style="width:${Math.round(((idx + 1) / total) * 100)}%"></span></div>

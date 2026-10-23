@@ -26,7 +26,7 @@ EXTRA = """async (LONG) => {
   state.view = 'home'; state.homeLayout = 'grid'; state.query = ''; render(); return true;
 }"""
 HEAD_RECT = "() => { const h = document.querySelector('.home-head'); const r = h.getBoundingClientRect(); return [Math.round(r.top * 10) / 10, Math.round(r.bottom * 10) / 10, Math.round(r.height * 10) / 10]; }"
-TITLE_SEL = '.rcard-title, .rrow-title, .detail-title-v2, .cbk-name, .topbar--book .topbar-title, .cook-title-text'
+TITLE_SEL = '.rcard-title, .rrow-title, .detail-title-v2, .cbk-name, .topbar--book .topbar-title, .cook-title-text, .cook-stepcount [aria-hidden], .cook-stepcount b, .cook-stepcount--text, .cook-mise-title, .cook-finish-v2 h2, .cook-alarm-copy strong'   # v89: Lilita auch fuer Schrittzahl, Vorbereitung, Schlussbild und Timer-Ende im Kochmodus
 FONTS = """(titleSel) => { const out = { bad: [], lilitaElsewhere: [], notPublic: [], families: {}, synth: [], weight: [] };
   for (const el of document.querySelectorAll('#app *')) {
     const own = Array.from(el.childNodes).some(n => n.nodeType === 3 && n.textContent.trim()); if (!own) continue;
