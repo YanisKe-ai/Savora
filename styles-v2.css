@@ -4823,7 +4823,7 @@ body:has(.cookbook-main) .toast-action { width: max-content; max-width: min(92vw
 @media (max-width: 419px) { .amount-row-label { font-size: 0.9375rem; } }
 /* Reiter: vier Reiter passen auf 375 px ohne Abschneiden; wo es trotzdem eng wird (schmal, grosse Schrift), läuft der Rand sichtbar aus. */
 @media (max-width: 719px) {
-  .tabbar-v2[data-tab-count="4"] .tab-v2 { flex: 1 1 auto; min-width: 0; padding-inline: 0.375rem; font-size: 0.9375rem; white-space: nowrap; }
+  .tabbar-v2[data-tab-count="4"] .tab-v2 { flex: 1 1 auto; min-width: 0; padding-inline: 0.25rem; font-size: 0.9375rem; white-space: nowrap; }
 }
 @media (max-width: 359px) {
   .tabbar-v2[data-tab-count="4"] { -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 2rem), transparent); mask-image: linear-gradient(to right, #000 calc(100% - 2rem), transparent); scroll-padding-inline: 2rem; }
@@ -4840,7 +4840,7 @@ body:has(.cookbook-main) .toast-action { width: max-content; max-width: min(92vw
   .detail-tools .tool-action .tool-label { display: none; }
   .detail-tools .tool-action .tool-label-short { display: block; font-size: 0.875rem; font-weight: 600; color: var(--text-soft); max-width: 100%; overflow-wrap: anywhere; }
   .detail-main .tabbar-v2 .tab-v2 { min-height: 3rem; }
-  .detail-main .amount-row { padding: 0.25rem 0 0.375rem; }
+  .detail-main .amount-row { padding: 0.25rem 0 0.5rem; }
 }
 
 /* Platzhalter ohne Foto: Anfangsbuchstabe in Lilita One auf zartem Tomatenton (Liste, Raster, Verknüpfungen). */
@@ -4861,7 +4861,7 @@ body:has(.cookbook-main) .toast-action { width: max-content; max-width: min(92vw
 #ingRows .group-row { margin-top: 1rem; }
 .ing-quick { grid-area: quick; display: none; gap: 0.5rem; }
 .ing-row:focus-within .ing-quick { display: flex; }
-.ing-quick-btn { min-width: 3rem; min-height: 2.75rem; padding: 0 0.875rem; border-radius: 999px; border: 1px solid var(--border); background: var(--surface-soft); color: var(--text); font: inherit; font-size: 1.0625rem; font-weight: 600; touch-action: manipulation; -webkit-user-select: none; user-select: none; }
+.ing-quick-btn { min-width: 3rem; min-height: 2.75rem; padding: 0 0.75rem; border-radius: 999px; border: 1px solid var(--border); background: var(--surface-soft); color: var(--text); font: inherit; font-size: 1.0625rem; font-weight: 600; touch-action: manipulation; -webkit-user-select: none; user-select: none; }
 .ing-quick-btn:active { background: var(--surface-selected, var(--surface-soft)); transform: scale(0.97); }
 @media (min-width: 720px) {
   #ingRows .ing-row { grid-template-columns: minmax(0, 1fr) 84px 96px auto; grid-template-areas: "name amount unit acts" "quick quick quick quick"; }
