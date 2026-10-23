@@ -493,7 +493,7 @@ function nutritionModal(recipe) {
     : stage === 'custom' ? nutritionCustomStage()
     : nutritionMatchStage(recipe);
   return `<div class="modal-backdrop" data-action="close-modal">
-    <div class="modal-sheet" role="dialog" aria-modal="true" aria-labelledby="nutrition-modal-title" tabindex="-1" onclick="event.stopPropagation()">
+    <div class="modal-sheet" role="dialog" aria-modal="true" aria-labelledby="nutrition-modal-title" tabindex="-1" data-stop-click>
       ${inner}
     </div>
   </div>`;

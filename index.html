@@ -29,14 +29,19 @@
 <link rel="icon" type="image/svg+xml" href="assets/logo/savora-favicon-dark.svg" media="(prefers-color-scheme: dark)">
 <link rel="icon" type="image/png" sizes="32x32" href="assets/logo/savora-favicon-32.png">
 <link rel="icon" type="image/png" sizes="16x16" href="assets/logo/savora-favicon-16.png">
-<script>try{var t=localStorage.getItem('savora-theme');if(t==='amoled')t='dark';if(t==='light'||t==='dark')document.documentElement.setAttribute('data-theme',t);}catch(e){}</script>
+<!-- v90: Inhaltsrichtlinie (CSP). Noch nicht scharf, bis alle Inline-Handler ersetzt sind (tests/test_v90_csp.py meldet die Reste).
+     Gegenueber dem Plan zusaetzlich: frame-src 'self' blob: (PDF-Vorschau ist ein iframe auf eine blob:-Adresse) und
+     connect-src data: blob: (fetch() auf lokale Bild-Adressen in backup.js, share.js, cover.js; kein Netzwerk).
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' blob: data: https://npvhdgaxhbmblykiztnn.supabase.co; font-src 'self' data:; connect-src 'self' data: blob: https://npvhdgaxhbmblykiztnn.supabase.co; frame-src 'self' blob:; worker-src 'self'; manifest-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'">
+-->
+<script src="theme-init.js"></script>
 <link rel="preload" href="public-sans.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="lilita-one.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="archivo.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="styles.css">
 <link rel="stylesheet" href="styles-v2.css">
 <!-- v89: PDF-Seitenstile blockieren den ersten Bildschirm nicht mehr (laden parallel, gelten vor dem «load»-Ereignis) -->
-<link rel="stylesheet" href="pdf-print.css" media="print" onload="this.media='all'">
+<link rel="stylesheet" href="pdf-print.css" media="print" data-print-css>
 <noscript><link rel="stylesheet" href="pdf-print.css"></noscript>
 </head>
 <body>
@@ -48,6 +53,7 @@
 <div id="liveRegion" aria-live="polite" aria-atomic="true" class="sr-only"></div>
 <div id="liveRegionAssertive" aria-live="assertive" aria-atomic="true" class="sr-only"></div>
 <!-- v89: alle App-Skripte mit defer: Reihenfolge bleibt gleich, der Startbildschirm erscheint ohne auf sie zu warten -->
+<script defer src="csp-compat.js"></script>
 <script defer src="native.js"></script>
 <script defer src="icons.js"></script>
 <script defer src="db.js"></script>
@@ -97,6 +103,8 @@
 <script defer src="ui.js"></script>
 <script defer src="actions-v2.js"></script>
 <script defer src="recipe-picker.js"></script>
+<script defer src="mealplan-ics.js"></script>
+<script defer src="pantry.js"></script>
 <script defer src="cloud.js"></script>
 <script defer src="share.js"></script>
 <script defer src="library.js"></script>
