@@ -278,14 +278,18 @@ function avatarCirclesHtml(names, max) {
 
 /* ---------- v0.90: Speicher voll, Geraetename, stabiler Hash ---------- */
 /* Deutliche Warnung, wenn der Browser-Speicher voll ist (localStorage oder IndexedDB). Hoechstens alle 30 Sekunden,
-   damit eine Schreibserie nicht dutzende Meldungen ausloest. where: 'db', 'local', 'org' (nur fuers Protokoll). */
+   damit eine Schreibserie nicht dutzende Meldungen ausloest. where: 'db', 'local', 'org' (nur fuers Protokoll),
+   text: optional eigener Meldungstext. */
 let storageFullWarnAt = 0;
-function storageFullWarn(where) {
+function storageIsQuotaError(e) {
+  return !!e && (e.name === 'QuotaExceededError' || e.name === 'NS_ERROR_DOM_QUOTA_REACHED' || e.code === 22 || e.code === 1014 || /quota/i.test(e.message || ''));
+}
+function storageFullWarn(where, text) {
   const now = Date.now();
   try { console.warn('Speicher voll', where || ''); } catch (e) {}
   if (now - storageFullWarnAt < 30000) return false;
   storageFullWarnAt = now;
-  const msg = 'Speicher voll: Änderung nicht gespeichert. Bitte Speicher freigeben (z. B. alte Fotos oder andere Website-Daten löschen) und eine Sicherung machen.';
+  const msg = text || 'Speicher voll: Änderung nicht gespeichert. Bitte Speicher freigeben (z. B. alte Fotos oder andere Website-Daten löschen) und eine Sicherung machen.';
   if (typeof showToast === 'function') { try { showToast(msg, 'error', true); } catch (e) {} }
   return true;
 }

@@ -31,7 +31,8 @@ function readJsonKey(key, fallback) {
   try { const raw = localStorage.getItem(key); return raw ? JSON.parse(raw) : fallback; } catch (e) { return fallback; }
 }
 function writeJsonKey(key, value) {
-  try { localStorage.setItem(key, JSON.stringify(value)); return true; } catch (e) { return false; }
+  try { localStorage.setItem(key, JSON.stringify(value)); return true; }
+  catch (e) { if (typeof storageFullWarn === 'function' && (typeof storageIsQuotaError !== 'function' || storageIsQuotaError(e))) storageFullWarn('local'); return false; }
 }
 
 /* ---------- Zutatengruppen ---------- */

@@ -103,7 +103,7 @@ async def main():
         await pb.fill('#shoppingAddInput', '3 Zitronen')
         await click(pb, '[data-action="add-shopping-item-manual"]')
         r1 = await sync(pb)
-        q = await pb.evaluate("Object.keys(JSON.parse(localStorage.getItem('savora-sync-queue')||'{}')).length")
+        q = await pb.evaluate("cloudQueueCount()")
         await cB.set_offline(False)
         await pb.evaluate("window.dispatchEvent(new Event('online'))")
         await pb.wait_for_timeout(2000)
@@ -143,7 +143,7 @@ async def main():
         # Abmelden behaelt lokale Daten
         await show(pb, "() => { state.modal = null; state.view = 'settings-account'; render(); }", '[data-action="cloud-sign-out"]')
         await sync(pb)   # erst abgleichen: sonst fragt die App wegen ausstehender Aenderungen nach (in der langsameren CI-Umgebung)
-        pend = await pb.evaluate("Object.keys(JSON.parse(localStorage.getItem('savora-sync-queue')||'{}'))")
+        pend = await pb.evaluate("Object.keys(cloudQueue())")
         await click(pb, '[data-action="cloud-sign-out"]')
         await pb.wait_for_timeout(600)
         kept = await pb.evaluate("state.recipes.length")

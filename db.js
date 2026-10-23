@@ -663,3 +663,27 @@ async function dbPutSyncStateMany(records) {
     tx.onerror = tx.onabort = () => dbTxFail(tx, reject);
   });
 }
+
+/* Mehrere Abgleich-Eintraege schreiben und loeschen, alles in EINER Transaktion. */
+async function dbApplySyncState(puts, deleteKeys) {
+  const db = await openDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction('syncState', 'readwrite');
+    const store = tx.objectStore('syncState');
+    for (const r of (puts || [])) store.put(r);
+    for (const k of (deleteKeys || [])) store.delete(k);
+    tx.oncomplete = () => resolve();
+    tx.onerror = tx.onabort = () => dbTxFail(tx, reject);
+  });
+}
+
+/* Ein Rezept per Schluessel lesen (ohne alle zu laden), z. B. fuer den Abgleich. */
+async function dbGetRecipe(id) {
+  const db = await openDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction('recipes', 'readonly');
+    const req = tx.objectStore('recipes').get(id);
+    req.onsuccess = () => resolve(req.result || null);
+    req.onerror = () => reject(req.error);
+  });
+}

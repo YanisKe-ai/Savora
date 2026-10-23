@@ -127,7 +127,7 @@ async def main():
         check('Cloud: übrige Felder aus der Cloud bleiben (Titel, Eigenes)', all(b[2].startswith('Buch ') and b[3] == {'bleibt': [1, 2, 3]} for b in got['books']))
         check('Cloud: alte Einzelkonfiguration → Stil B wird prise-pop, Rest unverändert', got['legacy']['pdfTemplate'] == 'prise-pop' and got['legacy']['title'] == 'Fern alt' and got['legacy']['author'] == 'Fern', str(got['legacy']))
         # (c) stille Anpassung loest keinen neuen Abgleich aus (bleibt «nicht von der Person geaendert»)
-        q = await ev("""() => { localStorage.setItem(COOKBOOK_PROJECTS_KEY, JSON.stringify({ v: 1, activeId: 'x', books: [{ id: 'x', name: 'X', createdAt: 1, updatedAt: 1, config: { pdfTemplate: 'C', title: 'Q' } }] })); const orig = Storage.prototype.setItem; /* direkt eingetragen: Warteschlange leeren */ localStorage.setItem('savora-sync-queue', '{}'); cookbookStoreRead(); return Object.keys(JSON.parse(localStorage.getItem('savora-sync-queue') || '{}')); }""")
+        q = await ev("""() => { localStorage.setItem(COOKBOOK_PROJECTS_KEY, JSON.stringify({ v: 1, activeId: 'x', books: [{ id: 'x', name: 'X', createdAt: 1, updatedAt: 1, config: { pdfTemplate: 'C', title: 'Q' } }] })); const orig = Storage.prototype.setItem; /* direkt eingetragen: Warteschlange leeren */ const clr = {}; Object.keys(cloudQueue()).forEach(k => { clr[k] = undefined; }); cloudQueuePut(clr); cookbookStoreRead(); return Object.keys(cloudQueue()); }""")
         check('Stille Stil-Anpassung beim Lesen stellt keinen Abgleich in die Warteschlange', not any(k.startswith('setting|cookbooks') for k in q), str(q))
         check('Keine Seitenfehler', not errs, str(errs[:3]))
         await browser.close()
