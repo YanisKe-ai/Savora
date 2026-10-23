@@ -76,7 +76,7 @@ function orgFlush() {
     else { const w = orgWriteKey(ORG_STORE[k].key, ORG_STORE[k].get()); ok = w && ok; if (k === 'collection' && w) orgWriteProjection(); }   // Projektion nur nach erfolgreichem Schreiben
   });
   org.dirty.clear();
-  if (!ok) org.writeFailed = true;
+  if (!ok) { org.writeFailed = true; if (typeof storageFullWarn === 'function') storageFullWarn('org', 'Speicher voll: Sammlung nicht gespeichert. Bitte Speicher freigeben.'); }
   // Vormerkungen fuer den Abgleich gesammelt (ein Lese- und Schreibvorgang der Warteschlange statt einer je Datensatz).
   // Schlug das Schreiben fehl, nichts vormerken: der Aufrufer nimmt die Aenderung im Speicher zurueck.
   const marks = org.marks; org.marks = [];
@@ -470,7 +470,7 @@ function orgLinkTargetStatus(id) {
   const pending = (typeof state !== 'undefined' && state && state.pendingDeletes) || null;
   if (pending && pending.has && pending.has(id)) return 'gone';
   const signedIn = typeof cloudSignedIn === 'function' && cloudSignedIn();
-  if (signedIn && typeof cloudMeta === 'function' && !cloudMeta()['recipe|' + id]) return 'pending';
+  if (signedIn && typeof cloudMeta === 'function' && !(typeof cloudMetaGet === 'function' ? cloudMetaGet('recipe|' + id) : cloudMeta()['recipe|' + id])) return 'pending';
   return 'gone';
 }
 function orgLinksOf(recipeId) {

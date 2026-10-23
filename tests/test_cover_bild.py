@@ -208,8 +208,8 @@ async def main():
         gone = await ev("coverImageGc()")
         stored = [i for i in await ev("coverImageStoredIds()") if str(i).startswith('cover-')]
         check('coverImageGc löscht Zusatzbilder nicht (nur das verwaiste Bild)', sorted(stored) == sorted([bg_id, x1['id'], x2['id']]) and waise2['id'] not in stored and gone >= 1, f'{gone} {stored}')
-        q = await ev("""async () => { const cur = localStorage.getItem(CLOUD_CURSOR_KEY); localStorage.removeItem(CLOUD_CURSOR_KEY); const q0 = JSON.stringify(cloudQueue()), m0 = JSON.stringify(cloudMeta());
-            await cloudPrepareFirstSync(); const keys = Object.keys(cloudQueue()); localStorage.setItem(CLOUD_QUEUE_KEY, q0); localStorage.setItem(CLOUD_META_KEY, m0); if (cur !== null) localStorage.setItem(CLOUD_CURSOR_KEY, cur); return keys; }""")
+        q = await ev("""async () => { const cur = localStorage.getItem(CLOUD_CURSOR_KEY); localStorage.removeItem(CLOUD_CURSOR_KEY); const q0 = cloudQueue(), m0 = cloudMeta();
+            await cloudPrepareFirstSync(); const keys = Object.keys(cloudQueue()); const rq = {}, rm = {}; keys.forEach(k => { rq[k] = q0[k]; }); Object.keys(cloudMeta()).forEach(k => { rm[k] = m0[k]; }); cloudQueuePut(rq); cloudMetaPut(rm); if (cur !== null) localStorage.setItem(CLOUD_CURSOR_KEY, cur); return keys; }""")
         check('Abgleich: erstes Anmelden merkt Zusatzbilder über den Bildweg vor', all(f'image|{i}' in q for i in (bg_id, x1['id'], x2['id'])), str([k for k in q if k.startswith('image|cover')]))
         await ev("""async () => { let blob = null; const orig = URL.createObjectURL; URL.createObjectURL = (b) => { blob = b; return orig.call(URL, b); }; await downloadBackup(); URL.createObjectURL = orig; window.__bk2 = blob; }""")
         txt2 = await ev("window.__bk2.text()")

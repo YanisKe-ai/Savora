@@ -22,13 +22,16 @@ async function downloadBackup() {
     dbGetAllCustomFoods(), dbGetAllNutritionMatches(), dbGetAllNutritionResults(),
   ]);
   const mealplan = await dbGetAllMealplan();
+  // Eigene Einkaufsliste sichern, auch wenn gerade die gemeinsame Haushaltsliste aktiv ist (household.js leitet dann um)
+  const hhActive = typeof hhOrig !== 'undefined' && hhOrig && typeof hhOrig.dbGetAllShopping === 'function';
+  const ownShopping = hhActive ? await hhOrig.dbGetAllShopping() : state.shopping;
   const coverImages = await backupCoverImages();
   const payload = {
     // version bleibt fuer aeltere App-Staende lesbar; schemaVersion beschreibt den Inhalt.
     // schemaVersion 6: zusaetzlich organization (Sammlungen, Zuordnungen, Verknuepfungen «Passt dazu»). settings.collections und
     // recipe.collections bleiben drin, damit aeltere App-Staende die Sicherung weiter lesen.
     app: 'savora', version: 3, schemaVersion: 6, exportedAt: new Date().toISOString(),
-    recipes: recipesForExport, shopping: state.shopping,
+    recipes: recipesForExport, shopping: ownShopping,
     customFoods, nutritionMatches, nutritionResults,
     mealplan,
     coverImages,   // eigene Cover-Bilder der Kochbuecher (Cover-Editor); aeltere Sicherungen haben das Feld nicht, aeltere App-Staende ignorieren es
@@ -286,15 +289,20 @@ async function restoreBackupFromFile(file) {
       if (orgRep.collections.added || mr.added || lr.added) progress.written++;
     }
     let addedItems = 0;
+    // Wiederherstellen immer in die eigene Liste (nie in eine gerade aktive gemeinsame Haushaltsliste)
+    const hhOn = typeof hhOrig !== 'undefined' && hhOrig && typeof hhOrig.dbGetAllShopping === 'function' && typeof hhOrig.dbPutShopping === 'function';
+    const ownList = hhOn ? await hhOrig.dbGetAllShopping() : state.shopping;
+    const putOwnShopping = hhOn ? hhOrig.dbPutShopping : dbPutShopping;
     for (let n = 0; n < (data.shopping || []).length; n++) {
       const s = data.shopping[n];
       if (badShopping.has(n) || !isObj(s)) continue;
-      if (state.shopping.some(x => x.name === s.name && x.amount === s.amount && (x.unit || '') === (s.unit || ''))) continue;   // schon in der Einkaufsliste
+      if (ownList.some(x => x.name === s.name && x.amount === s.amount && (x.unit || '') === (s.unit || ''))) continue;   // schon in der Einkaufsliste
       const clone = JSON.parse(JSON.stringify(s));
       clone.id = uid();
-      await dbPutShopping(clone);
+      await putOwnShopping(clone);
       progress.written++;
-      state.shopping.push(clone);
+      if (ownList !== state.shopping) ownList.push(clone);
+      if (!hhOn) state.shopping.push(clone);
       addedItems++;
     }
 

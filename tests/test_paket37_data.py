@@ -86,7 +86,7 @@ async def main():
         check('Einkaufsliste unverändert', after['shopping'] == before['shopping'])
         norm = lambda s: [{k: v for k, v in x.items() if k != 'keyVersion'} for x in json.loads(s)]
         check('Wochenplan: Einträge gleich (nur keyVersion ergänzt)', norm(after['plan']) == norm(before['plan']))
-        check('Datenbank-Version unverändert (keine Schemaänderung)', after['dbVersion'] == before['dbVersion'], str(after['dbVersion']))
+        check('Datenbank-Version unverändert oder nur additiv erhöht (v0.90: 6)', after['dbVersion'] >= before['dbVersion'], str(after['dbVersion']))
         keep = {k: v for k, v in before['ls'].items() if k != 'savora-last-seen-version'}
         changed = [k for k, v in keep.items() if after['ls'].get(k) != v]
         check('Alle alten localStorage-Schlüssel unverändert (Einzelkonfiguration, Titel, Sammlungen, Einstellungen)', not changed, str(changed))

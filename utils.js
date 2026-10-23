@@ -275,3 +275,53 @@ function avatarCirclesHtml(names, max) {
   const label = `${list.length} ${list.length === 1 ? 'Freund' : 'Freunde'}: ${list.join(', ')}`;
   return `<span class="avc" role="img" aria-label="${escapeHtml(label)}">${shown.map(n => `<span class="avc-item avc-c${avatarColorIndex(n)}" aria-hidden="true">${escapeHtml(avatarInitials(n))}</span>`).join('')}${extra > 0 ? `<span class="avc-item avc-more" aria-hidden="true">+${extra}</span>` : ''}</span>`;
 }
+
+/* ---------- v0.90: Speicher voll, Geraetename, stabiler Hash ---------- */
+/* Deutliche Warnung, wenn der Browser-Speicher voll ist (localStorage oder IndexedDB). Hoechstens alle 30 Sekunden,
+   damit eine Schreibserie nicht dutzende Meldungen ausloest. where: 'db', 'local', 'org' (nur fuers Protokoll),
+   text: optional eigener Meldungstext. */
+let storageFullWarnAt = 0;
+function storageIsQuotaError(e) {
+  return !!e && (e.name === 'QuotaExceededError' || e.name === 'NS_ERROR_DOM_QUOTA_REACHED' || e.code === 22 || e.code === 1014 || /quota/i.test(e.message || ''));
+}
+function storageFullWarn(where, text) {
+  const now = Date.now();
+  try { console.warn('Speicher voll', where || ''); } catch (e) {}
+  if (now - storageFullWarnAt < 30000) return false;
+  storageFullWarnAt = now;
+  const msg = text || 'Speicher voll: Änderung nicht gespeichert. Bitte Speicher freigeben (z. B. alte Fotos oder andere Website-Daten löschen) und eine Sicherung machen.';
+  if (typeof showToast === 'function') { try { showToast(msg, 'error', true); } catch (e) {} }
+  return true;
+}
+
+/* Name dieses Geraets fuer Konflikt-Kopien («Kopie von iPhone»). Eigener Name aus den Einstellungen, sonst aus dem User-Agent. */
+const DEVICE_NAME_KEY = 'savora-device-name';
+function savoraDeviceNameAuto() {
+  const ua = (typeof navigator !== 'undefined' && navigator.userAgent) || '';
+  const touch = typeof navigator !== 'undefined' && navigator.maxTouchPoints > 1;
+  if (/iPhone|iPod/.test(ua)) return 'iPhone';
+  if (/iPad/.test(ua) || (/Macintosh/.test(ua) && touch)) return 'iPad';   // iPadOS meldet sich als Mac
+  if (/Android/.test(ua)) return 'Android';
+  if (/Macintosh|Mac OS X/.test(ua)) return 'Mac';
+  if (/Windows/.test(ua)) return 'Windows-PC';
+  return 'Gerät';
+}
+function savoraDeviceName() {
+  let v = '';
+  try { v = (localStorage.getItem(DEVICE_NAME_KEY) || '').trim(); } catch (e) {}
+  return v ? v.slice(0, 40) : savoraDeviceNameAuto();
+}
+
+/* FNV-1a (32 Bit) ueber JSON mit sortierten Schluesseln: gleicher Inhalt ergibt auf jedem Geraet denselben Hash,
+   unabhaengig von der Reihenfolge der Felder. undefined-Felder zaehlen wie fehlende. Ausgabe: 8 Hex-Zeichen. */
+function stableJson(v) {
+  if (v === null || typeof v !== 'object') return v === undefined ? 'null' : JSON.stringify(v);
+  if (Array.isArray(v)) return '[' + v.map(x => x === undefined ? 'null' : stableJson(x)).join(',') + ']';
+  return '{' + Object.keys(v).filter(k => v[k] !== undefined).sort().map(k => JSON.stringify(k) + ':' + stableJson(v[k])).join(',') + '}';
+}
+function stableHash(obj) {
+  const s = typeof obj === 'string' ? obj : stableJson(obj);
+  let h = 0x811c9dc5;
+  for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 0x01000193); }
+  return (h >>> 0).toString(16).padStart(8, '0');
+}

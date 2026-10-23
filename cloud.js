@@ -129,6 +129,7 @@ async function cloudAuthSignOut() {
   if (typeof libReset === 'function') libReset();
   // Beim naechsten Anmelden wird neu zusammengefuehrt; lokale Daten bleiben auf dem Geraet.
   [CLOUD_QUEUE_KEY, CLOUD_META_KEY, CLOUD_CURSOR_KEY, CLOUD_LAST_KEY].forEach(k => { try { localStorage.removeItem(k); } catch (e) {} });
+  cloudStateReset();
 }
 // Nach Klick auf Bestaetigungs- oder Passwort-Link landet die Seite mit Tokens im URL-Fragment.
 function cloudHandleRedirect() {
@@ -169,24 +170,170 @@ async function cloudCompleteRedirect(r) {
   }
 }
 
+/* ---------- Abgleich-Zustand: Warteschlange, Meta, Basis (v0.90 in IndexedDB) ----------
+   Bis v0.89 lagen Warteschlange und Meta als JSON in localStorage (wenige MB, bei vielen Rezepten schnell voll). Ab v0.90
+   liegen sie im Store syncState (ein Eintrag je Schluessel: 'q|kind|id', 'm|kind|id', 'b|kind|id'), mit einem Spiegel im
+   Speicher: Lesen bleibt synchron, Schreiben wird gebuendelt und kurz danach in EINER Transaktion gespeichert.
+   Einmalige Migration in cloudStateLoad(): alte localStorage-Werte werden uebernommen (groesseres at gewinnt) und NICHT
+   geloescht; danach savora-sync-store = 'idb'. Klappt IndexedDB nicht, bleibt alles wie bisher in localStorage.
+   Vormerkungen vor dem Laden landen im Spiegel und werden beim Laden gemischt (neuere gewinnen). */
+const CLOUD_STORE_FLAG_KEY = 'savora-sync-store';
+const cloudState = {
+  mode: (() => { try { return localStorage.getItem(CLOUD_STORE_FLAG_KEY) === 'idb' ? 'idb' : 'ls'; } catch (e) { return 'ls'; } })(),
+  loaded: false, loading: null,
+  q: {}, m: {}, b: {},        // Spiegel: Warteschlange, Meta (letzter bekannter Zeitstempel), Basis-Hash (Inhalt beim letzten Abgleich)
+  dirty: new Map(),           // 'q|key' -> Wert oder undefined (= loeschen), noch nicht gespeichert
+  timer: null, retry: 0,
+};
+function cloudStateIdb() { return cloudState.mode === 'idb'; }
+function cloudQueue() { return cloudStateIdb() ? Object.assign({}, cloudState.q) : readJsonKey(CLOUD_QUEUE_KEY, {}); }
+function cloudMeta() { return cloudStateIdb() ? Object.assign({}, cloudState.m) : readJsonKey(CLOUD_META_KEY, {}); }
+function cloudQueueGet(key) { return cloudStateIdb() ? cloudState.q[key] : cloudQueue()[key]; }
+function cloudMetaGet(key) { return cloudStateIdb() ? cloudState.m[key] : cloudMeta()[key]; }
+function cloudQueueCount() { return Object.keys(cloudStateIdb() ? cloudState.q : cloudQueue()).length; }
+function cloudBaseGet(key) { return cloudState.b[key]; }
+// updates: { key: Wert } (undefined = Eintrag entfernen). Rueckgabe false, wenn localStorage voll war.
+function cloudStateSet(part, updates) {
+  const keys = Object.keys(updates || {});
+  if (!keys.length) return true;
+  if (part === 'b' || cloudStateIdb()) {
+    const obj = cloudState[part];
+    keys.forEach(k => {
+      const v = updates[k];
+      if (v === undefined) delete obj[k]; else obj[k] = v;
+      if (cloudStateIdb()) cloudState.dirty.set(part + '|' + k, v);
+    });
+    cloudStateSchedule();
+    return true;
+  }
+  const lsKey = part === 'q' ? CLOUD_QUEUE_KEY : CLOUD_META_KEY;
+  const obj = readJsonKey(lsKey, {});
+  keys.forEach(k => { const v = updates[k]; if (v === undefined) delete obj[k]; else obj[k] = v; });
+  return writeJsonKey(lsKey, obj);
+}
+function cloudQueuePut(updates) { return cloudStateSet('q', updates); }
+function cloudMetaPut(updates) { return cloudStateSet('m', updates); }
+function cloudBasePut(updates) { return cloudStateSet('b', updates); }
+function cloudStateSchedule() {
+  if (!cloudState.loaded || cloudState.timer || !cloudState.dirty.size) return;
+  cloudState.timer = setTimeout(() => { cloudState.timer = null; cloudStateFlush(); }, 40);
+}
+async function cloudStateFlush() {
+  if (cloudState.timer) { clearTimeout(cloudState.timer); cloudState.timer = null; }
+  if (!cloudState.loaded || !cloudStateIdb() || !cloudState.dirty.size) return true;
+  const items = [...cloudState.dirty]; cloudState.dirty = new Map();
+  const puts = [], dels = [];
+  items.forEach(([k, v]) => { if (v === undefined) dels.push(k); else puts.push({ key: k, v }); });
+  try { await dbApplySyncState(puts, dels); cloudState.retry = 0; return true; }
+  catch (e) {
+    // Nichts verlieren: nicht gespeicherte Eintraege zurueck, sofern inzwischen nichts Neueres vorgemerkt ist
+    items.forEach(([k, v]) => { if (!cloudState.dirty.has(k)) cloudState.dirty.set(k, v); });
+    cloudState.retry = Math.min(6, cloudState.retry + 1);
+    console.warn('Abgleich-Zustand nicht gespeichert', e && e.name);
+    setTimeout(cloudStateSchedule, 1000 * Math.pow(2, cloudState.retry));
+    return false;
+  }
+}
+function cloudStateSplit(recs) {
+  const out = { q: {}, m: {}, b: {} };
+  (recs || []).forEach(r => {
+    if (!r || typeof r.key !== 'string' || r.key.length < 3 || r.key[1] !== '|') return;
+    const part = r.key[0];
+    if (out[part]) out[part][r.key.slice(2)] = r.v;
+  });
+  return out;
+}
+// Groesseres at gewinnt (Warteschlange), groesserer Zeitstempel gewinnt (Meta). Gibt die geaenderten Schluessel zurueck.
+function cloudStateMergeInto(target, src, part, changed) {
+  Object.entries(src || {}).forEach(([k, v]) => {
+    if (part === 'q') {
+      if (!v || typeof v !== 'object' || !v.kind) return;
+      const cur = target.q[k];
+      if (!cur || (Number(v.at) || 0) > (Number(cur.at) || 0)) { target.q[k] = v; changed.set('q|' + k, v); }
+    } else if (part === 'm') {
+      if (typeof v !== 'number') return;
+      if (!(k in target.m) || v > target.m[k]) { target.m[k] = v; changed.set('m|' + k, v); }
+    }
+  });
+}
+// Laedt den Zustand aus IndexedDB (einmal je Sitzung), migriert bei Bedarf aus localStorage. true = IndexedDB aktiv.
+function cloudStateLoad() {
+  if (cloudState.loaded) return Promise.resolve(true);
+  if (cloudState.loading) return cloudState.loading;
+  cloudState.loading = (async () => {
+    let loaded;
+    try { loaded = cloudStateSplit(await dbGetAllSyncState()); }
+    catch (e) { console.warn('Abgleich-Zustand: IndexedDB nicht verfuegbar, bleibe bei localStorage', e && e.name); cloudState.loading = null; return false; }
+    if (!cloudStateIdb()) {
+      // Einmalige Migration aus localStorage (alte Werte bleiben stehen)
+      const changed = new Map();
+      cloudStateMergeInto(loaded, readJsonKey(CLOUD_QUEUE_KEY, {}), 'q', changed);
+      cloudStateMergeInto(loaded, readJsonKey(CLOUD_META_KEY, {}), 'm', changed);
+      try { await dbApplySyncState([...changed].map(([key, v]) => ({ key, v })), []); }
+      catch (e) { console.warn('Abgleich-Zustand: Migration fehlgeschlagen, bleibe bei localStorage', e && e.name); cloudState.loading = null; return false; }
+      // Waehrend des Schreibens hinzugekommene Vormerkungen (noch in localStorage) synchron nachziehen
+      const late = new Map();
+      cloudStateMergeInto(loaded, readJsonKey(CLOUD_QUEUE_KEY, {}), 'q', late);
+      cloudStateMergeInto(loaded, readJsonKey(CLOUD_META_KEY, {}), 'm', late);
+      // Was in localStorage inzwischen fehlt, wurde dort hochgeladen und entfernt: hier ebenso entfernen
+      const lsQ = readJsonKey(CLOUD_QUEUE_KEY, {});
+      Object.keys(loaded.q).forEach(k => { if (changed.has('q|' + k) && !(k in lsQ)) { delete loaded.q[k]; late.set('q|' + k, undefined); } });
+      try { cloudOrigSetItem.call(localStorage, CLOUD_STORE_FLAG_KEY, 'idb'); }
+      catch (e) { cloudState.loading = null; return false; }
+      cloudState.mode = 'idb';
+      cloudState.q = loaded.q; cloudState.m = loaded.m;
+      Object.keys(loaded.b).forEach(k => { if (!(k in cloudState.b)) cloudState.b[k] = loaded.b[k]; });
+      late.forEach((v, k) => cloudState.dirty.set(k, v));
+    } else {
+      // Vormerkungen vor dem Laden (nur im Spiegel) mit dem Gespeicherten mischen: neuere gewinnen
+      const early = cloudState.dirty; cloudState.dirty = new Map();
+      early.forEach((v, k) => {
+        const part = k[0], key = k.slice(2);
+        if (part === 'q') {
+          if (v === undefined) { delete loaded.q[key]; cloudState.dirty.set(k, v); return; }
+          const cur = loaded.q[key];
+          if (!cur || (Number(v.at) || 0) >= (Number(cur.at) || 0)) { loaded.q[key] = v; cloudState.dirty.set(k, v); }
+        } else if (part === 'm') {
+          if (v === undefined) { delete loaded.m[key]; cloudState.dirty.set(k, v); return; }
+          if (!(key in loaded.m) || v >= loaded.m[key]) { loaded.m[key] = v; cloudState.dirty.set(k, v); }
+        } else if (part === 'b') {
+          if (v === undefined) delete loaded.b[key]; else loaded.b[key] = v;
+          cloudState.dirty.set(k, v);
+        }
+      });
+      cloudState.q = loaded.q; cloudState.m = loaded.m; cloudState.b = loaded.b;
+    }
+    cloudState.loaded = true;
+    cloudStateSchedule();
+    return true;
+  })();
+  return cloudState.loading;
+}
+// Abmelden / Konto loeschen: Abgleich-Zustand leeren (lokale Rezepte bleiben)
+function cloudStateReset() {
+  if (cloudState.timer) { clearTimeout(cloudState.timer); cloudState.timer = null; }
+  cloudState.q = {}; cloudState.m = {}; cloudState.b = {};
+  cloudState.dirty = new Map();
+  if (typeof dbClearSyncState === 'function') dbClearSyncState().catch(e => console.warn('Abgleich-Zustand nicht geleert', e && e.name));
+}
+// Beim Verlassen der Seite sofort speichern
+window.addEventListener('pagehide', () => { cloudStateFlush(); });
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') cloudStateFlush(); });
+
 /* ---------- Aenderungen erfassen ---------- */
-function cloudQueue() { return readJsonKey(CLOUD_QUEUE_KEY, {}); }
-function cloudMeta() { return readJsonKey(CLOUD_META_KEY, {}); }
 function cloudMark(kind, id, deleted, changedAt) {
   if (!cloudSignedIn() || cloud.applyingRemote || id === undefined || id === null) return;
   const key = kind + '|' + id;
-  const q = cloudQueue(); const m = cloudMeta();
   const at = changedAt || Date.now();
-  q[key] = { kind, id: String(id), deleted: !!deleted, at };
-  m[key] = at;
-  writeJsonKey(CLOUD_QUEUE_KEY, q); writeJsonKey(CLOUD_META_KEY, m);
+  cloudQueuePut({ [key]: { kind, id: String(id), deleted: !!deleted, at } });
+  cloudMetaPut({ [key]: at });
   cloudScheduleSync(1500);
 }
-// Viele Vormerkungen auf einmal (org.js im Sammelschreiben): Warteschlange und Meta nur einmal lesen und schreiben.
+// Viele Vormerkungen auf einmal (org.js im Sammelschreiben): Warteschlange und Meta nur einmal schreiben.
 // list: [[kind, id, deleted, changedAt], ...]
 function cloudMarkMany(list) {
   if (!cloudSignedIn() || cloud.applyingRemote || !Array.isArray(list) || !list.length) return;
-  const q = cloudQueue(); const m = cloudMeta();
+  const q = {}, m = {};
   let n = 0;
   list.forEach(([kind, id, deleted, changedAt]) => {
     if (id === undefined || id === null) return;
@@ -196,7 +343,7 @@ function cloudMarkMany(list) {
     m[key] = at; n++;
   });
   if (!n) return;
-  writeJsonKey(CLOUD_QUEUE_KEY, q); writeJsonKey(CLOUD_META_KEY, m);
+  cloudQueuePut(q); cloudMetaPut(m);
   cloudScheduleSync(1500);
 }
 // Originale merken und die schreibenden DB-Funktionen umhuellen. Aufrufer merken davon nichts.
@@ -216,6 +363,11 @@ cloudWrap('dbPutShopping', (item) => cloudMark('shopping', item && item.id, fals
 cloudWrap('dbDeleteShopping', (id) => cloudMark('shopping', id, true));
 cloudWrap('dbPutImage', (rec) => cloudMark('image', rec && rec.id, false));
 cloudWrap('dbDeleteImage', (id) => cloudMark('image', id, true));
+// Vorrat (v0.90): eigene Datenart 'pantry'. pantry.js merkt selbst per cloudMark('pantry', id, deleted) vor (keine Umhuellung hier).
+// Eigene Einkaufsliste lesen, auch wenn household.js die Einkaufsfunktionen auf die Haushaltsliste umleitet
+function cloudOwnShoppingAll() {
+  return (typeof hhOrig !== 'undefined' && hhOrig && typeof hhOrig.dbGetAllShopping === 'function') ? hhOrig.dbGetAllShopping() : dbGetAllShopping();
+}
 // Einstellungen, die geraeteuebergreifend Sinn ergeben (Darstellung bleibt pro Geraet).
 const CLOUD_SETTING_KEYS = { collections: COLLECTIONS_KEY, cookbookConfig: COOKBOOK_CONFIG_KEY, cookbookTitle: COOKBOOK_TITLE_KEY, cookbooks: COOKBOOK_PROJECTS_KEY, senderName: SENDER_NAME_KEY };
 const cloudOrigSetItem = Storage.prototype.setItem;
@@ -230,18 +382,25 @@ Storage.prototype.setItem = function (k, v) {
 // dient die letzte Bearbeitung, damit ein in der Cloud neuerer Stand nicht ueberschrieben wird.
 async function cloudPrepareFirstSync() {
   if (readJsonKey(CLOUD_CURSOR_KEY, null)) return;
-  const q = cloudQueue(); const m = cloudMeta();
-  const add = (kind, id, at) => { const key = kind + '|' + id; if (!q[key]) { q[key] = { kind, id: String(id), deleted: false, at }; m[key] = at; } };
-  (await dbGetAll()).forEach(r => add('recipe', r.id, r.updatedAt || r.createdAt || 1));
+  await cloudStateLoad();
+  const q = {}, m = {};
+  const add = (kind, id, at, deleted) => { const key = kind + '|' + id; if (!q[key] && !cloudQueueGet(key)) { q[key] = { kind, id: String(id), deleted: !!deleted, at }; m[key] = at; } };
+  const recipes = await dbGetAll();
+  recipes.forEach(r => add('recipe', r.id, r.updatedAt || r.createdAt || 1));
+  // Zuletzt geloeschte Rezepte als Grabstein mit Papierkorb-Daten (andere Geraete legen sie in ihren Papierkorb)
+  const live = new Set(recipes.map(r => r.id));
+  try { (await dbGetAllRecipeTrash()).forEach(t => { if (t && t.id && !live.has(t.id)) add('recipe', t.id, t.deletedAt || 1, true); }); } catch (e) { /* Store fehlt: nichts vormerken */ }
   (await dbGetAllMealplan()).forEach(d => add('mealplan', d.date, 1));
-  (await dbGetAllShopping()).forEach(s => add('shopping', s.id, s.createdAt || 1));
-  const imageIds = new Set((await dbGetAll()).map(r => r.imageId).filter(Boolean));
+  (await cloudOwnShoppingAll()).forEach(s => add('shopping', s.id, s.createdAt || 1));
+  const imageIds = new Set(recipes.map(r => r.imageId).filter(Boolean));
   imageIds.forEach(id => add('image', id, 1));
   if (typeof coverImageIdsInUse === 'function') coverImageIdsInUse().forEach(id => add('image', id, 1));   // eigene Cover-Bilder gehen denselben Bildweg
   Object.entries(CLOUD_SETTING_KEYS).forEach(([name, key]) => { const v = localStorage.getItem(key); if (v && v !== '[]' && v !== '""') add('setting', name, 1); });
   // Sammlungen, Zuordnungen, Verknuepfungen (inkl. Grabsteinen) mit ihrem Konfliktwert; reine Bestandsuebernahmen bleiben lokal
-  if (typeof orgSyncAll === 'function') orgSyncAll().forEach(e => { const key = e.kind + '|' + e.id; if (!q[key]) { q[key] = { kind: e.kind, id: String(e.id), deleted: e.deleted, at: e.at }; m[key] = e.at; } });
-  writeJsonKey(CLOUD_QUEUE_KEY, q); writeJsonKey(CLOUD_META_KEY, m);
+  if (typeof orgSyncAll === 'function') orgSyncAll().forEach(e => add(e.kind, e.id, e.at, e.deleted));
+  // Vorrat
+  try { (await cloudPantryAll()).forEach(e => add('pantry', e.id, e.at || 1, e.deleted)); } catch (e) { /* Vorrat nicht verfuegbar */ }
+  cloudQueuePut(q); cloudMetaPut(m);
 }
 
 /* ---------- Abgleich ---------- */
@@ -251,12 +410,117 @@ function cloudScheduleSync(delay) {
   cloud.timer = setTimeout(() => cloudSyncNow(), delay || 0);
 }
 async function cloudReadLocal(kind, id) {
-  if (kind === 'recipe') return (await dbGetAll()).find(r => r.id === id) || null;
+  if (kind === 'recipe') return await dbGetRecipe(id);
   if (kind === 'mealplan') return (await dbGetAllMealplan()).find(d => d.date === id) || null;
-  if (kind === 'shopping') return (await dbGetAllShopping()).find(s => s.id === id) || null;
+  if (kind === 'shopping') return (await cloudOwnShoppingAll()).find(s => s.id === id) || null;
   if (kind === 'setting') { const v = localStorage.getItem(CLOUD_SETTING_KEYS[id]); return v === null ? null : { value: v }; }
   if (cloudIsOrgKind(kind) && typeof orgSyncRead === 'function') return orgSyncRead(kind, id);
+  if (kind === 'pantry') return await cloudPantryRead(id);
   return null;
+}
+
+/* ---------- Vorrat als eigene Datenart (v0.90) ----------
+   pantry.js liefert die Hooks pantrySyncRead(id) (Datensatz oder null), pantrySyncApply(rec, deleted) (neuerer updatedAt
+   gewinnt) und pantrySyncAll() (alle Datensaetze, auch den Marker 'p-seeded');
+   sonst gelten die einfachen Standardwege hier. Abgleich in eigenen Bloecken: fehlt die Datenbank-Erweiterung auf dem
+   Server, bleiben die Eintraege in der Warteschlange und der uebrige Abgleich laeuft weiter. */
+const CLOUD_SOLO_KINDS = ['pantry'];
+function cloudIsSoloKind(kind) { return CLOUD_SOLO_KINDS.includes(kind); }
+function cloudPantryValid(data, id) {
+  return !!data && typeof data === 'object' && !Array.isArray(data) && data.id === id && typeof data.name === 'string' && data.name.length <= 300
+    && (data.canonical === undefined || data.canonical === null || (typeof data.canonical === 'string' && data.canonical.length <= 300));
+}
+async function cloudPantryRead(id) {
+  if (typeof pantrySyncRead === 'function') return await pantrySyncRead(id);
+  return typeof dbGetPantry === 'function' ? await dbGetPantry(id) : null;
+}
+async function cloudPantryAll() {
+  const list = typeof pantrySyncAll === 'function' ? await pantrySyncAll() : (typeof dbGetAllPantry === 'function' ? await dbGetAllPantry() : []);
+  return (Array.isArray(list) ? list : []).filter(p => p && p.id).map(p => ({ id: p.id, at: Number(p.updatedAt) || 1, deleted: !!p.deleted }));
+}
+async function cloudPantryApply(id, data, deleted) {
+  const rec = data && typeof data === 'object' && !Array.isArray(data) ? Object.assign({}, data, { id }) : { id };
+  if (typeof pantrySyncApply === 'function') return await pantrySyncApply(rec, !!deleted);
+  if (deleted) { await dbDeletePantry(id); return true; }
+  if (!cloudPantryValid(rec, id)) { console.warn('Cloud-Vorrat nicht uebernommen', id); return false; }
+  await dbPutPantry(rec);
+  return true;
+}
+
+/* ---------- Konflikte bei Rezepten (v0.90) ----------
+   Basis = Inhalts-Hash beim letzten Abgleich. Haben seither BEIDE Seiten den Inhalt geaendert (und verschieden), bleibt die
+   Verliererseite der Zeitregel zusaetzlich als eigenes Rezept «… (Kopie von <Geraet>)» erhalten. Nur Metadaten (Bewertung,
+   Favorit, Kochzaehler …) zaehlen nicht als Inhalt; bei der Bewertung gewinnt das neuere ratedAt. Ohne Basis (erster
+   Abgleich) entsteht nie eine Kopie. */
+const CLOUD_RECIPE_META_FIELDS = ['updatedAt', 'rating', 'ratedAt', 'favorite', 'lastCookedAt', 'cookCount', 'cookLog', 'collections', 'collectionIds', 'syncDevice'];
+function recipeContentHash(r) {
+  if (!r || typeof r !== 'object') return null;
+  const c = {};
+  Object.keys(r).forEach(k => { if (!CLOUD_RECIPE_META_FIELDS.includes(k)) c[k] = r[k]; });
+  return stableHash(c);
+}
+function cloudRatedNewer(a, b) { return !!a && !!b && (Number(a.ratedAt) || 0) > (Number(b.ratedAt) || 0); }
+async function cloudConflictCopy(recipe, device, hash) {
+  const id = 'k-' + stableHash(String(recipe.id) + hash);
+  if (await dbGetRecipe(id)) return null;   // schon angelegt (gleicher Konflikt, deterministische ID)
+  const now = Date.now();
+  const copy = JSON.parse(JSON.stringify(recipe));
+  const suffix = ` (Kopie von ${String(device || 'anderem Gerät').slice(0, 40)})`;
+  copy.id = id;
+  copy.title = String(recipe.title || 'Rezept').slice(0, 500 - suffix.length) + suffix;
+  copy.conflictOf = recipe.id; copy.conflictAt = now;
+  copy.createdAt = copy.createdAt || now; copy.updatedAt = now;
+  delete copy.syncDevice;
+  const was = cloud.applyingRemote; cloud.applyingRemote = false;
+  try { await dbPut(copy); }   // normal vormerken: die Kopie geht auf alle Geraete
+  finally { cloud.applyingRemote = was; }
+  return copy;
+}
+
+/* ---------- Zuletzt geloescht: Cloud-Teil (v0.90) ----------
+   Ein geloeschtes Rezept geht als Grabstein (deleted=true) MIT data = { trash: { deletedAt, recipe } } in die Cloud.
+   Aeltere App-Versionen loeschen es wie bisher; neuere legen es in ihren Papierkorb. Ein Grabstein ohne data
+   (Papierkorb geleert oder aeltere Version) loescht endgueltig, samt Bild, wenn kein anderes Rezept es nutzt. */
+async function cloudTrashPayload(id) {
+  if (typeof dbGetRecipeTrash !== 'function') return null;
+  const t = await dbGetRecipeTrash(id);
+  if (!t || !t.recipe) return null;
+  return { trash: { deletedAt: t.deletedAt || Date.now(), recipe: t.recipe } };
+}
+async function recipeImageInUse(imageId, exceptRecipeId) {
+  if (!imageId) return false;
+  if ((await dbGetAll()).some(r => r && r.id !== exceptRecipeId && r.imageId === imageId)) return true;
+  if (typeof dbGetAllRecipeTrash === 'function' && (await dbGetAllRecipeTrash()).some(t => t && t.id !== exceptRecipeId && (t.imageId === imageId || (t.recipe && t.recipe.imageId === imageId)))) return true;
+  if (typeof coverImageIdsInUse === 'function' && coverImageIdsInUse().includes(imageId)) return true;
+  return false;
+}
+// Fuer ui.js (Loeschen nach Ablauf des Rueckgaengig-Fensters): zuerst in den Papierkorb, dann loeschen. Das Bild bleibt.
+async function recipeTrashOnDelete(recipe) {
+  if (!recipe || !recipe.id) return null;
+  const entry = { id: recipe.id, recipe: JSON.parse(JSON.stringify(recipe)), deletedAt: Date.now(), imageId: recipe.imageId || null };
+  await dbPutRecipeTrash(entry);   // schlaegt das fehl (Speicher voll), bleibt das Rezept bestehen
+  await dbDelete(recipe.id);       // Abgleich: Grabstein mit Papierkorb-Daten
+  return entry;
+}
+// Fuer trash.js (Wiederherstellen): Rezept mit neuem updatedAt zurueck, Papierkorb-Eintrag weg.
+async function recipeTrashRestoreCore(id) {
+  const t = await dbGetRecipeTrash(id);
+  if (!t || !t.recipe) return null;
+  const recipe = Object.assign(JSON.parse(JSON.stringify(t.recipe)), { id: t.id, updatedAt: Date.now() });
+  await dbPut(recipe);             // Abgleich: wieder vorhanden (neuer als der Grabstein)
+  await dbDeleteRecipeTrash(id);
+  return recipe;
+}
+// Fuer trash.js (endgueltig loeschen, auch trashPurge nach 30 Tagen): Grabstein ohne Daten, Bild weg, wenn ungenutzt.
+async function recipeTrashFinalDelete(id) {
+  const t = await dbGetRecipeTrash(id);
+  if (!t) return false;
+  await dbDeleteRecipeTrash(id);
+  if (await dbGetRecipe(id)) return true;   // inzwischen wieder ein lebendes Rezept: nur den Eintrag entfernen
+  cloudMark('recipe', id, true);            // ohne Papierkorb-Eintrag sendet cloudPush data = null: endgueltig
+  const img = t.imageId || (t.recipe && t.recipe.imageId);
+  if (img && !(await recipeImageInUse(img, id))) await dbDeleteImage(img);   // umhuellt: Bild auch in der Cloud loeschen
+  return true;
 }
 function cloudImagePath(id, thumb) { return `${cloudUserId()}/${encodeURIComponent(id)}${thumb ? '-thumb' : ''}`; }
 async function cloudPushImage(id, deleted) {
@@ -301,30 +565,57 @@ async function cloudPush(ctx) {
   if (!entries.length) return 0;
   const rows = [];
   const orgRows = [];
+  const soloRows = [];
   const imageJobs = [];
   const failed = new Set();
+  const pushedHash = {};   // Rezept-Schluessel -> Inhalts-Hash des gesendeten Stands (Basis, wenn der Server ihn annimmt)
+  const device = savoraDeviceName();
   for (const [key, e] of entries) {
     if (e.kind === 'image') { imageJobs.push([key, e]); continue; }
+    let local;
+    if (e.kind === 'recipe' && e.deleted) local = await cloudTrashPayload(e.id);   // Papierkorb-Daten mitschicken
     // Org-Grabsteine mit Daten senden (Name, Farbe, Symbol), damit ein neues Geraet die ID-Regel anwenden kann
-    const local = e.deleted && !cloudIsOrgKind(e.kind) ? null : await cloudReadLocal(e.kind, e.id);
+    else local = e.deleted && !cloudIsOrgKind(e.kind) ? null : await cloudReadLocal(e.kind, e.id);
+    if (e.kind === 'recipe' && !e.deleted && local) {
+      pushedHash[key] = recipeContentHash(local);
+      local = Object.assign({}, local, { syncDevice: device });
+    }
     const row = { user_id: cloudUserId(), kind: e.kind, id: e.id, data: local, deleted: e.deleted || !local, client_updated_at: e.at };
-    (cloudIsOrgKind(e.kind) ? orgRows : rows).push(row);
+    (cloudIsOrgKind(e.kind) ? orgRows : cloudIsSoloKind(e.kind) ? soloRows : rows).push(row);
   }
-  const send = (block) => cloudFetch('/rest/v1/savora_records?on_conflict=user_id,kind,id', {
-    method: 'POST', headers: { 'Content-Type': 'application/json', Prefer: 'resolution=merge-duplicates,return=minimal' },
+  const send = (block, representation) => cloudFetch('/rest/v1/savora_records?on_conflict=user_id,kind,id' + (representation ? '&select=kind,id,client_updated_at' : ''), {
+    method: 'POST', headers: { 'Content-Type': 'application/json', Prefer: 'resolution=merge-duplicates,return=' + (representation ? 'representation' : 'minimal') },
     body: JSON.stringify(block),
   });
-  for (let i = 0; i < rows.length; i += 200) { cloudCheckCtx(ctx); await send(rows.slice(i, i + 200)); }
-  // Organisation in eigenen Bloecken: lehnt der Server sie ab (Migration paket47 fehlt), bleiben sie in der Warteschlange
-  // und der uebrige Abgleich (Rezepte, Plan, Einkauf) laeuft trotzdem.
-  for (let i = 0; i < orgRows.length; i += 200) {
+  const baseUpdates = {};
+  for (let i = 0; i < rows.length; i += 200) {
     cloudCheckCtx(ctx);
-    const block = orgRows.slice(i, i + 200);
-    try { await send(block); }
-    catch (err) {
-      if (err.offline || err.status === 401) throw err;
-      console.warn('Sammlungen/Verknuepfungen nicht abgeglichen', err.status, err.message);
-      block.forEach(r => failed.add(r.kind + '|' + r.id));
+    const block = rows.slice(i, i + 200);
+    const res = await send(block, true);
+    // Antwort zeigt den Stand nach dem Schreiben: gleicher Zeitstempel = angenommen (aelterer Stand wird vom Server verworfen)
+    let back = null; try { back = await res.json(); } catch (e) { back = null; }
+    if (Array.isArray(back)) {
+      const sent = new Map(block.map(r => [r.kind + '|' + r.id, r]));
+      back.forEach(b => {
+        if (!b || b.kind !== 'recipe') return;
+        const k = b.kind + '|' + b.id, r = sent.get(k);
+        if (!r || Number(b.client_updated_at) !== Number(r.client_updated_at)) return;
+        baseUpdates[k] = r.deleted ? undefined : pushedHash[k];
+      });
+    }
+  }
+  // Organisation und Vorrat in eigenen Bloecken: lehnt der Server sie ab (Migration fehlt), bleiben sie in der Warteschlange
+  // und der uebrige Abgleich (Rezepte, Plan, Einkauf) laeuft trotzdem.
+  for (const [group, label] of [[orgRows, 'Sammlungen/Verknuepfungen'], [soloRows, 'Vorrat']]) {
+    for (let i = 0; i < group.length; i += 200) {
+      cloudCheckCtx(ctx);
+      const block = group.slice(i, i + 200);
+      try { await send(block, false); }
+      catch (err) {
+        if (err.offline || err.status === 401) throw err;
+        console.warn(label + ' nicht abgeglichen', err.status, err.message);
+        block.forEach(r => failed.add(r.kind + '|' + r.id));
+      }
     }
   }
   for (const [key, e] of imageJobs) {
@@ -333,9 +624,13 @@ async function cloudPush(ctx) {
   }
   // Nur entfernen, was waehrend des Hochladens nicht erneut geaendert wurde.
   cloudCheckCtx(ctx);
-  const now = cloudQueue();
-  entries.forEach(([key, e]) => { if (!failed.has(key) && now[key] && now[key].at === e.at) delete now[key]; });
-  writeJsonKey(CLOUD_QUEUE_KEY, now);
+  const done = {};
+  entries.forEach(([key, e]) => { const cur = cloudQueueGet(key); if (!failed.has(key) && cur && cur.at === e.at) done[key] = undefined; });
+  cloudQueuePut(done);
+  // Basis nur fuer Rezepte, die seither nicht erneut geaendert wurden
+  const base = {};
+  Object.keys(baseUpdates).forEach(k => { if (!cloudQueueGet(k)) base[k] = baseUpdates[k]; });
+  cloudBasePut(base);
   return rows.length + imageJobs.length;
 }
 
@@ -362,33 +657,122 @@ function cloudApplyOrgRows(rows, ctx) {
     if (res.applied) n++;
   });
   if (typeof orgBatch === 'function') orgBatch(run); else run();
-  const m = cloudMeta(); Object.assign(m, metaUpdates); writeJsonKey(CLOUD_META_KEY, m);
+  cloudMetaPut(metaUpdates);
   remark.forEach(([kind, id, at]) => { const local = orgSyncRead(kind, id); cloudMark(kind, id, !local || !!local.deleted, at); });
   return n;
+}
+// Rezept aus der Cloud uebernehmen: Zeitregel wie bisher, dazu Papierkorb und Konflikt-Kopien (v0.90).
+async function cloudApplyRecipe(row, ctx) {
+  const key = 'recipe|' + row.id;
+  const pending = cloudQueueGet(key);
+  const localAt = cloudMetaGet(key) || 0;
+  const base = cloudBaseGet(key);   // undefined = unbekannt (erster Abgleich): nie eine Kopie
+  // Cloud-Stand vorbereiten. Daten von aussen: erst pruefen (Typen, IDs, Bildquelle), ungueltige Rezepte nicht uebernehmen
+  let remote = null, remoteDevice = '';
+  if (!row.deleted) {
+    if (row.data && typeof row.data.syncDevice === 'string') remoteDevice = row.data.syncDevice.slice(0, 40);
+    const checked = validateRecipe(row.data);
+    if (!checked.ok) { console.warn('Cloud-Rezept nicht uebernommen', row.id, checked.errors.slice(0, 3)); return false; }
+    remote = checked.recipe; delete remote.syncDevice;
+    if (remote.id === undefined || remote.id === null) remote.id = row.id;
+  }
+  const remoteHash = remote ? recipeContentHash(remote) : null;
+  const local = await dbGetRecipe(row.id);
+  const localHash = local ? recipeContentHash(local) : null;
+  const known = base !== undefined;
+
+  // 1. Lokaler Stand ist neuer und wird hochgeladen: der Cloud-Stand verliert.
+  if (pending && pending.at > row.client_updated_at) {
+    let changed = false;
+    if (known && remote && remoteHash !== base) {
+      if (local && !pending.deleted && localHash !== base && localHash !== remoteHash) {
+        // beide geaendert: den Cloud-Stand als Kopie behalten
+        if (await cloudConflictCopy(remote, remoteDevice || 'anderem Gerät', remoteHash)) changed = true;
+        cloudBasePut({ [key]: remoteHash });
+      } else if (pending.deleted && typeof dbGetRecipeTrash === 'function') {
+        // hier geloescht, anderswo geaendert: den geaenderten Stand im Papierkorb aufbewahren (wird mit hochgeladen)
+        const t = await dbGetRecipeTrash(row.id);
+        if (t) { await dbPutRecipeTrash(Object.assign({}, t, { recipe: remote, imageId: remote.imageId || t.imageId || null })); cloudBasePut({ [key]: remoteHash }); changed = true; }
+      }
+    } else if (remote && local && localHash === remoteHash) cloudBasePut({ [key]: localHash });
+    // Bewertung: das neuere ratedAt gewinnt auch hier (der ausstehende Upload nimmt sie mit)
+    if (remote && local && !pending.deleted && cloudRatedNewer(remote, local)) {
+      cloudCheckCtx(ctx);
+      await cloudOrig.dbPut(Object.assign({}, local, { rating: remote.rating === undefined ? null : remote.rating, ratedAt: remote.ratedAt }));
+      changed = true;
+    }
+    return changed;
+  }
+  if (localAt > row.client_updated_at) return false;
+  cloudCheckCtx(ctx);
+
+  // 2. Der Cloud-Stand gewinnt.
+  let remark = false, changed = false;
+  const localChanged = !!local && known && localHash !== base;   // lokal seit dem letzten Abgleich geaendert
+  cloud.applyingRemote = true;
+  try {
+    if (row.deleted) {
+      const tr = row.data && typeof row.data === 'object' && row.data.trash && typeof row.data.trash === 'object' ? row.data.trash : null;
+      let keep = null, deletedAt = Date.now();
+      if (tr) {
+        // In den Papierkorb. Lokal geaendert: den lokalen Stand aufbewahren, sonst den mitgeschickten
+        const checked = tr.recipe ? validateRecipe(tr.recipe) : null;
+        if (checked && checked.ok) { keep = checked.recipe; delete keep.syncDevice; keep.id = row.id; }
+        if (local && (localChanged || !keep)) keep = local;
+        if (Number.isFinite(Number(tr.deletedAt)) && Number(tr.deletedAt) > 0) deletedAt = Number(tr.deletedAt);
+        else deletedAt = row.client_updated_at || deletedAt;
+      } else if (localChanged) {
+        keep = local;   // endgueltig geloescht, aber hier ungesehen geaendert: 30 Tage im Papierkorb behalten
+      }
+      if (keep && typeof dbPutRecipeTrash === 'function') {
+        await dbPutRecipeTrash({ id: row.id, recipe: keep, deletedAt, imageId: keep.imageId || null });   // zuerst sichern
+        if (local) await cloudOrig.dbDelete(row.id);
+        changed = true;
+      } else {
+        // endgueltig: Rezept, Papierkorb-Eintrag und Bild (wenn kein anderes Rezept es nutzt)
+        const t = typeof dbGetRecipeTrash === 'function' ? await dbGetRecipeTrash(row.id) : null;
+        if (local) await cloudOrig.dbDelete(row.id);
+        if (t) await dbDeleteRecipeTrash(row.id);
+        const img = (local && local.imageId) || (t && (t.imageId || (t.recipe && t.recipe.imageId)));
+        if (img && !(await recipeImageInUse(img, row.id))) await (cloudOrig.dbDeleteImage || dbDeleteImage)(img);
+        changed = !!(local || t);
+      }
+      cloudBasePut({ [key]: undefined });
+    } else {
+      // Ueberschreiben. Beide Seiten seit der Basis verschieden geaendert: den lokalen Stand als Kopie behalten
+      if (localChanged && remoteHash !== base && localHash !== remoteHash) await cloudConflictCopy(local, savoraDeviceName(), localHash);
+      let toStore = remote;
+      if (local && cloudRatedNewer(local, remote)) { toStore = Object.assign({}, remote, { rating: local.rating === undefined ? null : local.rating, ratedAt: local.ratedAt }); remark = true; }
+      await cloudOrig.dbPut(toStore);
+      changed = true;
+      // anderswo wiederhergestellt: Papierkorb-Eintrag entfernen (das Bild bleibt, das Rezept nutzt es)
+      if (typeof dbGetRecipeTrash === 'function' && await dbGetRecipeTrash(row.id)) await dbDeleteRecipeTrash(row.id);
+      cloudBasePut({ [key]: recipeContentHash(toStore) });
+      if (toStore.imageId && !(await dbGetImage(toStore.imageId))) {
+        try { await cloudFetchImage(toStore.imageId); } catch (e) { /* Bild folgt beim naechsten Abgleich */ }
+      }
+    }
+  } finally { cloud.applyingRemote = false; }
+  cloudMetaPut({ [key]: row.client_updated_at });
+  if (remark) cloudMark('recipe', row.id, false);   // zusammengefuehrte Bewertung hochladen
+  return changed;
 }
 async function cloudApplyRemote(row, ctx) {
   cloudCheckCtx(ctx);
   if (cloudIsOrgKind(row.kind)) return cloudApplyOrgRows([row], ctx) > 0;
+  if (row.kind === 'recipe') return cloudApplyRecipe(row, ctx);
   const key = row.kind + '|' + row.id;
-  const localAt = cloudMeta()[key] || 0;
-  const pending = cloudQueue()[key];
+  const localAt = cloudMetaGet(key) || 0;
+  const pending = cloudQueueGet(key);
   if (pending && pending.at > row.client_updated_at) return false; // lokaler Stand ist neuer und wird hochgeladen
   if (localAt > row.client_updated_at) return false;
   let legacyMerge = false;
   cloud.applyingRemote = true;
   try {
-    if (row.kind === 'recipe') {
-      if (row.deleted) await cloudOrig.dbDelete(row.id);
-      else {
-        // Daten aus der Cloud sind von aussen: erst pruefen (Typen, IDs, Bildquelle), ungueltige Rezepte nicht uebernehmen
-        const checked = validateRecipe(row.data);
-        if (!checked.ok) { console.warn('Cloud-Rezept nicht uebernommen', row.id, checked.errors.slice(0, 3)); return false; }
-        row.data = checked.recipe;
-        await cloudOrig.dbPut(row.data);
-        if (row.data && row.data.imageId && !(await dbGetImage(row.data.imageId))) {
-          try { await cloudFetchImage(row.data.imageId); } catch (e) { /* Bild folgt beim naechsten Abgleich */ }
-        }
-      }
+    if (row.kind === 'pantry') {
+      // Vorrat: ein Fehler hier darf den uebrigen Abgleich nie blockieren
+      try { if ((await cloudPantryApply(row.id, row.data, !!row.deleted || !row.data)) === false) return false; }
+      catch (e) { console.warn('Vorrat nicht uebernommen', row.id, e && e.message); return false; }
     } else if (row.kind === 'mealplan') {
       if (row.deleted || !row.data) await cloudOrig.dbPutMealplanDay({ date: row.id, recipeIds: [], entries: [] });
       else await cloudOrig.dbPutMealplanDay(row.data);
@@ -415,7 +799,7 @@ async function cloudApplyRemote(row, ctx) {
       }
     }
   } finally { cloud.applyingRemote = false; }
-  const m = cloudMeta(); m[key] = row.client_updated_at; writeJsonKey(CLOUD_META_KEY, m);
+  cloudMetaPut({ [key]: row.client_updated_at });
   if (legacyMerge) cloudMark('setting', 'collections', false);   // zusammengefuehrte Liste fuer aeltere Geraete hochladen
   return true;
 }
@@ -423,9 +807,9 @@ async function cloudApplyRemote(row, ctx) {
    schon gezogen, aber nicht verstanden (Meta gesetzt, Cursor weiter). Nach dem Update werden sie hier nachgeholt. */
 async function cloudOrgCatchUp(ctx) {
   cloudCheckCtx(ctx);
-  const m = cloudMeta();
-  Object.keys(m).forEach(k => { if (cloudIsOrgKind(k.split('|')[0])) delete m[k]; });
-  writeJsonKey(CLOUD_META_KEY, m);
+  const del = {};
+  Object.keys(cloudMeta()).forEach(k => { if (cloudIsOrgKind(k.split('|')[0])) del[k] = undefined; });
+  cloudMetaPut(del);
   let changed = 0;
   for (let page = 0; page < 200; page++) {
     const q = `/rest/v1/savora_records?select=kind,id,data,deleted,client_updated_at,server_updated_at&kind=in.(${CLOUD_ORG_KINDS.join(',')})&order=server_updated_at.asc,kind.asc,id.asc&limit=1000&offset=${page * 1000}`;
@@ -477,6 +861,7 @@ async function cloudSyncNow(opts = {}) {
   let changed = 0;
   const ctx = cloudSyncCtx();
   try {
+    await cloudStateLoad();   // Warteschlange und Meta aus IndexedDB (einmalig; ohne IndexedDB weiter mit localStorage)
     await cloudPush(ctx);
     const hadCursor = !!readJsonKey(CLOUD_CURSOR_KEY, null);
     const needCatchUp = hadCursor && typeof orgMetaGet === 'function' && !orgMetaGet('catchUpDone');
@@ -519,7 +904,7 @@ function cloudRefreshStatus() {
   if (el) el.innerHTML = cloudStatusHtml();
 }
 function cloudStatusHtml() {
-  const pending = Object.keys(cloudQueue()).length;
+  const pending = cloudQueueCount();
   const last = readJsonKey(CLOUD_LAST_KEY, null);
   if (cloud.syncing) return `<span class="sync-dot sync-dot--busy"></span>Wird abgeglichen …`;
   if (cloud.lastError) return `<span class="sync-dot sync-dot--warn"></span>${escapeHtml(cloud.lastError)}`;
@@ -559,6 +944,7 @@ async function cloudDeleteAccount() {
   cloudSetSession(null);
   if (typeof libReset === 'function') libReset();
   [CLOUD_QUEUE_KEY, CLOUD_META_KEY, CLOUD_CURSOR_KEY, CLOUD_LAST_KEY].forEach(k => { try { localStorage.removeItem(k); } catch (e) {} });
+  cloudStateReset();
 }
 
 /* ---------- Ausloeser ---------- */
@@ -566,6 +952,7 @@ window.addEventListener('online', () => cloudScheduleSync(300));
 document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') cloudScheduleSync(300); });
 setInterval(() => { if (document.visibilityState === 'visible') cloudScheduleSync(0); }, 90 * 1000);
 function cloudStartup() {
+  if (cloudSignedIn()) cloudStateLoad();   // vor dem ersten Abgleich laden (cloudSyncNow wartet ohnehin darauf)
   const redirect = cloudHandleRedirect();
   if (redirect) cloudCompleteRedirect(redirect);
   else if (cloudSignedIn()) cloudScheduleSync(800);
@@ -627,7 +1014,7 @@ function cloudShowError(msg) {
 }
 function cloudSettingsSummary() {
   if (!cloudSignedIn()) return 'Nicht angemeldet';
-  return Object.keys(cloudQueue()).length ? 'Änderungen ausstehend' : 'An';
+  return cloudQueueCount() ? 'Änderungen ausstehend' : 'An';
 }
 
 async function handleCloudAction(action, id, el) {
@@ -690,7 +1077,7 @@ async function handleCloudAction(action, id, el) {
       return true;
     }
     case 'cloud-sign-out':
-      if (Object.keys(cloudQueue()).length && !window.confirm('Es gibt noch nicht übertragene Änderungen. Trotzdem abmelden? Sie bleiben auf diesem Gerät.')) return true;
+      if (cloudQueueCount() && !window.confirm('Es gibt noch nicht übertragene Änderungen. Trotzdem abmelden? Sie bleiben auf diesem Gerät.')) return true;
       await cloudAuthSignOut(); state.cloudMode = 'signin'; render(); showToast('Abgemeldet. Deine Daten bleiben auf diesem Gerät.');
       return true;
     case 'cloud-delete-account': {

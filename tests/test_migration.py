@@ -71,7 +71,7 @@ async def main():
         # F01-Migration ergaenzt nur keyVersion (in UTC keine Verschiebung); sonst unveraendert
         norm = lambda l: sorted([{k: v for k, v in d.items() if k != 'keyVersion'} for d in l], key=lambda d: d['date'])
         assert norm(after['plan']) == norm(before['plan']) and all(d.get('keyVersion') == 2 for d in after['plan']), "Wochenplan-Record veraendert"
-        assert after['dbVersion'] == before['dbVersion']
+        assert after['dbVersion'] >= before['dbVersion']   # nur additive Erweiterungen (v0.90: DB_VERSION 6 mit neuen Stores), nie zurueck
         print("NACHHER identisch: IDs, Rohdaten, Bild, Einkauf, Wochenplan, localStorage, DB-Version", after['dbVersion'])
         # Anzeige alter Daten
         await show(page, "() => { state.activeRecipeId = 'r_legacy_1'; state.view = 'detail'; render(); }", '.detail-main')
