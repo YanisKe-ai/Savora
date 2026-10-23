@@ -35,7 +35,9 @@
 <link rel="preload" href="archivo.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="styles.css">
 <link rel="stylesheet" href="styles-v2.css">
-<link rel="stylesheet" href="pdf-print.css">
+<!-- v89: PDF-Seitenstile blockieren den ersten Bildschirm nicht mehr (laden parallel, gelten vor dem «load»-Ereignis) -->
+<link rel="stylesheet" href="pdf-print.css" media="print" onload="this.media='all'">
+<noscript><link rel="stylesheet" href="pdf-print.css"></noscript>
 </head>
 <body>
 <div id="splash">
@@ -45,65 +47,64 @@
 <div id="printRoot"></div>
 <div id="liveRegion" aria-live="polite" aria-atomic="true" class="sr-only"></div>
 <div id="liveRegionAssertive" aria-live="assertive" aria-atomic="true" class="sr-only"></div>
-
-
-<script src="native.js"></script>
-<script src="icons.js"></script>
-<script src="db.js"></script>
-<script src="nutrition-model.js"></script>
-<script src="ingredient-normalizer.js"></script>
-<script src="classification.js"></script>
-<script src="nutrition-units.js"></script>
-<script src="nutrition-swiss.js"></script>
-<script src="nutrition-aliases.js"></script>
-<script src="nutrition-sync.js"></script>
-<script src="nutrition-matcher.js"></script>
-<script src="nutrition-preparation.js"></script>
-<script src="nutrition-calculator.js"></script>
-<script src="images.js"></script>
-<script src="quantity.js"></script>
-<script src="utils.js"></script>
-<script src="validate.js"></script>
-<script src="legal.js"></script>
-<script src="units.js"></script>
-<script src="shopping.js"></script>
-<script src="state.js"></script>
-<script src="recipe-model.js"></script>
-<script src="org.js"></script>
-<script src="cookbooks.js"></script>
-<script src="recipe-check.js"></script>
-<script src="parsers.js"></script>
-<script src="recipe-json.js"></script>
-<script src="recipe-import.js"></script>
-<script src="ingredient-paste.js"></script>
-<script src="views.js"></script>
-<script src="views-v2.js"></script>
-<script src="unit-converter.js"></script>
-<script src="cookmode.js"></script>
-<script src="pdf-layout.js"></script>
-<script src="cover.js"></script>
-<script src="cover-model.js"></script>
-<script src="cover-image.js"></script>
-<script src="cover-editor.js"></script>
-<script src="motion-cover.js"></script>
-<script src="pdf-templates.js"></script>
-<script src="pdf.js"></script>
-<script src="pdf-ui.js"></script>
-<script src="pdf-preview.js"></script>
-<script src="pdf-model.js"></script>
-<script src="backup.js"></script>
-<script src="motion.js"></script>
-<script src="ui.js"></script>
-<script src="actions-v2.js"></script>
-<script src="recipe-picker.js"></script>
-<script src="cloud.js"></script>
-<script src="share.js"></script>
-<script src="library.js"></script>
-<script src="library-views.js"></script>
-<script src="library-publish.js"></script>
-<script src="recipe-origin.js"></script>
-<script src="nutrition-ui.js"></script>
-<script src="app.js"></script>
-<script src="settings-konto.js"></script>
+<!-- v89: alle App-Skripte mit defer: Reihenfolge bleibt gleich, der Startbildschirm erscheint ohne auf sie zu warten -->
+<script defer src="native.js"></script>
+<script defer src="icons.js"></script>
+<script defer src="db.js"></script>
+<script defer src="nutrition-model.js"></script>
+<script defer src="ingredient-normalizer.js"></script>
+<script defer src="classification.js"></script>
+<script defer src="nutrition-units.js"></script>
+<script defer src="nutrition-swiss.js"></script>
+<script defer src="nutrition-aliases.js"></script>
+<script defer src="nutrition-sync.js"></script>
+<script defer src="nutrition-matcher.js"></script>
+<script defer src="nutrition-preparation.js"></script>
+<script defer src="nutrition-calculator.js"></script>
+<script defer src="images.js"></script>
+<script defer src="quantity.js"></script>
+<script defer src="utils.js"></script>
+<script defer src="validate.js"></script>
+<script defer src="legal.js"></script>
+<script defer src="units.js"></script>
+<script defer src="shopping.js"></script>
+<script defer src="state.js"></script>
+<script defer src="recipe-model.js"></script>
+<script defer src="org.js"></script>
+<script defer src="cookbooks.js"></script>
+<script defer src="recipe-check.js"></script>
+<script defer src="parsers.js"></script>
+<script defer src="recipe-json.js"></script>
+<script defer src="recipe-import.js"></script>
+<script defer src="ingredient-paste.js"></script>
+<script defer src="views.js"></script>
+<script defer src="views-v2.js"></script>
+<script defer src="unit-converter.js"></script>
+<script defer src="cookmode.js"></script>
+<script defer src="pdf-layout.js"></script>
+<script defer src="cover.js"></script>
+<script defer src="cover-model.js"></script>
+<script defer src="cover-image.js"></script>
+<script defer src="cover-editor.js"></script>
+<script defer src="motion-cover.js"></script>
+<script defer src="pdf-templates.js"></script>
+<script defer src="pdf.js"></script>
+<script defer src="pdf-ui.js"></script>
+<script defer src="pdf-preview.js"></script>
+<script defer src="pdf-model.js"></script>
+<script defer src="backup.js"></script>
+<script defer src="motion.js"></script>
+<script defer src="ui.js"></script>
+<script defer src="actions-v2.js"></script>
+<script defer src="recipe-picker.js"></script>
+<script defer src="cloud.js"></script>
+<script defer src="share.js"></script>
+<script defer src="library.js"></script>
+<script defer src="library-views.js"></script>
+<script defer src="library-publish.js"></script>
+<script defer src="recipe-origin.js"></script>
+<script defer src="nutrition-ui.js"></script>
+<script defer src="app.js"></script>
+<script defer src="settings-konto.js"></script>
 </body>
 </html>

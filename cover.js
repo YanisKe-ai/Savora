@@ -614,7 +614,19 @@ function coverFitPreviews() {
     if (s > 0) box.style.setProperty('--cv-scale', String(s));
   });
   coverPaintPreviews();
-  if (!_coverFontsReady && typeof coverEnsureFonts === 'function') coverEnsureFonts().then(() => { if (typeof coverRefresh === 'function') coverRefresh(); });
+  if (_coverFontsReady || typeof coverEnsureFonts !== 'function') return;
+  // v89: Ohne Titelblatt auf dem Bildschirm (z. B. Startseite) die rund 150 KB Cover-Schriften nicht beim Kaltstart
+  // laden, sondern kurz danach im Leerlauf. Sobald ein Titelblatt sichtbar ist, sofort wie bisher.
+  if (document.querySelector('.cover-preview, .cover-picker, canvas.cv-canvas')) coverEnsureFonts().then(() => { if (typeof coverRefresh === 'function') coverRefresh(); });
+  else coverWarmFontsLater();
+}
+let _coverFontsWarmQueued = false;
+function coverWarmFontsLater() {
+  if (_coverFontsWarmQueued) return;
+  _coverFontsWarmQueued = true;
+  const run = () => { if (!_coverFontsReady) coverEnsureFonts().then(() => { if (typeof coverRefresh === 'function') coverRefresh(); }); };
+  const idle = () => setTimeout(() => (typeof requestIdleCallback === 'function' ? requestIdleCallback(run, { timeout: 3000 }) : run()), 2000);
+  if (document.readyState === 'complete') idle(); else window.addEventListener('load', idle, { once: true });
 }
 /* Nur das Titelblatt-Panel neu zeichnen (Fokus und Scrollposition der Texteingaben bleiben unberuehrt) */
 function coverRefresh(focusId) {

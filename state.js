@@ -144,6 +144,62 @@ function navHistorySnapshot() {
 }
 // Adresse passend zur Ansicht: ?rezept=<id> bzw. ?profil=<id> fuer Neuladen und Teilen (andere Parameter bleiben)
 function navHistoryUrl() { return typeof libUrlFor === 'function' ? libUrlFor(state.view) : undefined; }
+
+/* v89: Zurueck an die letzte Stelle. iOS beendet eine Home-Bildschirm-App im Hintergrund; beim naechsten Oeffnen
+   startete Savora bisher immer auf der Startseite. Gemerkt werden nur Ansicht, Rezept-ID und Kochbuch-Schritt
+   (keine Rezeptdaten); den Schritt im Kochmodus haelt der bestehende Kochfortschritt (COOK_PROGRESS_KEY).
+   Wiederhergestellt wird nur in der installierten App (standalone), nur ohne eigene Startadresse
+   (?rezept=, ?profil=, Verknuepfung, Teilen) und nur, wenn der Stand hoechstens 12 Stunden alt ist. */
+const NAV_LAST_VIEW_KEY = 'savora-last-view';
+const NAV_LAST_VIEW_MAX_AGE_MS = 12 * 60 * 60 * 1000;
+const NAV_RESTORABLE_VIEWS = new Set(['home', 'detail', 'cookmode', 'mealplan', 'shopping', 'cookbooks', 'cookbook']);
+let navLastViewWritten = '';
+function navLastViewSnapshot() {
+  const v = state.view;
+  if (!NAV_RESTORABLE_VIEWS.has(v)) return null;   // Editor, Einstellungen, Bibliothek: nicht merken (Editor hat seinen eigenen Entwurf)
+  const snap = { view: v };
+  if ((v === 'detail' || v === 'cookmode') && state.activeRecipeId) snap.recipeId = state.activeRecipeId;
+  if (v === 'cookbook') snap.cookbookStep = state.cookbookStep || 1;
+  return snap;
+}
+function navRememberLastView(force) {
+  const snap = navLastViewSnapshot();
+  if (!snap) return;
+  const key = JSON.stringify(snap);
+  if (!force && key === navLastViewWritten) return;
+  navLastViewWritten = key;
+  try { localStorage.setItem(NAV_LAST_VIEW_KEY, JSON.stringify(Object.assign(snap, { at: Date.now() }))); } catch (e) { /* Speicher gesperrt: dann eben ohne */ }
+}
+function navIsStandaloneApp() {
+  try {
+    if (window.navigator.standalone === true) return true;   // iOS Safari, Home-Bildschirm
+    return !!(window.matchMedia && (matchMedia('(display-mode: standalone)').matches || matchMedia('(display-mode: fullscreen)').matches));
+  } catch (e) { return false; }
+}
+/* Liest den gemerkten Stand und setzt state.view/activeRecipeId/cookbookStep. Gibt zurueck, was nach dem ersten
+   render() noch zu tun ist ({ cookRecipeId } fuer den Kochmodus) oder null, wenn nichts wiederhergestellt wird. */
+function navRestoreLastView() {
+  if (!navIsStandaloneApp()) return null;
+  let s = null;
+  try { s = JSON.parse(localStorage.getItem(NAV_LAST_VIEW_KEY) || 'null'); } catch (e) { s = null; }
+  if (!s || typeof s !== 'object' || !NAV_RESTORABLE_VIEWS.has(s.view) || s.view === 'home') return null;
+  if (!(typeof s.at === 'number' && Date.now() - s.at >= 0 && Date.now() - s.at <= NAV_LAST_VIEW_MAX_AGE_MS)) return null;
+  if (s.view === 'detail' || s.view === 'cookmode') {
+    const r = typeof s.recipeId === 'string' && state.recipes.find(x => x.id === s.recipeId);
+    if (!r) return null;
+    state.activeRecipeId = r.id;
+    state.view = 'detail';   // der Kochmodus startet nach dem ersten Zeichnen ueber die bestehende Aktion (Zurueck fuehrt dann ins Rezept)
+    return { view: s.view, cookRecipeId: s.view === 'cookmode' ? r.id : null };
+  }
+  if (s.view === 'cookbook') {
+    if (typeof cookbookStoreRead === 'function') { const st = cookbookStoreRead(); if (!st || !st.activeId || !(st.books || []).some(b => b.id === st.activeId)) return null; }
+    state.cookbookStep = Math.min(2, Math.max(1, parseInt(s.cookbookStep, 10) || 1));   // Schritt 3 (PDF-Vorschau) baut neu: bei «Gestalten» einsteigen
+  }
+  state.view = s.view;
+  return { view: s.view, cookRecipeId: null };
+}
+// Beim Wechsel in den Hintergrund den Zeitpunkt auffrischen (die Ansicht selbst schreibt render())
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden' && lastRenderedView) navRememberLastView(true); });
 window.addEventListener('popstate', (e) => {
   if (state.view === 'form' && typeof isFormDirty === 'function' && isFormDirty()) {
     if (!window.confirm('Ungespeicherte Änderungen verwerfen?')) {
@@ -339,6 +395,7 @@ function render(skipHistoryPush) {
       const url = navHistoryUrl();
       if (url && url !== location.pathname + location.search + location.hash) history.replaceState(history.state, '', url);
     }
+    navRememberLastView();   // v89: letzte Stelle fuer den Neustart der installierten App
   };
   // Formular und Kochmodus ohne View-Transition: der DOM-Tausch muss dort sofort und synchron
   // abgeschlossen sein (Entwurfs-/Dirty-Schnappschuss, Fortschritts-Wiederherstellung).
