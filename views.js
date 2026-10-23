@@ -114,10 +114,17 @@ function addMenuModal() {
           </span>
         </button>
         <button type="button" class="add-menu-option" data-action="open-paste-import">
-          <span class="add-menu-option-icon">${ICONS.sparkle}</span>
+          <span class="add-menu-option-icon">${ICONS.clipboardText || ICONS.fileText}</span>
           <span class="add-menu-option-text">
             <strong>Aus Text importieren</strong>
             <span>Bildunterschrift, Nachricht oder kopierter Text</span>
+          </span>
+        </button>
+        <button type="button" class="add-menu-option" data-action="open-link-import">
+          <span class="add-menu-option-icon">${ICONS.link}</span>
+          <span class="add-menu-option-text">
+            <strong>Aus Link</strong>
+            <span>Link als Quelle merken, Rezepttext selbst einfügen</span>
           </span>
         </button>
         ${SavoraNative.canRecognizeText() ? `<button type="button" class="add-menu-option" data-action="open-photo-scan">
@@ -341,11 +348,25 @@ function moreFriendsSummary() {
   try { if (typeof cloudSignedIn === 'function' && cloudSignedIn() && typeof friendsSummary === 'function') return friendsSummary(); } catch (e) { /* Vorgabetext */ }
   return 'Empfangene Rezepte und Kontakte';
 }
+/* v89 B: Statuszeile «Daten» unter «Mehr»: echte Werte (letzte Sicherung, Abgleich, offline), Sprung zur passenden Unterseite. */
+function moreDataSummary() {
+  const parts = [];
+  const signed = typeof cloudSignedIn === 'function' && cloudSignedIn();
+  parts.push(settingsBackupSummary());
+  if (signed) parts.push(settingsSyncSummary());
+  if (typeof navigator !== 'undefined' && navigator.onLine === false) parts.push('Gerade offline');
+  return parts.join(' · ');
+}
+function moreDataRowHtml() {
+  const signed = typeof cloudSignedIn === 'function' && cloudSignedIn();
+  return settingsRow({ icon: ICONS.database || ICONS.download, title: signed ? 'Sicherung &amp; Abgleich' : 'Sicherung', summary: moreDataSummary(), view: signed ? 'settings-sync' : 'settings-backup' });
+}
 function moreView() {
   return `
     ${topbar('Mehr')}
     <main class="has-tabbar settings-page settings-page--list">
       ${pageTitle('Mehr')}
+      ${settingsGroup('Daten', moreDataRowHtml())}
       ${settingsGroup('Austauschen',
         settingsRow({ icon: ICONS.share, title: 'Freunde &amp; Rezepte', summary: moreFriendsSummary(), view: 'friends', badge: moreFriendsBadge() }))}
       ${typeof libMoreRowsHtml === 'function' ? settingsGroup('Rezeptbibliothek', libMoreRowsHtml()) : ''}
@@ -555,7 +576,27 @@ function settingsAboutView() {
 }
 /* Punkt 12/13: eigener, dedizierter Screen statt Accordion-Textarea in den Settings. Wird ueber
    die FAB (addMenuModal) erreicht, nicht ueber "Mehr". */
+/* v89 B: Vorbefüllung und Link-Quelle des Textimports (state.pasteImport = { text, url, link }), gesetzt von openTextImport()
+   in ui.js. Der Link wird nur als Quelle gespeichert und zum Öffnen angeboten: Savora ruft ihn nie selbst ab. */
+function pasteImportState() { return (state.pasteImport && typeof state.pasteImport === 'object') ? state.pasteImport : {}; }
+function pasteImportLinkHtml(pi) {
+  if (!pi.link && !pi.url) return '';
+  const url = String(pi.url || '');
+  const safe = /^https?:\/\/\S+$/i.test(url);
+  return `<div class="paste-link-box">
+      <div class="field field--tight">
+        <label for="pasteUrl">Link zum Rezept</label>
+        <input type="url" id="pasteUrl" inputmode="url" autocomplete="off" autocapitalize="none" spellcheck="false" enterkeyhint="next" placeholder="https://…" value="${escapeHtml(url)}">
+      </div>
+      <ol class="paste-link-steps">
+        <li>Öffne den Link${safe ? ` (<a href="${escapeHtml(url)}" target="_blank" rel="noopener noreferrer">Link öffnen</a>)` : ''}.</li>
+        <li>Text kopieren: Zutaten und Zubereitung markieren und kopieren.</li>
+        <li>Hier einfügen und «Rezept-Entwurf erstellen» tippen. Der Link wird als Quelle gespeichert.</li>
+      </ol>
+    </div>`;
+}
 function pasteImportView() {
+  const pi = pasteImportState();
   const body = `
     <div class="settings-group">
       <div class="settings-group-card settings-group-card--padded">
@@ -566,8 +607,12 @@ function pasteImportView() {
           <p class="hint-line">Buchseite, Zettel oder Bildschirm fotografieren. Die Texterkennung läuft auf deinem Gerät, das Foto wird nicht gespeichert.</p>
           <div id="ocrStatus" class="ocr-status" role="status" aria-live="polite"></div>
         </div>` : ''}
-        <div class="field field--tight">
-          <textarea id="pasteText" class="paste-import-textarea" placeholder="Rezepttext hier einfügen …"></textarea>
+        ${pasteImportLinkHtml(pi)}
+        <div class="field field--tight paste-field">
+          <label for="pasteText" class="sr-only">Rezepttext</label>
+          <textarea id="pasteText" class="paste-import-textarea" placeholder="Rezepttext hier einfügen …">${escapeHtml(pi.text || '')}</textarea>
+          <button type="button" class="ghost-btn paste-clip-btn" data-action="paste-from-clipboard">${ICONS.clipboardText || ICONS.copy} Aus Zwischenablage einfügen</button>
+          <p class="hint-line paste-clip-hint" id="pasteClipHint" role="status" aria-live="polite"></p>
         </div>
         <div id="pasteError" class="import-error" role="alert" tabindex="-1" hidden></div>
         <button class="primary-btn" data-action="do-paste-import">${ICONS.fileText} Rezept-Entwurf erstellen</button>
@@ -597,7 +642,7 @@ Zubereitung:
 Für 4 Personen, 30 Minuten</pre>
     </aside>`;
   return `
-    ${topbar('Aus Text importieren', { back: true })}
+    ${topbar(pi.link ? 'Aus Link importieren' : 'Aus Text importieren', { back: true })}
     <main class="has-tabbar settings-page import-page"><div class="import-layout">${body}${help}</div></main>
   `;
 }

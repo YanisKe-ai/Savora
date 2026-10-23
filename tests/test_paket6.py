@@ -55,6 +55,7 @@ async def main():
 
         # ---- Kochmodus ----
         await click('[data-action="start-cook"]'); await page.wait_for_selector('.cook-v2')
+        await page.evaluate("() => { const b = document.querySelector('[data-action=\"cook-mise-done\"]'); if (b) b.click(); }")   # v89: Vorbereitung (Mise en place) ueberspringen
         # Schriftgroesse
         f0 = await js("parseFloat(getComputedStyle(document.querySelector('.cookmode-steptext')).fontSize)")
         await click('[data-action="cook-font"]'); f1 = await js("parseFloat(getComputedStyle(document.querySelector('.cookmode-steptext')).fontSize)")

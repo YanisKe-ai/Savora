@@ -187,7 +187,8 @@ function filterDraft() {
   return state.modal.draft;
 }
 function filterOptionHtml(type, dim, id, label, checked, extra) {
-  return `<label class="fs-opt ${extra ? 'fs-opt--extra' : ''}"><input class="fs-input" type="${type}" ${type === 'radio' ? 'name="fs-time"' : ''} data-fs-dim="${dim}" value="${escapeHtml(id)}" ${checked ? 'checked' : ''}><span class="fs-mark" aria-hidden="true">${ICONS.check}</span><span class="fs-text">${escapeHtml(label)}</span></label>`;
+  const wide = String(label || '').split(/\s+/).some(w => w.length > 11);   // v89 B: lange Wörter («Meeresfrüchte») ohne Silbentrennung: Option über die ganze Breite
+  return `<label class="fs-opt ${extra ? 'fs-opt--extra' : ''}${wide ? ' fs-opt--wide' : ''}"><input class="fs-input" type="${type}" ${type === 'radio' ? 'name="fs-time"' : ''} data-fs-dim="${dim}" value="${escapeHtml(id)}" ${checked ? 'checked' : ''}><span class="fs-mark" aria-hidden="true">${ICONS.check}</span><span class="fs-text">${escapeHtml(label)}</span></label>`;
 }
 function filterGroupHtml(key, title, inner, opts) {
   const id = `filter-group-${key}`;
@@ -299,6 +300,16 @@ function recipeImageHtml(r, cls, size) {
   if (cls === 'plan-thumb' || cls === 'picker-thumb') return `<div class="${cls} placeholder"></div>`;   // kleine Vorschau in Listen: ruhige Flaeche, kein Buchstabe
   return '';
 }
+/* v89: Platzhalter fuer Rezepte ohne Foto: Kachel mit dem Anfangsbuchstaben in Lilita One auf zartem Tomatenton
+   (ersetzt das graue Buchsymbol). cls = Bildklasse der Stelle (z. B. 'rrow-img rrow-ph'), Groesse kommt von dort. */
+function recipeInitialLetter(r) {
+  const m = String((r && r.title) || '').match(/\p{L}|\p{N}/u);
+  return m ? m[0].toLocaleUpperCase('de-CH') : '';
+}
+function recipeInitialHtml(r, cls) {
+  const ch = recipeInitialLetter(r);
+  return `<span class="${escapeAttr(cls)} ph-initial" aria-hidden="true">${ch ? `<span class="ph-initial-letter">${escapeHtml(ch)}</span>` : ICONS.bookOpen}</span>`;
+}
 function recipeMetaLine(r, full) {
   const parts = [];
   const ct = timeInfo(r).cardText;   // Zeitbasis ueberall: Gesamtzeit (timeMinutes)
@@ -318,7 +329,7 @@ function recipeCard(r, phone) {
     const time = timeInfo(r).cardText ? `<span class="rcard-meta rcard-meta--time" title="Gesamtzeit">${ICONS.clock}<span>${timeInfo(r).cardText}</span></span>` : '';
     return `<article class="rcard rcard--phone${hvPickedCls(r)}" data-flip-id="${escapeAttr(r.id)}">
     <button type="button" class="rcard-main" ${hvMainAttrs(r, title)}>${hvPickMark(r)}
-      ${photo ? recipeImageHtml(r, 'rcard-img', 'thumb') : `<span class="rcard-img rcard-ph" aria-hidden="true">${ICONS.bookOpen}</span>`}
+      ${photo ? recipeImageHtml(r, 'rcard-img', 'thumb') : recipeInitialHtml(r, 'rcard-img rcard-ph')}
       <span class="rcard-body">
         <span class="rcard-title">${titleHl}</span>${searchIngredientHitHtml(r, state.query)}
         ${time}
@@ -347,7 +358,7 @@ function recipeRow(r, phone) {
     const time = timeInfo(r).cardText ? `<span class="rrow-meta rrow-meta--time" title="Gesamtzeit">${ICONS.clock}<span>${timeInfo(r).cardText}</span></span>` : '';
     return `<article class="rrow rrow--phone${hvPickedCls(r)}" data-flip-id="${escapeAttr(r.id)}">
     <button type="button" class="rrow-main" ${hvMainAttrs(r, title)}>${hvPickMark(r)}
-      ${photo ? recipeImageHtml(r, 'rrow-img', 'thumb') : `<span class="rrow-img rrow-ph" aria-hidden="true">${ICONS.bookOpen}</span>`}
+      ${photo ? recipeImageHtml(r, 'rrow-img', 'thumb') : recipeInitialHtml(r, 'rrow-img rrow-ph')}
       <span class="rrow-body">
         <span class="rrow-title">${titleHl}</span>${searchIngredientHitHtml(r, state.query)}
         ${time}
@@ -416,11 +427,11 @@ const HV_SEARCH_MIN = 8;          // Suche in der Auswahl ab 8 eigenen Sammlunge
 const HV_NAME_MAX = 60;
 const HV_PSEUDO = ['all', 'favorites', 'quick', 'veggie', 'uncooked', 'frequent'];
 const HV_SORT_OPTIONS = [
-  { id: 'updated', label: 'Zuletzt bearbeitet' },
-  { id: 'added', label: 'Zuletzt hinzugefügt' },
-  { id: 'az', label: 'A bis Z' },
-  { id: 'time', label: 'Kürzeste Gesamtzeit' },
-  { id: 'cooked', label: 'Zuletzt gekocht' },
+  { id: 'updated', label: 'Zuletzt bearbeitet', short: 'Bearbeitet' },
+  { id: 'added', label: 'Zuletzt hinzugefügt', short: 'Neueste' },
+  { id: 'az', label: 'A bis Z', short: 'A bis Z' },
+  { id: 'time', label: 'Kürzeste Gesamtzeit', short: 'Schnellste' },
+  { id: 'cooked', label: 'Zuletzt gekocht', short: 'Gekocht' },
 ];
 
 function hvOrg() { return typeof orgCollections === 'function'; }
@@ -642,7 +653,7 @@ function homeView() {
             ${selBtn ? `<div class="hv-count-line">${resultLine}${selBtn}</div>` : resultLine}
             <span class="result-dot" aria-hidden="true">·</span>
             <div class="inline-pick sort-inline">
-              <span class="inline-pick-text">${escapeHtml(sortCur.label)}</span>${ICONS.arrowDown}
+              <span class="inline-pick-text">${escapeHtml(sortCur.label)}</span><span class="inline-pick-short" aria-hidden="true">${escapeHtml(sortCur.short || sortCur.label)}</span>${ICONS.arrowDown}
               <select class="inline-pick-select sort-select" id="sortSelect" aria-label="Sortierung">${sortOptions}</select>
             </div>
           </div>
@@ -671,6 +682,7 @@ function homeView() {
   /* Handy: Suche als runder Knopf neben dem Titel; geoeffnet liegt das Feld ueber der Zeile (kein Springen der Liste), die Zeile dahinter ist inert */
   const searchOpen = !!state.searchOpen, searchEnter = !!state.searchEnter; state.searchEnter = false;
   const hasQuery = !!state.query.trim();
+  const searching = searchOpen || hasQuery;   // v89 B: bei aktiver Suche «Heute geplant» und Sicherungshinweis ausblenden
   const searchBtn = `<button type="button" class="search-btn ${hasQuery ? 'is-active' : ''}" id="searchBtn" data-action="open-search" aria-label="Suchen" aria-expanded="${searchOpen}" aria-controls="searchPop" ${searchOpen ? 'inert' : ''}>${ICONS.search}</button>`;
   const searchPop = searchOpen ? `<div class="search-pop ${searchEnter ? 'is-entering' : ''}" id="searchPop" role="search">
       ${ICONS.search}
@@ -709,14 +721,16 @@ function homeView() {
     </div>
     <main class="has-tabbar home-main ${phone && state.recipes.length ? 'home-main--addbar' : ''} ${selecting ? 'is-selecting' : ''}">
       ${phone && typeof recipesSwitchHtml === 'function' ? recipesSwitchHtml() : ''}
-      ${todayPlannedHtml()}
-      ${(() => { const nb = backupNudgeInfo(); return nb ? `<div class="nudge-card" role="note">
+      ${searching ? '' : todayPlannedHtml()}
+      ${(() => { const nb = searching ? null : backupNudgeInfo(); return nb ? `<div class="nudge-card nudge-card--line" role="note">
+        <span class="nudge-ico" aria-hidden="true">${ICONS.shield || ICONS.info}</span>
         <p class="nudge-text">${nb.never ? 'Noch keine Sicherung' : 'Letzte Sicherung vor ' + nb.days + ' Tagen'}</p>
-        <div class="nudge-actions"><button class="text-btn" data-action="goto-view" data-view="settings-backup">Sichern</button><button class="text-btn text-btn--quiet" data-action="backup-nudge-dismiss">Später</button></div></div>` : ''; })()}
+        <div class="nudge-actions"><button class="text-btn" data-action="goto-view" data-view="settings-backup">Sichern</button><button class="icon-btn nudge-close" data-action="backup-nudge-dismiss" aria-label="Später erinnern">${ICONS.x}</button></div></div>` : ''; })()}
+      <div class="home-add-sentinel" aria-hidden="true"></div>
       ${content}
       ${selecting && !phone ? hvSelectBarHtml(list, scope) : ''}
     </main>
-    ${phone && state.recipes.length ? (selecting ? `<div class="home-add-bar home-sel-bar">${hvSelectBarHtml(list, scope)}</div>` : `<div class="home-add-bar"><button type="button" class="home-add-btn" data-action="open-add-menu">${ICONS.plus}<span>Rezept hinzufügen</span></button></div>`) : ''}
+    ${phone && state.recipes.length ? (selecting ? `<div class="home-add-bar home-sel-bar">${hvSelectBarHtml(list, scope)}</div>` : `<div class="home-add-bar"><button type="button" class="home-add-btn" data-action="open-add-menu" aria-label="Rezept hinzufügen">${ICONS.plus}<span class="home-add-label">Rezept hinzufügen</span></button></div>`) : ''}
     ${bottomNav()}
     ${filterSheetModal()}
     ${addMenuModal()}
@@ -950,11 +964,11 @@ function stepsPanel(r) {
     if (e.heading) return `<li class="step-heading"><h3>${escapeHtml(String(e.text).trim().replace(/:$/, ''))}</h3></li>`;
     const parts = typeof stepDisplayParts === 'function' ? stepDisplayParts(e.text) : { title: '', text: e.text };
     return `<li class="step-item ${parts.title ? 'has-title' : ''}"><span class="step-no" aria-hidden="true">${++n}</span><div class="step-body"><span class="sr-only">Schritt ${n}: </span>${parts.title ? `<${titleTag} class="step-title">${escapeHtml(parts.title)}</${titleTag}>` : ''}<p>${escapeHtml(parts.text)}</p></div></li>`;
-  }).join('')}</ol>`;
+  }).join('')}</ol>${typeof cookLastCookedHtml === 'function' ? cookLastCookedHtml(r) : ''}`;
 }
 function notesPanel(r) {
-  const log = (r.cookLog || []).slice().sort((a, b) => (b.date || 0) - (a.date || 0));
-  return `${r.notes ? `<div class="note-card"><h3 class="note-card-title">Notiz</h3><p>${escapeHtml(r.notes)}</p></div>` : ''}
+  const log = (r.cookLog || []).filter(n => n && String(n.text || '').trim()).sort((a, b) => (b.date || 0) - (a.date || 0));   // v89: Kocheinträge ohne Notiz sind nur Verlauf
+  return `${typeof cookLastCookedHtml === 'function' ? cookLastCookedHtml(r) : ''}${r.notes ? `<div class="note-card"><h3 class="note-card-title">Notiz</h3><p>${escapeHtml(r.notes)}</p></div>` : ''}
     ${log.map(n => `<div class="note-card note-card--dated">
       <div class="note-card-head"><span class="note-date">${new Date(n.date).toLocaleDateString('de-CH', { day: 'numeric', month: 'long', year: 'numeric' })}</span>
       <button class="icon-btn icon-btn--small" data-action="delete-cook-note" data-id="${escapeAttr(r.id)}" data-note="${escapeHtml(n.id)}" aria-label="Notiz vom ${new Date(n.date).toLocaleDateString('de-CH')} löschen">${ICONS.trash}</button></div>
@@ -964,11 +978,16 @@ function notesPanel(r) {
 function nutritionPanel(r) {
   return nutritionCardSection(r.id);   // v86: kein grünes Hinweisband mehr, der Reiter selbst nennt «Richtwerte» einmal
 }
+/* v89: Rezeptaktionen. Volle Beschriftung fuer Screenreader und breite Ansichten, Kurzbeschriftung fuer den
+   kompakten Kopf auf niedrigen Handys (CSS blendet um, beide Texte bleiben im DOM, der Knopfname ist immer der volle Text). */
+function detailToolHtml(r, action, icon, label, short, extra) {
+  return `<button type="button" class="tool-action" data-action="${action}" data-id="${escapeAttr(r.id)}" aria-label="${escapeAttr(label)}"${extra || ''}>${icon}<span class="tool-label">${escapeHtml(label)}</span><span class="tool-label-short" aria-hidden="true">${escapeHtml(short)}</span></button>`;
+}
 function detailView() {
   const r = state.recipes.find(x => x.id === state.activeRecipeId);
   if (!r) { state.view = 'home'; return homeView(); }
   const servings = currentServings(r);
-  const hasNotes = !!(r.notes || (r.cookLog || []).length);
+  const hasNotes = !!(r.notes || (r.cookLog || []).some(n => n && String(n.text || '').trim()));
   const wide = !!(window.matchMedia && matchMedia('(min-width: 900px)').matches);   // breit: Zutaten stehen links (Seitenspalte) statt im Reiter, nie doppelt im DOM
   const tabs = [
     { id: 'ingredients', label: 'Zutaten' },
@@ -1025,20 +1044,20 @@ function detailView() {
       </div>
       <button class="primary-btn primary-btn--block cook-start-inline" data-action="start-cook" data-id="${escapeAttr(r.id)}">${ICONS.play} Kochen starten</button>
       <div class="detail-tools" role="group" aria-label="Weitere Aktionen zum Rezept">
-        <button type="button" class="tool-action" data-action="add-to-shopping" data-id="${escapeAttr(r.id)}">${ICONS.cart}<span>Auf die Einkaufsliste</span></button>
-        <button type="button" class="tool-action" data-action="open-plan-recipe" data-id="${escapeAttr(r.id)}">${ICONS.calendar}<span>Zum Wochenplan</span></button>
-        <button type="button" class="tool-action" data-action="edit-recipe" data-id="${escapeAttr(r.id)}">${ICONS.edit}<span>Bearbeiten</span></button>
-        <button type="button" class="tool-action" data-action="open-share-menu" data-id="${escapeAttr(r.id)}" aria-haspopup="dialog">${ICONS.share}<span>Teilen</span></button>
+        ${detailToolHtml(r, 'add-to-shopping', ICONS.cart, 'Auf die Einkaufsliste', 'Einkauf')}
+        ${detailToolHtml(r, 'open-plan-recipe', ICONS.calendar, 'Zum Wochenplan', 'Planen')}
+        ${detailToolHtml(r, 'edit-recipe', ICONS.edit, 'Bearbeiten', 'Bearbeiten')}
+        ${detailToolHtml(r, 'open-share-menu', ICONS.share, 'Teilen', 'Teilen', ' aria-haspopup="dialog"')}
       </div>
-      ${source}
-      ${rcolTagsHtml(r)}
+      ${wide ? source + rcolTagsHtml(r) : ''}
       ${conflictBox}
       <div class="detail-aside-ing" role="region" aria-label="Zutaten">${wide ? `<h2 class="sr-only">Zutaten</h2>` + ingHtml : ''}</div>
       </div><div class="detail-col detail-col--content">
-      <div class="tabbar-v2" role="tablist" aria-label="Rezeptinhalt">
+      <div class="tabbar-v2" role="tablist" aria-label="Rezeptinhalt" data-tab-count="${tabs.length}">
         ${tabs.map(t => `<button role="tab" id="tab-${t.id}" class="tab-v2 ${tab === t.id ? 'is-active' : ''}" aria-selected="${tab === t.id}" aria-controls="panel-${t.id}" tabindex="${tab === t.id ? '0' : '-1'}" data-action="set-detail-tab" data-id="${escapeAttr(t.id)}">${t.label}</button>`).join('')}
       </div>
       ${tabs.map(t => `<div class="tab-panel" id="panel-${t.id}" role="tabpanel" aria-labelledby="tab-${t.id}" ${tab === t.id ? '' : 'hidden'}><h2 class="sr-only">${t.label}</h2>${panelHtml[t.id]}</div>`).join('')}
+      ${!wide && (source || rcolTagsHtml(r)) ? `<div class="detail-meta-below">${source}${rcolTagsHtml(r)}</div>` : ''}
       ${pairingSectionHtml(r)}
       ${recipeCheckHtml(r)}
       </div></div>
@@ -1255,7 +1274,7 @@ function pairingCardHtml(r, l, hide, idx) {
   const time = o ? timeInfo(o).cardText : '';
   const status = o ? '' : l.status === 'pending' ? 'Noch nicht verfügbar' : 'Nicht mehr vorhanden';
   const noteId = l.note ? `pairing-note-${idx}` : '';
-  const media = o && hasPhoto(o) ? recipeImageHtml(o, 'pairing-img', 'thumb') : `<span class="pairing-img pairing-ph" aria-hidden="true">${ICONS.bookOpen}</span>`;
+  const media = o && hasPhoto(o) ? recipeImageHtml(o, 'pairing-img', 'thumb') : (o ? recipeInitialHtml(o, 'pairing-img pairing-ph') : `<span class="pairing-img pairing-ph" aria-hidden="true">${ICONS.bookOpen}</span>`);
   const body = `<span class="pairing-body"><span class="pairing-title">${escapeHtml(title)}</span>${time ? `<span class="pairing-meta">${ICONS.clock}<span>${escapeHtml(time)}</span></span>` : ''}${status ? `<span class="pairing-meta pairing-status">${status}</span>` : ''}${l.note ? `<span class="pairing-note" id="${noteId}">${escapeHtml(l.note)}</span>` : ''}</span>`;
   const main = o
     ? `<button type="button" class="pairing-main" data-action="open-linked-recipe" data-id="${escapeAttr(o.id)}" data-from="${escapeAttr(r.id)}" data-link-key="${escapeAttr(l.key)}" aria-label="${escapeAttr(title)} öffnen"${noteId ? ` aria-describedby="${noteId}"` : ''}>${media}${body}</button>`
@@ -1476,6 +1495,7 @@ function cookModeView() {
         ${ICONS.sparkle}
         <h2>Guten Appetit.</h2>
         <p>${escapeHtml(r.title)} ist fertig.</p>
+        ${r.lastCookedAt ? `<p class="cook-finish-last">Zuletzt gekocht am ${escapeHtml(new Date(r.lastCookedAt).toLocaleDateString('de-CH', { day: 'numeric', month: 'long', year: 'numeric' }))}</p>` : ''}
         <div class="field cook-note-field"><label for="cookRunNote">Notiz zu diesem Kochdurchgang (optional)</label>
           <textarea id="cookRunNote" rows="3" placeholder="z.B. 15 Minuten länger backen"></textarea></div>
       </div>
@@ -1487,6 +1507,22 @@ function cookModeView() {
   }
   const total = Math.max(steps.length, 1);
   const idx = Math.min(state.cookStepIndex, total - 1);
+  if (state.cookMise && idx !== 0) state.cookMise = false;   // Sprung zu einem anderen Schritt beendet die Vorbereitung
+  if (state.cookMise && idx === 0 && !state.cookAllSteps && typeof cookMiseView === 'function') {   // v89: Vorbereitung vor Schritt 1
+    return `<div class="cookmode-overlay cook-v2 cook-v2--mise cook-scale-${state.cookScale || 0}" role="main" aria-label="Kochmodus">
+      <div class="cookmode-top">
+        <button class="icon-btn" data-action="exit-cook" aria-label="Kochmodus verlassen">${ICONS.x}</button>
+        <span class="cook-stepcount cook-stepcount--text">Vorbereitung</span>
+        <span class="cook-top-spacer"></span>
+      </div>
+      <div class="cook-title-line"><span class="cook-title-text">${escapeHtml(r.title)}</span></div>
+      <div class="cookmode-body">${cookMiseView(r)}</div>
+      <div class="cookmode-nav">
+        <button data-action="cook-mise-done">Überspringen</button>
+        <button class="primary" data-action="cook-mise-done">Los geht's</button>
+      </div>
+    </div>`;
+  }
   const step = steps[idx] || { text: 'Für dieses Rezept sind noch keine Schritte erfasst.' };
   const isLast = idx >= total - 1;
   const match = step._sourceIndex !== undefined ? stepIngredientMatch(r, step) : { items: [], fixed: false, ambiguous: false };
@@ -1495,18 +1531,19 @@ function cookModeView() {
   const shownIngs = state.cookShowAllIngredients ? realIngredients(r).map(i => { const idx = r.ingredients.indexOf(i); return { ...i, _index: idx, _group: groupsById.get(idx) }; }) : stepIngs;
   const showGroups = hasNamedGroups(r);
   const factor = servingsFactor(r, currentServings(r));
-  const ingChips = shownIngs.map(i => `<button type="button" class="cook-ing ${checked.has(i._index) ? 'is-checked' : ''} ${i._ambiguous ? 'is-ambiguous' : ''}" data-action="toggle-ingredient-check" data-id="${escapeAttr(r.id)}" data-idx="${i._index}" role="checkbox" aria-checked="${checked.has(i._index)}"><span class="check-box" aria-hidden="true">${ICONS.check}</span>${escapeHtml(scaledAmountLine(i, factor))} ${escapeHtml(i.name)}${showGroups && i._group && (i._ambiguous || state.cookShowAllIngredients) ? `<span class="cook-ing-group">${escapeHtml(i._group)}</span>` : ''}</button>`).join('');
+  const ingChips = shownIngs.map(i => `<button type="button" class="cook-ing ${checked.has(i._index) ? 'is-checked' : ''} ${i._ambiguous ? 'is-ambiguous' : ''}" data-action="toggle-ingredient-check" data-id="${escapeAttr(r.id)}" data-idx="${i._index}" role="checkbox" aria-checked="${checked.has(i._index)}"><span class="check-box" aria-hidden="true">${ICONS.check}</span>${(a => a ? `<span class="cook-ing-amt">${escapeHtml(a)}</span>` : '')(scaledAmountLine(i, factor))} <span class="cook-ing-name">${escapeHtml(i.name)}</span>${showGroups && i._group && (i._ambiguous || state.cookShowAllIngredients) ? `<span class="cook-ing-group">${escapeHtml(i._group)}</span>` : ''}</button>`).join('');
   const matchNote = state.cookShowAllIngredients ? '' : match.fixed ? 'Von dir festgelegt' : match.ambiguous ? 'Vorschlag, nicht eindeutig' : (stepIngs.length ? 'Vorschlag' : '');
   const body = state.cookAllSteps
-    ? `<ol class="cook-all-steps">${steps.map((s, n) => `<li>${s._section ? `<div class="cook-section">${escapeHtml(s._section)}</div>` : ''}<button class="cook-all-step ${n === idx ? 'is-current' : ''}" data-action="cook-goto" data-idx="${n}"><span class="step-no">${n + 1}</span><span>${escapeHtml(s.text)}</span></button></li>`).join('')}</ol>`
+    ? `${typeof cookVoiceButtonHtml === 'function' ? `<div class="cook-voicectl-row">${cookVoiceButtonHtml()}</div>` : ''}<ol class="cook-all-steps">${steps.map((s, n) => `<li>${s._section ? `<div class="cook-section">${escapeHtml(s._section)}</div>` : ''}<button class="cook-all-step ${n === idx ? 'is-current' : ''}" data-action="cook-goto" data-idx="${n}"><span class="step-no">${n + 1}</span><span>${escapeHtml(s.text)}</span></button></li>`).join('')}</ol>`
     : `<div class="cook-step-card">
         ${step._section ? `<div class="cook-section">${escapeHtml(step._section)}</div>` : ''}
         <div class="cookmode-steptext">${renderStepWithTimers(step.text, idx)}</div>
+        ${typeof cookTimerStartButtons === 'function' ? cookTimerStartButtons(step.text, idx) : ''}
       </div>
       <div class="cook-ings">
-        <div class="cook-ings-head"><span>${state.cookShowAllIngredients ? 'Alle Zutaten' : (stepIngs.length ? 'Für diesen Schritt' : 'Keine Zutat im Schritt erkannt')}${matchNote ? ` <span class="cook-match-note">· ${matchNote}</span>` : ''}</span>
-          <span class="cook-ings-actions">${!state.cookShowAllIngredients && step._sourceIndex !== undefined ? `<button class="text-btn cook-ings-btn" data-action="cook-edit-step-ings" data-idx="${step._sourceIndex}">Anpassen</button>` : ''}<button class="text-btn cook-ings-btn" data-action="cook-toggle-all-ings">${state.cookShowAllIngredients ? 'Nur dieser Schritt' : 'Alle Zutaten'}</button></span></div>
+        <div class="cook-ings-head"><span>${state.cookShowAllIngredients ? 'Alle Zutaten' : (stepIngs.length ? 'Für diesen Schritt' : 'Keine Zutat im Schritt erkannt')}${matchNote ? ` <span class="cook-match-note">· ${matchNote}</span>` : ''}</span></div>
         ${ingChips ? `<div class="cook-ing-list">${ingChips}</div>` : ''}
+        <div class="cook-ings-actions cook-ings-actions--below">${!state.cookShowAllIngredients && step._sourceIndex !== undefined ? `<button class="text-btn cook-ings-btn" data-action="cook-edit-step-ings" data-idx="${step._sourceIndex}">Anpassen</button>` : ''}<button class="text-btn cook-ings-btn" data-action="cook-toggle-all-ings">${state.cookShowAllIngredients ? 'Nur dieser Schritt' : 'Alle Zutaten'}</button></div>
       </div>`;
   const refModal = state.modal && state.modal.type === 'step-ings' ? stepIngredientsModal(r, state.modal.stepIndex) : '';
   const linkModal = typeof cookLinkModalHtml === 'function' ? cookLinkModalHtml(r) : '';   // v84: «Passt dazu» nur als Vorschau
@@ -1514,11 +1551,11 @@ function cookModeView() {
   return `${refModal}${linkModal}<div class="cookmode-overlay cook-v2 cook-scale-${state.cookScale || 0}" role="main" aria-label="Kochmodus">
     <div class="cookmode-top">
       <button class="icon-btn" data-action="exit-cook" aria-label="Kochmodus verlassen">${ICONS.x}</button>
-      <span class="cookmode-progress" aria-live="polite">Schritt ${idx + 1} von ${total}</span>
+      <span class="cook-stepcount"><span aria-hidden="true"><b>${idx + 1}</b>/${total}</span><span class="cookmode-progress sr-only" aria-live="polite">Schritt ${idx + 1} von ${total}</span></span>
       <div class="cook-top-actions">
         <button class="icon-btn cook-font-btn" data-action="cook-font" aria-label="Schriftgrösse ändern, aktuell ${scaleLabel}"><span aria-hidden="true">Aa</span></button>
         <button class="icon-btn ${state.cookAllSteps ? 'is-active' : ''}" data-action="cook-toggle-all-steps" aria-pressed="${state.cookAllSteps}" aria-label="Alle Schritte anzeigen">${ICONS.listSteps}</button>
-        <button class="icon-btn" data-action="toggle-voice" aria-pressed="${!!state.voiceEnabled}" aria-label="Schritte vorlesen">${state.voiceEnabled ? ICONS.volume : ICONS.volumeOff}</button>
+        <button class="cook-pill-btn cook-read-btn ${state.voiceEnabled ? 'is-on' : ''}" data-action="toggle-voice" aria-pressed="${!!state.voiceEnabled}">${state.voiceEnabled ? ICONS.volume : ICONS.volumeOff}<span>Vorlesen</span></button>
       </div>
     </div>
     <div class="cook-progress" aria-hidden="true"><span style="width:${Math.round(((idx + 1) / total) * 100)}%"></span></div>
@@ -1580,7 +1617,7 @@ function shoppingView() {
   const sections = SHOP_SECTIONS.filter(s => grouped[s]).map(s => `<section class="shop-section"><h2 class="shop-section-title">${escapeHtml(s)}</h2>${grouped[s].map(shoppingItemRow).join('')}</section>`).join('');
   const item = state.modal && state.modal.type === 'shop-item' ? state.shopping.find(x => x.id === state.modal.itemId) : null;
   return `
-    ${topbar('Einkauf', { actions: items.length ? `<button class="icon-btn" data-action="share-shopping" aria-label="Liste teilen oder kopieren">${ICONS.share}</button><button class="icon-btn" data-action="clear-all-shopping" aria-label="Ganze Einkaufsliste leeren">${ICONS.trash}</button>` : '' })}
+    ${topbar('Einkauf', { actions: items.length ? `<button class="icon-btn" data-action="share-shopping" aria-label="Liste teilen oder kopieren">${ICONS.share}</button><button class="icon-btn" data-action="open-shop-menu" aria-label="Weitere Aktionen zur Einkaufsliste" aria-haspopup="dialog">${ICONS.moreH}</button>` : '' })}
     <main class="has-tabbar shop-main">
       ${pageTitle('Einkaufsliste')}
       <div class="shop-add">
@@ -1600,7 +1637,26 @@ function shoppingView() {
     ${item ? shopItemModal(item) : ''}
     ${state.modal && state.modal.type === 'pick-recipes' ? pickRecipesModal() : ''}
     ${state.modal && state.modal.type === 'shop-select' ? shopSelectModal() : ''}
+    ${state.modal && state.modal.type === 'shop-menu' ? shopMenuModal() : ''}
+    ${state.modal && state.modal.type === 'shop-clear-confirm' ? shopClearConfirmModal() : ''}
   `;
+}
+/* v89 B: «Alles löschen» liegt im «…»-Menü und braucht eine Bestätigung. Die Aktion selbst (clear-all-shopping, mit Rückgängig) bleibt. */
+function shopMenuModal() {
+  const n = state.shopping.length;
+  const done = state.shopping.filter(i => i.checked).length;
+  return sheet('shop-menu-title', 'Einkaufsliste', `
+    <div class="menu-list">
+      <button class="menu-item" data-action="share-shopping">${ICONS.share}<span>Liste teilen oder kopieren</span></button>
+      ${done ? `<button class="menu-item" data-action="clear-checked-shopping">${ICONS.check}<span>Erledigte entfernen (${done})</span></button>` : ''}
+      <button class="menu-item menu-item--danger" data-action="shop-clear-ask" ${n ? '' : 'disabled'}>${ICONS.trash}<span>Ganze Liste löschen</span></button>
+    </div>`);
+}
+function shopClearConfirmModal() {
+  const n = state.shopping.length;
+  return sheet('shop-clear-title', 'Ganze Liste löschen?', `
+    <p class="hint-line shop-clear-text">${n === 1 ? '1 Eintrag wird' : `Alle ${n} Einträge werden`} von der Einkaufsliste entfernt. Direkt danach kannst du das noch rückgängig machen.</p>
+    <div class="form-actions"><button class="ghost-btn" data-action="close-modal">Abbrechen</button><button class="primary-btn kd-danger-btn" data-action="clear-all-shopping">Liste löschen</button></div>`);
 }
 function shopItemModal(i) {
   const canSplit = Array.isArray(i.sources) && i.sources.length > 1;
@@ -1682,7 +1738,7 @@ function mealplanView() {
       </div>
       <button type="button" class="plan-add" data-action="open-day-picker" data-date="${escapeAttr(key)}" aria-label="Rezept planen, ${dayName} ${dayDate}">${ICONS.plus}<span class="plan-add-label">Rezept planen</span></button>
       ${entries.length ? `<div class="plan-list">${rows}</div>` : ''}
-      ${recipeCount ? `<div class="plan-day-foot"><label class="day-select"><input type="checkbox" data-plan-day="${escapeAttr(key)}" ${selected ? 'checked' : ''}> Einkaufen</label></div>` : ''}
+      ${recipeCount ? `<div class="plan-day-foot"><label class="day-select"><input type="checkbox" data-plan-day="${escapeAttr(key)}" ${selected ? 'checked' : ''}> <span class="day-select-text">Zutaten dieses Tages einkaufen</span></label></div>` : ''}
     </section>`;
   }).join('');
   const selCount = Array.from(state.planSelectedDays).filter(k => days.some(d => fmtDateKey(d) === k)).length;
@@ -2109,11 +2165,14 @@ function cookbookDesignerView() {
 const FORM_STEPS = ['Basis', 'Kategorien', 'Zutaten', 'Zubereitung', 'Kontrolle'];
 function ingredientRow(i, idx) {
   const n = idx + 1;
-  // Reihenfolge wie im Rezept: Menge, Einheit, Name (schmal: Menge/Einheit oben, Name darunter)
+  // v89: jede Zutat ist eine eigene Karte, der Name steht zuerst und breit; Menge und Einheit darunter.
+  // Mengenfeld ohne inputmode=decimal: «½», «1/2» und Bereiche wie «2-3» muessen tippbar bleiben. Schnellknoepfe erscheinen nur beim Bearbeiten der Zeile.
+  const quick = (val, label, aria) => `<button type="button" class="ing-quick-btn" data-action="ing-quick-amount" data-val="${escapeAttr(val)}" aria-label="${escapeAttr(aria)}" onpointerdown="event.preventDefault()">${label}</button>`;
   return `<div class="repeat-row ing-row" data-ing-row="${idx}">
-    <div class="field ing-amount"><input type="text" inputmode="decimal" placeholder="Menge" aria-label="Zutat ${n}, Menge" class="ing-amount-input" value="${escapeHtml(String(i.amount ?? ''))}"></div>
-    <div class="field ing-unit"><input type="text" placeholder="Einheit" aria-label="Zutat ${n}, Einheit" class="ing-unit-input" value="${escapeHtml(i.unit || '')}"></div>
-    <div class="field ing-name"><input type="text" placeholder="Zutat" aria-label="Zutat ${n}, Name" class="ing-name-input" value="${escapeHtml(i.name || '')}"></div>
+    <div class="field ing-name"><input type="text" placeholder="Zutat, z. B. Mehl" aria-label="Zutat ${n}, Name" class="ing-name-input" autocomplete="off" enterkeyhint="next" value="${escapeHtml(i.name || '')}"></div>
+    <div class="field ing-amount"><input type="text" placeholder="Menge" aria-label="Zutat ${n}, Menge" class="ing-amount-input" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" enterkeyhint="next" value="${escapeHtml(String(i.amount ?? ''))}"></div>
+    <div class="field ing-unit"><input type="text" placeholder="Einheit" aria-label="Zutat ${n}, Einheit" class="ing-unit-input" autocomplete="off" enterkeyhint="next" value="${escapeHtml(i.unit || '')}"></div>
+    <div class="ing-quick" role="group" aria-label="Menge von Zutat ${n} schnell eingeben">${quick('½', '½', 'Halb einfügen')}${quick('¼', '¼', 'Viertel einfügen')}${quick('-', 'bis', 'Bereich einfügen, z. B. 2-3')}</div>
     <div class="ing-row-actions">
       <button type="button" class="ing-convert-btn" data-action="convert-ingredient-row" data-idx="${idx}" aria-label="Menge von Zutat ${n} in dein Masseinheiten-System umrechnen">${ICONS.swap}</button>
       <button class="repeat-row-remove" data-action="remove-ingredient" data-idx="${idx}" aria-label="Zutat ${n} entfernen">${ICONS.trash}</button>
@@ -2159,6 +2218,7 @@ function formView() {
         <nav class="form-stepper" aria-label="Erfassungsschritte">
           ${FORM_STEPS.map((s, n) => `<button type="button" class="form-step-btn ${n === step ? 'is-active' : ''} ${n < step ? 'is-done' : ''}" data-action="form-goto-step" data-idx="${n}" aria-current="${n === step ? 'step' : 'false'}"><span class="form-step-no">${n + 1}</span><span class="form-step-label">${s}</span></button>`).join('')}
         </nav>
+        <p class="form-step-caption" aria-hidden="true">Schritt ${step + 1} von ${FORM_STEPS.length}: <strong>${escapeHtml(FORM_STEPS[step])}</strong></p>
         <section class="form-step ${step === 0 ? 'is-active' : ''}" data-form-step="0" aria-label="Basis">
           <div class="field"><label for="f-title">Titel</label><input type="text" id="f-title" value="${escapeHtml(r.title)}" placeholder="z.B. Zitronen-Risotto"></div>
           <div class="field"><label for="f-image">Foto</label>
@@ -2194,8 +2254,8 @@ function formView() {
           ${chipSet('Gericht', 'dish-group-label', DISH_TYPE_OPTIONS, d => d.id, d => d.label, 'toggle-category', 'category', r.categoryTags)}
           <button type="button" class="ghost-btn" data-action="reanalyze-categories">${ICONS.sparkle} Kategorien automatisch vorschlagen</button>
           <div class="field field--spaced"><label for="f-tag-new">Eigene Schlagwörter</label>
-            <div class="tag-input-row" id="tagInputRow">${(r.tags || []).map(t => `<span class="tag-pill">${escapeHtml(t)}<button data-action="remove-tag" data-tag="${escapeHtml(t)}" aria-label="Schlagwort ${escapeHtml(t)} entfernen">${ICONS.x}</button></span>`).join('')}<input type="text" id="f-tag-new" placeholder="Schlagwort + Enter"></div>
-            <div class="field-hint">Eigene Stichwörter zum Wiederfinden, z.B. Familienrezept, Für Gäste, Von Oma.</div></div>
+            <div class="tag-input-row" id="tagInputRow">${(r.tags || []).map(t => `<span class="tag-pill">${escapeHtml(t)}<button data-action="remove-tag" data-tag="${escapeHtml(t)}" aria-label="Schlagwort ${escapeHtml(t)} entfernen">${ICONS.x}</button></span>`).join('')}<span class="tag-add"><input type="text" id="f-tag-new" placeholder="Neues Schlagwort" enterkeyhint="done" autocomplete="off" aria-describedby="f-tag-hint"><button type="button" class="outline-btn outline-btn--small tag-add-btn" data-action="add-tag">${ICONS.plus} Hinzufügen</button></span></div>
+            <div class="field-hint" id="f-tag-hint">Eigene Stichwörter zum Wiederfinden, z.B. Familienrezept, Für Gäste, Von Oma.</div></div>
         </section>
         <section class="form-step ${step === 2 ? 'is-active' : ''}" data-form-step="2" aria-label="Zutaten">
           <p class="hint-line">Mit Gruppen teilst du Zutaten z.B. in „Teig“ und „Füllung“. Gruppentitel landen nie in der Einkaufsliste.</p>

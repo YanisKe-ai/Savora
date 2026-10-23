@@ -58,7 +58,7 @@ async def main():
             check(f'Verknuepfung ?aktion={akt} oeffnet {view}, Parameter verschwindet', res['view'] == view and 'aktion' not in res['search'], str(res))
         await page.goto(BASE + 'index.html?share_title=Linsensuppe&share_text=' + 'Zutaten%3A%20200%20g%20Linsen' + '&share_url=' + 'https%3A%2F%2Fexample.org%2Fsuppe'); await ready(page)
         await page.wait_for_function("state.view === 'paste-import' && document.getElementById('pasteText') && document.getElementById('pasteText').value.length > 0", timeout=5000)
-        res = await page.evaluate("() => ({ v: document.getElementById('pasteText').value, search: location.search, fn: typeof openTextImport === 'function' })")
+        res = await page.evaluate("() => ({ v: document.getElementById('pasteText').value + ' ' + ((document.getElementById('pasteUrl') || {}).value || ''), search: location.search, fn: typeof openTextImport === 'function' })")   # v89 B: Link steht im eigenen Feld «Link»
         check('Teilen: Textimport mit Text, Titel und Link als Quelle, kein Abruf, Parameter entfernt',
               'Linsen' in res['v'] and 'Linsensuppe' in res['v'] and 'https://example.org/suppe' in res['v'] and 'share_' not in res['search'], json.dumps(res, ensure_ascii=False))
         check('Teilen: ungueltiger Link (javascript:) wird nicht als Quelle genommen', await page.evaluate("() => appShareSourceUrl({ url: 'javascript:alert(1)', text: '' }) === '' && appShareSourceUrl({ url: '', text: 'siehe https://a.ch/x und mehr' }) === 'https://a.ch/x'"))

@@ -262,6 +262,57 @@ function applyModalInert() {
     node = parent;
   }
 }
+/* ===== v89 B: Textimport von aussen öffnen (Hinzufügen-Menü «Aus Link», Share Target, Verknüpfungen) =====
+   openTextImport({ text, url, link }) öffnet den Textimport, füllt den Text vor und merkt den Link als Quelle.
+   Savora ruft den Link nie ab (kein Scraper): er wird beim Erstellen des Entwurfs nur als r.source übernommen,
+   wenn der Text selbst keine Quelle nennt. Kommt nur ein Link ohne Text, zeigt die Seite die kurze Anleitung. */
+Object.assign(ICONS, {
+  clipboardText: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="8" y="2" width="8" height="4" rx="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><path d="M8 11h8M8 15h8M8 19h5"/></svg>`,
+});
+function pasteImportCleanUrl(raw) {
+  const s = String(raw == null ? '' : raw).trim();
+  if (!s) return '';
+  const m = s.match(/https?:\/\/[^\s<>"']+/i);
+  if (!m) return '';
+  const u = m[0].replace(/[).,;]+$/, '');
+  return u.length <= 2000 ? u : '';
+}
+function pasteImportLinkSource() {
+  const f = document.getElementById('pasteUrl');
+  const raw = f ? f.value : ((state.pasteImport && state.pasteImport.url) || '');
+  return pasteImportCleanUrl(raw);
+}
+function openTextImport(opts) {
+  const o = opts || {};
+  let text = typeof o.text === 'string' ? o.text : '';
+  let url = pasteImportCleanUrl(o.url);
+  // Geteilter Text, der nur aus einem Link besteht: als Link behandeln, nicht als Rezepttext
+  if (!url && text && pasteImportCleanUrl(text) && text.trim() === pasteImportCleanUrl(text)) { url = pasteImportCleanUrl(text); text = ''; }
+  if (url && text.trim() === url) text = '';
+  state.modal = null;
+  state.pasteImport = { text, url, link: !!(o.link || url) };
+  state.view = 'paste-import';
+  render();
+  return true;
+}
+window.openTextImport = openTextImport;
+
+/* v89 B: «Rezept hinzufügen» schrumpft beim Runterscrollen zum runden Plus. Kein Scroll-Listener: ein IntersectionObserver
+   beobachtet einen Wächter oben in der Liste (.home-add-sentinel). Liegt er ausserhalb des Bildschirms, wird der Knopf rund. */
+let homeAddObserver = null;
+function bindHomeAddCompact() {
+  if (homeAddObserver) { homeAddObserver.disconnect(); homeAddObserver = null; }
+  const bar = App.querySelector('.home-add-bar:not(.home-sel-bar)');
+  const sentinel = App.querySelector('.home-add-sentinel');
+  if (!bar || !sentinel || typeof IntersectionObserver === 'undefined') return;
+  homeAddObserver = new IntersectionObserver((entries) => {
+    const e = entries[entries.length - 1];
+    const compact = !e.isIntersecting && e.boundingClientRect.top < 0;
+    bar.classList.toggle('is-compact', compact);
+  }, { threshold: 0 });
+  homeAddObserver.observe(sentinel);
+}
+
 function bindEvents() {
   App.querySelectorAll('[data-action]').forEach(el => {
     el.addEventListener('click', onAction);
@@ -275,6 +326,7 @@ function bindEvents() {
   if (typeof initTickers === 'function') initTickers(document);
   if (typeof initHighlights === 'function') initHighlights();
   if (typeof updateScrollEdge === 'function') updateScrollEdge();
+  bindHomeAddCompact();
 
   const modalSheet = topModalSheet();
   applyModalInert();
@@ -422,6 +474,8 @@ async function onAction(e) {
 }
 
 async function dispatchAction(action, id, el, e) {
+  // v89 B: Aktionen aus dem «…»-Menü der Einkaufsliste schliessen das Menü bzw. die Bestätigung zuerst
+  if (state.modal && (state.modal.type === 'shop-menu' || state.modal.type === 'shop-clear-confirm') && (action === 'clear-all-shopping' || action === 'clear-checked-shopping' || action === 'share-shopping')) state.modal = null;
   if (typeof handleActionV2 === 'function' && await handleActionV2(action, id, el, e)) return;
   switch (action) {
     case 'new-recipe':
@@ -434,12 +488,35 @@ async function dispatchAction(action, id, el, e) {
       openModal({ type: 'add-menu' });
       break;
     case 'open-paste-import':
-      state.modal = null;
-      state.view = 'paste-import';
+      openTextImport({});
+      break;
+    case 'open-link-import':   // v89 B: Link nur als Quelle merken, Text fügt die Person selbst ein (kein Abruf)
+      openTextImport({ link: true });
+      break;
+    case 'paste-from-clipboard': {
+      const ta = document.getElementById('pasteText');
+      const hint = document.getElementById('pasteClipHint');
+      const say = (msg) => { if (hint) hint.textContent = msg; };
+      if (!ta) break;
+      let txt = null;
+      try { if (navigator.clipboard && navigator.clipboard.readText) txt = await navigator.clipboard.readText(); } catch (err) { txt = null; }
+      if (txt == null) { say('Einfügen aus der Zwischenablage ist hier nicht erlaubt. Tippe lange ins Textfeld und wähle «Einfügen».'); focusWithoutScroll(ta); break; }
+      if (!txt.trim()) { say('Die Zwischenablage ist leer. Kopiere zuerst den Rezepttext.'); break; }
+      ta.value = ta.value.trim() ? ta.value.replace(/\s*$/, '') + '\n\n' + txt : txt;
+      state.pasteImport = Object.assign({}, state.pasteImport || {}, { text: ta.value });
+      say('Text eingefügt.');
+      break;
+    }
+    case 'open-shop-menu':
+      openModal({ type: 'shop-menu' });
+      break;
+    case 'shop-clear-ask':
+      state.modal = { type: 'shop-clear-confirm' };
       render();
       break;
     case 'open-photo-scan': {   // Import-Bildschirm oeffnen und gleich die Fotoauswahl zeigen
       state.modal = null;
+      state.pasteImport = null;
       state.view = 'paste-import';
       render();
       let scanTries = 0;   // render() kann per View Transition verzoegert sein: kurz warten, bis das Feld da ist
@@ -963,6 +1040,7 @@ async function dispatchAction(action, id, el, e) {
     }
     case 'do-paste-import': {
       const text = document.getElementById('pasteText').value.trim();
+      const linkSource = pasteImportLinkSource();
       const errBox = document.getElementById('pasteError');
       const showErr = (html) => { if (errBox) { errBox.innerHTML = html; errBox.hidden = false; errBox.focus(); } };
       if (errBox) { errBox.hidden = true; errBox.innerHTML = ''; }
@@ -972,6 +1050,8 @@ async function dispatchAction(action, id, el, e) {
         const res = parseRecipeJson(text);
         if (!res.ok) { showErr(`<p><strong>Das Rezept-JSON konnte nicht übernommen werden.</strong> Dein Text bleibt stehen. Korrigiere die folgenden Punkte und tippe erneut auf „Rezept-Entwurf erstellen“.</p><ul>${res.errors.map(e => `<li>${escapeHtml(e.message)}</li>`).join('')}</ul>`); break; }
         state.editingRecipe = res.recipe;
+        if (linkSource && !String(state.editingRecipe.source || '').trim()) state.editingRecipe.source = linkSource;
+        state.pasteImport = null;
         state.formStep = 0;
         state.view = 'form';
         render();
@@ -979,6 +1059,8 @@ async function dispatchAction(action, id, el, e) {
         break;
       }
       state.editingRecipe = parseFreeTextRecipe(text);
+      if (linkSource && !String(state.editingRecipe.source || '').trim()) state.editingRecipe.source = linkSource;
+      state.pasteImport = null;
       state.formStep = 0;
       state.view = 'form';
       render();

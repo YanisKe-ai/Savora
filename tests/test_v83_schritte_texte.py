@@ -100,7 +100,7 @@ async def main():
 
         # ---------- Rezeptaktionen und Teilen ----------
         await ev("() => { state.activeRecipeId = 'h2_karamell'; state.view = 'detail'; render(); }")
-        labels = await ev("() => Array.from(document.querySelectorAll('.detail-tools .tool-action span')).map(s => s.textContent.trim())")
+        labels = await ev("() => Array.from(document.querySelectorAll('.detail-tools .tool-action .tool-label')).map(s => s.textContent.trim())")
         check('Rezeptaktionen ausgeschrieben', labels == ['Auf die Einkaufsliste', 'Zum Wochenplan', 'Bearbeiten', 'Teilen'], str(labels))
         await ev("() => document.querySelector('.detail-tools [data-action=open-share-menu]').click()")
         await page.wait_for_selector('.share-menu')

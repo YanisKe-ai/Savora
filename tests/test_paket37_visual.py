@@ -16,7 +16,7 @@ VIEWS = [
     ('Einstellungen', "state.view='settings'"),
 ]
 BADGES = '.chip-count, .nav-badge, .filter-count-badge'
-SERIF_OK = '.rcard-title, .rrow-title, .detail-title-v2, .cbk-name, .topbar--book .topbar-title, .cook-title-text'
+SERIF_OK = '.rcard-title, .rrow-title, .detail-title-v2, .cbk-name, .topbar--book .topbar-title, .cook-title-text, .cook-stepcount [aria-hidden], .cook-stepcount b, .cook-stepcount--text, .cook-mise-title, .cook-finish-v2 h2, .cook-alarm-copy strong, .ph-initial-letter'   # v89: Schrittzahl, Vorbereitung, Schlussbild und Timer-Ende im Kochmodus in Lilita; Anfangsbuchstabe im Platzhalter
 
 JS_FONTS = """(serifOk) => {
   const out = {bad: [], serifElsewhere: [], families: {}};
@@ -158,12 +158,12 @@ async def main():
                     rows = await page.evaluate("() => { const t = Array.from(document.querySelectorAll('.rrow--text')); return { n: t.length, img: t.some(c => c.querySelector('img, .placeholder, .ph-letter')), h: t.length ? Math.round(t[0].getBoundingClientRect().height) : 0 }; }")
                     check(tag + 'Rezept ohne Foto (Liste): kein Bild, keine leere Flaeche, Zeile mindestens 64 px', rows['n'] >= 1 and not rows['img'] and rows['h'] >= 64, str(rows))
                 else:
-                    # Handy (Startseite als Liste): Rezepte ohne Foto bekommen einen ruhigen Platzhalter in Fotogroesse, ohne Buchstaben
+                    # Handy (Startseite als Liste): Rezepte ohne Foto bekommen eine Kachel in Fotogroesse mit dem Anfangsbuchstaben (v89)
                     await show_view("state.view='home'")
                     rows = await page.evaluate("""() => { const all = Array.from(document.querySelectorAll('.rrow--phone')); const ph = all.filter(r => r.querySelector('.rrow-ph')); const photo = all.filter(r => !r.querySelector('.rrow-ph'));
                         const sz = (r) => { const b = r.querySelector('.rrow-img').getBoundingClientRect(); return [Math.round(b.width), Math.round(b.height)]; };
                         return { n: ph.length, letters: document.querySelectorAll('.ph-letter').length, szPh: ph.length ? sz(ph[0]) : null, szPhoto: photo.length ? sz(photo[0]) : null, h: ph.length ? Math.round(ph[0].getBoundingClientRect().height) : 0, text: ph.length ? ph[0].querySelector('.rrow-img').textContent.trim() : null }; }""")
-                    check(tag + 'Rezept ohne Foto (Handy-Liste): ruhiger Platzhalter ohne Buchstaben, so gross wie ein Foto, Zeile mindestens 64 px', rows['n'] >= 1 and rows['letters'] == 0 and rows['text'] == '' and rows['szPh'] == rows['szPhoto'] and rows['h'] >= 64, str(rows))
+                    check(tag + 'Rezept ohne Foto (Handy-Liste): Kachel mit Anfangsbuchstabe (v89), so gross wie ein Foto, Zeile mindestens 64 px', rows['n'] >= 1 and rows['letters'] == 0 and len(rows['text'] or '') == 1 and rows['szPh'] == rows['szPhoto'] and rows['h'] >= 64, str(rows))
                 await show_view("state.homeLayout='grid';state.view='home'")
                 await show_view("state.view='detail';state.activeRecipeId='r_legacy_3'")
                 nd = await page.evaluate("""() => ({ hero: !!document.querySelector('.hero, .hero-img'), letter: !!document.querySelector('.ph-letter'), fam: getComputedStyle(document.querySelector('.detail-title-v2')).fontFamily.split(',')[0], fs: parseFloat(getComputedStyle(document.querySelector('.detail-title-v2')).fontSize),
