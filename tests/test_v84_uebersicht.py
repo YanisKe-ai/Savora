@@ -80,7 +80,7 @@ async def phone_suite(p):
       sel: !!document.querySelector('.sel-mode-btn'), h1: !!document.querySelector('h1.sr-only') })""")
     check('Handy: Titel ist Knopf «Alle Rezepte ▾» (aria-haspopup=dialog), Seitentitel bleibt für Screenreader', st['btn'] and st['tag'] == 'BUTTON' and st['text'] == 'Alle Rezepte' and st['pop'] == 'dialog' and st['h1'], str(st))
     check('Favoriten nicht doppelt: keine .seg, keine Option «Nur Favoriten»', not st['seg'] and not st['fav'], str(st))
-    check('Sortierungen in der Reihenfolge des Auftrags', st['opts'] == ['Zuletzt bearbeitet', 'Zuletzt hinzugefügt', 'A bis Z', 'Kürzeste Gesamtzeit', 'Zuletzt gekocht'], str(st['opts']))
+    check('Sortierungen in der Reihenfolge des Auftrags', st['opts'] == ['Zuletzt bearbeitet', 'Zuletzt hinzugefügt', 'A bis Z', 'Kürzeste Gesamtzeit', 'Zuletzt gekocht', 'Beste Bewertung'], str(st['opts']))   # v90: Bewertung
     check('Sichtbarer Einstieg «Auswählen»', st['sel'])
     check('Alle Rezepte: «17 Rezepte»', await ev(COUNT) == '17 Rezepte', await ev(COUNT))
 

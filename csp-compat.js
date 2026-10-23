@@ -46,7 +46,7 @@
     var t = e.target; if (!t || !t.getAttribute) return;
     var name = t.getAttribute('data-change-fn');
     if (name && CSP_CHANGE_FNS.indexOf(name) >= 0 && typeof window[name] === 'function') window[name](t);
-  });
+  }, true);   // Capture: auch ein change-Ereignis ohne bubbles (wie frueher onchange am Element) kommt an
   // Bilder, die schon fertig (oder kaputt) waren, bevor dieses Skript lief
   function sweepImages(root) {
     if (!root || !root.querySelectorAll) return;
