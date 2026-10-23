@@ -2,6 +2,7 @@
 Jeder Test startet seinen eigenen lokalen Webserver (Port 8795) auf den Repo-Dateien.
 Fuer den Datenerhalt-Test kann der Server auf einen frueheren Git-Stand umgeschaltet werden."""
 import asyncio, json, os, subprocess, sys, tempfile, threading
+import re
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from playwright.async_api import async_playwright
 
@@ -25,6 +26,20 @@ SITE = _Site()
 class _Handler(SimpleHTTPRequestHandler):
     def __init__(self, *a, **k): super().__init__(*a, directory=SITE.dir, **k)
     def log_message(self, *a): pass
+    def do_GET(self):
+        # v90: die Inhaltsrichtlinie (CSP-meta in index.html) sperrt den lokalen Nachbau-Server und Playwright-Hilfen
+        # (wait_for_function mit Text). Ausser im strengen Lauf (SAVORA_CSP_STRICT=1, test_v90_csp) liefert der Testserver
+        # index.html ohne diese Zeile; die App selbst bleibt unveraendert.
+        path = self.path.split('?', 1)[0]
+        if os.environ.get('SAVORA_CSP_STRICT') != '1' and path in ('/', '/index.html'):
+            try:
+                with open(os.path.join(SITE.dir, 'index.html'), 'rb') as f: body = f.read()
+                body = re.sub(rb'<meta http-equiv="Content-Security-Policy"[^>]*>\n?', b'', body)
+                self.send_response(200); self.send_header('Content-Type', 'text/html; charset=utf-8')
+                self.send_header('Content-Length', str(len(body))); self.end_headers(); self.wfile.write(body); return
+            except OSError:
+                pass
+        return super().do_GET()
 
 def _start_server():
     import time
