@@ -4635,3 +4635,32 @@ body:has(.cookbook-main) .toast-action { width: max-content; max-width: min(92vw
 @media (forced-colors: active) { .detail-meta-v2 > .fact { box-shadow: none; border-left: 1px solid CanvasText; } }
 .detail-meta-v2 > .detail-times { margin-top: 0; }
 
+
+/* ===== v89 C Kochbuch-Assistent und PDF-Dialog ===== */
+/* Im Kochbuch-Assistenten (Handy und Tablet) keine untere Navigation, wie im Rezept-Editor: die Leiste Zurück/Weiter steht allein unten.
+   Zurück zur Übersicht geht über den Pfeil oben links. Ab 900 px bleibt die Seitenleiste. */
+@media (max-width: 899px) {
+  body:has(main.cookbook-main) { --nav-h: 0px; }
+  body:has(main.cookbook-main) .bottom-nav { display: none; }
+  .cookbook-main .cb-step-footer { bottom: 0; padding-bottom: calc(0.75rem + env(safe-area-inset-bottom, 0px)); }
+}
+/* Schritt 3: «PDF-Vorschau erstellen» klebt unten auf einer deckenden Fläche in Panelfarbe, mit Abstand zum Rand.
+   Was darunter durchscrollt, scheint nicht durch, auch nicht beim gesperrten Knopf (noch kein Rezept). */
+.cookbook-main .cb-final > .cb-export-bar { position: sticky; bottom: 0; z-index: var(--z-sticky); margin: 1.25rem -1rem 0; padding: 0.75rem 1rem calc(1rem + env(safe-area-inset-bottom, 0px)); background: var(--card-bg); box-shadow: 0 -1px 0 var(--hairline); }
+.cookbook-main .cb-export-bar > .primary-btn--block { margin: 0; box-shadow: var(--lift-2); }
+.cookbook-main .cb-export-bar > .primary-btn--block:disabled { box-shadow: none; }
+.cookbook-main .cb-export-bar + .cb-export-hint { margin-top: 0.75rem; }
+@media (min-width: 900px) {
+  html:not(#lp) body .cookbook-main .cb-final > .cb-export-bar { margin-inline: 0; padding: 1rem 0; }
+}
+@media (forced-colors: active) { .cookbook-main .cb-final > .cb-export-bar { border-top: 1px solid CanvasText; box-shadow: none; } }
+
+/* Einzel-PDF: Name zuerst, Kästchen darunter; mehr Luft vor «Nährwerte im PDF»; «PDF erstellen» bleibt als feste Fusszeile sichtbar */
+.pdf-name-field .check-row { margin-top: 0.25rem; }
+.pdf-export-sheet .pdf-nutri-label { margin: 1.5rem 0 0.75rem; font-weight: 600; color: var(--text); }
+.pdf-export-sheet .pdf-export-footer { position: sticky; bottom: calc(-28px - env(safe-area-inset-bottom, 0px)); z-index: 2; margin: 1.25rem -20px calc(-28px - env(safe-area-inset-bottom, 0px)); padding: 0.75rem 20px calc(0.75rem + env(safe-area-inset-bottom, 0px)); border-top: 1px solid var(--hairline); background: var(--card-bg); }
+.pdf-export-sheet .pdf-export-footer > button { flex: 1 1 0; justify-content: center; min-height: 2.75rem; }
+.pdf-export-sheet .pdf-export-footer > .primary-btn { flex-grow: 1.6; }
+@media (forced-colors: active) { .pdf-export-sheet .pdf-export-footer { border-top-color: CanvasText; } }
+/* keine doppelte Trennlinie direkt über der Knopffläche */
+.cookbook-main .cb-final .cb-review > ul:last-child > li:last-child { border-bottom-color: transparent; }

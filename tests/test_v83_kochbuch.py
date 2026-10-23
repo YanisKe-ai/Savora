@@ -95,7 +95,7 @@ async def main():
 
         # ---------- Vorschau & PDF: kein zweiter Dialog ----------
         await ev("() => { state.cookbookStep = 3; render(); }")
-        await page.click('.cb-final > [data-action="export-cookbook"]')
+        await page.click('.cb-final [data-action="export-cookbook"]')
         st = await ev("() => state.modal && state.modal.stage")
         check('«PDF-Vorschau erstellen» startet direkt (kein Optionsschritt)', st in ('building', 'preview'), str(st))
         check('Kein zweiter Dialog mit Name, Seitenstil und Nährwerten', await ev("() => !document.getElementById('pdfNamePrint') && !document.querySelector('.pdf-tpl-choice')"))

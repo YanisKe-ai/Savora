@@ -138,7 +138,7 @@ async def main():
         await page.evaluate("(id) => saveCookbookConfig({ title: 'Testbuch', subtitle: '', author: 'Tester', pdfTemplate: 'B', chapters: [], items: [{ recipeId: id, chapterId: '' }] })", rid)
         await page.evaluate("() => { state.modal = null; state.view = 'cookbook'; state.cookbookStep = 3; render(); }")
         await page.evaluate(SPY)
-        await page.click('.cb-final > [data-action="export-cookbook"]')
+        await page.click('.cb-final [data-action="export-cookbook"]')
         check('Kochbuch: kein Optionsdialog (kein Stil-, Namen- oder Nährwertfeld)', await page.evaluate("() => !document.querySelector('.pdf-tpl-opt') && !document.getElementById('pdfNameInput') && state.modal.stage !== 'options'"))
         await page.wait_for_selector('[data-action="pdf-export-download"]', timeout=120000)
         calls = await page.evaluate("window.__calls")
