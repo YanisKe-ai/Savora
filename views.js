@@ -283,8 +283,9 @@ function settingsRow(opts) {
   const { icon, title, summary, view, action, danger, badge, nav, chip } = opts;   // v91.7: chip = { text, warn } zeigt einen echten Zustand
   const attr = view ? `data-action="goto-view" data-view="${view}"` : `data-action="${action}"`;
   const showArrow = !!(view || nav);
-  return `<button type="button" class="settings-row ${danger ? 'settings-row-danger' : ''}" ${attr}>
+  return `<button type="button" class="settings-row ${danger ? 'settings-row-danger' : ''}${chip && chip.warn ? ' settings-row--alert' : ''}" ${attr}>
     <span class="settings-row-icon" aria-hidden="true">${icon}</span>
+    <span class="settings-row-mark" aria-hidden="true">${icon}</span>
     <span class="settings-row-text">
       <span class="settings-row-title">${title}</span>
       ${summary ? `<span class="settings-row-summary">${escapeHtml(summary)}</span>` : ''}
