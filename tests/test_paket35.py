@@ -1,6 +1,6 @@
 """Paket 35 (Paket 37: Konfiguration liegt jetzt im aktiven Kochbuch-Projekt; Tests setzen die alte Einzelkonfiguration und loeschen die Projekte, damit die Migration sie neu uebernimmt; Cover-Bedienung liegt in Schritt 2 des Editors): neues Savora-Symbol und zehn Kochbuch-Titelblätter.
 Prüft Vorlagenliste, leere Eingaben, Datum (Zeitzonen, Format), Migration alter Konfigurationen, Layout (sichere Zonen,
-Umbruch, Warnungen), Lesbarkeit mit echten Pixeln, Escaping, Vorlagenwähler per Tastatur, echte PDF-Exporte aller fünfzehn Vorlagen
+Umbruch, Warnungen), Lesbarkeit mit echten Pixeln, Escaping, Vorlagenwähler per Tastatur, PDF-Sonderfälle (die Exporte aller fünfzehn Vorlagen prüft test_cover_pdf.py)
 (Text, Vergleich mit der Vorschau), Fehlerfälle, Offline-Export und unveränderte Bestandsdaten."""
 import asyncio, base64, json, os, subprocess, sys, tempfile
 os.environ.setdefault('SAVORA_TEST_PORT', '8969')
@@ -167,39 +167,10 @@ async def main():
             check(f'{w} px: Titelblatt-Bereich ohne seitliches Überlaufen', over <= 1, str(over))
         await page.set_viewport_size({'width': 390, 'height': 844})
 
-        # ---------- 10. Echte PDF-Exporte aller zehn Vorlagen ----------
+        # ---------- 10. PDF-Sonderfaelle (alle 15 Exporte: test_cover_pdf.py) ----------
         tmp = tempfile.mkdtemp(prefix='savora-cover-')
         await ev("""async () => { const r = state.recipes[0]; localStorage.removeItem(COOKBOOK_PROJECTS_KEY); localStorage.setItem(COOKBOOK_CONFIG_KEY, JSON.stringify({ title: '', subtitle: '', author: '', items: [{ recipeId: r.id, chapterId: '' }], chapters: [], cover: { v: 1, templateId: 'pop', date: '2026-10-09', showDate: true } })); }""")
-        sheets = []
-        diffs = []
-        for tid in IDS:
-            texts = {'title': 'Omas Lieblings-Rezepte', 'name': 'Familie Müller', 'slogan': 'gesammelt seit 1984'}
-            await ev("""(a) => { const c = getCookbookConfig(); c.cover.templateId = a[0]; c.title = a[1].title; c.author = a[1].name; c.subtitle = a[1].slogan; saveCookbookConfig(c); }""", [tid, texts])
-            res = await ev("""async () => { const r = await buildCookbookPdf('off'); if (!r) return null; const u = new Uint8Array(await r.blob.arrayBuffer()); let s = ''; for (let i = 0; i < u.length; i += 8192) s += String.fromCharCode.apply(null, u.subarray(i, i + 8192)); return btoa(s); }""")
-            if not res: check(f'PDF {tid} erzeugt', False); continue
-            path = f'{tmp}/{tid}.pdf'; open(path, 'wb').write(base64.b64decode(res))
-            text = subprocess.run(['pdftotext', '-f', '1', '-l', '1', '-layout', path, '-'], capture_output=True, text=True).stdout
-            png = f'{tmp}/{tid}'
-            subprocess.run(['pdftoppm', '-f', '1', '-l', '1', '-r', '96', '-png', '-singlefile', path, png], check=True)
-            pdfim = Image.open(png + '.png').convert('RGB').resize((794, 1123))
-            # Vorschau derselben Konfiguration als Bild (dieselbe Zeichenfunktion in Anzeigegroesse)
-            shot = await ev("""async () => { const c = getCookbookConfig(); const L = coverLayout({ templateId: c.cover.templateId, title: c.title, name: c.author, slogan: c.subtitle, date: c.cover.date, showDate: true, logo: true }); const cv = await coverRenderCanvas(L, 1); return cv.toDataURL('image/png'); }""")
-            open(f'{tmp}/{tid}-preview.png', 'wb').write(base64.b64decode(shot.split(',')[1]))
-            pre = Image.open(f'{tmp}/{tid}-preview.png').convert('RGB')
-            dl = ImageChops.difference(pre, pdfim).convert('L'); hist = dl.histogram(); npx = sum(hist)
-            diff = ImageStat.Stat(dl).mean[0]; strong = sum(hist[81:]) / npx * 100
-            diffs.append((tid, round(diff, 2), round(strong, 2)))
-            ok_text = all(w in text for w in ('Omas', 'Familie', '09.10.2026'))
-            check(f'PDF {tid}: Seite 1 enthält Titel, Name und Datum als Text', ok_text, text.strip()[:80].replace('\n', ' '))
-            sheets.append((tid, pdfim))
-        check('PDF-Titelblatt gleicht der Vorschau (mittlere Abweichung < 8 von 255, starke Abweichung < 2,5 % der Pixel; Rasterer und Schrift-Rendering unterscheiden sich je Plattform)', all(d < 8 and s < 2.5 for _, d, s in diffs), str(diffs))
-        # Kontaktbogen der tatsächlich exportierten Cover
-        sheet = Image.new('RGB', (5 * 400 + 60, 3 * 570 + 40), (236, 233, 226))
-        for k, (tid, im) in enumerate(sheets):
-            t = im.resize((400, int(400 * 1123 / 794))); sheet.paste(t, (20 + (k % 5) * 410, 20 + (k // 5) * 570))
-        out_sheet = _os.path.join(ROOT, 'docs', 'cover-kontaktbogen.jpg'); sheet.save(out_sheet, quality=88)
-        check('Kontaktbogen der fünfzehn exportierten Cover erzeugt', _os.path.getsize(out_sheet) > 20000, out_sheet)
-
+        # Die 15 echten PDF-Exporte (Titel, Name, Datum im Textlayer, Titelblatt gleicht der Vorschau) pruefen test_cover_pdf.py (v1-Schleife und «Neue Vorlage») und test_pdf_stile.py; hier bleiben die Sonderfaelle.
         # Leere Eingaben im PDF: nur Datum
         await ev("() => { const c = getCookbookConfig(); c.title = ''; c.author = ''; c.subtitle = ''; c.cover.templateId = 'tomate'; saveCookbookConfig(c); }")
         res = await ev("""async () => { const r = await buildCookbookPdf('off'); const u = new Uint8Array(await r.blob.arrayBuffer()); let s = ''; for (let i = 0; i < u.length; i += 8192) s += String.fromCharCode.apply(null, u.subarray(i, i + 8192)); return btoa(s); }""")

@@ -1,6 +1,6 @@
 """PDF-Gestaltung V2 (Savora_PDF_Feinschliff_V2, recipe-layout.css): physische Masse, Farben und Schriften der Stile «Pur» und
 «Prise Pop» in allen drei Dichten (normal, compact, compact-columns). Rendert pvRecipePage/pvPage mit Testmodellen und misst im DOM
-(berechnete Stile, Schriften geladen). Die echte PDF-Ausgabe pruefen test_pdf_ausgabe und test_pdf_stile."""
+(berechnete Stile, Schriften geladen). Die echte PDF-Ausgabe pruefen test_pdf_stile."""
 import asyncio, sys, os, json
 import os as _os; sys.path.insert(0, _os.path.dirname(_os.path.abspath(__file__)))
 from common import *

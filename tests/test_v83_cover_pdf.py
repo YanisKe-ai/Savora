@@ -9,12 +9,7 @@ Teil A, Cover (sichtbare Geometrie statt Containerrechtecke):
   - coverAutoAlign: kleinste Verschiebung, Sicherheitsabstand, keine Text-/Groessenaenderung, Erklaerung ohne Loesung
   - Editor: Warnung aktualisiert sich nach Verschieben, «Automatisch ausrichten» nur auf Klick, Rueckgaengig ueber den Undo-Stapel,
     «Im Cover bearbeiten» (data-cover-edit) springt zum Feld
-Teil B, PDF (echte PDFs, pdftoppm/pdftotext ueber tests/pdf_harness.py), beide Stile:
-  - kurzes Rezept 1 Seite; Sloppy Joe (knapp zu lang) 1 Seite dicht, Schrift nicht kleiner als 10 / 8,5 pt
-  - lange Rezepte mehrseitig mit Fortsetzung (Rezeptname, «Fortsetzung»), keine fast leere Restseite
-  - ohne Bild, Hoch-/Querformat, lange Quelle, lange Ueberschrift, sehr langer Schritt, sehr lange Zutatenliste
-  - pdfLastPageCounts / pdfLastPlan nach dem Rendern = tatsaechliche Seiten (Einzelrezept und Kochbuch), vorher null
-  - beide Stile gleicher Text
+Teil B (PDF-Layout, beide Stile) ist nach test_pdf_stile.py umgezogen (Seitenplan pdfLastPageCounts/pdfLastPlan, Sloppy Joe eine Seite, gleicher Text in beiden Stilen); Rest war doppelt zu pdf_stile und pdf_planer_v2.
 Linux-Simulation: SAVORA_PDF_TEXT_SHIFT_MM=0.3 (pdf_harness). Ausgabe: <OUT>/v83_cover_pdf/."""
 import asyncio, json, os, re, sys
 os.environ.setdefault('SAVORA_TEST_PORT', '24300')
@@ -195,59 +190,10 @@ async def teil_editor(pw):
         await b.close()
 
 
-async def teil_pdf():
-    print('\n===== Teil B: PDF =====')
-    shift = os.environ.get('SAVORA_PDF_TEXT_SHIFT_MM', '0')
-    print('     Linux-Simulation SAVORA_PDF_TEXT_SHIFT_MM =', shift)
-    async with PdfSession(OUTDIR) as s:
-        fx = {r['id']: r for r in s.fx['recipes']}
-        pre = await s.page.evaluate("() => [pdfLastPageCounts, pdfLastPlan]")
-        check('vor dem ersten Rendern: keine Seitenzahl (null)', pre == [None, None], pre)
-        faelle = {'pdf_kurz': 'kurz, ohne Bild', 'pdf_sloppy': 'knapp zu lang (Sloppy Joe)', 'pdf_vielezutaten': 'sehr lange Zutatenliste', 'pdf_zweiseiten': 'lange Zubereitung',
-                  'pdf_langerschritt': 'sehr langer Schritt', 'pdf_hochformat': 'Hochformatbild', 'pdf_querformat': 'Querformatbild', 'pdf_notizen': 'lange Quelle/Notizen',
-                  'pdf_langtitel': 'lange Ueberschrift', 'pdf_dreiseiten': 'mehr als drei Seiten'}
-        texte = {}
-        for stil in TEMPLATE_IDS:
-            for rid, was in faelle.items():
-                ex = await s.single(rid, stil, 'off', name=f'einzel_{rid[4:]}_{stil}_s{shift}')
-                k = ex.seiten(); pc = await s.page.evaluate("() => ({ c: Array.from(pdfLastPageCounts || []), p: pdfLastPlan })")
-                befunde = alle_pruefungen(ex, [fx[rid]])
-                relevant = {kk: v for kk, v in befunde.items() if v and kk in ('raender', 'ueberlappung', 'schrift', 'wortbruch', 'ueberschriften', 'restseiten', 'bilder', 'text', 'fortsetzung', 'seitenzahl')}
-                print(f'  [{stil}] {rid} ({was}): {k} Seite(n), Plan: {pc["p"]["recipes"][0]["plan"] if pc["p"] else "-"}')
-                check(f'[{stil}] {was}: pdfLastPageCounts = PDF-Seiten', pc['c'] == [[rid, k]] and pc['p']['totalPages'] == k and pc['p']['recipes'][0]['pages'] == k, pc['c'])
-                check(f'[{stil}] {was}: keine Befunde (Raender, Ueberlappung, Schrift >= 10/8,5 pt, Wortbruch, Ueberschriften, Restseite, Bilder, Text, Fortsetzung)', not relevant, json.dumps({kk: v[:2] for kk, v in relevant.items()}, ensure_ascii=False)[:500])
-                if rid == 'pdf_kurz': check(f'[{stil}] kurzes Rezept: 1 Seite', k == 1, k)
-                if rid == 'pdf_sloppy': check(f'[{stil}] Sloppy Joe: 1 Seite (vorher 2)', k == 1, pc['p']['recipes'][0]['plan'])
-                if k > 1:
-                    t2 = flach(ex.text(first=2))
-                    title = fx[rid]['title']
-                    check(f'[{stil}] {was}: Folgeseite nennt Rezeptname und «Fortsetzung»', 'fortsetzung' in t2.lower() and _ascii(title)[:25] in _ascii(t2), t2[:120])
-                texte[(stil, rid)] = _ascii(flach(ex.text()).replace('Fortsetzung', '')).replace('fortsetzung', '')   # v87: Fortsetzungs-Titel (Gruppen ueber zwei Seiten) zaehlen nicht als Inhalt; Prise Pop verteilt lange Zutatenlisten auf zwei Spalten statt zwei Seiten
-                if rid in ('pdf_sloppy', 'pdf_zweiseiten', 'pdf_hochformat', 'pdf_langtitel') or k >= 3:
-                    ex.render(80)
-        for rid, was in faelle.items():
-            a, bb = texte.get((TEMPLATE_IDS[0], rid), ''), texte.get((TEMPLATE_IDS[-1], rid), '')
-            # gleicher Inhalt: Woerter des einen Stils im anderen (Fusszeile/Seitenzahl ignoriert)
-            check(f'beide Stile gleicher Inhalt: {was}', abs(len(a) - len(bb)) <= max(40, len(a) * 0.03), f'{len(a)} vs {len(bb)}')
-        # Kochbuch
-        for stil in TEMPLATE_IDS:
-            ex = await s.book('ref', stil, 'off', datei=f'buch_ref_{stil}_s{shift}')
-            pc = await s.page.evaluate("() => ({ c: Object.fromEntries(pdfLastPageCounts || []), p: pdfLastPlan })")
-            dom = seiten_pro_rezept(ex)
-            print(f'  [{stil}] Kochbuch: {ex.seiten()} Seiten, je Rezept {pc["c"]}')
-            check(f'[{stil}] Kochbuch: pdfLastPageCounts = Seiten je Rezept im PDF', pc['c'] == dom and pc['p']['kind'] == 'cookbook' and pc['p']['totalPages'] == ex.seiten(), f'{pc["c"]} vs {dom}')
-            befunde = alle_pruefungen(ex)
-            relevant = {kk: v for kk, v in befunde.items() if v and kk in ('raender', 'ueberlappung', 'schrift', 'restseiten', 'inhaltsverzeichnis', 'fortsetzung')}
-            check(f'[{stil}] Kochbuch: keine Befunde', not relevant, json.dumps({kk: v[:2] for kk, v in relevant.items()}, ensure_ascii=False)[:500])
-            ex.render(60)
-        check('PDF: keine Seitenfehler', not s.fehler, s.fehler[:3])
-
-
 async def main():
     async with async_playwright() as pw:
         await teil_cover(pw)
         await teil_editor(pw)
-    await teil_pdf()
     print('\nFEHLER:' if FAIL else '\nALLE OK', FAIL if FAIL else '')
     sys.exit(1 if FAIL else 0)
 

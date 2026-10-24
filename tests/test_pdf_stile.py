@@ -102,6 +102,8 @@ async def main():
             for b in v: b['export'] = ex.name
             bef[stil].setdefault(k, []).extend(v)
     async with PdfSession(OUTDIR) as s:
+        pre_plan = await s.page.evaluate("() => [typeof pdfLastPageCounts === 'undefined' ? null : pdfLastPageCounts, typeof pdfLastPlan === 'undefined' ? null : pdfLastPlan]")   # aus test_v83_cover_pdf Teil B
+        plan_abw = []; plan_buch_abw = []; texte_stil = {}; sloppy_seiten = {}; hinweis_abw = []
         vorher = await s.zustand()
         print('Naehrwerte-Status der Testrezepte:', s.naehrwerte_status)
         t0 = time.time()
@@ -113,16 +115,27 @@ async def main():
                     ex = await s.single(rid, stil, nw)
                     if not ex.pdf: bef[stil].setdefault('export_fehlgeschlagen', []).append(F('export_fehlgeschlagen', 0, f'{rid} {stil} {nw}: kein PDF', export=ex.name)); continue
                     ernte(ex, stil, [rez[rid]]); ex_alle[('einzel', rid, stil, nw)] = ex
+                    # aus test_v83_cover_pdf Teil B: Plan (pdfLastPageCounts / pdfLastPlan) = tatsaechliche Seiten; Text beider Stile gleich; Sloppy Joe 1 Seite
+                    k = ex.seiten(); pc = await s.page.evaluate("() => ({ c: Array.from(pdfLastPageCounts || []), p: pdfLastPlan })")
+                    if not (pc['c'] == [[rid, k]] and pc['p'] and pc['p']['totalPages'] == k and pc['p']['recipes'][0]['pages'] == k): plan_abw.append(f'{rid} {stil} {nw}: {pc["c"]} statt {k} Seiten')
+                    texte_stil[(rid, nw, stil)] = re.sub(r'[^a-z]+', '', flach(ex.text()).replace('Fortsetzung', '').lower().replace('fortsetzung', ''))
+                    if rid == 'pdf_sloppy' and nw == 'off': sloppy_seiten[stil] = k
+                    if rid == 'pdf_cookies':   # aus test_export: Hinweise und Quellen stehen im echten PDF nicht als nummerierte Schritte
+                        norm = re.sub(r'\s+', ' ', ex.text().replace('\u00a0', ' '))
+                        if 'Haltbarkeit' not in norm or re.search(r'0\d\s+Haltbarkeit', norm) or re.search(r'\d\d\s+Quelle:', norm): hinweis_abw.append(f'{stil} {nw}')
         DAUER['einzel'] = time.time() - t0; t0 = time.time()
-        # ---- Kochbuch «ref» in allen drei Naehrwerte-Optionen, «gross» (alle Testrezepte) nur im zweiten Stil, damit test_pdf_ausgabe den ersten abdeckt ----
+        # ---- Kochbuch «ref» in allen drei Naehrwerte-Optionen, «gross» (alle Testrezepte) in beiden Stilen ----
         ref_rez = [rez[i] for i, _ in fx['books']['ref']['items']]
         for stil in stile:
             for nw in ('off', 'compact', 'full'):
                 ex = await s.book('ref', stil, nw)
                 if not ex.pdf: bef[stil].setdefault('export_fehlgeschlagen', []).append(F('export_fehlgeschlagen', 0, f'buch ref {stil} {nw}', export=ex.name)); continue
                 ernte(ex, stil, ref_rez); ex_alle[('buch', 'ref', stil, nw)] = ex
+                pcb = await s.page.evaluate("() => ({ c: Object.fromEntries(pdfLastPageCounts || []), p: pdfLastPlan })")   # aus test_v83_cover_pdf Teil B
+                if not (pcb['c'] == seiten_pro_rezept(ex) and pcb['p'] and pcb['p']['kind'] == 'cookbook' and pcb['p']['totalPages'] == ex.seiten()): plan_buch_abw.append(f'{stil} {nw}: {pcb["c"]} vs {seiten_pro_rezept(ex)}')
         if not SCHNELL:
-            ex = await s.book('gross', T1, 'compact'); ernte(ex, T1, [rez[i] for i, _ in fx['books']['gross']['items']]); ex_alle[('buch', 'gross', T1, 'compact')] = ex
+            for stil in stile:   # das lange Kochbuch (alle Testrezepte) laeuft in beiden Stilen (frueher teilte sich test_pdf_ausgabe den ersten Stil)
+                ex = await s.book('gross', stil, 'compact'); ernte(ex, stil, [rez[i] for i, _ in fx['books']['gross']['items']]); ex_alle[('buch', 'gross', stil, 'compact')] = ex
         DAUER['kochbuch'] = time.time() - t0; t0 = time.time()
 
         # ---- Pflichtpruefungen je Stil ----
@@ -190,9 +203,21 @@ async def main():
                 if e and bk:
                     for x in pruefe_einzel_gegen_buch(e, bk, rid): x['export'] = f'{rid} {stil}'; diffs.append(x)
             check(P + 'Einzelrezept und Kochbuch: gleiche Typografie und gleiche Seitenzahl je Rezept', not diffs, kurz(diffs))
+        check('vor dem ersten Rendern: keine Seitenzahl (pdfLastPageCounts und pdfLastPlan sind null)', pre_plan == [None, None], str(pre_plan))
+        check('Einzelrezept: pdfLastPageCounts und pdfLastPlan = tatsaechliche PDF-Seiten (alle Rezepte, beide Stile, alle Naehrwerte-Optionen)', not plan_abw, kurz(plan_abw))
+        check('Kochbuch: pdfLastPageCounts = Seiten je Rezept im PDF, pdfLastPlan.totalPages = PDF-Seiten (beide Stile, alle Naehrwerte-Optionen)', not plan_buch_abw, kurz(plan_buch_abw))
+        check('Sloppy Joe (knapp zu lang): in beiden Stilen eine Seite', bool(sloppy_seiten) and all(v == 1 for v in sloppy_seiten.values()), str(sloppy_seiten))
+        check('Hinweise (Haltbarkeit) und Quellen stehen im PDF nicht als nummerierte Schritte (Cookies, beide Stile, alle Naehrwerte-Optionen)', not hinweis_abw, kurz(hinweis_abw))
+        textabw = []
+        for (rid, nw, stil), t in texte_stil.items():
+            if stil == stile[0]:
+                t2 = texte_stil.get((rid, nw, stile[-1]), '')
+                if abs(len(t) - len(t2)) > max(40, len(t) * 0.03): textabw.append(f'{rid} {nw}: {len(t)} vs {len(t2)} Zeichen')
+        check('Beide Stile liefern gleichen Inhalt (Text je Rezept und Naehrwerte-Option, Fusszeile und Seitenzahl ignoriert)', not textabw, kurz(textabw))
         if not SCHNELL:
-            g = ex_alle[('buch', 'gross', T1, 'compact')]
-            check(f'[{T1}] langes Kochbuch (alle Testrezepte): Inhaltsverzeichnis ueber mehrere Seiten und vollstaendig', sum(1 for d in g.dom if d.get('kind') == 'toc') >= 2 and sum(len(d.get('tocRows', [])) for d in g.dom) >= 48, str(sum(1 for d in g.dom if d.get('kind') == 'toc')))
+          for stil_g in stile:
+            g = ex_alle[('buch', 'gross', stil_g, 'compact')]
+            check(f'[{stil_g}] langes Kochbuch (alle Testrezepte): Inhaltsverzeichnis ueber mehrere Seiten und vollstaendig', sum(1 for d in g.dom if d.get('kind') == 'toc') >= 2 and sum(len(d.get('tocRows', [])) for d in g.dom) >= 48, str(sum(1 for d in g.dom if d.get('kind') == 'toc')))
         DAUER['pruefungen'] = time.time() - t0; t0 = time.time()
 
         # ---- Vorschau = Download, in beiden Stilen und zwei Naehrwerte-Optionen (echte Oberflaeche) ----
@@ -228,6 +253,24 @@ async def main():
 
         nachher = await s.zustand()
         check('Export veraendert keine Rezepte, Zutaten, Schritte, Notizen, Bilder, Kategorien', vorher == nachher)
+        # ---- aus test_pdf_scharfes_s (Fehler vom 14.10.2026): «ß» und andere Zeichen, die bei Grossschreibung laenger werden («Grüße aus Zürich»); laeuft nach dem Vorher/Nachher-Vergleich, weil es ein Rezept anlegt ----
+        await s.page.evaluate("""async () => {
+          const r = Object.assign(emptyRecipe(), { id: 'ss_1', title: 'Grüße aus der Straße', servings: 2, categoryTags: ['hauptgericht'], category: 'Süße Grüße',
+            ingredients: [{ amount: '200', unit: 'g', name: 'Weißkohl' }, { amount: '1', unit: 'EL', name: 'Öl' }],
+            steps: [{ text: 'Weißkohl in Streifen schneiden. Mit Öl in der Pfanne anbraten, bis er süßlich duftet.' }], notes: 'Maße nach Gefühl.' });
+          r.image = null; r.updatedAt = Date.now(); await dbPut(r); await loadRecipes(); }""")
+        for stil in stile:
+            try: ex = await s.single('ss_1', stil, 'compact', name=f'scharfes_s_einzel_{stil}'); ok = bool(ex.pdf)
+            except Exception as e: ok = False; print('  Fehler', str(e)[:200])
+            check(f'[{stil}] Einzelrezept mit «ß» wird exportiert', ok)
+            await s.page.evaluate("(t) => saveCookbookConfig({ title: 'Grüße aus Zürich', subtitle: 'Maßvoll genießen', author: 'Weiß', pdfTemplate: t, chapters: [{ id: 'k1', name: 'Süße Grüße aus der Straße' }], items: [{ recipeId: 'ss_1', chapterId: 'k1' }] })", stil)
+            try:
+                exb = await s._erfasse("buildCookbookPdf(a[0], { template: a[1] })", ['compact', stil], f'scharfes_s_buch_{stil}', dict(art='buch', buch='ss', stil=stil, naehrwerte='compact')); okb = bool(exb.pdf)
+            except Exception as e: okb = False; exb = None; print('  Fehler', str(e)[:200])
+            check(f'[{stil}] Kochbuch «Grüße aus Zürich» wird exportiert', okb)
+            if okb:
+                txt = re.sub(r'\s+', ' ', exb.text())
+                check(f'[{stil}] Rezepttitel mit «ß» steht im PDF-Text', 'Straße' in txt or 'STRASSE' in txt.upper(), txt[:200])
         check('keine Seitenfehler im Browser (pageerror)', not s.fehler, str(s.fehler[:3]))
     with open(os.path.join(OUTDIR, 'befunde.txt'), 'w', encoding='utf-8') as f:
         for st in stile:
