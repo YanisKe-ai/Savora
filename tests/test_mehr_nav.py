@@ -51,7 +51,7 @@ async def main():
         groups = groups[1:]
         check('Mehr: Gruppen Austauschen, Rezeptbibliothek, Werkzeuge, Verwalten mit den Vorgabetexten', groups == want, str(groups))
         check('Mehr: Seitentitel «Mehr» als h1', await ev("() => document.querySelector('main h1').textContent.trim()") == 'Mehr')
-        check('Mehr: kein Farbschema auf der Übersicht', await ev("() => !document.querySelector('[data-action=\"set-theme\"]')"))
+        check('Mehr: keine Farbschema-Auswahl auf der Übersicht, nur der Schnellschalter oben rechts (v91.2, Nutzerwunsch)', await ev("() => !document.querySelector('.theme-opt') && document.querySelectorAll('[data-action=\"set-theme\"]').length === 1 && !!document.querySelector('.page-title-row .theme-quick-toggle')"))
         check('Mehr: Zähler fehlt ohne echte Daten', await ev("() => !document.querySelector('.settings-row-badge')"))
         await ev("() => { share.count = 3; render(); }")
         check('Mehr: Zähler «3 neu» aus share.count', await ev("() => (document.querySelector('.settings-row-badge') || {}).textContent") == '3 neu')

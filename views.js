@@ -363,11 +363,19 @@ function moreTrashRowHtml() {
   const n = typeof trashCount === 'function' ? trashCount() : 0;
   return settingsRow({ icon: ICONS.trash || ICONS.x, title: 'Zuletzt gelöscht', summary: n ? `${n} Rezept${n === 1 ? '' : 'e'}, 30 Tage wiederherstellbar` : 'Nichts gelöscht', view: 'trash', badge: n ? String(n) : '' });
 }
+/* v91.2: Schnellschalter Hell/Dunkel oben rechts auf «Mehr»: nur ein Symbol (Mond = dunkel einschalten, Sonne = hell).
+   Nutzt dieselbe Aktion wie die Einstellung (set-theme, mit Kreis-Wisch); «Wie System» bleibt in den Einstellungen wählbar. */
+function themeQuickToggleHtml() {
+  const dark = document.documentElement.getAttribute('data-theme') === 'dark';
+  const next = dark ? 'light' : 'dark';
+  const label = dark ? 'Hellen Modus einschalten' : 'Dunklen Modus einschalten';
+  return `<button type="button" class="icon-btn theme-quick-toggle" data-action="set-theme" data-theme="${next}" aria-label="${label}" title="${label}">${dark ? ICONS.sun : ICONS.moon}</button>`;
+}
 function moreView() {
   return `
     ${topbar('Mehr')}
     <main class="has-tabbar settings-page settings-page--list">
-      ${pageTitle('Mehr')}
+      ${pageTitle('Mehr', themeQuickToggleHtml())}
       ${settingsGroup('Daten', moreDataRowHtml() + moreTrashRowHtml())}
       ${settingsGroup('Austauschen',
         settingsRow({ icon: ICONS.share, title: 'Freunde &amp; Rezepte', summary: moreFriendsSummary(), view: 'friends', badge: moreFriendsBadge() }))}

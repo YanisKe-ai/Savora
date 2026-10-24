@@ -5056,3 +5056,8 @@ html:not(#lp) body .fs-foot .fs-actions > button { overflow-wrap: anywhere; }
 .ki-prompt-how[open] > summary::after, .ki-prompt-details[open] > summary::after { transform: translateY(2px) rotate(-135deg); }
 .ki-prompt-steps { margin: 0 0 0.5rem; padding-left: 1.25rem; color: var(--text-soft); font-size: 0.9375rem; line-height: 1.5; }
 .ki-prompt-text { margin: 0.25rem 0 0; padding: 0.75rem; max-height: 16rem; overflow: auto; white-space: pre-wrap; word-break: break-word; font-size: 0.875rem; line-height: 1.5; border-radius: 8px; background: var(--bg-elevated); color: var(--text); user-select: text; -webkit-user-select: text; }
+
+/* v91.2: Hell/Dunkel-Schnellschalter auf «Mehr» */
+.theme-quick-toggle { width: 2.75rem; height: 2.75rem; min-width: 2.75rem; display: inline-flex; align-items: center; justify-content: center; border-radius: 999px; border: 1px solid var(--border); background: var(--card-bg); color: var(--text); flex-shrink: 0; }
+.theme-quick-toggle svg { width: 1.25rem; height: 1.25rem; }
+
