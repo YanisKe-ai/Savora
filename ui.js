@@ -511,7 +511,7 @@ async function dispatchAction(action, id, el, e) {
       let ok = false;
       try { if (navigator.clipboard && navigator.clipboard.writeText) { await navigator.clipboard.writeText(SAVORA_KI_PROMPT); ok = true; } } catch (err) { ok = false; }
       if (ok) { say('Prompt kopiert. Jetzt in der KI einfügen und den Link ans Ende setzen.'); showToast('Prompt kopiert'); break; }
-      const det = document.querySelector('.ki-prompt-details'); if (det) det.open = true;
+      document.querySelectorAll('.ki-prompt-how, .ki-prompt-details').forEach(d => { d.open = true; });
       const pre = document.getElementById('kiPromptText');
       if (pre && window.getSelection) { const rg = document.createRange(); rg.selectNodeContents(pre); const sel = window.getSelection(); sel.removeAllRanges(); sel.addRange(rg); }
       say('Kopieren ist hier nicht erlaubt. Der Prompt ist markiert: tippe lange darauf und wähle «Kopieren».');
