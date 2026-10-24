@@ -988,7 +988,7 @@ async function dispatchAction(action, id, el, e) {
       render();
       break;
     case 'set-theme': {
-      const nextTheme = normalizeTheme(el.dataset.theme);
+      const nextTheme = normalizeTheme(el.dataset.themeNext || el.dataset.theme);   // v91.2: Schnellschalter auf «Mehr» nutzt data-theme-next
       const applyThemeChange = () => {
         state.theme = nextTheme;
         try { localStorage.setItem(THEME_KEY, state.theme); } catch (err) { showToast('Das Farbschema gilt jetzt, konnte aber nicht dauerhaft gespeichert werden.', 'error'); }

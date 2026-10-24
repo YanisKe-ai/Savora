@@ -42,14 +42,14 @@ async def main():
         await click_nav(page, 'Mehr')
         check('Mehr: Route more', await ev("state.view") == 'more')
         groups = await ev("() => Array.from(document.querySelectorAll('.settings-group')).map(g => [g.querySelector('.settings-group-title').textContent.trim(), Array.from(g.querySelectorAll('.settings-row')).map(r => [r.querySelector('.settings-row-title').textContent.trim(), r.querySelector('.settings-row-summary').textContent.trim()])])")
-        want = [['Austauschen', [['Freunde & Rezepte', 'Empfangene Rezepte und Kontakte']]],
-                ['Rezeptbibliothek', [['Meine Veröffentlichungen', 'Zum Veröffentlichen anmelden'], ['Öffentliches Profil', 'Nicht angemeldet']]],
-                ['Werkzeuge', [['Einheiten umrechnen', 'Gewicht, Volumen, Temperatur und Zutaten'], ['Vorrat · Was kann ich kochen?', 'Trag ein, was du hast, und sieh passende Rezepte']]],
-                ['Verwalten', [['Einstellungen', 'Konto, Daten und App anpassen'], ['Hilfe & Kontakt', 'Antworten und Unterstützung'], ['Über Savora', 'Version, Datenschutz und Lizenzen']]]]
+        # v91.3 (Nutzerwunsch): «Austauschen» und «Rezeptbibliothek» als eine Gruppe «Teilen», kürzere Untertitel
+        want = [['Teilen', [['Freunde & Rezepte', 'Empfangene Rezepte und Kontakte'], ['Meine Veröffentlichungen', 'Zum Veröffentlichen anmelden'], ['Öffentliches Profil', 'Nicht angemeldet']]],
+                ['Werkzeuge', [['Einheiten umrechnen', 'Gewicht, Volumen, Temperatur'], ['Vorrat · Was kann ich kochen?', 'Rezepte aus dem, was du hast']]],
+                ['Verwalten', [['Einstellungen', 'Konto, Daten und Darstellung'], ['Hilfe & Kontakt', 'Antworten und Unterstützung'], ['Über Savora', 'Version, Datenschutz und Lizenzen']]]]
         # v89: oben eine Statuszeile «Daten» (echter Sicherungsstand), v90: dazu «Zuletzt gelöscht», danach die bisherigen Gruppen unverändert
         check('Mehr: Statuszeile «Daten» zuerst', groups[0][0] == 'Daten' and len(groups[0][1]) == 2 and 'Sicherung' in groups[0][1][0][1] and groups[0][1][1][0] == 'Zuletzt gelöscht', str(groups[:1]))
         groups = groups[1:]
-        check('Mehr: Gruppen Austauschen, Rezeptbibliothek, Werkzeuge, Verwalten mit den Vorgabetexten', groups == want, str(groups))
+        check('Mehr: Gruppen Teilen, Werkzeuge, Verwalten mit den Vorgabetexten', groups == want, str(groups))
         check('Mehr: Seitentitel «Mehr» als h1', await ev("() => document.querySelector('main h1').textContent.trim()") == 'Mehr')
         check('Mehr: keine Farbschema-Auswahl auf der Übersicht, nur der Schnellschalter oben rechts (v91.2, Nutzerwunsch)', await ev("() => !document.querySelector('.theme-opt') && document.querySelectorAll('[data-action=\"set-theme\"]').length === 1 && !!document.querySelector('.page-title-row .theme-quick-toggle')"))
         check('Mehr: Zähler fehlt ohne echte Daten', await ev("() => !document.querySelector('.settings-row-badge')"))
