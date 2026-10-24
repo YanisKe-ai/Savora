@@ -3,6 +3,7 @@
 Format: neueste Version oben. `VERSION` und `SW_VERSION` in `sw.js` werden bei jeder Änderung gemeinsam erhöht.
 
 ## Unveröffentlicht (Branch dev)
+- 0.91.9 (SW v124-ruhig): **Kacheln ruhiger.** Die Kacheln auf «Mehr» sind wieder neutral wie die übrigen Karten, nur die Symbol-Scheibe oben links trägt die Gruppenfarbe. Fehlt die Sicherung, sind Scheibe und Etikett tomatenrot.
 - 0.91.8 (SW v123-mutig): **Kacheln auf «Mehr» mit Charakter.** Jede Kachel ganz in ihrer Gruppenfarbe, Symbol in einer hellen Scheibe, ein grosses angeschnittenes Symbol als Muster in der Ecke, kräftigere Titel. Fehlt die Sicherung, leuchtet die Kachel tomatenrot.
 - 0.91.7 (SW v122-mehrklar): **«Mehr» klarer.** Gruppenüberschriften wieder sichtbar (klein und ruhig), Untertitel bis zwei Zeilen statt abgeschnitten, ein Zustands-Etikett zeigt das Wichtige direkt («Fehlt» bei fehlender Sicherung, «Fehler» beim Abgleich), «Über Savora» als schlanke Fusszeile mit Versionsnummer.
 - 0.91.6 (SW v121-kacheln): **«Mehr» als Kacheln.** Zwei Kacheln nebeneinander statt einer langen Liste, die Gruppe erkennt man an der Farbe (Überschriften bleiben für Bildschirmleser), die ganze Seite passt auf einen Handy-Bildschirm. Die Profilkarte zeigt jetzt auch ein selbst hochgeladenes Profilbild, lädt das öffentliche Profil selbst und merkt sich Bild und Name für den nächsten Start.
