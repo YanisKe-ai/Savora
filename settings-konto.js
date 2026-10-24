@@ -76,24 +76,18 @@ function kdSignedOutForm() {
 function settingsAccountView() {
   let body;
   if (kdSignedIn()) {
-    const hasProfile = typeof friendsProfileView === 'function';   // Route friends-profile gehört zu «Freunde & Rezepte»
-    const hasPubProfile = typeof libPubProfileView === 'function';   // Route lib-pubprofile gehört zur Rezeptbibliothek (einzige Stelle für öffentliche Sichtbarkeit)
-    body = kdLeadHtml('Mit deinem Konto bleiben deine Rezepte auf allen Geräten aktuell. Du brauchst es auch für Freunde und zum Veröffentlichen in der Bibliothek.')
-      + kdSection('kdAccStatus', 'Status', `
-        <p class="kd-status"><span class="sync-dot" aria-hidden="true"></span><strong class="kd-status-title">Angemeldet</strong></p>
-        <p class="kd-sub">E-Mail: <strong class="kd-email">${escapeHtml(kdEmail())}</strong></p>
-        ${hasPubProfile || hasProfile ? `<p class="kd-sub kd-sub--strong kd-profiles-title">Deine Profile</p>` : ''}
-        ${hasPubProfile ? kdLinkRow('lib-pubprofile', 'Mein öffentliches Profil', 'Sichtbar für alle: Anzeigename, Bild und Kurztext stehen bei deinen veröffentlichten Rezepten in der Bibliothek.') : ''}
-        ${hasProfile ? kdLinkRow('friends-profile', 'Profil für Freunde', 'Sichtbar für deine Freunde: dein Benutzername, über den sie dich finden. Dein Einladungscode bleibt privat.') : ''}`)
-      + kdSection('kdAccPw', 'Passwort', `
-        <p class="kd-sub">Lege ein neues Passwort für die Anmeldung fest.</p>
-        <button type="button" class="ghost-btn kd-btn" data-action="konto-pw-open">Passwort ändern</button>`)
-      + kdSection('kdAccOut', 'Abmelden', `
-        <p class="kd-sub">Deine Rezepte und Daten bleiben auf diesem Gerät. Der Geräteabgleich endet, und beim nächsten Anmelden werden die Daten dieses Geräts mit deinem Konto zusammengeführt.</p>
-        <button type="button" class="ghost-btn kd-btn" data-action="cloud-sign-out">Abmelden</button>`)
+    // v91.12: oben wer du bist, dann was andere von dir sehen (öffentlich, Freunde), dann das Konto selbst. Kurze Texte, weniger Scrollen.
+    const hasProfile = typeof friendsProfileView === 'function';   // Route friends-profile gehört zu «Freunde»
+    const pub = typeof libMoreRowsHtml === 'function' ? libMoreRowsHtml(true) : '';
+    const head = typeof moreProfileCardHtml === 'function' ? moreProfileCardHtml({ static: true }) : '';
+    body = head
+      + (pub ? kdSection('kdAccPub', 'Öffentlich in der Bibliothek', pub, 'kd-sec--links') : '')
+      + (hasProfile ? kdSection('kdAccFriends', 'Für Freunde', kdLinkRow('friends-profile', 'Profil für Freunde', 'Sichtbar für deine Freunde. Dein Einladungscode bleibt privat.'), 'kd-sec--links') : '')
+      + kdSection('kdAccStatus', 'Konto', `
+        <button type="button" class="kd-link kd-link--action" data-action="konto-pw-open"><span class="kd-link-text"><span class="kd-link-title">Passwort ändern</span><span class="kd-sub">Neues Passwort für die Anmeldung</span></span><span class="kd-link-chev" aria-hidden="true">${ICONS.chevronRight}</span></button>
+        <button type="button" class="kd-link kd-link--action" data-action="cloud-sign-out"><span class="kd-link-text"><span class="kd-link-title">Abmelden</span><span class="kd-sub">Rezepte bleiben auf diesem Gerät und werden beim nächsten Anmelden zusammengeführt</span></span><span class="kd-link-chev" aria-hidden="true">${ICONS.chevronRight}</span></button>`, 'kd-sec--links')
       + kdSection('kdAccDel', 'Konto löschen', `
-        <p class="kd-sub">Löscht dein Konto und die Daten in der Cloud endgültig. Die Rezepte auf diesem Gerät bleiben erhalten. Vor dem Löschen siehst du alle Folgen.</p>
-        <button type="button" class="ghost-btn danger-btn kd-btn" data-action="konto-delete-open">Konto löschen …</button>`, 'kd-sec--danger');
+        <button type="button" class="kd-link kd-link--danger" data-action="konto-delete-open"><span class="kd-link-text"><span class="kd-link-title">Konto löschen …</span><span class="kd-sub">Endgültig. Vorher siehst du alle Folgen, Rezepte auf diesem Gerät bleiben.</span></span><span class="kd-link-chev" aria-hidden="true">${ICONS.chevronRight}</span></button>`, 'kd-sec--danger kd-sec--links');
   } else {
     body = kdLeadHtml('Mit einem Konto werden deine Rezepte auf deinen Geräten übernommen. Ohne Konto bleibt alles auf diesem Gerät, und Savora funktioniert wie gewohnt.')
       + kdSection('kdAccStatus', 'Nicht angemeldet', kdSignedOutForm())

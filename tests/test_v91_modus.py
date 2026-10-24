@@ -44,7 +44,7 @@ async def main():
                   const ratio = (a, b) => { const x = lum(a), y = lum(b); return (Math.max(x, y) + 0.05) / (Math.min(x, y) + 0.05); };
                   return Array.from(document.querySelectorAll('.settings-group--tone')).map(g => { const i = g.querySelector('.settings-row:not(.settings-row--alert) .settings-row-icon'); const cs = getComputedStyle(i); const r = i.getBoundingClientRect();
                     return { t: g.querySelector('.settings-group-title').textContent.trim(), bg: cs.backgroundColor, ratio: Math.round(ratio(cs.color, cs.backgroundColor) * 10) / 10, size: r.width }; }); }""")
-                check(f'[{w}/{mode}] drei Gruppen mit eigener Scheibenfarbe (v91.11)', len(t) == 3 and len(set(x['bg'] for x in t)) == 3, str(t))
+                check(f'[{w}/{mode}] zwei Gruppen mit eigener Scheibenfarbe (v91.12)', len(t) == 2 and len(set(x['bg'] for x in t)) == 2, str(t))
                 check(f'[{w}/{mode}] Symbole auf den Kacheln gut lesbar (Kontrast ab 4,5) und mindestens 32 px', all(x['ratio'] >= 4.5 and x['size'] >= 32 for x in t), str(t))
             pc = await page.evaluate("""() => { const c = document.querySelector('.more-profile'), h1 = document.querySelector('.page-title-row'), g = document.querySelector('.settings-group');
               const r = c.getBoundingClientRect(); return { below: r.top >= h1.getBoundingClientRect().bottom - 1 && r.bottom <= g.getBoundingClientRect().top + 1, h: r.height, name: c.querySelector('.more-profile-name').textContent.trim(), status: c.querySelector('.more-profile-status').textContent.trim(), pic: !!c.querySelector('.more-profile-pic') }; }""")
@@ -59,8 +59,8 @@ async def main():
               return { n: rows.length, cols: xs.size, W: document.documentElement.scrollWidth, iw: innerWidth, out: rows.filter(r => r.getBoundingClientRect().right > innerWidth + 0.5).length,
                 cut: rows.filter(r => { const t = r.querySelector('.settings-row-title'); return t.scrollWidth > t.clientWidth + 1 || t.scrollHeight > t.clientHeight + 1; }).map(r => r.querySelector('.settings-row-title').textContent),
                 h: rows.map(r => r.getBoundingClientRect().height), titles: Array.from(document.querySelectorAll('.more-page .settings-group-title')).map(t => t.textContent.trim()) }; }""")
-            check(f'[{w}] Kacheln zwei nebeneinander, kein seitlicher Überlauf, Titel ganz lesbar, mindestens 44 px hoch', k['n'] == 8 and k['cols'] == 2 and k['W'] <= k['iw'] and not k['out'] and not k['cut'] and min(k['h']) >= 44, str(k))
-            check(f'[{w}] Gruppenüberschriften sichtbar (v91.7)', k['titles'] == ['Teilen', 'Werkzeuge', 'App'] and await page.evaluate("() => Array.from(document.querySelectorAll('.more-page .settings-group-title')).every(t => t.getBoundingClientRect().height > 10)"), str(k['titles']))
+            check(f'[{w}] Kacheln zwei nebeneinander, kein seitlicher Überlauf, Titel ganz lesbar, mindestens 44 px hoch', k['n'] == 6 and k['cols'] == 2 and k['W'] <= k['iw'] and not k['out'] and not k['cut'] and min(k['h']) >= 44, str(k))
+            check(f'[{w}] Gruppenüberschriften sichtbar (v91.7)', k['titles'] == ['Alltag', 'App'] and await page.evaluate("() => Array.from(document.querySelectorAll('.more-page .settings-group-title')).every(t => t.getBoundingClientRect().height > 10)"), str(k['titles']))
             ch = await page.evaluate("() => { const c = document.querySelector('.more-page .settings-row-chip'); if (!c) return null; const r = c.getBoundingClientRect(), t = c.closest('.settings-row').getBoundingClientRect(); return { text: c.textContent.trim(), inside: r.right <= t.right + 0.5 && r.top >= t.top - 0.5 }; }")
             check(f'[{w}] ohne Sicherung: Etikett «Sicherung fehlt» oben rechts in der Kachel Einstellungen (v91.11)', ch and ch['text'] == 'Sicherung fehlt' and ch['inside'], str(ch))
             al = await page.evaluate("""() => { const r = document.querySelector('.more-page .settings-row--alert'); if (!r) return null; const cs = getComputedStyle(r), t = getComputedStyle(r.querySelector('.settings-row-title'));
@@ -68,7 +68,10 @@ async def main():
               const a = lum(cs.backgroundColor), b = lum(t.color); return { bg: cs.backgroundColor, ratio: Math.round((Math.max(a, b) + 0.05) / (Math.min(a, b) + 0.05) * 10) / 10, mark: !!r.querySelector('.settings-row-mark svg') }; }""")
             check(f'[{w}] v91.9: Kachel bei fehlender Sicherung neutral (wie die Karten), Text gut lesbar, Muster-Symbol vorhanden', al and al['ratio'] >= 4.5 and al['mark'] and al['bg'] == await page.evaluate("getComputedStyle(document.querySelector('.more-profile')).backgroundColor"), str(al))
             tb = await page.evaluate("() => { const rows = Array.from(document.querySelectorAll('.more-page .settings-group-card > .settings-row')); return { tiles: new Set(rows.map(r => getComputedStyle(r).backgroundColor)).size, icons: new Set(rows.filter(r => !r.classList.contains('settings-row--alert')).map(r => getComputedStyle(r.querySelector('.settings-row-icon')).backgroundColor)).size }; }")
-            check(f'[{w}] v91.9: alle Kacheln gleiche neutrale Fläche, nur die Symbol-Scheiben farbig (3 Gruppenfarben)', tb['tiles'] == 1 and tb['icons'] == 3, str(tb))
+            check(f'[{w}] v91.9: alle Kacheln gleiche neutrale Fläche, nur die Symbol-Scheiben farbig (2 Gruppenfarben)', tb['tiles'] == 1 and tb['icons'] == 2, str(tb))
+            if w == 390:
+                fit = await page.evaluate("() => { const nav = document.querySelector('.bottom-nav').getBoundingClientRect().top; const els = Array.from(document.querySelectorAll('.more-page .settings-row, .more-footer')); return { last: Math.max(...els.map(e => e.getBoundingClientRect().bottom)), nav }; }")
+                check('[390] v91.12: «Mehr» passt ohne Scrollen auf den Bildschirm (letzte Kachel und Fusszeile über der Navigation)', fit['last'] <= fit['nav'], str(fit))
             check(f'[{w}] keine Seitenfehler', not errs, str(errs[:2]))
             if w == 390:
                 await page.evaluate("() => { state.theme = 'light'; applyTheme(); render(); }"); await page.screenshot(path=os.path.join(OUT, 'mehr-hell-390.png'))

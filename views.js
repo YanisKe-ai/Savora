@@ -289,9 +289,9 @@ function settingsRow(opts) {
     <span class="settings-row-text">
       <span class="settings-row-title">${title}</span>
       ${summary ? `<span class="settings-row-summary">${escapeHtml(summary)}</span>` : ''}
+      ${chip && chip.text ? `<span class="settings-row-chip${chip.warn ? ' settings-row-chip--warn' : ''}">${escapeHtml(chip.text)}</span>` : ''}
     </span>
     ${badge ? `<span class="settings-row-badge">${escapeHtml(badge)}</span>` : ''}
-    ${chip && chip.text ? `<span class="settings-row-chip${chip.warn ? ' settings-row-chip--warn' : ''}">${escapeHtml(chip.text)}</span>` : ''}
     ${showArrow ? `<span class="settings-row-chevron" aria-hidden="true">${ICONS.chevronRight}</span>` : ''}
   </button>`;
 }
@@ -392,7 +392,8 @@ function themeQuickToggleHtml() {
 /* v91.5: Profilkarte oben auf «Mehr»: Profilbild (Vorlage aus dem öffentlichen Profil, sonst Anfangsbuchstabe),
    Name und Anmeldestatus. Antippen öffnet «Mein Konto». Lädt nichts nach und zeigt nur, was schon bekannt ist. */
 const MORE_PROFILE_KEY = 'savora-more-profile';
-function moreProfileCardHtml() {
+function moreProfileCardHtml(opts) {
+  const isStatic = !!(opts && opts.static);   // v91.12: oben in «Mein Konto» als Kopf ohne Sprung
   const signed = typeof cloudSignedIn === 'function' && cloudSignedIn();
   const email = typeof kdEmail === 'function' ? kdEmail() : '';
   const pub = typeof lpProfileData === 'function' ? lpProfileData() : null;
@@ -416,9 +417,11 @@ function moreProfileCardHtml() {
   const letter = (String(name).trim().charAt(0) || 'S').toUpperCase();
   const pic = avatar ? `<img class="more-profile-pic" src="${escapeAttr(avatar)}" alt="" width="56" height="56">` : `<span class="more-profile-pic more-profile-pic--letter" aria-hidden="true">${escapeHtml(letter)}</span>`;
   const status = signed ? (email ? `Angemeldet · ${email}` : 'Angemeldet') : 'Nicht angemeldet';
+  const inner = `${pic}
+      <span class="more-profile-text"><span class="more-profile-name">${escapeHtml(name)}</span><span class="more-profile-status">${escapeHtml(status)}</span></span>`;
+  if (isStatic) return `<div class="more-profile more-profile--static">${inner}</div>`;
   return `<button type="button" class="more-profile" data-action="goto-view" data-view="settings-account">
-      ${pic}
-      <span class="more-profile-text"><span class="more-profile-name">${escapeHtml(name)}</span><span class="more-profile-status">${escapeHtml(status)}</span></span>
+      ${inner}
       <span class="settings-row-chevron" aria-hidden="true">${ICONS.chevronRight}</span>
     </button>`;
 }
@@ -428,16 +431,13 @@ function moreView() {
     <main class="has-tabbar settings-page settings-page--list more-page">
       ${pageTitle('Mehr', themeQuickToggleHtml())}
       ${moreProfileCardHtml()}
-      ${settingsGroup('Teilen',   // v91.3: «Austauschen» und «Rezeptbibliothek» zusammengelegt
+      ${settingsGroup('Alltag',   // v91.12: öffentliches Profil und öffentliche Rezepte sind jetzt in «Mein Konto» (Profilkarte oben)
         settingsRow({ icon: ICONS.share, title: 'Freunde', summary: moreFriendsSummary(), view: 'friends', badge: moreFriendsBadge() })
-        + (typeof libMoreRowsHtml === 'function' ? libMoreRowsHtml() : ''), 'teilen')}
-      ${settingsGroup('Werkzeuge',
-        settingsRow({ icon: ICONS.scale, title: 'Einheiten umrechnen', summary: 'Gewicht, Volumen, Temperatur', view: 'unitconverter' })
-        + (typeof pantryView === 'function' ? settingsRow({ icon: ICONS.jar || ICONS.cart, title: 'Vorrat', summary: 'Was kann ich damit kochen?', view: 'pantry' }) : ''), 'werkzeuge')}
+        + (typeof pantryView === 'function' ? settingsRow({ icon: ICONS.jar || ICONS.cart, title: 'Vorrat', summary: 'Was kann ich damit kochen?', view: 'pantry' }) : '')
+        + settingsRow({ icon: ICONS.scale, title: 'Einheiten umrechnen', summary: 'Gewicht, Volumen, Temperatur', view: 'unitconverter' })
+        + moreTrashRowHtml(), 'teilen')}
       ${settingsGroup('App', [
         // v91.11: Sicherung und Abgleich nur noch in den Einstellungen; fehlt die Sicherung, zeigt die Kachel das Etikett
-        // Einstellungen zuletzt: als breite Kachel hat das Etikett «Sicherung fehlt» Platz
-        moreTrashRowHtml(),
         settingsRow({ icon: ICONS.lifeBuoy, title: 'Hilfe &amp; Kontakt', summary: 'Antworten und Unterstützung', view: 'settings-help' }),
         settingsRow({ icon: ICONS.settings, title: 'Einstellungen', summary: 'Sicherung, Abgleich, Darstellung', view: 'settings', chip: moreBackupChip() }),
       ].join(''), 'app')}
