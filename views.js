@@ -584,20 +584,25 @@ function settingsAboutView() {
 function pasteImportState() { return (state.pasteImport && typeof state.pasteImport === 'object') ? state.pasteImport : {}; }
 function pasteImportKiHtml() {
   if (typeof SAVORA_KI_PROMPT !== 'string') return '';
+  // v91.1: kompakt: Titel, Kopier-Knopf; Anleitung und Prompt eingeklappt
   return `<div class="ki-prompt-box">
-      <h2 class="ki-prompt-h">Rezept aus einem Link mit KI</h2>
-      <ol class="ki-prompt-steps">
-        <li>Tippe auf «Prompt kopieren».</li>
-        <li>Füge ihn in ChatGPT, Claude oder Gemini ein, setze den Rezept-Link ans Ende und sende ab.</li>
-        <li>Kopiere die Antwort (Kopier-Knopf beim Code-Block) und füge sie unten ein.</li>
-      </ol>
+      <h2 class="ki-prompt-h">Rezept aus einem Link?</h2>
+      <p class="ki-prompt-sub">Mit ChatGPT, Claude oder Gemini umwandeln.</p>
       <button type="button" class="ghost-btn ki-prompt-copy" data-action="copy-ki-prompt">${ICONS.copy || ICONS.clipboardText || ''} Prompt kopieren</button>
       <p class="hint-line ki-prompt-hint" id="kiPromptHint" role="status" aria-live="polite"></p>
-      <details class="ki-prompt-details">
-        <summary>Prompt ansehen</summary>
-        <pre class="ki-prompt-text" id="kiPromptText">${escapeHtml(SAVORA_KI_PROMPT)}</pre>
+      <details class="ki-prompt-how">
+        <summary>So geht's</summary>
+        <ol class="ki-prompt-steps">
+          <li>Tippe auf «Prompt kopieren».</li>
+          <li>Füge ihn in ChatGPT, Claude oder Gemini ein, setze den Rezept-Link ans Ende und sende ab.</li>
+          <li>Kopiere die Antwort (Kopier-Knopf beim Code-Block) und füge sie unten ein.</li>
+        </ol>
+        <p class="hint-line">Kann die KI den Link nicht öffnen (z. B. Instagram), kopiere stattdessen den Rezepttext und setze ihn ans Ende des Prompts.</p>
+        <details class="ki-prompt-details">
+          <summary>Prompt ansehen</summary>
+          <pre class="ki-prompt-text" id="kiPromptText">${escapeHtml(SAVORA_KI_PROMPT)}</pre>
+        </details>
       </details>
-      <p class="hint-line">Kann die KI den Link nicht öffnen (z. B. Instagram), kopiere stattdessen den Rezepttext und setze ihn ans Ende des Prompts.</p>
     </div>`;
 }
 function pasteImportView() {
@@ -605,7 +610,7 @@ function pasteImportView() {
   const body = `
     <div class="settings-group">
       <div class="settings-group-card settings-group-card--padded">
-        <p class="settings-hint">Füge einen Rezepttext ein, zum Beispiel eine Bildunterschrift, eine Nachricht oder Text von einer Webseite. Savora erkennt Titel, Zutaten und Schritte. Du prüfst das Rezept, bevor es gespeichert wird.</p>
+        <p class="settings-hint paste-intro">Rezepttext oder Antwort der KI einfügen. Du prüfst alles, bevor es gespeichert wird.</p>
         ${SavoraNative.canRecognizeText() ? `<div class="ocr-box">
           <label class="ghost-btn ocr-btn" for="ocrInput">${ICONS.camera} Foto scannen</label>
           <input type="file" id="ocrInput" class="ocr-input" accept="image/*" aria-label="Foto von einem Rezept aufnehmen oder auswählen">
