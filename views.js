@@ -469,6 +469,7 @@ function settingsUnitLabel() {
 }
 
 /* «Einstellungen»: genau sechs Seiten in zwei Gruppen. */
+/* v91.10: Einstellungs-Übersicht im gleichen Kachel-Stil wie «Mehr» (Klasse more-page) */
 function settingsView() {
   const offline = (typeof navigator !== 'undefined' && navigator.onLine === false) ? 'Du bist gerade offline' : 'Verfügbarkeit prüfen';
   const body = `
@@ -484,7 +485,7 @@ function settingsView() {
       ].join(''), 'werkzeuge')}`;
   return `
     ${topbar('Einstellungen', { back: true })}
-    <main class="has-tabbar settings-page settings-page--list">${body}</main>
+    <main class="has-tabbar settings-page settings-page--list more-page settings-overview">${body}</main>
     ${bottomNav()}
   `;
 }

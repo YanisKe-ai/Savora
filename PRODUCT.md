@@ -34,7 +34,7 @@ Ein privates Kochbuch statt einer Rezeptplattform: eigene Sammlung, offline nutz
 - In der App steht ausschliesslich die Wortmarke «savora» (Teigschrift, Pfad-SVG, kein Text, keine Schriftdatei), nie mit Handsymbol daneben. Hell #B93B2C, Dunkel #F7F4EE; massgeblich ist die App-Einstellung, «Wie dein Gerät» folgt dem System. Fertige Varianten umschalten, kein Invertierungsfilter, keine Logo-Animation, nicht strecken oder neigen.
 - Lilita One (Rezept-/Buchtitel) und Public Sans (alles andere) bleiben die App-Schriften und sind von der Wortmarke unabhängig. Quellen: `assets/logo/`.
 - Die zehn Titelblätter Pop, Lieblingsbuch, Tomate, Salbei, Nachtküche, Citrus, Bistro, Garten, Sonnenküche, Ofenglück sind freigegeben (`assets/covers`), keine neuen Cover erfinden. Auf Titelblatt und PDF steht oben rechts nur die Wortmarke (dunkle Fläche: hell, helle Fläche: #252720).
-- Tomatenrot als einziger Akzent.
+- Tomatenrot als einziger Akzent. Ausnahme (bestätigt am 24.10.2026): Auf «Mehr» und in der Einstellungs-Übersicht tragen die runden Symbol-Scheiben je Gruppe eine eigene gedämpfte Farbe (Daten Rosé, Teilen Salbei, Werkzeuge Senf, App Stein). Kacheln, Texte und Knöpfe bleiben neutral; Warnungen bleiben tomatenrot.
 
 ## Evidence on Hand
 - Bestehende Rezepte und Testdaten (`tests/seed.js`), Referenzrezept `tests/data/ref_kartoffel_original.txt`.

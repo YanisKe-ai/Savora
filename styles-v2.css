@@ -2938,8 +2938,8 @@ main.settings-page.kd-page { max-width: 40rem; padding-bottom: 2rem; }
 .ce-chip:disabled { opacity: 0.5; }
 .ce-chip[hidden] { display: none; }
 .ce-warns { display: grid; gap: 0.5rem; margin: 0; padding: 0; list-style: none; }
-.ce-warn { display: grid; gap: 0.5rem; padding: 0.5rem 0.75rem; border-radius: 0.75rem; background: var(--danger-soft); border-left: 4px solid var(--danger); font-size: 0.875rem; }
-.ce-warn--overlap, .ce-warn--lowres { border-left-color: var(--text-soft); background: var(--surface-soft); }
+.ce-warn { display: grid; gap: 0.5rem; padding: 0.5rem 0.75rem; border-radius: 0.75rem; background: var(--danger-soft); border: 1px solid color-mix(in srgb, var(--danger) 35%, transparent); font-size: 0.875rem; }   /* v91.10: ruhiger Rahmen statt dickem Randstreifen links */
+.ce-warn--overlap, .ce-warn--lowres { border-color: var(--border); background: var(--surface-soft); }
 .ce-warn-btns { display: flex; flex-wrap: wrap; gap: 0.5rem; }
 .ce-range { display: flex; align-items: center; gap: 0.25rem; }
 .ce-range input[type="range"] { flex: 1 1 auto; min-width: 0; min-height: 2.75rem; accent-color: var(--tomato); }
@@ -3281,7 +3281,7 @@ body:has(.lp) .topbar--sub .topbar-title { overflow-wrap: normal; hyphens: auto;
 .lp-check-note { margin: 0.25rem 0 0; color: var(--text-soft); font-size: 0.875rem; line-height: 1.45; }
 .lp-field-error { margin: 0.25rem 0 0; color: var(--danger); font-size: 0.875rem; font-weight: 600; line-height: 1.45; }
 .lp-field-error:empty { display: none; }
-.lp-summary-error { margin: 0 0 0.75rem; padding: 0.75rem 1rem; border: 1px solid var(--danger); border-left-width: 4px; border-radius: var(--radius-m); background: var(--danger-soft, var(--card-bg)); color: var(--text); }
+.lp-summary-error { margin: 0 0 0.75rem; padding: 0.75rem 1rem; border: 1px solid var(--danger); border-radius: var(--radius-m); background: var(--danger-soft, var(--card-bg)); color: var(--text); }
 .lp-summary-error p { margin: 0 0 0.5rem; }
 .lp-summary-error p:last-of-type { margin-bottom: 0.5rem; }
 .lp-summary-error:focus { outline: none; }
