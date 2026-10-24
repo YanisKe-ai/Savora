@@ -2,7 +2,7 @@
    Alle Angaben, die nur die verantwortliche Person kennt, stehen zentral in LEGAL. Solange ein Wert
    mit "[" beginnt, ist er ein Platzhalter und wird in der App farbig markiert angezeigt.
    Kein Rechtsrat: Vor einer oeffentlichen Veroeffentlichung von einer Fachperson pruefen lassen. */
-const APP_VERSION = '0.91.15';   // muss mit der Datei VERSION uebereinstimmen (Test: tests/test_paket2.py)
+const APP_VERSION = '0.91.16';   // muss mit der Datei VERSION uebereinstimmen (Test: tests/test_paket2.py)
 const LEGAL = {
   name: '[Name der verantwortlichen Person]',
   email: 'host.tool@outlook.com',
@@ -149,10 +149,11 @@ function legalHelpHtml() {
     ])}`;
 }
 
+/* v91.16: oben die Wortmarke «savora» (gleiche Pfad-Grafik wie im Kopf), kleiner als das Logo im Kopf */
 function legalAboutHtml() {
   return `
     <div class="settings-group"><div class="settings-group-card settings-group-card--padded legal-card">
-      <p class="legal-about-name">Savora</p>
+      <h2 class="legal-about-name">${typeof wordmarkSvg === 'function' ? `<span class="sr-only">Savora</span>${wordmarkSvg('legal-wordmark', '')}` : 'Savora'}</h2>
       <p>Dein persönliches digitales Kochbuch.</p>
       <p class="legal-stand">Version ${escapeHtml(APP_VERSION)}${typeof SavoraNative !== 'undefined' && SavoraNative.isNative ? ' (iOS-App)' : ''}</p>
       <p>Kontakt: ${legalValue(LEGAL.email)}</p>
