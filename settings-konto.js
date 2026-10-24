@@ -83,7 +83,7 @@ function settingsAccountView() {
         <p class="kd-status"><span class="sync-dot" aria-hidden="true"></span><strong class="kd-status-title">Angemeldet</strong></p>
         <p class="kd-sub">E-Mail: <strong class="kd-email">${escapeHtml(kdEmail())}</strong></p>
         ${hasPubProfile || hasProfile ? `<p class="kd-sub kd-sub--strong kd-profiles-title">Deine Profile</p>` : ''}
-        ${hasPubProfile ? kdLinkRow('lib-pubprofile', 'Öffentliches Profil', 'Sichtbar für alle: Anzeigename, Bild und Kurztext stehen bei deinen veröffentlichten Rezepten in der Bibliothek.') : ''}
+        ${hasPubProfile ? kdLinkRow('lib-pubprofile', 'Mein öffentliches Profil', 'Sichtbar für alle: Anzeigename, Bild und Kurztext stehen bei deinen veröffentlichten Rezepten in der Bibliothek.') : ''}
         ${hasProfile ? kdLinkRow('friends-profile', 'Profil für Freunde', 'Sichtbar für deine Freunde: dein Benutzername, über den sie dich finden. Dein Einladungscode bleibt privat.') : ''}`)
       + kdSection('kdAccPw', 'Passwort', `
         <p class="kd-sub">Lege ein neues Passwort für die Anmeldung fest.</p>
@@ -118,7 +118,7 @@ function kdDeleteModal() {
     <p class="kd-sub kd-sub--strong">Das lässt sich nicht rückgängig machen.</p>
     <ul class="kd-consequences">
       <li>Dein Konto und alle Daten in der Cloud werden endgültig gelöscht: Rezepte, Fotos, Wochenplan, Einkaufsliste, Sammlungen, Kochbücher und die abgeglichenen Einstellungen.</li>
-      <li>Dein Profil für Freunde & Rezepte und die Verbindungen dazu werden gelöscht.</li>
+      <li>Dein Profil für Freunde und die Verbindungen dazu werden gelöscht.</li>
       <li>Die Rezepte und Daten auf diesem Gerät bleiben erhalten. Auf deinen anderen Geräten bleiben sie ebenfalls, sie werden aber nicht mehr abgeglichen.</li>
     </ul>
     <form class="kd-form" data-no-submit novalidate>
@@ -189,13 +189,13 @@ function settingsSyncView() {
   }
   const what = `<details class="kd-details"><summary>Was wird abgeglichen?</summary><div class="kd-details-body">
       <p class="kd-sub kd-sub--strong">Wird abgeglichen</p>
-      <ul class="kd-bullets"><li>Rezepte mit ihren Fotos, auch «Zuletzt gelöscht»</li><li>Wochenplan</li><li>Einkaufsliste</li><li>Vorrat</li><li>Sammlungen und Kochbücher</li><li>dein Name im PDF (privat, nicht Teil deines öffentlichen Profils)</li></ul>
+      <ul class="kd-bullets"><li>Rezepte mit ihren Fotos, auch im Papierkorb</li><li>Wochenplan</li><li>Einkaufsliste</li><li>Vorrat</li><li>Sammlungen und Kochbücher</li><li>dein Name im PDF (privat, nicht Teil deines öffentlichen Profils)</li></ul>
       <p class="kd-sub kd-sub--strong">Gilt nur auf diesem Gerät</p>
       <ul class="kd-bullets"><li>Darstellung und Farbschema</li><li>Einheiten und Nährwert-Anzeige</li><li>eigene Lebensmittel und gelernte Nährwert-Zuordnungen</li><li>Offline-Inhalte und Sicherungsdateien</li></ul>
       <p class="kd-sub">Wenn zwei Geräte denselben Eintrag ändern, gilt der neuere Stand. Haben beide Geräte dasselbe Rezept verschieden geändert, bleibt der ältere Stand zusätzlich als Kopie erhalten, z. B. «Rezept (Kopie von iPhone)». Löschst du ein Rezept, verschwindet es auf allen angemeldeten Geräten und liegt dort 30 Tage unter «Zuletzt gelöscht». Der Abgleich läuft automatisch, solange Savora geöffnet ist.</p>
     </div></details>`;
   const note = `<p class="kd-note">${ICONS.info}<span>Der Abgleich ist keine Sicherung: Er hält deine Geräte gleich, bewahrt aber keinen älteren Stand. Eine Kopie als Datei erstellst du unter «Sicherung &amp; Wiederherstellung».</span></p>
-    <button type="button" class="ghost-btn kd-note-link" data-action="goto-view" data-view="settings-backup">${ICONS.download} Zu Sicherung &amp; Wiederherstellung</button>`;
+    <button type="button" class="ghost-btn kd-note-link" data-action="goto-view" data-view="settings-backup">${ICONS.download} Zur Sicherung</button>`;
   return kdPage('Geräteabgleich', kdLeadHtml('Hält deine Rezepte und unterstützten Daten auf deinen Geräten aktuell.') + `<ul class="kd-bullets kd-bullets--lead" aria-label="Unterstützte Daten"><li>Rezepte mit ihren Fotos</li><li>Wochenplan</li><li>Einkaufsliste</li><li>Sammlungen und Kochbücher</li></ul>` + status + kdDeviceSectionHtml() + what + note) + kdModals();
 }
 /* Name dieses Geräts (v0.90): erscheint bei Konflikt-Kopien («Kopie von iPhone»). Leer = automatisch aus dem Gerätetyp. */
@@ -319,7 +319,7 @@ function settingsBackupView() {
       <input type="file" id="kontoRestoreInput" accept="application/json,.json" class="kd-file-input" tabindex="-1" aria-label="Sicherungsdatei wählen">
       <div id="kontoImportPanel">${kdImportPanelHtml()}</div>
       <div id="backupStatus" role="status" aria-live="polite"></div>`);
-  return kdPage('Sicherung & Wiederherstellung', kdLeadHtml('Erstellt eine Datei, mit der du deine Daten später wiederherstellen kannst.') + download + diff + imp) + kdModals();
+  return kdPage('Sicherung', kdLeadHtml('Erstellt eine Datei, mit der du deine Daten später wiederherstellen kannst.') + download + diff + imp) + kdModals();
 }
 
 /* Datei lesen und prüfen, ohne etwas zu schreiben. Liefert { summary } oder { error }. */
@@ -459,7 +459,7 @@ function settingsOfflineView() {
   const body = kdLeadHtml('Prüfe, welche Inhalte ohne Internet auf diesem Gerät verfügbar sind.')
     + kdSection('kdOffStatus', 'Status', `<div id="kontoOfflineBox">${kdOfflineBodyHtml()}</div>`)
     + kdSection('kdOffStorage', 'Speicher auf diesem Gerät', `<div id="kontoStorageInfo" role="status" aria-live="polite">${kdStorageHtml(null)}</div>`)
-    + `<p class="kd-note">${ICONS.info}<span>Deine eigenen Rezepte und Fotos liegen auf diesem Gerät und sind auch ohne Internet da. Der Geräteabgleich, Freunde &amp; Rezepte und der Abruf neuer Produktdaten brauchen eine Verbindung.</span></p>`;
+    + `<p class="kd-note">${ICONS.info}<span>Deine eigenen Rezepte und Fotos liegen auf diesem Gerät und sind auch ohne Internet da. Der Geräteabgleich, Freunde und der Abruf neuer Produktdaten brauchen eine Verbindung.</span></p>`;
   return kdPage('Ohne Internet', body) + kdModals();
 }
 async function kdOfflinePhotos() {

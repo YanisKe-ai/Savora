@@ -175,9 +175,9 @@ async def main():
         # ---------- D02: Texte ----------
         await ev("() => { state.view = 'more'; render(); }"); await page.wait_for_timeout(250)
         rows = await ev("() => Array.from(document.querySelectorAll('.settings-row-title')).map(e => e.textContent.trim()).join(' | ')")
-        check('D02 Mehr: «Freunde & Rezepte», «Einheiten umrechnen», kein «Socialize»', 'Freunde & Rezepte' in rows and 'Einheiten umrechnen' in rows and 'Socialize' not in rows, rows[:300])
+        check('D02 Mehr: «Freunde & Rezepte», «Einheiten umrechnen», kein «Socialize»', 'Freunde' in rows and 'Einheiten umrechnen' in rows and 'Socialize' not in rows, rows[:300])
         await ev("() => { state.view = 'settings-share'; render(); }"); await page.wait_for_timeout(200)
-        check('D02 Seitentitel «Freunde & Rezepte»', await ev("() => document.querySelector('.topbar-title').textContent.trim()") == 'Freunde & Rezepte')
+        check('D02 Seitentitel «Freunde & Rezepte»', await ev("() => document.querySelector('.topbar-title').textContent.trim()") == 'Freunde')
         await ev("() => { state.view = 'settings-display'; render(); }"); await page.wait_for_timeout(200)
         check('D02 Seitentitel «Darstellung»', await ev("() => document.querySelector('.topbar-title').textContent.trim()") == 'Darstellung')
         # Editor: Eigene Schlagwörter mit Beispiel

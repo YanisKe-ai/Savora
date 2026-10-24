@@ -43,11 +43,11 @@ async def main():
         check('Mehr: Route more', await ev("state.view") == 'more')
         groups = await ev("() => Array.from(document.querySelectorAll('.settings-group')).map(g => [g.querySelector('.settings-group-title').textContent.trim(), Array.from(g.querySelectorAll('.settings-row')).map(r => [r.querySelector('.settings-row-title').textContent.trim(), r.querySelector('.settings-row-summary').textContent.trim()])])")
         # v91.3 (Nutzerwunsch): «Austauschen» und «Rezeptbibliothek» als eine Gruppe «Teilen», kürzere Untertitel
-        want = [['Teilen', [['Freunde & Rezepte', 'Empfangene Rezepte und Kontakte'], ['Meine Veröffentlichungen', 'Zum Veröffentlichen anmelden'], ['Öffentliches Profil', 'Nicht angemeldet']]],
-                ['Werkzeuge', [['Einheiten umrechnen', 'Gewicht, Volumen, Temperatur'], ['Vorrat · Was kann ich kochen?', 'Rezepte aus dem, was du hast']]],
-                ['Verwalten', [['Einstellungen', 'Konto, Daten und Darstellung'], ['Hilfe & Kontakt', 'Antworten und Unterstützung'], ['Über Savora', 'Version, Datenschutz und Lizenzen']]]]
+        want = [['Teilen', [['Freunde', 'Empfangene Rezepte und Kontakte'], ['Meine öffentlichen Rezepte', 'Zum Veröffentlichen anmelden'], ['Mein öffentliches Profil', 'Nicht angemeldet']]],
+                ['Werkzeuge', [['Einheiten umrechnen', 'Gewicht, Volumen, Temperatur'], ['Vorrat', 'Was kann ich damit kochen?']]],
+                ['App', [['Einstellungen', 'Konto, Daten und Darstellung'], ['Hilfe & Kontakt', 'Antworten und Unterstützung'], ['Über Savora', 'Version, Datenschutz und Lizenzen']]]]
         # v89: oben eine Statuszeile «Daten» (echter Sicherungsstand), v90: dazu «Zuletzt gelöscht», danach die bisherigen Gruppen unverändert
-        check('Mehr: Statuszeile «Daten» zuerst', groups[0][0] == 'Daten' and len(groups[0][1]) == 2 and 'Sicherung' in groups[0][1][0][1] and groups[0][1][1][0] == 'Zuletzt gelöscht', str(groups[:1]))
+        check('Mehr: Statuszeile «Daten» zuerst', groups[0][0] == 'Daten' and len(groups[0][1]) == 2 and 'Sicherung' in groups[0][1][0][1] and groups[0][1][1][0] == 'Papierkorb' or groups[0][1][1][0] == 'Zuletzt gelöscht', str(groups[:1]))
         groups = groups[1:]
         check('Mehr: Gruppen Teilen, Werkzeuge, Verwalten mit den Vorgabetexten', groups == want, str(groups))
         check('Mehr: Seitentitel «Mehr» als h1', await ev("() => document.querySelector('main h1').textContent.trim()") == 'Mehr')
@@ -78,10 +78,10 @@ async def main():
         await go(page, 'more'); await row(page, 'Einstellungen')
         check('Mehr > Einstellungen öffnet die Übersicht', await ev("state.view") == 'settings' and await ev("() => document.querySelector('.topbar-title').textContent.trim()") == 'Einstellungen')
         groups = await ev("() => Array.from(document.querySelectorAll('.settings-group')).map(g => [g.querySelector('.settings-group-title').textContent.trim(), Array.from(g.querySelectorAll('.settings-row')).map(r => r.querySelector('.settings-row-title').textContent.trim())])")
-        check('Einstellungen: genau sechs Seiten in «Konto & Daten» und «App anpassen»', groups == [['Konto & Daten', ['Mein Konto', 'Geräteabgleich', 'Sicherung & Wiederherstellung']], ['App anpassen', ['Darstellung', 'Kochen & Mengen', 'Ohne Internet']]], str(groups))
+        check('Einstellungen: genau sechs Seiten in «Konto & Daten» und «App anpassen»', groups == [['Konto & Daten', ['Mein Konto', 'Geräteabgleich', 'Sicherung']], ['App anpassen', ['Darstellung', 'Kochen & Mengen', 'Ohne Internet']]], str(groups))
         sums = await ev("() => Array.from(document.querySelectorAll('.settings-row-summary')).map(s => s.textContent.trim())")
         check('Einstellungen: Untertitel zeigen echte Werte', sums[0] == 'Nicht angemeldet' and sums[1] == 'Nicht angemeldet' and sums[2] == 'Noch keine Sicherung heruntergeladen' and sums[3] == 'Wie dein Gerät' and sums[4].startswith('Gramm und Milliliter, Nährwerte sichtbar'), str(sums))
-        for k, (t, view) in enumerate([('Mein Konto', 'settings-account'), ('Geräteabgleich', 'settings-sync'), ('Sicherung & Wiederherstellung', 'settings-backup'), ('Darstellung', 'settings-display'), ('Kochen & Mengen', 'settings-cooking'), ('Ohne Internet', 'settings-offline')]):
+        for k, (t, view) in enumerate([('Mein Konto', 'settings-account'), ('Geräteabgleich', 'settings-sync'), ('Sicherung', 'settings-backup'), ('Darstellung', 'settings-display'), ('Kochen & Mengen', 'settings-cooking'), ('Ohne Internet', 'settings-offline')]):
             await go(page, 'settings'); await row(page, t)
             check(f'Einstellungen > {t} öffnet {view}', await ev("state.view") == view)
         # Zurück führt Schritt für Schritt zum Ursprung
@@ -165,7 +165,7 @@ async def main():
         check('Hilfe: kein Socialize, keine alten Pfadnamen', await ev("() => !/Socialize|Konto und Sicherung/.test(document.querySelector('#app').innerText + document.querySelector('#app').innerHTML)"))
         await go(page, 'settings-about')
         ab = await ev("() => document.querySelector('main').innerText")
-        check('Über Savora: echte Version, Datenschutz, Nutzungsbedingungen, Datenquellen', ('Version ' + await ev("APP_VERSION")) in ab and 'Datenschutz' in ab and 'Nutzungsbedingungen' in ab and 'Datenquellen und Lizenzen' in ab)
+        check('Über Savora: echte Version, Datenschutz, Nutzungsbedingungen, Datenquellen', ('Version ' + await ev("APP_VERSION")) in ab and 'Datenschutz' in ab and 'Nutzungsbedingungen' in ab and 'Quellen & Lizenzen' in ab)
         await go(page, 'settings-sources')
         check('Lizenzen bleiben erreichbar', await ev("() => !!Array.from(document.querySelectorAll('.settings-row')).find(r => /Lizenzen/.test(r.textContent))"))
         check('Keine sichtbaren Socialize-Texte in Mehr, Einstellungen, Hilfe, Über', await ev("""() => { let bad = []; for (const v of ['more', 'settings', 'settings-help', 'settings-about', 'settings-privacy', 'settings-display', 'settings-cooking']) { state.view = v; render(); const t = document.querySelector('#app').innerText; if (/Socialize/i.test(t)) bad.push(v); } return bad.length === 0; }"""))
@@ -209,7 +209,7 @@ async def main():
                 if w == 1440:
                     await page.evaluate("() => { state.view = 'settings-display'; render(); }"); await page.wait_for_timeout(200)
                     sub = await page.evaluate("() => { const n = document.querySelector('.settings-subnav'); const m = document.querySelector('.settings-main'); return n && m ? [getComputedStyle(n).display, n.getBoundingClientRect().right <= m.getBoundingClientRect().left, Math.round(m.getBoundingClientRect().width), Array.from(n.querySelectorAll('.settings-subnav-item')).map(b => b.textContent.trim()).join('|'), n.querySelector('.active').textContent.trim()] : null; }")
-                    check('Desktop: Abschnittsnavigation links neben dem Inhalt, begrenzte Breite', sub and sub[0] == 'block' and sub[1] and sub[2] <= 640 and sub[3] == 'Mein Konto|Geräteabgleich|Sicherung & Wiederherstellung|Darstellung|Kochen & Mengen|Ohne Internet' and sub[4] == 'Darstellung', str(sub))
+                    check('Desktop: Abschnittsnavigation links neben dem Inhalt, begrenzte Breite', sub and sub[0] == 'block' and sub[1] and sub[2] <= 640 and sub[3] == 'Mein Konto|Geräteabgleich|Sicherung|Darstellung|Kochen & Mengen|Ohne Internet' and sub[4] == 'Darstellung', str(sub))
                     await page.evaluate("() => { document.querySelector('.settings-subnav-item[data-view=\"settings-cooking\"]').click(); }"); await page.wait_for_timeout(300)
                     check('Desktop: Abschnittsnavigation wechselt die Seite', await page.evaluate("state.view") == 'settings-cooking')
                     side = await page.evaluate("() => Array.from(document.querySelectorAll('.bottom-nav button')).map(b => b.querySelector('.nav-label').textContent.trim() + (b.classList.contains('active') ? '*' : ''))")

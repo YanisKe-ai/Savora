@@ -53,7 +53,7 @@ async def main():
         await page.evaluate("() => { state.modal = null; state.view = 'settings-share'; render(); }"); await page.wait_for_timeout(300)
         t = await ev(page, "document.querySelector('main').innerText")
         check('Ohne Konto: erklaert Konto und Datenschutz, eine Hauptaktion', 'Konto' in t and 'Niemand sieht dein Kochbuch' in t and await ev(page, "document.querySelectorAll('main .tl .primary-btn').length") >= 1 and not await ev(page, "!!document.querySelector('#shareHandle, #shareTarget')"))
-        check('Ohne Konto: Titel «Freunde & Rezepte», Konto-Hinweis, keine Freundes-Funktion', await ev(page, "document.querySelector('.topbar-title').textContent") == 'Freunde & Rezepte' and not await ev(page, "!!document.querySelector('.tl-tab, #shareHandle')"))
+        check('Ohne Konto: Titel «Freunde & Rezepte», Konto-Hinweis, keine Freundes-Funktion', await ev(page, "document.querySelector('.topbar-title').textContent") == 'Freunde' and not await ev(page, "!!document.querySelector('.tl-tab, #shareHandle')"))
         check('Ohne Konto: kein Cloud-Verkehr', len(M.LOG) == 0)
 
         # Anmelden

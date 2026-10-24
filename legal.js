@@ -2,7 +2,7 @@
    Alle Angaben, die nur die verantwortliche Person kennt, stehen zentral in LEGAL. Solange ein Wert
    mit "[" beginnt, ist er ein Platzhalter und wird in der App farbig markiert angezeigt.
    Kein Rechtsrat: Vor einer oeffentlichen Veroeffentlichung von einer Fachperson pruefen lassen. */
-const APP_VERSION = '0.91.3';   // muss mit der Datei VERSION uebereinstimmen (Test: tests/test_paket2.py)
+const APP_VERSION = '0.91.4';   // muss mit der Datei VERSION uebereinstimmen (Test: tests/test_paket2.py)
 const LEGAL = {
   name: '[Name der verantwortlichen Person]',
   email: 'host.tool@outlook.com',
@@ -53,7 +53,7 @@ function legalPrivacyHtml() {
     ${legalSection('Aufbewahrung und Löschung', `
       <p>Daten in der Cloud bleiben, bis du sie löschst. Unter „Mehr, Einstellungen, Mein Konto“, „Konto und Cloud-Daten löschen“ entfernst du dein Konto und alle Cloud-Daten endgültig. Rezepte auf deinem Gerät bleiben dabei erhalten. Sie verschwinden erst, wenn du sie selbst löschst, die Browserdaten leerst oder die App deinstallierst.</p>`)}
     ${legalSection('Deine Rechte', `
-      <p>Du kannst Auskunft über deine Daten verlangen sowie deren Berichtigung und Löschung. Eine vollständige Kopie deiner Rezepte erstellst du selbst unter „Mehr, Einstellungen, Sicherung &amp; Wiederherstellung“. Schreib für alles Weitere an ${legalValue(LEGAL.email)}. Du kannst dich zusätzlich beim Eidgenössischen Datenschutz- und Öffentlichkeitsbeauftragten (EDÖB) beschweren.</p>`)}
+      <p>Du kannst Auskunft über deine Daten verlangen sowie deren Berichtigung und Löschung. Eine vollständige Kopie deiner Rezepte erstellst du selbst unter „Mehr, Einstellungen, Sicherung“. Schreib für alles Weitere an ${legalValue(LEGAL.email)}. Du kannst dich zusätzlich beim Eidgenössischen Datenschutz- und Öffentlichkeitsbeauftragten (EDÖB) beschweren.</p>`)}
     ${legalSection('Sicherheit', `
       <p>Die Übertragung zum Synchronisationsdienst ist verschlüsselt, und jedes Konto sieht nur seine eigenen Daten. Die Inhalte sind auf dem Server nicht zusätzlich Ende-zu-Ende verschlüsselt. Wähle deshalb ein Passwort, das du nirgends sonst verwendest.</p>`)}
     ${legalSection('Änderungen', `<p>Ändert sich etwas, passen wir diese Seite und das Datum oben an.</p>`)}`;
@@ -127,12 +127,12 @@ function legalHelpHtml() {
     ${group('Rezepte', [
       q('Wie bringe ich ein Rezept in Savora?', 'Tippe auf das Plus. Du kannst ein Rezept von Hand eintragen, einen Text einfügen oder in der iOS-App ein Foto scannen. Du prüfst den Entwurf, bevor er gespeichert wird.'),
       q('Warum ändern sich Mengen, wenn ich Portionen ändere?', 'Savora rechnet immer vom Originalrezept aus. Die gespeicherten Mengen bleiben gleich, nur die Anzeige wird umgerechnet.'),
-      q('Wie genau sind die Nährwerte?', 'Geschätzte Werte. Je nach Zutaten und Mengen können sie abweichen. Mehr dazu unter „Über Savora“, „Datenquellen und Lizenzen“.'),
+      q('Wie genau sind die Nährwerte?', 'Geschätzte Werte. Je nach Zutaten und Mengen können sie abweichen. Mehr dazu unter „Über Savora“, „Quellen &amp; Lizenzen“.'),
       q('Kann ich die Nährwerte ausblenden?', 'Ja, unter „Mehr, Einstellungen, Kochen &amp; Mengen“ mit „Nährwerte anzeigen“. Berechnete Werte bleiben gespeichert und erscheinen wieder, sobald du sie einschaltest.'),
     ])}
     ${group('Daten &amp; Geräte', [
       q('Wo liegen meine Rezepte?', 'Auf diesem Gerät, im Speicher des Browsers oder der App. Ohne Anmeldung verlassen sie das Gerät nie.'),
-      q('Wie sichere ich meine Rezepte?', 'Unter „Mehr, Einstellungen, Sicherung &amp; Wiederherstellung“ lädst du eine Datei mit deinen Rezepten herunter. Bewahre sie an einem zweiten Ort auf, zum Beispiel in der Dateien-App oder per E-Mail an dich selbst.'),
+      q('Wie sichere ich meine Rezepte?', 'Unter „Mehr, Einstellungen, Sicherung“ lädst du eine Datei mit deinen Rezepten herunter. Bewahre sie an einem zweiten Ort auf, zum Beispiel in der Dateien-App oder per E-Mail an dich selbst.'),
       q('Was bringt der Geräteabgleich?', 'Deine Rezepte, Fotos, der Wochenplan und die Einkaufsliste sind auf allen Geräten gleich, auf denen du angemeldet bist. Das ist keine Sicherung: Was du löschst, verschwindet auf allen Geräten.'),
       q('Wie wechsle ich zwischen hell und dunkel?', 'Unter „Mehr, Einstellungen, Darstellung“ wählst du Hell, Dunkel oder „Wie dein Gerät“. Die Auswahl gilt sofort.'),
       q('Läuft Savora ohne Internet?', 'Die App läuft ohne Internet. Wie viel auf diesem Gerät bereitliegt, siehst du unter „Mehr, Einstellungen, Ohne Internet“.'),
@@ -143,7 +143,7 @@ function legalHelpHtml() {
       q('Wo rechne ich Einheiten um?', 'Unter „Mehr, Einheiten umrechnen“ rechnest du Gewicht, Volumen und Temperatur um. Welche Einheiten Savora beim Import neuer Rezepte nutzt, stellst du unter „Mehr, Einstellungen, Kochen &amp; Mengen“ ein.'),
     ])}
     ${group('Freunde &amp; Teilen', [
-      q('Wie sende ich ein Rezept an einen Freund?', 'Du brauchst ein Konto und einen Freund in Savora. Wähle unter „Mehr, Freunde &amp; Rezepte“ ein Rezept und einen Freund. Gesendet wird erst, wenn du es bestätigst. Dein Original bleibt unverändert.'),
+      q('Wie sende ich ein Rezept an einen Freund?', 'Du brauchst ein Konto und einen Freund in Savora. Wähle unter „Mehr, Freunde“ ein Rezept und einen Freund. Gesendet wird erst, wenn du es bestätigst. Dein Original bleibt unverändert.'),
       q('Was passiert mit einem Rezept, das ich bekomme?', 'Du siehst es zuerst an und übernimmst es danach selbst. Es wird nie automatisch zu deinen Rezepten hinzugefügt.'),
       q('Kann ich ein Rezept als PDF teilen?', 'Ja, über den Export im Rezept oder im Kochbuch. Ein PDF lässt sich nicht als Sicherung in Savora einspielen.'),
     ])}`;
@@ -160,6 +160,6 @@ function legalAboutHtml() {
     ${settingsGroup('Rechtliches', [
       settingsRow({ icon: ICONS.shield, title: 'Datenschutz', view: 'settings-privacy' }),
       settingsRow({ icon: ICONS.fileText, title: 'Nutzungsbedingungen', view: 'settings-terms' }),
-      settingsRow({ icon: ICONS.database, title: 'Datenquellen und Lizenzen', view: 'settings-sources' }),
+      settingsRow({ icon: ICONS.database, title: 'Quellen &amp; Lizenzen', view: 'settings-sources' }),
     ].join(''))}`;
 }
