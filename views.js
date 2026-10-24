@@ -268,7 +268,7 @@ function renderStepWithTimers(text, stepIdx) {
 
 
 /* ---------- «Mehr» und «Einstellungen» ----------
-   «Mehr» (Route 'more') bündelt zusätzliche Funktionen: Austauschen, Werkzeuge, Verwalten. Nur echte Präferenzen
+   «Mehr» (Route 'more') bündelt zusätzliche Funktionen: Daten, Teilen, Werkzeuge, Verwalten. Nur echte Präferenzen
    und die Verwaltung liegen unter «Einstellungen» (Route 'settings'). Jede Zeile öffnet eine eigene Seite;
    «Zurück» nutzt den Browserverlauf (siehe onAction 'back' in ui.js). Zeilen: Titel, darunter höchstens
    ein bis zwei kurze Zeilen mit dem echten aktuellen Wert, Pfeil nur bei Navigation. */
@@ -345,11 +345,15 @@ function moreFriendsSummary() {
   return 'Empfangene Rezepte und Kontakte';
 }
 /* v89 B: Statuszeile «Daten» unter «Mehr»: echte Werte (letzte Sicherung, Abgleich, offline), Sprung zur passenden Unterseite. */
+/* v91.3: kurz und eindeutig: angemeldet zuerst der Abgleich («Abgeglichen heute, 12:10»), fehlt die Datei-Sicherung, ein kurzer Hinweis */
 function moreDataSummary() {
   const parts = [];
   const signed = typeof cloudSignedIn === 'function' && cloudSignedIn();
-  parts.push(settingsBackupSummary());
-  if (signed) parts.push(settingsSyncSummary());
+  const when = state.lastBackupAt && typeof kdWhen === 'function' ? kdWhen(state.lastBackupAt) : '';
+  if (signed) {
+    parts.push(String(settingsSyncSummary()).replace(/^Zuletzt( abgeglichen)?: /, 'Abgeglichen '));
+    if (!state.lastBackupAt) parts.push('Datei-Sicherung fehlt');
+  } else parts.push(state.lastBackupAt ? (when ? `Letzte Sicherung ${when}` : settingsBackupSummary()) : 'Noch keine Sicherung');
   if (typeof navigator !== 'undefined' && navigator.onLine === false) parts.push('Gerade offline');
   return parts.join(' · ');
 }
@@ -364,12 +368,13 @@ function moreTrashRowHtml() {
   return settingsRow({ icon: ICONS.trash || ICONS.x, title: 'Zuletzt gelöscht', summary: n ? `${n} Rezept${n === 1 ? '' : 'e'}, 30 Tage wiederherstellbar` : 'Nichts gelöscht', view: 'trash', badge: n ? String(n) : '' });
 }
 /* v91.2: Schnellschalter Hell/Dunkel oben rechts auf «Mehr»: nur ein Symbol (Mond = dunkel einschalten, Sonne = hell).
-   Nutzt dieselbe Aktion wie die Einstellung (set-theme, mit Kreis-Wisch); «Wie System» bleibt in den Einstellungen wählbar. */
+   Nutzt dieselbe Aktion wie die Einstellung (set-theme, mit Kreis-Wisch); data-theme-next statt data-theme,
+   sonst greifen die Farbvariablen von [data-theme="dark"] auf den Knopf selbst; «Wie System» bleibt in den Einstellungen wählbar. */
 function themeQuickToggleHtml() {
   const dark = document.documentElement.getAttribute('data-theme') === 'dark';
   const next = dark ? 'light' : 'dark';
   const label = dark ? 'Hellen Modus einschalten' : 'Dunklen Modus einschalten';
-  return `<button type="button" class="icon-btn theme-quick-toggle" data-action="set-theme" data-theme="${next}" aria-label="${label}" title="${label}">${dark ? ICONS.sun : ICONS.moon}</button>`;
+  return `<button type="button" class="icon-btn theme-quick-toggle" data-action="set-theme" data-theme-next="${next}" aria-label="${label}" title="${label}">${dark ? ICONS.sun : ICONS.moon}</button>`;
 }
 function moreView() {
   return `
@@ -377,14 +382,14 @@ function moreView() {
     <main class="has-tabbar settings-page settings-page--list">
       ${pageTitle('Mehr', themeQuickToggleHtml())}
       ${settingsGroup('Daten', moreDataRowHtml() + moreTrashRowHtml())}
-      ${settingsGroup('Austauschen',
-        settingsRow({ icon: ICONS.share, title: 'Freunde &amp; Rezepte', summary: moreFriendsSummary(), view: 'friends', badge: moreFriendsBadge() }))}
-      ${typeof libMoreRowsHtml === 'function' ? settingsGroup('Rezeptbibliothek', libMoreRowsHtml()) : ''}
+      ${settingsGroup('Teilen',   // v91.3: «Austauschen» und «Rezeptbibliothek» zusammengelegt
+        settingsRow({ icon: ICONS.share, title: 'Freunde &amp; Rezepte', summary: moreFriendsSummary(), view: 'friends', badge: moreFriendsBadge() })
+        + (typeof libMoreRowsHtml === 'function' ? libMoreRowsHtml() : ''))}
       ${settingsGroup('Werkzeuge',
-        settingsRow({ icon: ICONS.scale, title: 'Einheiten umrechnen', summary: 'Gewicht, Volumen, Temperatur und Zutaten', view: 'unitconverter' })
-        + (typeof pantryView === 'function' ? settingsRow({ icon: ICONS.cart, title: 'Vorrat · Was kann ich kochen?', summary: 'Trag ein, was du hast, und sieh passende Rezepte', view: 'pantry' }) : ''))}
+        settingsRow({ icon: ICONS.scale, title: 'Einheiten umrechnen', summary: 'Gewicht, Volumen, Temperatur', view: 'unitconverter' })
+        + (typeof pantryView === 'function' ? settingsRow({ icon: ICONS.jar || ICONS.cart, title: 'Vorrat · Was kann ich kochen?', summary: 'Rezepte aus dem, was du hast', view: 'pantry' }) : ''))}
       ${settingsGroup('Verwalten', [
-        settingsRow({ icon: ICONS.settings, title: 'Einstellungen', summary: 'Konto, Daten und App anpassen', view: 'settings' }),
+        settingsRow({ icon: ICONS.settings, title: 'Einstellungen', summary: 'Konto, Daten und Darstellung', view: 'settings' }),
         settingsRow({ icon: ICONS.lifeBuoy, title: 'Hilfe &amp; Kontakt', summary: 'Antworten und Unterstützung', view: 'settings-help' }),
         settingsRow({ icon: ICONS.info, title: 'Über Savora', summary: 'Version, Datenschutz und Lizenzen', view: 'settings-about' }),
       ].join(''))}
