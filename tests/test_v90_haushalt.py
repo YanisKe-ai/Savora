@@ -59,8 +59,15 @@ async def click(page, sel):
     await page.evaluate("(s) => { const e = document.querySelector(s); if (!e) throw new Error('fehlt ' + s); e.click(); }", sel)
 
 async def open_shopping(page):
-    await page.evaluate("() => { if (document.activeElement) document.activeElement.blur(); state.modal = null; state.view = 'shopping'; render(); }")
-    await page.wait_for_selector('.shop-main', state='attached')
+    # Ein noch laufendes Rendern (z.B. nach der Einladung) kann die Ansicht kurz zuruecksetzen (auf Linux-CI beobachtet): mehrmals versuchen
+    for _ in range(5):
+        await page.evaluate("() => { if (document.activeElement) document.activeElement.blur(); state.modal = null; state.view = 'shopping'; render(); }")
+        try:
+            await page.wait_for_selector('.shop-main', state='attached', timeout=4000)
+            return
+        except Exception:
+            pass
+    await page.wait_for_selector('.shop-main', state='attached', timeout=4000)
 
 async def names(page):
     return await page.evaluate("state.shopping.map(i => i.name).sort()")
