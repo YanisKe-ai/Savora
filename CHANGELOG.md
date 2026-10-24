@@ -3,6 +3,7 @@
 Format: neueste Version oben. `VERSION` und `SW_VERSION` in `sw.js` werden bei jeder Änderung gemeinsam erhöht.
 
 ## Unveröffentlicht (Branch dev)
+- 0.91.10 (SW v125-einstellungen): **Einstellungen als Kacheln.** Die Einstellungs-Übersicht hat denselben Kachel-Stil wie «Mehr». Hinweise im Titelblatt-Editor und die Fehlerübersicht beim Veröffentlichen haben einen ruhigen Rahmen statt eines dicken farbigen Streifens links. Markenregeln: Ausnahme für die farbigen Symbol-Scheiben festgehalten (PRODUCT.md).
 - 0.91.9 (SW v124-ruhig): **Kacheln ruhiger.** Die Kacheln auf «Mehr» sind wieder neutral wie die übrigen Karten, nur die Symbol-Scheibe oben links trägt die Gruppenfarbe. Fehlt die Sicherung, sind Scheibe und Etikett tomatenrot.
 - 0.91.8 (SW v123-mutig): **Kacheln auf «Mehr» mit Charakter.** Jede Kachel ganz in ihrer Gruppenfarbe, Symbol in einer hellen Scheibe, ein grosses angeschnittenes Symbol als Muster in der Ecke, kräftigere Titel. Fehlt die Sicherung, leuchtet die Kachel tomatenrot.
 - 0.91.7 (SW v122-mehrklar): **«Mehr» klarer.** Gruppenüberschriften wieder sichtbar (klein und ruhig), Untertitel bis zwei Zeilen statt abgeschnitten, ein Zustands-Etikett zeigt das Wichtige direkt («Fehlt» bei fehlender Sicherung, «Fehler» beim Abgleich), «Über Savora» als schlanke Fusszeile mit Versionsnummer.
