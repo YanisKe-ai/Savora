@@ -2750,7 +2750,7 @@ html.fs-more-below .bottom-nav::before, html.fs-more-below .home-add-bar::before
 
 /* ===== Konto und Daten ===== */
 /* Mein Konto, Geräteabgleich, Sicherung & Wiederherstellung, Ohne Internet (settings-konto.js). Abstände in 4px-Schritten. */
-main.settings-page.kd-page { max-width: 40rem; padding-bottom: 2rem; }
+main.settings-page.kd-page { max-width: 40rem; }   /* v91.14: kein eigenes padding-bottom, sonst verdeckt die untere Leiste das Seitenende */
 .kd-lead { margin: 0.5rem 0.25rem 0; font-size: 1.0625rem; line-height: 1.5; color: var(--text); overflow-wrap: anywhere; }
 .kd-sec { margin-top: 1.5rem; min-width: 0; }
 .kd-sec-h { margin: 0 0 0.5rem 0.25rem; font-size: 0.9375rem; font-weight: 700; color: var(--text-soft); }
