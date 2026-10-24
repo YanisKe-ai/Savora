@@ -5099,3 +5099,19 @@ html:not(#lp) body .fs-foot .fs-actions > button { overflow-wrap: anywhere; }
 .more-profile-name { font-family: var(--font-display); font-size: 1.125rem; font-weight: 700; line-height: 1.3; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .more-profile-status { font-size: 0.875rem; line-height: 1.4; color: var(--text-soft); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .more-profile .settings-row-chevron { flex-shrink: 0; }
+
+/* v91.6: «Mehr» als Kacheln, zwei nebeneinander. Gruppen erkennt man an der Kachelfarbe; die Überschriften bleiben für
+   Bildschirmleser. Untertitel eine Zeile. Ungerade letzte Kachel über die ganze Breite (dann als Zeile). */
+.more-page .settings-group { margin: 0 0 0.5rem; }
+.more-page .settings-group-title { position: absolute; width: 1px; height: 1px; padding: 0; overflow: hidden; clip-path: inset(50%); white-space: nowrap; border: 0; }
+.more-page .more-profile { margin-bottom: 0.75rem; }
+.more-page .settings-group-card { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.5rem; background: none; border: 0; border-radius: 0; box-shadow: none; overflow: visible; }
+.more-page .settings-group-card > .settings-row { position: relative; flex-direction: column; align-items: flex-start; justify-content: flex-start; gap: 0.5rem; min-height: 0; padding: 0.75rem; border: 1px solid var(--hairline, var(--border)); border-radius: 16px; background: var(--card-bg); text-align: left; min-width: 0; }
+.more-page .settings-group-card > .settings-row:active { transform: scale(0.98); }
+.more-page .settings-group-card > .settings-row .settings-row-chevron { display: none; }
+.more-page .settings-group-card > .settings-row .settings-row-text { gap: 0.125rem; width: 100%; }
+.more-page .settings-group-card > .settings-row .settings-row-title { font-size: 1rem; font-weight: 700; line-height: 1.3; overflow-wrap: anywhere; hyphens: auto; }
+.more-page .settings-group-card > .settings-row .settings-row-summary { font-size: 0.875rem; line-height: 1.35; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.more-page .settings-group-card > .settings-row .settings-row-badge { position: absolute; top: 0.75rem; right: 0.75rem; }
+.more-page .settings-group-card > .settings-row:last-child:nth-child(odd) { grid-column: 1 / -1; flex-direction: row; align-items: center; }
+.more-page .settings-group-card > .settings-row:last-child:nth-child(odd) .settings-row-chevron { display: flex; }
