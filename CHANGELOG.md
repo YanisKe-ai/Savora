@@ -3,6 +3,7 @@
 Format: neueste Version oben. `VERSION` und `SW_VERSION` in `sw.js` werden bei jeder Änderung gemeinsam erhöht.
 
 ## Unveröffentlicht (Branch dev)
+- 0.91.5 (SW v120-farbkacheln): **«Mehr» und Einstellungen mit Farbe.** Jede Gruppe hat eigene farbige Symbol-Kacheln (Daten Tomate, Teilen Salbei, Werkzeuge Senf, App Stein), im dunklen Modus gedämpft, Kontrast geprüft. Oben auf «Mehr» eine Profilkarte mit Profilbild, Name und Anmeldestatus, sie öffnet «Mein Konto».
 - 0.91.4 (SW v119-klarenamen): **Klarere Namen.** «Zuletzt gelöscht» heisst Papierkorb, «Freunde & Rezepte» Freunde, «Meine Veröffentlichungen» Meine öffentlichen Rezepte, «Öffentliches Profil» Mein öffentliches Profil, Vorrat mit Untertitel «Was kann ich damit kochen?», Gruppe «Verwalten» heisst App. Kürzere Seitentitel in den Einstellungen: «Sicherung» statt «Sicherung & Wiederherstellung», «Quellen & Lizenzen» statt «Datenquellen und Lizenzen». Funktionen unverändert.
 - 0.91.3 (SW v118-mehrkompakt): **«Mehr» kompakter.** «Austauschen» und «Rezeptbibliothek» sind eine Gruppe «Teilen», Vorrat hat ein eigenes Symbol (nicht mehr der Einkaufswagen), kürzere Untertitel auf einer Zeile, Sicherungsstand kurz («Abgeglichen heute, 12:10 · Datei-Sicherung fehlt»). Der Hell/Dunkel-Knopf erscheint im hellen Modus hell (vorher dunkel).
 - 0.91.2 (SW v117-modusknopf): **Hell/Dunkel mit einem Tipp.** Auf «Mehr» oben rechts ein runder Knopf mit Mond (dunkel einschalten) oder Sonne (hell einschalten), mit dem gewohnten Kreis-Übergang. «Wie System» bleibt in den Einstellungen wählbar.
