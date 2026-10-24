@@ -182,26 +182,36 @@ function pantryMatches(opts) {
 }
 
 /* ---------- Ansicht ---------- */
+/* v91.13: Vorrat als Chips (kompakt), «Immer da» eingeklappt, passende Rezepte als Katalog mit Foto, Füllbalken und
+   sanftem Erscheinen (gestaffelt, bei reduzierter Bewegung ohne). Klassen pantry-item/-card/-status bleiben für Tests und Aktionen. */
 function pantryItemRow(it) {
   const n = escapeHtml(it.name);
-  return `<li class="pantry-item">
+  return `<li class="pantry-item${it.always ? ' pantry-item--always' : ''}">
     <span class="pantry-name">${n}</span>
-    <button type="button" class="pantry-always ${it.always ? 'is-on' : ''}" data-action="pantry-always" data-id="${escapeAttr(it.id)}" aria-pressed="${it.always ? 'true' : 'false'}" aria-label="${n}: immer da">Immer da</button>
-    <button type="button" class="icon-btn pantry-remove" data-action="pantry-remove" data-id="${escapeAttr(it.id)}" aria-label="${n} entfernen">${ICONS.x}</button>
+    <button type="button" class="pantry-always ${it.always ? 'is-on' : ''}" data-action="pantry-always" data-id="${escapeAttr(it.id)}" aria-pressed="${it.always ? 'true' : 'false'}" aria-label="${n}: immer da" title="Immer da">${ICONS.check}</button>
+    <button type="button" class="pantry-remove" data-action="pantry-remove" data-id="${escapeAttr(it.id)}" aria-label="${n} entfernen">${ICONS.x}</button>
   </li>`;
 }
-function pantryMatchCard(m) {
+function pantryMatchCard(m, i) {
   const r = m.recipe;
-  const status = m.missing.length === 0
+  const ready = m.missing.length === 0;
+  const pct = Math.round((m.have / Math.max(1, m.total)) * 100);
+  const img = (typeof recipeImageHtml === 'function' && recipeImageHtml(r, 'pantry-cat-img', 'card'))
+    || (typeof recipeInitialHtml === 'function' ? recipeInitialHtml(r, 'pantry-cat-img pantry-cat-ph') : '<span class="pantry-cat-img pantry-cat-ph"></span>');
+  const badge = ready ? '<span class="pantry-cat-badge pantry-cat-badge--ready">Alles da</span>'
+    : `<span class="pantry-cat-badge">${m.missing.length === 1 ? '1 fehlt' : `${m.missing.length} fehlen`}</span>`;
+  const status = ready
     ? `<p class="pantry-status pantry-status--ready">Alles da</p>`
     : `<p class="pantry-status">${m.missing.length === 1 ? 'Es fehlt' : 'Es fehlen'}: ${m.missing.map(escapeHtml).join(', ')}</p>`;
-  return `<li class="pantry-card">
+  return `<li class="pantry-card${ready ? ' pantry-card--ready' : ''}" style="--i:${Math.min(i || 0, 10)}">
     <button type="button" class="pantry-card-main" data-action="open-recipe" data-id="${escapeAttr(r.id)}">
+      <span class="pantry-cat-media">${img}${badge}</span>
       <span class="pantry-card-title">${escapeHtml(r.title || 'Ohne Titel')}</span>
+      <span class="pantry-meter" role="img" aria-label="${m.have} von ${m.total} Zutaten da"><span class="pantry-meter-fill" style="--p:${pct / 100}"></span></span>
       <span class="pantry-card-count">${m.have} von ${m.total} Zutaten da</span>
     </button>
     ${status}
-    ${m.missing.length ? `<button type="button" class="outline-btn pantry-shop" data-action="pantry-shop" data-id="${escapeAttr(r.id)}">${ICONS.cart} Fehlendes einkaufen</button>` : ''}
+    ${m.missing.length ? `<button type="button" class="pantry-shop" data-action="pantry-shop" data-id="${escapeAttr(r.id)}" aria-label="Fehlendes für ${escapeAttr(r.title || 'dieses Rezept')} einkaufen">${ICONS.cart}<span>Einkaufen</span></button>` : ''}
   </li>`;
 }
 function pantryView() {
@@ -211,25 +221,28 @@ function pantryView() {
   const items = pantryVisible().slice().sort((a, b) => String(a.name).localeCompare(String(b.name), 'de'));
   const own = items.filter(x => !x.always), always = items.filter(x => x.always);
   const matches = pantryState.loaded ? pantryMatches() : [];
+  const ready = matches.filter(m => !m.missing.length).length;
   const resultHtml = !pantryState.loaded ? '<p class="settings-hint">Lädt …</p>'
     : !own.length ? '<p class="settings-hint">Trag oben ein, was du zuhause hast. Dann zeigt dir Savora passende Rezepte.</p>'
     : !matches.length ? '<p class="settings-hint">Zu deinem Vorrat passt noch kein Rezept. Trag mehr ein oder speichere weitere Rezepte.</p>'
-    : `<ul class="pantry-list" aria-label="Passende Rezepte">${matches.map(pantryMatchCard).join('')}</ul>`;
+    : `<ul class="pantry-list pantry-catalog" aria-label="Passende Rezepte">${matches.map(pantryMatchCard).join('')}</ul>`;
   return `
     ${topbar('Vorrat', { back: true })}
     <main class="has-tabbar pantry-main">
-      <p class="settings-hint pantry-intro">Was hast du zuhause? Savora sortiert deine Rezepte nach den wenigsten fehlenden Zutaten.</p>
+      <p class="settings-hint pantry-intro">Was hast du zuhause? Savora zeigt dir, was du damit kochen kannst. Wische seitwärts durch die Rezepte.</p>
       <div class="inline-add pantry-add">
         <label for="pantryInput" class="sr-only">Zutat im Vorrat, mehrere mit Komma</label>
         <input id="pantryInput" type="text" maxlength="200" placeholder="z. B. Rüebli, Zwiebeln, Reis" autocomplete="off" enterkeyhint="done">
         <button type="button" class="primary-btn" data-action="pantry-add">Hinzufügen</button>
       </div>
-      ${own.length ? `<h2 class="pantry-h">Dein Vorrat</h2><ul class="pantry-items">${own.map(pantryItemRow).join('')}</ul>` : ''}
-      <h2 class="pantry-h">Immer da</h2>
-      <p class="settings-hint">Das zählt nie als fehlend. Tippe auf «Immer da», um etwas abzuwählen.</p>
-      ${always.length ? `<ul class="pantry-items">${always.map(pantryItemRow).join('')}</ul>` : '<p class="settings-hint">Nichts als «Immer da» markiert.</p>'}
-      <h2 class="pantry-h">Was kann ich kochen?</h2>
+      <h2 class="pantry-h pantry-h--cat">Was kann ich kochen?${matches.length ? ` <span class="pantry-h-count">${ready ? `${ready} sofort` : `${matches.length} Rezepte`}</span>` : ''}</h2>
       ${resultHtml}
+      ${own.length ? `<h2 class="pantry-h">Dein Vorrat <span class="pantry-h-count">${own.length}</span></h2><ul class="pantry-items pantry-chips">${own.map(pantryItemRow).join('')}</ul>` : ''}
+      <details class="pantry-always-box"${pantryState.alwaysOpen ? ' open' : ''}>
+        <summary><span>Immer da</span><span class="pantry-h-count">${always.length}</span></summary>
+        <p class="settings-hint">Das zählt nie als fehlend. Tippe auf das Häkchen, um etwas abzuwählen.</p>
+        ${always.length ? `<ul class="pantry-items pantry-chips">${always.map(pantryItemRow).join('')}</ul>` : '<p class="settings-hint">Nichts als «Immer da» markiert.</p>'}
+      </details>
     </main>
     ${bottomNav()}
   `;
@@ -265,6 +278,8 @@ async function handlePantryAction(action, id, el) {
     default: return false;
   }
 }
+// «Immer da» bleibt nach dem Neuzeichnen offen, wenn man es geöffnet hat
+document.addEventListener('toggle', (e) => { if (e.target && e.target.classList && e.target.classList.contains('pantry-always-box')) pantryState.alwaysOpen = e.target.open; }, true);
 document.addEventListener('keydown', (e) => {
   if (e.key !== 'Enter' || e.isComposing || !e.target || e.target.id !== 'pantryInput') return;
   e.preventDefault();

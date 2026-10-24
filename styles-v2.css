@@ -4997,22 +4997,51 @@ html:not(#lp) body .fs-foot .fs-actions > button { overflow-wrap: anywhere; }
 .hh-friend-note { margin: 0.5rem 0 0; }
 
 /* ===== v90 H4 Vorrat ===== */
+/* v91.13: Vorrat als Chips, Rezepte als Katalog mit Bewegung */
 .pantry-main { padding-bottom: 1.5rem; }
 .pantry-intro { margin: 0.5rem 0 0.75rem; }
-.pantry-h { margin: 1.5rem 0 0.5rem 0.25rem; font-size: 1rem; font-weight: 800; color: var(--text); }
-.pantry-items, .pantry-list { list-style: none; margin: 0.5rem 0 0; padding: 0; display: flex; flex-direction: column; gap: 0.5rem; }
-.pantry-item { display: flex; align-items: center; gap: 0.5rem; min-height: 48px; padding: 0.25rem 0.25rem 0.25rem 1rem; background: var(--surface-soft); border-radius: var(--r-ctl); }
-.pantry-name { flex: 1; min-width: 0; overflow-wrap: anywhere; font-weight: 600; color: var(--text); }
-.pantry-always { min-height: 44px; padding: 0 1rem; border: none; border-radius: 999px; background: transparent; color: var(--text-soft); font-size: 0.875rem; font-weight: 600; }
-.pantry-always.is-on { background: var(--surface-selected); color: var(--text); }
-.pantry-card { display: flex; flex-direction: column; gap: 0.5rem; padding: 0.75rem 1rem; background: var(--surface-soft); border-radius: var(--r-ctl); }
-.pantry-card-main { display: flex; flex-direction: column; align-items: flex-start; gap: 0.125rem; min-height: 44px; padding: 0; border: none; background: none; color: var(--text); text-align: left; }
-.pantry-card-title { font-weight: 700; font-size: 1rem; overflow-wrap: anywhere; }
-.pantry-card-count { color: var(--text-soft); font-size: 0.875rem; font-variant-numeric: tabular-nums; }
-.pantry-status { margin: 0; color: var(--text-soft); font-size: 0.9375rem; overflow-wrap: anywhere; }
-.pantry-status--ready { color: var(--text); font-weight: 700; }
-.pantry-shop { align-self: flex-start; min-height: 44px; padding: 0 1rem; display: inline-flex; align-items: center; gap: 0.5rem; background: var(--bg); }
-.pantry-shop svg { width: 18px; height: 18px; }
+.pantry-h { display: flex; align-items: baseline; gap: 0.5rem; margin: 1.5rem 0 0.5rem 0.25rem; font-size: 1rem; font-weight: 800; color: var(--text); }
+.pantry-h--cat { font-size: 1.25rem; letter-spacing: -0.01em; }
+.pantry-h-count { font-size: 0.875rem; font-weight: 700; color: var(--text-soft); }
+.pantry-items { list-style: none; margin: 0.5rem 0 0; padding: 0; }
+.pantry-chips { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+.pantry-item { display: inline-flex; align-items: center; gap: 0; min-height: 44px; padding: 0 0 0 1rem; border: 1px solid var(--hairline, var(--border)); border-radius: 999px; background: var(--card-bg); }
+.pantry-item--always { background: var(--surface-soft); }
+.pantry-name { font-weight: 600; color: var(--text); white-space: nowrap; }
+.pantry-always, .pantry-remove { display: inline-flex; align-items: center; justify-content: center; width: 44px; height: 44px; padding: 0; border: 0; border-radius: 999px; background: none; color: var(--text-soft); cursor: pointer; }
+.pantry-always svg, .pantry-remove svg { width: 1rem; height: 1rem; }
+.pantry-always { width: 36px; }
+.pantry-always.is-on { color: var(--tomato); }
+.pantry-always-box { margin-top: 1rem; }
+.pantry-always-box > summary { display: flex; align-items: center; gap: 0.5rem; min-height: 44px; padding: 0 0.25rem; font-weight: 800; color: var(--text); cursor: pointer; list-style: none; }
+.pantry-always-box > summary::-webkit-details-marker { display: none; }
+.pantry-always-box > summary::after { content: ''; width: 0.5rem; height: 0.5rem; margin-left: auto; border-right: 2px solid var(--text-soft); border-bottom: 2px solid var(--text-soft); transform: translateY(-2px) rotate(45deg); transition: transform 200ms cubic-bezier(0.23, 1, 0.32, 1); }
+.pantry-always-box[open] > summary::after { transform: translateY(2px) rotate(-135deg); }
+
+.pantry-catalog { list-style: none; display: grid; grid-auto-flow: column; grid-auto-columns: 62%; gap: 0.75rem; margin: 0.5rem -1rem 0; padding: 0.25rem 1rem 1rem; overflow-x: auto; overscroll-behavior-x: contain; scroll-snap-type: x mandatory; scroll-padding-inline: 1rem; scrollbar-width: none; -webkit-overflow-scrolling: touch; }
+.pantry-catalog::-webkit-scrollbar { display: none; }
+.pantry-catalog > .pantry-card { scroll-snap-align: start; }
+@media (min-width: 640px) { .pantry-catalog { grid-auto-columns: 15rem; } }
+.pantry-card { position: relative; display: flex; flex-direction: column; gap: 0.25rem; min-width: 0; padding: 0 0 0.75rem; border: 1px solid var(--hairline, var(--border)); border-radius: 16px; background: var(--card-bg); overflow: hidden; animation: pantry-in 480ms cubic-bezier(0.23, 1, 0.32, 1) both; animation-delay: calc(var(--i, 0) * 60ms); }
+@keyframes pantry-in { from { opacity: 0; transform: translateX(24px) scale(0.97); } to { opacity: 1; transform: none; } }
+.pantry-card-main { display: flex; flex-direction: column; align-items: stretch; gap: 0.5rem; width: 100%; padding: 0; border: 0; background: none; color: var(--text); text-align: left; font: inherit; cursor: pointer; }
+.pantry-card-main:active .pantry-cat-img { transform: scale(1.04); }
+.pantry-cat-media { position: relative; display: block; overflow: hidden; }
+.pantry-cat-img { display: block; width: 100%; aspect-ratio: 4 / 3; object-fit: cover; transition: transform 500ms cubic-bezier(0.23, 1, 0.32, 1); }
+.pantry-cat-ph { display: flex; align-items: center; justify-content: center; background: var(--tone-daten-bg, var(--surface-soft)); color: var(--tone-daten-fg, var(--tomato)); }
+@media (hover: hover) and (pointer: fine) { .pantry-card-main:hover .pantry-cat-img { transform: scale(1.05); } }
+.pantry-cat-badge { position: absolute; left: 0.5rem; top: 0.5rem; padding: 0.125rem 0.5rem; border-radius: 999px; background: var(--card-bg); color: var(--text); font-size: 0.875rem; font-weight: 800; line-height: 1.5; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12); }
+.pantry-cat-badge--ready { background: var(--tomato); color: var(--on-tomato); }
+.pantry-card-title { padding: 0.25rem 0.75rem 0; font-weight: 800; font-size: 1rem; line-height: 1.25; letter-spacing: -0.01em; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; overflow-wrap: anywhere; }
+.pantry-meter { display: block; height: 6px; margin: 0.25rem 0.75rem 0; border-radius: 999px; background: var(--surface-soft); overflow: hidden; }
+.pantry-meter-fill { display: block; height: 100%; border-radius: inherit; background: var(--tomato); transform-origin: left center; transform: scaleX(var(--p, 0)); animation: pantry-fill 700ms cubic-bezier(0.23, 1, 0.32, 1) both; animation-delay: calc(var(--i, 0) * 50ms + 150ms); }
+@keyframes pantry-fill { from { transform: scaleX(0); } }
+.pantry-card-count { padding: 0 0.75rem; color: var(--text-soft); font-size: 0.875rem; font-variant-numeric: tabular-nums; }
+.pantry-status { margin: 0; padding: 0 0.75rem; color: var(--text-soft); font-size: 0.875rem; line-height: 1.4; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; overflow-wrap: anywhere; }
+.pantry-status--ready { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+.pantry-shop { align-self: flex-start; display: inline-flex; align-items: center; gap: 0.5rem; min-height: 44px; margin: 0.25rem 0.75rem 0; padding: 0 0.75rem; border: 1px solid var(--hairline, var(--border)); border-radius: 999px; background: var(--bg); color: var(--text); font: inherit; font-size: 0.875rem; font-weight: 700; cursor: pointer; }
+.pantry-shop svg { width: 1rem; height: 1rem; }
+@media (prefers-reduced-motion: reduce) { .pantry-card, .pantry-meter-fill { animation: none; } .pantry-cat-img { transition: none; } }
 
 /* ===== v90 H2 Oberfläche ===== */
 /* Zuletzt gelöscht */
