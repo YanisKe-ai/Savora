@@ -45,12 +45,12 @@ async def main():
         # v91.3 (Nutzerwunsch): «Austauschen» und «Rezeptbibliothek» als eine Gruppe «Teilen», kürzere Untertitel
         want = [['Teilen', [['Freunde', 'Empfangene Rezepte und Kontakte'], ['Meine öffentlichen Rezepte', 'Zum Veröffentlichen anmelden'], ['Mein öffentliches Profil', 'Nicht angemeldet']]],
                 ['Werkzeuge', [['Einheiten umrechnen', 'Gewicht, Volumen, Temperatur'], ['Vorrat', 'Was kann ich damit kochen?']]],
-                ['App', [['Einstellungen', 'Konto, Daten und Darstellung'], ['Hilfe & Kontakt', 'Antworten und Unterstützung']]]]
+                ['App', [['Papierkorb', 'Nichts gelöscht'], ['Hilfe & Kontakt', 'Antworten und Unterstützung'], ['Einstellungen', 'Sicherung, Abgleich, Darstellung']]]]
         # v91.7: «Über Savora» als Fusszeile mit Version
         check('Mehr: Fusszeile «Über Savora · Version» führt zu Über Savora', await ev("() => { const f = document.querySelector('.more-footer'); return !!f && f.textContent.includes('Über Savora') && f.textContent.includes(APP_VERSION) && f.dataset.view === 'settings-about'; }"))
         # v89: oben eine Statuszeile «Daten» (echter Sicherungsstand), v90: dazu «Zuletzt gelöscht», danach die bisherigen Gruppen unverändert
-        check('Mehr: Statuszeile «Daten» zuerst', groups[0][0] == 'Daten' and len(groups[0][1]) == 2 and 'Sicherung' in groups[0][1][0][1] and groups[0][1][1][0] == 'Papierkorb' or groups[0][1][1][0] == 'Zuletzt gelöscht', str(groups[:1]))
-        groups = groups[1:]
+        # v91.11 (Nutzerwunsch): keine Gruppe «Daten» mehr auf «Mehr»; Sicherung und Abgleich nur in den Einstellungen, fehlende Sicherung als Etikett an «Einstellungen»
+        check('Mehr: keine Sicherung und kein Abgleich mehr auf «Mehr», Etikett «Sicherung fehlt» an Einstellungen', not any(r[0].startswith('Sicherung') for g in groups for r in g[1]) and await ev("() => { const c = document.querySelector('.settings-row[data-view=\"settings\"] .settings-row-chip'); return !!c && c.textContent.trim() === 'Sicherung fehlt'; }"), str(groups[:1]))
         check('Mehr: Gruppen Teilen, Werkzeuge, Verwalten mit den Vorgabetexten', groups == want, str(groups))
         check('Mehr: Seitentitel «Mehr» als h1', await ev("() => document.querySelector('main h1').textContent.trim()") == 'Mehr')
         check('Mehr: keine Farbschema-Auswahl auf der Übersicht, nur der Schnellschalter oben rechts (v91.2, Nutzerwunsch)', await ev("() => !document.querySelector('.theme-opt') && document.querySelectorAll('[data-action=\"set-theme\"]').length === 1 && !!document.querySelector('.page-title-row .theme-quick-toggle')"))
@@ -80,10 +80,10 @@ async def main():
         await go(page, 'more'); await row(page, 'Einstellungen')
         check('Mehr > Einstellungen öffnet die Übersicht', await ev("state.view") == 'settings' and await ev("() => document.querySelector('.topbar-title').textContent.trim()") == 'Einstellungen')
         groups = await ev("() => Array.from(document.querySelectorAll('.settings-group')).map(g => [g.querySelector('.settings-group-title').textContent.trim(), Array.from(g.querySelectorAll('.settings-row')).map(r => r.querySelector('.settings-row-title').textContent.trim())])")
-        check('Einstellungen: genau sechs Seiten in «Konto & Daten» und «App anpassen»', groups == [['Konto & Daten', ['Mein Konto', 'Geräteabgleich', 'Sicherung']], ['App anpassen', ['Darstellung', 'Kochen & Mengen', 'Ohne Internet']]], str(groups))
+        check('Einstellungen: «Daten» (Sicherung, Geräteabgleich) und «App anpassen»; Mein Konto über die Profilkarte (v91.11)', groups == [['Daten', ['Sicherung', 'Geräteabgleich']], ['App anpassen', ['Darstellung', 'Kochen & Mengen', 'Ohne Internet']]], str(groups))
         sums = await ev("() => Array.from(document.querySelectorAll('.settings-row-summary')).map(s => s.textContent.trim())")
-        check('Einstellungen: Untertitel zeigen echte Werte', sums[0] == 'Nicht angemeldet' and sums[1] == 'Nicht angemeldet' and sums[2] == 'Noch keine Sicherung heruntergeladen' and sums[3] == 'Wie dein Gerät' and sums[4].startswith('Gramm und Milliliter, Nährwerte sichtbar'), str(sums))
-        for k, (t, view) in enumerate([('Mein Konto', 'settings-account'), ('Geräteabgleich', 'settings-sync'), ('Sicherung', 'settings-backup'), ('Darstellung', 'settings-display'), ('Kochen & Mengen', 'settings-cooking'), ('Ohne Internet', 'settings-offline')]):
+        check('Einstellungen: Untertitel zeigen echte Werte', sums[0] == 'Noch keine Sicherung heruntergeladen' and sums[1] == 'Nicht angemeldet' and sums[2] == 'Wie dein Gerät' and sums[3].startswith('Gramm und Milliliter, Nährwerte sichtbar'), str(sums))
+        for k, (t, view) in enumerate([('Geräteabgleich', 'settings-sync'), ('Sicherung', 'settings-backup'), ('Darstellung', 'settings-display'), ('Kochen & Mengen', 'settings-cooking'), ('Ohne Internet', 'settings-offline')]):
             await go(page, 'settings'); await row(page, t)
             check(f'Einstellungen > {t} öffnet {view}', await ev("state.view") == view)
         # Zurück führt Schritt für Schritt zum Ursprung

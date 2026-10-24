@@ -26,13 +26,13 @@ async def main():
         await go('settings')
         groups = await ev("Array.from(document.querySelectorAll('.settings-group')).map(g => ({ t: g.querySelector('.settings-group-title').textContent.trim(), rows: Array.from(g.querySelectorAll('.settings-row')).map(r => ({ title: r.querySelector('.settings-row-title').textContent.trim(), sum: (r.querySelector('.settings-row-summary') || {textContent: ''}).textContent.trim() })) }))")
         titles = [g['t'] for g in groups]
-        check('Gruppen in Reihenfolge: Konto & Daten, App anpassen', titles == ['Konto & Daten', 'App anpassen'], str(titles))
+        check('Gruppen in Reihenfolge: Daten, App anpassen', titles == ['Daten', 'App anpassen'], str(titles))
         rows = [[r['title'] for r in g['rows']] for g in groups]
-        check('Konto & Daten: Mein Konto, Geräteabgleich, Sicherung', rows[0] == ['Mein Konto', 'Geräteabgleich', 'Sicherung'], str(rows[0]))
+        check('Daten: Sicherung, Geräteabgleich (Mein Konto über die Profilkarte auf «Mehr», v91.11)', rows[0] == ['Sicherung', 'Geräteabgleich'], str(rows[0]))
         check('App anpassen: Darstellung, Kochen & Mengen, Ohne Internet', rows[1] == ['Darstellung', 'Kochen & Mengen', 'Ohne Internet'], str(rows[1]))
-        check('Hauptliste hat genau 6 Zeilen', sum(len(r) for r in rows) == 6, str(rows))
+        check('Hauptliste hat genau 5 Zeilen', sum(len(r) for r in rows) == 5, str(rows))
         sums = {r['title']: r['sum'] for g in groups for r in g['rows']}
-        check('Ohne Anmeldung steht «Nicht angemeldet»', sums['Mein Konto'] == 'Nicht angemeldet', str(sums))
+        check('Ohne Anmeldung steht beim Abgleich «Nicht angemeldet»', sums['Geräteabgleich'] == 'Nicht angemeldet', str(sums))
         txt = await main_text()
         for old in ['Kochbuch gestalten und als PDF', 'Kochbuch & Profil', 'Synchronisation', 'Hilfe & Feedback', 'Imperial', 'Metrisch', 'Datenschutz', 'Nutzungsbedingungen', 'Sicherungskopie', 'Auf mehreren Geräten', 'Socialize', 'Konto und Sicherung', 'Darstellung und Einheiten']:
             check(f'Einstellungen ohne altes Wort «{old}»', old not in txt)

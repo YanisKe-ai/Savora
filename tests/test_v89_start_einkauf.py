@@ -131,9 +131,9 @@ async def main():
         check('Rückgängig stellt die Liste wieder her', True)
 
         # ---------- Mehr, Geräteabgleich ----------
-        await ev("() => { state.view = 'more'; render(); }"); await page.wait_for_selector('.settings-group')
+        await ev("() => { state.view = 'settings'; render(); }"); await page.wait_for_selector('.settings-group')
         d = await ev("() => { const g = document.querySelector('.settings-group'); const r = g.querySelector('.settings-row'); return [g.querySelector('.settings-group-title').textContent.trim(), r.dataset.view, r.querySelector('.settings-row-summary').textContent.trim()]; }")
-        check('Mehr: Statuszeile «Daten» mit echtem Sicherungsstand und Sprung', d[0] == 'Daten' and d[1] in ('settings-backup', 'settings-sync') and 'Sicherung' in d[2], str(d))
+        check('Einstellungen: «Daten» zuerst mit echtem Sicherungsstand und Sprung (v91.11)', d[0] == 'Daten' and d[1] == 'settings-backup' and 'Sicherung' in d[2], str(d))
         await ev("() => { state.view = 'settings-sync'; render(); }"); await page.wait_for_selector('.kd-note-link')
         kh = await ev("() => document.querySelector('.kd-note-link').getBoundingClientRect().height")
         check('Geräteabgleich: Knopf «Sicherung» mindestens 44 px', kh >= 44, str(kh))
