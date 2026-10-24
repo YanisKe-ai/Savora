@@ -30,8 +30,7 @@ async def main():
             pb = await page.evaluate("(() => { const b = document.querySelector('.modal-sheet .form-actions .primary-btn'); return b.getBoundingClientRect().height })()")
             check(f'{w} px: "PDF erstellen" bleibt einzeilig', pb < 64, str(pb))
             await page.evaluate("() => { state.modal = null; localStorage.removeItem('savora-backup-nudge-until'); state.lastBackupAt = null; state.view='home'; render(); }"); await page.wait_for_timeout(300)
-            nh = await page.evaluate("document.querySelector('.nudge-card').getBoundingClientRect().height")
-            check(f'{w} px: Sicherungs-Erinnerung höchstens 130 px hoch', nh <= 130, f'{nh:.0f}')
+            check(f'{w} px: keine Sicherungs-Erinnerung auf der Startseite (v91.15, steht auf «Mehr»)', await page.evaluate("!document.querySelector('.nudge-card')"))
             if w == 390:
                 big = await page.evaluate("() => { const items = Array.from({ length: 45 }, (_, i) => ({ recipeId: state.recipes[0].id, chapterId: '' })); return cookbookWarnings({ items, chapters: [], coverRecipeId: '' }).map(w => w.text) }")
                 check('Kochbuch mit über 40 Rezepten: Hinweis auf Dauer und Speicher', any('einige Minuten und viel Speicher' in t for t in big), str(big[:2]))

@@ -59,7 +59,7 @@ async def main():
         await px.evaluate(open(SEED_PATH).read()); await px.wait_for_timeout(2500)
         await px.evaluate("() => { localStorage.removeItem('savora-backup-nudge-until'); state.lastBackupAt = null; state.view = 'home'; render(); }")
         await px.wait_for_timeout(300)
-        check('Ohne Konto: Sicherungs-Erinnerung erscheint wie bisher', await px.evaluate("!!document.querySelector('.nudge-card')"))
+        check('Ohne Konto: Sicherungs-Erinnerung als Etikett auf «Mehr» (v91.15, nicht mehr auf der Startseite)', await px.evaluate("(() => { state.view = 'more'; render(); const c = document.querySelector('.settings-row[data-view=\"settings\"] .settings-row-chip'); const ok = !!c && c.textContent.trim() === 'Sicherung fehlt'; state.view = 'home'; render(); return ok && !document.querySelector('.nudge-card'); })()"))
         await open_share(px)
         t = await text(px)
         check('Ohne Konto: Freunde-Seite erklaert, dass ein Konto noetig ist', 'Konto' in t and not await px.evaluate("!!document.querySelector('#shareHandle')"), t[:120])

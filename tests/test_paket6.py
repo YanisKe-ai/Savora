@@ -25,17 +25,16 @@ async def main():
         await js("() => { state.recipes = window.__keep; state.view = 'home'; render(); }")
 
         # ---- Sicherungs-Erinnerung ----
-        await js("() => { localStorage.removeItem('savora-backup-nudge-until'); localStorage.removeItem(LAST_BACKUP_KEY); state.lastBackupAt = null; render(); }")
-        check('Noch nie gesichert (3 Rezepte): Erinnerung erscheint', 'Noch keine Sicherung' in await js("(document.querySelector('.nudge-card')||{innerText:''}).innerText"))
-        await click('[data-action="backup-nudge-dismiss"]')
-        check('"Später" blendet die Erinnerung aus und merkt sich das', await js("!document.querySelector('.nudge-card') && +localStorage.getItem('savora-backup-nudge-until') > Date.now() + 6*86400000"))
-        await js("() => { localStorage.removeItem('savora-backup-nudge-until'); state.lastBackupAt = new Date(Date.now() - 20*86400000).toISOString(); render(); }")
-        check('Letzte Sicherung vor 20 Tagen: Erinnerung nennt die Tage', 'vor 20 Tagen' in await js("(document.querySelector('.nudge-card')||{innerText:''}).innerText"))
-        await js("() => { state.lastBackupAt = new Date(Date.now() - 3*86400000).toISOString(); render(); }")
-        check('Sicherung vor 3 Tagen: keine Erinnerung', await js("!document.querySelector('.nudge-card')"))
-        await js("() => { state.lastBackupAt = null; const keep = state.recipes; state.recipes = keep.slice(0, 2); render(); window.__keep = keep; }")
-        check('Weniger als 3 Rezepte: keine Erinnerung', await js("!document.querySelector('.nudge-card')"))
-        await js("() => { state.recipes = window.__keep; state.lastBackupAt = new Date().toISOString(); render(); }")
+        # v91.15 (Nutzerwunsch): keine Erinnerung mehr auf der Startseite, sie steht als Etikett an «Einstellungen» auf «Mehr»
+        chip = "(() => { state.view = 'more'; render(); const c = document.querySelector('.settings-row[data-view=\"settings\"] .settings-row-chip'); return c ? c.textContent.trim() : ''; })()"
+        await js("() => { localStorage.removeItem(LAST_BACKUP_KEY); state.lastBackupAt = null; state.view = 'home'; render(); }")
+        check('Startseite: keine Sicherungserinnerung mehr', await js("!document.querySelector('.nudge-card')"))
+        check('Noch nie gesichert: «Mehr» zeigt «Sicherung fehlt»', await js(chip) == 'Sicherung fehlt')
+        await js("() => { state.lastBackupAt = new Date(Date.now() - 20*86400000).toISOString(); }")
+        check('Letzte Sicherung vor 20 Tagen: «Mehr» zeigt «Sicherung alt»', await js(chip) == 'Sicherung alt')
+        await js("() => { state.lastBackupAt = new Date(Date.now() - 3*86400000).toISOString(); }")
+        check('Sicherung vor 3 Tagen: kein Etikett', await js(chip) == '')
+        await js("() => { state.lastBackupAt = new Date().toISOString(); state.view = 'home'; render(); }")
 
         # ---- Naehrwerte abschaltbar ----
         await js("() => { state.activeRecipeId = 'r_legacy_1'; state.view = 'detail'; render(); }")

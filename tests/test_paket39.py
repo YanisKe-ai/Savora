@@ -94,12 +94,8 @@ async def main():
             # Heute geplant / Hinweis scrollen weg
             await set_theme(page, 'light'); await to_top(page)
             t = await ev("() => { const a = document.querySelector('.home-main .recent-card, .home-main .today-card, .home-main [class*=recent], .home-main .nudge-card'); if (!a) return null; return a.getBoundingClientRect().top; }")
-            n = await ev("() => { const a = document.querySelector('.nudge-card'); return a ? a.getBoundingClientRect().top : null; }")
-            check(tag_ := f'{w}x{h}: Sicherungshinweis ist im scrollenden Teil (unter dem Kopf)', n is not None and n >= (await ev(HEAD_RECT))[1] - 1, str(n))
-            await ev("() => window.scrollTo(0, 600)"); await page.wait_for_timeout(300)
-            n2 = await ev("() => { const a = document.querySelector('.nudge-card'); return a ? a.getBoundingClientRect().bottom : null; }")
-            hb = (await ev(HEAD_RECT))[1]
-            check(f'{w}x{h}: Hinweis und «Heute geplant» scrollen unter dem Kopf weg', n2 is not None and n2 <= hb + 1, f'{n2} <= {hb}')
+            # v91.15: kein Sicherungshinweis mehr auf der Startseite
+            check(f'{w}x{h}: kein Sicherungshinweis auf der Startseite', await ev("() => !document.querySelector('.nudge-card')"))
             # Liste statt Raster
             await to_top(page, "state.homeLayout = 'list'")
             h0 = await ev(HEAD_RECT); await ev("() => window.scrollTo(0, 500)"); await page.wait_for_timeout(300); h1 = await ev(HEAD_RECT)

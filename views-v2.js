@@ -761,10 +761,7 @@ function homeView() {
     <main class="has-tabbar home-main ${phone && state.recipes.length ? 'home-main--addbar' : ''} ${selecting ? 'is-selecting' : ''}">
       ${phone && typeof recipesSwitchHtml === 'function' ? recipesSwitchHtml() : ''}
       ${searching ? '' : todayPlannedHtml()}
-      ${(() => { const nb = searching ? null : backupNudgeInfo(); return nb ? `<div class="nudge-card nudge-card--line" role="note">
-        <span class="nudge-ico" aria-hidden="true">${ICONS.shield || ICONS.info}</span>
-        <p class="nudge-text">${nb.never ? 'Noch keine Sicherung' : 'Letzte Sicherung vor ' + nb.days + ' Tagen'}</p>
-        <div class="nudge-actions"><button class="text-btn" data-action="goto-view" data-view="settings-backup">Sichern</button><button class="icon-btn nudge-close" data-action="backup-nudge-dismiss" aria-label="Später erinnern">${ICONS.x}</button></div></div>` : ''; })()}
+      ${/* v91.15 (Nutzerwunsch): keine Sicherungserinnerung mehr auf der Startseite; «Mehr» zeigt «Sicherung fehlt» oder «Sicherung alt» */ ''}
       ${!hasQuery && !selecting && scope === 'all' && !filterCount ? favRailHtml() : ''}
       <div class="home-add-sentinel" aria-hidden="true"></div>
       ${content}
