@@ -45,7 +45,9 @@ async def main():
         # v91.3 (Nutzerwunsch): «Austauschen» und «Rezeptbibliothek» als eine Gruppe «Teilen», kürzere Untertitel
         want = [['Teilen', [['Freunde', 'Empfangene Rezepte und Kontakte'], ['Meine öffentlichen Rezepte', 'Zum Veröffentlichen anmelden'], ['Mein öffentliches Profil', 'Nicht angemeldet']]],
                 ['Werkzeuge', [['Einheiten umrechnen', 'Gewicht, Volumen, Temperatur'], ['Vorrat', 'Was kann ich damit kochen?']]],
-                ['App', [['Einstellungen', 'Konto, Daten und Darstellung'], ['Hilfe & Kontakt', 'Antworten und Unterstützung'], ['Über Savora', 'Version, Datenschutz und Lizenzen']]]]
+                ['App', [['Einstellungen', 'Konto, Daten und Darstellung'], ['Hilfe & Kontakt', 'Antworten und Unterstützung']]]]
+        # v91.7: «Über Savora» als Fusszeile mit Version
+        check('Mehr: Fusszeile «Über Savora · Version» führt zu Über Savora', await ev("() => { const f = document.querySelector('.more-footer'); return !!f && f.textContent.includes('Über Savora') && f.textContent.includes(APP_VERSION) && f.dataset.view === 'settings-about'; }"))
         # v89: oben eine Statuszeile «Daten» (echter Sicherungsstand), v90: dazu «Zuletzt gelöscht», danach die bisherigen Gruppen unverändert
         check('Mehr: Statuszeile «Daten» zuerst', groups[0][0] == 'Daten' and len(groups[0][1]) == 2 and 'Sicherung' in groups[0][1][0][1] and groups[0][1][1][0] == 'Papierkorb' or groups[0][1][1][0] == 'Zuletzt gelöscht', str(groups[:1]))
         groups = groups[1:]
