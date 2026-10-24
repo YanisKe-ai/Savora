@@ -5042,3 +5042,12 @@ html:not(#lp) body .fs-foot .fs-actions > button { overflow-wrap: anywhere; }
 .plan-ics-btn { width: 100%; min-height: 44px; margin: 0 0 0.75rem; display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem; }
 .plan-ics-btn svg { width: 18px; height: 18px; }
 @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .rate-star.is-on { color: #f2b84b; } }
+
+/* v90.2: Prompt für die KI im Textimport */
+.ki-prompt-box { margin: 0 0 1rem; padding: 1rem; border: 1px solid var(--border); border-radius: 12px; background: var(--bg-sunken); }
+.ki-prompt-h { font-family: var(--font-display); font-size: 1.125rem; font-weight: 700; line-height: 1.3; margin: 0 0 0.5rem; color: var(--text); }
+.ki-prompt-steps { margin: 0 0 0.75rem; padding-left: 1.25rem; color: var(--text-soft); font-size: 0.9375rem; line-height: 1.5; }
+.ki-prompt-copy { min-height: 2.75rem; }
+.ki-prompt-details { margin-top: 0.5rem; }
+.ki-prompt-details summary { cursor: pointer; min-height: 2.75rem; display: flex; align-items: center; color: var(--accent); font-weight: 700; }
+.ki-prompt-text { margin: 0.25rem 0 0; padding: 0.75rem; max-height: 16rem; overflow: auto; white-space: pre-wrap; word-break: break-word; font-size: 0.875rem; line-height: 1.5; border-radius: 8px; background: var(--bg-elevated); color: var(--text); user-select: text; -webkit-user-select: text; }

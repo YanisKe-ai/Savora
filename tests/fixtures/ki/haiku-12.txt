@@ -1,0 +1,35 @@
+```json
+{
+  "format": "savora-recipe",
+  "version": 1,
+  "title": "Knoblauch-Poulet in Parmesan-Rahmsauce",
+  "yield": {"count": 3, "kind": "portions", "label": null},
+  "time": {"totalMinutes": 25, "activeMinutes": null, "restMinutes": null, "cookMinutes": null},
+  "difficulty": null,
+  "source": {"url": null, "name": null},
+  "ingredients": [
+    {"group": null, "name": "Pouletbrust", "amount": {"type": "exact", "value": 2}, "unit": null, "note": "in dünne Scheiben geschnitten; alternativ eine Handvoll Chicken Tenders", "optional": false},
+    {"group": null, "name": "Vollrahm", "amount": {"type": "exact", "value": 0.5}, "unit": "cup", "note": null, "optional": false},
+    {"group": null, "name": "Hühnerbouillon", "amount": {"type": "exact", "value": 0.5}, "unit": "cup", "note": null, "optional": false},
+    {"group": null, "name": "Knoblauch", "amount": {"type": "exact", "value": 3}, "unit": null, "note": "Zehen, fein gehackt", "optional": false},
+    {"group": null, "name": "Parmesan", "amount": {"type": "exact", "value": 0.5}, "unit": "cup", "note": "frisch gerieben, gern mehr", "optional": false},
+    {"group": null, "name": "Spinat", "amount": {"type": "exact", "value": 1}, "unit": "cup", "note": "eine grosse Handvoll", "optional": false},
+    {"group": null, "name": "Olivenöl", "amount": {"type": "exact", "value": 1}, "unit": "EL", "note": null, "optional": false},
+    {"group": null, "name": "Salz", "amount": {"type": "qualitative", "text": "nach Geschmack"}, "unit": null, "note": null, "optional": false},
+    {"group": null, "name": "Pfeffer", "amount": {"type": "qualitative", "text": "nach Geschmack"}, "unit": null, "note": null, "optional": false},
+    {"group": null, "name": "Italienische Kräutermischung", "amount": {"type": "qualitative", "text": "nach Geschmack"}, "unit": null, "note": null, "optional": false},
+    {"group": null, "name": "Sonnengetrocknete Tomaten", "amount": {"type": "exact", "value": 0.25}, "unit": "cup", "note": "optional", "optional": true}
+  ],
+  "steps": [
+    {"text": "Das Poulet mit Salz, Pfeffer und italienischer Kräutermischung würzen. In 1 EL Olivenöl pro Seite 4 bis 5 Minuten goldbraun anbraten und herausnehmen.", "variants": []},
+    {"text": "In derselben Pfanne den Knoblauch 30 Sekunden anbraten. Die Hühnerbouillon und den Vollrahm dazugeben, den Bratsatz loskratzen und 3 Minuten köcheln lassen.", "variants": []},
+    {"text": "Parmesan und Spinat unterrühren, bis der Spinat zusammenfällt.", "variants": []},
+    {"text": "Das Poulet zurück in die Pfanne geben, die Sauce darüberlöffeln und 2 weitere Minuten köcheln lassen.", "variants": []},
+    {"text": "Mit Pasta, Reis oder Brot zum Auftunken der Sauce servieren.", "variants": []}
+  ],
+  "notes": [
+    "Die sonnengetrockneten Tomaten stehen in der Zutatenliste. Im Ablauf fehlt aber der Schritt, wann sie dazukommen.",
+    "Die Zeitangabe von ca. 25 Min. gesamt stammt aus dem Text. Die Teilzeiten fehlen."
+  ]
+}
+```

@@ -1,0 +1,31 @@
+```json
+{
+  "format": "savora-recipe",
+  "version": 1,
+  "title": "Zitronen-Brownies",
+  "yield": {"count": 16, "kind": "pieces", "label": "Stücke"},
+  "time": {"totalMinutes": 45, "activeMinutes": 20, "restMinutes": null, "cookMinutes": 25},
+  "difficulty": null,
+  "source": {"url": "https://fooby.ch/de/rezepte/28499/zitronen-brownies", "name": "Anita - Breakfast & Bowls (FOOBY)"},
+  "ingredients": [
+    {"group": "Teig", "name": "Zucker", "amount": {"type": "exact", "value": 180}, "unit": "g", "note": null, "optional": false},
+    {"group": "Teig", "name": "Eier", "amount": {"type": "exact", "value": 2}, "unit": null, "note": null, "optional": false},
+    {"group": "Teig", "name": "Bio-Zitronen", "amount": {"type": "exact", "value": 2}, "unit": null, "note": "abgeriebene Schale und 3 EL Saft", "optional": false},
+    {"group": "Teig", "name": "Butter", "amount": {"type": "exact", "value": 120}, "unit": "g", "note": "flüssig, abgekühlt", "optional": false},
+    {"group": "Teig", "name": "Weissmehl", "amount": {"type": "exact", "value": 120}, "unit": "g", "note": null, "optional": false},
+    {"group": "Teig", "name": "Backpulver", "amount": {"type": "exact", "value": 0.25}, "unit": "TL", "note": null, "optional": false},
+    {"group": "Glasur", "name": "Puderzucker", "amount": {"type": "exact", "value": 80}, "unit": "g", "note": null, "optional": false},
+    {"group": "Glasur", "name": "Zitronensaft", "amount": {"type": "exact", "value": 1.5}, "unit": "EL", "note": null, "optional": false},
+    {"group": "Glasur", "name": "Vanillepaste", "amount": {"type": "exact", "value": 0.5}, "unit": "TL", "note": null, "optional": false}
+  ],
+  "steps": [
+    {"text": "Zucker, Eier, Zitronenschale und -saft in eine Schüssel geben und mit den Schwingbesen des Mixers schaumig rühren. Butter beigeben und mischen. Mehl und Backpulver mischen, unter die Masse rühren und in die vorbereitete Form füllen.", "variants": []},
+    {"text": "Ca. 25 Minuten in der unteren Hälfte des auf 180 °C vorgeheizten Ofens backen. Herausnehmen, den Brownie in der Form etwas abkühlen lassen, aus der Form nehmen und mit dem Backpapier auf einem Gitter auskühlen lassen.", "variants": []},
+    {"text": "Puderzucker, Zitronensaft und Vanillepaste in einem Schälchen verrühren, auf dem Brownie verteilen und in Stücke schneiden.", "variants": []}
+  ],
+  "notes": [
+    "Form: ofenfeste Form ca. 20 x 20 cm, ganz mit Backpapier belegt.",
+    "Tipp: Brownies mit geviertelten Zitronenscheiben verzieren."
+  ]
+}
+```

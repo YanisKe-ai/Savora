@@ -1,0 +1,41 @@
+```json
+{
+  "format": "savora-recipe",
+  "version": 1,
+  "title": "Baumstriezel",
+  "yield": {"count": null, "kind": "portions", "label": null},
+  "time": {"totalMinutes": 70, "activeMinutes": null, "restMinutes": 60, "cookMinutes": 20},
+  "difficulty": "einfach",
+  "source": {"url": "https://www.lecker.de/baumstriezel-76860.html", "name": "LECKER"},
+  "ingredients": [
+    {"group": null, "name": "Milch", "amount": {"type": "exact", "value": 100}, "unit": "ml", "note": null, "optional": false},
+    {"group": null, "name": "Hefe", "amount": {"type": "exact", "value": 10}, "unit": "g", "note": null, "optional": false},
+    {"group": null, "name": "Butter", "amount": {"type": "exact", "value": 75}, "unit": "g", "note": null, "optional": false},
+    {"group": null, "name": "Butter", "amount": {"type": "qualitative", "text": "etwas"}, "unit": null, "note": "zum Einfetten", "optional": false},
+    {"group": null, "name": "Mehl", "amount": {"type": "exact", "value": 250}, "unit": "g", "note": null, "optional": false},
+    {"group": null, "name": "Mehl", "amount": {"type": "qualitative", "text": "etwas"}, "unit": null, "note": "zum Bemehlen", "optional": false},
+    {"group": null, "name": "Zucker", "amount": {"type": "exact", "value": 165}, "unit": "g", "note": "davon 65 g für den Teig, 100 g für den Zimtzucker", "optional": false},
+    {"group": null, "name": "Vanillezucker", "amount": {"type": "exact", "value": 1}, "unit": "Pck.", "note": null, "optional": false},
+    {"group": null, "name": "Salz", "amount": {"type": "exact", "value": 1}, "unit": "Prise", "note": null, "optional": false},
+    {"group": null, "name": "Ei", "amount": {"type": "exact", "value": 1}, "unit": null, "note": "Grösse M", "optional": false},
+    {"group": null, "name": "Zimt", "amount": {"type": "exact", "value": 1}, "unit": "TL", "note": "gemahlen", "optional": false}
+  ],
+  "steps": [
+    {"text": "Die Milch lauwarm erwärmen. Hefe in die Milch bröseln und glatt rühren. Butter schmelzen.", "variants": []},
+    {"text": "Mehl, 65 g Zucker, Vanillezucker und Salz vermischen. Die lauwarme Hefe-Milch, das Ei und 25 g der geschmolzenen Butter zum Mehl geben und alles mit den Knethaken des Handmixers zu einem glatten Teig verkneten. Abgedeckt 45 Minuten gehen lassen.", "variants": []},
+    {"text": "In der Zwischenzeit eine Teigrolle aus Holz samt Griffen in Alufolie einschlagen. 100 g Zucker mit Zimt mischen.", "variants": []},
+    {"text": "Den Hefeteig halbieren. Eine Hälfte auf einer bemehlten Arbeitsfläche ca. 2 mm dünn ausrollen und mit einem scharfen Messer oder einem Pizzaschneider in ca. 1,5 cm breite Streifen schneiden.", "variants": []},
+    {"text": "Die Teigrolle etwas schräg halten und den dicken Teil der Rolle mit geschmolzener Butter bestreichen. Die Teigstreifen leicht überlappend um die Teigrolle wickeln und dabei etwas andrücken. Ist der Teig komplett aufgewickelt, die Rolle mit etwas Druck auf der Arbeitsfläche hin und her rollen, damit der Teig gut haftet.", "variants": []},
+    {"text": "Die Teigrolle mit den Griffen auf den Rand eines Bräters oder einer Auflaufform legen, sodass der Teig den Boden nicht berührt. Abdecken und nochmals 15 bis 20 Minuten gehen lassen.", "variants": []},
+    {"text": "Den aufgerollten Teig rundherum grosszügig mit ca. der Hälfte der übrigen Butter bestreichen und gründlich mit der Hälfte des Zimtzuckers bestreuen.", "variants": []},
+    {"text": "Die Teigrolle samt Form oder Bräter im vorgeheizten Backofen (Ober-/Unterhitze: 225 °C, Umluft: 200 °C) ca. 20 Minuten backen. Dabei die Teigrolle 2 bis 3 Mal drehen, damit sie gleichmässig braun wird.", "variants": []},
+    {"text": "Den Baumstriezel aus dem Ofen nehmen und kurz abkühlen lassen. Den Striezel vorsichtig von der Rolle lösen und die Teigrolle säubern. Mit dem restlichen Teig ebenso verfahren.", "variants": []}
+  ],
+  "notes": [
+    "Die Seite gibt keine Anzahl Portionen oder Stücke an.",
+    "Die Seite nennt 70 Min. Zubereitungszeit und 60 Min. Wartezeit. Die Backzeit beträgt ca. 20 Min.",
+    "Traditionell wird der Baumstriezel über offenem Feuer gebacken. Die Seite beschreibt die Zubereitung im Backofen.",
+    "Benötigt: Teigrolle aus Holz mit Griffen, Alufolie, Auflaufform oder Bräter."
+  ]
+}
+```

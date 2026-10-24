@@ -1,0 +1,34 @@
+```json
+{
+  "format": "savora-recipe",
+  "version": 1,
+  "title": "Schokoplätzchen",
+  "yield": {"count": null, "kind": "pieces", "label": "Plätzchen"},
+  "time": {"totalMinutes": 30, "activeMinutes": null, "restMinutes": null, "cookMinutes": 12},
+  "difficulty": "einfach",
+  "source": {"url": "https://www.lecker.de/schokoplaetzchen-84451.html", "name": "LECKER"},
+  "ingredients": [
+    {"group": null, "name": "Weizenmehl", "amount": {"type": "exact", "value": 300}, "unit": "g", "note": null, "optional": false},
+    {"group": null, "name": "Backpulver", "amount": {"type": "exact", "value": 1}, "unit": "EL", "note": "gestrichen", "optional": false},
+    {"group": null, "name": "Butter", "amount": {"type": "exact", "value": 250}, "unit": "g", "note": "weich", "optional": false},
+    {"group": null, "name": "brauner Zucker", "amount": {"type": "exact", "value": 150}, "unit": "g", "note": null, "optional": false},
+    {"group": null, "name": "Vanillezucker", "amount": {"type": "exact", "value": 1}, "unit": "Pck.", "note": null, "optional": false},
+    {"group": null, "name": "Salz", "amount": {"type": "exact", "value": 1}, "unit": "Prise", "note": null, "optional": false},
+    {"group": null, "name": "Ei", "amount": {"type": "exact", "value": 1}, "unit": null, "note": "Grösse M", "optional": false},
+    {"group": null, "name": "Backkakao", "amount": {"type": "exact", "value": 40}, "unit": "g", "note": null, "optional": false},
+    {"group": null, "name": "Milch", "amount": {"type": "exact", "value": 1}, "unit": "EL", "note": null, "optional": false},
+    {"group": null, "name": "Schokotröpfchen", "amount": {"type": "exact", "value": 150}, "unit": "g", "note": null, "optional": false},
+    {"group": null, "name": "Zartbitter-Kuvertüre", "amount": {"type": "exact", "value": 50}, "unit": "g", "note": "grob gehackt", "optional": false}
+  ],
+  "steps": [
+    {"text": "Das Mehl mit dem Backpulver mischen. Die übrigen Zutaten bis auf die Schokotröpfchen hinzugeben und alles mit dem Knethaken des Handmixers zuerst kurz auf niedrigster, dann auf höchster Stufe zu einem Teig verarbeiten. Zuletzt die Schokotröpfchen unterkneten.", "variants": []},
+    {"text": "Den Teig zu zwei Rollen formen und etwa 1 cm breite Stücke abschneiden. Diese zu Kugeln formen und flach drücken. Mit etwas Abstand auf ein mit Backpapier belegtes Blech setzen und im vorgeheizten Ofen bei 180 °C Ober-/Unterhitze (Umluft: 160 °C) ca. 12 Minuten auf mittlerer Schiene backen. Die Plätzchen auf einem Kuchenrost auskühlen lassen.", "variants": []},
+    {"text": "Die Kuvertüre grob hacken und in einen kleinen Gefrierbeutel geben. Den Beutel verschliessen und in einen kleinen Topf mit warmem Wasser hängen, bis die Kuvertüre geschmolzen ist. Den Beutel herausnehmen, abtrocknen und eine kleine Ecke abschneiden. Die Schokoplätzchen mit der Kuvertüre besprenkeln.", "variants": []}
+  ],
+  "notes": [
+    "Die Seite gibt die Anzahl der Plätzchen nicht an.",
+    "Alternativ mit Puderzuckerglasur verzieren: 40 g Puderzucker mit 1 TL Wasser verrühren, in einen Spritzbeutel füllen und die ausgekühlten Plätzchen damit verzieren.",
+    "Die Seite gibt 30 Min. Zubereitungszeit an. Die Backzeit beträgt ca. 12 Min."
+  ]
+}
+```

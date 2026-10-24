@@ -73,7 +73,10 @@ async def main():
         # 8 falscher Typ
         d = mod(); d['ingredients'][2]['amount'] = {'type': 'exact', 'value': '250'}
         r = await run(d)
-        check('8 value als String', not r['ok'] and 'Zutat 3' in msgs(r) and 'Text statt Zahl' in msgs(r), msgs(r))
+        check('8 value als String wird still zur Zahl (v90.2)', r['ok'] and r['recipe']['ingredients'][2]['amount'] == '250', msgs(r))
+        d = mod(); d['ingredients'][2]['amount'] = {'type': 'exact', 'value': 'viel'}
+        r = await run(d)
+        check('8 value als Wort bleibt Fehler', not r['ok'] and 'Zutat 3' in msgs(r) and 'Text statt Zahl' in msgs(r), msgs(r))
         # 9 negative Zahl
         d = mod(); d['ingredients'][0]['amount'] = {'type': 'exact', 'value': -5}
         r = await run(d)
@@ -84,16 +87,20 @@ async def main():
         r = await run(mod(**{'yield': None}))
         check('10 yield null: servings 0 (nicht 4)', r['ok'] and r['recipe']['servings'] == 0 and 'yieldLabel' not in r['recipe'], str(r['recipe'] and r['recipe']['servings']))
         r = await run(mod(**{'yield': {'count': 0, 'kind': 'pieces', 'label': None}}))
-        check('10 yield.count 0 ungültig', not r['ok'])
+        check('10 yield.count 0 = unbekannt (v90.2)', r['ok'] and r['recipe']['servings'] == 0, msgs(r))
         r = await run(mod(**{'yield': {'count': 4, 'kind': 'stuecke', 'label': None}}))
-        check('10 yield.kind ungültig', not r['ok'] and 'yield.kind' in [e['path'] for e in r['errors']])
+        check('10 yield.kind «stuecke» wird pieces (v90.2)', r['ok'] and r['recipe']['servingMode'] == 'pieces', msgs(r))
+        r = await run(mod(**{'yield': {'count': -2, 'kind': 'pieces', 'label': None}}))
+        check('10 yield.count negativ ungültig', not r['ok'] and 'yield.count' in [e['path'] for e in r['errors']])
         # 11 Schwierigkeit / Quelle nur wenn gesetzt
         r = await run(mod(difficulty='mittel', source=None))
         check('11 Schwierigkeit gesetzt, Quelle null', r['ok'] and r['recipe']['difficulty'] == 'mittel' and r['recipe']['source'] is None)
         r = await run(mod(difficulty=None))
         check('11 Schwierigkeit null -> leer', r['recipe']['difficulty'] == '')
         r = await run(mod(difficulty='leicht'))
-        check('11 Schwierigkeit ungültig', not r['ok'])
+        check('11 Schwierigkeit «leicht» wird einfach (v90.2)', r['ok'] and r['recipe']['difficulty'] == 'einfach', msgs(r))
+        r = await run(mod(difficulty='Kochprofi'))
+        check('11 unbekannte Schwierigkeit bleibt leer statt Abbruch', r['ok'] and r['recipe']['difficulty'] == '', msgs(r))
         # 12 keine fremden IDs
         r = await run(mod(id='x', createdAt=1, updatedAt=2, favorite=True, image='data:x', collections=['a']))
         rc = r['recipe']

@@ -3,12 +3,17 @@
    geprueft und in einen Rezeptentwurf umgewandelt. Nichts wird erfunden: fehlende Werte bleiben
    leer bzw. 0 (= unbekannt). Beschreibung des Formats: docs/KI-IMPORT.md
 
-   Oeffentlich: extractRecipeJson(text), looksLikeRecipeJson(text), validateRecipeJson(obj), parseRecipeJson(textOderObjekt)
+   Oeffentlich: extractRecipeJson(text), looksLikeRecipeJson(text), validateRecipeJson(obj), parseRecipeJson(textOderObjekt),
+   rjNormalize(obj), rjIsLinkUnreadable(text), SAVORA_KI_PROMPT (Prompt fuer die KI, im Textimport zum Kopieren)
    Ergebnis von parseRecipeJson: { ok, errors:[{path,message}], warnings:[{path,message}], recipe: Entwurf|null } */
 
 const RJ_FORMAT = 'savora-recipe';
 const RJ_VERSION = 1;
 const RJ_DIFFICULTIES = ['einfach', 'mittel', 'anspruchsvoll'];
+
+/* v90.2: Prompt fuer eine externe KI (ChatGPT, Claude, Gemini). Getestet mit 12 Rezepten (CH, DE, EN, Social Media),
+   siehe tests/test_v90_ki_prompt.py. Wird im Textimport zum Kopieren angeboten; der Link kommt ans Ende. */
+const SAVORA_KI_PROMPT = "Öffne den Rezept-Link (oder lies den Rezepttext) unten und gib das Rezept für die App Savora als EINEN JSON-Codeblock zurück, ohne Text davor oder danach. Kannst du den Link nicht öffnen, antworte nur: LINK NICHT LESBAR. Erfinde nie ein Rezept.\n\nForm:\n{\"format\":\"savora-recipe\",\"version\":1,\"title\":\"…\",\"yield\":{\"count\":4,\"kind\":\"portions\",\"label\":null},\"time\":{\"totalMinutes\":null,\"activeMinutes\":null,\"restMinutes\":null,\"cookMinutes\":null},\"difficulty\":null,\"source\":{\"url\":\"…\",\"name\":\"…\"},\"ingredients\":[{\"group\":null,\"name\":\"Mehl\",\"amount\":{\"type\":\"exact\",\"value\":250},\"unit\":\"g\",\"note\":null,\"optional\":false}],\"steps\":[{\"text\":\"…\",\"variants\":[]}],\"notes\":[]}\n\nRegeln:\n- amount: {\"type\":\"exact\",\"value\":0.5}, {\"type\":\"range\",\"min\":2,\"max\":3}, {\"type\":\"qualitative\",\"text\":\"1 Prise\"} oder null. Zahlen ohne Anführungszeichen, Brüche als Dezimalzahl.\n- unit kurz (g, kg, ml, dl, l, EL, TL, Prise, Pck.). Stückzahlen ohne Einheit: 2 Eier = value 2, unit null. cup, oz, lb so lassen.\n- yield: count ganze Zahl (bei Bereich die kleinere), ohne Angabe yield null. kind \"pieces\" bei Stückzahl (12 Muffins: label \"Muffins\"), sonst \"portions\". Bei mehreren Mengenvarianten nur die erste.\n- time in ganzen Minuten: activeMinutes = Vorbereitung/Arbeitszeit, cookMinutes = Koch- oder Backzeit, restMinutes = Ruhe-, Geh- oder Kühlzeit, totalMinutes nur wenn genannt.\n- Nur was im Rezept steht, Unbekanntes null. Mengen, Zeiten, Temperaturen nie ändern (°F: °C in Klammern dazu). difficulty nur \"einfach\", \"mittel\" oder \"anspruchsvoll\".\n- Texte auf Deutsch (Schweiz, ss statt ß). group nur bei Zutatengruppen im Rezept (z. B. \"Teig\"). Zusätze wie \"gehackt\" in note.\n- Utensilien sind keine Zutaten. variants nur für Alternativen (Backofen oder Airfryer): [{\"label\":\"Airfryer\",\"text\":\"…\"}].\n\nLink oder Text:\n";
 
 /* Erstes vollstaendiges {...} ab Position start (Strings und Escapes werden beachtet) oder null */
 function rjBalancedObject(text, start) {
@@ -63,6 +68,123 @@ function rjIsObj(v) { return !!v && typeof v === 'object' && !Array.isArray(v); 
 function rjIsNum(v) { return typeof v === 'number' && isFinite(v); }
 function rjType(v) { return v === null ? 'null' : Array.isArray(v) ? 'eine Liste' : typeof v === 'string' ? 'Text' : typeof v === 'number' ? 'eine Zahl' : typeof v === 'boolean' ? 'ja/nein' : rjIsObj(v) ? 'ein Objekt' : typeof v; }
 function rjFmt(n) { return String(Math.round(n * 1e6) / 1e6).replace('.', ','); }
+
+/* ---------- v90.2: typische KI-Ausrutscher still korrigieren, bevor streng geprueft wird ----------
+   Zahlen als Text ("250", "0,5", "½", "2-3"), Menge als blosse Zahl, Zutaten oder Schritte als Text, fehlendes
+   format/version, Schwierigkeit als Synonym, Zeiten als Text ("30 Min.", "PT1H30M"), Ausbeute als Zahl.
+   Was nicht eindeutig ist, bleibt wie es ist und wird danach normal gemeldet. Es wird nichts erfunden. */
+const RJ_DIFF_SYN = { einfach: 'einfach', leicht: 'einfach', 'ganz einfach': 'einfach', 'sehr einfach': 'einfach', simpel: 'einfach', easy: 'einfach', simple: 'einfach', beginner: 'einfach',
+  mittel: 'mittel', mittelschwer: 'mittel', normal: 'mittel', medium: 'mittel', intermediate: 'mittel', moderate: 'mittel',
+  anspruchsvoll: 'anspruchsvoll', schwer: 'anspruchsvoll', schwierig: 'anspruchsvoll', aufwendig: 'anspruchsvoll', aufwändig: 'anspruchsvoll', difficult: 'anspruchsvoll', hard: 'anspruchsvoll', advanced: 'anspruchsvoll' };
+function rjNumFromText(v) {
+  if (rjIsNum(v)) return v;
+  if (typeof v !== 'string' || typeof parseQuantity !== 'function') return v;
+  const q = parseQuantity(v.trim(), '');
+  return q.kind === 'exact' ? q.min : v;
+}
+function rjMinutes(v) {
+  if (v == null || rjIsNum(v) && Number.isInteger(v)) return v;
+  if (rjIsNum(v)) return v >= 0 ? Math.round(v) : v;
+  if (typeof v !== 'string') return v;
+  const s = v.trim();
+  if (!s) return null;
+  const iso = /^P(?:T)?(?:(\d+)H)?(?:(\d+)M)?$/i.exec(s.replace(/^P0D/i, 'P'));
+  if (iso && (iso[1] || iso[2])) return (+(iso[1] || 0)) * 60 + (+(iso[2] || 0));
+  const hm = /^(?:(\d+(?:[.,]\d+)?)\s*(?:h|std\.?|stunden?|hours?))?\s*(?:(\d+)\s*(?:m|min\.?|minuten|minutes?))?$/i.exec(s);
+  if (hm && (hm[1] || hm[2])) return Math.round(parseFloat(String(hm[1] || 0).replace(',', '.')) * 60) + (+(hm[2] || 0));
+  if (/^\d+$/.test(s)) return +s;
+  return v;
+}
+function rjAmount(a) {
+  if (a == null || a === '') return null;
+  if (rjIsNum(a)) return { type: 'exact', value: a };
+  if (typeof a === 'string') {
+    const q = typeof parseQuantity === 'function' ? parseQuantity(a.trim(), '') : { kind: 'qualitative' };
+    if (q.kind === 'exact') return { type: 'exact', value: q.min };
+    if (q.kind === 'range') return { type: 'range', min: q.min, max: q.max };
+    return a.trim() ? { type: 'qualitative', text: a.trim() } : null;
+  }
+  if (!rjIsObj(a)) return a;
+  const b = Object.assign({}, a);
+  if (b.type == null) b.type = 'value' in b ? 'exact' : ('min' in b || 'max' in b) ? 'range' : 'text' in b ? 'qualitative' : b.type;
+  if (typeof b.type === 'string') b.type = b.type.trim().toLowerCase();
+  if (b.type === 'exact' && typeof b.value === 'string') {
+    const q = typeof parseQuantity === 'function' ? parseQuantity(b.value.trim(), '') : null;
+    if (q && q.kind === 'range') return { type: 'range', min: q.min, max: q.max };
+    b.value = rjNumFromText(b.value);
+  }
+  if (b.type === 'range') { b.min = rjNumFromText(b.min); b.max = rjNumFromText(b.max); if (b.max == null && rjIsNum(b.min)) return { type: 'exact', value: b.min }; }
+  if (b.type === 'exact' && 'text' in b && b.text == null) delete b.text;
+  if (b.type === 'exact' && (b.min === undefined || b.min === null) && (b.max === undefined || b.max === null)) { delete b.min; delete b.max; }
+  return b;
+}
+function rjNormalize(input) {
+  if (!rjIsObj(input)) return input;
+  const o = Object.assign({}, input);
+  const looks = typeof o.title === 'string' && Array.isArray(o.ingredients);
+  if (o.format == null && looks) o.format = RJ_FORMAT;
+  if (typeof o.format === 'string' && o.format.trim().toLowerCase() === RJ_FORMAT) o.format = RJ_FORMAT;
+  if (o.version == null && o.format === RJ_FORMAT) o.version = RJ_VERSION;
+  if (typeof o.version === 'string' && /^\s*1(\.0)?\s*$/.test(o.version)) o.version = RJ_VERSION;
+  // Ausbeute
+  if (rjIsNum(o.yield) || typeof o.yield === 'string') o.yield = { count: o.yield, kind: 'portions', label: null };
+  if (rjIsObj(o.yield)) {
+    const y = o.yield = Object.assign({}, o.yield);
+    if (typeof y.count === 'string') { const m = /\d+/.exec(y.count); if (m) y.count = +m[0]; }
+    if (rjIsNum(y.count) && !Number.isInteger(y.count) && y.count > 0) y.count = Math.round(y.count) || 1;
+    if (y.count === 0 || y.count == null) o.yield = null;
+    else {
+      const k = String(y.kind == null ? '' : y.kind).trim().toLowerCase();
+      y.kind = /^(pieces?|st(ü|ue)cke?|stk\.?|count|items?)$/.test(k) ? 'pieces' : 'portions';
+    }
+  }
+  // Zeiten
+  if (rjIsObj(o.time)) { const t = o.time = Object.assign({}, o.time); ['totalMinutes', 'activeMinutes', 'restMinutes', 'cookMinutes'].forEach(k => { if (k in t) t[k] = rjMinutes(t[k]); }); }
+  // Schwierigkeit: Synonyme erkennen, Unbekanntes leer lassen (statt den ganzen Import abzulehnen)
+  if (typeof o.difficulty === 'string') {
+    const d = o.difficulty.trim().toLowerCase();
+    o.difficulty = d ? (RJ_DIFF_SYN[d] || null) : null;
+  }
+  // Quelle als blosser Link
+  if (typeof o.source === 'string') o.source = /^https?:\/\//i.test(o.source.trim()) ? { url: o.source.trim(), name: null } : null;
+  // Zutaten
+  if (Array.isArray(o.ingredients)) o.ingredients = o.ingredients.map(ing => {
+    if (typeof ing === 'string') {
+      const p = typeof parseIngredientLine === 'function' ? parseIngredientLine(ing) : null;
+      if (p && String(p.name || '').trim()) return { group: null, name: String(p.name).trim(), amount: rjAmount(p.amount), unit: p.unit || null, note: null, optional: false };
+      return { group: null, name: ing, amount: null, unit: null, note: null, optional: false };
+    }
+    if (!rjIsObj(ing)) return ing;
+    const i = Object.assign({}, ing);
+    if (typeof i.name !== 'string' && typeof i.item === 'string') i.name = i.item;
+    i.amount = rjAmount(i.amount);
+    if (rjIsNum(i.unit)) i.unit = String(i.unit);
+    if (typeof i.optional === 'string') i.optional = /^(true|ja|yes)$/i.test(i.optional.trim());
+    if (i.optional != null && typeof i.optional !== 'boolean') i.optional = !!i.optional;
+    ['group', 'note', 'unit'].forEach(k => { if (typeof i[k] === 'string' && !i[k].trim()) i[k] = null; });
+    return i;
+  });
+  // Schritte
+  if (Array.isArray(o.steps)) o.steps = o.steps.map(st => {
+    if (typeof st === 'string') return { text: st };
+    if (!rjIsObj(st)) return st;
+    const s2 = Object.assign({}, st);
+    if (typeof s2.text !== 'string') s2.text = typeof s2.instruction === 'string' ? s2.instruction : typeof s2.description === 'string' ? s2.description : s2.text;
+    if (s2.variants != null && !Array.isArray(s2.variants)) delete s2.variants;
+    if (Array.isArray(s2.variants)) s2.variants = s2.variants.filter(v => rjIsObj(v) && typeof v.text === 'string' && v.text.trim()).map(v => ({ label: typeof v.label === 'string' && v.label.trim() ? v.label : 'Variante', text: v.text }));
+    return s2;
+  });
+  return o;
+}
+/* Kleine Reparaturen am JSON-Text: Kommas vor } oder ], typografische Anfuehrungszeichen als Begrenzer, BOM */
+function rjRepairJsonText(s) {
+  return String(s).replace(/^﻿/, '').replace(/,\s*([}\]])/g, '$1').replace(/[“”„](?=\s*[:,}\]])|(?<=[{,:\[]\s*)[“”„]/g, '"');
+}
+/* Antwort der KI, dass sie den Link nicht lesen konnte (unser Prompt verlangt genau «LINK NICHT LESBAR») */
+function rjIsLinkUnreadable(text) {
+  const t = String(text == null ? '' : text).trim();
+  return /^\W*LINK NICHT LESBAR\W*$/i.test(t) || (t.length < 400 && /LINK NICHT LESBAR/i.test(t) && t.indexOf('{') < 0);
+}
 
 /* Prueft das geparste Objekt. Liefert { errors, warnings } */
 function validateRecipeJson(o) {
@@ -232,8 +354,9 @@ function parseRecipeJson(input) {
     const s = extractRecipeJson(input);
     if (!s) return fail('', 'Das ist kein gültiges JSON. Stelle sicher, dass die Antwort der KI einen vollständigen JSON-Block enthält, der mit { beginnt und mit } endet.');
     try { obj = JSON.parse(s); }
-    catch (e) { return fail('', 'Das ist kein gültiges JSON. Stelle sicher, dass der gesamte JSON-Block kopiert wurde, alle Texte in Anführungszeichen stehen und keine Kommas fehlen oder überzählig sind (' + String(e.message).slice(0, 120) + ').'); }
+    catch (e0) { try { obj = JSON.parse(rjRepairJsonText(s)); } catch (e) { return fail('', 'Das ist kein gültiges JSON. Stelle sicher, dass der gesamte JSON-Block kopiert wurde, alle Texte in Anführungszeichen stehen und keine Kommas fehlen oder überzählig sind (' + String(e.message).slice(0, 120) + ').'); } }
   }
+  obj = rjNormalize(obj);
   const v = validateRecipeJson(obj);
   if (v.errors.length) return { ok: false, errors: v.errors, warnings: v.warnings, recipe: null };
   let recipe = rjBuildDraft(obj);

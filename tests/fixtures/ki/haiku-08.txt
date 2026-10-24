@@ -1,0 +1,41 @@
+```json
+{
+  "format": "savora-recipe",
+  "version": 1,
+  "title": "Pumpkin Pie vom Blech",
+  "yield": {"count": 16, "kind": "portions", "label": null},
+  "time": {"totalMinutes": 660, "activeMinutes": 60, "restMinutes": null, "cookMinutes": null},
+  "difficulty": "mittel",
+  "source": {"url": "https://www.foodnetwork.com/recipes/pumpkin-pie-in-a-sheet-pan-3415884", "name": "Food Network Kitchen"},
+  "ingredients": [
+    {"group": "Teig", "name": "Kochspray", "amount": null, "unit": null, "note": "zum Einfetten", "optional": false},
+    {"group": "Teig", "name": "Butter", "amount": {"type": "exact", "value": 1}, "unit": "lb", "note": "ungesalzen, Zimmertemperatur (4 Stangen)", "optional": false},
+    {"group": "Teig", "name": "Puderzucker", "amount": {"type": "exact", "value": 1.25}, "unit": "cup", "note": null, "optional": false},
+    {"group": "Teig", "name": "Salz", "amount": {"type": "exact", "value": 1}, "unit": "TL", "note": "Kosher-Salz", "optional": false},
+    {"group": "Teig", "name": "Universalmehl", "amount": {"type": "exact", "value": 5}, "unit": "cup", "note": "plus etwas zum Bestäuben", "optional": false},
+    {"group": "Teig", "name": "Ei", "amount": {"type": "exact", "value": 1}, "unit": null, "note": "Grösse L", "optional": false},
+    {"group": "Füllung", "name": "Kürbispüree", "amount": {"type": "exact", "value": 2}, "unit": "Dosen", "note": "je 15 oz", "optional": false},
+    {"group": "Füllung", "name": "Vollrahm", "amount": {"type": "exact", "value": 2.5}, "unit": "cup", "note": "heavy cream", "optional": false},
+    {"group": "Füllung", "name": "Zucker", "amount": {"type": "exact", "value": 1.5}, "unit": "cup", "note": "Kristallzucker", "optional": false},
+    {"group": "Füllung", "name": "Eier", "amount": {"type": "exact", "value": 4}, "unit": null, "note": "Grösse L, leicht verquirlt", "optional": false},
+    {"group": "Füllung", "name": "Zimt", "amount": {"type": "exact", "value": 2}, "unit": "TL", "note": "gemahlen", "optional": false},
+    {"group": "Füllung", "name": "Muskat", "amount": {"type": "exact", "value": 1}, "unit": "TL", "note": "frisch gerieben", "optional": false},
+    {"group": "Füllung", "name": "Vanilleextrakt", "amount": {"type": "exact", "value": 1}, "unit": "TL", "note": "rein", "optional": false},
+    {"group": "Füllung", "name": "Salz", "amount": {"type": "exact", "value": 0.5}, "unit": "TL", "note": "Kosher-Salz", "optional": false},
+    {"group": "Zum Servieren", "name": "Schlagrahm", "amount": null, "unit": null, "note": null, "optional": false}
+  ],
+  "steps": [
+    {"text": "Den Ofen auf 350 °F (177 °C) vorheizen, Rost in der untersten Position. Das Blech mit zwei kreuzweise gelegten Stücken Alufolie auslegen, die Ränder ca. 3 Inch (7,5 cm) hochklappen und die Folie leicht mit Kochspray einfetten.", "variants": []},
+    {"text": "Für den Teig Butter, Puderzucker und Salz glatt rühren. Nach und nach die Hälfte des Mehls einarbeiten, dann den Rest, bis ein weicher Teig mit Klumpen entsteht, der beim Zusammendrücken hält. Etwa ein Drittel davon für die Ränder beiseitelegen.", "variants": []},
+    {"text": "Die Hälfte des übrigen Teigs gleichmässig ca. ¼ Inch dick auf dem Blechboden verteilen. Den restlichen Teig ca. 1 Inch hoch an den Folienwänden andrücken und die Nähte lückenlos schliessen. 20 bis 25 Minuten backen, bis er hellgolden ist, dann vollständig auf einem Gitter auskühlen lassen.", "variants": []},
+    {"text": "Den zurückgelegten Teig kneten, zwischen bemehltem Backpapier ca. ⅛ Inch (3 mm) dünn ausrollen und ca. 50 Kreise mit dem 1-Inch-Ausstecher ausstechen. Die Reste wieder ausrollen. Die Kreise mit Ei-Glasur (verquirltes Ei mit etwas Wasser) bestreichen und kalt stellen.", "variants": []},
+    {"text": "Für die Füllung Kürbispüree, Vollrahm, Zucker, Eier, Zimt, Muskat, Vanilleextrakt und Salz gründlich verquirlen.", "variants": []},
+    {"text": "Die Füllung in die ausgekühlte Kruste giessen. Die Kreise in einer einzigen Reihe am Rand anordnen und bei Bedarf leicht einsinken lassen. 50 Minuten bis 1 Stunde backen, bis die Füllung beim Schütteln kaum noch wackelt. Vollständig auskühlen lassen, dann eingewickelt über Nacht kühl stellen. In Quadrate schneiden und mit Schlagrahm servieren.", "variants": []}
+  ],
+  "notes": [
+    "Mehl locker in den Messbecher füllen und abstreichen. Nicht direkt aus dem Beutel schöpfen, sonst wird der Teig trocken.",
+    "Utensilien: Blech 10 × 15 Inch (ca. 25 × 38 cm), Alufolie, 1-Inch-Ausstecher (ca. 2,5 cm).",
+    "Die Gesamtzeit von 11 Std. umfasst das Abkühlen und das Kühlen über Nacht."
+  ]
+}
+```

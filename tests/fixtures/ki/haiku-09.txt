@@ -1,0 +1,54 @@
+```json
+{
+  "format": "savora-recipe",
+  "version": 1,
+  "title": "Caesar Salad mit selbst gemachtem Dressing",
+  "yield": {"count": 5, "kind": "portions", "label": null},
+  "time": {"totalMinutes": 40, "activeMinutes": 20, "restMinutes": 20, "cookMinutes": 20},
+  "difficulty": null,
+  "source": {"url": "https://www.recipetineats.com/chicken-caesar-salad/", "name": "RecipeTin Eats (Nagi)"},
+  "ingredients": [
+    {"group": "Dressing", "name": "Mayonnaise", "amount": {"type": "exact", "value": 1}, "unit": "cup", "note": "vorzugsweise Vollei-Mayonnaise oder selbst gemacht", "optional": false},
+    {"group": "Dressing", "name": "Knoblauch", "amount": {"type": "exact", "value": 0.5}, "unit": "TL", "note": "fein gehackt", "optional": false},
+    {"group": "Dressing", "name": "Sardellenfilets", "amount": {"type": "exact", "value": 2}, "unit": null, "note": "alternativ ¾ TL Sardellenpaste", "optional": false},
+    {"group": "Dressing", "name": "Zitronensaft", "amount": {"type": "exact", "value": 2}, "unit": "EL", "note": "frisch gepresst", "optional": false},
+    {"group": "Dressing", "name": "Dijon-Senf", "amount": {"type": "exact", "value": 1}, "unit": "TL", "note": null, "optional": false},
+    {"group": "Dressing", "name": "Worcestershire-Sauce", "amount": {"type": "exact", "value": 1}, "unit": "TL", "note": null, "optional": false},
+    {"group": "Dressing", "name": "Parmesan", "amount": {"type": "exact", "value": 0.5}, "unit": "cup", "note": "frisch gerieben (alternativ 1/3 cup fertig gerieben)", "optional": false},
+    {"group": "Dressing", "name": "Milch", "amount": {"type": "range", "min": 3, "max": 4}, "unit": "EL", "note": "zur Konsistenz", "optional": false},
+    {"group": "Dressing", "name": "Salz", "amount": {"type": "exact", "value": 0.25}, "unit": "TL", "note": "Kochsalz bzw. Kosher-Salz", "optional": false},
+    {"group": "Dressing", "name": "Schwarzer Pfeffer", "amount": {"type": "exact", "value": 0.25}, "unit": "TL", "note": null, "optional": false},
+    {"group": "Croutons", "name": "Weissbrot", "amount": {"type": "range", "min": 2, "max": 3}, "unit": null, "note": "Scheiben, ca. 1,5 cm dick", "optional": false},
+    {"group": "Croutons", "name": "Knoblauch", "amount": {"type": "exact", "value": 1}, "unit": null, "note": "halbiert, zum Einreiben", "optional": false},
+    {"group": "Croutons", "name": "Olivenöl", "amount": {"type": "exact", "value": 1}, "unit": "EL", "note": null, "optional": false},
+    {"group": "Croutons", "name": "Salz", "amount": {"type": "exact", "value": 0.25}, "unit": "TL", "note": null, "optional": false},
+    {"group": "Salat", "name": "Frühstücksspeck", "amount": {"type": "exact", "value": 150}, "unit": "g", "note": "gebraten und gehackt", "optional": false},
+    {"group": "Salat", "name": "Römersalat", "amount": {"type": "exact", "value": 10}, "unit": "cup", "note": "Cos oder Romaine, gewaschen, gut getrocknet und geschnitten", "optional": false},
+    {"group": "Salat", "name": "Parmesan", "amount": null, "unit": null, "note": "zum Garnieren", "optional": false},
+    {"group": "Optional: Poulet und Ei", "name": "Eier", "amount": {"type": "range", "min": 2, "max": 4}, "unit": null, "note": "weich gekocht, geschält und halbiert", "optional": true},
+    {"group": "Optional: Poulet und Ei", "name": "Pouletbrustfilets", "amount": {"type": "exact", "value": 500}, "unit": "g", "note": "2 Stück", "optional": true},
+    {"group": "Optional: Poulet und Ei", "name": "Salz", "amount": {"type": "exact", "value": 0.5}, "unit": "TL", "note": null, "optional": true},
+    {"group": "Optional: Poulet und Ei", "name": "Schwarzer Pfeffer", "amount": {"type": "exact", "value": 0.5}, "unit": "TL", "note": null, "optional": true},
+    {"group": "Optional: Poulet und Ei", "name": "Olivenöl", "amount": {"type": "exact", "value": 1}, "unit": "EL", "note": "laut Zutatenliste", "optional": true}
+  ],
+  "steps": [
+    {"text": "Alle Zutaten für das Dressing im Food Processor glatt mixen, dabei mit 3 EL Milch beginnen. Mit Salz und Pfeffer abschmecken und mit der restlichen Milch auf die gewünschte Konsistenz bringen.", "variants": []},
+    {"text": "Das Dressing mindestens 20 Minuten ruhen lassen, damit sich die Aromen entfalten.", "variants": []},
+    {"text": "Den Speck in eine kalte Pfanne ohne Öl legen und auf mittel-hoch erhitzen. Den Speck im austretenden Fett goldbraun braten, wenden und die andere Seite ebenfalls goldbraun braten. Auf Küchenpapier abtropfen lassen, abkühlen lassen und hacken.", "variants": []},
+    {"text": "Den Backofen auf 200 °C (180 °C Umluft) vorheizen. Die Brotscheiben im Toaster ca. 1 Minute toasten, oder im Ofen je Seite 2 Minuten, bis die Oberfläche trocken, aber nicht braun ist.", "variants": []},
+    {"text": "Beide Seiten jeder Brotscheibe mit der Schnittfläche der halbierten Knoblauchzehe einreiben. Die Rinde nach Belieben entfernen und das Brot in Würfel schneiden (ca. 1,5 cups).", "variants": []},
+    {"text": "Die Brotwürfel mit 1 bis 2 EL Olivenöl beträufeln, mit Salz bestreuen und im Ofen goldbraun und knusprig backen. Dabei das Blech ein- bis zweimal schütteln. Toastbrot braucht ca. 7 Minuten, Sauerteig und ähnliche Brote 12 bis 15 Minuten. Auf dem Blech auskühlen lassen.", "variants": []},
+    {"text": "Den Salat mit der Hälfte des Dressings in einer grossen Schüssel gut mischen, abschmecken und bei Bedarf mehr Dressing zugeben.", "variants": []},
+    {"text": "Den Salat in eine Servierschüssel geben, bei Verwendung Poulet und Ei obenauf legen. Speck und Croutons darüber verteilen, mit Parmesan bestreuen und das restliche Dressing separat servieren.", "variants": []},
+    {"text": "Für das Poulet die Brustfilets auf ca. 1,2 cm gleichmässige Dicke klopfen oder jede Brust horizontal halbieren. Beidseitig mit Salz und Pfeffer würzen. Im restlichen Speckfett braten: erste Seite 5 Minuten, dann wenden und die andere Seite 2 Minuten braten. Mit lose aufgelegter Alufolie 5 Minuten ruhen lassen und in Scheiben schneiden.", "variants": []}
+  ],
+  "notes": [
+    "Mit Poulet als Hauptgericht ergibt das Rezept 2 bis 3 Portionen.",
+    "Ohne Mayonnaise: griechischer Joghurt mit etwas extra nativem Olivenöl (Variante laut Seite).",
+    "Sardellen sind für den Geschmack wichtig. Ohne Sardellen braucht es mehr Salz.",
+    "Das Dressing hält sich 3 bis 4 Tage im Kühlschrank.",
+    "Der angemachte Salat hält sich nur ca. 20 Minuten, deshalb erst kurz vor dem Servieren anmachen.",
+    "Im Ablauf wird für das Poulet das Speckfett verwendet. Das Olivenöl bei den optionalen Zutaten steht nur in der Zutatenliste."
+  ]
+}
+```

@@ -505,6 +505,18 @@ async function dispatchAction(action, id, el, e) {
       say('Text eingefügt.');
       break;
     }
+    case 'copy-ki-prompt': {   // v90.2: Prompt fuer die KI kopieren (Fallback: Text markieren, damit man ihn selbst kopieren kann)
+      const hint = document.getElementById('kiPromptHint');
+      const say = (msg) => { if (hint) hint.textContent = msg; };
+      let ok = false;
+      try { if (navigator.clipboard && navigator.clipboard.writeText) { await navigator.clipboard.writeText(SAVORA_KI_PROMPT); ok = true; } } catch (err) { ok = false; }
+      if (ok) { say('Prompt kopiert. Jetzt in der KI einfügen und den Link ans Ende setzen.'); showToast('Prompt kopiert'); break; }
+      const det = document.querySelector('.ki-prompt-details'); if (det) det.open = true;
+      const pre = document.getElementById('kiPromptText');
+      if (pre && window.getSelection) { const rg = document.createRange(); rg.selectNodeContents(pre); const sel = window.getSelection(); sel.removeAllRanges(); sel.addRange(rg); }
+      say('Kopieren ist hier nicht erlaubt. Der Prompt ist markiert: tippe lange darauf und wähle «Kopieren».');
+      break;
+    }
     case 'open-shop-menu':
       openModal({ type: 'shop-menu' });
       break;
@@ -1056,6 +1068,7 @@ async function dispatchAction(action, id, el, e) {
       const showErr = (html) => { if (errBox) { errBox.innerHTML = html; errBox.hidden = false; errBox.focus(); } };
       if (errBox) { errBox.hidden = true; errBox.innerHTML = ''; }
       if (!text) { showErr('<p>Es ist noch kein Text da. Füge zuerst den Rezepttext ein und tippe dann auf „Rezept-Entwurf erstellen“.</p>'); break; }
+      if (typeof rjIsLinkUnreadable === 'function' && rjIsLinkUnreadable(text)) { showErr('<p><strong>Die KI konnte den Link nicht öffnen.</strong> Öffne die Rezeptseite selbst, kopiere den Rezepttext und setze ihn statt des Links ans Ende des Prompts. Oder füge den Rezepttext direkt hier ein.</p>'); break; }
       // Strukturiertes Rezept-JSON (Version 1) wird erkannt und durch dieselbe Validierung und Vorschau geführt wie Freitext
       if (typeof looksLikeRecipeJson === 'function' && looksLikeRecipeJson(text)) {
         const res = parseRecipeJson(text);
