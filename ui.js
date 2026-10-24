@@ -264,10 +264,10 @@ function applyModalInert() {
     node = parent;
   }
 }
-/* ===== v89 B: Textimport von aussen öffnen (Hinzufügen-Menü «Aus Link», Share Target, Verknüpfungen) =====
+/* ===== v89 B: Textimport von aussen öffnen (Share Target, Verknüpfungen; «Aus Link» seit 0.90.1 entfernt) =====
    openTextImport({ text, url, link }) öffnet den Textimport, füllt den Text vor und merkt den Link als Quelle.
    Savora ruft den Link nie ab (kein Scraper): er wird beim Erstellen des Entwurfs nur als r.source übernommen,
-   wenn der Text selbst keine Quelle nennt. Kommt nur ein Link ohne Text, zeigt die Seite die kurze Anleitung. */
+   wenn der Text selbst keine Quelle nennt. Kommt nur ein Link ohne Text, bleibt das Textfeld leer und der Link wird still als Quelle gemerkt. */
 Object.assign(ICONS, {
   clipboardText: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="8" y="2" width="8" height="4" rx="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><path d="M8 11h8M8 15h8M8 19h5"/></svg>`,
 });
@@ -280,8 +280,7 @@ function pasteImportCleanUrl(raw) {
   return u.length <= 2000 ? u : '';
 }
 function pasteImportLinkSource() {
-  const f = document.getElementById('pasteUrl');
-  const raw = f ? f.value : ((state.pasteImport && state.pasteImport.url) || '');
+  const raw = (state.pasteImport && state.pasteImport.url) || '';
   return pasteImportCleanUrl(raw);
 }
 function openTextImport(opts) {
@@ -292,7 +291,7 @@ function openTextImport(opts) {
   if (!url && text && pasteImportCleanUrl(text) && text.trim() === pasteImportCleanUrl(text)) { url = pasteImportCleanUrl(text); text = ''; }
   if (url && text.trim() === url) text = '';
   state.modal = null;
-  state.pasteImport = { text, url, link: !!(o.link || url) };
+  state.pasteImport = { text, url };
   state.view = 'paste-import';
   render();
   return true;
@@ -491,9 +490,6 @@ async function dispatchAction(action, id, el, e) {
       break;
     case 'open-paste-import':
       openTextImport({});
-      break;
-    case 'open-link-import':   // v89 B: Link nur als Quelle merken, Text fügt die Person selbst ein (kein Abruf)
-      openTextImport({ link: true });
       break;
     case 'paste-from-clipboard': {
       const ta = document.getElementById('pasteText');

@@ -1,5 +1,5 @@
 """v89 B: Startseite (kompakter Sicherungshinweis, eine Werkzeugzeile, rundes Plus beim Scrollen, Suche blendet aus),
-untere Navigation bei 200 % Schrift, Hinzufügen-Menü «Aus Link» und openTextImport(), Zwischenablage, Einkauf («…»-Menü mit
+untere Navigation bei 200 % Schrift, Hinzufügen-Menü (ohne «Aus Link» seit 0.90.1) und openTextImport(), Zwischenablage, Einkauf («…»-Menü mit
 Bestätigung, zwei halbe Knöpfe, Kontrast erledigt), Mehr-Statuszeile «Daten», Geräteabgleich-Knopf, Wochenplan, Filter-Blatt."""
 import asyncio, sys
 import os as _os; sys.path.insert(0, _os.path.dirname(_os.path.abspath(__file__)))
@@ -79,27 +79,23 @@ async def main():
         check('200 % Schrift: Beschriftungen der unteren Navigation überlappen nicht', nav['inside'] and nav['apart'] and nav['navH'] <= 80, str(nav))
         await ev("document.documentElement.style.fontSize = ''")
 
-        # ---------- Hinzufügen-Menü «Aus Link» ----------
+        # ---------- Hinzufügen-Menü: «Aus Link» seit 0.90.1 entfernt ----------
         await click('[data-action="open-add-menu"]'); await page.wait_for_selector('.add-menu-sheet')
         opts = await ev("() => Array.from(document.querySelectorAll('.add-menu-option strong')).map(e => e.textContent)")
-        check('Hinzufügen-Menü: Erstellen, Text und «Aus Link»', 'Rezept erstellen' in opts and 'Aus Text importieren' in opts and 'Aus Link' in opts, str(opts))
-        await click('.add-menu-option[data-action="open-link-import"]'); await page.wait_for_selector('#pasteUrl')
-        li = await ev("() => ({ view: state.view, title: document.querySelector('.topbar-title').textContent.trim(), steps: document.querySelector('.paste-link-steps').innerText })")
-        check('«Aus Link» öffnet den Textimport mit Linkfeld und kurzer Anleitung', li['view'] == 'paste-import' and 'Link' in li['title'] and 'Text kopieren' in li['steps'], str(li))
-        await page.fill('#pasteUrl', 'https://example.org/rezept/suppe')
-        await page.fill('#pasteText', 'TEST: Linksuppe\n\nZutaten:\n200 g Karotten\n1 Zwiebel\n\nZubereitung:\n1. Kochen.')
+        check('Hinzufügen-Menü: Erstellen und Text, kein «Aus Link» mehr', 'Rezept erstellen' in opts and 'Aus Text importieren' in opts and 'Aus Link' not in opts and not await ev("!!document.querySelector('[data-action=\"open-link-import\"]')"), str(opts))
+        await ev("() => { state.modal = null; state.view = 'home'; render(); }")
+
+        # openTextImport für das Share Target: Link still als Quelle, kein Linkfeld
+        await ev("() => openTextImport({ text: 'TEST: Geteilt\\n\\nZutaten:\\n1 Ei\\n\\nZubereitung:\\n1. Kochen.', url: 'https://example.org/x' })"); await page.wait_for_selector('#pasteText')
+        pre = await ev("() => ({ t: document.getElementById('pasteText').value, u: state.pasteImport.url, feld: !!document.getElementById('pasteUrl'), title: document.querySelector('.topbar-title').textContent.trim() })")
+        check('openTextImport({ text, url }): Text vorbefüllt, Link still gemerkt, kein Linkfeld', pre['t'].startswith('TEST: Geteilt') and pre['u'] == 'https://example.org/x' and not pre['feld'] and pre['title'] == 'Aus Text importieren', str(pre))
         await click('[data-action="do-paste-import"]'); await page.wait_for_function("state.view === 'form'")
         src = await ev("() => state.editingRecipe.source")
-        check('Entwurf aus Link: Link als Quelle gespeichert (kein Abruf)', src == 'https://example.org/rezept/suppe', str(src))
+        check('Geteilter Link wird als Quelle gespeichert (kein Abruf)', src == 'https://example.org/x', str(src))
         await ev("() => { state.editingRecipe = null; state.view = 'home'; render(); }")
-
-        # openTextImport für das Share Target
-        await ev("() => openTextImport({ text: 'TEST: Geteilt\\nZutaten:\\n1 Ei', url: 'https://example.org/x' })"); await page.wait_for_selector('#pasteText')
-        pre = await ev("() => ({ t: document.getElementById('pasteText').value, u: (document.getElementById('pasteUrl') || {}).value })")
-        check('openTextImport({ text, url }): Text vorbefüllt, Link als Quelle', pre['t'].startswith('TEST: Geteilt') and pre['u'] == 'https://example.org/x', str(pre))
-        await ev("() => openTextImport({ text: 'https://example.org/nur-link' })"); await page.wait_for_selector('#pasteUrl')
-        pre2 = await ev("() => ({ t: document.getElementById('pasteText').value, u: document.getElementById('pasteUrl').value })")
-        check('Nur ein Link als Text: wird Link, Textfeld bleibt leer', pre2['t'] == '' and pre2['u'] == 'https://example.org/nur-link', str(pre2))
+        await ev("() => openTextImport({ text: 'https://example.org/nur-link' })"); await page.wait_for_selector('#pasteText')
+        pre2 = await ev("() => ({ t: document.getElementById('pasteText').value, u: state.pasteImport.url })")
+        check('Nur ein Link als Text: Textfeld bleibt leer, Link als Quelle gemerkt', pre2['t'] == '' and pre2['u'] == 'https://example.org/nur-link', str(pre2))
         await ev("() => openTextImport({})"); await page.wait_for_selector('#pasteText')
         th = await ev("() => ({ h: document.getElementById('pasteText').getBoundingClientRect().height, H: innerHeight, link: !!document.getElementById('pasteUrl') })")
         check('Textimport: Feld etwa 40 % der Höhe, ohne Linkfeld', th['h'] >= th['H'] * 0.38 and not th['link'], str(th))
