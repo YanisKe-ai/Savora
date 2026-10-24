@@ -41,8 +41,8 @@ async def main():
                 # gefuellt: alle Rezepte aufnehmen
                 await ev("() => { const c = getCookbookConfig(); c.items = state.recipes.map(x => ({ recipeId: x.id, chapterId: '' })); saveCookbookConfig(c); state.cookbookStep = 3; render(); window.scrollTo(0, 0); }")
                 await page.wait_for_selector('.cb-export-bar [data-action="export-cookbook"]:not([disabled])')
-                await ev("() => window.scrollTo(0, 200)")
-                await page.wait_for_function("() => scrollY > 0 || document.documentElement.scrollHeight <= innerHeight")
+                # Scrollen wiederholen, bis die Seite fertig aufgebaut ist (Linux-CI: erster scrollTo kam zu früh)
+                await page.wait_for_function("() => { window.scrollTo(0, 200); return scrollY > 0 || document.documentElement.scrollHeight - innerHeight < 2; }")
                 r = await ev(BAR)
                 check(f'{tag} Schritt 3 gefüllt: Knopf im Bild und antippbar, deckend hinterlegt', r and not r['disabled'] and r['hit'] and r['opaque'] and r['btnBottom'] <= r['vh'] - 8, str(r))
                 # Schritt 1: Fussleiste allein am unteren Rand
