@@ -1,5 +1,6 @@
 """v91.2: Hell/Dunkel-Schnellschalter oben rechts auf «Mehr» (nur ein Symbol).
-v91.5: farbige Symbol-Kacheln je Gruppe (hell und dunkel, Kontrast) und Profilkarte oben."""
+v91.5: farbige Symbol-Kacheln je Gruppe (hell und dunkel, Kontrast) und Profilkarte oben.
+v91.6: Kacheln zwei nebeneinander, kein Überlauf, Titel ganz lesbar; Profilbild aus gemerktem Profil."""
 import asyncio, os, sys
 os.environ.setdefault('SAVORA_TEST_PORT', '8968')
 import os as _os; sys.path.insert(0, _os.path.dirname(_os.path.abspath(__file__)))
@@ -22,7 +23,7 @@ async def main():
               return { n: document.querySelectorAll('.theme-quick-toggle').length, w: a.width, h: a.height, rightGap: Math.abs(document.querySelector('.settings-group-card').getBoundingClientRect().right - a.right), sameRow: Math.abs((a.top + a.bottom) / 2 - (t.top + t.bottom) / 2) < 12, right: a.left > t.right,
                 text: btn.innerText.trim(), label: btn.getAttribute('aria-label'), svg: !!btn.querySelector('svg'), W: document.documentElement.scrollWidth, iw: innerWidth }; }""")
             check(f'[{w}] ein Symbol-Knopf oben rechts neben «Mehr» (bündig mit den Karten), ohne Text, mit Beschriftung für Bildschirmleser', g['n'] == 1 and g['svg'] and not g['text'] and g['sameRow'] and g['right'] and g['rightGap'] <= 2 and g['label'] == 'Dunklen Modus einschalten', str(g))
-            col = await page.evaluate("() => { const c = getComputedStyle(document.querySelector('.theme-quick-toggle')), card = getComputedStyle(document.querySelector('.settings-group-card')); return [c.backgroundColor, card.backgroundColor]; }")
+            col = await page.evaluate("() => { const c = getComputedStyle(document.querySelector('.theme-quick-toggle')), card = getComputedStyle(document.querySelector('.settings-group-card > .settings-row')); return [c.backgroundColor, card.backgroundColor]; }")
             check(f'[{w}] Knopf im hellen Modus hell (gleiche Fläche wie die Karten)', col[0] == col[1], str(col))
             check(f'[{w}] Knopf mindestens 44 px, kein seitlicher Überlauf', g['w'] >= 44 and g['h'] >= 44 and g['W'] <= g['iw'], str(g))
             await page.click('.theme-quick-toggle')
@@ -54,6 +55,12 @@ async def main():
             await page.click('.more-profile'); await page.wait_for_function("state.view === 'settings-account'", timeout=5000)
             check(f'[{w}] Profilkarte öffnet «Mein Konto»', True)
             await page.evaluate("() => { lib.pubProfile = { data: undefined }; state.theme = 'light'; applyTheme(); state.view = 'more'; render(); }")
+            k = await page.evaluate("""() => { const rows = Array.from(document.querySelectorAll('.more-page .settings-group-card > .settings-row')); const xs = new Set(rows.map(r => Math.round(r.getBoundingClientRect().left)));
+              return { n: rows.length, cols: xs.size, W: document.documentElement.scrollWidth, iw: innerWidth, out: rows.filter(r => r.getBoundingClientRect().right > innerWidth + 0.5).length,
+                cut: rows.filter(r => { const t = r.querySelector('.settings-row-title'); return t.scrollWidth > t.clientWidth + 1 || t.scrollHeight > t.clientHeight + 1; }).map(r => r.querySelector('.settings-row-title').textContent),
+                h: rows.map(r => r.getBoundingClientRect().height), titles: Array.from(document.querySelectorAll('.more-page .settings-group-title')).map(t => t.textContent.trim()) }; }""")
+            check(f'[{w}] Kacheln zwei nebeneinander, kein seitlicher Überlauf, Titel ganz lesbar, mindestens 44 px hoch', k['n'] == 10 and k['cols'] == 2 and k['W'] <= k['iw'] and not k['out'] and not k['cut'] and min(k['h']) >= 44, str(k))
+            check(f'[{w}] Gruppenüberschriften bleiben für Bildschirmleser', k['titles'] == ['Daten', 'Teilen', 'Werkzeuge', 'App'], str(k['titles']))
             check(f'[{w}] keine Seitenfehler', not errs, str(errs[:2]))
             if w == 390:
                 await page.evaluate("() => { state.theme = 'light'; applyTheme(); render(); }"); await page.screenshot(path=os.path.join(OUT, 'mehr-hell-390.png'))

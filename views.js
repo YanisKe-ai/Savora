@@ -379,16 +379,31 @@ function themeQuickToggleHtml() {
 }
 /* v91.5: Profilkarte oben auf «Mehr»: Profilbild (Vorlage aus dem öffentlichen Profil, sonst Anfangsbuchstabe),
    Name und Anmeldestatus. Antippen öffnet «Mein Konto». Lädt nichts nach und zeigt nur, was schon bekannt ist. */
+const MORE_PROFILE_KEY = 'savora-more-profile';
 function moreProfileCardHtml() {
   const signed = typeof cloudSignedIn === 'function' && cloudSignedIn();
   const email = typeof kdEmail === 'function' ? kdEmail() : '';
   const pub = typeof lpProfileData === 'function' ? lpProfileData() : null;
   const friend = (typeof share !== 'undefined' && share && share.profile) ? share.profile : null;
-  const name = (pub && pub.display_name) || (friend && friend.display_name) || (signed && email ? email.split('@')[0] : '') || 'Dein Savora';
-  const avatar = pub && typeof libIsPresetPath === 'function' && libIsPresetPath(pub.avatar_path) && typeof libAvatarPresetSrc === 'function' ? libAvatarPresetSrc(pub.avatar_path) : '';
+  // v91.6: zuletzt bekanntes Profil merken, damit Bild und Name sofort (auch offline) erscheinen, bevor das Profil geladen ist
+  let mem = null;
+  try { mem = JSON.parse(localStorage.getItem(MORE_PROFILE_KEY) || 'null'); } catch (e) { mem = null; }
+  if (!signed) mem = null;
+  if (pub) { try { localStorage.setItem(MORE_PROFILE_KEY, JSON.stringify({ name: pub.display_name || '', avatar: pub.avatar_path || '' })); } catch (e) { /* nur Komfort */ } }
+  else if (pub === null && signed) { try { localStorage.removeItem(MORE_PROFILE_KEY); } catch (e) { /* nur Komfort */ } mem = null; }
+  const pubName = pub ? pub.display_name : (mem && mem.name);
+  const path = pub ? pub.avatar_path : (mem && mem.avatar);
+  const name = pubName || (friend && friend.display_name) || (signed && email ? email.split('@')[0] : '') || 'Dein Savora';
+  // Vorlage: lokal; eigenes Foto: kurzlebige, signierte Adresse (wird bei Bedarf geholt, danach zeichnet «Mehr» neu)
+  let avatar = '';
+  if (path && typeof libImgSrc === 'function') {
+    avatar = libImgSrc(path);
+    if (!avatar && signed && typeof libPrefetchImages === 'function') libPrefetchImages([path], 'pubprofile');
+  }
+  if (signed && pub === undefined && typeof lpLoadProfile === 'function' && typeof libPub !== 'undefined' && libPub.prof && libPub.prof.state === 'idle') setTimeout(() => lpLoadProfile(), 0);
   const letter = (String(name).trim().charAt(0) || 'S').toUpperCase();
   const pic = avatar ? `<img class="more-profile-pic" src="${escapeAttr(avatar)}" alt="" width="56" height="56">` : `<span class="more-profile-pic more-profile-pic--letter" aria-hidden="true">${escapeHtml(letter)}</span>`;
-  const status = signed ? (email ? `Angemeldet · ${email}` : 'Angemeldet') : 'Nicht angemeldet · Antippen zum Anmelden';
+  const status = signed ? (email ? `Angemeldet · ${email}` : 'Angemeldet') : 'Nicht angemeldet';
   return `<button type="button" class="more-profile" data-action="goto-view" data-view="settings-account">
       ${pic}
       <span class="more-profile-text"><span class="more-profile-name">${escapeHtml(name)}</span><span class="more-profile-status">${escapeHtml(status)}</span></span>
@@ -398,7 +413,7 @@ function moreProfileCardHtml() {
 function moreView() {
   return `
     ${topbar('Mehr')}
-    <main class="has-tabbar settings-page settings-page--list">
+    <main class="has-tabbar settings-page settings-page--list more-page">
       ${pageTitle('Mehr', themeQuickToggleHtml())}
       ${moreProfileCardHtml()}
       ${settingsGroup('Daten', moreDataRowHtml() + moreTrashRowHtml(), 'daten')}
