@@ -11,7 +11,7 @@ Umgebungsvariablen: SAVORA_TEST_PORT (Standard 16500), SAVORA_TEST_OUT (Ausgabeo
   SAVORA_PDF_IDS=A,B            Stil-Liste (alter Code vor 0.75)
   SAVORA_PDF_TEXT_SHIFT_MM=0.15 Linux-Simulation (gemessen auf 85798bb: 0.15 reproduziert «Quelle: sichtbare Tinte 5 px, erwartet 10 px» wie die CI, 0.3 ca. 130 Befunde, 2 extrem): der Text jeder Druckseite wird im Klon fuer html2canvas um diesen Betrag nach unten versetzt (position:relative; top),
                                 Layout und DOM-Messung bleiben unveraendert. Zeigt lokal die K01a-Befunde der CI (Text sitzt dort tiefer, Unterlaengen werden abgeschnitten).
-                                Beispiel: SAVORA_PDF_TEXT_SHIFT_MM=0.15 SAVORA_TEST_PORT=25900 python tests/test_pdf_ausgabe.py
+                                Beispiel: SAVORA_PDF_TEXT_SHIFT_MM=0.15 SAVORA_TEST_PORT=25900 python tests/test_pdf_stile.py
 Benutzung als Programm:  python tests/pdf_harness.py <ausgabeordner> [stil ...]   (erzeugt die Baseline-Exporte samt Bildern und Befunden)
 Die Messung der Seiten passiert unmittelbar vor html2canvas (jede Seite einmal, im fertig geladenen Zustand mit Schriften und Bildern).
 Sollte eine spaetere Version die Rastermaschine austauschen, muss nur HOOK_JS angepasst werden."""

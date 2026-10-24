@@ -289,6 +289,7 @@ async def main():
             check(f'Kochbuch {tpl}: Inhaltsverzeichnis-Seitenzahlen = tatsaechliche Seiten (pdftotext)', not bad and len(toc_pages) >= 1, str(bad[:3]))
             raw = open(path, 'rb').read()
             check(f'Kochbuch {tpl}: Seitenlinks im Inhaltsverzeichnis, Titel als Dokumenttitel', raw.count(b'/Subtype /Link') >= len(order) and 'Mein Familienkochbuch' in sh(['pdfinfo', path]))
+            check(f'Kochbuch {tpl}: Lesezeichen (Outline) im PDF', b'/Outlines' in raw)   # aus test_export
 
         # TOC mit sehr vielen Eintraegen und langen Titeln: mehrere Seiten, alle Nummern stimmen
         await page.evaluate("""async () => { for (let i = 0; i < 40; i++) { const r = Object.assign(emptyRecipe(), { id: 'fx_t' + i, title: 'Rezept Nummer ' + (i + 1) + (i % 4 === 0 ? ' mit einem wirklich sehr langen Namen, der im Inhaltsverzeichnis umbrechen muss' : ''), servings: 2, ingredients: [{ amount: '1', unit: '', name: 'Zutat' }], steps: [{ text: 'Schritt ' + i }] }); await dbPut(r); } await loadRecipes();

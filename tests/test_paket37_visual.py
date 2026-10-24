@@ -1,5 +1,6 @@
 """Paket 37: neue visuelle Sprache (Schriften, Farben, Kontrast, Tippflaechen, Rezept ohne Foto, Startseite, Kochmodus).
-Gemessen in Hell und Dunkel bei 390 und 1280 px, dazu grosse Systemschrift (24 px) und reduzierte Bewegung."""
+Gemessen in Hell und Dunkel bei 390 und 1280 px, dazu reduzierte Bewegung. Kleinste Schrift, Tippflaechen, Navigationsschrift, seitlicher Ueberlauf und grosse Systemschrift (24 px)
+messen dieselben Regeln fuer alle Ansichten und Breiten in test_paket37_adapt.py."""
 import asyncio, sys
 import os as _os; sys.path.insert(0, _os.path.dirname(_os.path.abspath(__file__)))
 from common import *
@@ -15,7 +16,6 @@ VIEWS = [
     ('Kochmodus', "state.view='cookmode';state.activeRecipeId='r_legacy_1';state.cookStepIndex=0;state.cookFinished=false;state.cookAllSteps=false"),
     ('Einstellungen', "state.view='settings'"),
 ]
-BADGES = '.chip-count, .nav-badge, .filter-count-badge'
 SERIF_OK = '.rcard-title, .rrow-title, .detail-title-v2, .cbk-name, .topbar--book .topbar-title, .cook-title-text, .cook-stepcount [aria-hidden], .cook-stepcount b, .cook-stepcount--text, .cook-mise-title, .cook-finish-v2 h2, .cook-alarm-copy strong, .ph-initial-letter'   # v89: Schrittzahl, Vorbereitung, Schlussbild und Timer-Ende im Kochmodus in Lilita; Anfangsbuchstabe im Platzhalter
 
 JS_FONTS = """(serifOk) => {
@@ -33,33 +33,7 @@ JS_FONTS = """(serifOk) => {
   return out;
 }"""
 
-JS_MINFONT = """(badges) => {
-  let min = 999, who = '';
-  for (const el of document.querySelectorAll('#app *')) {
-    const own = Array.from(el.childNodes).some(n => n.nodeType === 3 && n.textContent.trim());
-    if (!own || el.closest('.sr-only')) continue;
-    const r = el.getBoundingClientRect(); if (!r.width || !r.height) continue;
-    if (el.matches(badges) || el.closest(badges)) continue;
-    if (innerWidth < 900 && el.closest('.bottom-nav .nav-label')) continue;   // Ausnahme: fuenf Punkte in einer Reihe (Handy), Beschriftung dafuer einzeln geprueft (mind. 10 px)
-    const cs = getComputedStyle(el); if (cs.visibility === 'hidden' || cs.display === 'none') continue;
-    const fs = parseFloat(cs.fontSize);
-    if (fs < min) { min = fs; who = (el.className || el.tagName) + ':' + el.textContent.trim().slice(0, 24); }
-  }
-  return [min, who];
-}"""
 
-JS_TAPS = """() => {
-  const bad = [];
-  const sel = 'button, a[href], [role=button], [role=tab], [role=checkbox], summary, select, input:not([type=hidden]):not([type=checkbox]):not([type=radio]), textarea';
-  for (const el of document.querySelectorAll('#app ' + sel.split(', ').join(', #app '))) {
-    if (el.closest('.sr-only') || el.matches('.sr-only, .kd-file-input')) continue;
-    if (el.matches('.timer-chip, .sheet-handle') || (el.tagName === 'A' && el.closest('.source-line, .legal-card, p'))) continue;   // Zeitgeber im Fliesstext haben eine vergroesserte Trefferflaeche (::before), Textlinks stehen im Satz
-    const cs = getComputedStyle(el); if (cs.visibility === 'hidden' || cs.display === 'none') continue;
-    const r = el.getBoundingClientRect(); if (!r.width && !r.height) continue;
-    if (r.width < 43.5 || r.height < 43.5) bad.push((el.className || el.tagName) + ' ' + Math.round(r.width) + 'x' + Math.round(r.height) + ' ' + (el.getAttribute('aria-label') || el.textContent.trim().slice(0, 18)));
-  }
-  return bad;
-}"""
 
 JS_CONTRAST = """(pairs) => {
   const parse = (s) => {
@@ -117,14 +91,6 @@ async def main():
                     fo = await page.evaluate(JS_FONTS, SERIF_OK)
                     check(t + 'Public Sans im UI, keine gestauchte Schrift, kein Roboto', not fo['bad'] and fo['families'].get('Public Sans', 0) > 5, str(fo['bad'][:3]) + str(fo['families']))
                     check(t + 'Lilita One nur fuer Rezept- und Buchtitel', not fo['serifElsewhere'], str(fo['serifElsewhere'][:3]))
-                    mn = await page.evaluate(JS_MINFONT, BADGES)
-                    check(t + 'kleinste Schrift mindestens 14 px (ausser Zaehler, ausser Beschriftung der fuenfteiligen Leiste)', mn[0] >= 13.99, f'{mn[0]} {mn[1]}')
-                    nl = await page.evaluate("() => { const l = document.querySelector('.bottom-nav .nav-label'); return l ? [parseFloat(getComputedStyle(l).fontSize), innerWidth] : null; }")
-                    check(t + 'Navigation: Beschriftung mindestens 10 px (Handy, fuenf Punkte) bzw. 14 px (Seitenleiste)', nl is None or nl[0] >= (13.99 if nl[1] >= 900 else 9.99), str(nl))
-                    taps = await page.evaluate(JS_TAPS)
-                    check(t + 'Tippflaechen mindestens 44 px', not taps, str(taps[:4]))
-                    ov = await page.evaluate("() => [document.documentElement.scrollWidth, window.innerWidth]")
-                    check(t + 'kein seitlicher Ueberlauf', ov[0] <= ov[1] + 1, str(ov))
                 check(tag + 'Public Sans und Lilita One sind geladen', 'Public Sans' in fonts_loaded and 'Lilita One' in fonts_loaded, str(fonts_loaded))
 
                 # Startseite: ein Suchfeld, Hauptaktion, Zahnrad, keine Statistik
@@ -214,13 +180,6 @@ async def main():
                 want_wm = 'rgb(185,59,44)' if theme == 'light' else 'rgb(247,244,238)'
                 check(tag + 'Logo: Wortmarke rot auf hell bzw. creme auf dunkel', lg == want_wm, str(lg))
 
-                # Grosse Systemschrift
-                await page.evaluate("document.documentElement.style.fontSize = '24px'"); await page.wait_for_timeout(200)
-                for name, js in VIEWS:
-                    await show_view(js)
-                    ov = await page.evaluate("""() => { const w = window.innerWidth; const clipped = Array.from(document.querySelectorAll('#app .tool-action, #app .rcard-title, #app .cook-ing, #app .detail-title-v2, #app .chip')).filter(e => e.scrollWidth > e.clientWidth + 2 && getComputedStyle(e).overflow !== 'visible' && getComputedStyle(e).overflowX !== 'scroll' && getComputedStyle(e).overflowX !== 'auto').length; return [document.documentElement.scrollWidth, w, clipped]; }""")
-                    check(f'{tag}{name} bei Systemschrift 24 px: kein seitlicher Ueberlauf, nichts abgeschnitten', ov[0] <= ov[1] + 1 and ov[2] == 0, str(ov))
-                await page.evaluate("document.documentElement.style.fontSize = ''")
                 check(tag + 'Keine Seitenfehler', not errs, str(errs[:3]))
                 await ctx.close()
 

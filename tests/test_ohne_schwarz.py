@@ -1,4 +1,4 @@
-"""Ohne Schwarz (seit 0.70.2): Das Farbschema «Schwarz» (amoled) gibt es nicht mehr. Gespeichertes 'amoled' wird still zu Dunkel,
+"""Hell, Dunkel und System (Browserleiste, Systemelemente, Wechsel im Betrieb; frueher test_theme.py) und Ohne Schwarz (seit 0.70.2): Das Farbschema «Schwarz» (amoled) gibt es nicht mehr. Gespeichertes 'amoled' wird still zu Dunkel,
 Auswahl bietet nur Hell, Dunkel, System, Schnellschalter bei 390 px in einer Zeile, kein [data-theme="amoled"] im geladenen CSS, Dunkel unveraendert."""
 import asyncio, sys, os
 os.environ.setdefault('SAVORA_TEST_PORT', '15400')
@@ -19,8 +19,37 @@ async def new_page(p, w, h, saved=None):
     await page.evaluate("() => document.fonts.ready.then(() => 1)")
     return b, ctx, page, errs
 
+
+async def theme_basis(p):
+    """Hell, Dunkel und System: Farbe der Browserleiste, Systemelemente, Wechsel im Betrieb (frueher test_theme.py). Die Migration von «Schwarz» prueft main unten."""
+    browser = await p.chromium.launch()
+    ctx = await browser.new_context(viewport={'width': 390, 'height': 844}, color_scheme='dark', reduced_motion='reduce', timezone_id='UTC')
+    await ctx.add_init_script(NO_SW + " try{localStorage.setItem('savora-splash-seen','1')}catch(e){}")
+    page = await ctx.new_page(); errs = []
+    page.on('pageerror', lambda e: errs.append(str(e)))
+    await goto(page)
+    n = await page.evaluate("document.querySelectorAll('meta[name=theme-color]').length")
+    check('Genau eine theme-color-Angabe', n == 1, str(n))
+    async def snap(theme):
+        await page.evaluate(f"() => {{ state.theme = '{theme}'; applyTheme(); }}")
+        return await page.evaluate("({t: document.documentElement.getAttribute('data-theme'), m: document.querySelector('meta[name=theme-color]').content, cs: getComputedStyle(document.documentElement).colorScheme})")
+    for theme, exp in [('light', ('light', '#F7F4EE', 'light')), ('dark', ('dark', '#1B1A17', 'dark'))]:
+        s = await snap(theme)
+        check(f'{theme}: Modus, Browserleiste und Systemelemente passen', (s['t'], s['m'], s['cs']) == exp, str(s))
+    s = await snap('auto')
+    check('System (Telefon dunkel): App wird dunkel', s['t'] == 'dark' and s['m'] == '#1B1A17', str(s))
+    await page.emulate_media(color_scheme='light'); await page.wait_for_timeout(200)
+    s = await page.evaluate("({t: document.documentElement.getAttribute('data-theme'), m: document.querySelector('meta[name=theme-color]').content})")
+    check('System: Wechsel des Telefons auf hell wirkt sofort', s['t'] == 'light' and s['m'] == '#F7F4EE', str(s))
+    # gewaehlter Modus bleibt, auch wenn das System wechselt
+    await snap('dark'); await page.emulate_media(color_scheme='light'); await page.wait_for_timeout(150)
+    check('Manuelle Wahl "Dunkel" bleibt trotz hellem System', await page.evaluate("document.documentElement.getAttribute('data-theme')") == 'dark')
+    check('Keine Seitenfehler', not errs, str(errs[:3]))
+    await browser.close()
+
 async def main():
     async with async_playwright() as p:
+        await theme_basis(p)
         b, ctx, page, errs = await new_page(p, 390, 844, 'amoled'); ev = page.evaluate
         r = await ev("() => ({ st: state.theme, ls: localStorage.getItem(THEME_KEY), attr: document.documentElement.getAttribute('data-theme'), meta: document.querySelector('meta[name=theme-color]').content })")
         check('Gespeichertes Schwarz: Laden zeigt Dunkel, Wert wird zu dark umgeschrieben', r == {'st': 'dark', 'ls': 'dark', 'attr': 'dark', 'meta': '#1B1A17'}, str(r))
