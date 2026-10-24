@@ -1,0 +1,153 @@
+{
+ "01": {
+  "titel": "Blechkuchen",
+  "anzahl": 18,
+  "art": "pieces",
+  "zutaten": [
+   10,
+   10
+  ],
+  "schritte": 4,
+  "quelle": "https://www.bettybossi.ch/"
+ },
+ "02": {
+  "titel": "Brownies",
+  "anzahl": 16,
+  "art": "pieces",
+  "zutaten": [
+   8,
+   10
+  ],
+  "schritte": 3,
+  "gruppen": 2,
+  "quelle": "https://fooby.ch/"
+ },
+ "03": {
+  "titel": "Geschnetzeltes",
+  "anzahl": 4,
+  "art": "portions",
+  "zutaten": [
+   11,
+   13
+  ],
+  "schritte": 6,
+  "mengen": {
+   "Kalbfleisch": "600",
+   "Champignons": "250",
+   "Rahm": "2"
+  },
+  "quelle": "https://www.swissmilk.ch/"
+ },
+ "04": {
+  "titel": "Muffins",
+  "anzahl": 12,
+  "art": "pieces",
+  "zutaten": [
+   7,
+   8
+  ],
+  "schritte": 4,
+  "quelle": "https://migusto.migros.ch/"
+ },
+ "05": {
+  "titel": "Baumstriezel",
+  "anzahl": 0,
+  "art": "portions",
+  "zutaten": [
+   9,
+   12
+  ],
+  "schritte": 8,
+  "mengen": {
+   "Hefe": "10",
+   "Milch": "100",
+   "Zucker": "165"
+  },
+  "quelle": "https://www.lecker.de/"
+ },
+ "06": {
+  "titel": "Schokopl",
+  "anzahl": 0,
+  "art": "portions",
+  "zutaten": [
+   11,
+   14
+  ],
+  "schritte": 3,
+  "mengen": {
+   "Butter": "250",
+   "Kakao": "40"
+  },
+  "quelle": "https://www.lecker.de/"
+ },
+ "07": {
+  "titel": "Sauerteigbrot",
+  "anzahl": 1,
+  "art": "pieces",
+  "zutaten": [
+   8,
+   10
+  ],
+  "schritte": 8,
+  "quelle": "https://www.kitchenstories.com/"
+ },
+ "08": {
+  "titel": "Blech",
+  "anzahl": 16,
+  "art": "portions",
+  "zutaten": [
+   13,
+   16
+  ],
+  "schritte": 5,
+  "gruppen": 2,
+  "quelle": "https://www.foodnetwork.com/"
+ },
+ "09": {
+  "titel": "Caesar",
+  "anzahl": 5,
+  "art": "portions",
+  "zutaten": [
+   19,
+   23
+  ],
+  "schritte": 5,
+  "gruppen": 3,
+  "quelle": "https://www.recipetineats.com/"
+ },
+ "10": {
+  "titel": "Teriyaki",
+  "anzahl": 2,
+  "art": "portions",
+  "zutaten": [
+   7,
+   9
+  ],
+  "schritte": 5,
+  "gruppen": 2,
+  "quelle": "https://www.justonecookbook.com/"
+ },
+ "11": {
+  "titel": "Pancake",
+  "anzahl": 8,
+  "art": "pieces",
+  "zutaten": [
+   7,
+   9
+  ],
+  "schritte": 2
+ },
+ "12": {
+  "titel": "Poulet",
+  "anzahl": 3,
+  "art": "portions",
+  "zutaten": [
+   9,
+   12
+  ],
+  "schritte": 3
+ },
+ "99": {
+  "unlesbar": true
+ }
+}

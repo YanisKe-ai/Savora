@@ -1,0 +1,34 @@
+```json
+{
+  "format": "savora-recipe",
+  "version": 1,
+  "title": "Zürcher Geschnetzeltes",
+  "yield": {"count": 4, "kind": "portions", "label": null},
+  "time": {"totalMinutes": null, "activeMinutes": null, "restMinutes": null, "cookMinutes": null},
+  "difficulty": null,
+  "source": {"url": "https://www.swissmilk.ch/de/rezepte-kochideen/rezepte/LM201401_83/zuercher-geschnetzeltes/", "name": "Swissmilk"},
+  "ingredients": [
+    {"group": null, "name": "Kalbfleisch", "amount": {"type": "exact", "value": 600}, "unit": "g", "note": "in dünne Streifen geschnitten", "optional": false},
+    {"group": null, "name": "Bratbutter/-crème", "amount": null, "unit": null, "note": null, "optional": false},
+    {"group": null, "name": "Zwiebel", "amount": {"type": "exact", "value": 1}, "unit": null, "note": "fein gehackt", "optional": false},
+    {"group": null, "name": "Champignons", "amount": {"type": "exact", "value": 250}, "unit": "g", "note": "in dünne Scheiben geschnitten", "optional": false},
+    {"group": null, "name": "Mehl", "amount": {"type": "exact", "value": 1}, "unit": "EL", "note": null, "optional": false},
+    {"group": null, "name": "Weisswein oder Bouillon", "amount": {"type": "exact", "value": 2}, "unit": "dl", "note": null, "optional": false},
+    {"group": null, "name": "Bouillon", "amount": {"type": "exact", "value": 1}, "unit": "dl", "note": null, "optional": false},
+    {"group": null, "name": "Rahm", "amount": {"type": "exact", "value": 2}, "unit": "dl", "note": null, "optional": false},
+    {"group": null, "name": "Zitronenschale", "amount": {"type": "qualitative", "text": "etwas"}, "unit": null, "note": "abgerieben", "optional": false},
+    {"group": null, "name": "Salz", "amount": null, "unit": null, "note": null, "optional": false},
+    {"group": null, "name": "Pfeffer", "amount": null, "unit": null, "note": null, "optional": false},
+    {"group": null, "name": "Petersilie", "amount": {"type": "exact", "value": 1}, "unit": "EL", "note": "gehackt", "optional": false}
+  ],
+  "steps": [
+    {"text": "Das Fleisch bei starker Hitze kurz in Butter anbraten. Bevor es Saft abgibt, aus der Pfanne nehmen und warm stellen.", "variants": []},
+    {"text": "Die Hitze der Herdplatte etwas reduzieren. Die Zwiebel in die Pfanne geben und leicht andünsten.", "variants": []},
+    {"text": "Champignons beigeben, kurz mitdünsten, mit Mehl bestäuben und gut mischen.", "variants": []},
+    {"text": "Mit Wein und Bouillon ablöschen und bis zur Hälfte einkochen lassen.", "variants": []},
+    {"text": "Rahm beigeben und etwas einkochen lassen. Zitronenschale unterrühren und würzen.", "variants": []},
+    {"text": "Das fast fertige Fleisch in die Sauce geben (nicht mehr kochen), kurz erwärmen, mit Petersilie bestreuen und sofort servieren.", "variants": []}
+  ],
+  "notes": []
+}
+```

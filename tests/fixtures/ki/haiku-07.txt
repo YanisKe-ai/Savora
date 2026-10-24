@@ -1,0 +1,46 @@
+```json
+{
+  "format": "savora-recipe",
+  "version": 1,
+  "title": "Kürbis-Sauerteigbrot",
+  "yield": {"count": 1, "kind": "pieces", "label": "Brot"},
+  "time": {"totalMinutes": 1160, "activeMinutes": 35, "restMinutes": null, "cookMinutes": 45},
+  "difficulty": null,
+  "source": {"url": "https://www.kitchenstories.com/kuerbis-sauerteigbrot-knuspriges/312792", "name": "Kitchen Stories"},
+  "ingredients": [
+    {"group": null, "name": "Sauerteigstarter", "amount": {"type": "exact", "value": 100}, "unit": "g", "note": "aktiv", "optional": false},
+    {"group": null, "name": "Wasser", "amount": {"type": "exact", "value": 250}, "unit": "g", "note": "lauwarm", "optional": false},
+    {"group": null, "name": "Kürbispüree", "amount": {"type": "exact", "value": 200}, "unit": "g", "note": null, "optional": false},
+    {"group": null, "name": "Ahornsirup", "amount": {"type": "exact", "value": 60}, "unit": "g", "note": null, "optional": false},
+    {"group": null, "name": "Weizenmehl", "amount": {"type": "exact", "value": 500}, "unit": "g", "note": "Type 550", "optional": false},
+    {"group": null, "name": "Salz", "amount": {"type": "exact", "value": 10}, "unit": "g", "note": null, "optional": false},
+    {"group": null, "name": "Pumpkin Spice", "amount": {"type": "exact", "value": 5}, "unit": "g", "note": null, "optional": false},
+    {"group": null, "name": "Olivenöl", "amount": {"type": "exact", "value": 1}, "unit": "EL", "note": "für das Garn", "optional": false},
+    {"group": null, "name": "Kürbiskerne", "amount": {"type": "exact", "value": 25}, "unit": "g", "note": null, "optional": false}
+  ],
+  "steps": [
+    {"text": "Den aktiven Sauerteigstarter mit dem lauwarmen Wasser in einer grossen Schüssel verrühren, bis sich der Starter weitgehend aufgelöst hat.", "variants": []},
+    {"text": "Das Kürbispüree und den Ahornsirup hinzugeben und alles gründlich zu einer gleichmässigen, orangefarbenen Flüssigkeit vermischen.", "variants": []},
+    {"text": "Mehl, Salz und Pumpkin Spice hinzufügen. Mit der Hand verkneten, bis kein trockenes Mehl mehr sichtbar ist. Der Teig darf zunächst weich und etwas klebrig sein.", "variants": []},
+    {"text": "Die Schüssel abdecken und den Teig 60 Minuten bei Raumtemperatur ruhen lassen.", "variants": []},
+    {"text": "Eine Seite des Teigs vorsichtig nach oben ziehen und über die Mitte falten. Die Schüssel drehen und den Vorgang mit den übrigen drei Seiten wiederholen.", "variants": []},
+    {"text": "Den Teig wieder abdecken und 30 Minuten ruhen lassen. Insgesamt vier solcher Faltzyklen durchführen und zwischen den Runden jeweils 30 Minuten Pause einhalten.", "variants": []},
+    {"text": "Den Teig nach dem letzten Falten weitere 3 bis 6 Stunden abgedeckt bei Raumtemperatur gehen lassen. Verarbeiten, sobald er deutlich aufgegangen ist, luftig wirkt und leicht gewölbte Ränder zeigt.", "variants": []},
+    {"text": "Die abgedeckte Schüssel für 8 bis 12 Stunden oder über Nacht in den Kühlschrank stellen.", "variants": []},
+    {"text": "Am nächsten Tag den Dutch Oven samt Deckel mindestens 30 Minuten bei 230 °C Ober-/Unterhitze vorheizen.", "variants": []},
+    {"text": "Vier gleich lange Stücke Garn abschneiden und etwa 5 Minuten im Olivenöl einweichen.", "variants": []},
+    {"text": "Den Teig aus dem Kühlschrank nehmen, vorsichtig zu einer straffen, runden Kugel formen und auf Backpapier legen.", "variants": []},
+    {"text": "Die Garnstücke sternförmig unter dem Teig anordnen und locker über der Teigkugel zusammenbinden. Genug Spielraum lassen, damit sich das Brot beim Backen ausdehnen kann.", "variants": []},
+    {"text": "Die Oberfläche leicht mit Wasser befeuchten, die Kürbiskerne darüberstreuen und behutsam andrücken. Den Teig nach Wunsch zwischen den Garnlinien flach einschneiden.", "variants": []},
+    {"text": "Den Teigling mitsamt Backpapier in den heissen Dutch Oven setzen, den Deckel schliessen und das Brot 30 Minuten bei 230 °C backen.", "variants": []},
+    {"text": "Den Deckel abnehmen, die Temperatur auf 220 °C reduzieren und das Brot weitere 10 bis 15 Minuten backen, bis die Kruste kräftig goldbraun ist.", "variants": []},
+    {"text": "Das Brot aus dem Topf heben und mindestens 1 Stunde auf einem Gitter vollständig auskühlen lassen.", "variants": []},
+    {"text": "Das Garn vorsichtig entfernen und das Brot erst danach anschneiden.", "variants": []}
+  ],
+  "notes": [
+    "Die Gesamtzeit von 19 Std. 20 Min. ergibt sich vor allem aus den langen Ruhe-, Geh- und Kühlzeiten.",
+    "Utensil: gusseiserner Topf mit Deckel (Dutch Oven).",
+    "Garn: lebensmittelechtes Metzgergarn oder Bäckergarn."
+  ]
+}
+```

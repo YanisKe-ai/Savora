@@ -46,16 +46,24 @@ Regeln der Übernahme:
 
 ## Prompt für die KI
 
+Dieser Prompt steht in Savora unter «Rezept hinzufügen › Aus Text importieren» zum Kopieren (`SAVORA_KI_PROMPT` in `recipe-json.js`). Den Rezept-Link oder den Rezepttext ans Ende setzen. Getestet mit 12 Rezepten von Schweizer, deutschen und englischen Seiten sowie Social-Media-Texten (`tests/test_v90_ki_prompt.py`).
+
 ```
-Lies das Rezept unter diesem Link: <LINK>
-Gib das Rezept ausschliesslich als EIN JSON-Codeblock im Format "savora-recipe", Version 1, zurück. Kein Text davor oder danach.
-Felder: format ("savora-recipe"), version (1), title, yield {count, kind ("pieces" oder "portions"), label} oder null, time {totalMinutes, activeMinutes, restMinutes, cookMinutes}, difficulty ("einfach", "mittel", "anspruchsvoll" oder null), source {url, name}, ingredients, steps, notes.
-Zutat: {group, name, amount, unit, note, optional}. amount ist {"type":"exact","value":250}, {"type":"range","min":200,"max":300}, {"type":"qualitative","text":"nach Geschmack"} oder null.
-Schritt: {text, variants:[{label, text}]}. notes ist eine Liste von Texten.
-Alle Zahlen sind echte Zahlen (200, nicht "200"), Minuten sind ganze Zahlen.
-Fehlende oder nicht genannte Werte sind null. Erfinde nichts: keine Gesamtzeit, keine Schwierigkeit, keine Menge, die nicht im Rezept steht.
-Utensilien (Förmchen, Backblech, Schüssel) sind keine Zutaten.
-Alternative Garmethoden (Airfryer, Backofen) gehören als variants in den passenden Schritt, nicht als eigene Schritte.
-Bereiche wie "200 bis 300 g" bleiben ein range, nicht mitteln. Zubereitungshinweise wie "gerieben" gehören in note, nicht in den Namen.
-Übernimm Text sinngemäss auf Deutsch, aber ändere keine Mengen, Zeiten oder Temperaturen.
+Öffne den Rezept-Link (oder lies den Rezepttext) unten und gib das Rezept für die App Savora als EINEN JSON-Codeblock zurück, ohne Text davor oder danach. Kannst du den Link nicht öffnen, antworte nur: LINK NICHT LESBAR. Erfinde nie ein Rezept.
+
+Form:
+{"format":"savora-recipe","version":1,"title":"…","yield":{"count":4,"kind":"portions","label":null},"time":{"totalMinutes":null,"activeMinutes":null,"restMinutes":null,"cookMinutes":null},"difficulty":null,"source":{"url":"…","name":"…"},"ingredients":[{"group":null,"name":"Mehl","amount":{"type":"exact","value":250},"unit":"g","note":null,"optional":false}],"steps":[{"text":"…","variants":[]}],"notes":[]}
+
+Regeln:
+- amount: {"type":"exact","value":0.5}, {"type":"range","min":2,"max":3}, {"type":"qualitative","text":"1 Prise"} oder null. Zahlen ohne Anführungszeichen, Brüche als Dezimalzahl.
+- unit kurz (g, kg, ml, dl, l, EL, TL, Prise, Pck.). Stückzahlen ohne Einheit: 2 Eier = value 2, unit null. cup, oz, lb so lassen.
+- yield: count ganze Zahl (bei Bereich die kleinere), ohne Angabe yield null. kind "pieces" bei Stückzahl (12 Muffins: label "Muffins"), sonst "portions". Bei mehreren Mengenvarianten nur die erste.
+- time in ganzen Minuten: activeMinutes = Vorbereitung/Arbeitszeit, cookMinutes = Koch- oder Backzeit, restMinutes = Ruhe-, Geh- oder Kühlzeit, totalMinutes nur wenn genannt.
+- Nur was im Rezept steht, Unbekanntes null. Mengen, Zeiten, Temperaturen nie ändern (°F: °C in Klammern dazu). difficulty nur "einfach", "mittel" oder "anspruchsvoll".
+- Texte auf Deutsch (Schweiz, ss statt ß). group nur bei Zutatengruppen im Rezept (z. B. "Teig"). Zusätze wie "gehackt" in note.
+- Utensilien sind keine Zutaten. variants nur für Alternativen (Backofen oder Airfryer): [{"label":"Airfryer","text":"…"}].
+
+Link oder Text:
 ```
+
+Savora korrigiert typische Ausrutscher der KI still: Zahlen als Text («250», «0,5», «½»), Mengen als Text («2 bis 3»), Zutaten oder Schritte als einfache Zeilen, Zeiten wie «PT1H30M» oder «20 Min.», Schwierigkeit «leicht», fehlendes `format`/`version`, ein Komma zu viel. Antwortet die KI «LINK NICHT LESBAR», zeigt Savora, wie man stattdessen den Rezepttext verwendet.

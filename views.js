@@ -582,6 +582,24 @@ function settingsAboutView() {
 /* v89 B: Vorbefüllung des Textimports (state.pasteImport = { text, url }), gesetzt von openTextImport() in ui.js.
    0.90.1: Das sichtbare Linkfeld («Aus Link») ist entfernt. Ein geteilter Link wird still als Quelle übernommen, nie abgerufen. */
 function pasteImportState() { return (state.pasteImport && typeof state.pasteImport === 'object') ? state.pasteImport : {}; }
+function pasteImportKiHtml() {
+  if (typeof SAVORA_KI_PROMPT !== 'string') return '';
+  return `<div class="ki-prompt-box">
+      <h2 class="ki-prompt-h">Rezept aus einem Link mit KI</h2>
+      <ol class="ki-prompt-steps">
+        <li>Tippe auf «Prompt kopieren».</li>
+        <li>Füge ihn in ChatGPT, Claude oder Gemini ein, setze den Rezept-Link ans Ende und sende ab.</li>
+        <li>Kopiere die Antwort (Kopier-Knopf beim Code-Block) und füge sie unten ein.</li>
+      </ol>
+      <button type="button" class="ghost-btn ki-prompt-copy" data-action="copy-ki-prompt">${ICONS.copy || ICONS.clipboardText || ''} Prompt kopieren</button>
+      <p class="hint-line ki-prompt-hint" id="kiPromptHint" role="status" aria-live="polite"></p>
+      <details class="ki-prompt-details">
+        <summary>Prompt ansehen</summary>
+        <pre class="ki-prompt-text" id="kiPromptText">${escapeHtml(SAVORA_KI_PROMPT)}</pre>
+      </details>
+      <p class="hint-line">Kann die KI den Link nicht öffnen (z. B. Instagram), kopiere stattdessen den Rezepttext und setze ihn ans Ende des Prompts.</p>
+    </div>`;
+}
 function pasteImportView() {
   const pi = pasteImportState();
   const body = `
@@ -594,6 +612,7 @@ function pasteImportView() {
           <p class="hint-line">Buchseite, Zettel oder Bildschirm fotografieren. Die Texterkennung läuft auf deinem Gerät, das Foto wird nicht gespeichert.</p>
           <div id="ocrStatus" class="ocr-status" role="status" aria-live="polite"></div>
         </div>` : ''}
+        ${pasteImportKiHtml()}
         <div class="field field--tight paste-field">
           <label for="pasteText" class="sr-only">Rezepttext</label>
           <textarea id="pasteText" class="paste-import-textarea" placeholder="Rezepttext hier einfügen …">${escapeHtml(pi.text || '')}</textarea>

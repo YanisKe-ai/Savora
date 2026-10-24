@@ -1,0 +1,35 @@
+```json
+{
+  "format": "savora-recipe",
+  "version": 1,
+  "title": "Schoggi-Blechkuchen mit Caramel-Topping",
+  "yield": {"count": 18, "kind": "pieces", "label": "Stück"},
+  "time": {"totalMinutes": null, "activeMinutes": 20, "restMinutes": null, "cookMinutes": 20},
+  "difficulty": null,
+  "source": {"url": "https://www.bettybossi.ch/de/rezepte/rezept/schoggi-blechkuchen-mit-caramel-topping-10006787/", "name": "Betty Bossi"},
+  "ingredients": [
+    {"group": null, "name": "Lindt Crémant Schokolade", "amount": null, "unit": "g", "note": "fein gehackt", "optional": false},
+    {"group": null, "name": "Butter", "amount": null, "unit": "g", "note": null, "optional": false},
+    {"group": null, "name": "Zucker", "amount": null, "unit": "g", "note": null, "optional": false},
+    {"group": null, "name": "Eier", "amount": null, "unit": null, "note": null, "optional": false},
+    {"group": null, "name": "Mehl", "amount": null, "unit": "g", "note": null, "optional": false},
+    {"group": null, "name": "Backpulver", "amount": null, "unit": "TL", "note": null, "optional": false},
+    {"group": null, "name": "Pekannüsse", "amount": null, "unit": "g", "note": "grob gehackt", "optional": false},
+    {"group": null, "name": "Rahm", "amount": null, "unit": "dl", "note": null, "optional": false},
+    {"group": null, "name": "Rahmtäfeli", "amount": null, "unit": "g", "note": "weich, grob gehackt", "optional": false},
+    {"group": null, "name": "Salzstängeli", "amount": null, "unit": "g", "note": "zerdrückt", "optional": false}
+  ],
+  "steps": [
+    {"text": "Schokolade und Butter in eine dünnwandige Schüssel geben und über das nur leicht siedende Wasserbad hängen, die Schüssel darf das Wasser nicht berühren. Schokolade und Butter schmelzen lassen und glatt rühren.", "variants": []},
+    {"text": "Zucker und Eier in einer Schüssel mit den Schwingbesen des Handrührgeräts rühren, bis die Masse schaumig ist. Die Schokolade daruntermischen.", "variants": []},
+    {"text": "Mehl, Backpulver und Nüsse mischen und darunterziehen. Den Teig in der vorbereiteten Form verteilen.", "variants": []},
+    {"text": "Ca. 20 Minuten in der Mitte des auf 160 °C vorgeheizten Ofens backen. Herausnehmen, etwas abkühlen lassen, in Stücke schneiden, aus der Form heben und auf einem Gitter auskühlen lassen.", "variants": []},
+    {"text": "Rahm in einer Pfanne aufkochen, die Hitze reduzieren und die Rahmtäfeli unter Rühren darin schmelzen. Die Sauce über die Schoggiwürfel giessen und die Salzstängeli darüberstreuen.", "variants": []}
+  ],
+  "notes": [
+    "Form: Blechkuchenform «Lupf-Rutsch» (kleiner Einsatz), gefettet, oder quadratische Springform ca. 23 cm Ø; Boden mit Backpapier belegen, Rand fetten.",
+    "Haltbarkeit: in Folie verpackt im Kühlschrank ca. 1 Woche.",
+    "Die Seite zeigt bei allen Zutaten die Menge als NaN an. Die Mengen sind deshalb nicht bekannt und hier nicht angegeben."
+  ]
+}
+```

@@ -1,0 +1,37 @@
+```json
+{
+  "format": "savora-recipe",
+  "version": 1,
+  "title": "Chicken Teriyaki",
+  "yield": {"count": 2, "kind": "portions", "label": null},
+  "time": {"totalMinutes": 20, "activeMinutes": 10, "restMinutes": null, "cookMinutes": 10},
+  "difficulty": null,
+  "source": {"url": "https://www.justonecookbook.com/chicken-teriyaki/", "name": "Just One Cookbook (Namiko Hirasawa Chen)"},
+  "ingredients": [
+    {"group": "Poulet", "name": "Pouletschenkel", "amount": {"type": "range", "min": 0.75, "max": 1}, "unit": "lb", "note": "ohne Knochen, ohne Haut; mit Haut empfohlen", "optional": false},
+    {"group": "Poulet", "name": "Salz", "amount": {"type": "exact", "value": 0.125}, "unit": "TL", "note": "Diamond Crystal Kosher-Salz", "optional": false},
+    {"group": "Poulet", "name": "Pfeffer", "amount": {"type": "exact", "value": 0.125}, "unit": "TL", "note": "schwarz, frisch gemahlen", "optional": false},
+    {"group": "Poulet", "name": "Neutrales Öl", "amount": {"type": "exact", "value": 1}, "unit": "EL", "note": "zum Braten", "optional": false},
+    {"group": "Teriyaki-Sauce", "name": "Sojasauce", "amount": {"type": "exact", "value": 2}, "unit": "EL", "note": null, "optional": false},
+    {"group": "Teriyaki-Sauce", "name": "Mirin", "amount": {"type": "exact", "value": 2}, "unit": "EL", "note": null, "optional": false},
+    {"group": "Teriyaki-Sauce", "name": "Sake", "amount": {"type": "exact", "value": 2}, "unit": "EL", "note": null, "optional": false},
+    {"group": "Teriyaki-Sauce", "name": "Zucker", "amount": {"type": "exact", "value": 1}, "unit": "EL", "note": null, "optional": false}
+  ],
+  "steps": [
+    {"text": "Die Teriyaki-Sauce in einer kleinen mikrowellengeeigneten Schüssel mischen: Sojasauce, Mirin, Sake und Zucker. Kurz in der Mikrowelle heiss werden lassen und gut verrühren, bis sich der Zucker gelöst hat. Beiseitestellen.", "variants": []},
+    {"text": "Die Pouletschenkel mit der glatten Seite nach unten auf ein Schneidebrett legen. Im Abstand von ½ Inch (1,3 cm) Einschnitte machen, ohne ganz durchzuschneiden. An dicken Stellen tiefer einschneiden, dünne Stellen auslassen. Nach jedem Schnitt mit den Fingern auseinanderdrücken und flach drücken. Nicht mit dem Fleischklopfer arbeiten. Danach die gleichmässige Dicke prüfen und die restlichen Schenkel gleich behandeln.", "variants": []},
+    {"text": "Die Pouletstücke leicht mit ⅛ TL Salz und ⅛ TL Pfeffer würzen.", "variants": []},
+    {"text": "Eine grosse Pfanne bei mittel bis mittelhoch erhitzen. Sobald sie heiss ist, das Öl hineingeben. Ist das Öl heiss, das Poulet mit der glatten Seite nach unten einlegen. Diese Seite wird die Präsentationsseite.", "variants": []},
+    {"text": "Das Poulet 5 Minuten braten. Sofort mit dem Pfannenwender 5 bis 10 Sekunden fest auf das Fleisch drücken, damit die Seite schön anbrät. Das Poulet wenden und wieder 5 bis 10 Sekunden andrücken. Die Hitze auf niedrig stellen, zudecken und 3 Minuten dämpfen.", "variants": []},
+    {"text": "Den Deckel abnehmen und mit Küchenpapier überschüssiges Fett und Eiweiss aus der Pfanne tupfen, damit die Sauce klarer wird. Die Hitze auf mittel erhöhen und die Teriyaki-Sauce in die Pfanne geben.", "variants": []},
+    {"text": "Die Pfanne schwenken und die Sauce immer wieder über das Poulet löffeln, bis es gut überzogen und durchgegart ist. Das Poulet auf ein Schneidebrett legen.", "variants": []},
+    {"text": "Die Sauce weiterköcheln, bis sie die gewünschte Dicke hat, und dann in eine Schüssel geben. Etwas dünnflüssig vom Herd nehmen, da sie noch nachdickt. Für eine dickere Sauce 2 bis 3 Minuten länger einkochen.", "variants": []},
+    {"text": "Das Poulet in mundgerechte Stücke schneiden, auf einen keramischen Teller legen und mit einem Küchenbrenner abflämmen, um das Aroma zu verstärken.", "variants": [{"label": "Backofen", "text": "Statt mit dem Küchenbrenner die Stücke im Backofen unter dem Grill kurz knusprig überbacken."}]},
+    {"text": "Das Poulet anrichten, mit der Sauce beträufeln und sofort servieren. Dazu passt Reis oder ein grüner Salat.", "variants": []}
+  ],
+  "notes": [
+    "Mit Haut (japanische Art): Die Pouletschenkel mit Haut zuerst mit der Hautseite nach unten in die heisse Pfanne legen, sonst gleich wie oben beschrieben.",
+    "Aufbewahrung: im Kühlschrank bis 3 Tage, im Gefrierfach bis 1 Monat."
+  ]
+}
+```
