@@ -43,15 +43,15 @@ async def main():
         check('Mehr: Route more', await ev("state.view") == 'more')
         groups = await ev("() => Array.from(document.querySelectorAll('.settings-group')).map(g => [g.querySelector('.settings-group-title').textContent.trim(), Array.from(g.querySelectorAll('.settings-row')).map(r => [r.querySelector('.settings-row-title').textContent.trim(), r.querySelector('.settings-row-summary').textContent.trim()])])")
         # v91.3 (Nutzerwunsch): «Austauschen» und «Rezeptbibliothek» als eine Gruppe «Teilen», kürzere Untertitel
-        want = [['Teilen', [['Freunde', 'Empfangene Rezepte und Kontakte'], ['Meine öffentlichen Rezepte', 'Zum Veröffentlichen anmelden'], ['Mein öffentliches Profil', 'Nicht angemeldet']]],
-                ['Werkzeuge', [['Einheiten umrechnen', 'Gewicht, Volumen, Temperatur'], ['Vorrat', 'Was kann ich damit kochen?']]],
-                ['App', [['Papierkorb', 'Nichts gelöscht'], ['Hilfe & Kontakt', 'Antworten und Unterstützung'], ['Einstellungen', 'Sicherung, Abgleich, Darstellung']]]]
+        # v91.12 (Nutzerwunsch): öffentliches Profil und öffentliche Rezepte in «Mein Konto»; «Mehr» passt ohne Scrollen auf einen Bildschirm
+        want = [['Alltag', [['Freunde', 'Empfangene Rezepte und Kontakte'], ['Vorrat', 'Was kann ich damit kochen?'], ['Einheiten umrechnen', 'Gewicht, Volumen, Temperatur'], ['Papierkorb', 'Nichts gelöscht']]],
+                ['App', [['Hilfe & Kontakt', 'Antworten und Unterstützung'], ['Einstellungen', 'Sicherung, Abgleich, Darstellung']]]]
         # v91.7: «Über Savora» als Fusszeile mit Version
         check('Mehr: Fusszeile «Über Savora · Version» führt zu Über Savora', await ev("() => { const f = document.querySelector('.more-footer'); return !!f && f.textContent.includes('Über Savora') && f.textContent.includes(APP_VERSION) && f.dataset.view === 'settings-about'; }"))
         # v89: oben eine Statuszeile «Daten» (echter Sicherungsstand), v90: dazu «Zuletzt gelöscht», danach die bisherigen Gruppen unverändert
         # v91.11 (Nutzerwunsch): keine Gruppe «Daten» mehr auf «Mehr»; Sicherung und Abgleich nur in den Einstellungen, fehlende Sicherung als Etikett an «Einstellungen»
         check('Mehr: keine Sicherung und kein Abgleich mehr auf «Mehr», Etikett «Sicherung fehlt» an Einstellungen', not any(r[0].startswith('Sicherung') for g in groups for r in g[1]) and await ev("() => { const c = document.querySelector('.settings-row[data-view=\"settings\"] .settings-row-chip'); return !!c && c.textContent.trim() === 'Sicherung fehlt'; }"), str(groups[:1]))
-        check('Mehr: Gruppen Teilen, Werkzeuge, Verwalten mit den Vorgabetexten', groups == want, str(groups))
+        check('Mehr: Gruppen Alltag und App mit den Vorgabetexten', groups == want, str(groups))
         check('Mehr: Seitentitel «Mehr» als h1', await ev("() => document.querySelector('main h1').textContent.trim()") == 'Mehr')
         check('Mehr: keine Farbschema-Auswahl auf der Übersicht, nur der Schnellschalter oben rechts (v91.2, Nutzerwunsch)', await ev("() => !document.querySelector('.theme-opt') && document.querySelectorAll('[data-action=\"set-theme\"]').length === 1 && !!document.querySelector('.page-title-row .theme-quick-toggle')"))
         check('Mehr: Zähler fehlt ohne echte Daten', await ev("() => !document.querySelector('.settings-row-badge')"))

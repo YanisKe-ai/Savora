@@ -5141,3 +5141,20 @@ html:not(#lp) body .fs-foot .fs-actions > button { overflow-wrap: anywhere; }
 .more-page .settings-group-card > .settings-row.settings-row--alert .settings-row-chip { background: var(--tomato); color: var(--on-tomato); }
 [data-theme="dark"] .more-page .settings-group-card > .settings-row .settings-row-mark { opacity: 0.07; }
 @media (prefers-reduced-motion: reduce) { .more-page .settings-group-card > .settings-row { transition: none; } }
+
+/* v91.12: Etikett in Kacheln unter dem Text (passt auch in halbe Kacheln), «Mein Konto» mit Profilkopf und schlichten Zeilen */
+.more-page .settings-group-card > .settings-row .settings-row-chip { position: static; align-self: flex-start; }
+.more-page .settings-group-card > .settings-row:last-child:nth-child(odd) .settings-row-chip { align-self: center; }
+.more-profile--static { cursor: default; margin: 0 0 0.5rem; }
+.more-profile--static:active { transform: none; }
+.kd-sec--links .kd-card { padding: 0 1rem; gap: 0; }
+.kd-sec--links .kd-card > .kd-link:first-child { border-top: 0; }
+
+/* v91.12: kompaktere Kacheln, damit «Mehr» ohne Scrollen auf einen Handy-Bildschirm passt: Symbol und Titel, der Untertitel
+   bleibt für Bildschirmleser; Zustände zeigen Etikett und Zähler. */
+.more-page--compact .settings-group-card > .settings-row { gap: 0.5rem; padding: 0.75rem; }
+.more-page--compact .settings-group-card > .settings-row .settings-row-summary { position: absolute; width: 1px; height: 1px; padding: 0; overflow: hidden; clip-path: inset(50%); white-space: nowrap; border: 0; }
+.more-page .settings-group-card > .settings-row .settings-row-mark { width: 3.5rem; height: 3.5rem; }
+.more-page .settings-group-card > .settings-row .settings-row-text .settings-row-chip { margin-top: 0.25rem; }
+.more-page .settings-group { margin-bottom: 0.75rem; }
+.kd-link--danger .kd-link-title { color: var(--danger); }

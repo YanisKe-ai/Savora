@@ -3,6 +3,7 @@
 Format: neueste Version oben. `VERSION` und `SW_VERSION` in `sw.js` werden bei jeder Änderung gemeinsam erhöht.
 
 ## Unveröffentlicht (Branch dev)
+- 0.91.12 (SW v127-konto): **«Mehr» auf einen Blick, «Mein Konto» aufgeräumt.** «Mein öffentliches Profil» und «Meine öffentlichen Rezepte» stehen jetzt in «Mein Konto» (Profilkarte oben auf «Mehr»). «Mehr» hat zwei Gruppen (Alltag, App) mit kompakten Kacheln und passt auf dem Handy ohne Scrollen auf einen Bildschirm. «Mein Konto»: oben dein Profil, dann «Öffentlich in der Bibliothek», «Für Freunde», «Konto» (Passwort, Abmelden) und «Konto löschen» als schlichte Zeilen mit kurzen Texten.
 - 0.91.11 (SW v126-ohnedoppelt): **Nichts mehr doppelt.** Sicherung und Geräteabgleich gibt es nur noch in den Einstellungen (Gruppe «Daten»), «Mein Konto» öffnet die Profilkarte oben auf «Mehr». Fehlt die Sicherung, zeigt die Kachel «Einstellungen» auf «Mehr» das Etikett «Sicherung fehlt». Der Papierkorb steht auf «Mehr» bei «App».
 - 0.91.10 (SW v125-einstellungen): **Einstellungen als Kacheln.** Die Einstellungs-Übersicht hat denselben Kachel-Stil wie «Mehr». Hinweise im Titelblatt-Editor und die Fehlerübersicht beim Veröffentlichen haben einen ruhigen Rahmen statt eines dicken farbigen Streifens links. Markenregeln: Ausnahme für die farbigen Symbol-Scheiben festgehalten (PRODUCT.md).
 - 0.91.9 (SW v124-ruhig): **Kacheln ruhiger.** Die Kacheln auf «Mehr» sind wieder neutral wie die übrigen Karten, nur die Symbol-Scheibe oben links trägt die Gruppenfarbe. Fehlt die Sicherung, sind Scheibe und Etikett tomatenrot.

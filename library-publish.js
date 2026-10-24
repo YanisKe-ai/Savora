@@ -1113,7 +1113,7 @@ function lpModalError(msg) {
 }
 
 /* ---------- Zeilen für «Mehr» ---------- */
-function libMoreRowsHtml() {
+function libMoreRowsHtml(asKonto) {
   lpSync();
   const signed = lpSignedIn();
   if (signed && libPub.mine.state === 'idle') setTimeout(() => lpLoadMine(), 0);
@@ -1131,6 +1131,11 @@ function libMoreRowsHtml() {
   if (!signed) profSum = 'Nicht angemeldet';
   else if (prof) profSum = prof.display_name || 'Eingerichtet';
   else if (prof === undefined) profSum = libPub.prof.state === 'error' ? 'Zurzeit nicht abrufbar' : 'Wird geladen …';
+  if (asKonto && typeof kdLinkRow === 'function') {   // v91.12: in «Mein Konto» als schlichte Zeilen
+    return kdLinkRow('lib-pubprofile', 'Mein öffentliches Profil', `Sichtbar für alle · ${profSum}`)
+      + kdLinkRow('lib-mine', 'Meine öffentlichen Rezepte', mineSum)
+      + (signed && lpModAllowed() ? kdLinkRow('lib-mod', 'Moderation', 'Meldungen prüfen') : '');
+  }
   const rows = [
     settingsRow({ icon: LP_ICONS.globe, title: 'Meine öffentlichen Rezepte', summary: mineSum, view: 'lib-mine' }),
     settingsRow({ icon: LP_ICONS.person, title: 'Mein öffentliches Profil', summary: profSum, view: 'lib-pubprofile' }),

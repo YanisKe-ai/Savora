@@ -366,8 +366,8 @@ async def main():
             pm = await new_page(ctxM); await start(pm)
             await login(pm, 'moderator@example.test')
             check('Moderator: savora_mod_is true', await ev(pm, "libModCheck()") is True)
-            await goto_view(pm, 'more')
-            check('UI Moderator: «Moderation» unter Mehr', await has_text(pm, 'Moderation'))
+            await goto_view(pm, 'settings-account')   # v91.12: Bibliothek-Zeilen (auch Moderation) stehen in «Mein Konto»
+            check('UI Moderator: «Moderation» unter Mein Konto', await has_text(pm, 'Moderation'))
             await goto_view(pm, 'lib-mod'); await ev(pm, "libModLoad('open')"); await wait_js(pm, "lib.mod.status === 'ready'")
             check('Moderator laedt offene Meldungen (ohne Melder-ID)', await ev(pm, "lib.mod.reports.length") == 1 and B not in json.dumps(await ev(pm, "lib.mod.reports")))
             check('UI Moderator: Meldung mit Titel sichtbar', await has_text(pm, 'Ohne Foto'))
