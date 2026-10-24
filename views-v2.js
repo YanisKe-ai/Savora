@@ -356,9 +356,10 @@ function recipeCard(r, phone) {
     ${favButton(r, 'rcard-fav')}
   </article>`;
   }
-  return `<article class="rcard ${photo ? '' : 'rcard--text'}${hvPickedCls(r)}" data-flip-id="${escapeAttr(r.id)}">
+  // v91.15: ohne Foto dieselbe Kartenform wie mit Foto, Anfangsbuchstabe als Bild (wie auf dem Handy)
+  return `<article class="rcard ${photo ? '' : 'rcard--initial'}${hvPickedCls(r)}" data-flip-id="${escapeAttr(r.id)}">
     <button type="button" class="rcard-main" ${hvMainAttrs(r, title)}>${hvPickMark(r)}
-      ${photo ? recipeImageHtml(r, 'rcard-img', 'thumb') : ''}
+      ${photo ? recipeImageHtml(r, 'rcard-img', 'thumb') : recipeInitialHtml(r, 'rcard-img rcard-ph')}
       <span class="rcard-body">
         <span class="rcard-title">${titleHl}</span>${searchIngredientHitHtml(r, state.query)}
         <span class="rcard-meta">${escapeHtml(recipeMetaLine(r, false))}</span>
@@ -413,15 +414,26 @@ function emptyState() {
   </div>`;
 }
 // Zeile "Heute geplant": erscheint nur, wenn fuer heute wirklich etwas im Wochenplan steht.
+/* v91.15: als Karte mit Bild (oder Anfangsbuchstabe), Titel und Zeit; mehrere Einträge nebeneinander zum Wischen */
 function todayPlannedHtml() {
   const items = plannedItemsFor(fmtDateKey(new Date()));
   if (!items.length) return '';
   const label = (e) => {
     if (isNoteEntry(e)) return `<span class="today-note">${escapeHtml(e.text)}</span>`;
     const r = state.recipes.find(x => x.id === e.recipeId);
-    return `<button type="button" class="today-link" data-action="open-recipe" data-id="${escapeAttr(r.id)}">${escapeHtml(r.title || 'Ohne Titel')}</button>`;
+    if (!r) return '';
+    const img = hasPhoto(r) ? recipeImageHtml(r, 'today-thumb', 'thumb') : recipeInitialHtml(r, 'today-thumb today-thumb--ph');
+    const time = timeInfo(r).cardText;
+    return `<button type="button" class="today-link today-card" data-action="open-recipe" data-id="${escapeAttr(r.id)}">${img}<span class="today-text"><span class="today-kicker">Heute</span><span class="today-title">${escapeHtml(r.title || 'Ohne Titel')}</span>${time ? `<span class="today-meta">${ICONS.clock}${escapeHtml(time)}</span>` : ''}</span><span class="today-go" aria-hidden="true">${ICONS.chevronRight}</span></button>`;
   };
-  return `<section class="today-planned" aria-label="Heute geplant"><span class="today-label">Heute geplant</span>${items.map(label).join('')}</section>`;
+  return `<section class="today-planned" aria-label="Heute geplant"><span class="today-label sr-only">Heute geplant</span><div class="today-cards">${items.map(label).join('')}</div></section>`;
+}
+/* v91.15: Favoriten als Karussell zum Seitwärtswischen (nur ohne Suche, Filter und Auswahl, in «Alle Rezepte») */
+function favRailHtml() {
+  const favs = state.recipes.filter(r => r && r.favorite).sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0)).slice(0, 12);
+  if (!favs.length) return '';
+  const card = (r, i) => `<li class="fav-rail-item" style="--i:${Math.min(i, 8)}"><button type="button" class="fav-rail-card" data-action="open-recipe" data-id="${escapeAttr(r.id)}">${hasPhoto(r) ? recipeImageHtml(r, 'fav-rail-img', 'thumb') : recipeInitialHtml(r, 'fav-rail-img fav-rail-ph')}<span class="fav-rail-title">${escapeHtml(r.title || 'Ohne Titel')}</span></button></li>`;
+  return `<section class="fav-rail" aria-labelledby="fav-rail-h"><h2 class="fav-rail-h" id="fav-rail-h">Favoriten <span class="fav-rail-count">${favs.length}</span></h2><ul class="fav-rail-list">${favs.map(card).join('')}</ul></section>`;
 }
 /* Ansicht Liste/Raster: gleicher Speicherort wie bisher (savora-home-layout). Handy: ohne gespeicherte Wahl bleibt es die Liste. */
 function layoutToggleHtml(layout, cls) {
@@ -753,6 +765,7 @@ function homeView() {
         <span class="nudge-ico" aria-hidden="true">${ICONS.shield || ICONS.info}</span>
         <p class="nudge-text">${nb.never ? 'Noch keine Sicherung' : 'Letzte Sicherung vor ' + nb.days + ' Tagen'}</p>
         <div class="nudge-actions"><button class="text-btn" data-action="goto-view" data-view="settings-backup">Sichern</button><button class="icon-btn nudge-close" data-action="backup-nudge-dismiss" aria-label="Später erinnern">${ICONS.x}</button></div></div>` : ''; })()}
+      ${!hasQuery && !selecting && scope === 'all' && !filterCount ? favRailHtml() : ''}
       <div class="home-add-sentinel" aria-hidden="true"></div>
       ${content}
       ${selecting && !phone ? hvSelectBarHtml(list, scope) : ''}
