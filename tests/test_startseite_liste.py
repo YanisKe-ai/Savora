@@ -181,10 +181,11 @@ async def main():
         check('Browser-Zurueck aus einer Mehr-Unterseite fuehrt zu «Mehr» und nicht aus der App', await ev("state.view") == 'settings' and (await ev(NAV_JS))['active'] == ['Mehr'], await ev("state.view"))
         # ---------- D. Rezept hinzufuegen ----------
         await ev(STATE_RESET); await page.wait_for_timeout(250)
+        await ev("() => window.scrollTo(0, document.documentElement.scrollHeight)"); await page.wait_for_timeout(150)   # v91.15: mit «Heute» und Favoriten oben: am Seitenende geprüft
         ab = await ev("""() => { const a = document.querySelector('.home-add-btn').getBoundingClientRect(); const n = document.querySelector('.bottom-nav').getBoundingClientRect(); const l = document.querySelector('.rrow--phone:last-child').getBoundingClientRect();
           return { aT: a.top, aB: a.bottom, nT: n.top, h: a.height, w: a.width, W: innerWidth, lB: l.bottom, name: document.querySelector('.home-add-btn').innerText.trim(), pos: getComputedStyle(document.querySelector('.home-add-bar')).position } }""")
         check('Knopf «Rezept hinzufügen» liegt ueber der unteren Leiste, mindestens 44 px hoch, breit', ab['aB'] <= ab['nT'] + 0.5 and ab['h'] >= 44 and ab['w'] > ab['W'] * 0.7 and 'Rezept hinzufügen' in ab['name'], str(ab))
-        check('Letztes Listenelement liegt ueber dem Aktionsknopf (3 Rezepte)', ab['lB'] <= ab['aT'] + 0.5, str(ab))
+        check('Letztes Listenelement liegt am Seitenende ueber dem Aktionsknopf (3 Rezepte)', ab['lB'] <= ab['aT'] + 0.5, str(ab))
         await page.click('.home-add-btn'); await page.wait_for_selector('.add-menu-sheet'); await page.wait_for_timeout(300)
         am = await ev("() => ({ opts: Array.from(document.querySelectorAll('.add-menu-option')).map(e => e.querySelector('strong').textContent), focusIn: document.querySelector('.add-menu-sheet').contains(document.activeElement) || document.activeElement === document.querySelector('.add-menu-sheet') })")
         check('Knopf oeffnet die bestehende Auswahl (manuell, Text, ...), Fokus im Dialog', 'Rezept erstellen' in am['opts'] and any('Text' in o for o in am['opts']), str(am))

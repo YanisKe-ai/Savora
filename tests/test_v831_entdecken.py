@@ -15,7 +15,7 @@ DESK_SELS = {'title': '.page-title', 'switch': '.lib-switch', 'search': '.home-h
 LAYOUT = """() => { const W = document.documentElement.clientWidth; const vis = e => { const r = e.getBoundingClientRect(); return r.width > 0 && r.height > 0 && getComputedStyle(e).visibility !== 'hidden'; };
   const small = []; document.querySelectorAll('.home-head button, .home-head input, main button, main select, [role=dialog] .fs-opt').forEach(e => { if (!vis(e) || e.closest('[inert]')) return; const r = e.getBoundingClientRect(); if (r.height < 43.5 || r.width < 43.5) small.push((e.getAttribute('data-action') || e.id || e.className) + ' ' + Math.round(r.width) + 'x' + Math.round(r.height)); });
   return { hscroll: document.documentElement.scrollWidth > W + 1, small: [...new Set(small)].slice(0, 6) }; }"""
-HOME = "() => { try { localStorage.setItem(BACKUP_NUDGE_KEY, String(Date.now() + 1e10)); } catch (e) {} state.modal = null; state.searchOpen = false; state.query = ''; state.view = 'home'; render(); window.scrollTo(0, 0); }"
+HOME = "() => { try { localStorage.setItem(BACKUP_NUDGE_KEY, String(Date.now() + 1e10)); } catch (e) {} state.recipes.forEach(r => { r.favorite = false; }); state.modal = null; state.searchOpen = false; state.query = ''; state.view = 'home'; render(); window.scrollTo(0, 0); }"
 
 def seed():
     M.lib_reset()

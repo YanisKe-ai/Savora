@@ -86,7 +86,9 @@ async def show(page, js, selector):
 
 
 OVERFLOW_JS = """() => { const W = document.documentElement.clientWidth; const out = [];
-  document.querySelectorAll('body *').forEach(e => { const r = e.getBoundingClientRect(); if (r.width > 0 && r.right > W + 0.5 && getComputedStyle(e).position !== 'fixed') out.push((e.tagName + '.' + String(e.className).replace(/\\s+/g, '.') + ' right=' + Math.round(r.right) + ' w=' + Math.round(r.width) + ' cw=' + W)); });
+  // v91.15: Inhalt in einem seitwärts scrollbaren Band (overflow-x auto/scroll/hidden, das selbst in den Bildschirm passt) ist gewollt, kein Überlauf
+  const inScroller = (e) => { for (let x = e.parentElement; x && x !== document.body; x = x.parentElement) { const ox = getComputedStyle(x).overflowX; if ((ox === 'auto' || ox === 'scroll' || ox === 'hidden') && x.getBoundingClientRect().right <= W + 0.5) return true; } return false; };
+  document.querySelectorAll('body *').forEach(e => { const r = e.getBoundingClientRect(); if (r.width > 0 && r.right > W + 0.5 && getComputedStyle(e).position !== 'fixed' && !inScroller(e)) out.push((e.tagName + '.' + String(e.className).replace(/\\s+/g, '.') + ' right=' + Math.round(r.right) + ' w=' + Math.round(r.width) + ' cw=' + W)); });
   return out.slice(0, 6); }"""
 async def overflow_info(page):
     """Nennt die Elemente, die rechts ueber den Bildschirm ragen (Diagnose fuer Fehler, die nur in der CI-Umgebung auftreten)."""

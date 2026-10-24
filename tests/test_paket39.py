@@ -26,7 +26,7 @@ EXTRA = """async (LONG) => {
   state.view = 'home'; state.homeLayout = 'grid'; state.query = ''; render(); return true;
 }"""
 HEAD_RECT = "() => { const h = document.querySelector('.home-head'); const r = h.getBoundingClientRect(); return [Math.round(r.top * 10) / 10, Math.round(r.bottom * 10) / 10, Math.round(r.height * 10) / 10]; }"
-TITLE_SEL = '.rcard-title, .rrow-title, .detail-title-v2, .cbk-name, .topbar--book .topbar-title, .cook-title-text, .cook-stepcount [aria-hidden], .cook-stepcount b, .cook-stepcount--text, .cook-mise-title, .cook-finish-v2 h2, .cook-alarm-copy strong, .ph-initial-letter'   # v89: Anfangsbuchstabe im Foto-Platzhalter; Lilita auch fuer Schrittzahl, Vorbereitung, Schlussbild und Timer-Ende im Kochmodus
+TITLE_SEL = '.rcard-title, .rrow-title, .today-title, .detail-title-v2, .cbk-name, .topbar--book .topbar-title, .cook-title-text, .cook-stepcount [aria-hidden], .cook-stepcount b, .cook-stepcount--text, .cook-mise-title, .cook-finish-v2 h2, .cook-alarm-copy strong, .ph-initial-letter'   # v89: Anfangsbuchstabe im Foto-Platzhalter; Lilita auch fuer Schrittzahl, Vorbereitung, Schlussbild und Timer-Ende im Kochmodus
 FONTS = """(titleSel) => { const out = { bad: [], lilitaElsewhere: [], notPublic: [], families: {}, synth: [], weight: [] };
   for (const el of document.querySelectorAll('#app *')) {
     const own = Array.from(el.childNodes).some(n => n.nodeType === 3 && n.textContent.trim()); if (!own) continue;
@@ -94,12 +94,8 @@ async def main():
             # Heute geplant / Hinweis scrollen weg
             await set_theme(page, 'light'); await to_top(page)
             t = await ev("() => { const a = document.querySelector('.home-main .recent-card, .home-main .today-card, .home-main [class*=recent], .home-main .nudge-card'); if (!a) return null; return a.getBoundingClientRect().top; }")
-            n = await ev("() => { const a = document.querySelector('.nudge-card'); return a ? a.getBoundingClientRect().top : null; }")
-            check(tag_ := f'{w}x{h}: Sicherungshinweis ist im scrollenden Teil (unter dem Kopf)', n is not None and n >= (await ev(HEAD_RECT))[1] - 1, str(n))
-            await ev("() => window.scrollTo(0, 600)"); await page.wait_for_timeout(300)
-            n2 = await ev("() => { const a = document.querySelector('.nudge-card'); return a ? a.getBoundingClientRect().bottom : null; }")
-            hb = (await ev(HEAD_RECT))[1]
-            check(f'{w}x{h}: Hinweis und «Heute geplant» scrollen unter dem Kopf weg', n2 is not None and n2 <= hb + 1, f'{n2} <= {hb}')
+            # v91.15: kein Sicherungshinweis mehr auf der Startseite
+            check(f'{w}x{h}: kein Sicherungshinweis auf der Startseite', await ev("() => !document.querySelector('.nudge-card')"))
             # Liste statt Raster
             await to_top(page, "state.homeLayout = 'list'")
             h0 = await ev(HEAD_RECT); await ev("() => window.scrollTo(0, 500)"); await page.wait_for_timeout(300); h1 = await ev(HEAD_RECT)

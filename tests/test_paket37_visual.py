@@ -115,10 +115,10 @@ async def main():
                 check(tag + 'Startseite: erstes Rezept beginnt frueh', home['firstRecipe'] < (520 if w < 600 else 480), str(home['firstRecipe']))
                 if w >= 768:
                     # Rezept ohne Foto: kein Buchstaben-Platzhalter, keine leere Bildflaeche
-                    cards = await page.evaluate("""() => { const t = Array.from(document.querySelectorAll('.rcard--text')); const ph = Array.from(document.querySelectorAll('.rcard')).filter(c => c.classList.contains('rcard--text')); const photo = Array.from(document.querySelectorAll('.rcard:not(.rcard--text)'));
-                        return { text: t.length, imgInText: t.some(c => c.querySelector('img, .placeholder, .ph-letter')), letters: document.querySelectorAll('.ph-letter').length,
+                    cards = await page.evaluate("""() => { const t = Array.from(document.querySelectorAll('.rcard--initial')); const ph = Array.from(document.querySelectorAll('.rcard')).filter(c => c.classList.contains('rcard--initial')); const photo = Array.from(document.querySelectorAll('.rcard:not(.rcard--initial)'));
+                        return { text: t.length, imgInText: t.some(c => c.querySelector('.rcard-ph .ph-initial-letter')), letters: document.querySelectorAll('.ph-letter').length,
                           hText: t.length ? Math.round(t[0].getBoundingClientRect().height) : 0, hPhoto: photo.length ? Math.round(photo[0].getBoundingClientRect().height) : 0, fam: t.length ? getComputedStyle(t[0].querySelector('.rcard-title')).fontFamily.split(',')[0] : '' }; }""")
-                    check(tag + 'Rezept ohne Foto (Raster): typografische Karte ohne Bild und ohne Buchstaben', cards['text'] >= 1 and not cards['imgInText'] and cards['letters'] == 0 and 'Lilita One' in cards['fam'], str(cards))
+                    check(tag + 'Rezept ohne Foto (Raster, v91.15): gleiche Kartenform mit Anfangsbuchstabe als Bild', cards['text'] >= 1 and cards['imgInText'] and 'Lilita One' in cards['fam'], str(cards))
                     check(tag + 'Rezept ohne Foto (Raster): etwa so hoch wie eine Foto-Karte', cards['hPhoto'] > 0 and abs(cards['hText'] - cards['hPhoto']) <= 0.2 * cards['hPhoto'] + 8, str(cards))
                     await show_view("state.view='home';state.homeLayout='list'")
                     rows = await page.evaluate("() => { const t = Array.from(document.querySelectorAll('.rrow--text')); return { n: t.length, img: t.some(c => c.querySelector('img, .placeholder, .ph-letter')), h: t.length ? Math.round(t[0].getBoundingClientRect().height) : 0 }; }")

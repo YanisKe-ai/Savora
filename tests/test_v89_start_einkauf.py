@@ -41,10 +41,9 @@ async def main():
         # ---------- Startseite iPhone SE ----------
         h = await ev("""() => { const r = (s) => { const e = document.querySelector(s); return e ? e.getBoundingClientRect() : null; };
           const add = r('.home-add-btn'); const rows = Array.from(document.querySelectorAll('.rrow--phone')).map(e => e.getBoundingClientRect());
-          return { nudge: r('.nudge-card') && r('.nudge-card').height, info: r('.result-row--phone .result-info').height, tools: r('.result-row--phone .result-tools').top, infoTop: r('.result-row--phone .result-info').top,
-            visible: rows.filter(x => x.top < add.top - 40).length, today: r('.today-planned') && r('.today-planned').height,
-            close: document.querySelector('.nudge-card [data-action=backup-nudge-dismiss]').getAttribute('aria-label') }; }""")
-        check('Sicherungshinweis ist eine Zeile (höchstens 48 px) mit Schliessen «Später erinnern»', h['nudge'] is not None and h['nudge'] <= 48 and h['close'] == 'Später erinnern', str(h))
+          return { nudge: !!document.querySelector('.nudge-card'), info: r('.result-row--phone .result-info').height, tools: r('.result-row--phone .result-tools').top, infoTop: r('.result-row--phone .result-info').top,
+            visible: rows.filter(x => x.top < add.top - 40).length, today: r('.today-planned') && r('.today-planned').height }; }""")
+        check('Kein Sicherungshinweis auf der Startseite (v91.15, Nutzerwunsch; steht auf «Mehr»)', not h['nudge'], str(h))
         check('Anzahl, Sortierung, Auswählen, Ansicht und Filter kompakt (eine Zeile; auf 375 px mit Linux-Schrift höchstens zwei, mind. 2 Rezepte sichtbar)', h['info'] <= 48 or (h['info'] <= 68 and h['visible'] >= 2), str(h))
         check('«Heute geplant» in einer Zeile', h['today'] is not None and h['today'] <= 48, str(h))
         check('375×667: mindestens 2 Rezepte sichtbar über «Rezept hinzufügen»', h['visible'] >= 2, str(h))
@@ -64,10 +63,10 @@ async def main():
         # Suche blendet «Heute geplant» und Sicherungshinweis aus
         await page.click('#searchBtn'); await page.wait_for_selector('#searchInput')
         await page.fill('#searchInput', 'TEST'); await page.wait_for_timeout(500)
-        s = await ev("() => ({ today: !!document.querySelector('.today-planned'), nudge: !!document.querySelector('.nudge-card'), rows: document.querySelectorAll('.rrow--phone').length })")
-        check('Aktive Suche: «Heute geplant» und Sicherungshinweis ausgeblendet, Treffer da', not s['today'] and not s['nudge'] and s['rows'] > 0, str(s))
+        s = await ev("() => ({ today: !!document.querySelector('.today-planned'), rows: document.querySelectorAll('.rrow--phone').length })")
+        check('Aktive Suche: «Heute geplant» ausgeblendet, Treffer da', not s['today'] and s['rows'] > 0, str(s))
         await ev("() => { state.query = ''; state.searchOpen = false; render(); }"); await page.wait_for_timeout(200)
-        check('Suche beendet: beide wieder sichtbar', await ev("() => !!document.querySelector('.today-planned') && !!document.querySelector('.nudge-card')"))
+        check('Suche beendet: «Heute geplant» wieder sichtbar', await ev("() => !!document.querySelector('.today-planned')"))
 
         # ---------- Untere Navigation bei 200 % ----------
         await ev("document.documentElement.style.fontSize = '200%'"); await page.wait_for_timeout(250)

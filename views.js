@@ -365,6 +365,11 @@ function moreBackupChip(short) {
   const signed = typeof cloudSignedIn === 'function' && cloudSignedIn();
   if (signed && typeof cloud !== 'undefined' && cloud && cloud.lastError) return { text: short ? 'Fehler' : 'Abgleich-Fehler', warn: true };
   if (!signed && !state.lastBackupAt) return { text: short ? 'Fehlt' : 'Sicherung fehlt', warn: true };
+  // v91.15: Erinnerung von der Startseite hierher: letzte Datei-Sicherung älter als 14 Tage
+  if (!signed && state.lastBackupAt) {
+    const days = Math.floor((Date.now() - new Date(state.lastBackupAt).getTime()) / 86400000);
+    if (days >= 14) return { text: short ? 'Alt' : 'Sicherung alt', warn: true };
+  }
   return null;
 }
 function moreDataRowHtml() {

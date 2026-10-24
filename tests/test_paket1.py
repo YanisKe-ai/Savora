@@ -52,13 +52,12 @@ async def main():
         await page.set_viewport_size({'width': 820, 'height': 1180}); await page.wait_for_timeout(600)
         check('Tablet: Startseite mit 4 Rezepten: Rezepte sofort, kein "Zuletzt bearbeitet"', await page.evaluate("document.querySelectorAll('.recent-card').length") == 0 and await page.evaluate("document.querySelectorAll('.rcard').length") == 4)
 
-        # Rezepte ohne Foto: typografische Karte statt Buchstaben-Platzhalter (Tablet)
-        txt = await page.evaluate("Array.from(document.querySelectorAll('.rcard--text')).map(e => (e.querySelector('.rcard-img, .placeholder, .ph-letter') ? 'bild' : 'ok') + ':' + e.querySelector('.rcard-title').textContent.trim())")
-        check('Rezepte ohne Foto: typografische Karte ohne Bildflaeche und Buchstaben', len(txt) >= 2 and all(t.startswith('ok:') for t in txt) and any(t.endswith(':Gemüse-Curry') for t in txt), str(txt))
-        # Dunkelmodus: Titel in der typografischen Karte lesbar (heller als die Flaeche), Tablet
+        # v91.15 (Nutzerwunsch): Rezepte ohne Foto im Raster mit derselben Kartenform wie mit Foto, Anfangsbuchstabe als Bild (Tablet)
+        txt = await page.evaluate("Array.from(document.querySelectorAll('.rcard--initial')).map(e => (e.querySelector('.rcard-ph .ph-initial-letter') ? 'ok' : 'ohne-buchstabe') + ':' + e.querySelector('.rcard-title').textContent.trim())")
+        check('Rezepte ohne Foto: gleiche Kartenform, Anfangsbuchstabe als Bild', len(txt) >= 2 and all(t.startswith('ok:') for t in txt) and any(t.endswith(':Gemüse-Curry') for t in txt), str(txt))
         await page.evaluate("() => { document.documentElement.setAttribute('data-theme','dark'); state.view='home'; render(); }"); await page.wait_for_timeout(400)
-        lum = await page.evaluate("""() => { const e = document.querySelector('.rcard--text .rcard-title'); const c = getComputedStyle(e).color.match(/\\d+/g).map(Number); return c[0]*0.3 + c[1]*0.59 + c[2]*0.11 }""")
-        check('Dunkelmodus: Titel der typografischen Karte hell genug', lum > 150, f'{lum:.0f}')
+        lum = await page.evaluate("""() => { const e = document.querySelector('.rcard--initial .rcard-title'); const c = getComputedStyle(e).color.match(/\\d+/g).map(Number); return c[0]*0.3 + c[1]*0.59 + c[2]*0.11 }""")
+        check('Dunkelmodus: Titel der Karte ohne Foto hell genug', lum > 150, f'{lum:.0f}')
         await page.evaluate("() => { document.documentElement.setAttribute('data-theme','light'); render(); }")
         await page.set_viewport_size({'width': 390, 'height': 844}); await page.wait_for_timeout(500)
 
