@@ -280,7 +280,7 @@ Object.assign(ICONS, {
 });
 
 function settingsRow(opts) {
-  const { icon, title, summary, view, action, danger, badge, nav } = opts;
+  const { icon, title, summary, view, action, danger, badge, nav, chip } = opts;   // v91.7: chip = { text, warn } zeigt einen echten Zustand
   const attr = view ? `data-action="goto-view" data-view="${view}"` : `data-action="${action}"`;
   const showArrow = !!(view || nav);
   return `<button type="button" class="settings-row ${danger ? 'settings-row-danger' : ''}" ${attr}>
@@ -290,6 +290,7 @@ function settingsRow(opts) {
       ${summary ? `<span class="settings-row-summary">${escapeHtml(summary)}</span>` : ''}
     </span>
     ${badge ? `<span class="settings-row-badge">${escapeHtml(badge)}</span>` : ''}
+    ${chip && chip.text ? `<span class="settings-row-chip${chip.warn ? ' settings-row-chip--warn' : ''}">${escapeHtml(chip.text)}</span>` : ''}
     ${showArrow ? `<span class="settings-row-chevron" aria-hidden="true">${ICONS.chevronRight}</span>` : ''}
   </button>`;
 }
@@ -360,7 +361,10 @@ function moreDataSummary() {
 }
 function moreDataRowHtml() {
   const signed = typeof cloudSignedIn === 'function' && cloudSignedIn();
-  return settingsRow({ icon: ICONS.database || ICONS.download, title: signed ? 'Sicherung &amp; Abgleich' : 'Sicherung', summary: moreDataSummary(), view: signed ? 'settings-sync' : 'settings-backup' });
+  // v91.7: Zustand als Etikett: ohne Konto und ohne Datei-Sicherung «Fehlt», bei Abgleichsfehler «Fehler»
+  const syncErr = signed && typeof cloud !== 'undefined' && cloud && cloud.lastError;
+  const chip = syncErr ? { text: 'Fehler', warn: true } : (!signed && !state.lastBackupAt) ? { text: 'Fehlt', warn: true } : null;
+  return settingsRow({ icon: ICONS.database || ICONS.download, title: signed ? 'Sicherung &amp; Abgleich' : 'Sicherung', summary: moreDataSummary(), view: signed ? 'settings-sync' : 'settings-backup', chip });
 }
 /* v90: «Zuletzt gelöscht» mit Anzahl (trash.js); ohne die Datei keine Zeile */
 function moreTrashRowHtml() {
@@ -426,8 +430,8 @@ function moreView() {
       ${settingsGroup('App', [
         settingsRow({ icon: ICONS.settings, title: 'Einstellungen', summary: 'Konto, Daten und Darstellung', view: 'settings' }),
         settingsRow({ icon: ICONS.lifeBuoy, title: 'Hilfe &amp; Kontakt', summary: 'Antworten und Unterstützung', view: 'settings-help' }),
-        settingsRow({ icon: ICONS.info, title: 'Über Savora', summary: 'Version, Datenschutz und Lizenzen', view: 'settings-about' }),
       ].join(''), 'app')}
+      <button type="button" class="more-footer" data-action="goto-view" data-view="settings-about">${ICONS.info} Über Savora · Version ${escapeHtml(typeof APP_VERSION === 'string' ? APP_VERSION : '')}</button>
     </main>
     ${bottomNav()}
     ${pdfExportModal()}

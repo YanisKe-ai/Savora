@@ -59,8 +59,10 @@ async def main():
               return { n: rows.length, cols: xs.size, W: document.documentElement.scrollWidth, iw: innerWidth, out: rows.filter(r => r.getBoundingClientRect().right > innerWidth + 0.5).length,
                 cut: rows.filter(r => { const t = r.querySelector('.settings-row-title'); return t.scrollWidth > t.clientWidth + 1 || t.scrollHeight > t.clientHeight + 1; }).map(r => r.querySelector('.settings-row-title').textContent),
                 h: rows.map(r => r.getBoundingClientRect().height), titles: Array.from(document.querySelectorAll('.more-page .settings-group-title')).map(t => t.textContent.trim()) }; }""")
-            check(f'[{w}] Kacheln zwei nebeneinander, kein seitlicher Überlauf, Titel ganz lesbar, mindestens 44 px hoch', k['n'] == 10 and k['cols'] == 2 and k['W'] <= k['iw'] and not k['out'] and not k['cut'] and min(k['h']) >= 44, str(k))
-            check(f'[{w}] Gruppenüberschriften bleiben für Bildschirmleser', k['titles'] == ['Daten', 'Teilen', 'Werkzeuge', 'App'], str(k['titles']))
+            check(f'[{w}] Kacheln zwei nebeneinander, kein seitlicher Überlauf, Titel ganz lesbar, mindestens 44 px hoch', k['n'] == 9 and k['cols'] == 2 and k['W'] <= k['iw'] and not k['out'] and not k['cut'] and min(k['h']) >= 44, str(k))
+            check(f'[{w}] Gruppenüberschriften sichtbar (v91.7)', k['titles'] == ['Daten', 'Teilen', 'Werkzeuge', 'App'] and await page.evaluate("() => Array.from(document.querySelectorAll('.more-page .settings-group-title')).every(t => t.getBoundingClientRect().height > 10)"), str(k['titles']))
+            ch = await page.evaluate("() => { const c = document.querySelector('.more-page .settings-row-chip'); if (!c) return null; const r = c.getBoundingClientRect(), t = c.closest('.settings-row').getBoundingClientRect(); return { text: c.textContent.trim(), inside: r.right <= t.right + 0.5 && r.top >= t.top - 0.5 }; }")
+            check(f'[{w}] ohne Sicherung: Etikett «Fehlt» oben rechts in der Kachel Sicherung', ch and ch['text'] == 'Fehlt' and ch['inside'], str(ch))
             check(f'[{w}] keine Seitenfehler', not errs, str(errs[:2]))
             if w == 390:
                 await page.evaluate("() => { state.theme = 'light'; applyTheme(); render(); }"); await page.screenshot(path=os.path.join(OUT, 'mehr-hell-390.png'))
