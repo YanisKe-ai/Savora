@@ -428,7 +428,7 @@ function moreProfileCardHtml(opts) {
 function moreView() {
   return `
     ${topbar('Mehr')}
-    <main class="has-tabbar settings-page settings-page--list more-page">
+    <main class="has-tabbar settings-page settings-page--list more-page more-page--compact">
       ${pageTitle('Mehr', themeQuickToggleHtml())}
       ${moreProfileCardHtml()}
       ${settingsGroup('Alltag',   // v91.12: öffentliches Profil und öffentliche Rezepte sind jetzt in «Mein Konto» (Profilkarte oben)
