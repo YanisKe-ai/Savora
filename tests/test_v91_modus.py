@@ -23,7 +23,7 @@ async def main():
               return { n: document.querySelectorAll('.theme-quick-toggle').length, w: a.width, h: a.height, rightGap: Math.abs(document.querySelector('.settings-group-card').getBoundingClientRect().right - a.right), sameRow: Math.abs((a.top + a.bottom) / 2 - (t.top + t.bottom) / 2) < 12, right: a.left > t.right,
                 text: btn.innerText.trim(), label: btn.getAttribute('aria-label'), svg: !!btn.querySelector('svg'), W: document.documentElement.scrollWidth, iw: innerWidth }; }""")
             check(f'[{w}] ein Symbol-Knopf oben rechts neben «Mehr» (bündig mit den Karten), ohne Text, mit Beschriftung für Bildschirmleser', g['n'] == 1 and g['svg'] and not g['text'] and g['sameRow'] and g['right'] and g['rightGap'] <= 2 and g['label'] == 'Dunklen Modus einschalten', str(g))
-            col = await page.evaluate("() => { const c = getComputedStyle(document.querySelector('.theme-quick-toggle')), card = getComputedStyle(document.querySelector('.settings-group-card > .settings-row')); return [c.backgroundColor, card.backgroundColor]; }")
+            col = await page.evaluate("() => { const c = getComputedStyle(document.querySelector('.theme-quick-toggle')), card = getComputedStyle(document.querySelector('.more-profile')); return [c.backgroundColor, card.backgroundColor]; }")
             check(f'[{w}] Knopf im hellen Modus hell (gleiche Fläche wie die Karten)', col[0] == col[1], str(col))
             check(f'[{w}] Knopf mindestens 44 px, kein seitlicher Überlauf', g['w'] >= 44 and g['h'] >= 44 and g['W'] <= g['iw'], str(g))
             await page.click('.theme-quick-toggle')
@@ -42,8 +42,8 @@ async def main():
                 t = await page.evaluate("""() => {
                   const lum = c => { const m = c.match(/[\\d.]+/g).map(Number).slice(0, 3).map(v => { v /= 255; return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4); }); return 0.2126 * m[0] + 0.7152 * m[1] + 0.0722 * m[2]; };
                   const ratio = (a, b) => { const x = lum(a), y = lum(b); return (Math.max(x, y) + 0.05) / (Math.min(x, y) + 0.05); };
-                  return Array.from(document.querySelectorAll('.settings-group--tone')).map(g => { const i = g.querySelector('.settings-row-icon'); const cs = getComputedStyle(i); const r = i.getBoundingClientRect();
-                    return { t: g.querySelector('.settings-group-title').textContent.trim(), bg: cs.backgroundColor, ratio: Math.round(ratio(cs.color, cs.backgroundColor) * 10) / 10, size: r.width }; }); }""")
+                  return Array.from(document.querySelectorAll('.settings-group--tone')).map(g => { const i = g.querySelector('.settings-row:not(.settings-row--alert) .settings-row-icon'); const cs = getComputedStyle(i); const r = i.getBoundingClientRect();
+                    return { t: g.querySelector('.settings-group-title').textContent.trim(), bg: getComputedStyle(i.closest('.settings-row')).backgroundColor, ratio: Math.round(ratio(cs.color, cs.backgroundColor) * 10) / 10, size: r.width }; }); }""")
                 check(f'[{w}/{mode}] vier Gruppen mit eigener Kachelfarbe', len(t) == 4 and len(set(x['bg'] for x in t)) == 4, str(t))
                 check(f'[{w}/{mode}] Symbole auf den Kacheln gut lesbar (Kontrast ab 4,5) und mindestens 32 px', all(x['ratio'] >= 4.5 and x['size'] >= 32 for x in t), str(t))
             pc = await page.evaluate("""() => { const c = document.querySelector('.more-profile'), h1 = document.querySelector('.page-title-row'), g = document.querySelector('.settings-group');
@@ -63,6 +63,10 @@ async def main():
             check(f'[{w}] Gruppenüberschriften sichtbar (v91.7)', k['titles'] == ['Daten', 'Teilen', 'Werkzeuge', 'App'] and await page.evaluate("() => Array.from(document.querySelectorAll('.more-page .settings-group-title')).every(t => t.getBoundingClientRect().height > 10)"), str(k['titles']))
             ch = await page.evaluate("() => { const c = document.querySelector('.more-page .settings-row-chip'); if (!c) return null; const r = c.getBoundingClientRect(), t = c.closest('.settings-row').getBoundingClientRect(); return { text: c.textContent.trim(), inside: r.right <= t.right + 0.5 && r.top >= t.top - 0.5 }; }")
             check(f'[{w}] ohne Sicherung: Etikett «Fehlt» oben rechts in der Kachel Sicherung', ch and ch['text'] == 'Fehlt' and ch['inside'], str(ch))
+            al = await page.evaluate("""() => { const r = document.querySelector('.more-page .settings-row--alert'); if (!r) return null; const cs = getComputedStyle(r), t = getComputedStyle(r.querySelector('.settings-row-title'));
+              const lum = c => { const m = c.match(/[\\d.]+/g).map(Number).slice(0, 3).map(v => { v /= 255; return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4); }); return 0.2126 * m[0] + 0.7152 * m[1] + 0.0722 * m[2]; };
+              const a = lum(cs.backgroundColor), b = lum(t.color); return { bg: cs.backgroundColor, ratio: Math.round((Math.max(a, b) + 0.05) / (Math.min(a, b) + 0.05) * 10) / 10, mark: !!r.querySelector('.settings-row-mark svg') }; }""")
+            check(f'[{w}] v91.8: fehlende Sicherung als tomatenrote Kachel, Text gut lesbar, Muster-Symbol vorhanden', al and al['ratio'] >= 4.5 and al['mark'], str(al))
             check(f'[{w}] keine Seitenfehler', not errs, str(errs[:2]))
             if w == 390:
                 await page.evaluate("() => { state.theme = 'light'; applyTheme(); render(); }"); await page.screenshot(path=os.path.join(OUT, 'mehr-hell-390.png'))
