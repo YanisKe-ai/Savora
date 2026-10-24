@@ -294,8 +294,9 @@ function settingsRow(opts) {
   </button>`;
 }
 
-function settingsGroup(label, rowsHtml) {
-  return `<div class="settings-group">
+/* v91.5: tone ('daten' | 'teilen' | 'werkzeuge' | 'app') färbt die Symbol-Kacheln der Gruppe (nur «Mehr» und Einstellungen) */
+function settingsGroup(label, rowsHtml, tone) {
+  return `<div class="settings-group${tone ? ` settings-group--tone settings-tone-${tone}` : ''}">
     <h2 class="settings-group-title">${label}</h2>
     <div class="settings-group-card">${rowsHtml}</div>
   </div>`;
@@ -376,23 +377,42 @@ function themeQuickToggleHtml() {
   const label = dark ? 'Hellen Modus einschalten' : 'Dunklen Modus einschalten';
   return `<button type="button" class="icon-btn theme-quick-toggle" data-action="set-theme" data-theme-next="${next}" aria-label="${label}" title="${label}">${dark ? ICONS.sun : ICONS.moon}</button>`;
 }
+/* v91.5: Profilkarte oben auf «Mehr»: Profilbild (Vorlage aus dem öffentlichen Profil, sonst Anfangsbuchstabe),
+   Name und Anmeldestatus. Antippen öffnet «Mein Konto». Lädt nichts nach und zeigt nur, was schon bekannt ist. */
+function moreProfileCardHtml() {
+  const signed = typeof cloudSignedIn === 'function' && cloudSignedIn();
+  const email = typeof kdEmail === 'function' ? kdEmail() : '';
+  const pub = typeof lpProfileData === 'function' ? lpProfileData() : null;
+  const friend = (typeof share !== 'undefined' && share && share.profile) ? share.profile : null;
+  const name = (pub && pub.display_name) || (friend && friend.display_name) || (signed && email ? email.split('@')[0] : '') || 'Dein Savora';
+  const avatar = pub && typeof libIsPresetPath === 'function' && libIsPresetPath(pub.avatar_path) && typeof libAvatarPresetSrc === 'function' ? libAvatarPresetSrc(pub.avatar_path) : '';
+  const letter = (String(name).trim().charAt(0) || 'S').toUpperCase();
+  const pic = avatar ? `<img class="more-profile-pic" src="${escapeAttr(avatar)}" alt="" width="56" height="56">` : `<span class="more-profile-pic more-profile-pic--letter" aria-hidden="true">${escapeHtml(letter)}</span>`;
+  const status = signed ? (email ? `Angemeldet · ${email}` : 'Angemeldet') : 'Nicht angemeldet · Antippen zum Anmelden';
+  return `<button type="button" class="more-profile" data-action="goto-view" data-view="settings-account">
+      ${pic}
+      <span class="more-profile-text"><span class="more-profile-name">${escapeHtml(name)}</span><span class="more-profile-status">${escapeHtml(status)}</span></span>
+      <span class="settings-row-chevron" aria-hidden="true">${ICONS.chevronRight}</span>
+    </button>`;
+}
 function moreView() {
   return `
     ${topbar('Mehr')}
     <main class="has-tabbar settings-page settings-page--list">
       ${pageTitle('Mehr', themeQuickToggleHtml())}
-      ${settingsGroup('Daten', moreDataRowHtml() + moreTrashRowHtml())}
+      ${moreProfileCardHtml()}
+      ${settingsGroup('Daten', moreDataRowHtml() + moreTrashRowHtml(), 'daten')}
       ${settingsGroup('Teilen',   // v91.3: «Austauschen» und «Rezeptbibliothek» zusammengelegt
         settingsRow({ icon: ICONS.share, title: 'Freunde', summary: moreFriendsSummary(), view: 'friends', badge: moreFriendsBadge() })
-        + (typeof libMoreRowsHtml === 'function' ? libMoreRowsHtml() : ''))}
+        + (typeof libMoreRowsHtml === 'function' ? libMoreRowsHtml() : ''), 'teilen')}
       ${settingsGroup('Werkzeuge',
         settingsRow({ icon: ICONS.scale, title: 'Einheiten umrechnen', summary: 'Gewicht, Volumen, Temperatur', view: 'unitconverter' })
-        + (typeof pantryView === 'function' ? settingsRow({ icon: ICONS.jar || ICONS.cart, title: 'Vorrat', summary: 'Was kann ich damit kochen?', view: 'pantry' }) : ''))}
+        + (typeof pantryView === 'function' ? settingsRow({ icon: ICONS.jar || ICONS.cart, title: 'Vorrat', summary: 'Was kann ich damit kochen?', view: 'pantry' }) : ''), 'werkzeuge')}
       ${settingsGroup('App', [
         settingsRow({ icon: ICONS.settings, title: 'Einstellungen', summary: 'Konto, Daten und Darstellung', view: 'settings' }),
         settingsRow({ icon: ICONS.lifeBuoy, title: 'Hilfe &amp; Kontakt', summary: 'Antworten und Unterstützung', view: 'settings-help' }),
         settingsRow({ icon: ICONS.info, title: 'Über Savora', summary: 'Version, Datenschutz und Lizenzen', view: 'settings-about' }),
-      ].join(''))}
+      ].join(''), 'app')}
     </main>
     ${bottomNav()}
     ${pdfExportModal()}
@@ -436,12 +456,12 @@ function settingsView() {
         settingsRow({ icon: ICONS.user, title: 'Mein Konto', summary: settingsAccountSummary(), view: 'settings-account' }),
         settingsRow({ icon: ICONS.sync, title: 'Geräteabgleich', summary: settingsSyncSummary(), view: 'settings-sync' }),
         settingsRow({ icon: ICONS.download, title: 'Sicherung', summary: settingsBackupSummary(), view: 'settings-backup' }),
-      ].join(''))}
+      ].join(''), 'daten')}
       ${settingsGroup('App anpassen', [
         settingsRow({ icon: ICONS.moon, title: 'Darstellung', summary: settingsThemeLabel(), view: 'settings-display' }),
         settingsRow({ icon: ICONS.pot, title: 'Kochen &amp; Mengen', summary: `${settingsUnitLabel()}, Nährwerte ${state.showNutrition ? 'sichtbar' : 'ausgeblendet'}`, view: 'settings-cooking' }),
         settingsRow({ icon: ICONS.wifi, title: 'Ohne Internet', summary: offline, view: 'settings-offline' }),
-      ].join(''))}`;
+      ].join(''), 'werkzeuge')}`;
   return `
     ${topbar('Einstellungen', { back: true })}
     <main class="has-tabbar settings-page settings-page--list">${body}</main>

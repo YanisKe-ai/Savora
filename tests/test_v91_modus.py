@@ -1,4 +1,5 @@
-"""v91.2: Hell/Dunkel-Schnellschalter oben rechts auf «Mehr» (nur ein Symbol)."""
+"""v91.2: Hell/Dunkel-Schnellschalter oben rechts auf «Mehr» (nur ein Symbol).
+v91.5: farbige Symbol-Kacheln je Gruppe (hell und dunkel, Kontrast) und Profilkarte oben."""
 import asyncio, os, sys
 os.environ.setdefault('SAVORA_TEST_PORT', '8968')
 import os as _os; sys.path.insert(0, _os.path.dirname(_os.path.abspath(__file__)))
@@ -35,6 +36,24 @@ async def main():
             await page.evaluate("() => { state.theme = 'auto'; applyTheme(); render(); }")
             eff = await page.evaluate("() => ({ eff: document.documentElement.getAttribute('data-theme'), next: document.querySelector('.theme-quick-toggle').getAttribute('data-theme-next') })")
             check(f'[{w}] «Wie System»: Knopf schaltet in den jeweils anderen Modus', eff['next'] != eff['eff'], str(eff))
+            for mode in ['light', 'dark']:
+                await page.evaluate(f"() => {{ state.theme = '{mode}'; applyTheme(); state.view = 'more'; render(); }}")
+                t = await page.evaluate("""() => {
+                  const lum = c => { const m = c.match(/[\\d.]+/g).map(Number).slice(0, 3).map(v => { v /= 255; return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4); }); return 0.2126 * m[0] + 0.7152 * m[1] + 0.0722 * m[2]; };
+                  const ratio = (a, b) => { const x = lum(a), y = lum(b); return (Math.max(x, y) + 0.05) / (Math.min(x, y) + 0.05); };
+                  return Array.from(document.querySelectorAll('.settings-group--tone')).map(g => { const i = g.querySelector('.settings-row-icon'); const cs = getComputedStyle(i); const r = i.getBoundingClientRect();
+                    return { t: g.querySelector('.settings-group-title').textContent.trim(), bg: cs.backgroundColor, ratio: Math.round(ratio(cs.color, cs.backgroundColor) * 10) / 10, size: r.width }; }); }""")
+                check(f'[{w}/{mode}] vier Gruppen mit eigener Kachelfarbe', len(t) == 4 and len(set(x['bg'] for x in t)) == 4, str(t))
+                check(f'[{w}/{mode}] Symbole auf den Kacheln gut lesbar (Kontrast ab 4,5) und mindestens 32 px', all(x['ratio'] >= 4.5 and x['size'] >= 32 for x in t), str(t))
+            pc = await page.evaluate("""() => { const c = document.querySelector('.more-profile'), h1 = document.querySelector('.page-title-row'), g = document.querySelector('.settings-group');
+              const r = c.getBoundingClientRect(); return { below: r.top >= h1.getBoundingClientRect().bottom - 1 && r.bottom <= g.getBoundingClientRect().top + 1, h: r.height, name: c.querySelector('.more-profile-name').textContent.trim(), status: c.querySelector('.more-profile-status').textContent.trim(), pic: !!c.querySelector('.more-profile-pic') }; }""")
+            check(f'[{w}] Profilkarte zwischen Titel und erster Gruppe, mit Bild/Buchstabe, Name und Status', pc['below'] and pc['pic'] and pc['name'] and 'angemeldet' in pc['status'] and pc['h'] >= 44, str(pc))
+            await page.evaluate("() => { lib.pubProfile = { data: { display_name: 'Yanis', avatar_path: 'preset:03' } }; render(); }")
+            pc2 = await page.evaluate("() => ({ name: document.querySelector('.more-profile-name').textContent.trim(), src: (document.querySelector('img.more-profile-pic') || {}).getAttribute ? document.querySelector('img.more-profile-pic').getAttribute('src') : '' })")
+            check(f'[{w}] Profilkarte zeigt Name und gewähltes Profilbild', pc2['name'] == 'Yanis' and 'profilbilder/' in (pc2['src'] or ''), str(pc2))
+            await page.click('.more-profile'); await page.wait_for_function("state.view === 'settings-account'", timeout=5000)
+            check(f'[{w}] Profilkarte öffnet «Mein Konto»', True)
+            await page.evaluate("() => { lib.pubProfile = { data: undefined }; state.theme = 'light'; applyTheme(); state.view = 'more'; render(); }")
             check(f'[{w}] keine Seitenfehler', not errs, str(errs[:2]))
             if w == 390:
                 await page.evaluate("() => { state.theme = 'light'; applyTheme(); render(); }"); await page.screenshot(path=os.path.join(OUT, 'mehr-hell-390.png'))
