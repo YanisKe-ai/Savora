@@ -360,6 +360,13 @@ function moreDataSummary() {
   if (typeof navigator !== 'undefined' && navigator.onLine === false) parts.push('Gerade offline');
   return parts.join(' · ');
 }
+/* v91.11: Zustand der Sicherung als Etikett (für «Einstellungen» auf «Mehr» und «Sicherung» in den Einstellungen) */
+function moreBackupChip(short) {
+  const signed = typeof cloudSignedIn === 'function' && cloudSignedIn();
+  if (signed && typeof cloud !== 'undefined' && cloud && cloud.lastError) return { text: short ? 'Fehler' : 'Abgleich-Fehler', warn: true };
+  if (!signed && !state.lastBackupAt) return { text: short ? 'Fehlt' : 'Sicherung fehlt', warn: true };
+  return null;
+}
 function moreDataRowHtml() {
   const signed = typeof cloudSignedIn === 'function' && cloudSignedIn();
   // v91.7: Zustand als Etikett: ohne Konto und ohne Datei-Sicherung «Fehlt», bei Abgleichsfehler «Fehler»
@@ -421,7 +428,6 @@ function moreView() {
     <main class="has-tabbar settings-page settings-page--list more-page">
       ${pageTitle('Mehr', themeQuickToggleHtml())}
       ${moreProfileCardHtml()}
-      ${settingsGroup('Daten', moreDataRowHtml() + moreTrashRowHtml(), 'daten')}
       ${settingsGroup('Teilen',   // v91.3: «Austauschen» und «Rezeptbibliothek» zusammengelegt
         settingsRow({ icon: ICONS.share, title: 'Freunde', summary: moreFriendsSummary(), view: 'friends', badge: moreFriendsBadge() })
         + (typeof libMoreRowsHtml === 'function' ? libMoreRowsHtml() : ''), 'teilen')}
@@ -429,8 +435,11 @@ function moreView() {
         settingsRow({ icon: ICONS.scale, title: 'Einheiten umrechnen', summary: 'Gewicht, Volumen, Temperatur', view: 'unitconverter' })
         + (typeof pantryView === 'function' ? settingsRow({ icon: ICONS.jar || ICONS.cart, title: 'Vorrat', summary: 'Was kann ich damit kochen?', view: 'pantry' }) : ''), 'werkzeuge')}
       ${settingsGroup('App', [
-        settingsRow({ icon: ICONS.settings, title: 'Einstellungen', summary: 'Konto, Daten und Darstellung', view: 'settings' }),
+        // v91.11: Sicherung und Abgleich nur noch in den Einstellungen; fehlt die Sicherung, zeigt die Kachel das Etikett
+        // Einstellungen zuletzt: als breite Kachel hat das Etikett «Sicherung fehlt» Platz
+        moreTrashRowHtml(),
         settingsRow({ icon: ICONS.lifeBuoy, title: 'Hilfe &amp; Kontakt', summary: 'Antworten und Unterstützung', view: 'settings-help' }),
+        settingsRow({ icon: ICONS.settings, title: 'Einstellungen', summary: 'Sicherung, Abgleich, Darstellung', view: 'settings', chip: moreBackupChip() }),
       ].join(''), 'app')}
       <button type="button" class="more-footer" data-action="goto-view" data-view="settings-about">${ICONS.info} Über Savora · Version ${escapeHtml(typeof APP_VERSION === 'string' ? APP_VERSION : '')}</button>
     </main>
@@ -473,10 +482,9 @@ function settingsUnitLabel() {
 function settingsView() {
   const offline = (typeof navigator !== 'undefined' && navigator.onLine === false) ? 'Du bist gerade offline' : 'Verfügbarkeit prüfen';
   const body = `
-      ${settingsGroup('Konto &amp; Daten', [
-        settingsRow({ icon: ICONS.user, title: 'Mein Konto', summary: settingsAccountSummary(), view: 'settings-account' }),
+      ${settingsGroup('Daten', [   // v91.11: «Mein Konto» über die Profilkarte auf «Mehr»
+        settingsRow({ icon: ICONS.download, title: 'Sicherung', summary: settingsBackupSummary(), view: 'settings-backup', chip: moreBackupChip(true) }),
         settingsRow({ icon: ICONS.sync, title: 'Geräteabgleich', summary: settingsSyncSummary(), view: 'settings-sync' }),
-        settingsRow({ icon: ICONS.download, title: 'Sicherung', summary: settingsBackupSummary(), view: 'settings-backup' }),
       ].join(''), 'daten')}
       ${settingsGroup('App anpassen', [
         settingsRow({ icon: ICONS.moon, title: 'Darstellung', summary: settingsThemeLabel(), view: 'settings-display' }),

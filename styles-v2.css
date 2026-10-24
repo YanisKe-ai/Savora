@@ -5115,9 +5115,10 @@ html:not(#lp) body .fs-foot .fs-actions > button { overflow-wrap: anywhere; }
 .more-page .settings-group-card > .settings-row .settings-row-badge { position: absolute; top: 0.75rem; right: 0.75rem; }
 .more-page .settings-group-card > .settings-row:last-child:nth-child(odd) { grid-column: 1 / -1; flex-direction: row; align-items: center; }
 .more-page .settings-group-card > .settings-row:last-child:nth-child(odd) .settings-row-chevron { display: flex; }
+.more-page .settings-group-card > .settings-row:last-child:nth-child(odd) .settings-row-chip { position: static; }
 
 /* v91.7: Zustands-Etikett oben rechts in der Kachel, Fusszeile «Über Savora» */
-.settings-row-chip { flex: none; padding: 0.125rem 0.5rem; border-radius: 999px; font-size: 0.75rem; font-weight: 700; line-height: 1.5; background: var(--bg-sunken); color: var(--text-soft); }
+.settings-row-chip { flex: none; padding: 0.125rem 0.5rem; border-radius: 999px; font-size: 0.875rem; font-weight: 700; line-height: 1.5; background: var(--bg-sunken); color: var(--text-soft); }
 .settings-row-chip--warn { background: var(--tone-daten-bg); color: var(--tone-daten-fg); }
 .more-page .settings-group-card > .settings-row .settings-row-chip { position: absolute; top: 0.75rem; right: 0.75rem; }
 .more-page .settings-group-card > .settings-row .settings-row-icon { margin-bottom: 0.25rem; }
@@ -5136,6 +5137,7 @@ html:not(#lp) body .fs-foot .fs-actions > button { overflow-wrap: anywhere; }
 .more-page .settings-group-card > .settings-row .settings-row-summary { color: var(--text-soft); }
 .more-page .settings-group-card > .settings-row:last-child:nth-child(odd) .settings-row-mark { width: 3.5rem; height: 3.5rem; right: 2.5rem; bottom: 0.5rem; }
 .more-page .settings-group-card > .settings-row.settings-row--alert .settings-row-icon { background: var(--tomato); color: var(--on-tomato); }
+.more-page .settings-group-card > .settings-row.settings-row--alert .settings-row-icon svg { color: var(--on-tomato); }
 .more-page .settings-group-card > .settings-row.settings-row--alert .settings-row-chip { background: var(--tomato); color: var(--on-tomato); }
 [data-theme="dark"] .more-page .settings-group-card > .settings-row .settings-row-mark { opacity: 0.07; }
 @media (prefers-reduced-motion: reduce) { .more-page .settings-group-card > .settings-row { transition: none; } }
