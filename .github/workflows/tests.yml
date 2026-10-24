@@ -1,11 +1,14 @@
 name: Tests
 
-# Laeuft bei jedem Push auf jeden Branch und bei jedem Pull Request nach main.
+# Laeuft bei jedem Pull Request nach main und nach dem Zusammenfuehren auf main.
+# Frueher auch bei jedem Push auf jeden Branch: dann lief jeder PR doppelt (push + pull_request = 22 statt 11 Rechner),
+# GitHub stellte die Haelfte in die Warteschlange, und jede Pruefung dauerte deutlich laenger.
 # Die Testreihe ist auf acht GitHub-Rechner verteilt (gleiche Tests, nur parallel, siehe tests/ci_shards.py). Der Job «abdeckung» stellt sicher,
 # dass kein Test verloren geht. Der Auswertungs-Job «tests» ist nur gruen, wenn alle Teile und die Abdeckung gruen sind; sein Name bleibt gleich,
 # damit bestehende Regeln und das automatische Zusammenfuehren weiter greifen.
 on:
   push:
+    branches: [main]
   pull_request:
     branches: [main]
 
