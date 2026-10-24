@@ -4964,10 +4964,6 @@ html:not(#lp) body .fs-foot .fs-actions > button { overflow-wrap: anywhere; }
 }
 .paste-clip-btn { margin-top: 0.5rem; min-height: 2.75rem; }
 .paste-clip-hint:empty { display: none; }
-.paste-link-box { margin: 0 0 1rem; }
-.paste-link-box input[type="url"] { font-size: 1rem; }
-.paste-link-steps { margin: 0.75rem 0 0; padding-left: 1.25rem; color: var(--text-soft); font-size: 0.9375rem; line-height: 1.5; }
-.paste-link-steps a { color: var(--accent); font-weight: 700; }
 
 /* Geräteabgleich: Sprung zu «Sicherung & Wiederherstellung» als eigener Knopf (≥ 44 px) */
 .kd-note-link { margin-top: 0.75rem; min-height: 2.75rem; }

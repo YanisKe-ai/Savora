@@ -123,13 +123,6 @@ function addMenuModal() {
             <span>Bildunterschrift, Nachricht oder kopierter Text</span>
           </span>
         </button>
-        <button type="button" class="add-menu-option" data-action="open-link-import">
-          <span class="add-menu-option-icon">${ICONS.link}</span>
-          <span class="add-menu-option-text">
-            <strong>Aus Link</strong>
-            <span>Link als Quelle merken, Rezepttext selbst einfügen</span>
-          </span>
-        </button>
         ${SavoraNative.canRecognizeText() ? `<button type="button" class="add-menu-option" data-action="open-photo-scan">
           <span class="add-menu-option-icon">${ICONS.camera}</span>
           <span class="add-menu-option-text">
@@ -586,25 +579,9 @@ function settingsAboutView() {
 }
 /* Punkt 12/13: eigener, dedizierter Screen statt Accordion-Textarea in den Settings. Wird ueber
    die FAB (addMenuModal) erreicht, nicht ueber "Mehr". */
-/* v89 B: Vorbefüllung und Link-Quelle des Textimports (state.pasteImport = { text, url, link }), gesetzt von openTextImport()
-   in ui.js. Der Link wird nur als Quelle gespeichert und zum Öffnen angeboten: Savora ruft ihn nie selbst ab. */
+/* v89 B: Vorbefüllung des Textimports (state.pasteImport = { text, url }), gesetzt von openTextImport() in ui.js.
+   0.90.1: Das sichtbare Linkfeld («Aus Link») ist entfernt. Ein geteilter Link wird still als Quelle übernommen, nie abgerufen. */
 function pasteImportState() { return (state.pasteImport && typeof state.pasteImport === 'object') ? state.pasteImport : {}; }
-function pasteImportLinkHtml(pi) {
-  if (!pi.link && !pi.url) return '';
-  const url = String(pi.url || '');
-  const safe = /^https?:\/\/\S+$/i.test(url);
-  return `<div class="paste-link-box">
-      <div class="field field--tight">
-        <label for="pasteUrl">Link zum Rezept</label>
-        <input type="url" id="pasteUrl" inputmode="url" autocomplete="off" autocapitalize="none" spellcheck="false" enterkeyhint="next" placeholder="https://…" value="${escapeHtml(url)}">
-      </div>
-      <ol class="paste-link-steps">
-        <li>Öffne den Link${safe ? ` (<a href="${escapeHtml(url)}" target="_blank" rel="noopener noreferrer">Link öffnen</a>)` : ''}.</li>
-        <li>Text kopieren: Zutaten und Zubereitung markieren und kopieren.</li>
-        <li>Hier einfügen und «Rezept-Entwurf erstellen» tippen. Der Link wird als Quelle gespeichert.</li>
-      </ol>
-    </div>`;
-}
 function pasteImportView() {
   const pi = pasteImportState();
   const body = `
@@ -617,7 +594,6 @@ function pasteImportView() {
           <p class="hint-line">Buchseite, Zettel oder Bildschirm fotografieren. Die Texterkennung läuft auf deinem Gerät, das Foto wird nicht gespeichert.</p>
           <div id="ocrStatus" class="ocr-status" role="status" aria-live="polite"></div>
         </div>` : ''}
-        ${pasteImportLinkHtml(pi)}
         <div class="field field--tight paste-field">
           <label for="pasteText" class="sr-only">Rezepttext</label>
           <textarea id="pasteText" class="paste-import-textarea" placeholder="Rezepttext hier einfügen …">${escapeHtml(pi.text || '')}</textarea>
@@ -652,7 +628,7 @@ Zubereitung:
 Für 4 Personen, 30 Minuten</pre>
     </aside>`;
   return `
-    ${topbar(pi.link ? 'Aus Link importieren' : 'Aus Text importieren', { back: true })}
+    ${topbar('Aus Text importieren', { back: true })}
     <main class="has-tabbar settings-page import-page"><div class="import-layout">${body}${help}</div></main>
   `;
 }
