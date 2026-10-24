@@ -60,7 +60,7 @@ async def run(label, directory):
         await page.evaluate(ROUTE)
         await page.evaluate("() => { state.view = 'pantry'; render(); }")
         await page.wait_for_selector('#pantryInput', timeout=8000)
-        await page.wait_for_selector('.pantry-item', timeout=8000)
+        await page.wait_for_selector('.pantry-item', state='attached', timeout=8000)   # v91.13: «Immer da» eingeklappt
         names = await page.evaluate("() => [...document.querySelectorAll('.pantry-always.is-on')].map(b => b.closest('.pantry-item').querySelector('.pantry-name').textContent)")
         check(f'[{label}] Grundausstattung «Immer da»: Salz, Pfeffer, Wasser, Öl', sorted(names) == sorted(['Salz', 'Pfeffer', 'Wasser', 'Öl']), str(names))
         check(f'[{label}] Leerer Vorrat: Hinweis statt Rezeptliste', 'Trag oben ein' in await page.inner_text('.pantry-main'))
@@ -81,6 +81,8 @@ async def run(label, directory):
         added = await page.evaluate("() => state.shopping.filter(s => s.recipeId === 'b').map(s => s.name).sort()")
         check(f'[{label}] «Fehlendes einkaufen» legt genau Eier und Schnittlauch an', added == ['Eier', 'Schnittlauch'], str(added))
         # Abwaehlen «Immer da»: Salz nicht mehr automatisch da
+        await page.click('.pantry-always-box > summary')   # v91.13: «Immer da» ist eingeklappt
+        await page.wait_for_function("() => document.querySelector('.pantry-always-box').open")
         await page.click('.pantry-item:has(.pantry-name:text-is("Salz")) [data-action="pantry-always"]')
         await page.wait_for_function("() => !pantryVisible().find(x => x.name === 'Salz').always")
         res3 = await page.evaluate("() => pantryMatches().find(m => m.recipe.title === 'Rüeblisuppe')")
