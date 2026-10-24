@@ -136,7 +136,7 @@ async def main():
         check('Mehr: Statuszeile «Daten» mit echtem Sicherungsstand und Sprung', d[0] == 'Daten' and d[1] in ('settings-backup', 'settings-sync') and 'Sicherung' in d[2], str(d))
         await ev("() => { state.view = 'settings-sync'; render(); }"); await page.wait_for_selector('.kd-note-link')
         kh = await ev("() => document.querySelector('.kd-note-link').getBoundingClientRect().height")
-        check('Geräteabgleich: Knopf «Sicherung & Wiederherstellung» mindestens 44 px', kh >= 44, str(kh))
+        check('Geräteabgleich: Knopf «Sicherung» mindestens 44 px', kh >= 44, str(kh))
 
         # ---------- Wochenplan ----------
         await ev("() => { state.view = 'mealplan'; render(); }"); await page.wait_for_selector('.week-nav')

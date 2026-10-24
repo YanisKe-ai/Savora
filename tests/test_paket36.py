@@ -63,7 +63,7 @@ async def main():
         await open_share(px)
         t = await text(px)
         check('Ohne Konto: Freunde-Seite erklaert, dass ein Konto noetig ist', 'Konto' in t and not await px.evaluate("!!document.querySelector('#shareHandle')"), t[:120])
-        check('Ohne Konto: Seitentitel «Freunde & Rezepte», kein «Socialize»', await px.evaluate("document.querySelector('.topbar-title').textContent") == 'Freunde & Rezepte' and 'Socialize' not in await px.evaluate("document.body.innerText"))
+        check('Ohne Konto: Seitentitel «Freunde & Rezepte», kein «Socialize»', await px.evaluate("document.querySelector('.topbar-title').textContent") == 'Freunde' and 'Socialize' not in await px.evaluate("document.body.innerText"))
         check('Ohne Konto: kein Cloud-Verkehr', len(M.LOG) == 0, str(M.LOG[:3]))
         await bX.close()
 

@@ -51,7 +51,7 @@ async def main():
         await page.evaluate("document.querySelector('[data-view=\"settings-about\"]').click()"); await page.wait_for_timeout(300)
         await page.evaluate("document.querySelector('[data-view=\"settings-sources\"]').click()"); await page.wait_for_timeout(300)
         await page.evaluate("document.querySelector('[data-view=\"settings-licenses\"]').click()"); await page.wait_for_timeout(300)
-        check('Navigation Mehr > Über > Datenquellen und Lizenzen > Lizenzen', await page.evaluate("state.view") == 'settings-licenses')
+        check('Navigation Mehr > Über > Quellen & Lizenzen > Lizenzen', await page.evaluate("state.view") == 'settings-licenses')
         await page.evaluate("document.querySelector('[data-action=\"back\"]').click()"); await page.wait_for_timeout(500)
         await page.evaluate("document.querySelector('[data-action=\"back\"]').click()"); await page.wait_for_timeout(500)
         check('Zurück führt zu Über Savora', await page.evaluate("state.view") == 'settings-about')

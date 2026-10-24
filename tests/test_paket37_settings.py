@@ -28,7 +28,7 @@ async def main():
         titles = [g['t'] for g in groups]
         check('Gruppen in Reihenfolge: Konto & Daten, App anpassen', titles == ['Konto & Daten', 'App anpassen'], str(titles))
         rows = [[r['title'] for r in g['rows']] for g in groups]
-        check('Konto & Daten: Mein Konto, Geräteabgleich, Sicherung & Wiederherstellung', rows[0] == ['Mein Konto', 'Geräteabgleich', 'Sicherung & Wiederherstellung'], str(rows[0]))
+        check('Konto & Daten: Mein Konto, Geräteabgleich, Sicherung', rows[0] == ['Mein Konto', 'Geräteabgleich', 'Sicherung'], str(rows[0]))
         check('App anpassen: Darstellung, Kochen & Mengen, Ohne Internet', rows[1] == ['Darstellung', 'Kochen & Mengen', 'Ohne Internet'], str(rows[1]))
         check('Hauptliste hat genau 6 Zeilen', sum(len(r) for r in rows) == 6, str(rows))
         sums = {r['title']: r['sum'] for g in groups for r in g['rows']}
@@ -65,7 +65,7 @@ async def main():
         await go('settings-account')
         check('Mein Konto: Anmeldefelder auf der Kontoseite, kein Sicherungsknopf dort', await ev("!!document.getElementById('cloudEmail') && !document.querySelector('[data-action=export-backup]') && !document.getElementById('kontoRestoreInput')"))
         await go('settings-backup')
-        check('Sicherung: Seitentitel «Sicherung & Wiederherstellung»', 'Sicherung & Wiederherstellung' in await ev("document.querySelector('header, .topbar').innerText"))
+        check('Sicherung: Seitentitel «Sicherung»', 'Sicherung' in await ev("document.querySelector('header, .topbar').innerText"))
         check('Sicherung: Beschreibung', 'Erstellt eine Datei, mit der du deine Daten später wiederherstellen kannst.' in t)
         btns = await ev("Array.from(document.querySelectorAll('[data-action=\"export-backup\"], [data-action=\"konto-import-pick\"]')).map(b => b.textContent.trim())")
         check('Sicherung: Schaltflächen «Sicherung herunterladen» und «Sicherung importieren»', btns == ['Sicherung herunterladen', 'Sicherung importieren'], str(btns))
@@ -108,9 +108,9 @@ async def main():
         # 8 Rechtliches in Über Savora
         await go('settings-about')
         reach = await ev("Array.from(document.querySelectorAll('main [data-view]')).map(b => b.dataset.view)")
-        check('Über Savora: Rechtliches mit Datenschutz, Nutzungsbedingungen, Datenquellen und Lizenzen', reach == ['settings-privacy', 'settings-terms', 'settings-sources'], str(reach))
+        check('Über Savora: Rechtliches mit Datenschutz, Nutzungsbedingungen, Quellen & Lizenzen', reach == ['settings-privacy', 'settings-terms', 'settings-sources'], str(reach))
         rt = await ev("Array.from(document.querySelectorAll('.settings-row-title')).map(r => r.textContent.trim())")
-        check('Über Savora: Zeilen nichts doppelt', rt == ['Datenschutz', 'Nutzungsbedingungen', 'Datenquellen und Lizenzen'], str(rt))
+        check('Über Savora: Zeilen nichts doppelt', rt == ['Datenschutz', 'Nutzungsbedingungen', 'Quellen & Lizenzen'], str(rt))
         check('Über Savora: Überschrift «Rechtliches»', 'rechtliches' in (await main_text()).lower())
         await page.click('[data-view="settings-sources"]'); await page.wait_for_timeout(200)
         check('Datenquellen öffnen sich', 'schweizer nährwertdatenbank' in (await main_text()).lower())

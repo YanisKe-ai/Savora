@@ -738,7 +738,7 @@ function libMineView() {
       }
     }
   }
-  return settingsDetailShell('Veröffentlichungen', `<div class="lp lp--mine">${body}<p class="lp-status" id="lpMineStatus" role="status"></p></div>`) + lpModals();
+  return settingsDetailShell('Meine öffentlichen Rezepte', `<div class="lp lp--mine">${body}<p class="lp-status" id="lpMineStatus" role="status"></p></div>`) + lpModals();
 }
 function lpMineFind(id) { return lpMineItems().find(x => x && x.id === id) || null; }
 function lpOpenFromMine(id) {
@@ -903,7 +903,7 @@ function libPubProfileView() {
     else if (prof === undefined && ps === 'error') body = (libPub.prof.error === 'offline' || lpOffline() ? lpOfflineCard('Dein öffentliches Profil kannst du bearbeiten, sobald du wieder online bist.') : lpErrorCard(libPub.prof.error, 'lib-prof-retry')) + explain;
     else body = lpProfileFormHtml(prof || null) + explain;
   }
-  return settingsDetailShell('Öffentliches Profil', `<div class="lp lp--profile">${body}</div>`) + lpModals();
+  return settingsDetailShell('Mein öffentliches Profil', `<div class="lp lp--profile">${body}</div>`) + lpModals();
 }
 function lpProfileFormHtml(prof) {
   const f = lpFormEnsure();
@@ -954,7 +954,7 @@ function lpProfileFormHtml(prof) {
         <hr class="tl-rule">
         ${count > 0
           ? `<p class="tl-hint tl-hint--flush">Solange Rezepte veröffentlicht sind, kann das öffentliche Profil nicht entfernt werden. Ziehe zuerst deine Veröffentlichungen zurück.</p>
-             <button type="button" class="text-btn" data-action="goto-view" data-view="lib-mine">Meine Veröffentlichungen</button>`
+             <button type="button" class="text-btn" data-action="goto-view" data-view="lib-mine">Meine öffentlichen Rezepte</button>`
           : '<button type="button" class="text-btn lp-danger" data-action="lib-prof-delete">Öffentliches Profil entfernen</button>'}
       </div>
     </section>` : ''}
@@ -1132,8 +1132,8 @@ function libMoreRowsHtml() {
   else if (prof) profSum = prof.display_name || 'Eingerichtet';
   else if (prof === undefined) profSum = libPub.prof.state === 'error' ? 'Zurzeit nicht abrufbar' : 'Wird geladen …';
   const rows = [
-    settingsRow({ icon: LP_ICONS.globe, title: 'Meine Veröffentlichungen', summary: mineSum, view: 'lib-mine' }),
-    settingsRow({ icon: LP_ICONS.person, title: 'Öffentliches Profil', summary: profSum, view: 'lib-pubprofile' }),
+    settingsRow({ icon: LP_ICONS.globe, title: 'Meine öffentlichen Rezepte', summary: mineSum, view: 'lib-mine' }),
+    settingsRow({ icon: LP_ICONS.person, title: 'Mein öffentliches Profil', summary: profSum, view: 'lib-pubprofile' }),
   ];
   if (signed && lpModAllowed()) rows.push(settingsRow({ icon: LP_ICONS.shield, title: 'Moderation', summary: 'Meldungen prüfen', view: 'lib-mod' }));
   return rows.join('');   // views.js legt die Gruppe «Rezeptbibliothek» selbst darum

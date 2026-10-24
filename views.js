@@ -71,7 +71,7 @@ const SETTINGS_SECTIONS = [
   { group: 'Konto &amp; Daten', views: [
     { view: 'settings-account', label: 'Mein Konto', also: [] },
     { view: 'settings-sync', label: 'Geräteabgleich', also: ['settings-data'] },
-    { view: 'settings-backup', label: 'Sicherung &amp; Wiederherstellung', also: [] },
+    { view: 'settings-backup', label: 'Sicherung', also: [] },
   ] },
   { group: 'App anpassen', views: [
     { view: 'settings-display', label: 'Darstellung', also: [] },
@@ -172,7 +172,7 @@ function deleteModal(r) {
   return `<div class="modal-backdrop" data-action="close-modal">
     <div class="modal-sheet" role="dialog" aria-modal="true" aria-labelledby="delete-modal-title" tabindex="-1" data-stop-click>
       <h2 class="modal-title" id="delete-modal-title">Rezept löschen?</h2>
-      <p style="font-size:0.875rem;color:var(--text-muted);">„${escapeHtml(r.title)}“ wird gelöscht. Du findest es 30 Tage lang unter Mehr › Zuletzt gelöscht.</p>
+      <p style="font-size:0.875rem;color:var(--text-muted);">„${escapeHtml(r.title)}“ wird gelöscht. Du findest es 30 Tage lang unter Mehr › Papierkorb.</p>
       ${(() => {
         const pub = typeof libPublicationForRecipe === 'function' ? libPublicationForRecipe(r.id) : null;
         if (!pub || pub.status !== 'published') return '';
@@ -365,7 +365,7 @@ function moreDataRowHtml() {
 function moreTrashRowHtml() {
   if (typeof trashView !== 'function') return '';
   const n = typeof trashCount === 'function' ? trashCount() : 0;
-  return settingsRow({ icon: ICONS.trash || ICONS.x, title: 'Zuletzt gelöscht', summary: n ? `${n} Rezept${n === 1 ? '' : 'e'}, 30 Tage wiederherstellbar` : 'Nichts gelöscht', view: 'trash', badge: n ? String(n) : '' });
+  return settingsRow({ icon: ICONS.trash || ICONS.x, title: 'Papierkorb', summary: n ? `${n} Rezept${n === 1 ? '' : 'e'}, 30 Tage wiederherstellbar` : 'Nichts gelöscht', view: 'trash', badge: n ? String(n) : '' });
 }
 /* v91.2: Schnellschalter Hell/Dunkel oben rechts auf «Mehr»: nur ein Symbol (Mond = dunkel einschalten, Sonne = hell).
    Nutzt dieselbe Aktion wie die Einstellung (set-theme, mit Kreis-Wisch); data-theme-next statt data-theme,
@@ -383,12 +383,12 @@ function moreView() {
       ${pageTitle('Mehr', themeQuickToggleHtml())}
       ${settingsGroup('Daten', moreDataRowHtml() + moreTrashRowHtml())}
       ${settingsGroup('Teilen',   // v91.3: «Austauschen» und «Rezeptbibliothek» zusammengelegt
-        settingsRow({ icon: ICONS.share, title: 'Freunde &amp; Rezepte', summary: moreFriendsSummary(), view: 'friends', badge: moreFriendsBadge() })
+        settingsRow({ icon: ICONS.share, title: 'Freunde', summary: moreFriendsSummary(), view: 'friends', badge: moreFriendsBadge() })
         + (typeof libMoreRowsHtml === 'function' ? libMoreRowsHtml() : ''))}
       ${settingsGroup('Werkzeuge',
         settingsRow({ icon: ICONS.scale, title: 'Einheiten umrechnen', summary: 'Gewicht, Volumen, Temperatur', view: 'unitconverter' })
-        + (typeof pantryView === 'function' ? settingsRow({ icon: ICONS.jar || ICONS.cart, title: 'Vorrat · Was kann ich kochen?', summary: 'Rezepte aus dem, was du hast', view: 'pantry' }) : ''))}
-      ${settingsGroup('Verwalten', [
+        + (typeof pantryView === 'function' ? settingsRow({ icon: ICONS.jar || ICONS.cart, title: 'Vorrat', summary: 'Was kann ich damit kochen?', view: 'pantry' }) : ''))}
+      ${settingsGroup('App', [
         settingsRow({ icon: ICONS.settings, title: 'Einstellungen', summary: 'Konto, Daten und Darstellung', view: 'settings' }),
         settingsRow({ icon: ICONS.lifeBuoy, title: 'Hilfe &amp; Kontakt', summary: 'Antworten und Unterstützung', view: 'settings-help' }),
         settingsRow({ icon: ICONS.info, title: 'Über Savora', summary: 'Version, Datenschutz und Lizenzen', view: 'settings-about' }),
@@ -435,7 +435,7 @@ function settingsView() {
       ${settingsGroup('Konto &amp; Daten', [
         settingsRow({ icon: ICONS.user, title: 'Mein Konto', summary: settingsAccountSummary(), view: 'settings-account' }),
         settingsRow({ icon: ICONS.sync, title: 'Geräteabgleich', summary: settingsSyncSummary(), view: 'settings-sync' }),
-        settingsRow({ icon: ICONS.download, title: 'Sicherung &amp; Wiederherstellung', summary: settingsBackupSummary(), view: 'settings-backup' }),
+        settingsRow({ icon: ICONS.download, title: 'Sicherung', summary: settingsBackupSummary(), view: 'settings-backup' }),
       ].join(''))}
       ${settingsGroup('App anpassen', [
         settingsRow({ icon: ICONS.moon, title: 'Darstellung', summary: settingsThemeLabel(), view: 'settings-display' }),
@@ -553,7 +553,7 @@ function settingsBackupSectionHtml() {
         <button class="ghost-btn" data-action="trigger-restore">${ICONS.upload} Aus Sicherung wiederherstellen</button>
         <input type="file" id="restoreFileInput" accept="application/json" style="display:none;">
         <p class="settings-hint settings-hint--top">${RESTORE_EXPLAIN}</p>
-        <p class="settings-hint">Gedacht für Dateien, die du hier unter „Sicherung speichern“ gespeichert hast. Rezepte von Freunden kommen direkt in Savora an (unter „Freunde &amp; Rezepte“). Ein als PDF weitergegebenes Rezept lässt sich nicht in Savora einspielen.</p>
+        <p class="settings-hint">Gedacht für Dateien, die du hier unter „Sicherung speichern“ gespeichert hast. Rezepte von Freunden kommen direkt in Savora an (unter „Freunde“). Ein als PDF weitergegebenes Rezept lässt sich nicht in Savora einspielen.</p>
         <div id="backupStatus"></div>
       </div>
     </div>${typeof offlineSectionHtml === 'function' ? offlineSectionHtml() : ''}`;
@@ -582,7 +582,7 @@ function settingsTermsView() {
   return settingsDetailShell('Nutzungsbedingungen', legalTermsHtml());
 }
 function settingsSourcesView() {
-  return settingsDetailShell('Datenquellen und Lizenzen', legalSourcesHtml());
+  return settingsDetailShell('Quellen & Lizenzen', legalSourcesHtml());
 }
 function settingsLicensesView() {
   return settingsDetailShell('Lizenzen', legalLicensesHtml());

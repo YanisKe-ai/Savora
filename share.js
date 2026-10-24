@@ -274,7 +274,7 @@ function friendsView() {
   } else if (!body) {
     body = friendsReadyHtml();
   }
-  return settingsDetailShell('Freunde & Rezepte', `<div class="tl fr">${body}</div>`) + shareModals();
+  return settingsDetailShell('Freunde', `<div class="tl fr">${body}</div>`) + shareModals();
 }
 function friendsReadyHtml() {
   const p = share.profile;

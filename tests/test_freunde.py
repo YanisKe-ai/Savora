@@ -120,7 +120,7 @@ async def main():
 
         # 1f alte Routen
         await goto_view(page, 'settings-share')
-        check('Alte Route settings-share zeigt «Freunde & Rezepte»', await ev(page, "document.querySelector('.topbar-title').textContent") == 'Freunde & Rezepte' and await ev(page, "!!document.querySelector('[role=tablist]')"))
+        check('Alte Route settings-share zeigt «Freunde & Rezepte»', await ev(page, "document.querySelector('.topbar-title').textContent") == 'Freunde' and await ev(page, "!!document.querySelector('[role=tablist]')"))
         check('Mehr bleibt aktiv markiert (kein eigener sechster Eintrag)', await ev(page, "isMoreSectionView('friends') && isMoreSectionView('friends-add') && isMoreSectionView('friends-profile')"))
 
         # ---------- 2 Reiter ----------

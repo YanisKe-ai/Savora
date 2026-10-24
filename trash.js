@@ -110,9 +110,9 @@ function trashView() {
       ? `<p class="settings-hint trash-intro">Gelöschte Rezepte bleiben ${TRASH_DAYS} Tage hier, samt Foto. Danach werden sie endgültig gelöscht.</p><ul class="trash-list" aria-label="Zuletzt gelöschte Rezepte">${items.map(trashRowHtml).join('')}</ul>`
       : `<div class="empty-state trash-empty">${ICONS.trash}<h2>Nichts gelöscht</h2><p>Gelöschte Rezepte findest du hier und kannst sie ${TRASH_DAYS} Tage lang zurückholen.</p></div>`;
   return `
-    ${topbar('Zuletzt gelöscht', { back: true })}
+    ${topbar('Papierkorb', { back: true })}
     <main class="has-tabbar settings-page trash-main">
-      ${pageTitle('Zuletzt gelöscht')}
+      ${pageTitle('Papierkorb')}
       ${body}
     </main>
     ${bottomNav()}

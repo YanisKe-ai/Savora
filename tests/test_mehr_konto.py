@@ -1,4 +1,4 @@
-"""Mehr/Einstellungen, Teilauftrag M2: Mein Konto, Geräteabgleich, Sicherung & Wiederherstellung, Ohne Internet (settings-konto.js).
+"""Mehr/Einstellungen, Teilauftrag M2: Mein Konto, Geräteabgleich, Sicherung, Ohne Internet (settings-konto.js).
 Läuft gegen den lokalen Supabase-Nachbau (tests/mock_supabase.py), nie gegen echte Konten.
 
 Router: Der Router (views.js, viewFor) gehört dem Teilauftrag M1. Dieser Test lädt settings-konto.js deshalb selbst nach (add_script_tag,
@@ -136,7 +136,7 @@ async def main():
         check('Konto angemeldet: «Angemeldet» mit E-Mail', 'Angemeldet' in t and 'anna@example.test' in t)
         # v0.83: öffentliches Profil = Rezeptbibliothek (lib-pubprofile), Freunde-Profil getrennt; nicht mehr «nur für Freunde nötig»
         check('Konto angemeldet: «Öffentliches Profil» (lib-pubprofile) und «Profil für Freunde» (friends-profile) getrennt, Einladungscode privat',
-              await page.evaluate("!!document.querySelector('[data-action=goto-view][data-view=friends-profile]') && !!document.querySelector('[data-action=goto-view][data-view=lib-pubprofile]')") and 'Öffentliches Profil' in t and 'Profil für Freunde' in t and 'Einladungscode bleibt privat' in t and 'Nur nötig, wenn du Rezepte mit Freunden' not in t)
+              await page.evaluate("!!document.querySelector('[data-action=goto-view][data-view=friends-profile]') && !!document.querySelector('[data-action=goto-view][data-view=lib-pubprofile]')") and 'Mein öffentliches Profil' in t and 'Profil für Freunde' in t and 'Einladungscode bleibt privat' in t and 'Nur nötig, wenn du Rezepte mit Freunden' not in t)
         check('Konto angemeldet: Löschen ist nachgeordnet (letzter Abschnitt) und Passwortfelder stehen nicht auf der Seite',
               await page.evaluate("document.querySelectorAll('.kd-sec')[document.querySelectorAll('.kd-sec').length - 1].classList.contains('kd-sec--danger') && !document.querySelector('input[type=password]')"))
         check('Konto angemeldet: «Abmelden» erklärt den Umgang mit lokalen Daten', 'bleiben auf diesem Gerät' in t and 'zusammengeführt' in t)
