@@ -46,8 +46,8 @@ function impStepHeader(l) {
   if (importIsStepHeader(l)) return { inline: '' };
   const k = importHeadKey(l);
   const m = /^(zubereitung|anleitung|zubereitungsschritte|directions|instructions|method|preparation|vorbereitung)\s*:\s*(.+)$/i.exec(k);
-  // "Vorbereitung: 15 Minuten" ist eine Zeitangabe, kein Beginn der Zubereitung
-  if (m && /^vorbereitung$/i.test(m[1]) && /^(?:ca\.?\s*|etwa\s+)?\d+(?:[.,]\d+)?\s*(?:h|std\.?|stunden?|min\.?|minuten?)(?:\s*(?:und\s*)?\d+\s*(?:min\.?|minuten?))?\.?$/i.test(m[2].trim())) return null;
+  // "Vorbereitung: 15 Minuten" und "Zubereitung: 25 Minuten" sind Zeitangaben, kein Beginn der Zubereitung
+  if (m && /^(vorbereitung|zubereitung|preparation)$/i.test(m[1]) && impIsDurationText(m[2])) return null;
   if (m) return { inline: m[2].trim() };
   if (/^vorbereitung$/i.test(k) && /:\s*$/.test(importStripEmoji(l))) return { inline: '' };
   return null;
@@ -92,15 +92,27 @@ function importParseYield(text) {
 /* ---------- Zeiten, Schwierigkeit, Quelle ---------- */
 const IMP_TIME_LABELS = [
   [/^(gesamtzeit|gesamtdauer|total time|zeitaufwand|dauert|dauer|zeit)\b/i, 'total'],
-  [/^(zubereitungszeit)\b/i, 'totalOrPrep'],
+  [/^(zubereitungszeit|zubereitungsdauer)\b/i, 'totalOrPrep'],
   [/^(arbeitszeit|aktive zeit|aktiv|vorbereitungszeit|vorbereitung|prep time)\b/i, 'prep'],
-  [/^(ruhezeit|kühlzeit|gehzeit|wartezeit|ziehzeit|rest time|chill time)\b/i, 'rest'],
-  [/^(kochzeit|backzeit|garzeit|bratzeit|cook time)\b/i, 'cook'],
+  [/^(ruhezeit|ruhedauer|kühlzeit|gehzeit|wartezeit|ziehzeit|marinierzeit|einweichzeit|abkühlzeit|rest time|chill time)\b/i, 'rest'],
+  [/^(kochzeit|kochdauer|backzeit|backdauer|garzeit|gardauer|bratzeit|cook time|bake time|baking time)\b/i, 'cook'],
 ];
+// Tätigkeiten als Bezeichnung ("Backen: 35 Minuten", "Ruhen lassen 30 Min."). Gilt nur, wenn danach NUR eine Dauer steht,
+// damit Schritte wie "Backen Sie den Kuchen 35 Minuten" Schritte bleiben.
+const IMP_TIME_VERBS = [
+  [/^(zubereitung|zubereiten|preparation)\b/i, 'totalOrPrep'],
+  [/^(vorbereiten|prep)\b/i, 'prep'],
+  [/^(ruhen lassen|ruhen|kühl stellen|kühlen|gehen lassen|gehen|ziehen lassen|marinieren|einweichen|abkühlen lassen|abkühlen|rest|chill)\b/i, 'rest'],
+  [/^(im ofen backen|backen|kochen|köcheln|garen|braten|schmoren|grillen|frittieren|dämpfen|bake|cook|roast|simmer)\b/i, 'cook'],
+];
+// Nur eine Dauer, auch als Spanne oder englisch: "35 Minuten", "ca. 1 Std. 30 Min.", "30-40 Min.", "1 hour 10 minutes"
+function impIsDurationText(s) {
+  return /^(?:ca\.?\s*|etwa\s+|rund\s+|circa\s+|about\s+)?\d+(?:[.,]\d+)?(?:\s*(?:-|–|bis|to)\s*\d+(?:[.,]\d+)?)?\s*(?:h|std\.?|stunden?|min\.?|minuten?|minutes?|mins?|hours?|hrs?\.?)(?:\s*(?:und|and)?\s*\d+\s*(?:min\.?|minuten?|minutes?|mins?))?\.?$/i.test(String(s || '').trim());
+}
 function impConsumeMeta(l, meta) {
   // Kombizeilen wie "Für 8 Stück ⏱ 45 Min": an Uhr-Emojis und Trennern aufteilen, jedes Stueck einzeln pruefen
-  if (/[⏱⏲🕒🕐🕑🕓🕔🕕|]/u.test(l)) {
-    const parts = l.split(/[⏱⏲🕒🕐🕑🕓🕔🕕|]/u).map(x => x.trim()).filter(Boolean);
+  if (/[⏱⏲🕒🕐🕑🕓🕔🕕|]|\s[·•]\s/u.test(l)) {
+    const parts = l.split(/[⏱⏲🕒🕐🕑🕓🕔🕕|]|\s[·•]\s/u).map(x => x.trim()).filter(Boolean);
     if (parts.length > 1 || /[⏱⏲🕒🕐🕑🕓🕔🕕]/u.test(l)) {
       const consumed = parts.map(p => impConsumeMetaPart(p, meta, /[⏱⏲🕒🕐🕑🕓🕔🕕]/u.test(l)));
       return consumed.every(Boolean);
@@ -150,7 +162,30 @@ function impConsumeMetaPart(l, meta, durationOnlyOk) {
     else meta.times[kind] = minutes;
     return true;
   }
-  return false;
+  let verb = null, rest = '';
+  for (const [re, kind] of IMP_TIME_VERBS) {
+    const vm = re.exec(t);
+    if (vm) { rest = t.slice(vm[0].length).replace(/^\s*[:=]?\s*/, ''); verb = kind; break; }
+  }
+  if (!verb) {   // "35 Min. backen", "2 Stunden ruhen lassen"
+    const rm = /^(.+?)\s+(\S.*?)\.?$/.exec(t);
+    for (let cut = t.length; rm && cut > 0; cut = t.lastIndexOf(' ', cut - 1)) {
+      const head = t.slice(0, cut).trim(), tail = t.slice(cut).trim().replace(/\.$/, '');
+      if (!tail || !impIsDurationText(head)) continue;
+      const hit = IMP_TIME_VERBS.find(([re]) => { const x = re.exec(tail); return x && x[0].length === tail.length; });
+      if (hit) { verb = hit[1]; rest = head; }
+      break;
+    }
+  }
+  if (!verb || !impIsDurationText(rest)) return false;
+  // englische Einheiten fuer parseDurations auf Deutsch umschreiben (nur hier, die Timer im Schritt bleiben unberuehrt)
+  const vds = typeof parseDurations === 'function' ? parseDurations(rest.replace(/\b(?:minutes?|mins?)\b/gi, 'Min').replace(/\b(?:hours?|hrs?)\b\.?/gi, 'Std').replace(/\bto\b/gi, 'bis')) : [];
+  if (!vds.length) return false;
+  meta.times = meta.times || {};
+  if (vds.some(d => d.confidence === 'range')) { meta.timeRanges = (meta.timeRanges || []).concat(t); return true; }
+  const vmin = Math.round(vds.reduce((a, d) => a + d.seconds, 0) / 60);
+  if (verb === 'totalOrPrep') meta.times.totalOrPrep = vmin; else meta.times[verb] = (meta.times[verb] || 0) + vmin;
+  return true;
 }
 
 /* ---------- Zutatenzeilen aufteilen ---------- */
