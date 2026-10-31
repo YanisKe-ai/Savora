@@ -95,6 +95,20 @@ async function imagePrepare(file) {
   }
 }
 
+// Vorbereitetes Bild im Uhrzeigersinn drehen (90, 180, 270)
+async function imageRotateBlob(blob, deg) {
+  const bmp = await createImageBitmap(blob);
+  try {
+    const q = deg === 180 ? 0 : 1, c = document.createElement('canvas');
+    c.width = q ? bmp.height : bmp.width; c.height = q ? bmp.width : bmp.height;
+    const ctx = c.getContext('2d');
+    ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, c.width, c.height);
+    ctx.translate(c.width / 2, c.height / 2); ctx.rotate(deg * Math.PI / 180);
+    ctx.drawImage(bmp, -bmp.width / 2, -bmp.height / 2);
+    return await new Promise((res, rej) => c.toBlob(b => b ? res(b) : rej(new Error('toBlob')), 'image/png'));
+  } finally { if (bmp.close) bmp.close(); }
+}
+
 // OCR-Text aufräumen: trimmen, Leerzeilen, Silbentrennung, Aufzählungszeichen, typische Mengenfehler
 function imageCleanText(raw) {
   let rows = String(raw || '').replace(/\r\n?/g, '\n').replace(/[  -​﻿]/g, ' ').replace(/­/g, '').split('\n').map(l => l.replace(/[ \t]+/g, ' ').trim());
@@ -150,9 +164,26 @@ async function imageImportRead(files, opts) {
           let worker;
           try { worker = await imageGetWorker(); } catch (e) { r.error = 'load-failed'; continue; }
           say('read', 0);
-          const out = await worker.recognize(blob);
-          r.text = imageCleanText(out && out.data && out.data.text);
-          r.confidence = out && out.data && typeof out.data.confidence === 'number' ? out.data.confidence : null;
+          // Erst gerade lesen; bei schlechtem Ergebnis mit etwas Text (vermutlich gedreht) um 90, 270 und 180 Grad weiterprobieren
+          const SLOT = [[0, 0.4], [0.4, 0.6], [0.6, 0.8], [0.8, 1]];
+          const readOnce = async (bl, k) => {
+            _imgProgress = (phase, p) => say(phase, phase === 'read' ? SLOT[k][0] + (SLOT[k][1] - SLOT[k][0]) * p : p);
+            const out = await worker.recognize(bl);
+            const text = imageCleanText(out && out.data && out.data.text);
+            return { text, conf: out && out.data && typeof out.data.confidence === 'number' ? out.data.confidence : null, chars: text.replace(/\s/g, '').length };
+          };
+          let best = await readOnce(blob, 0);
+          if (best.conf !== null && best.conf < 60 && best.chars >= 8) {
+            const better = (a, b) => a.conf > b.conf || (a.conf === b.conf && a.chars > b.chars);
+            const degs = [90, 270, 180];
+            for (let k = 0; k < degs.length && best.conf < 75; k++) {
+              let rot;
+              try { rot = await imageRotateBlob(blob, degs[k]); } catch (e) { break; }
+              const cand = await readOnce(rot, k + 1);
+              if (cand.conf !== null && better(cand, best)) best = cand;
+            }
+          }
+          r.text = best.text; r.confidence = best.conf;
           if (r.confidence !== null) confs.push(r.confidence);
           say('read', 1);
         }

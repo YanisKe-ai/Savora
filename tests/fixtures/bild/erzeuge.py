@@ -30,6 +30,8 @@ async def main():
     jpeg(base.rotate(90, expand=True), 70, 'exif6.jpg', exif=ex.tobytes())
     # ohne EXIF 90 Grad gedreht (Text liegt quer)
     jpeg(base.rotate(90, expand=True), 70, 'quer.jpg')
+    # um 180 Grad gedreht (Kopfueber-Foto)
+    jpeg(base.rotate(180), 70, 'kopfueber.jpg')
     # PNG mit Transparenz: weisse Schrift-Flaeche wird durchsichtig, Text bleibt schwarz
     rgba = base.convert('RGBA'); px = rgba.load()
     for y in range(rgba.height):
