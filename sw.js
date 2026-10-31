@@ -149,6 +149,7 @@ const SHELL_ASSETS = [
   './pdf.js',
   './pdf-ui.js',
   './pdf-preview.js',
+  './pdf-import.js',
   './pdf-model.js',
   './backup.js',
   './motion.js',
