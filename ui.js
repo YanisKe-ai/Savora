@@ -351,11 +351,25 @@ async function pdfImportStart(file) {
     state.pdfImport = {
       status: 'choose', msg: '', truncated: !!res.truncated,
       items: withText.map((p) => ({ n: p.n, first: firstLine(p.text) })),
-      selected: (withText.length <= 4 ? withText : withText.slice(0, 1)).map((p) => p.n),
+      selected: pdfImportPreselect(withText),
     };
   }
   render();
   pdfImportGrowField();
+}
+// Vorauswahl: bei höchstens 4 Seiten ab Seite 1 die folgenden Seiten, bis eine Seite ein neues Rezept beginnt
+// (eigene Überschrift «Zutaten», obwohl schon eine gewählte Seite eine hatte). So landen drei Rezepte auf drei Seiten nicht in einem Entwurf.
+function pdfImportPreselect(withText) {
+  const hasIng = (p) => /^\s*(zutaten|ingredients)\b/im.test(String(p.text || ''));
+  const sel = [withText[0]];
+  if (withText.length > 4) return [withText[0].n];   // lange Dokumente (Kochbuch): nur Seite 1
+  let seen = hasIng(withText[0]);
+  for (const p of withText.slice(1, 4)) {
+    if (hasIng(p) && seen) break;
+    seen = seen || hasIng(p);
+    sel.push(p);
+  }
+  return sel.map((p) => p.n);
 }
 function pdfImportApply() {
   const st = state.pdfImport;

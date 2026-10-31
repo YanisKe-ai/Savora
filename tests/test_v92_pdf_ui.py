@@ -112,6 +112,16 @@ async def main():
         await pick_on_page(doc(pages(*[f'Seite Nummer {i}\\nText {i}' for i in range(1, 7)])))
         c = await ev("() => Array.from(document.querySelectorAll('.pdfimp-page-check')).map(c => c.checked)")
         check('Mehr als 4 Seiten: nur Seite 1 vorgewählt', c == [True, False, False, False, False, False], str(c))
+        # Jede Seite ein eigenes Rezept (eigene Überschrift «Zutaten»): nur Seite 1 vorgewählt
+        await ev("() => { state.pasteImport = null; state.pdfImport = null; state.view = 'paste-import'; render(); }")
+        await pick_on_page(doc(pages('Linsensuppe\\nZutaten\\n1 Karotte', 'Birchermüesli\\nZutaten\\n1 Apfel', 'Älplermagronen\\nZutaten\\n2 dl Rahm')))
+        c = await ev("() => Array.from(document.querySelectorAll('.pdfimp-page-check')).map(c => c.checked)")
+        check('Neues Rezept je Seite: nur Seite 1 vorgewählt', c == [True, False, False], str(c))
+        # Rezept über zwei Seiten (zweite Seite ohne neue Zutatenliste): beide vorgewählt
+        await ev("() => { state.pasteImport = null; state.pdfImport = null; state.view = 'paste-import'; render(); }")
+        await pick_on_page(doc(pages('Brot\\nZutaten\\n500 g Mehl\\nZubereitung\\n1. Kneten.', '2. Backen.')))
+        c = await ev("() => Array.from(document.querySelectorAll('.pdfimp-page-check')).map(c => c.checked)")
+        check('Rezept über zwei Seiten: beide vorgewählt', c == [True, True], str(c))
         # Seiten ohne Text (chars 0) tauchen nicht in der Auswahl auf
         await ev("() => { state.pasteImport = null; state.pdfImport = null; state.view = 'paste-import'; render(); }")
         pg = pages('Text eins', '', 'Text drei')
@@ -131,7 +141,7 @@ async def main():
         k = await ev("""() => ({ s: document.getElementById('pdfStatus').textContent, open: document.querySelector('.ki-prompt-how').open, h: document.querySelector('.ki-prompt-h').textContent,
           steps: document.querySelector('.ki-prompt-steps').textContent, field: document.getElementById('pasteText').value, copy: !!document.querySelector('[data-action="copy-ki-prompt"]') })""")
         check('Gescannt: Hinweis «nur Bilder, keinen lesbaren Text»', 'nur Bilder, keinen lesbaren Text' in k['s'], k['s'])
-        check('Gescannt: KI-Kasten aufgeklappt mit PDF-Schritten', k['open'] and 'PDF in der KI anhängen' in k['steps'] and 'Prompt kopieren' in k['steps'] and 'PDF' in k['h'] and k['copy'], str(k))
+        check('Gescannt: KI-Kasten aufgeklappt mit PDF-Schritten', k['open'] and 'hänge die PDF an' in k['steps'] and 'Prompt kopieren' in k['steps'] and 'PDF' in k['h'] and k['copy'], str(k))
         check('Gescannt: Feld unverändert leer', k['field'] == '')
         await page.context.grant_permissions(['clipboard-read', 'clipboard-write'])
         await page.click('[data-action="copy-ki-prompt"]')

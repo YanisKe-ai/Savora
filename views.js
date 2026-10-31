@@ -672,7 +672,7 @@ function pasteImportKiHtml() {
         <summary>So geht's</summary>
         ${pdf ? `<ol class="ki-prompt-steps">
           <li>Tippe auf «Prompt kopieren».</li>
-          <li>Füge ihn in ChatGPT, Claude oder Gemini ein, hänge die PDF an (PDF in der KI anhängen) und sende ab.</li>
+          <li>Füge ihn in ChatGPT, Claude oder Gemini ein, hänge die PDF an und sende ab.</li>
           <li>Kopiere die Antwort (Kopier-Knopf beim Code-Block) und füge sie unten ein.</li>
         </ol>` : `<ol class="ki-prompt-steps">
           <li>Tippe auf «Prompt kopieren».</li>
