@@ -92,6 +92,24 @@ async def main():
         t = await T([it(a, 40, 100 + 14 * k, 30) for k, a in enumerate(['250 g', '2 EL', '1 Prise', '3 dl'])] + [it(n, 100, 100 + 14 * k, 60) for k, n in enumerate(['Mehl', 'Öl', 'Salz', 'Milch'])])
         check('Mengenspalte neben Zutatenspalte bleibt eine Zeile pro Zutat', t.split('\n')[0] == '250 g Mehl' and t.split('\n')[3] == '3 dl Milch', repr(t))
 
+        # Nachbesserungen nach unabhängiger Prüfung
+        t = await T([it('1', 50, 96, 3, 6), it('2', 50, 104, 3, 6), it('Zitrone', 58, 100)])
+        check('Bruch mit Hoch-/Tiefstellung bleibt in einer Zeile', t.count('\n') == 0 and 'Zitrone' in t, repr(t))
+        t = await T([it('*Wichtig* ist Ruhe', 50, 100), it('* 2 Eier', 50, 113)])
+        check('«*» ist nur mit Leerzeichen ein Aufzählungszeichen', t == '*Wichtig* ist Ruhe\n- 2 Eier', repr(t))
+        t = await T([it('Rice', 40, 60, 40, 20), it('Ingredients', 40, 100, 50), it('2 cups rice', 40, 114, 50), it('Method', 40, 160, 40), it('1 Rinse rice', 40, 174, 50)])
+        check('«Ingredients» und «Method» werden nicht zur Gruppe', 'Ingredients:' not in t and 'Method:' not in t, repr(t))
+        t = await T([it('Wie viel', 40, 100, 40), it('Kürbissuppe', 40, 140, 80, 20), it('Zutaten', 40, 170, 40), it('Kochblog Muster', 40, 20, 80, 7), it('Kochblog Muster 1', 40, 820, 90, 7), it('Text a', 40, 200), it('Text b', 40, 214), it('Text c', 40, 228)])
+        check('Kopf/Fuss in kleiner Schrift oder mit nackter Zahl entfällt', 'Kochblog' not in t and 'Kürbissuppe' in t, repr(t))
+        t = await T([it('Titel', 40, 20, 40, 20), it('Text a', 40, 200), it('Text b', 40, 214), it('Text c', 40, 228)])
+        check('Titel ganz oben (grosse Schrift) bleibt', t.startswith('Titel'), repr(t))
+        t = await T([it('Posten ' + str(k), 40, 100 + 14 * k, 50) for k in range(5)] + [it('%d.50' % (k + 1), 500, 100 + 14 * k, 25) for k in range(5)])
+        check('Zahlenkolonne rechts wird nicht als Spalte getrennt', t.split('\n')[0] == 'Posten 0 1.50', repr(t))
+        t = await T([it('Menge', 40, 100, 30), it('Zutat', 300, 100, 30)] + [it(a, 40, 114 + 14 * k, 30) for k, a in enumerate(['500 g', '2 EL', '1', '3 Zehen'])] + [it(n, 300, 114 + 14 * k, 150) for k, n in enumerate(['Tomaten, geschält und gehackt', 'Olivenöl extra vergine', 'Zwiebel, fein gehackt', 'Knoblauch, frisch gepresst'])])
+        check('Tabelle «Menge | Zutat» bleibt zeilenweise', '500 g Tomaten' in t and '3 Zehen Knoblauch' in t, repr(t))
+        t = await T([it('Zutaten', 40, 100, 40), it('Zubereitung', 320, 100, 60)] + [it(f'Zutat {k+1}', 40, 120 + 14 * k, 40) for k in range(4)] + [it(f'Schritt {k+1} mit langem Text hier', 320, 114 + 14 * k, 170) for k in range(20)])
+        check('kurze linke Spalte mit langer rechter Spalte wird getrennt', t.index('Zutat 4') < t.index('Zubereitung') < t.index('Schritt 1'), repr(t[:120]))
+
         # ---------- 2. Test-PDFs ----------
         async def lies(name, typ='application/pdf'):
             return await page.evaluate(JS_READ, [b64(name), name, typ])
@@ -141,6 +159,32 @@ async def main():
         check('browserdruck: 14 Schritte im Entwurf', len(d.get('steps', [])) == 14, str(len(d.get('steps', []))))
         r = await lies('gescannt.pdf')
         check('gescannt: scanned true, ok, ohne Text', r['ok'] and r['scanned'] is True and r['numPages'] == 2 and all(pg['chars'] < 40 for pg in r['pages']), str((r['ok'], r['scanned'], r['pages'])))
+
+        # Zusätzliche Test-PDFs (aus der unabhängigen Prüfung):
+        #  fortsetzung.pdf: 4 Zutaten links, 30 lange Schritte rechts über mehrere Seiten
+        #  tabelle2spalt.pdf: Zutatentabelle «Menge | Zutat» mit grosser Lücke
+        #  zahlenkolonne.pdf: Nährwerte mit Zahlen rechts (Name links)
+        #  kopffuss.pdf: Kopf «Kochblog Muster» und Fuss «Kochblog Muster 1» in kleiner Schrift, ohne Adresse und Datum
+        #  bruch.pdf: Bruch 1/2 mit Hoch- und Tiefstellung
+        #  rot90.pdf, rot180.pdf: Seiten mit /Rotate 90 und 180 (Pfannkuchen)
+        r = await lies('fortsetzung.pdf'); ausgabe('fortsetzung', r)
+        alle = '\n\n'.join(pg['text'] for pg in r['pages']); d = await page.evaluate("(t) => { const r = parseFreeTextRecipe(t); return { n: r.ingredients.filter(i => i.name).length, s: r.steps.filter(x => x.text).length, title: r.title }; }", alle)
+        check('fortsetzung: 4 Zutaten, 30 Schritte', d['n'] == 4 and d['s'] == 30 and d['title'] == 'Grosses Menü', str(d))
+        r = await lies('tabelle2spalt.pdf'); ausgabe('tabelle2spalt', r); txt = r['pages'][0]['text']
+        check('tabelle2spalt: Menge und Zutat bleiben in einer Zeile', '500 g Tomaten' in txt and '3 Zehen Knoblauch' in txt and '1 Zwiebel' in txt, txt[:200])
+        r = await lies('zahlenkolonne.pdf'); ausgabe('zahlenkolonne', r); txt = r['pages'][0]['text']
+        check('zahlenkolonne: Kalorien und Zahl in einer Zeile', 'Kalorien 250' in txt and 'Fett 10 g' in txt, txt)
+        r = await lies('kopffuss.pdf'); ausgabe('kopffuss', r); d = r['drafts'][0]
+        check('kopffuss: Titel stimmt, Kopf und Fuss weg', d['title'] == 'Kürbissuppe' and 'Kochblog' not in r['pages'][0]['text'] and len(d['ings']) == 3, str((d['title'], r['pages'][0]['text'][:60])))
+        r = await lies('bruch.pdf'); ausgabe('bruch', r); txt = r['pages'][0]['text']
+        check('bruch: Zitrone mit Bruch in einer Zeile', any('Zitrone' in z and '1' in z and '2' in z for z in txt.split('\n')), txt[:120])
+        for n in ('rot90.pdf', 'rot180.pdf'):
+            r = await lies(n); ausgabe(n, r); d = r['drafts'][0]
+            check(f'{n}: gedrehte Seite lesbar (Titel, 4 Zutaten, 3 Schritte)', d['title'] == 'Pfannkuchen' and len(d['ings']) == 4 and len(d['steps']) == 3, str((d['title'], r['pages'][0]['text'][:80])))
+        dmg = await page.evaluate("""async () => { const real = loadPdfJs; const bin = await (await fetch('tests/fixtures/pdf/einfach.pdf')).arrayBuffer();
+          const orig = pdfTextFromItems; window.pdfTextFromItems = () => { throw new Error('boom'); };
+          try { return await pdfImportRead(new File([bin], 'a.pdf', { type: 'application/pdf' })); } finally { window.pdfTextFromItems = orig; } }""")
+        check('alle Seiten intern fehlgeschlagen => damaged, nicht scanned', dmg['ok'] is False and dmg['error'] == 'damaged' and dmg['scanned'] is False, str(dmg))
 
         # ---------- 3. Fehlerfälle ----------
         r = await page.evaluate("""async () => {

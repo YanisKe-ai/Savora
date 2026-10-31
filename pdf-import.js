@@ -2,7 +2,8 @@
    Liest den Text einer PDF lokal mit PDF.js (loadPdfJs aus pdf-preview.js). Die Datei wird weder gespeichert noch übertragen.
    Der Text landet im Feld von «Aus Text importieren»; den Rest macht der bestehende Textimport. */
 const PDF_IMPORT_MAX_BYTES = 25 * 1024 * 1024;
-const PDF_BULLET_RE = /^[•·▪▫◦●○■□‣⁃∙*]\s*/;
+const PDF_BULLET_RE = /^(?:[•·▪▫◦●○■□‣⁃∙]\s*|\*\s+)/;
+const PDF_QTY_ONLY_RE = /^[\d½¼¾⅓⅔⅛][\d\s.,/½¼¾⅓⅔⅛-]*\s*(?:mg|g|kg|dl|cl|ml|l|el|tl|prise|prisen|stk\.?|stück|zehen?|zehe|bund|dose|dosen|pck\.?|päckchen|becher|scheiben?|blätter|etwas)?\.?$/i;   // nur Menge (und Einheit), ohne Zutatennamen
 const PDF_EDGE_PATTERNS = [
   /(?:https?:\/\/|www\.)\S+/i,                                   // Adresse
   /\b[\w-]+(?:\.[\w-]+)*\.(?:ch|com|de|org|net|at|eu)\/\S*/i,    // Adresse ohne https
@@ -26,7 +27,7 @@ function pdfBuildLines(items) {
   arr.forEach(it => {
     const real = !!it.str.trim();
     const last = lines[lines.length - 1];
-    if (last && Math.abs(it.y - last.y) <= 0.5 * Math.min(it.h, last.h)) { last.items.push(it); if (real) { last.h = Math.max(last.h, it.h); } return; }
+    if (last && Math.abs(it.y - last.y) <= 0.5 * Math.max(it.h, last.h)) { last.items.push(it); if (real && it.h > last.h) { last.h = it.h; last.y = it.y; } return; }
     lines.push({ y: it.y, h: it.h, items: [it] });
   });
   lines.forEach(l => {
@@ -64,15 +65,21 @@ function pdfFindColumns(lines, pageWidth) {
     }
     if (!best) continue;
     const cut = (best.from + best.to) / 2;
-    let both = 0, leftChars = 0, rightChars = 0;
+    let both = 0, leftChars = 0, rightChars = 0, qtyPairs = 0, rightDigits = 0, rightLetters = 0;
     L.forEach(l => {
-      let le = false, ri = false;
-      l.items.forEach(i => { if (!i.str.trim()) return; const c = i.str.replace(/\s/g, '').length; if (i.x + i.w / 2 < cut) { le = true; leftChars += c; } else { ri = true; rightChars += c; } });
-      if (le && ri) both++;
+      let le = false, ri = false, leftTxt = '';
+      l.items.forEach(i => {
+        if (!i.str.trim()) return;
+        const c = i.str.replace(/\s/g, '').length;
+        if (i.x + i.w / 2 < cut) { le = true; leftChars += c; leftTxt += i.str + ' '; }
+        else { ri = true; rightChars += c; rightDigits += (i.str.match(/\d/g) || []).length; rightLetters += (i.str.match(/\p{L}/gu) || []).length; }
+      });
+      if (le && ri) { both++; if (PDF_QTY_ONLY_RE.test(leftTxt.trim())) qtyPairs++; }
     });
-    const total = leftChars + rightChars;
+    if (both >= 2 && qtyPairs >= both * 0.6) return null;      // Tabelle «Menge | Zutat», keine zwei Spalten (auch nicht weiter unten)
+    if (rightDigits >= 0.6 * (rightDigits + rightLetters)) continue;   // Zahlenkolonne rechts (Preise, Nährwerte)
     const rightX1 = Math.max(...L.map(l => l.x1));
-    if (both >= 1 && leftChars >= total * 0.2 && rightChars >= total * 0.2 && rightX1 - cut >= pageWidth * 0.2 && cut - Math.min(...L.map(l => l.x0)) >= pageWidth * 0.15) return { s, cut };
+    if (both >= 1 && leftChars >= 30 && rightChars >= 30 && rightX1 - cut >= pageWidth * 0.2 && cut - Math.min(...L.map(l => l.x0)) >= pageWidth * 0.15) return { s, cut };
   }
   return null;
 }
@@ -98,7 +105,11 @@ function pdfTextFromItems(items, pageWidth, pageHeight) {
   if (!lines.length) return '';
   const H = pageHeight > 0 ? pageHeight : (pageWidth > 0 ? pageWidth * 1.414 : 842);
   // Kopf- und Fusszeilen des Browserdrucks (Datum, Adresse, Seitenzahl) im Randstreifen entfernen
-  lines = lines.filter(l => !((l.y < H * 0.06 || l.y > H * 0.94) && pdfIsEdgeLine(l.text)));
+  const inEdge = (l) => l.y < H * 0.06 || l.y > H * 0.94;
+  const bodyH = lines.filter(l => !inEdge(l)).map(l => l.h).sort((a, b) => a - b);
+  const bodyMed = bodyH.length >= 2 ? bodyH[bodyH.length >> 1] : 0;
+  // Randstreifen: Adresse, Datum, Seitenzahl, nackte Zahl am Ende oder deutlich kleinere Schrift als der Text (nie, wenn es kein Textkörper gibt)
+  lines = lines.filter(l => !(inEdge(l) && (pdfIsEdgeLine(l.text) || (bodyMed && (/\s\d{1,3}$/.test(l.text) || l.h < 0.85 * bodyMed)))));
   if (!lines.length) return '';
   let rows;
   const col = pdfFindColumns(lines, pageWidth);
@@ -117,7 +128,7 @@ function pdfTextFromItems(items, pageWidth, pageHeight) {
     else out.push(r);
   });
   // Eigenstehende kurze Zeile vor einer Mengenzeile (z. B. «Teig», «Belag») ist eine Zutatengruppe: mit «:» wird sie vom Textimport als Gruppe gelesen
-  const BEKANNT = /^(?:zutaten|zubereitung|zubereitungsschritte|tipp|tipps|hinweis|notiz|notizen|utensilien|für|ergibt)\b/i;
+  const BEKANNT = /^(?:zutaten|zubereitung|zubereitungsschritte|tipp|tipps|hinweis|notiz|notizen|utensilien|für|ergibt|ingredients|method|directions|instructions|preparation|serves|notes)\b/i;
   const amountStart = (r) => /^[\d½¼¾⅓⅔⅛]/.test(r.replace(PDF_BULLET_RE, '')) && !/^\d+[.)]\s/.test(r);
   for (let i = 1; i < out.length - 1; i++) {
     const r = out[i];
@@ -135,7 +146,7 @@ function pdfTextFromItems(items, pageWidth, pageHeight) {
 async function pdfImportRead(file, opts) {
   const maxPages = (opts && opts.maxPages) || 30;
   const res = { ok: false, error: null, numPages: 0, pages: [], scanned: false, truncated: false };
-  let doc = null;
+  let doc = null, task = null;
   try {
     const type = String((file && file.type) || ''), name = String((file && file.name) || '');
     let isPdf = type === 'application/pdf' || /\.pdf$/i.test(name);
@@ -147,8 +158,10 @@ async function pdfImportRead(file, opts) {
     let pdfjs;
     try { pdfjs = await loadPdfJs(); } catch (e) { res.error = 'load-failed'; return res; }
     try {
-      doc = await pdfjs.getDocument({ data: new Uint8Array(await file.arrayBuffer()) }).promise;
+      task = pdfjs.getDocument({ data: new Uint8Array(await file.arrayBuffer()) });
+      doc = await task.promise;
     } catch (e) {
+      try { if (task) task.destroy(); } catch (e2) { /* egal */ }
       const nm = e && e.name;
       res.error = nm === 'PasswordException' ? 'password' : nm === 'InvalidPDFException' ? 'damaged' : 'load-failed';
       return res;
@@ -156,11 +169,12 @@ async function pdfImportRead(file, opts) {
     res.numPages = doc.numPages;
     res.truncated = doc.numPages > maxPages;
     const last = Math.min(doc.numPages, maxPages);
+    let failed = 0;
     for (let n = 1; n <= last; n++) {
       let text = '';
       try {
         const page = await doc.getPage(n);
-        const vp = page.getViewport({ scale: 1 });
+        const vp = page.getViewport({ scale: 1, rotation: 0 });
         const tc = await page.getTextContent();
         const items = [];
         tc.items.forEach(it => {
@@ -171,9 +185,10 @@ async function pdfImportRead(file, opts) {
         });
         text = pdfTextFromItems(items, vp.width, vp.height);
         page.cleanup();
-      } catch (e) { text = ''; }
+      } catch (e) { text = ''; failed++; }
       res.pages.push({ n, text, chars: text.replace(/\s/g, '').length });
     }
+    if (last > 0 && failed === last) { res.pages = []; res.error = 'damaged'; return res; }
     res.scanned = res.pages.reduce((a, p) => a + p.chars, 0) < 40;
     res.ok = true;
     return res;
