@@ -717,7 +717,6 @@ function pdfImportBoxHtml() {
           </div>
           <input type="file" id="ocrInput" class="sr-only imgimp-file-input" accept="image/*" multiple aria-label="Foto von einem Rezept aufnehmen oder auswählen">
           <input type="file" id="pdfInput" class="sr-only ocr-input pdfimp-file-input" accept="application/pdf,.pdf" aria-label="PDF mit einem Rezept auswählen">
-          <p class="hint-line">Wird nur auf deinem Gerät gelesen.</p>
           <div id="pdfStatus" class="ocr-status pdfimp-status" role="status" aria-live="polite">${msg}</div>
           ${picker}${trunc}
         </div>`;
@@ -727,7 +726,7 @@ function pasteImportView() {
   const body = `
     <div class="settings-group">
       <div class="settings-group-card settings-group-card--padded">
-        <p class="settings-hint paste-intro">Rezepttext oder Antwort der KI einfügen. Du prüfst alles, bevor es gespeichert wird.</p>
+        <p class="settings-hint paste-intro">Liest alles nur auf deinem Gerät. Du prüfst vor dem Speichern.</p>
         ${pdfImportBoxHtml()}
         ${pasteImportKiHtml()}
         <div class="field field--tight paste-field">

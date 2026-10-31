@@ -23,7 +23,7 @@ async def main():
         await page.evaluate("() => { state.view = 'home'; state.modal = { type: 'add-menu' }; render(); }"); await page.wait_for_selector('.add-menu-sheet')
         check('Menü "Rezept hinzufügen" bietet "Aus Foto importieren" (auch im Browser)', 'Aus Foto importieren' in await page.evaluate("document.querySelector('.add-menu-sheet').innerText"))
         await page.evaluate("() => { state.modal = null; state.view = 'paste-import'; render(); }"); await page.wait_for_selector('#ocrInput', state='attached')
-        check('Import-Bildschirm zeigt "Foto wählen" mit Datenschutz-Hinweis', 'Foto wählen' in await page.evaluate("document.querySelector('.pdfimp-box').innerText") and 'nur auf deinem Gerät' in await page.evaluate("document.querySelector('.pdfimp-box').innerText"))
+        check('Import-Bildschirm zeigt "Foto wählen" mit Datenschutz-Hinweis', 'Foto wählen' in await page.evaluate("document.querySelector('.pdfimp-box').innerText") and 'nur auf deinem gerät' in (await page.evaluate("document.querySelector('.import-page').innerText")).lower())
         await page.set_input_files('#ocrInput', PNG)
         await page.wait_for_function("() => state.pdfImport && state.pdfImport.status === 'done'")
         ta = await page.input_value('#pasteText'); calls = await page.evaluate("window.__ocr.calls")
