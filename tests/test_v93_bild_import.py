@@ -2,7 +2,7 @@
 1. Einheitentests der Textbereinigung (imageCleanText).
 2. Testfotos (tests/fixtures/bild, erzeugt von erzeuge.py): Text -> parseFreeTextRecipe -> Titel, Zutaten, Schritte, Portionen.
    bildschirmfoto.png (gerendertes Rezept), handyfoto.jpg (3 Grad gedreht, grau, Rauschen, JPEG 50), exif6.jpg (EXIF-Drehung 6),
-   quer.jpg (ohne EXIF 90 Grad gedreht, darf nichts abstuerzen), transparent.png (durchsichtiger Grund), winzig.png (90 px breit, weak),
+   quer.jpg (ohne EXIF 90 Grad gedreht) und kopfueber.jpg (180 Grad): werden automatisch aufgerichtet, transparent.png (durchsichtiger Grund), winzig.png (90 px breit, weak),
    leer.jpg (kein Text, weak), kein-bild.txt (not-image), zu gross (too-large).
 3. Fortschritt (onProgress), Wiederverwendung des Workers, Dauer.
 4. Netz: nur eigene Dateien, nur die erwarteten Tesseract-Dateien; mit strenger Inhaltsrichtlinie (CSP) ohne Verstoss.
@@ -86,11 +86,14 @@ async def main():
         r = await lies('exif6.jpg'); zeiten['exif6'] = r['ms']; gut('exif6 (EXIF-Drehung)', r)
         r = await lies('transparent.png'); zeiten['transparent'] = r['ms']; gut('transparent', r)
         r = await lies('quer.jpg'); zeiten['quer'] = r['ms']
-        check('quer (90 Grad ohne EXIF): kein Absturz, Ergebnis wohlgeformt', r['error'] in (None, 'load-failed') and isinstance(r['text'], str), str((r['ok'], r['weak'], r['error'])))
-        check('quer: gilt als schwach (Text liegt quer)', r['weak'] or r['draft']['title'] != 'Zürcher Geschnetzeltes', str(r['draft']['title']))
+        gut('quer (90 Grad ohne EXIF, automatisch aufgerichtet)', r)
+        check('quer: Dauer unter 8 s', r['ms'] < 8000, str(r['ms']))
+        check('quer: Fortschritt «read» steigt nur und endet bei 1', [x[3] for x in r['prog'] if x[0] == 'read'] == sorted(x[3] for x in r['prog'] if x[0] == 'read') and r['prog'][-1][3] == 1, str(r['prog'][-3:]))
+        r = await lies('kopfueber.jpg'); zeiten['kopfueber'] = r['ms']; gut('kopfueber (180 Grad, automatisch aufgerichtet)', r)
         r = await lies('winzig.png'); zeiten['winzig'] = r['ms']
         check('winzig: gilt als schwach', r['ok'] and r['weak'], str((r['ok'], r['weak'], r['results'])))
         r = await lies('leer.jpg'); zeiten['leer'] = r['ms']
+        check('leeres Foto bleibt schnell (nicht mehrfach gedreht)', r['ms'] < 3000, str(r['ms']))
         check('leeres Foto: gelesen, aber weak, kaum Text', r['ok'] and r['weak'] and len(r['text'].replace(' ', '').replace('\n', '')) < 40, str((r['ok'], r['weak'], r['text'][:60])))
         r = await lies('kein-bild.txt')
         check('Textdatei => not-image', r['ok'] is False and r['error'] == 'not-image', str((r['ok'], r['error'])))
