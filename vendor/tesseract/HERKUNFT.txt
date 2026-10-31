@@ -1,0 +1,5 @@
+Texterkennung für «Aus Foto importieren» (Savora 0.93.0), unverändert aus npm kopiert:
+- tesseract.js 7.0.0 (dist/tesseract.min.js, dist/worker.min.js), Apache License 2.0
+- tesseract.js-core 6.1.2 (tesseract-core-simd-lstm.wasm.js, tesseract-core-lstm.wasm.js), Apache License 2.0
+- @tesseract.js-data/deu 1.0.0 (4.0.0_best_int/deu.traineddata.gz), Paket MIT, Sprachdaten von Tesseract unter Apache License 2.0
+Wird erst bei der ersten Fotoerkennung geladen (rund 5,5 MB), danach aus dem Speicher; läuft vollständig auf dem Gerät.

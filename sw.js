@@ -40,6 +40,10 @@ const OPTIONAL_ASSETS = [
   './swiss-fcd-data.json',
   './vendor/pdfjs/pdf.min.js',
   './vendor/pdfjs/pdf.worker.min.js',
+  './vendor/tesseract/tesseract.min.js',   // Texterkennung «Aus Foto importieren» (rund 5,5 MB, nur fuer «Ohne Internet»)
+  './vendor/tesseract/worker.min.js',
+  './vendor/tesseract/tesseract-core-simd-lstm.wasm.js',
+  './vendor/tesseract/deu.traineddata.gz',
   './assets/covers/01-pop.png',
   './assets/covers/02-lieblingsbuch.png',
   './assets/covers/03-tomate.png',
@@ -150,6 +154,7 @@ const SHELL_ASSETS = [
   './pdf-ui.js',
   './pdf-preview.js',
   './pdf-import.js',
+  './image-import.js',
   './pdf-model.js',
   './backup.js',
   './motion.js',
