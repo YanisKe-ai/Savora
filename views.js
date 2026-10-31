@@ -123,6 +123,14 @@ function addMenuModal() {
             <span>Bildunterschrift, Nachricht oder kopierter Text</span>
           </span>
         </button>
+        <label class="add-menu-option add-menu-option--file" for="imgMenuInput">
+          <span class="add-menu-option-icon">${ICONS.camera}</span>
+          <span class="add-menu-option-text">
+            <strong>Aus Foto importieren</strong>
+            <span>Buchseite, Zettel oder Bildschirmfoto</span>
+          </span>
+          <input type="file" id="imgMenuInput" class="sr-only imgimp-file-input" accept="image/*" multiple aria-label="Foto von einem Rezept aufnehmen oder auswählen">
+        </label>
         <label class="add-menu-option add-menu-option--file" for="pdfMenuInput">
           <span class="add-menu-option-icon">${ICONS.pdf}</span>
           <span class="add-menu-option-text">
@@ -131,13 +139,6 @@ function addMenuModal() {
           </span>
           <input type="file" id="pdfMenuInput" class="sr-only pdfimp-file-input" accept="application/pdf,.pdf" aria-label="PDF mit einem Rezept auswählen">
         </label>
-        ${SavoraNative.canRecognizeText() ? `<button type="button" class="add-menu-option" data-action="open-photo-scan">
-          <span class="add-menu-option-icon">${ICONS.camera}</span>
-          <span class="add-menu-option-text">
-            <strong>Foto scannen</strong>
-            <span>Buchseite oder Zettel fotografieren</span>
-          </span>
-        </button>` : ''}
       </div>
     </div>
   </div>`;
@@ -658,21 +659,25 @@ function settingsAboutView() {
    0.90.1: Das sichtbare Linkfeld («Aus Link») ist entfernt. Ein geteilter Link wird still als Quelle übernommen, nie abgerufen. */
 function pasteImportState() { return (state.pasteImport && typeof state.pasteImport === 'object') ? state.pasteImport : {}; }
 function pdfImportScanned() { return !!(state.pdfImport && state.pdfImport.status === 'scanned'); }
+// v93: Foto schwer lesbar (status 'weak'): der KI-Kasten zeigt den Foto-Weg
+function imageImportWeak() { return !!(state.pdfImport && state.pdfImport.status === 'weak'); }
 function pasteImportKiHtml() {
   if (typeof SAVORA_KI_PROMPT !== 'string') return '';
   // v92: Bei einer PDF ohne lesbaren Text zeigt der Kasten den PDF-Weg und ist aufgeklappt
   const pdf = pdfImportScanned();
+  const foto = imageImportWeak();
+  const openKi = pdf || foto;
   // v91.1: kompakt: Titel, Kopier-Knopf; Anleitung und Prompt eingeklappt
   return `<div class="ki-prompt-box">
-      <h2 class="ki-prompt-h">${pdf ? 'Rezept aus einer PDF mit Bildern?' : 'Rezept aus einem Link?'}</h2>
-      <p class="ki-prompt-sub">${pdf ? 'Lass ChatGPT, Claude oder Gemini die PDF lesen.' : 'Mit ChatGPT, Claude oder Gemini umwandeln.'}</p>
+      <h2 class="ki-prompt-h">${foto ? 'Rezept aus einem Foto?' : pdf ? 'Rezept aus einer PDF mit Bildern?' : 'Rezept aus einem Link?'}</h2>
+      <p class="ki-prompt-sub">${foto ? 'Lass ChatGPT, Claude oder Gemini das Foto lesen.' : pdf ? 'Lass ChatGPT, Claude oder Gemini die PDF lesen.' : 'Mit ChatGPT, Claude oder Gemini umwandeln.'}</p>
       <button type="button" class="ghost-btn ki-prompt-copy" data-action="copy-ki-prompt">${ICONS.copy || ICONS.clipboardText || ''} Prompt kopieren</button>
       <p class="hint-line ki-prompt-hint" id="kiPromptHint" role="status" aria-live="polite"></p>
-      <details class="ki-prompt-how"${pdf ? ' open' : ''}>
+      <details class="ki-prompt-how"${openKi ? ' open' : ''}>
         <summary>So geht's</summary>
-        ${pdf ? `<ol class="ki-prompt-steps">
+        ${openKi ? `<ol class="ki-prompt-steps">
           <li>Tippe auf «Prompt kopieren».</li>
-          <li>Füge ihn in ChatGPT, Claude oder Gemini ein, hänge die PDF an und sende ab.</li>
+          <li>Füge ihn in ChatGPT, Claude oder Gemini ein, hänge ${foto ? 'das Foto (Foto in der KI anhängen)' : 'die PDF'} an und sende ab.</li>
           <li>Kopiere die Antwort (Kopier-Knopf beim Code-Block) und füge sie unten ein.</li>
         </ol>` : `<ol class="ki-prompt-steps">
           <li>Tippe auf «Prompt kopieren».</li>
@@ -706,9 +711,13 @@ function pdfImportBoxHtml() {
   }
   const trunc = st && st.truncated ? `<p class="hint-line pdfimp-trunc">Es wurden nur die ersten 30 Seiten gelesen.</p>` : '';
   return `<div class="pdfimp-box">
-          <label class="ghost-btn ocr-btn pdfimp-btn" for="pdfInput">${ICONS.pdf} PDF wählen</label>
+          <div class="pdfimp-btns">
+            <label class="ghost-btn ocr-btn pdfimp-btn" for="ocrInput">${ICONS.camera} Foto wählen</label>
+            <label class="ghost-btn ocr-btn pdfimp-btn" for="pdfInput">${ICONS.pdf} PDF wählen</label>
+          </div>
+          <input type="file" id="ocrInput" class="sr-only imgimp-file-input" accept="image/*" multiple aria-label="Foto von einem Rezept aufnehmen oder auswählen">
           <input type="file" id="pdfInput" class="sr-only ocr-input pdfimp-file-input" accept="application/pdf,.pdf" aria-label="PDF mit einem Rezept auswählen">
-          <p class="hint-line">Der Text wird nur auf deinem Gerät gelesen.</p>
+          <p class="hint-line">Wird nur auf deinem Gerät gelesen.</p>
           <div id="pdfStatus" class="ocr-status pdfimp-status" role="status" aria-live="polite">${msg}</div>
           ${picker}${trunc}
         </div>`;
@@ -719,12 +728,6 @@ function pasteImportView() {
     <div class="settings-group">
       <div class="settings-group-card settings-group-card--padded">
         <p class="settings-hint paste-intro">Rezepttext oder Antwort der KI einfügen. Du prüfst alles, bevor es gespeichert wird.</p>
-        ${SavoraNative.canRecognizeText() ? `<div class="ocr-box">
-          <label class="ghost-btn ocr-btn" for="ocrInput">${ICONS.camera} Foto scannen</label>
-          <input type="file" id="ocrInput" class="ocr-input" accept="image/*" aria-label="Foto von einem Rezept aufnehmen oder auswählen">
-          <p class="hint-line">Buchseite, Zettel oder Bildschirm fotografieren. Die Texterkennung läuft auf deinem Gerät, das Foto wird nicht gespeichert.</p>
-          <div id="ocrStatus" class="ocr-status" role="status" aria-live="polite"></div>
-        </div>` : ''}
         ${pdfImportBoxHtml()}
         ${pasteImportKiHtml()}
         <div class="field field--tight paste-field">
@@ -746,7 +749,7 @@ function pasteImportView() {
         <li><b>Zubereitung.</b> Nummerierte Schritte oder der Text unter «Zubereitung» oder «Anleitung».</li>
         <li><b>Portionen und Zeit.</b> Zum Beispiel «Für 4 Personen» oder «Vorbereitung: 15 Minuten».</li>
       </ul>
-      <p class="import-help-note">PDF-Dateien liest Savora auf deinem Gerät: Tippe auf «PDF wählen», dann landet der Text im Feld. Bei einer PDF aus eingescannten Bildern hilft die KI.</p>
+      <p class="import-help-note">Fotos und PDF-Dateien liest Savora auf deinem Gerät: Tippe auf «Foto wählen» oder «PDF wählen», dann landet der Text im Feld. Bei einem schwer lesbaren Foto oder einer PDF aus Bildern hilft die KI.</p>
       <p class="import-help-note">Was Savora nicht sicher zuordnen kann, zeigt es dir zum Prüfen. Es wird nichts erfunden und nichts gespeichert, bevor du den Entwurf bestätigst.</p>
       <h3 class="import-help-h import-help-h--sub">Beispiel</h3>
       <pre class="import-example">Gemüsesuppe

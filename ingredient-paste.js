@@ -85,25 +85,67 @@ function ingPasteApply() {
   showToast(`${items.length} Zutat${items.length === 1 ? '' : 'en'} eingefügt`);
 }
 
-/* ---------- Foto scannen (iOS-App): Text aus einem Foto in das Importfeld ---------- */
+/* ---------- Rezept aus Fotos importieren (v93) ----------
+   Ersetzt «Foto scannen». Die Fotos werden von imageImportRead (image-import.js) gelesen: in der iOS-App mit der Texterkennung von iOS,
+   sonst lokal mit Tesseract. Der Text wird ans Textfeld angehängt (pdfImportAppend, ui.js). Zustand teilt sich mit dem PDF-Import
+   in state.pdfImport = { status: 'reading'|'done'|'weak'|'error', msg }; das Foto wird nicht gespeichert. */
+function imageImportErrorText(code) {
+  if (code === 'not-image') return 'Das ist kein Foto. Wähle ein Bild aus deinen Fotos.';
+  if (code === 'too-large') return 'Das Foto ist grösser als 30 MB. Wähle ein kleineres Foto.';
+  if (code === 'unsupported') return 'Dieses Bildformat kann dein Gerät hier nicht lesen. Wähle ein JPG oder PNG.';
+  return 'Die Texterkennung hat nicht geklappt. Versuche es noch einmal oder füge den Text von Hand ein.';
+}
+function imageImportProgressText(info) {
+  const pct = Math.max(0, Math.min(100, Math.round((info && info.progress || 0) * 100)));
+  if (info && info.phase === 'load') return 'Texterkennung wird geladen … (einmalig)';
+  const n = (info && info.count) || 1, i = Math.min(n, ((info && info.index) || 0) + 1);   // index zählt ab 0
+  return (n > 1 ? `Foto ${i} von ${n} wird gelesen … ` : 'Foto wird gelesen … ') + pct + ' %';
+}
+async function imageImportStart(fileList) {
+  const files = Array.from(fileList || []).filter(Boolean);
+  if (!files.length) return;
+  const token = ++pdfImportToken;   // gemeinsamer Zähler mit dem PDF-Import: nur die letzte Wahl zählt
+  pdfImportPages = [];
+  if (state.view !== 'paste-import') {   // aus dem Plus-Menü: «Aus Text importieren» öffnen
+    state.modal = null;
+    state.pasteImport = { text: '', url: '' };
+    state.view = 'paste-import';
+  }
+  state.pdfImport = { status: 'reading', msg: 'Foto wird gelesen …' };
+  render();
+  let res;
+  try {
+    res = await imageImportRead(files, { onProgress: (info) => {
+      if (token !== pdfImportToken || !state.pdfImport || state.pdfImport.status !== 'reading') return;
+      state.pdfImport.msg = imageImportProgressText(info);
+      const el = document.getElementById('pdfStatus');
+      if (el) el.textContent = state.pdfImport.msg;
+    } });
+  } catch (e) { res = { ok: false, error: 'load-failed' }; }
+  if (token !== pdfImportToken) return;
+  res = res || { ok: false, error: 'load-failed' };
+  const text = String(res.text || '').trim();
+  if (!res.ok) {
+    state.pdfImport = { status: 'error', msg: imageImportErrorText(res.error) };
+  } else if (!text) {
+    state.pdfImport = { status: 'weak', msg: 'Es wurde kein Text erkannt. Versuche es mit mehr Licht und einem geraden Foto, oder lass die KI das Foto lesen.' };
+  } else {
+    pdfImportAppend(text);
+    state.pdfImport = res.weak
+      ? { status: 'weak', msg: 'Text erkannt, aber das Foto war schwer zu lesen. Prüfe den Text genau oder lass die KI das Foto lesen.' }
+      : { status: 'done', msg: 'Text erkannt. Prüfe ihn kurz und tippe dann auf «Rezept-Entwurf erstellen».' };
+  }
+  render();
+  pdfImportGrowField();
+}
 function bindPhotoScan() {
-  const input = document.getElementById('ocrInput');
-  if (!input || input.dataset.bound) return;
-  input.dataset.bound = '1';
-  input.addEventListener('change', async () => {
-    const file = input.files && input.files[0];
-    if (!file) return;
-    const status = document.getElementById('ocrStatus');
-    const say = (t) => { if (status) status.textContent = t; };
-    say('Text wird erkannt …');
-    try {
-      const text = await SavoraNative.recognizeText(file);
-      if (!text) { say('Es wurde kein Text erkannt. Versuche es mit mehr Licht und einem geraden Foto.'); return; }
-      const ta = document.getElementById('pasteText');
-      if (ta) { ta.value = (ta.value.trim() ? ta.value.trim() + '\n' : '') + text; ta.style.height = 'auto'; ta.style.height = Math.min(ta.scrollHeight + 6, window.innerHeight * 0.5) + 'px'; }   // Feld waechst mit dem Text
-      say('Text erkannt. Prüfe ihn kurz und tippe dann auf „Rezept-Entwurf erstellen“.');
-    } catch (e) {
-      say('Die Texterkennung hat nicht geklappt. Du kannst den Text auch von Hand einfügen.');
-    } finally { input.value = ''; }
+  if (window.__imgImportDocBound) return;
+  window.__imgImportDocBound = true;   // einmalig: Dateiwahl im Plus-Menü und im Textimport
+  document.addEventListener('change', (e) => {
+    const t = e.target;
+    if (!t || !t.matches || !t.matches('input.imgimp-file-input')) return;
+    const files = Array.from(t.files || []);
+    t.value = '';
+    if (files.length) imageImportStart(files);
   });
 }

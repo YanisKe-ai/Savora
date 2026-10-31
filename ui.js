@@ -625,7 +625,7 @@ async function dispatchAction(action, id, el, e) {
       const say = (msg) => { if (hint) hint.textContent = msg; };
       let ok = false;
       try { if (navigator.clipboard && navigator.clipboard.writeText) { await navigator.clipboard.writeText(SAVORA_KI_PROMPT); ok = true; } } catch (err) { ok = false; }
-      if (ok) { say(pdfImportScanned() ? 'Prompt kopiert. Jetzt in der KI einfügen und die PDF anhängen.' : 'Prompt kopiert. Jetzt in der KI einfügen und den Link ans Ende setzen.'); showToast('Prompt kopiert'); break; }
+      if (ok) { say(imageImportWeak() ? 'Prompt kopiert. Jetzt in der KI einfügen und das Foto anhängen.' : pdfImportScanned() ? 'Prompt kopiert. Jetzt in der KI einfügen und die PDF anhängen.' : 'Prompt kopiert. Jetzt in der KI einfügen und den Link ans Ende setzen.'); showToast('Prompt kopiert'); break; }
       document.querySelectorAll('.ki-prompt-how, .ki-prompt-details').forEach(d => { d.open = true; });
       const pre = document.getElementById('kiPromptText');
       if (pre && window.getSelection) { const rg = document.createRange(); rg.selectNodeContents(pre); const sel = window.getSelection(); sel.removeAllRanges(); sel.addRange(rg); }
