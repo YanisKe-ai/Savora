@@ -997,11 +997,14 @@ function stepsPanel(r) {
   const sections = entries.some(e => e.heading);
   const titleTag = sections ? 'h4' : 'h3';   // Abschnitt (h3) > Schrittüberschrift
   // Schrittüberschrift separat, Text darunter. «Überschrift: Text» in einem Schritt wird nur in der Anzeige getrennt (stepDisplayParts, recipe-check.js).
-  return `<ol class="step-list-v2">${entries.map(e => {
+  const hasExtras = typeof stepCheckHtml === 'function';   // step-extras.js (v0.95): Schritte abhaken und Mengen im Text
+  return `<ol class="step-list-v2" data-recipe-id="${escapeAttr(r.id)}">${entries.map(e => {
     if (e.heading) return `<li class="step-heading"><h3>${escapeHtml(String(e.text).trim().replace(/:$/, ''))}</h3></li>`;
     const parts = typeof stepDisplayParts === 'function' ? stepDisplayParts(e.text) : { title: '', text: e.text };
-    return `<li class="step-item ${parts.title ? 'has-title' : ''}"><span class="step-no" aria-hidden="true">${++n}</span><div class="step-body"><span class="sr-only">Schritt ${n}: </span>${parts.title ? `<${titleTag} class="step-title">${escapeHtml(parts.title)}</${titleTag}>` : ''}<p>${escapeHtml(parts.text)}</p></div></li>`;
-  }).join('')}</ol>${typeof cookLastCookedHtml === 'function' ? cookLastCookedHtml(r) : ''}`;
+    ++n;
+    const done = hasExtras && stepIsDone(r, e.sourceIndex);
+    return `<li class="step-item ${parts.title ? 'has-title' : ''}${done ? ' is-done' : ''}"${hasExtras ? ` data-step-key="${e.sourceIndex}"` : ''}>${hasExtras ? stepCheckHtml(r, e.sourceIndex, n) : `<span class="step-no" aria-hidden="true">${n}</span>`}<div class="step-body"><span class="sr-only">Schritt ${n}: </span>${parts.title ? `<${titleTag} class="step-title">${escapeHtml(parts.title)}</${titleTag}>` : ''}<p>${hasExtras ? stepQtyHtml(r, e.step, parts.text) : escapeHtml(parts.text)}</p></div></li>`;
+  }).join('')}</ol>${hasExtras ? stepResetHtml(r) : ''}${typeof cookLastCookedHtml === 'function' ? cookLastCookedHtml(r) : ''}`;
 }
 function notesPanel(r) {
   const log = (r.cookLog || []).filter(n => n && String(n.text || '').trim()).sort((a, b) => (b.date || 0) - (a.date || 0));   // v89: Kocheinträge ohne Notiz sind nur Verlauf
@@ -1635,12 +1638,15 @@ function shoppingItemRow(i) {
   const recipeTitles = Array.from(new Set((i.sources || []).map(s => s.title || (state.recipes.find(r => r.id === s.recipeId) || {}).title).filter(Boolean)));
   const amount = i.amount !== '' && i.amount !== undefined && i.amount !== null ? escapeHtml(shopAmountLine(i)) : (i.unit ? escapeHtml(i.unit) : '');
   return `<div class="shop-row ${i.checked ? 'is-checked' : ''}" data-id="${escapeAttr(i.id)}">
+    <span class="shop-swipe-bg shop-swipe-bg--ok" aria-hidden="true">${ICONS.check}</span><span class="shop-swipe-bg shop-swipe-bg--del" aria-hidden="true">${ICONS.trash}</span>
+    <div class="shop-row-fg">
     <button class="shop-check" data-action="toggle-shopping-item" data-id="${escapeAttr(i.id)}" role="checkbox" aria-checked="${!!i.checked}" aria-label="${escapeHtml(i.name)}"><span class="check-box" aria-hidden="true">${ICONS.check}</span></button>
     <div class="shop-text">
       <span class="shop-name">${amount ? `<strong>${amount}</strong> ` : ''}${escapeHtml(i.name)}</span>
       ${recipeTitles.length ? `<span class="shop-source">aus: ${escapeHtml(recipeTitles.join(', '))}</span>` : ''}
     </div>
     <button class="icon-btn icon-btn--small" data-action="open-shop-item" data-id="${escapeAttr(i.id)}" aria-label="${escapeHtml(i.name)} bearbeiten">${ICONS.moreH}</button>
+    </div>
   </div>`;
 }
 function shoppingView() {
@@ -1763,7 +1769,7 @@ function mealplanView() {
       const servings = e.servings || r.servings || 0;
       const thumb = hasPhoto(r) ? recipeImageHtml(r, 'plan-thumb', 'thumb') : '';   // ohne Foto keine Platzhalterflaeche
       return `<div class="plan-entry ${thumb ? 'has-thumb' : ''}">
-        <button class="plan-entry-main" data-action="open-recipe" data-id="${escapeAttr(r.id)}">
+        <button class="plan-entry-main" data-action="open-recipe" data-id="${escapeAttr(r.id)}" data-plan-date="${escapeAttr(key)}" data-plan-entry="${escapeAttr(e.id)}">
           ${thumb}
           <span class="plan-entry-text">${e.meal ? `<span class="plan-meal">${escapeHtml(mealLabel(e.meal))}</span>` : ''}<span class="plan-title">${escapeHtml(r.title || 'Ohne Titel')}</span><span class="plan-servings">${escapeHtml(servingLabel(r, servings))}</span></span>
         </button>

@@ -685,7 +685,7 @@ async function handleActionV2(action, id, el, e) {
         state.cookStepIndex = Math.min(p.step || 0, Math.max(0, cookSteps(r).length - 1));
         state.checkedIngredients[id] = new Set(p.checked || []);
         Object.entries(p.timers || {}).forEach(([tid, t]) => {
-          if (state.timers[tid] && state.timers[tid].running) return;
+          if (state.timers[tid]) return;   // v95: Stand im Speicher ist aktueller (läuft, fertig oder schon bestätigt)
           if (t.running && t.endTime) {
             const remaining = Math.max(0, Math.round((t.endTime - Date.now()) / 1000));
             if (remaining > 0) { state.timers[tid] = { total: t.total, remaining, endTime: t.endTime, running: false, done: false }; startTimer(tid, t.total); }
@@ -780,8 +780,7 @@ async function handleActionV2(action, id, el, e) {
       releaseWakeLock();
       if ('speechSynthesis' in window) window.speechSynthesis.cancel();
       cookAlarmStop(); cookVoiceStop(); state.cookMise = false;
-      Object.values(state.timers).forEach(t => { if (t.intervalId) clearInterval(t.intervalId); t.intervalId = null; t.running = false; });
-      state.timers = {}; SavoraNative.cancelAllTimers();
+      /* v95: laufende und fertige Timer bleiben beim Verlassen erhalten (Timer-Pille, timer-dock.js) */
       state.cookFinished = false;
       history.back();
       return true;
@@ -797,8 +796,13 @@ async function handleActionV2(action, id, el, e) {
       clearCookProgress();
       checkedSetFor(r.id).clear();
       releaseWakeLock();
-      Object.values(state.timers).forEach(t => { if (t.intervalId) clearInterval(t.intervalId); });
-      state.timers = {}; SavoraNative.cancelAllTimers();
+      // v95: nur die Timer dieses Rezepts beenden; Timer anderer Rezepte laufen weiter (Timer-Anzeige)
+      Object.keys(state.timers).forEach(tid => {
+        const t = state.timers[tid];
+        if (!(t && t.meta ? t.meta.recipeId === r.id : String(tid).indexOf(r.id + '-') === 0)) return;
+        if (t && t.intervalId) clearInterval(t.intervalId);
+        delete state.timers[tid]; SavoraNative.cancelTimer(tid);
+      });
       state.cookFinished = false;
       state.cookStepIndex = 0;
       state.cookProgressHandled = true;

@@ -78,7 +78,7 @@ async def main():
         check('Timer plant lokale Benachrichtigung mit Rezeptname', ok, str(sc[:1]))
         await click(page, '[data-action="exit-cook"]')
         await page.wait_for_timeout(400)
-        check('Kochmodus verlassen: Benachrichtigung storniert, Bildschirm darf ausgehen', len(await calls(page, 'notif.cancel')) >= 1 and len(await calls(page, 'allowSleep')) >= 1)
+        check('Kochmodus verlassen: Benachrichtigung bleibt geplant (Timer laeuft weiter, v95), Bildschirm darf ausgehen', len(await calls(page, 'notif.cancel')) == 0 and len(await calls(page, 'allowSleep')) >= 1)
 
         check('Haptik: Timer-Start und Timer-Ende rufen das Haptik-Plugin', len(await calls(page, 'haptic.impact')) >= 1)
 

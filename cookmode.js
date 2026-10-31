@@ -1,3 +1,13 @@
+/* v95: Metadaten fuer die Timer-Pille. Die ID ist `${recipeId}-${stepIdx}-${key}`; die Rezept-ID kann Bindestriche enthalten,
+   darum wird nicht zerlegt, sondern anhand der aktiven Rezept-ID gelesen. */
+function timerMetaFor(id) {
+  const rid = state.activeRecipeId;
+  const r = (state.recipes || []).find((x) => x.id === rid);
+  if (!rid || String(id).indexOf(rid + '-') !== 0) return null;
+  const m = /^(\d+)-/.exec(String(id).slice(rid.length + 1));
+  return { recipeId: rid, stepIdx: m ? parseInt(m[1], 10) : 0, label: (r && r.title) || '' };
+}
+
 function startTimer(id, totalSeconds) {
   if (state.timers[id] && state.timers[id].running) return;
   const existing = state.timers[id];
@@ -10,6 +20,7 @@ function startTimer(id, totalSeconds) {
     running: true,
     done: false,
     intervalId: null,
+    meta: timerMetaFor(id),   // v95: Rezept, Schritt und Name fuer die Timer-Pille ausserhalb des Kochmodus
   };
   state.timers[id] = t;
   t.intervalId = setInterval(() => tickTimer(id), 1000);
@@ -31,6 +42,7 @@ function tickTimer(id) {
     t.remaining = 0;
     t.running = false;
     t.done = true;
+    t.ack = false;   // v95: Pille zeigt «Fertig», bis sie bestaetigt wird
     clearInterval(t.intervalId);
     t.intervalId = null;
     finishTimerFeedback(id);
@@ -130,8 +142,11 @@ function cookAlarmBeep() {
 function cookAlarmText() {
   if (!_cookAlarm) return '';
   const steps = Array.from(_cookAlarm.ids).map(id => { const m = /-(\d+)-[^-]*$/.exec(id); return m ? parseInt(m[1], 10) + 1 : null; }).filter(Boolean).sort((a, b) => a - b);
-  if (!steps.length) return 'Ein Timer ist abgelaufen.';
-  return steps.length === 1 ? `Schritt ${steps[0]} ist bereit.` : `Schritte ${steps.join(', ')} sind bereit.`;
+  // v95: Timer laufen nach dem Kochmodus weiter; ausserhalb davon (oder bei einem anderen Rezept) den Rezeptnamen nennen
+  const titles = Array.from(new Set(Array.from(_cookAlarm.ids).map(id => { const t = state.timers[id]; const m = t && t.meta; return m && (state.view !== 'cookmode' || m.recipeId !== state.activeRecipeId) ? m.label : ''; }).filter(Boolean)));
+  const pre = titles.length === 1 ? `${titles[0]}: ` : '';
+  if (!steps.length) return pre + 'Ein Timer ist abgelaufen.';
+  return pre + (steps.length === 1 ? `Schritt ${steps[0]} ist bereit.` : `Schritte ${steps.join(', ')} sind bereit.`);
 }
 function cookAlarmRender() {
   if (!_cookAlarm) return;
@@ -157,7 +172,8 @@ function cookAlarmRender() {
     document.body.appendChild(el);
   }
   el.querySelector('#cookAlarmText').textContent = cookAlarmText();
-  if (fresh) { const ok = el.querySelector('.cook-alarm-ok'); try { ok.focus({ preventScroll: true }); } catch (e) {} }
+  // Fokus nur im Kochmodus übernehmen; sonst würde ein Timer mitten im Tippen (Einkauf, Editor) das Eingabefeld schliessen
+  if (fresh && state.view === 'cookmode') { const ok = el.querySelector('.cook-alarm-ok'); try { ok.focus({ preventScroll: true }); } catch (e) {} }
 }
 function cookAlarmStart(id) {
   if (!_cookAlarm) {
@@ -407,6 +423,7 @@ function cookTimerBarHtml(r) {
     </div>`).join('');
 }
 function refreshCookTimerBar() {
+  if (typeof timerDockUpdate === 'function') timerDockUpdate();   // v95: Pille ausserhalb des Kochmodus
   const box = document.getElementById('cookTimerBar');
   if (!box) return;
   const r = state.recipes.find(x => x.id === state.activeRecipeId);

@@ -774,10 +774,10 @@ body { font-size: 1rem; }
 .cook-timerbar[hidden] { display: none; }
 .cook-timerbar::-webkit-scrollbar { display: none; }
 .cook-timer-item { display: flex; align-items: stretch; flex: 0 0 auto; border: 1px solid rgba(255,255,255,.24); border-radius: 999px; background: rgba(255,255,255,.08); overflow: hidden; }
-.cook-timer-go { min-height: 46px; padding: 0 1rem; display: flex; gap: 0.5rem; align-items: baseline; background: none; border: none; color: #fff; }
+.cook-timer-go { min-height: 46px; padding: 0.5rem 1rem; display: flex; gap: 0.5rem; align-items: baseline; background: none; border: none; color: #fff; }
 .cook-timer-step { font-size: 0.875rem; opacity: .85; }
 .cook-timer-go b { font-variant-numeric: tabular-nums; font-size: 1.1875rem; letter-spacing: 0; }
-.cook-timer-plus { min-height: 46px; padding: 0 1rem; border: none; border-left: 1px solid rgba(255,255,255,.24); background: none; color: var(--lime); font-weight: 800; font-size: 0.875rem; }
+.cook-timer-plus { min-height: 46px; padding: 0.5rem 1rem; border: none; border-left: 1px solid rgba(255,255,255,.24); background: none; color: var(--lime); font-weight: 800; font-size: 0.875rem; }
 .cook-timer-item.is-done { border-color: var(--lime); background: var(--lime); }
 .cook-timer-item.is-done .cook-timer-go, .cook-timer-item.is-done .cook-timer-plus { color: var(--lime-ink); }
 .cook-timer-item.is-done .cook-timer-plus { border-left-color: rgba(28,28,33,.25); }
@@ -5285,12 +5285,15 @@ html:not(#lp) body .home-main > .today-planned { display: block; overflow: visib
 }
 /* v94 Schnellmenü (quick-menu.js): langes Drücken, Rechtsklick oder Kontextmenü-Taste auf einer Rezept-Karte.
    Vorbild: Kontextmenü auf dem iPhone. Karte hebt sich ab, Hintergrund wird ruhig und unscharf, Menü wächst aus der Karte. */
-.home-main :is(.rcard, .rrow) { -webkit-touch-callout: none; }
-.home-main :is(.rcard-main, .rrow-main) { -webkit-user-select: none; user-select: none; }
-.home-main :is(.rcard-main, .rrow-main) img { -webkit-user-drag: none; }
-.home-main :is(.rcard, .rrow) { transition: transform 260ms cubic-bezier(0.32, 0.72, 0, 1); }
-.home-main :is(.rcard, .rrow).qm-pressing { transform: scale(0.97); transition-duration: 420ms; }   /* sanftes Eindrücken während des Haltens */
+.home-main :is(.rcard, .rrow), .plan-main .plan-entry { -webkit-touch-callout: none; }
+.home-main :is(.rcard-main, .rrow-main), .plan-main .plan-entry-main { -webkit-user-select: none; user-select: none; }
+.home-main :is(.rcard-main, .rrow-main) img, .plan-main .plan-entry-main img { -webkit-user-drag: none; }
+.home-main :is(.rcard, .rrow), .plan-main .plan-entry { transition: transform 260ms cubic-bezier(0.32, 0.72, 0, 1); }
+.home-main :is(.rcard, .rrow).qm-pressing, .plan-main .plan-entry.qm-pressing { transform: scale(0.97); transition-duration: 420ms; }   /* sanftes Eindrücken während des Haltens */
 .qm-source { visibility: hidden; }
+/* v95: iPhone zeigte beim Halten die Lupe zum Markieren (über der Vorschau-Kopie der Karte). Während des Haltens und solange das Menü offen ist,
+   ist nichts markierbar und es gibt kein Systemmenü. */
+html.qm-holding, html.qm-holding *, .qm-layer, .qm-layer * { -webkit-user-select: none !important; user-select: none !important; -webkit-touch-callout: none !important; }
 
 .qm-layer { position: fixed; inset: 0; z-index: calc(var(--z-toast, 200) + 20); }
 .qm-scrim { position: absolute; inset: 0; background: rgba(20, 18, 15, 0.28); -webkit-backdrop-filter: blur(14px) saturate(120%); backdrop-filter: blur(14px) saturate(120%);
@@ -5304,7 +5307,7 @@ html:not(#lp) body .home-main > .today-planned { display: block; overflow: visib
   -webkit-backdrop-filter: blur(24px) saturate(160%); backdrop-filter: blur(24px) saturate(160%);
   border: 1px solid var(--hairline, rgba(0, 0, 0, 0.08)); box-shadow: 0 24px 60px -18px rgba(0, 0, 0, 0.5);
   opacity: 0; transform: scale(0.82); transition: opacity 180ms ease-out, transform 320ms cubic-bezier(0.32, 0.72, 0, 1); will-change: transform; }
-.qm-item { display: flex; align-items: center; justify-content: space-between; gap: 1rem; width: 100%; min-height: 46px; padding: 0 1rem;
+.qm-item { display: flex; align-items: center; justify-content: space-between; gap: 1rem; width: 100%; min-height: 46px; padding: 0.5rem 1rem;
   border: none; border-radius: 0.75rem; background: none; color: var(--text); font: inherit; font-size: 1rem; font-weight: 500; text-align: left; cursor: pointer;
   touch-action: manipulation; -webkit-user-select: none; user-select: none; transition: background-color 120ms ease; }
 .qm-icon { display: inline-flex; flex: none; }
@@ -5325,7 +5328,7 @@ html:not(#lp) body .home-main > .today-planned { display: block; overflow: visib
 .qm-layer.is-closing .qm-preview { transition-duration: 200ms; }
 
 @media (prefers-reduced-motion: reduce) {
-  .home-main :is(.rcard, .rrow), .home-main :is(.rcard, .rrow).qm-pressing { transition: none; transform: none; }
+  .home-main :is(.rcard, .rrow), .home-main :is(.rcard, .rrow).qm-pressing, .plan-main .plan-entry, .plan-main .plan-entry.qm-pressing { transition: none; transform: none; }
   .qm-preview, .qm-layer.is-open .qm-preview { transform: translateY(var(--qm-shift, 0px)); transition: none; }
   .qm-menu, .qm-layer.is-open .qm-menu, .qm-layer.is-closing .qm-menu { transform: none; transition: opacity 120ms ease; }
 }
@@ -5334,3 +5337,76 @@ html:not(#lp) body .home-main > .today-planned { display: block; overflow: visib
   .qm-menu { -webkit-backdrop-filter: none; backdrop-filter: none; background: var(--card-bg, var(--bg)); }
 }
 .qm-menu:focus { outline: none; }
+/* v95 Schritte */
+.step-item { touch-action: manipulation; cursor: pointer; }
+.step-item .step-check { appearance: none; -webkit-appearance: none; border: 0; background: none; padding: 0; margin: -0.5rem; width: 2.875rem; height: 2.875rem; display: inline-flex; align-items: center; justify-content: center; color: inherit; font: inherit; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; cursor: pointer; }
+.step-item .step-check:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; border-radius: 50%; }
+.step-item .step-no { position: relative; transition: background-color 160ms var(--ease-out), color 160ms var(--ease-out), transform 100ms var(--ease-out); }
+.step-item .step-no-num { transition: opacity 160ms var(--ease-out); }
+.step-item .step-no-tick { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; opacity: 0; transform: scale(0.7); transition: opacity 160ms var(--ease-out), transform 160ms var(--ease-out); }
+.step-item .step-no-tick svg { width: 1rem; height: 1rem; }
+.step-item .step-check:active .step-no { transform: scale(0.94); }
+.step-item.is-done .step-no { background: var(--accent); color: var(--on-tomato, #fff); }
+.step-item.is-done .step-no-num { opacity: 0; }
+.step-item.is-done .step-no-tick { opacity: 1; transform: scale(1); }
+.step-item .step-body { transition: opacity 160ms var(--ease-out); }
+.step-item.is-done .step-body { opacity: 0.62; }
+.step-reset-btn { display: block; margin: 0.5rem 0 0 auto; }
+.step-reset-btn[hidden] { display: none; }
+.step-qty { display: inline-block; white-space: nowrap; font-weight: 700; font-variant-numeric: tabular-nums; padding: 0 0.25rem; border-radius: 0.5rem; background: rgba(127, 127, 127, 0.18); background: color-mix(in srgb, var(--tomato, #B93B2C) 14%, transparent); }
+.cook-v2 .step-qty { background: rgba(255, 255, 255, 0.18); }
+@media (prefers-reduced-motion: reduce) {
+  .step-item .step-no, .step-item .step-no-num, .step-item .step-no-tick, .step-item .step-body { transition: none; }
+  .step-item .step-no-tick { transform: none; }
+}
+/* v95 Einkauf wischen */
+.shop-row { position: relative; display: block; touch-action: pan-y pinch-zoom; -webkit-touch-callout: none; }
+.shop-row-fg { display: flex; align-items: center; gap: 0.5rem; min-height: 3.25rem; will-change: auto; }
+.shop-row.is-swiping { overflow: hidden; }
+.shop-row.is-swiping .shop-row-fg { background: var(--bg); will-change: transform; }
+.shop-swipe-bg { display: none; position: absolute; top: 0; right: 0; bottom: 0; left: 0; align-items: center; padding: 0 1.5rem; color: var(--card-bg); }
+.shop-swipe-bg > svg { width: 1.5rem; height: 1.5rem; opacity: 0; transition: transform 160ms cubic-bezier(0.32, 0.72, 0, 1); }
+.shop-swipe-bg--ok { background: var(--success); justify-content: flex-start; }
+.shop-swipe-bg--del { background: var(--danger); justify-content: flex-end; }
+.shop-row.is-swipe-ok .shop-swipe-bg--ok, .shop-row.is-swipe-del .shop-swipe-bg--del { display: flex; }
+.shop-row.is-armed .shop-swipe-bg > svg { transform: scale(1.25); }
+@media (prefers-reduced-motion: reduce) {
+  .shop-swipe-bg > svg { transition: none; }
+}
+/* v95 Timer überall */
+.timer-dock { position: fixed; left: 0; right: 0; margin: 0 auto; width: max-content; max-width: min(calc(100vw - 2rem), 22rem); bottom: 5rem; z-index: calc(var(--z-sticky, 20) + 5); display: flex; align-items: center; gap: 0.25rem; padding: 0.25rem; border-radius: 1.75rem; background: var(--card-bg, var(--bg)); color: var(--text); border: 1px solid var(--border, var(--hairline)); box-shadow: 0 8px 24px -8px rgba(0, 0, 0, 0.35); opacity: 0; transform: translateY(0.75rem); translate: 0 0; transition: opacity 200ms var(--ease-out, ease-out), transform 200ms var(--ease-out, ease-out), translate 200ms var(--ease-out, ease-out); }
+.timer-dock[hidden] { display: none; }
+.timer-dock.is-in { opacity: 1; transform: translateY(0); }
+body:has(.toast) .timer-dock { translate: 0 -4.5rem; }   /* Abstand zu Toasts: sie liegen knapp über der Navigation */
+.timer-dock-main { appearance: none; border: none; background: transparent; color: inherit; font: inherit; display: flex; align-items: center; gap: 0.5rem; min-height: 44px; min-width: 44px; padding: 0.25rem 0.75rem; border-radius: 1.5rem; cursor: pointer; text-align: left; -webkit-tap-highlight-color: transparent; transition: transform 120ms var(--ease-out, ease-out); }
+.timer-dock-main:active { transform: scale(0.97); }
+.timer-dock-main:focus-visible, .timer-dock-ok:focus-visible { outline: 2px solid var(--tomato); outline-offset: 2px; }
+.timer-dock-icon { flex: none; display: inline-flex; color: var(--tomato); }
+.timer-dock-icon svg { width: 1.25rem; height: 1.25rem; }
+.timer-dock-time { flex: none; font-family: var(--font-sans); font-size: 1rem; font-weight: 700; font-variant-numeric: tabular-nums; }
+.timer-dock-name { min-width: 0; font-size: 0.875rem; font-weight: 600; line-height: 1.25; overflow-wrap: anywhere; color: var(--text-soft); }
+.timer-dock-more { flex: none; font-size: 0.875rem; font-weight: 700; color: var(--text-soft); }
+.timer-dock-ok { flex: none; appearance: none; border: none; min-height: 44px; min-width: 44px; padding: 0 1rem; border-radius: 1.5rem; background: var(--on-tomato); color: var(--tomato); font: inherit; font-size: 1rem; font-weight: 700; cursor: pointer; -webkit-tap-highlight-color: transparent; transition: transform 120ms var(--ease-out, ease-out); }
+.timer-dock-ok[hidden] { display: none; }
+.timer-dock-ok:active { transform: scale(0.97); }
+.timer-dock.is-done { background: var(--tomato); color: var(--on-tomato); border-color: transparent; }
+.timer-dock.is-done .timer-dock-icon, .timer-dock.is-done .timer-dock-name, .timer-dock.is-done .timer-dock-more { color: var(--on-tomato); }
+.timer-dock.is-done .timer-dock-name { font-weight: 700; }
+.timer-dock.is-done::after { content: ''; position: absolute; inset: -4px; border-radius: inherit; border: 2px solid var(--tomato); pointer-events: none; opacity: 0; animation: timerDockPulse 1.6s var(--ease-out, ease-out) infinite; }
+@keyframes timerDockPulse { 0% { opacity: 0.55; transform: scale(0.98); } 70%, 100% { opacity: 0; transform: scale(1.04); } }
+@media (min-width: 900px) {
+  .timer-dock { left: auto; right: 1.5rem; margin: 0; }
+  body:has(.toast) .timer-dock { translate: 0 -4rem; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .timer-dock { transform: none; transition: opacity 200ms ease; }
+  .timer-dock.is-in { transform: none; }
+  body:has(.toast) .timer-dock { transition: opacity 200ms ease; }
+  .timer-dock.is-done::after { animation: none; display: none; }
+  .timer-dock-main:active, .timer-dock-ok:active { transform: none; }
+}
+/* v95 Meldungen: alle Meldungen bekommen ihre eigene Breite (vorher höchstens halb so breit wie der Bildschirm, weil von der Mitte aus positioniert) */
+.toast { width: max-content; max-width: min(92vw, 30rem); text-align: center; }
+.toast-undo { white-space: normal; }   /* v95: lange Meldung mit «Rückgängig» bricht um, der Knopf bleibt im Bild */
+.toast-undo > span, .toast-undo > .toast-text { min-width: 0; }
+.toast-undo .toast-undo-btn { flex: none; white-space: nowrap; }
