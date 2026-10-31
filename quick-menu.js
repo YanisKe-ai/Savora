@@ -90,6 +90,7 @@ function qmOpen(card, viaKeyboard, byHold) {
   // byHold: nach langem Drücken folgt beim Loslassen oft ein Klick auf die Abdeckung; der darf das Menü nicht gleich schliessen
   qmOpenState = { layer, card, visual, id: r.id, viaKeyboard, byHold: !!byHold, W };
   ['pointerdown', 'keydown'].forEach(t => layer.addEventListener(t, () => { if (qmOpenState) qmOpenState.byHold = false; }));
+  layer.addEventListener('keydown', () => { if (qmOpenState) qmOpenState.viaKeyboard = true; });   // Tastatur benutzt: Fokus kehrt danach auf die Karte zurück
   // Auf das nächste Bild warten, dann einblenden (CSS-Übergänge starten vom Ausgangszustand)
   requestAnimationFrame(() => requestAnimationFrame(() => layer.classList.add('is-open')));
   if (!reduce && navigator.vibrate) { try { navigator.vibrate(8); } catch (e) {} }   // Android: kurzer Ruck; iPhone-Browser kennt das nicht
@@ -118,7 +119,9 @@ function qmClose(opts) {
     const reduce = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
     setTimeout(done, reduce ? 120 : 200);
   }
-  if (!(opts && opts.keepFocus) && card.isConnected) { try { card.focus({ preventScroll: true }); } catch (e) {} }
+  // Fokus nur bei Tastaturbedienung auf die Karte zurück; mit dem Finger bliebe sonst ein Fokusrahmen auf der Karte stehen (iPhone)
+  if (s.viaKeyboard && !(opts && opts.keepFocus) && card.isConnected) { try { card.focus({ preventScroll: true }); } catch (e) {} }
+  else if (document.activeElement && layer.contains(document.activeElement)) document.activeElement.blur();
 }
 
 function qmLayerClick(e) {
@@ -128,19 +131,20 @@ function qmLayerClick(e) {
   if (e.target.closest('[data-qm-close]')) { qmClose(); return; }
   const btn = e.target.closest('[data-qm]');
   if (!btn || !qmOpenState) return;
-  const action = btn.dataset.qm, id = qmOpenState.id, card = qmOpenState.card;
+  const action = btn.dataset.qm, id = qmOpenState.id, kb = qmOpenState.viaKeyboard;
   qmClose({ instant: true, keepFocus: true });
-  qmRun(action, id, card);
+  qmRun(action, id, kb);
 }
 
-async function qmRun(action, id, card) {
-  const sel = `[data-action="open-recipe"][data-id="${(window.CSS && CSS.escape) ? CSS.escape(id) : id}"]`;
+async function qmRun(action, id, kb) {
+  // Nach einem Dialog kehrt der Fokus nur bei Tastaturbedienung auf die Karte zurück (sonst Fokusrahmen auf dem iPhone)
+  const sel = kb ? `[data-action="open-recipe"][data-id="${(window.CSS && CSS.escape) ? CSS.escape(id) : id}"]` : null;
   if (action === 'open-share-menu') {
     // Teilen hat viele Unterwege (Freunde, PDF, Veröffentlichen), die auf der Rezeptseite zuhause sind:
     // Rezept öffnen und dort das Teilen-Menü zeigen
     await qmDispatch('open-recipe', id);
     await new Promise(f => requestAnimationFrame(() => requestAnimationFrame(f)));   // Rezeptseite (samt Übergang) erst fertig zeichnen
-    if (state.view === 'detail') openModal({ type: 'share-menu', recipeId: id }, `[data-action="open-share-menu"][data-id="${(window.CSS && CSS.escape) ? CSS.escape(id) : id}"]`);
+    if (state.view === 'detail') openModal({ type: 'share-menu', recipeId: id }, kb ? `[data-action="open-share-menu"][data-id="${(window.CSS && CSS.escape) ? CSS.escape(id) : id}"]` : null);
     return;
   }
   if (action === 'rcol-open') { openModal({ type: 'rcol', recipeId: id }, sel); return; }
@@ -153,7 +157,7 @@ async function qmRun(action, id, card) {
     return;
   }
   await qmDispatch(action, id);
-  if (state.modal && typeof modalTriggerSelector !== 'undefined') modalTriggerSelector = sel;   // z. B. Einkauf: nach dem Dialog Fokus zurück auf die Karte
+  if (state.modal && typeof modalTriggerSelector !== 'undefined') modalTriggerSelector = sel;   // z. B. Einkauf: der Knopf aus der Aktion existiert auf der Liste nicht
   if (action === 'toggle-fav') {
     const r = qmRecipe(id);
     if (r && typeof showToast === 'function') showToast(r.favorite ? 'Zu Favoriten hinzugefügt' : 'Aus Favoriten entfernt');

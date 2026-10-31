@@ -72,6 +72,8 @@ async def main():
                     await page.evaluate(HOLD_JS, [CARD, 520, False]); await wait_open(page)
                     await page.mouse.click(5, 5); await wait_open(page, False)
                     check('Tipp daneben schliesst, Rezept bleibt zu', await page.evaluate("() => state.view") == 'home')
+                    foc = await page.evaluate("() => { const a = document.activeElement; return a && a.dataset ? (a.dataset.action || a.tagName) : null; }")
+                    check('Finger: nach dem Schliessen kein Fokus (kein Rahmen) auf der Karte', foc != 'open-recipe', foc)
                     # Loslassen: der Klick landet auf der Abdeckung (Hit-Test am Fingerpunkt) und schliesst das Menü nicht
                     await page.evaluate("""async (sel) => { const el = document.querySelector(sel); const r = el.getBoundingClientRect();
                       const x = r.left + r.width / 2, y = r.top + Math.min(r.height / 2, 40);
