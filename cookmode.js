@@ -1,3 +1,13 @@
+/* v95: Metadaten fuer die Timer-Pille. Die ID ist `${recipeId}-${stepIdx}-${key}`; die Rezept-ID kann Bindestriche enthalten,
+   darum wird nicht zerlegt, sondern anhand der aktiven Rezept-ID gelesen. */
+function timerMetaFor(id) {
+  const rid = state.activeRecipeId;
+  const r = (state.recipes || []).find((x) => x.id === rid);
+  if (!rid || String(id).indexOf(rid + '-') !== 0) return null;
+  const m = /^(\d+)-/.exec(String(id).slice(rid.length + 1));
+  return { recipeId: rid, stepIdx: m ? parseInt(m[1], 10) : 0, label: (r && r.title) || '' };
+}
+
 function startTimer(id, totalSeconds) {
   if (state.timers[id] && state.timers[id].running) return;
   const existing = state.timers[id];
@@ -10,6 +20,7 @@ function startTimer(id, totalSeconds) {
     running: true,
     done: false,
     intervalId: null,
+    meta: timerMetaFor(id),   // v95: Rezept, Schritt und Name fuer die Timer-Pille ausserhalb des Kochmodus
   };
   state.timers[id] = t;
   t.intervalId = setInterval(() => tickTimer(id), 1000);
@@ -31,6 +42,7 @@ function tickTimer(id) {
     t.remaining = 0;
     t.running = false;
     t.done = true;
+    t.ack = false;   // v95: Pille zeigt «Fertig», bis sie bestaetigt wird
     clearInterval(t.intervalId);
     t.intervalId = null;
     finishTimerFeedback(id);
@@ -407,6 +419,7 @@ function cookTimerBarHtml(r) {
     </div>`).join('');
 }
 function refreshCookTimerBar() {
+  if (typeof timerDockUpdate === 'function') timerDockUpdate();   // v95: Pille ausserhalb des Kochmodus
   const box = document.getElementById('cookTimerBar');
   if (!box) return;
   const r = state.recipes.find(x => x.id === state.activeRecipeId);

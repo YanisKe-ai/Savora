@@ -780,8 +780,7 @@ async function handleActionV2(action, id, el, e) {
       releaseWakeLock();
       if ('speechSynthesis' in window) window.speechSynthesis.cancel();
       cookAlarmStop(); cookVoiceStop(); state.cookMise = false;
-      Object.values(state.timers).forEach(t => { if (t.intervalId) clearInterval(t.intervalId); t.intervalId = null; t.running = false; });
-      state.timers = {}; SavoraNative.cancelAllTimers();
+      /* v95: laufende und fertige Timer bleiben beim Verlassen erhalten (Timer-Pille, timer-dock.js) */
       state.cookFinished = false;
       history.back();
       return true;
