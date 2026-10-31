@@ -347,7 +347,7 @@ function render(skipHistoryPush) {
   };
 
   const update = () => {
-    App.innerHTML = viewFor(state.view);
+    App.innerHTML = viewFor(state.view) + (typeof qmModalHostHtml === 'function' ? qmModalHostHtml() : '');   // v94: Dialoge aus dem Schnellmenü
     bindEvents();
     // Fenster faehrt nur beim Oeffnen ein (nicht bei jedem Neuzeichnen, waehrend es offen ist)
     if (hasModal && !hadModal) { const sh = document.querySelector('.modal-sheet'); if (sh) sh.classList.add('sheet-enter'); }
@@ -417,7 +417,8 @@ const App = document.getElementById('app');
 
 /* ---------- Data actions ---------- */
 async function loadRecipes() {
-  state.recipes = (await dbGetAll()).sort((a, b) => b.updatedAt - a.updatedAt);
+  const pending = state.pendingDeletes;   // v94: zum Löschen vorgemerkte Rezepte (Rückgängig-Fenster) nicht wieder einblenden
+  state.recipes = (await dbGetAll()).filter(r => !(pending && pending.has(r.id))).sort((a, b) => b.updatedAt - a.updatedAt);
 }
 
 async function loadShopping() {
