@@ -181,7 +181,7 @@ function deleteModal(r) {
   return `<div class="modal-backdrop" data-action="close-modal">
     <div class="modal-sheet" role="dialog" aria-modal="true" aria-labelledby="delete-modal-title" tabindex="-1" data-stop-click>
       <h2 class="modal-title" id="delete-modal-title">Rezept löschen?</h2>
-      <p style="font-size:0.875rem;color:var(--text-muted);">„${escapeHtml(r.title)}“ wird gelöscht. Du findest es 30 Tage lang unter Mehr › Papierkorb.</p>
+      <p style="font-size:0.875rem;color:var(--text-muted);">„${escapeHtml(r.title || 'Ohne Titel')}“ wird gelöscht. Du findest es 30 Tage lang unter Mehr › Papierkorb.</p>
       ${(() => {
         const pub = typeof libPublicationForRecipe === 'function' ? libPublicationForRecipe(r.id) : null;
         if (!pub || pub.status !== 'published') return '';

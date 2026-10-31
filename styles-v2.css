@@ -5283,3 +5283,54 @@ html:not(#lp) body .home-main > .today-planned { display: block; overflow: visib
   .toast-action { flex-direction: column; gap: 0; padding: 0.75rem 1rem 0.25rem; border-radius: 1.5rem; text-align: center; }
   .toast-action-btn { white-space: normal; }
 }
+/* v94 Schnellmenü (quick-menu.js): langes Drücken, Rechtsklick oder Kontextmenü-Taste auf einer Rezept-Karte.
+   Vorbild: Kontextmenü auf dem iPhone. Karte hebt sich ab, Hintergrund wird ruhig und unscharf, Menü wächst aus der Karte. */
+.home-main :is(.rcard, .rrow) { -webkit-touch-callout: none; }
+.home-main :is(.rcard-main, .rrow-main) { -webkit-user-select: none; user-select: none; }
+.home-main :is(.rcard-main, .rrow-main) img { -webkit-user-drag: none; }
+.home-main :is(.rcard, .rrow) { transition: transform 260ms cubic-bezier(0.32, 0.72, 0, 1); }
+.home-main :is(.rcard, .rrow).qm-pressing { transform: scale(0.97); transition-duration: 420ms; }   /* sanftes Eindrücken während des Haltens */
+.qm-source { visibility: hidden; }
+
+.qm-layer { position: fixed; inset: 0; z-index: calc(var(--z-toast, 200) + 20); }
+.qm-scrim { position: absolute; inset: 0; background: rgba(20, 18, 15, 0.28); -webkit-backdrop-filter: blur(14px) saturate(120%); backdrop-filter: blur(14px) saturate(120%);
+  opacity: 0; transition: opacity 240ms cubic-bezier(0.32, 0.72, 0, 1); touch-action: none; }
+.qm-preview { position: absolute; margin: 0; pointer-events: none; transform: translateY(var(--qm-shift, 0px)) scale(0.97);
+  transition: transform 340ms cubic-bezier(0.32, 0.72, 0, 1); will-change: transform; }
+.qm-preview > * { width: 100%; height: 100%; margin: 0; background: var(--bg); border-radius: var(--radius-l, 1.25rem); overflow: hidden;
+  box-shadow: 0 18px 48px -14px rgba(0, 0, 0, 0.45); transform: none !important; }
+.qm-menu { position: absolute; width: min(17rem, calc(100vw - 2rem)); max-height: calc(100vh - 2rem); overflow-y: auto; overscroll-behavior: contain;
+  padding: 0.5rem; border-radius: 1.125rem; background: color-mix(in srgb, var(--card-bg, var(--bg)) 88%, transparent);
+  -webkit-backdrop-filter: blur(24px) saturate(160%); backdrop-filter: blur(24px) saturate(160%);
+  border: 1px solid var(--hairline, rgba(0, 0, 0, 0.08)); box-shadow: 0 24px 60px -18px rgba(0, 0, 0, 0.5);
+  opacity: 0; transform: scale(0.82); transition: opacity 180ms ease-out, transform 320ms cubic-bezier(0.32, 0.72, 0, 1); will-change: transform; }
+.qm-item { display: flex; align-items: center; justify-content: space-between; gap: 1rem; width: 100%; min-height: 46px; padding: 0 1rem;
+  border: none; border-radius: 0.75rem; background: none; color: var(--text); font: inherit; font-size: 1rem; font-weight: 500; text-align: left; cursor: pointer;
+  touch-action: manipulation; -webkit-user-select: none; user-select: none; transition: background-color 120ms ease; }
+.qm-icon { display: inline-flex; flex: none; }
+.qm-icon svg { width: 20px; height: 20px; }
+.qm-item:active { background: var(--surface-soft, rgba(0, 0, 0, 0.06)); }
+@media (hover: hover) and (pointer: fine) { .qm-item:hover { background: var(--surface-soft, rgba(0, 0, 0, 0.06)); } }
+.qm-item:focus { outline: none; }
+.qm-item:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+.qm-item--danger { color: var(--danger); }
+.qm-sep { height: 1px; margin: 0.25rem 0.5rem; background: var(--hairline, rgba(0, 0, 0, 0.1)); }
+
+.qm-layer.is-open .qm-scrim { opacity: 1; }
+.qm-layer.is-open .qm-preview { transform: translateY(var(--qm-shift, 0px)) scale(1.02); }
+.qm-layer.is-open .qm-menu { opacity: 1; transform: scale(1); }
+.qm-layer.is-closing { pointer-events: none; }
+.qm-layer.is-closing .qm-scrim { transition-duration: 180ms; }
+.qm-layer.is-closing .qm-menu { transition: opacity 140ms ease-out, transform 180ms ease-out; transform: scale(0.9); }
+.qm-layer.is-closing .qm-preview { transition-duration: 200ms; }
+
+@media (prefers-reduced-motion: reduce) {
+  .home-main :is(.rcard, .rrow), .home-main :is(.rcard, .rrow).qm-pressing { transition: none; transform: none; }
+  .qm-preview, .qm-layer.is-open .qm-preview { transform: translateY(var(--qm-shift, 0px)); transition: none; }
+  .qm-menu, .qm-layer.is-open .qm-menu, .qm-layer.is-closing .qm-menu { transform: none; transition: opacity 120ms ease; }
+}
+@media (prefers-reduced-transparency: reduce) {
+  .qm-scrim { -webkit-backdrop-filter: none; backdrop-filter: none; background: rgba(20, 18, 15, 0.5); }
+  .qm-menu { -webkit-backdrop-filter: none; backdrop-filter: none; background: var(--card-bg, var(--bg)); }
+}
+.qm-menu:focus { outline: none; }
