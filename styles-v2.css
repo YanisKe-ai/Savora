@@ -5285,12 +5285,15 @@ html:not(#lp) body .home-main > .today-planned { display: block; overflow: visib
 }
 /* v94 Schnellmenü (quick-menu.js): langes Drücken, Rechtsklick oder Kontextmenü-Taste auf einer Rezept-Karte.
    Vorbild: Kontextmenü auf dem iPhone. Karte hebt sich ab, Hintergrund wird ruhig und unscharf, Menü wächst aus der Karte. */
-.home-main :is(.rcard, .rrow) { -webkit-touch-callout: none; }
-.home-main :is(.rcard-main, .rrow-main) { -webkit-user-select: none; user-select: none; }
-.home-main :is(.rcard-main, .rrow-main) img { -webkit-user-drag: none; }
-.home-main :is(.rcard, .rrow) { transition: transform 260ms cubic-bezier(0.32, 0.72, 0, 1); }
-.home-main :is(.rcard, .rrow).qm-pressing { transform: scale(0.97); transition-duration: 420ms; }   /* sanftes Eindrücken während des Haltens */
+.home-main :is(.rcard, .rrow), .plan-main .plan-entry { -webkit-touch-callout: none; }
+.home-main :is(.rcard-main, .rrow-main), .plan-main .plan-entry-main { -webkit-user-select: none; user-select: none; }
+.home-main :is(.rcard-main, .rrow-main) img, .plan-main .plan-entry-main img { -webkit-user-drag: none; }
+.home-main :is(.rcard, .rrow), .plan-main .plan-entry { transition: transform 260ms cubic-bezier(0.32, 0.72, 0, 1); }
+.home-main :is(.rcard, .rrow).qm-pressing, .plan-main .plan-entry.qm-pressing { transform: scale(0.97); transition-duration: 420ms; }   /* sanftes Eindrücken während des Haltens */
 .qm-source { visibility: hidden; }
+/* v95: iPhone zeigte beim Halten die Lupe zum Markieren (über der Vorschau-Kopie der Karte). Während des Haltens und solange das Menü offen ist,
+   ist nichts markierbar und es gibt kein Systemmenü. */
+html.qm-holding, html.qm-holding *, .qm-layer, .qm-layer * { -webkit-user-select: none !important; user-select: none !important; -webkit-touch-callout: none !important; }
 
 .qm-layer { position: fixed; inset: 0; z-index: calc(var(--z-toast, 200) + 20); }
 .qm-scrim { position: absolute; inset: 0; background: rgba(20, 18, 15, 0.28); -webkit-backdrop-filter: blur(14px) saturate(120%); backdrop-filter: blur(14px) saturate(120%);
@@ -5325,7 +5328,7 @@ html:not(#lp) body .home-main > .today-planned { display: block; overflow: visib
 .qm-layer.is-closing .qm-preview { transition-duration: 200ms; }
 
 @media (prefers-reduced-motion: reduce) {
-  .home-main :is(.rcard, .rrow), .home-main :is(.rcard, .rrow).qm-pressing { transition: none; transform: none; }
+  .home-main :is(.rcard, .rrow), .home-main :is(.rcard, .rrow).qm-pressing, .plan-main .plan-entry, .plan-main .plan-entry.qm-pressing { transition: none; transform: none; }
   .qm-preview, .qm-layer.is-open .qm-preview { transform: translateY(var(--qm-shift, 0px)); transition: none; }
   .qm-menu, .qm-layer.is-open .qm-menu, .qm-layer.is-closing .qm-menu { transform: none; transition: opacity 120ms ease; }
 }

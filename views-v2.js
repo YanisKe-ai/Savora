@@ -1763,7 +1763,7 @@ function mealplanView() {
       const servings = e.servings || r.servings || 0;
       const thumb = hasPhoto(r) ? recipeImageHtml(r, 'plan-thumb', 'thumb') : '';   // ohne Foto keine Platzhalterflaeche
       return `<div class="plan-entry ${thumb ? 'has-thumb' : ''}">
-        <button class="plan-entry-main" data-action="open-recipe" data-id="${escapeAttr(r.id)}">
+        <button class="plan-entry-main" data-action="open-recipe" data-id="${escapeAttr(r.id)}" data-plan-date="${escapeAttr(key)}" data-plan-entry="${escapeAttr(e.id)}">
           ${thumb}
           <span class="plan-entry-text">${e.meal ? `<span class="plan-meal">${escapeHtml(mealLabel(e.meal))}</span>` : ''}<span class="plan-title">${escapeHtml(r.title || 'Ohne Titel')}</span><span class="plan-servings">${escapeHtml(servingLabel(r, servings))}</span></span>
         </button>

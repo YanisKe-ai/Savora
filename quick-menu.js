@@ -7,15 +7,30 @@ const QM_HOLD_MS = 420;          // so lange halten, bis das Menü aufgeht (iOS 
 const QM_MOVE_TOL = 10;          // so weit darf der Finger wandern, ohne dass es als Scrollen gilt
 let qmTimer = null, qmStart = null, qmSwallowUntil = 0, qmOpenState = null;
 
-function qmEnabled() { return state.view === 'home' && !(typeof hvSelecting === 'function' && hvSelecting()) && !state.modal; }
+function qmEnabled() {
+  if (state.modal) return false;
+  if (state.view === 'mealplan') return true;   // v95: auch im Wochenplan
+  return state.view === 'home' && !(typeof hvSelecting === 'function' && hvSelecting());
+}
+const QM_VISUAL = '.rcard, .rrow, .plan-entry';   // Element, das sich beim Halten abhebt (ganze Karte bzw. ganzer Plan-Eintrag)
 function qmCardFrom(t) {
   const el = t && t.closest ? t.closest('[data-action="open-recipe"][data-id]') : null;
+  if (el && state.view === 'mealplan' && !el.dataset.planEntry) return null;   // im Wochenplan nur geplante Rezepte
   return el && el.closest('#app') && !el.closest('.qm-layer') ? el : null;
 }
 function qmRecipe(id) { return state.recipes.find(r => r.id === id) || null; }
 
-function qmItems(r) {
+function qmItems(r, plan) {
   const I = (k, alt) => ICONS[k] || ICONS[alt] || '';
+  if (plan) return [   // v95: geplanter Eintrag im Wochenplan
+    { a: 'start-cook', icon: I('chef'), label: 'Jetzt kochen', hide: !(r.steps || []).length },
+    { a: 'add-to-shopping', icon: I('cart'), label: 'Auf die Einkaufsliste', hide: !(r.ingredients || []).length },
+    { sep: true },
+    { a: 'qm-plan-edit', icon: I('calendar'), label: 'Verschieben oder ändern' },
+    { a: 'qm-plan-again', icon: I('copy'), label: 'Morgen nochmals einplanen' },
+    { sep: true },
+    { a: 'qm-plan-remove', icon: I('trash'), label: 'Aus dem Plan entfernen', danger: true },
+  ].filter(x => !x.hide);
   const items = [
     { a: 'toggle-fav', icon: r.favorite ? I('bookmarkFilled', 'heart') : I('bookmark', 'heartOutline'), label: r.favorite ? 'Aus Favoriten entfernen' : 'Zu Favoriten' },
     { a: 'start-cook', icon: I('chef'), label: 'Jetzt kochen', hide: !(r.steps || []).length },
@@ -32,8 +47,8 @@ function qmItems(r) {
   return items.filter(x => !x.hide);
 }
 
-function qmMenuHtml(r) {
-  const items = qmItems(r).map(x => x.sep ? '<div class="qm-sep" role="separator"></div>'
+function qmMenuHtml(r, plan) {
+  const items = qmItems(r, plan).map(x => x.sep ? '<div class="qm-sep" role="separator"></div>'
     : `<button type="button" class="qm-item${x.danger ? ' qm-item--danger' : ''}" role="menuitem" tabindex="-1" data-qm="${x.a}"><span class="qm-label">${escapeHtml(x.label)}</span><span class="qm-icon" aria-hidden="true">${x.icon}</span></button>`).join('');
   return `<div class="qm-menu" role="menu" aria-label="Schnellzugriff für ${escapeAttr(r.title || 'Rezept')}">${items}</div>`;
 }
@@ -43,18 +58,21 @@ function qmOpen(card, viaKeyboard, byHold) {
   if (qmOpenState || !qmEnabled()) return;
   const r = qmRecipe(card.dataset.id);
   if (!r) return;
-  if (byHold) qmSwallowUntil = Date.now() + 1000;   // der Klick nach dem Loslassen öffnet das Rezept nicht
-  const visual = card.closest('.rcard, .rrow') || card;   // Vorschau zeigt die ganze Karte (mit Merk-Knopf)
+  if (byHold) qmSwallowUntil = Date.now() + 1000;
+  document.documentElement.classList.add('qm-holding');
+  try { const sel = window.getSelection && window.getSelection(); if (sel && sel.rangeCount) sel.removeAllRanges(); } catch (e) {}   // falls das iPhone schon etwas markiert hat   // der Klick nach dem Loslassen öffnet das Rezept nicht
+  const visual = card.closest(QM_VISUAL) || card;
+  const plan = card.dataset.planEntry ? { date: card.dataset.planDate, entryId: card.dataset.planEntry } : null;   // Vorschau zeigt die ganze Karte (mit Merk-Knopf)
   // Erst sperren, dann messen: bei klassischen Scrollleisten (Windows) rückt das Layout beim Sperren
   if (typeof lockBodyScroll === 'function') lockBodyScroll(window.scrollY);
   const rect = visual.getBoundingClientRect();
   const reduce = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
   const layer = document.createElement('div');
   layer.className = 'qm-layer';
-  layer.innerHTML = `<div class="qm-scrim" data-qm-close></div>${qmMenuHtml(r)}`;
+  layer.innerHTML = `<div class="qm-scrim" data-qm-close></div>${qmMenuHtml(r, plan)}`;
   // Vorschau: Kopie der Karte an genau derselben Stelle, hebt sich leicht ab (wie das iPhone-Kontextmenü)
   const W = document.documentElement.clientWidth, H = window.innerHeight;
-  const showPreview = rect.height < H * 0.45 && rect.width > 0;
+  const showPreview = rect.height < H * 0.45 && rect.width > 0 && rect.top >= 0 && rect.bottom <= H;   // nur, wenn die Karte ganz sichtbar ist
   let preview = null;
   if (showPreview) {
     preview = visual.cloneNode(true);
@@ -80,7 +98,8 @@ function qmOpen(card, viaKeyboard, byHold) {
     else { below = true; shift = Math.max(pad, Math.min(rect.top, H - pad - mh - gap - rect.height)) - rect.top; }
   }
   const left = Math.max(pad, Math.min(rect.left + (rect.width > mw * 1.4 ? 12 : 0), W - pad - mw));
-  const top = !preview ? Math.max(pad, (H - mh) / 2) : below ? rect.bottom + shift + gap : rect.top - gap - mh;
+  const top0 = !preview ? Math.max(pad, (H - mh) / 2) : below ? rect.bottom + shift + gap : rect.top - gap - mh;
+  const top = Math.max(pad, Math.min(top0, H - pad - mh));   // nie ausserhalb des Bildschirms (z. B. Karte halb verdeckt)
   Object.assign(menu.style, { left: left + 'px', top: top + 'px' });
   const originX = Math.max(0, Math.min(mw, rect.left + Math.min(rect.width, 80) / 2 - left));
   menu.style.transformOrigin = `${originX}px ${below ? 0 : mh}px`;
@@ -88,7 +107,7 @@ function qmOpen(card, viaKeyboard, byHold) {
   card.classList.remove('qm-pressing');
   visual.classList.add('qm-source');
   // byHold: nach langem Drücken folgt beim Loslassen oft ein Klick auf die Abdeckung; der darf das Menü nicht gleich schliessen
-  qmOpenState = { layer, card, visual, id: r.id, viaKeyboard, byHold: !!byHold, W };
+  qmOpenState = { layer, card, visual, id: r.id, plan, viaKeyboard, byHold: !!byHold, W };
   ['pointerdown', 'keydown'].forEach(t => layer.addEventListener(t, () => { if (qmOpenState) qmOpenState.byHold = false; }));
   layer.addEventListener('keydown', () => { if (qmOpenState) qmOpenState.viaKeyboard = true; });   // Tastatur benutzt: Fokus kehrt danach auf die Karte zurück
   // Auf das nächste Bild warten, dann einblenden (CSS-Übergänge starten vom Ausgangszustand)
@@ -109,6 +128,7 @@ function qmClose(opts) {
   qmOpenState = null;
   const { layer, card, visual } = s;
   const instant = opts && opts.instant;
+  document.documentElement.classList.remove('qm-holding');
   // Karte sofort wieder sichtbar machen (die Vorschau liegt beim Ausblenden noch darüber), sonst nimmt sie keinen Fokus an
   visual.classList.remove('qm-source');
   const done = () => layer.remove();
@@ -131,9 +151,10 @@ function qmLayerClick(e) {
   if (e.target.closest('[data-qm-close]')) { qmClose(); return; }
   const btn = e.target.closest('[data-qm]');
   if (!btn || !qmOpenState) return;
-  const action = btn.dataset.qm, id = qmOpenState.id, kb = qmOpenState.viaKeyboard;
+  const action = btn.dataset.qm, id = qmOpenState.id, kb = qmOpenState.viaKeyboard, plan = qmOpenState.plan;
   qmClose({ instant: true, keepFocus: true });
-  qmRun(action, id, kb);
+  if (plan && action.startsWith('qm-plan-')) qmRunPlan(action, plan, kb);
+  else qmRun(action, id, kb);
 }
 
 async function qmRun(action, id, kb) {
@@ -163,6 +184,38 @@ async function qmRun(action, id, kb) {
     if (r && typeof showToast === 'function') showToast(r.favorite ? 'Zu Favoriten hinzugefügt' : 'Aus Favoriten entfernt');
   }
 }
+/* v95: Aktionen für einen Eintrag im Wochenplan */
+async function qmRunPlan(action, plan, kb) {
+  const sel = kb ? `.plan-entry-main[data-plan-entry="${(window.CSS && CSS.escape) ? CSS.escape(plan.entryId) : plan.entryId}"]` : null;
+  const entries = planEntriesFor(plan.date).map(x => ({ ...x }));
+  const entry = entries.find(x => x.id === plan.entryId);
+  if (!entry) return;
+  const r = qmRecipe(entry.recipeId);
+  const name = (r && r.title) || 'Rezept';
+  if (action === 'qm-plan-edit') {
+    // bestehender Dialog: anderer Tag, andere Mahlzeit, Portionen
+    openModal({ type: 'plan-entry', date: plan.date, entryId: plan.entryId, meal: entry.meal || '' }, sel);
+    return;
+  }
+  if (action === 'qm-plan-again') {
+    const [y, m, d] = String(plan.date).split('-').map(Number);
+    const next = fmtDateKey(addDays(new Date(y, m - 1, d), 1));
+    const prevNext = planEntriesFor(next).map(x => ({ ...x }));
+    await savePlanEntries(next, prevNext.concat([{ id: uid(), recipeId: entry.recipeId, meal: entry.meal || '', servings: entry.servings || null }]));
+    render();
+    showToast(`„${name}“ auch morgen eingeplant`, 'success', false, { actionLabel: 'Rückgängig', duration: 8000, onAction: async () => {
+      await savePlanEntries(next, prevNext); if (state.view === 'mealplan') render(); } });
+    return;
+  }
+  if (action === 'qm-plan-remove') {
+    // gleich wie «Entfernen» im Eintragsdialog, mit Rückgängig statt Rückfrage
+    const prev = planEntriesFor(plan.date).map(x => ({ ...x }));
+    await savePlanEntries(plan.date, prev.filter(x => x.id !== plan.entryId));
+    render();
+    showToast(`„${name}“ entfernt`, 'success', false, { actionLabel: 'Rückgängig', duration: 8000, onAction: async () => {
+      await savePlanEntries(plan.date, prev); if (state.view === 'mealplan') render(); } });
+  }
+}
 /* Bestehende Aktion ausführen, als wäre ihr Knopf gedrückt worden */
 async function qmDispatch(action, id) {
   const el = document.createElement('button');
@@ -189,6 +242,7 @@ function qmCancelHold() {
   clearTimeout(qmTimer); qmTimer = null;
   if (qmStart && qmStart.vis) qmStart.vis.classList.remove('qm-pressing');
   qmStart = null;
+  if (!qmOpenState) document.documentElement.classList.remove('qm-holding');
 }
 document.addEventListener('pointerdown', (e) => {
   if (qmStart) qmCancelHold();   // zweiter Finger: altes Halten abbrechen
@@ -196,12 +250,14 @@ document.addEventListener('pointerdown', (e) => {
   const card = qmCardFrom(e.target);
   if (!card || e.target.closest('button:not([data-action="open-recipe"]), a, input')) return;   // Merk-Knopf in der Karte bleibt ein normaler Knopf
   if (e.pointerType === 'mouse') return;   // Maus: Rechtsklick (contextmenu) statt langes Drücken
-  qmStart = { x: e.clientX, y: e.clientY, card: card, vis: card.closest('.rcard, .rrow') || card, id: e.pointerId };
+  qmStart = { x: e.clientX, y: e.clientY, card: card, vis: card.closest(QM_VISUAL) || card, id: e.pointerId };
   qmStart.vis.classList.add('qm-pressing');
+  document.documentElement.classList.add('qm-holding');   // iPhone: keine Markier-Lupe während des Haltens
   qmTimer = setTimeout(() => {
     const c = qmStart && qmStart.card;
     if (qmStart) qmStart.vis.classList.remove('qm-pressing');
     qmTimer = null; qmStart = null;
+    document.documentElement.classList.remove('qm-holding');   // qmOpen setzt die Klasse wieder, falls das Menü aufgeht
     if (!c || !c.isConnected) return;
     qmOpen(c, false, true);
   }, QM_HOLD_MS);
