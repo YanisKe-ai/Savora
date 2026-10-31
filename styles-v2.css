@@ -5359,4 +5359,17 @@ html.qm-holding, html.qm-holding *, .qm-layer, .qm-layer * { -webkit-user-select
 @media (prefers-reduced-motion: reduce) {
   .step-item .step-no, .step-item .step-no-num, .step-item .step-no-tick, .step-item .step-body { transition: none; }
   .step-item .step-no-tick { transform: none; }
+/* v95 Einkauf wischen */
+.shop-row { position: relative; display: block; touch-action: pan-y pinch-zoom; -webkit-touch-callout: none; }
+.shop-row-fg { display: flex; align-items: center; gap: 0.5rem; min-height: 3.25rem; will-change: auto; }
+.shop-row.is-swiping { overflow: hidden; }
+.shop-row.is-swiping .shop-row-fg { background: var(--bg); will-change: transform; }
+.shop-swipe-bg { display: none; position: absolute; top: 0; right: 0; bottom: 0; left: 0; align-items: center; padding: 0 1.5rem; color: var(--card-bg); }
+.shop-swipe-bg > svg { width: 1.5rem; height: 1.5rem; opacity: 0; transition: transform 160ms cubic-bezier(0.32, 0.72, 0, 1); }
+.shop-swipe-bg--ok { background: var(--success); justify-content: flex-start; }
+.shop-swipe-bg--del { background: var(--danger); justify-content: flex-end; }
+.shop-row.is-swipe-ok .shop-swipe-bg--ok, .shop-row.is-swipe-del .shop-swipe-bg--del { display: flex; }
+.shop-row.is-armed .shop-swipe-bg > svg { transform: scale(1.25); }
+@media (prefers-reduced-motion: reduce) {
+  .shop-swipe-bg > svg { transition: none; }
 }
