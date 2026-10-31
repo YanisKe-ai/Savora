@@ -292,11 +292,108 @@ function openTextImport(opts) {
   if (url && text.trim() === url) text = '';
   state.modal = null;
   state.pasteImport = { text, url };
+  state.pdfImport = null;
   state.view = 'paste-import';
   render();
   return true;
 }
 window.openTextImport = openTextImport;
+
+/* ===== v92: Rezept aus PDF importieren =====
+   Die PDF wird lokal mit pdfImportRead (pdf-import.js) gelesen. Der Text wird ans Textfeld angehängt, nichts wird gespeichert oder hochgeladen.
+   Zustand: state.pdfImport (siehe pdfImportBoxHtml in views.js); der Seitentext liegt nur im Arbeitsspeicher (pdfImportPages). */
+let pdfImportPages = [];
+let pdfImportToken = 0;
+function pdfImportErrorText(code) {
+  if (code === 'password') return 'Die PDF ist mit einem Passwort geschützt. Entferne den Schutz und versuche es noch einmal.';
+  if (code === 'too-large') return 'Die PDF ist grösser als 25 MB. Wähle eine kleinere Datei.';
+  if (code === 'not-pdf') return 'Das ist keine PDF-Datei.';
+  return 'Die PDF lässt sich nicht lesen. Prüfe die Datei oder füge den Text von Hand ein.';
+}
+function pdfImportAppend(text) {
+  const ta = document.getElementById('pasteText');
+  const cur = ta ? ta.value : ((state.pasteImport && state.pasteImport.text) || '');
+  const next = cur.trim() ? cur.replace(/\s*$/, '') + '\n\n' + text : text;
+  state.pasteImport = Object.assign({}, state.pasteImport || {}, { text: next });
+  if (ta) ta.value = next;
+}
+function pdfImportGrowField() {
+  const ta = document.getElementById('pasteText');
+  if (ta) { ta.style.height = 'auto'; ta.style.height = Math.min(ta.scrollHeight + 6, window.innerHeight * 0.5) + 'px'; }
+}
+async function pdfImportStart(file) {
+  if (!file) return;
+  const token = ++pdfImportToken;
+  pdfImportPages = [];
+  if (state.view !== 'paste-import') {   // aus dem Plus-Menü: «Aus Text importieren» öffnen
+    state.modal = null;
+    state.pasteImport = { text: '', url: '' };
+    state.view = 'paste-import';
+  }
+  state.pdfImport = { status: 'reading', msg: 'PDF wird gelesen …' };
+  render();
+  let res;
+  try { res = await pdfImportRead(file, { maxPages: 30 }); } catch (e) { res = { ok: false, error: 'load-failed' }; }
+  if (token !== pdfImportToken) return;   // inzwischen eine andere PDF gewählt
+  res = res || { ok: false, error: 'load-failed' };
+  const pages = Array.isArray(res.pages) ? res.pages : [];
+  const withText = pages.filter((p) => p && p.chars > 0 && String(p.text || '').trim());
+  if (!res.ok) {
+    state.pdfImport = { status: 'error', msg: pdfImportErrorText(res.error) };
+  } else if (res.scanned || !withText.length) {
+    state.pdfImport = { status: 'scanned', msg: 'Diese PDF enthält nur Bilder, keinen lesbaren Text. Die KI kann sie für dich lesen.', truncated: !!res.truncated };
+  } else if (withText.length === 1) {
+    pdfImportAppend(pdfJoinPages(pages, [withText[0].n]));
+    state.pdfImport = { status: 'done', msg: 'Text aus der PDF übernommen. Prüfe ihn kurz und tippe dann auf «Rezept-Entwurf erstellen».', truncated: !!res.truncated };
+  } else {
+    pdfImportPages = pages;
+    const firstLine = (t) => (String(t).split('\n').map((l) => l.trim()).find(Boolean) || '').slice(0, 140);
+    state.pdfImport = {
+      status: 'choose', msg: '', truncated: !!res.truncated,
+      items: withText.map((p) => ({ n: p.n, first: firstLine(p.text) })),
+      selected: (withText.length <= 4 ? withText : withText.slice(0, 1)).map((p) => p.n),
+    };
+  }
+  render();
+  pdfImportGrowField();
+}
+function pdfImportApply() {
+  const st = state.pdfImport;
+  if (!st || st.status !== 'choose') return;
+  const nums = (st.selected || []).slice().sort((a, b) => a - b);
+  if (!nums.length) { st.msg = 'Wähle mindestens eine Seite aus.'; render(); return; }
+  const text = pdfJoinPages(pdfImportPages, nums);
+  if (!String(text).trim()) { st.msg = 'Auf den gewählten Seiten steht kein Text.'; render(); return; }
+  pdfImportAppend(text);
+  pdfImportPages = [];
+  state.pdfImport = { status: 'done', msg: 'Text aus der PDF übernommen. Prüfe ihn kurz und tippe dann auf «Rezept-Entwurf erstellen».', truncated: !!st.truncated };
+  render();
+  pdfImportGrowField();
+}
+function bindPdfImport() {
+  if (!window.__pdfImportDocBound) {   // einmalig: Dateiwahl (Plus-Menü und Textimport) und Seitenauswahl
+    window.__pdfImportDocBound = true;
+    document.addEventListener('change', (e) => {
+      const t = e.target;
+      if (!t || !t.matches) return;
+      if (t.matches('input.pdfimp-file-input')) {
+        const file = t.files && t.files[0];
+        t.value = '';
+        if (file) pdfImportStart(file);
+      } else if (t.matches('input[data-pdf-page]') && state.pdfImport && state.pdfImport.status === 'choose') {
+        const n = Number(t.getAttribute('data-pdf-page'));
+        const sel = new Set(state.pdfImport.selected || []);
+        if (t.checked) sel.add(n); else sel.delete(n);
+        state.pdfImport.selected = Array.from(sel);
+      }
+    });
+  }
+  const ta = document.getElementById('pasteText');   // getippter Text bleibt beim Neuzeichnen erhalten
+  if (ta && !ta.dataset.pdfBound) {
+    ta.dataset.pdfBound = '1';
+    ta.addEventListener('input', () => { state.pasteImport = Object.assign({}, state.pasteImport || {}, { text: ta.value }); });
+  }
+}
 
 /* v89 B: «Rezept hinzufügen» schrumpft beim Runterscrollen zum runden Plus. Kein Scroll-Listener: ein IntersectionObserver
    beobachtet einen Wächter oben in der Liste (.home-add-sentinel). Liegt er ausserhalb des Bildschirms, wird der Knopf rund. */
@@ -381,6 +478,7 @@ function bindEvents() {
   if (typeof ucBindInputs === 'function') ucBindInputs();   // Masseinheiten-Rechner (unit-converter.js)
   if (typeof ingPasteBind === 'function') ingPasteBind();   // Zutaten einfuegen (ingredient-paste.js)
   if (typeof bindPhotoScan === 'function') bindPhotoScan();   // Foto scannen (nur iOS-App)
+  if (typeof bindPdfImport === 'function') bindPdfImport();   // PDF importieren (Plus-Menü und Textimport)
   if (typeof bindPdfPreview === 'function') bindPdfPreview();   // PDF-Vorschau mit PDF.js (pdf-preview.js)
   const stepper = document.querySelector('.form-stepper');
   const stepAct = stepper && stepper.querySelector('.is-active');
@@ -505,12 +603,15 @@ async function dispatchAction(action, id, el, e) {
       say('Text eingefügt.');
       break;
     }
+    case 'pdf-import-apply':
+      pdfImportApply();
+      break;
     case 'copy-ki-prompt': {   // v90.2: Prompt fuer die KI kopieren (Fallback: Text markieren, damit man ihn selbst kopieren kann)
       const hint = document.getElementById('kiPromptHint');
       const say = (msg) => { if (hint) hint.textContent = msg; };
       let ok = false;
       try { if (navigator.clipboard && navigator.clipboard.writeText) { await navigator.clipboard.writeText(SAVORA_KI_PROMPT); ok = true; } } catch (err) { ok = false; }
-      if (ok) { say('Prompt kopiert. Jetzt in der KI einfügen und den Link ans Ende setzen.'); showToast('Prompt kopiert'); break; }
+      if (ok) { say(pdfImportScanned() ? 'Prompt kopiert. Jetzt in der KI einfügen und die PDF anhängen.' : 'Prompt kopiert. Jetzt in der KI einfügen und den Link ans Ende setzen.'); showToast('Prompt kopiert'); break; }
       document.querySelectorAll('.ki-prompt-how, .ki-prompt-details').forEach(d => { d.open = true; });
       const pre = document.getElementById('kiPromptText');
       if (pre && window.getSelection) { const rg = document.createRange(); rg.selectNodeContents(pre); const sel = window.getSelection(); sel.removeAllRanges(); sel.addRange(rg); }
@@ -526,7 +627,7 @@ async function dispatchAction(action, id, el, e) {
       break;
     case 'open-photo-scan': {   // Import-Bildschirm oeffnen und gleich die Fotoauswahl zeigen
       state.modal = null;
-      state.pasteImport = null;
+      state.pasteImport = null; state.pdfImport = null;
       state.view = 'paste-import';
       render();
       let scanTries = 0;   // render() kann per View Transition verzoegert sein: kurz warten, bis das Feld da ist
@@ -1075,7 +1176,7 @@ async function dispatchAction(action, id, el, e) {
         if (!res.ok) { showErr(`<p><strong>Das Rezept-JSON konnte nicht übernommen werden.</strong> Dein Text bleibt stehen. Korrigiere die folgenden Punkte und tippe erneut auf „Rezept-Entwurf erstellen“.</p><ul>${res.errors.map(e => `<li>${escapeHtml(e.message)}</li>`).join('')}</ul>`); break; }
         state.editingRecipe = res.recipe;
         if (linkSource && !String(state.editingRecipe.source || '').trim()) state.editingRecipe.source = linkSource;
-        state.pasteImport = null;
+        state.pasteImport = null; state.pdfImport = null;
         state.formStep = 0;
         state.view = 'form';
         render();
@@ -1084,7 +1185,7 @@ async function dispatchAction(action, id, el, e) {
       }
       state.editingRecipe = parseFreeTextRecipe(text);
       if (linkSource && !String(state.editingRecipe.source || '').trim()) state.editingRecipe.source = linkSource;
-      state.pasteImport = null;
+      state.pasteImport = null; state.pdfImport = null;
       state.formStep = 0;
       state.view = 'form';
       render();

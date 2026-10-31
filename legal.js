@@ -40,7 +40,7 @@ function legalPrivacyHtml() {
     ${legalSection('Welche Daten wo liegen', `
       <p><b>Auf deinem Gerät.</b> Rezepte mit Fotos, Notizen, Wochenplan, Einkaufsliste, Sammlungen, Kochfortschritt, Timer und Einstellungen liegen im Speicher des Browsers oder der App. Sie verlassen das Gerät nicht, solange du nicht angemeldet bist und keine Datei teilst.</p>
       <p><b>Mit Konto (auf mehreren Geräten).</b> Für die Anmeldung wird deine E-Mail-Adresse gespeichert, das Passwort nur in geschützter Form. Dazu kommen Rezepte, Fotos, Wochenplan, Einkaufsliste, Sammlungen, die Kochbuch-Auswahl und der Zeitpunkt der letzten Änderung. Nur dein Konto kann diese Daten lesen.</p>
-      <p><b>Kamera und Fotos.</b> Die Kamera wird nur für „Foto scannen“ genutzt. Bei „Foto scannen“ liest die Texterkennung von iOS den Text aus dem Bild. Das läuft auf deinem Gerät, Bilder werden weder gespeichert noch übertragen. Es entsteht nur der erkannte Text, den du prüfst.</p>
+      <p><b>Kamera und Fotos.</b> Die Kamera wird nur für „Foto scannen“ genutzt. Bei „Foto scannen“ liest die Texterkennung von iOS den Text aus dem Bild. Das läuft auf deinem Gerät, Bilder werden weder gespeichert noch übertragen. Es entsteht nur der erkannte Text, den du prüfst. PDF-Dateien, die du für „Aus PDF importieren“ wählst, werden nur auf deinem Gerät gelesen, nicht gespeichert und nicht übertragen.</p>
       <p><b>Mitteilungen (iOS-App).</b> Die Timer-Meldungen werden auf deinem Gerät geplant. Es gibt keinen Push-Server.</p>
       <p><b>Teilen und Sicherung.</b> Erstellst du ein PDF oder eine Sicherungsdatei und gibst sie weiter, verlässt genau diese Datei dein Gerät.</p>`)}
     ${legalSection('Rezeptbibliothek', `
@@ -125,7 +125,7 @@ function legalHelpHtml() {
     ${legalSection('Kontakt aufnehmen', `<p>Fragen oder Rückmeldungen schickst du an ${legalValue(LEGAL.email)}. Bei einem Fehler hilft es, kurz zu schreiben, was du getan hast und was du erwartet hast. Savora sendet nichts von selbst.</p>
       <a class="ghost-btn help-contact-btn" href="mailto:${escapeAttr(LEGAL.email)}">Kontakt aufnehmen</a>`)}
     ${group('Rezepte', [
-      q('Wie bringe ich ein Rezept in Savora?', 'Tippe auf das Plus. Du kannst ein Rezept von Hand eintragen, einen Text einfügen oder in der iOS-App ein Foto scannen. Du prüfst den Entwurf, bevor er gespeichert wird.'),
+      q('Wie bringe ich ein Rezept in Savora?', 'Tippe auf das Plus. Du kannst ein Rezept von Hand eintragen, einen Text einfügen, eine PDF-Datei mit Rezepttext wählen oder in der iOS-App ein Foto scannen. Du prüfst den Entwurf, bevor er gespeichert wird.'),
       q('Warum ändern sich Mengen, wenn ich Portionen ändere?', 'Savora rechnet immer vom Originalrezept aus. Die gespeicherten Mengen bleiben gleich, nur die Anzeige wird umgerechnet.'),
       q('Wie genau sind die Nährwerte?', 'Geschätzte Werte. Je nach Zutaten und Mengen können sie abweichen. Mehr dazu unter „Über Savora“, „Quellen &amp; Lizenzen“.'),
       q('Kann ich die Nährwerte ausblenden?', 'Ja, unter „Mehr, Einstellungen, Kochen &amp; Mengen“ mit „Nährwerte anzeigen“. Berechnete Werte bleiben gespeichert und erscheinen wieder, sobald du sie einschaltest.'),
