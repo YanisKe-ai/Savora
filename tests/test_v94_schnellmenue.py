@@ -72,6 +72,37 @@ async def main():
                     await page.evaluate(HOLD_JS, [CARD, 520, False]); await wait_open(page)
                     await page.mouse.click(5, 5); await wait_open(page, False)
                     check('Tipp daneben schliesst, Rezept bleibt zu', await page.evaluate("() => state.view") == 'home')
+                    # Loslassen: der Klick landet auf der Abdeckung (Hit-Test am Fingerpunkt) und schliesst das Menü nicht
+                    await page.evaluate("""async (sel) => { const el = document.querySelector(sel); const r = el.getBoundingClientRect();
+                      const x = r.left + r.width / 2, y = r.top + Math.min(r.height / 2, 40);
+                      const o = { bubbles: true, cancelable: true, pointerId: 9, pointerType: 'touch', isPrimary: true, clientX: x, clientY: y, button: 0 };
+                      el.dispatchEvent(new PointerEvent('pointerdown', o)); await new Promise(f => setTimeout(f, 520));
+                      const t = document.elementFromPoint(x, y); t.dispatchEvent(new PointerEvent('pointerup', o));
+                      t.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true, clientX: x, clientY: y })); }""", CARD)
+                    await page.wait_for_timeout(300)
+                    check('Loslassen des Fingers schliesst das Menü nicht', await page.evaluate("() => !!document.querySelector('.qm-layer.is-open')"))
+                    await page.mouse.click(5, 5); await wait_open(page, False)
+                    check('danach schliesst ein echter Tipp daneben', await page.evaluate("() => state.view") == 'home')
+                    # Kein hängender «Klick schlucken»: lange drücken, Escape, dann normaler Tipp öffnet das Rezept
+                    await page.evaluate("""async (sel) => { const el = document.querySelector(sel); const r = el.getBoundingClientRect();
+                      const o = { bubbles: true, cancelable: true, pointerId: 11, pointerType: 'touch', isPrimary: true, clientX: r.left + 20, clientY: r.top + 20, button: 0 };
+                      el.dispatchEvent(new PointerEvent('pointerdown', o)); await new Promise(f => setTimeout(f, 520)); el.dispatchEvent(new PointerEvent('pointercancel', o)); }""", CARD)
+                    await wait_open(page); await page.keyboard.press('Escape'); await wait_open(page, False)
+                    await page.wait_for_timeout(1100)
+                    await page.click(CARD); await page.wait_for_function("() => state.view === 'detail'", timeout=5000)
+                    check('nach Halten ohne Klick öffnet der nächste Tipp das Rezept', True)
+                    await page.evaluate("() => { state.view = 'home'; render(); }"); await page.wait_for_selector(CARD)
+                    # Einkaufsliste: Zutatenauswahl erscheint auf der Liste
+                    await page.evaluate(HOLD_JS, [CARD, 520, False]); await wait_open(page)
+                    await page.click('.qm-item[data-qm="add-to-shopping"]')
+                    await page.wait_for_function("() => state.modal && state.modal.type === 'shop-select' && !!document.querySelector('.modal-sheet')", timeout=5000)
+                    check('Auf die Einkaufsliste: Zutatenauswahl erscheint auf der Rezeptliste', await page.evaluate("() => state.view") == 'home')
+                    await page.keyboard.press('Escape'); await page.wait_for_function("() => !state.modal", timeout=5000)
+                    # Neuzeichnen bei offenem Menü schliesst es sauber
+                    await page.evaluate(HOLD_JS, [CARD, 520, False]); await wait_open(page)
+                    await page.evaluate("() => render()"); await page.wait_for_timeout(250)
+                    st = await page.evaluate("() => ({ layer: !!document.querySelector('.qm-layer'), fixed: document.body.style.position })")
+                    check('Neuzeichnen schliesst das Menü, Seite nicht gesperrt', not st['layer'] and st['fixed'] != 'fixed', st)
                     # Favorit umschalten
                     rid = await page.get_attribute(CARD, 'data-id')
                     fav0 = await page.evaluate("(id) => !!state.recipes.find(r => r.id === id).favorite", rid)

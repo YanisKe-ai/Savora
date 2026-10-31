@@ -301,6 +301,7 @@ function restoreFocusFingerprint(fp) {
 }
 
 function render(skipHistoryPush) {
+  if (typeof qmOpenState !== 'undefined' && qmOpenState) qmClose({ instant: true, keepFocus: true });   // v94: Neuzeichnen schliesst das Schnellmenü (sonst passt die Vorschau nicht mehr)
   const prevView = lastRenderedView;
   const viewChanged = state.view !== prevView;
   const hadModal = bodyScrollLockY !== null;

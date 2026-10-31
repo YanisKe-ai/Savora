@@ -790,7 +790,7 @@ async function dispatchAction(action, id, el, e) {
       state.view = 'home';
       render();
       showUndoToast(
-        `„${recipeToDelete.title}“ gelöscht`,
+        `„${recipeToDelete.title || 'Ohne Titel'}“ gelöscht`,
         () => { state.pendingDeletes.delete(id); state.recipes.push(recipeToDelete); state.recipes.sort((a, b) => b.updatedAt - a.updatedAt); render(); },
         async () => {
           // v90: erst in «Zuletzt gelöscht» (Bild bleibt dort 30 Tage), dann aus der Sammlung nehmen

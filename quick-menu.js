@@ -5,7 +5,7 @@
    zeichnet qmModalHostHtml() auch ausserhalb der Rezeptseite. */
 const QM_HOLD_MS = 420;          // so lange halten, bis das Menü aufgeht (iOS liegt bei rund 0,5 s)
 const QM_MOVE_TOL = 10;          // so weit darf der Finger wandern, ohne dass es als Scrollen gilt
-let qmTimer = null, qmStart = null, qmSwallowClick = false, qmOpenState = null;
+let qmTimer = null, qmStart = null, qmSwallowUntil = 0, qmOpenState = null;
 
 function qmEnabled() { return state.view === 'home' && !(typeof hvSelecting === 'function' && hvSelecting()) && !state.modal; }
 function qmCardFrom(t) {
@@ -39,11 +39,14 @@ function qmMenuHtml(r) {
 }
 
 /* ---------- Öffnen und Schliessen ---------- */
-function qmOpen(card, viaKeyboard) {
+function qmOpen(card, viaKeyboard, byHold) {
   if (qmOpenState || !qmEnabled()) return;
   const r = qmRecipe(card.dataset.id);
   if (!r) return;
+  if (byHold) qmSwallowUntil = Date.now() + 1000;   // der Klick nach dem Loslassen öffnet das Rezept nicht
   const visual = card.closest('.rcard, .rrow') || card;   // Vorschau zeigt die ganze Karte (mit Merk-Knopf)
+  // Erst sperren, dann messen: bei klassischen Scrollleisten (Windows) rückt das Layout beim Sperren
+  if (typeof lockBodyScroll === 'function') lockBodyScroll(window.scrollY);
   const rect = visual.getBoundingClientRect();
   const reduce = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
   const layer = document.createElement('div');
@@ -84,8 +87,9 @@ function qmOpen(card, viaKeyboard) {
   if (preview && shift) preview.style.setProperty('--qm-shift', shift + 'px');
   card.classList.remove('qm-pressing');
   visual.classList.add('qm-source');
-  qmOpenState = { layer, card, visual, id: r.id, prevFocus: document.activeElement, viaKeyboard };
-  if (typeof lockBodyScroll === 'function') lockBodyScroll(window.scrollY);
+  // byHold: nach langem Drücken folgt beim Loslassen oft ein Klick auf die Abdeckung; der darf das Menü nicht gleich schliessen
+  qmOpenState = { layer, card, visual, id: r.id, viaKeyboard, byHold: !!byHold, W };
+  ['pointerdown', 'keydown'].forEach(t => layer.addEventListener(t, () => { if (qmOpenState) qmOpenState.byHold = false; }));
   // Auf das nächste Bild warten, dann einblenden (CSS-Übergänge starten vom Ausgangszustand)
   requestAnimationFrame(() => requestAnimationFrame(() => layer.classList.add('is-open')));
   if (!reduce && navigator.vibrate) { try { navigator.vibrate(8); } catch (e) {} }   // Android: kurzer Ruck; iPhone-Browser kennt das nicht
@@ -118,6 +122,9 @@ function qmClose(opts) {
 }
 
 function qmLayerClick(e) {
+  // Klick vom Loslassen des Fingers nach dem langen Drücken: darunter liegt die Abdeckung oder sogar ein Eintrag
+  // (wenn die Karte zum Platzmachen verschoben wurde). Erst ein neuer Tipp im Menü zählt.
+  if (qmOpenState && qmOpenState.byHold) { qmOpenState.byHold = false; return; }
   if (e.target.closest('[data-qm-close]')) { qmClose(); return; }
   const btn = e.target.closest('[data-qm]');
   if (!btn || !qmOpenState) return;
@@ -132,9 +139,11 @@ async function qmRun(action, id, card) {
     // Teilen hat viele Unterwege (Freunde, PDF, Veröffentlichen), die auf der Rezeptseite zuhause sind:
     // Rezept öffnen und dort das Teilen-Menü zeigen
     await qmDispatch('open-recipe', id);
+    await new Promise(f => requestAnimationFrame(() => requestAnimationFrame(f)));   // Rezeptseite (samt Übergang) erst fertig zeichnen
     if (state.view === 'detail') openModal({ type: 'share-menu', recipeId: id }, `[data-action="open-share-menu"][data-id="${(window.CSS && CSS.escape) ? CSS.escape(id) : id}"]`);
     return;
   }
+  if (action === 'rcol-open') { openModal({ type: 'rcol', recipeId: id }, sel); return; }
   const modalTypes = { 'confirm-delete': 'delete', 'open-plan-recipe': 'plan-recipe' };
   if (modalTypes[action]) {
     // Dialoge öffnen über openModal (eigener Zurück-Eintrag); Fokus kehrt danach auf die Karte zurück
@@ -144,6 +153,7 @@ async function qmRun(action, id, card) {
     return;
   }
   await qmDispatch(action, id);
+  if (state.modal && typeof modalTriggerSelector !== 'undefined') modalTriggerSelector = sel;   // z. B. Einkauf: nach dem Dialog Fokus zurück auf die Karte
   if (action === 'toggle-fav') {
     const r = qmRecipe(id);
     if (r && typeof showToast === 'function') showToast(r.favorite ? 'Zu Favoriten hinzugefügt' : 'Aus Favoriten entfernt');
@@ -177,7 +187,8 @@ function qmCancelHold() {
   qmStart = null;
 }
 document.addEventListener('pointerdown', (e) => {
-  if (qmOpenState || e.button > 0 || !qmEnabled()) return;
+  if (qmStart) qmCancelHold();   // zweiter Finger: altes Halten abbrechen
+  if (qmOpenState || e.button > 0 || !e.isPrimary || !qmEnabled()) return;
   const card = qmCardFrom(e.target);
   if (!card || e.target.closest('button:not([data-action="open-recipe"]), a, input')) return;   // Merk-Knopf in der Karte bleibt ein normaler Knopf
   if (e.pointerType === 'mouse') return;   // Maus: Rechtsklick (contextmenu) statt langes Drücken
@@ -188,8 +199,7 @@ document.addEventListener('pointerdown', (e) => {
     if (qmStart) qmStart.vis.classList.remove('qm-pressing');
     qmTimer = null; qmStart = null;
     if (!c || !c.isConnected) return;
-    qmSwallowClick = true;
-    qmOpen(c, false);
+    qmOpen(c, false, true);
   }, QM_HOLD_MS);
 }, { passive: true });
 document.addEventListener('pointermove', (e) => {
@@ -200,12 +210,14 @@ document.addEventListener('pointermove', (e) => {
 window.addEventListener('scroll', () => { if (qmStart) qmCancelHold(); }, { passive: true });
 // Der Klick nach dem langen Drücken öffnet das Rezept nicht
 document.addEventListener('click', (e) => {
-  if (!qmSwallowClick) return;
-  qmSwallowClick = false;
-  if (qmCardFrom(e.target)) { e.preventDefault(); e.stopPropagation(); }
+  if (!qmSwallowUntil) return;
+  const live = Date.now() < qmSwallowUntil;
+  qmSwallowUntil = 0;   // gilt nur für den einen Klick direkt nach dem Loslassen
+  if (live && qmCardFrom(e.target)) { e.preventDefault(); e.stopPropagation(); }
 }, true);
 // Rechtsklick (Mac/Windows) und das native Kontextmenü (Android nach langem Drücken): eigenes Menü statt Browsermenü
 document.addEventListener('contextmenu', (e) => {
+  if (qmOpenState || (e.target.closest && e.target.closest('.qm-layer'))) { e.preventDefault(); return; }   // Android: kommt nach unserem Timer
   const card = qmCardFrom(e.target);
   if (!card || !qmEnabled() && !qmOpenState) return;
   e.preventDefault();
@@ -222,7 +234,8 @@ document.addEventListener('keydown', (e) => {
   e.preventDefault();
   qmOpen(card, true);
 });
-window.addEventListener('resize', () => { if (qmOpenState) qmClose({ instant: true }); });
+// Nur bei echter Grössenänderung schliessen (Drehen, Fenster), nicht wenn die Adressleiste ein- oder ausfährt
+window.addEventListener('resize', () => { if (qmOpenState && Math.abs(document.documentElement.clientWidth - qmOpenState.W) > 1) qmClose({ instant: true }); });
 window.addEventListener('popstate', () => { if (qmOpenState) qmClose({ instant: true }); });
 
 /* Dialoge aus dem Schnellmenü auch auf der Rezeptliste zeigen (sonst zeichnet sie nur die Rezeptseite). */
@@ -230,6 +243,8 @@ function qmModalHostHtml() {
   const m = state.modal;
   // «Zu Sammlung hinzufügen» setzt kein fromQuick (bestehende Aktion); auf der Rezeptliste zeichnet sonst niemand den Dialog
   if (m && m.type === 'rcol' && state.view === 'home' && typeof rcolModalHtml === 'function') return rcolModalHtml();
+  // «Auf die Einkaufsliste» öffnet die Zutatenauswahl; die Rezeptliste zeichnet sie sonst nicht
+  if (m && m.type === 'shop-select' && state.view === 'home' && typeof shopSelectModal === 'function') return shopSelectModal();
   if (!m || !m.fromQuick || state.view === 'detail') return '';
   const r = qmRecipe(m.recipeId);
   if (!r) return '';
