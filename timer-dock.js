@@ -27,7 +27,7 @@
       if (!t) return;
       if (!(t.running || (t.done && !t.ack))) return;
       const meta = metaFor(id, t);
-      if (!meta) return;
+      if (!meta || !(state.recipes || []).some(r => r.id === meta.recipeId)) return;   // Rezept gelöscht: keine Anzeige
       const remaining = t.running && t.endTime ? Math.max(0, Math.round((t.endTime - Date.now()) / 1000)) : (t.remaining || 0);
       out.push({ id, t, meta, remaining, done: !!t.done && !t.running });
     });

@@ -682,6 +682,7 @@ async function dispatchAction(action, id, el, e) {
       r.steps = r.steps.filter(s => s.text);
       if (!r.ingredients.length) r.ingredients = [{ amount: '', unit: '', name: '' }];
       if (!r.steps.length) r.steps = [{ text: '' }];
+      if (state.doneSteps) delete state.doneSteps[r.id];   // v95: Schritte können sich geändert haben, Haken passen nicht mehr
       const wasImport = !!(r._importSummary || r._import);   // v84: nach Text-Import freiwillig zu einer Sammlung
       delete r._importSummary; delete r._import; // nur Anzeigehilfen, gehoeren nicht in die Datenbank
       await dbPut(r);

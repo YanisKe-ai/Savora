@@ -5407,3 +5407,6 @@ body:has(.toast) .timer-dock { translate: 0 -4.5rem; }   /* Abstand zu Toasts: s
 }
 /* v95 Meldungen: alle Meldungen bekommen ihre eigene Breite (vorher höchstens halb so breit wie der Bildschirm, weil von der Mitte aus positioniert) */
 .toast { width: max-content; max-width: min(92vw, 30rem); text-align: center; }
+.toast-undo { white-space: normal; }   /* v95: lange Meldung mit «Rückgängig» bricht um, der Knopf bleibt im Bild */
+.toast-undo > span, .toast-undo > .toast-text { min-width: 0; }
+.toast-undo .toast-undo-btn { flex: none; white-space: nowrap; }

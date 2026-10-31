@@ -27,7 +27,7 @@ function qmItems(r, plan) {
     { a: 'add-to-shopping', icon: I('cart'), label: 'Auf die Einkaufsliste', hide: !(r.ingredients || []).length },
     { sep: true },
     { a: 'qm-plan-edit', icon: I('calendar'), label: 'Verschieben' },
-    { a: 'qm-plan-again', icon: I('copy'), label: 'Morgen nochmals' },
+    { a: 'qm-plan-again', icon: I('copy'), label: plan.date === fmtDateKey(new Date()) ? 'Morgen nochmals' : 'Am Folgetag nochmals' },
     { sep: true },
     { a: 'qm-plan-remove', icon: I('trash'), label: 'Aus dem Plan entfernen', danger: true },
   ].filter(x => !x.hide);
@@ -203,7 +203,8 @@ async function qmRunPlan(action, plan, kb) {
     const prevNext = planEntriesFor(next).map(x => ({ ...x }));
     await savePlanEntries(next, prevNext.concat([{ id: uid(), recipeId: entry.recipeId, meal: entry.meal || '', servings: entry.servings || null }]));
     render();
-    showToast(`„${name}“ auch morgen eingeplant`, 'success', false, { actionLabel: 'Rückgängig', duration: 8000, onAction: async () => {
+    const dayName = new Date(y, m - 1, d + 1).toLocaleDateString('de-CH', { weekday: 'long' });
+    showToast(`„${name}“ auch am ${dayName} eingeplant`, 'success', false, { actionLabel: 'Rückgängig', duration: 8000, onAction: async () => {
       await savePlanEntries(next, prevNext); if (state.view === 'mealplan') render(); } });
     return;
   }

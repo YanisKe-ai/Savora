@@ -142,8 +142,11 @@ function cookAlarmBeep() {
 function cookAlarmText() {
   if (!_cookAlarm) return '';
   const steps = Array.from(_cookAlarm.ids).map(id => { const m = /-(\d+)-[^-]*$/.exec(id); return m ? parseInt(m[1], 10) + 1 : null; }).filter(Boolean).sort((a, b) => a - b);
-  if (!steps.length) return 'Ein Timer ist abgelaufen.';
-  return steps.length === 1 ? `Schritt ${steps[0]} ist bereit.` : `Schritte ${steps.join(', ')} sind bereit.`;
+  // v95: Timer laufen nach dem Kochmodus weiter; ausserhalb davon (oder bei einem anderen Rezept) den Rezeptnamen nennen
+  const titles = Array.from(new Set(Array.from(_cookAlarm.ids).map(id => { const t = state.timers[id]; const m = t && t.meta; return m && (state.view !== 'cookmode' || m.recipeId !== state.activeRecipeId) ? m.label : ''; }).filter(Boolean)));
+  const pre = titles.length === 1 ? `${titles[0]}: ` : '';
+  if (!steps.length) return pre + 'Ein Timer ist abgelaufen.';
+  return pre + (steps.length === 1 ? `Schritt ${steps[0]} ist bereit.` : `Schritte ${steps.join(', ')} sind bereit.`);
 }
 function cookAlarmRender() {
   if (!_cookAlarm) return;
@@ -169,7 +172,8 @@ function cookAlarmRender() {
     document.body.appendChild(el);
   }
   el.querySelector('#cookAlarmText').textContent = cookAlarmText();
-  if (fresh) { const ok = el.querySelector('.cook-alarm-ok'); try { ok.focus({ preventScroll: true }); } catch (e) {} }
+  // Fokus nur im Kochmodus übernehmen; sonst würde ein Timer mitten im Tippen (Einkauf, Editor) das Eingabefeld schliessen
+  if (fresh && state.view === 'cookmode') { const ok = el.querySelector('.cook-alarm-ok'); try { ok.focus({ preventScroll: true }); } catch (e) {} }
 }
 function cookAlarmStart(id) {
   if (!_cookAlarm) {
