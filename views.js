@@ -129,7 +129,7 @@ function addMenuModal() {
             <strong>Aus PDF importieren</strong>
             <span>Rezept als PDF-Datei</span>
           </span>
-          <input type="file" id="pdfMenuInput" class="pdfimp-file-input" accept="application/pdf,.pdf" aria-label="PDF mit einem Rezept auswählen">
+          <input type="file" id="pdfMenuInput" class="sr-only pdfimp-file-input" accept="application/pdf,.pdf" aria-label="PDF mit einem Rezept auswählen">
         </label>
         ${SavoraNative.canRecognizeText() ? `<button type="button" class="add-menu-option" data-action="open-photo-scan">
           <span class="add-menu-option-icon">${ICONS.camera}</span>
@@ -707,7 +707,7 @@ function pdfImportBoxHtml() {
   const trunc = st && st.truncated ? `<p class="hint-line pdfimp-trunc">Es wurden nur die ersten 30 Seiten gelesen.</p>` : '';
   return `<div class="pdfimp-box">
           <label class="ghost-btn ocr-btn pdfimp-btn" for="pdfInput">${ICONS.pdf} PDF wählen</label>
-          <input type="file" id="pdfInput" class="ocr-input pdfimp-file-input" accept="application/pdf,.pdf" aria-label="PDF mit einem Rezept auswählen">
+          <input type="file" id="pdfInput" class="sr-only ocr-input pdfimp-file-input" accept="application/pdf,.pdf" aria-label="PDF mit einem Rezept auswählen">
           <p class="hint-line">Der Text wird nur auf deinem Gerät gelesen.</p>
           <div id="pdfStatus" class="ocr-status pdfimp-status" role="status" aria-live="polite">${msg}</div>
           ${picker}${trunc}
