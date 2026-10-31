@@ -5276,6 +5276,13 @@ html:not(#lp) body .home-main > .today-planned { display: block; overflow: visib
 /* v93.1 Foto/PDF-Knöpfe: feste Zweierspalten statt Umbruch nach Schriftbreite, damit sie ab rund 300 px Platz immer nebeneinander stehen */
 .pdfimp-btns { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 8.5rem), 1fr)); }
 .pdfimp-btns .pdfimp-btn { padding-inline: 0.75rem; }
+/* v93.1 Meldung mit Knopf (z. B. «Rezept gespeichert» + «Zu einer Sammlung hinzufügen»): eigene Breite statt halber Bildschirm. Handy: Text oben, Knopf darunter. Ab 480 px: eine Zeile. Text bricht nie Buchstabe für Buchstabe */
+.toast-action { width: max-content; max-width: min(92vw, 30rem); flex-wrap: nowrap; }
+.toast-action .toast-text { flex: 0 1 auto; overflow-wrap: normal; }
+@media (max-width: 479px) {
+  .toast-action { flex-direction: column; gap: 0; padding: 0.75rem 1rem 0.25rem; border-radius: 1.5rem; text-align: center; }
+  .toast-action-btn { white-space: normal; }
+}
 /* v94 Schnellmenü (quick-menu.js): langes Drücken, Rechtsklick oder Kontextmenü-Taste auf einer Rezept-Karte.
    Vorbild: Kontextmenü auf dem iPhone. Karte hebt sich ab, Hintergrund wird ruhig und unscharf, Menü wächst aus der Karte. */
 .home-main :is(.rcard, .rrow) { -webkit-touch-callout: none; }
