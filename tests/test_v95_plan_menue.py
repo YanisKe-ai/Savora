@@ -43,7 +43,7 @@ async def main():
             m = await page.evaluate("""() => { const m = document.querySelector('.qm-menu'); const r = m.getBoundingClientRect();
               return { items: Array.from(m.querySelectorAll('.qm-item')).map(b => b.textContent.trim()), l: r.left, r: r.right, t: r.top, b: r.bottom, W: document.documentElement.clientWidth, H: innerHeight, view: state.view }; }""")
             check(f'{tag}: langes Drücken öffnet das Plan-Menü, Rezept bleibt zu', m['view'] == 'mealplan', m['view'])
-            check(f'{tag}: Plan-Einträge', all(x in m['items'] for x in ['Verschieben oder ändern', 'Morgen nochmals einplanen', 'Aus dem Plan entfernen']), m['items'])
+            check(f'{tag}: Plan-Einträge', all(x in m['items'] for x in ['Verschieben', 'Morgen nochmals', 'Aus dem Plan entfernen']), m['items'])
             check(f'{tag}: Menü ganz im Bild', m['l'] >= 8 and m['r'] <= m['W'] - 8 and m['t'] >= 8 and m['b'] <= m['H'] - 8)
             if SHOT: await page.wait_for_timeout(400); await page.screenshot(path=os.path.join(SHOT, f'plan_{w}_{scheme}.png'))
             await page.keyboard.press('Escape'); await wait_open(page, False)

@@ -26,8 +26,8 @@ function qmItems(r, plan) {
     { a: 'start-cook', icon: I('chef'), label: 'Jetzt kochen', hide: !(r.steps || []).length },
     { a: 'add-to-shopping', icon: I('cart'), label: 'Auf die Einkaufsliste', hide: !(r.ingredients || []).length },
     { sep: true },
-    { a: 'qm-plan-edit', icon: I('calendar'), label: 'Verschieben oder ändern' },
-    { a: 'qm-plan-again', icon: I('copy'), label: 'Morgen nochmals einplanen' },
+    { a: 'qm-plan-edit', icon: I('calendar'), label: 'Verschieben' },
+    { a: 'qm-plan-again', icon: I('copy'), label: 'Morgen nochmals' },
     { sep: true },
     { a: 'qm-plan-remove', icon: I('trash'), label: 'Aus dem Plan entfernen', danger: true },
   ].filter(x => !x.hide);
