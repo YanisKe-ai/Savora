@@ -5268,3 +5268,11 @@ html:not(#lp) body .home-main > .today-planned { display: block; overflow: visib
 .pdfimp-box:focus-within .pdfimp-btn { outline: 3px solid var(--accent); outline-offset: 2px; }
 .pdfimp-btn { cursor: pointer; }
 .pdfimp-status { margin: 0.25rem 0 0.5rem; }
+
+/* v93 Foto-Import */
+.pdfimp-btns { display: flex; flex-wrap: wrap; gap: 0.5rem; flex: 1 1 100%; min-width: 0; }   /* «Foto wählen» und «PDF wählen» nebeneinander, bei sehr schmalen Bildschirmen untereinander */
+.pdfimp-btns .pdfimp-btn { flex: 1 1 auto; justify-content: center; min-width: 0; white-space: nowrap; }
+.pdfimp-box .hint-line { flex: 1 1 100%; }
+/* v93.1 Foto/PDF-Knöpfe: feste Zweierspalten statt Umbruch nach Schriftbreite, damit sie ab rund 300 px Platz immer nebeneinander stehen */
+.pdfimp-btns { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 8.5rem), 1fr)); }
+.pdfimp-btns .pdfimp-btn { padding-inline: 0.75rem; }

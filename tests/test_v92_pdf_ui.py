@@ -53,7 +53,7 @@ async def main():
 
         # ---------- 1. Plus-Menü ----------
         await open_menu()
-        m = await ev("""() => { const l = document.querySelector('.add-menu-option--file'), i = document.getElementById('pdfMenuInput'); const r = l.getBoundingClientRect();
+        m = await ev("""() => { const l = document.querySelector('label[for=pdfMenuInput]'), i = document.getElementById('pdfMenuInput'); const r = l.getBoundingClientRect();
           return { tag: l.tagName, label: l.textContent.replace(/\\s+/g, ' ').trim(), accept: i.accept, type: i.type, h: r.height, w: r.width, inLabel: l.contains(i),
                    order: Array.from(document.querySelectorAll('.add-menu-option strong')).map(e => e.textContent) }; }""")
         check('Plus-Menü: Option «Aus PDF importieren» als Label mit Dateifeld', m['tag'] == 'LABEL' and m['inLabel'] and m['type'] == 'file' and 'Aus PDF importieren' in m['label'] and 'Rezept als PDF-Datei' in m['label'], str(m))

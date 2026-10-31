@@ -49,7 +49,7 @@ Regeln der Übernahme:
 Dieser Prompt steht in Savora unter «Rezept hinzufügen › Aus Text importieren» zum Kopieren (`SAVORA_KI_PROMPT` in `recipe-json.js`). Den Rezept-Link oder den Rezepttext ans Ende setzen. Getestet mit 12 Rezepten von Schweizer, deutschen und englischen Seiten sowie Social-Media-Texten (`tests/test_v90_ki_prompt.py`).
 
 ```
-Öffne den Rezept-Link (oder lies den Rezepttext oder die angehängte PDF) unten und gib das Rezept für die App Savora als EINEN JSON-Codeblock zurück, ohne Text davor oder danach. Kannst du den Link nicht öffnen, antworte nur: LINK NICHT LESBAR. Erfinde nie ein Rezept.
+Öffne den Rezept-Link (oder lies den Rezepttext, das angehängte Foto oder die angehängte PDF) unten und gib das Rezept für die App Savora als EINEN JSON-Codeblock zurück, ohne Text davor oder danach. Kannst du den Link nicht öffnen, antworte nur: LINK NICHT LESBAR. Erfinde nie ein Rezept.
 
 Form:
 {"format":"savora-recipe","version":1,"title":"…","yield":{"count":4,"kind":"portions","label":null},"time":{"totalMinutes":null,"activeMinutes":null,"restMinutes":null,"cookMinutes":null},"difficulty":null,"source":{"url":"…","name":"…"},"ingredients":[{"group":null,"name":"Mehl","amount":{"type":"exact","value":250},"unit":"g","note":null,"optional":false}],"steps":[{"text":"…","variants":[]}],"notes":[]}

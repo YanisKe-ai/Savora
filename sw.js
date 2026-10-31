@@ -16,7 +16,7 @@
    - Kontrollierter Update-Flow: kein automatisches skipWaiting. Ein neuer Worker wartet, bis
      die Seite per postMessage({type:'SKIP_WAITING'}) explizit zustimmt.
 */
-const SW_VERSION = 'v133-zeiten';
+const SW_VERSION = 'v134-fotoimport';
 const CACHE_SHELL = 'savora-shell-' + SW_VERSION;
 const CACHE_RUNTIME = 'savora-runtime-' + SW_VERSION;
 const CACHE_DATA = 'savora-data-' + SW_VERSION;
@@ -40,6 +40,10 @@ const OPTIONAL_ASSETS = [
   './swiss-fcd-data.json',
   './vendor/pdfjs/pdf.min.js',
   './vendor/pdfjs/pdf.worker.min.js',
+  './vendor/tesseract/tesseract.min.js',   // Texterkennung «Aus Foto importieren» (rund 5,5 MB, nur fuer «Ohne Internet»)
+  './vendor/tesseract/worker.min.js',
+  './vendor/tesseract/tesseract-core-simd-lstm.wasm.js',
+  './vendor/tesseract/deu.traineddata.gz',
   './assets/covers/01-pop.png',
   './assets/covers/02-lieblingsbuch.png',
   './assets/covers/03-tomate.png',
@@ -150,6 +154,7 @@ const SHELL_ASSETS = [
   './pdf-ui.js',
   './pdf-preview.js',
   './pdf-import.js',
+  './image-import.js',
   './pdf-model.js',
   './backup.js',
   './motion.js',
