@@ -5405,3 +5405,5 @@ body:has(.toast) .timer-dock { translate: 0 -4.5rem; }   /* Abstand zu Toasts: s
   .timer-dock.is-done::after { animation: none; display: none; }
   .timer-dock-main:active, .timer-dock-ok:active { transform: none; }
 }
+/* v95 Meldungen: alle Meldungen bekommen ihre eigene Breite (vorher höchstens halb so breit wie der Bildschirm, weil von der Mitte aus positioniert) */
+.toast { width: max-content; max-width: min(92vw, 30rem); text-align: center; }

@@ -34,6 +34,11 @@ async def main():
                 if w < 480: check(f'{tag}: Handy: Knopf unter dem Text', m['btnTop'] >= m['textTop'] + m['textH'] - 1, m)
                 else: check(f'{tag}: breit: Text und Knopf in einer Zeile', abs((m['btnTop'] + m['btnH'] / 2) - (m['textTop'] + m['textH'] / 2)) < 4, m)
                 if SHOT: await page.screenshot(path=os.path.join(SHOT, f'toast_{w}_{scheme}.png'))
+                # v95: auch eine einfache Meldung ist nicht mehr auf halbe Breite begrenzt
+                await page.evaluate("() => showToast('Fortgesetzt bei Schritt 2')")
+                await page.wait_for_function("() => { const t = document.querySelector('.toast:not(.toast-action)'); return t && t.textContent.includes('Schritt 2'); }")
+                st = await page.evaluate("() => { const t = document.querySelector('.toast:not(.toast-action)'); const r = t.getBoundingClientRect(); return { h: r.height, l: r.left, r: r.right, W: document.documentElement.clientWidth }; }")
+                check(f'{tag}: einfache Meldung in einer Zeile und im Bild', st['h'] < 60 and st['l'] >= 0 and st['r'] <= st['W'], st)
                 check(f'{tag}: keine Seitenfehler', not errs, errs)
                 await b.close()
     print('\nFEHLGESCHLAGEN:', FAIL or 'keine')
