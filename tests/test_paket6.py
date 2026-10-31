@@ -100,7 +100,7 @@ async def main():
         bad = await js("Array.from(document.querySelectorAll('.cook-timerbar button, .cook-font-btn')).filter(e => { const r = e.getBoundingClientRect(); return r.height < 43.5 || r.width < 43.5 }).length")
         check('Tippflächen der Timer-Leiste und Schrift-Taste mind. 44 px', bad == 0, str(bad))
         await click('[data-action="exit-cook"]'); await page.wait_for_timeout(300)
-        check('Kochmodus verlassen: Timer beendet', await js("Object.keys(state.timers).length") == 0)
+        check('Kochmodus verlassen: Timer laufen weiter (v95, Timer-Pille)', await js("Object.values(state.timers).filter(t => t.running).length") >= 1)
         check('Keine Seitenfehler', not errs, str(errs[:3]))
         await browser.close()
     print('\nFEHLGESCHLAGEN:', FAIL or 'keine')
