@@ -1635,12 +1635,15 @@ function shoppingItemRow(i) {
   const recipeTitles = Array.from(new Set((i.sources || []).map(s => s.title || (state.recipes.find(r => r.id === s.recipeId) || {}).title).filter(Boolean)));
   const amount = i.amount !== '' && i.amount !== undefined && i.amount !== null ? escapeHtml(shopAmountLine(i)) : (i.unit ? escapeHtml(i.unit) : '');
   return `<div class="shop-row ${i.checked ? 'is-checked' : ''}" data-id="${escapeAttr(i.id)}">
+    <span class="shop-swipe-bg shop-swipe-bg--ok" aria-hidden="true">${ICONS.check}</span><span class="shop-swipe-bg shop-swipe-bg--del" aria-hidden="true">${ICONS.trash}</span>
+    <div class="shop-row-fg">
     <button class="shop-check" data-action="toggle-shopping-item" data-id="${escapeAttr(i.id)}" role="checkbox" aria-checked="${!!i.checked}" aria-label="${escapeHtml(i.name)}"><span class="check-box" aria-hidden="true">${ICONS.check}</span></button>
     <div class="shop-text">
       <span class="shop-name">${amount ? `<strong>${amount}</strong> ` : ''}${escapeHtml(i.name)}</span>
       ${recipeTitles.length ? `<span class="shop-source">aus: ${escapeHtml(recipeTitles.join(', '))}</span>` : ''}
     </div>
     <button class="icon-btn icon-btn--small" data-action="open-shop-item" data-id="${escapeAttr(i.id)}" aria-label="${escapeHtml(i.name)} bearbeiten">${ICONS.moreH}</button>
+    </div>
   </div>`;
 }
 function shoppingView() {
