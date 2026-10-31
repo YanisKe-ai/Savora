@@ -62,16 +62,18 @@ async def main():
                     await page.evaluate(HOLD_JS, [CARD, 60, False]); await page.wait_for_timeout(300)
                     v = await page.evaluate("() => state.view")
                     check('kurzer Tipp öffnet das Rezept', v == 'detail', v)
-                    await page.evaluate("() => { state.view = 'home'; render(); }"); await page.wait_for_selector(CARD)
+                    await page.evaluate("() => { state.view = 'home'; render(); }"); await page.wait_for_selector(CARD); await page.wait_for_timeout(600)   # Scroll-Wiederherstellung abwarten (Scrollen bricht langes Drücken ab)
                     # Finger wandert (Scrollen): kein Menü
                     await page.evaluate(HOLD_JS, [CARD, 520, True]); await page.wait_for_timeout(200)
                     st = await page.evaluate("() => ({ open: !!document.querySelector('.qm-layer'), v: state.view })")
                     check('Finger bewegt sich (Scrollen): kein Menü', not st['open'], st)
-                    await page.evaluate("() => { state.view = 'home'; render(); }"); await page.wait_for_selector(CARD)
+                    await page.evaluate("() => { state.view = 'home'; render(); }"); await page.wait_for_selector(CARD); await page.wait_for_timeout(600)   # Scroll-Wiederherstellung abwarten (Scrollen bricht langes Drücken ab)
                     # Tipp auf den Hintergrund schliesst
                     await page.evaluate(HOLD_JS, [CARD, 520, False]); await wait_open(page)
                     await page.mouse.click(5, 5); await wait_open(page, False)
                     check('Tipp daneben schliesst, Rezept bleibt zu', await page.evaluate("() => state.view") == 'home')
+                    foc = await page.evaluate("() => { const a = document.activeElement; return a && a.dataset ? (a.dataset.action || a.tagName) : null; }")
+                    check('Finger: nach dem Schliessen kein Fokus (kein Rahmen) auf der Karte', foc != 'open-recipe', foc)
                     # Loslassen: der Klick landet auf der Abdeckung (Hit-Test am Fingerpunkt) und schliesst das Menü nicht
                     await page.evaluate("""async (sel) => { const el = document.querySelector(sel); const r = el.getBoundingClientRect();
                       const x = r.left + r.width / 2, y = r.top + Math.min(r.height / 2, 40);
@@ -91,7 +93,7 @@ async def main():
                     await page.wait_for_timeout(1100)
                     await page.click(CARD); await page.wait_for_function("() => state.view === 'detail'", timeout=5000)
                     check('nach Halten ohne Klick öffnet der nächste Tipp das Rezept', True)
-                    await page.evaluate("() => { state.view = 'home'; render(); }"); await page.wait_for_selector(CARD)
+                    await page.evaluate("() => { state.view = 'home'; render(); }"); await page.wait_for_selector(CARD); await page.wait_for_timeout(600)   # Scroll-Wiederherstellung abwarten (Scrollen bricht langes Drücken ab)
                     # Einkaufsliste: Zutatenauswahl erscheint auf der Liste
                     await page.evaluate(HOLD_JS, [CARD, 520, False]); await wait_open(page)
                     await page.click('.qm-item[data-qm="add-to-shopping"]')
@@ -139,7 +141,7 @@ async def main():
                     await page.wait_for_function("() => state.view === 'detail' && state.modal && state.modal.type === 'share-menu'", timeout=5000)
                     check('Teilen: Rezept mit Teilen-Menü offen', True)
                     await page.keyboard.press('Escape'); await page.wait_for_function("() => !state.modal", timeout=5000)
-                    await page.evaluate("() => { state.view = 'home'; render(); }"); await page.wait_for_selector(CARD)
+                    await page.evaluate("() => { state.view = 'home'; render(); }"); await page.wait_for_selector(CARD); await page.wait_for_timeout(600)   # Scroll-Wiederherstellung abwarten (Scrollen bricht langes Drücken ab)
                 if w == 1280 and scheme == 'light':
                     # Rechtsklick
                     await page.click(CARD, button='right'); await wait_open(page)
