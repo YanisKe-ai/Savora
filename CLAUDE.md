@@ -61,3 +61,7 @@ Savora ist eine Vanilla-JS-PWA (persönliches Kochbuch), live über GitHub Pages
 - Python: `/Users/yanis/Desktop/Savora/savora-repo/.venv/bin/python` (bei «Connection closed»: `brctl download .venv`).
 - `SAVORA_BASE_PORT=<port> .venv/bin/python tests/run_all.py <name>`; einzelne Datei mit `SAVORA_TEST_PORT=<port>`.
 - PDF-Abnahme: echte PDFs erzeugen, mit `pdftoppm` rendern und ansehen, `pdftotext` vergleichen.
+
+## Projektnotiz im Vault
+Übersicht, Stand und Entscheidungen (nur lesen, Pflege per `/abschluss`):
+@~/Yanis/10\ Projekte/Savora.md
